@@ -20,6 +20,7 @@ const applicationTables = {
   })
     .index("by_posted_at", ["postedAt"])
     .index("by_state_posted", ["state", "postedAt"])
+    .index("by_url", ["url"])
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["remote", "level", "state"],
@@ -55,6 +56,7 @@ const applicationTables = {
   sites: defineTable({
     name: v.optional(v.string()),
     url: v.string(),
+    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),
     // Optional reusable schedule reference

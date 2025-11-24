@@ -1,40 +1,22 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import pytest
 
 # Target module
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('.'))
 from job_scrape_application.workflows import activities as acts
+from job_scrape_application.workflows import convex_client
 
 
-class FakeResponse:
-    def __init__(self, json_data: Any, status_code: int = 200):
-        self._json = json_data
-        self.status_code = status_code
-
-    def raise_for_status(self) -> None:
-        if self.status_code >= 400:
-            raise RuntimeError(f"HTTP {self.status_code}")
-
-    def json(self) -> Any:
-        return self._json
-
-
-class FakeAsyncClient:
-    def __init__(self, timeout: int | float | None = None):
-        # Sites state
+class FakeConvex:
+    def __init__(self):
         self.sites: Dict[str, Dict[str, Any]] = {}
         self._id_counter = 0
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        return False
 
     def _insert_site(self, name: str) -> str:
         self._id_counter += 1
@@ -45,71 +27,63 @@ class FakeAsyncClient:
             "url": f"https://example.com/{name}",
             "enabled": True,
             "completed": False,
+            "failed": False,
             "lockExpiresAt": None,
             "lockedBy": None,
             "lastRunAt": None,
+            "type": "general",
         }
         return sid
 
-    # Minimal POST router for the endpoints we use
-    async def post(self, url: str, json: Optional[Dict[str, Any]] = None):
-        data: Dict[str, Any] = json or {}
+    async def query(self, name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listSites":
+            enabled_only = (args or {}).get("enabledOnly", False)
+            sites = list(self.sites.values())
+            if enabled_only:
+                sites = [s for s in sites if s["enabled"]]
+            return sites
+        raise RuntimeError(f"Unexpected query {name}")
 
-        if url.endswith("/api/sites"):
-            # Create site
-            sid = self._insert_site(data.get("name") or "site")
-            return FakeResponse({"success": True, "id": sid})
-        if url.endswith("/api/sites/lease"):
-            # Lease first unlocked + not completed
+    async def mutation(self, name: str, args: Dict[str, Any] | None = None):
+        args = args or {}
+        if name == "router:leaseSite":
             now = 0
             for s in self.sites.values():
-                if s.get("completed"):
+                if s.get("completed") or s.get("failed"):
                     continue
                 if s.get("lockExpiresAt") and s["lockExpiresAt"] > now:
                     continue
-                s["lockedBy"] = data.get("workerId")
-                s["lockExpiresAt"] = now + int(data.get("lockSeconds") or 300) * 1000
-                return FakeResponse(s)
-            return FakeResponse(None)
-        if url.endswith("/api/sites/complete"):
-            sid = data.get("id")
-            assert isinstance(sid, str), "complete payload missing id"
+                s["lockedBy"] = args.get("workerId")
+                s["lockExpiresAt"] = now + int(args.get("lockSeconds") or 300) * 1000
+                return s
+            return None
+        if name == "router:completeSite":
+            sid = args.get("id")
             s = self.sites.get(sid)
-            assert s, f"unknown site id {sid}"
+            assert s
             s["completed"] = True
             s["lockedBy"] = None
             s["lockExpiresAt"] = None
-            return FakeResponse({"success": True})
-        return FakeResponse({"error": "not found"}, status_code=404)
+            return {"success": True}
+        raise RuntimeError(f"Unexpected mutation {name}")
 
 
 @pytest.mark.asyncio
 async def test_lease_complete_sequence(monkeypatch):
-    # Monkeypatch httpx.AsyncClient used inside activities
-    fake_client = FakeAsyncClient()
+    fake = FakeConvex()
 
-    class _Factory:
-        def __init__(self, *args, **kwargs):
-            pass
+    # Pre-seed two sites
+    sid1 = fake._insert_site("A")
+    sid2 = fake._insert_site("B")
 
-        async def __aenter__(self):
-            return fake_client
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        return await fake.query(name, args)
 
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        return await fake.mutation(name, args)
 
-    monkeypatch.setattr(acts.httpx, "AsyncClient", _Factory)
-
-    # Seed two sites via the HTTP route used by activities.store/lease/complete
-    base = (acts.settings.convex_http_url or "http://local").rstrip("/")
-    async with fake_client as c:
-        # Create two
-        r1 = await c.post(base + "/api/sites", json={"name": "A", "url": "u", "enabled": True})
-        r1.raise_for_status()
-        sid1 = r1.json()["id"]
-        r2 = await c.post(base + "/api/sites", json={"name": "B", "url": "u", "enabled": True})
-        r2.raise_for_status()
-        sid2 = r2.json()["id"]
+    monkeypatch.setattr(convex_client, "convex_query", fake_query)
+    monkeypatch.setattr(convex_client, "convex_mutation", fake_mutation)
 
     # Lease one
     leased1 = await acts.lease_site("worker-x", 60)

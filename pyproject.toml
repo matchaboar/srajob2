@@ -6,7 +6,9 @@ readme = "README.md"
 authors = [{ name = "matchaboar", email = "matchaboar@email.com" }]
 requires-python = "==3.13.*"
 dependencies = [
+    "convex>=0.7.0",
     "fetchfox-sdk>=1.0.1",
+    "firecrawl>=4.8.0",
     "httpx>=0.28.1",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",

@@ -5,7 +5,8 @@ from temporalio.worker import Worker
 
 from .config import settings
 from . import activities
-from .scrape_workflow import ScrapeWorkflow
+from .scrape_workflow import FirecrawlScrapeWorkflow, ScrapeWorkflow
+from .greenhouse_workflow import GreenhouseScraperWorkflow
 
 print("Loading worker module...")
 
@@ -95,11 +96,16 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=settings.task_queue,
-        workflows=[ScrapeWorkflow],
+        workflows=[ScrapeWorkflow, FirecrawlScrapeWorkflow, GreenhouseScraperWorkflow],
         activities=[
             activities.fetch_sites,
             activities.lease_site,
             activities.scrape_site,
+            activities.scrape_site_firecrawl,
+            activities.scrape_site_fetchfox,
+            activities.fetch_greenhouse_listing,
+            activities.filter_existing_job_urls,
+            activities.scrape_greenhouse_jobs,
             activities.store_scrape,
             activities.complete_site,
             activities.fail_site,

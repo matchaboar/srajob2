@@ -2,7 +2,6 @@
 
 This package defines a scheduled workflow that:
 - Reads the list of sites to scrape from Convex (HTTP route: /api/sites)
-- Uses FetchFox to scrape pages and collects items
+- Uses Firecrawl by default (FetchFox as fallback) to scrape pages and collect items
 - Stores raw scrape results back into Convex (HTTP route: /api/scrapes)
 """
-

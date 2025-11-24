@@ -19,6 +19,76 @@ const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
   sun: "Sun",
 };
 const ALL_SCHEDULE_DAYS: ScheduleDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const COMMON_SUBDOMAIN_PREFIXES = ["www", "jobs", "careers", "boards", "app", "apply"];
+
+const toTitleCaseSlug = (slug: string): string => {
+  return slug
+    .replace(/[_-]+/g, " ")
+    .split(/[\s.]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const baseDomainFromHost = (host: string): string => {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 1) return host;
+  const last = parts[parts.length - 1];
+  const secondLast = parts[parts.length - 2];
+  const shouldUseThree = secondLast.length === 2 || last.length === 2;
+  if (shouldUseThree && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+};
+
+const isGreenhouseUrlString = (rawUrl: string): boolean => {
+  if (!rawUrl) return false;
+  if (/greenhouse/i.test(rawUrl)) return true;
+  try {
+    const parsed = new URL(rawUrl);
+    return /greenhouse/i.test(parsed.hostname);
+  } catch {
+    return /greenhouse/i.test(rawUrl);
+  }
+};
+
+const deriveSiteName = (rawUrl: string): string => {
+  if (!rawUrl) return "Site";
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const pathSegments = parsed.pathname.split("/").filter(Boolean);
+
+    // Greenhouse boards: company slug is usually the first path segment
+    if (/greenhouse/.test(host) && pathSegments.length > 0) {
+      const candidate = toTitleCaseSlug(pathSegments[0]);
+      if (candidate) return candidate;
+    }
+
+    const hostParts = host.split(".");
+    while (hostParts.length > 2 && COMMON_SUBDOMAIN_PREFIXES.includes(hostParts[0])) {
+      hostParts.shift();
+    }
+
+    const basePart = hostParts.length >= 2 ? hostParts[hostParts.length - 2] : hostParts[0];
+    if (basePart && !COMMON_SUBDOMAIN_PREFIXES.includes(basePart)) {
+      const candidate = toTitleCaseSlug(basePart);
+      if (candidate) return candidate;
+    }
+
+    if (pathSegments.length > 0) {
+      const candidate = toTitleCaseSlug(pathSegments[0]);
+      if (candidate) return candidate;
+    }
+
+    const baseDomain = baseDomainFromHost(host);
+    if (baseDomain) return baseDomain;
+  } catch {
+    // fall back to raw input if parsing fails
+  }
+  return "Site";
+};
 
 function TemporalStatusSection() {
   const [activeTab, setActiveTab] = useState<"active" | "stale">("active");
@@ -347,16 +417,37 @@ function ScraperConfigSection() {
   const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null);
   const [updatingSiteScheduleId, setUpdatingSiteScheduleId] = useState<string | null>(null);
 
+  // Single add state
+  const [url, setUrl] = useState("");
+  const [siteType, setSiteType] = useState<"general" | "greenhouse">("general");
+  const [pattern, setPattern] = useState("");
+  const [enabled, setEnabled] = useState(true);
+
+  // Bulk add state
+  const [bulkText, setBulkText] = useState("");
+  const [bulkSiteType, setBulkSiteType] = useState<"general" | "greenhouse">("general");
+
+  const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
+  const generatedName = useMemo(() => deriveSiteName(url), [url]);
+
+  useEffect(() => {
+    if (!isGreenhouseUrl) return;
+    if (siteType !== "greenhouse") setSiteType("greenhouse");
+    if (pattern) setPattern("");
+    if (!enabled) setEnabled(true);
+    if (selectedScheduleId) setSelectedScheduleId("");
+  }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId]);
+
   useEffect(() => {
     if (!schedules || schedules.length === 0) return;
     const first = schedules[0]._id as unknown as string;
-    if (!selectedScheduleId) {
+    if (!selectedScheduleId && !isGreenhouseUrl) {
       setSelectedScheduleId(first);
     }
     if (!bulkScheduleId) {
       setBulkScheduleId(first);
     }
-  }, [schedules, selectedScheduleId, bulkScheduleId]);
+  }, [schedules, selectedScheduleId, bulkScheduleId, isGreenhouseUrl]);
 
   const scheduleMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -365,15 +456,6 @@ function ScraperConfigSection() {
     });
     return map;
   }, [schedules]);
-
-  // Single add state
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [pattern, setPattern] = useState("");
-  const [enabled, setEnabled] = useState(true);
-
-  // Bulk add state
-  const [bulkText, setBulkText] = useState("");
 
   const resetScheduleForm = () => {
     setScheduleName("");
@@ -498,22 +580,29 @@ function ScraperConfigSection() {
 
   const handleAddSite = async (e: FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
       toast.error("URL is required");
       return;
     }
     try {
+      const greenhouseSubmission = isGreenhouseUrlString(trimmedUrl);
+      const normalizedType = greenhouseSubmission ? "greenhouse" : siteType ?? "general";
+      const normalizedPattern = normalizedType === "greenhouse" ? undefined : (pattern.trim() || undefined);
+      const generatedName = deriveSiteName(trimmedUrl);
+
       await upsertSite({
-        name: name.trim() || undefined,
-        url: url.trim(),
-        pattern: pattern.trim() || undefined,
+        name: generatedName,
+        url: trimmedUrl,
+        type: normalizedType,
+        pattern: normalizedPattern,
         scheduleId: selectedScheduleId || undefined,
         enabled,
       });
       toast.success("Site added");
-      setName("");
       setUrl("");
       setPattern("");
+      setSiteType("general");
       setEnabled(true);
     } catch {
       toast.error("Failed to add site");
@@ -527,15 +616,37 @@ function ScraperConfigSection() {
     const sitesToInsert: any[] = [];
 
     for (const line of lines) {
-      // Format: url, name (optional), pattern (optional)
-      const parts = line.split(",").map(p => p.trim());
+      // Format: url, pattern (optional), type (optional)
+      const parts = line.split(",").map(p => p.trim()).filter(Boolean);
       if (parts.length === 0 || !parts[0]) continue;
 
-      const [u, n, p] = parts;
+      const [u, ...rest] = parts;
+      let parsedType: "general" | "greenhouse" | undefined;
+      let parsedPattern: string | undefined;
+
+      for (const segment of rest) {
+        const lowered = segment.toLowerCase();
+        if (!parsedType && (lowered === "general" || lowered === "greenhouse")) {
+          parsedType = lowered as "general" | "greenhouse";
+          continue;
+        }
+        if (!parsedPattern) {
+          parsedPattern = segment;
+        }
+      }
+
+      const greenhouseSubmission = isGreenhouseUrlString(u);
+      const normalizedType = greenhouseSubmission
+        ? "greenhouse"
+        : parsedType ?? bulkSiteType ?? "general";
+      const patternValue = normalizedType === "greenhouse" ? undefined : parsedPattern;
+      const generatedName = deriveSiteName(u);
+
       sitesToInsert.push({
         url: u,
-        name: n || undefined,
-        pattern: p || undefined,
+        name: generatedName,
+        pattern: patternValue,
+        type: normalizedType,
         scheduleId: bulkScheduleId || selectedScheduleId || undefined,
         enabled: true,
       });
@@ -755,77 +866,108 @@ function ScraperConfigSection() {
 
       {mode === "single" ? (
         <form onSubmit={(e) => { void handleAddSite(e); }} className="space-y-3 mb-6 bg-slate-950/50 p-3 rounded border border-slate-800">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div className="md:col-span-3">
-              <input
-                type="text"
-                placeholder="Name"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="md:col-span-5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+            <div className="md:col-span-6">
+              <label className="text-xs text-slate-400 block mb-1">Start URL</label>
               <input
                 type="url"
-                placeholder="URL (required)"
+                placeholder="Start URL (required)"
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 required
               />
+              <div className="space-y-1 mt-1 min-h-[32px]">
+                {isGreenhouseUrl && (
+                  <p className="text-[11px] text-amber-300 leading-snug truncate">
+                    Greenhouse board detected. Other fields are locked; name is auto-generated.
+                  </p>
+                )}
+                {!!url.trim() && (
+                  <p className="text-[11px] text-slate-500 leading-snug truncate">
+                    Will save as <span className="text-slate-200">{generatedName}</span>
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="md:col-span-4">
+            <div className="md:col-span-3">
+              <label className="text-xs text-slate-400 block mb-1">Site type</label>
+              <select
+                value={siteType}
+                onChange={(e) => {
+                  const next = e.target.value as "general" | "greenhouse";
+                  setSiteType(next);
+                  if (next === "greenhouse") setPattern("");
+                }}
+                disabled={isGreenhouseUrl}
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+              >
+                <option value="general">General (FetchFox)</option>
+                <option value="greenhouse">Greenhouse board</option>
+              </select>
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-xs text-slate-400 block mb-1">Pattern (optional)</label>
               <input
                 type="text"
                 placeholder="Pattern (optional)"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-60"
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
+                disabled={isGreenhouseUrl || siteType === "greenhouse"}
+                title={isGreenhouseUrl || siteType === "greenhouse" ? "Greenhouse sites don't need a pattern" : "Optional pattern for detail pages"}
               />
             </div>
           </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-              <label className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div className="md:col-span-6">
+              <label className="text-xs text-slate-400 block mb-1">Schedule</label>
+              <select
+                value={selectedScheduleId}
+                onChange={(e) => setSelectedScheduleId(e.target.value)}
+                disabled={isGreenhouseUrl}
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+              >
+                {!schedules && <option value="">Loading schedules...</option>}
+                <option value="">{schedules ? "No schedule (manual)" : " "}</option>
+                {schedules?.map((sched: any) => (
+                  <option key={sched._id as unknown as string} value={sched._id as unknown as string}>
+                    {sched.name} • {formatScheduleSummary(sched)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-xs text-slate-400 block mb-1">Status</label>
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   className="h-3.5 w-3.5 bg-slate-900 border-slate-700 rounded"
                   checked={enabled}
                   onChange={(e) => setEnabled(e.target.checked)}
+                  disabled={isGreenhouseUrl}
                 />
-                Enabled by default
-              </label>
-              <div className="flex-1 min-w-[220px]">
-                <label className="text-xs text-slate-400 block mb-1">Schedule</label>
-                <select
-                  value={selectedScheduleId}
-                  onChange={(e) => setSelectedScheduleId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                >
-                  {!schedules && <option value="">Loading schedules...</option>}
-                  <option value="">{schedules ? "No schedule (manual)" : " "}</option>
-                  {schedules?.map((sched: any) => (
-                    <option key={sched._id as unknown as string} value={sched._id as unknown as string}>
-                      {sched.name} • {formatScheduleSummary(sched)}
-                    </option>
-                  ))}
-                </select>
+                <span className="text-xs text-slate-400">Enabled by default</span>
               </div>
             </div>
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-500 transition-colors"
-            >
-              Add Site
-            </button>
+            <div className="md:col-span-3 flex md:justify-end">
+              <button
+                type="submit"
+                className="w-full md:w-auto px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-500 transition-colors"
+              >
+                Add Site
+              </button>
+            </div>
           </div>
         </form>
       ) : (
         <div className="space-y-3 mb-6 bg-slate-950/50 p-3 rounded border border-slate-800">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="text-xs text-slate-400">
-              Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, name (optional), pattern (optional)</code>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="text-xs text-slate-400 sm:col-span-2">
+              Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, pattern (optional), type (optional)</code>
+              <div className="text-[11px] text-slate-500 mt-1">
+                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; patterns are ignored for Greenhouse.
+              </div>
             </div>
             <div>
               <label className="text-xs text-slate-400 block mb-1">Schedule</label>
@@ -843,11 +985,22 @@ function ScraperConfigSection() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Site type (batch default)</label>
+              <select
+                value={bulkSiteType}
+                onChange={(e) => setBulkSiteType(e.target.value as "general" | "greenhouse")}
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+              >
+                <option value="general">General (FetchFox)</option>
+                <option value="greenhouse">Greenhouse board</option>
+              </select>
+            </div>
           </div>
           <textarea
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
-            placeholder="https://example.com/jobs, Example Corp, https://example.com/jobs/**"
+            placeholder="https://example.com/jobs, https://example.com/jobs/**, general"
             className="w-full h-32 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono"
           />
           <div className="flex justify-end">
@@ -892,6 +1045,8 @@ function ScraperConfigSection() {
           const scheduleId = s.scheduleId ? (s.scheduleId as unknown as string) : "";
           const schedule = scheduleId ? scheduleMap.get(scheduleId) : null;
           const scheduleLabel = schedule ? formatScheduleSummary(schedule) : "No schedule";
+          const siteType = (s as any).type ?? "general";
+          const siteTypeLabel = siteType === "greenhouse" ? "Greenhouse" : "General";
 
           return (
             <div key={siteId} className={clsx("p-3 flex items-center justify-between gap-3", !s.enabled && "opacity-50")}>
@@ -900,6 +1055,14 @@ function ScraperConfigSection() {
                   <span className="text-sm font-medium text-slate-200 truncate">{s.name || "Untitled"}</span>
                   <span className={clsx("text-[10px] px-1.5 py-0.5 rounded border", s.enabled ? "bg-green-900/20 text-green-400 border-green-900/30" : "bg-slate-800 text-slate-400 border-slate-700")}>
                     {s.enabled ? "Active" : "Disabled"}
+                  </span>
+                  <span className={clsx(
+                    "text-[10px] px-1.5 py-0.5 rounded border",
+                    siteType === "greenhouse"
+                      ? "bg-amber-900/30 text-amber-200 border-amber-800"
+                      : "bg-slate-800 text-slate-300 border-slate-700"
+                  )}>
+                    {siteTypeLabel}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 truncate font-mono">{s.url}</div>

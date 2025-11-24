@@ -227,6 +227,37 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/jobs/existing",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const urls: string[] = Array.isArray(body?.urls)
+        ? (body.urls as any[]).filter((u) => typeof u === "string" && u.trim()).map((u) => String(u))
+        : [];
+
+      if (urls.length === 0) {
+        return new Response(JSON.stringify({ existing: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const res = await ctx.runQuery(api.router.findExistingJobUrls, { urls });
+      return new Response(JSON.stringify(res), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }),
+});
+
 // HTTP endpoint to fetch previously seen job URLs for a site so scrapers can skip them
 http.route({
   path: "/api/sites/skip-urls",
@@ -261,6 +292,7 @@ http.route({
       const id = await ctx.runMutation(api.router.upsertSite, {
         name: body.name ?? undefined,
         url: body.url,
+        type: body.type ?? "general",
         pattern: body.pattern ?? undefined,
         scheduleId: body.scheduleId ?? undefined,
         enabled: body.enabled ?? true,
@@ -456,10 +488,12 @@ export const leaseSite = mutation({
   args: {
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
+    siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const ttlMs = Math.max(1, Math.floor((args.lockSeconds ?? 300) * 1000));
+    const requestedType = args.siteType;
 
     // Pull enabled sites and pick the first that is not completed and not locked (or lock expired)
     const candidates = await ctx.db
@@ -471,6 +505,8 @@ export const leaseSite = mutation({
     const scheduleCache = new Map<string, any>();
 
     for (const site of candidates as any[]) {
+      const siteType = (site as any).type ?? "general";
+      if (requestedType && siteType !== requestedType) continue;
       if (site.completed) continue;
       if (site.failed) continue;
       if (site.lockExpiresAt && site.lockExpiresAt > now) continue;
@@ -525,6 +561,7 @@ export const leaseSite = mutation({
       _id: s._id,
       name: s.name,
       url: s.url,
+      type: (s as any).type ?? "general",
       pattern: s.pattern,
       scheduleId: s.scheduleId,
       enabled: s.enabled,
@@ -637,6 +674,7 @@ http.route({
     const site = await ctx.runMutation(api.router.leaseSite, {
       workerId: body.workerId,
       lockSeconds: body.lockSeconds ?? 300,
+      siteType: body.siteType ?? undefined,
     });
     return new Response(JSON.stringify(site), {
       status: 200,
@@ -703,14 +741,22 @@ export const upsertSite = mutation({
   args: {
     name: v.optional(v.string()),
     url: v.string(),
+    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
     pattern: v.optional(v.string()),
     scheduleId: v.optional(v.id("scrape_schedules")),
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
     // For simplicity, just insert a new record
+    const siteType = args.type ?? "general";
+
     return await ctx.db.insert("sites", {
-      ...args,
+      name: args.name,
+      url: args.url,
+      type: siteType,
+      pattern: args.pattern,
+      scheduleId: args.scheduleId,
+      enabled: args.enabled,
       // New sites should be leased immediately; keep lastRunAt at 0
       lastRunAt: 0,
     });
@@ -734,6 +780,7 @@ export const bulkUpsertSites = mutation({
       v.object({
         name: v.optional(v.string()),
         url: v.string(),
+        type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
         pattern: v.optional(v.string()),
         scheduleId: v.optional(v.id("scrape_schedules")),
         enabled: v.boolean(),
@@ -743,8 +790,10 @@ export const bulkUpsertSites = mutation({
   handler: async (ctx, args) => {
     const ids = [];
     for (const site of args.sites) {
+      const siteType = site.type ?? "general";
       const id = await ctx.db.insert("sites", {
         ...site,
+        type: siteType,
         // Same behavior as single add: make new sites immediately leaseable
         lastRunAt: 0,
       });
@@ -796,6 +845,27 @@ export const insertJobRecord = mutation({
       postedAt: Date.now(),
     });
     return jobId;
+  },
+});
+
+export const findExistingJobUrls = query({
+  args: {
+    urls: v.array(v.string()),
+  },
+  returns: v.object({ existing: v.array(v.string()) }),
+  handler: async (ctx, args) => {
+    const existing: string[] = [];
+    const unique = Array.from(new Set(args.urls));
+
+    for (const url of unique) {
+      const dup = await ctx.db
+        .query("jobs")
+        .withIndex("by_url", (q) => q.eq("url", url))
+        .first();
+      if (dup) existing.push(url);
+    }
+
+    return { existing };
   },
 });
 

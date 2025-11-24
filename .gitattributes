@@ -1,0 +1,38 @@
+# Normalize text files to LF in the repo (Linux/mac style) and avoid accidental CRLF commits
+* text=auto eol=lf
+
+# Adjust Windows specific extensions to CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1  text eol=lf
+*.py   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.scss text eol=lf
+*.sh   text eol=lf
+*.sql  text eol=lf
+
+# Binary assets - never modify line endings
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.svg  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.tar  binary
+*.gz   binary
+*.tgz  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
