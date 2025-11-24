@@ -469,6 +469,12 @@ export const leaseSite = mutation({
       if (site.failed) continue;
       if (site.lockExpiresAt && site.lockExpiresAt > now) continue;
 
+      // Manual trigger: bypass schedule/time gating for a short window
+      if (site.manualTriggerAt && site.manualTriggerAt > now - 15 * 60 * 1000) {
+        eligible.push({ site, eligibleAt: site.manualTriggerAt });
+        continue;
+      }
+
       // If a schedule is assigned, ensure the site is currently eligible
       if (site.scheduleId) {
         const cacheKey = site.scheduleId as string;
@@ -564,7 +570,7 @@ export const runSiteNow = mutation({
       lastRunAt: 0,
       lastFailureAt: undefined,
       lastError: undefined,
-      // Hint to dashboards when this was requested
+      // Hint to dashboards + leasing logic to pick up immediately
       manualTriggerAt: now,
     } as any);
     return { success: true };

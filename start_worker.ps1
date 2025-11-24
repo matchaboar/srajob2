@@ -36,14 +36,16 @@ function Reset-StaleVenv {
     }
 }
 
-function Load-DotEnv($path) {
+function Load-DotEnv($path, [bool]$Override = $false) {
     if (-not (Test-Path $path)) { return }
     Get-Content $path | ForEach-Object {
         if ($_ -match "^\s*#" -or $_.Trim() -eq "") { return }
         if ($_ -match "^\s*([^=]+)=(.*)$") {
             $key = $matches[1].Trim()
             $val = $matches[2]
-            if (-not [string]::IsNullOrEmpty($key) -and -not [Environment]::GetEnvironmentVariable($key)) {
+            $existing = [Environment]::GetEnvironmentVariable($key)
+            $shouldSet = $Override -or [string]::IsNullOrEmpty($existing)
+            if (-not [string]::IsNullOrEmpty($key) -and $shouldSet) {
                 [Environment]::SetEnvironmentVariable($key, $val)
             }
         }
@@ -60,7 +62,8 @@ $envFilePath = if ($EnvFile) {
 }
 
 Write-Host "Loading environment from $envFilePath" -ForegroundColor Cyan
-Load-DotEnv $envFilePath
+$overrideEnv = $UseProd -or -not [string]::IsNullOrEmpty($EnvFile)
+Load-DotEnv $envFilePath -Override:$overrideEnv
 
 $TemporalAddress = if ($env:TEMPORAL_ADDRESS) { $env:TEMPORAL_ADDRESS } else { "127.0.0.1:7233" }
 $TemporalNamespace = if ($env:TEMPORAL_NAMESPACE) { $env:TEMPORAL_NAMESPACE } else { "default" }
@@ -255,6 +258,18 @@ for ($i = 1; $i -le $maxScheduleAttempts; $i++) {
     }
 }
 Assert-LastExit "Create/update Temporal schedule"
+
+# Background ticker to nudge Temporal schedules frequently (every 10s)
+$global:ScrapeScheduleJob = Start-ThreadJob -ScriptBlock {
+    while ($true) {
+        try {
+            uv run python -m job_scrape_application.workflows.trigger_schedule | Out-Null
+        } catch {
+            # Swallow errors; next tick will retry
+        }
+        Start-Sleep -Seconds 10
+    }
+}
 
 if ($ForceScrapeAll) {
     Write-Host "Triggering schedule once for immediate scrape..."
