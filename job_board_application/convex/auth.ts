@@ -28,6 +28,11 @@ const adminEmails = (process.env.ADMIN_EMAILS ?? "")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+// In local/dev environments we skip admin gating to simplify testing the admin UI.
+// Convex sets NODE_ENV="production" for deployed functions, so this only applies when
+// running `convex dev` or similar local setups.
+const isDevEnv = process.env.NODE_ENV !== "production";
+
 export const loggedInUser = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
@@ -44,6 +49,7 @@ export const loggedInUser = query({
 
 export const isAdmin = query({
   handler: async (ctx) => {
+    if (isDevEnv) return true;
     if (adminEmails.length === 0) return false;
 
     const userId = await getAuthUserId(ctx);

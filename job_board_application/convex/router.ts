@@ -833,7 +833,7 @@ http.route({
         const jobs = extractJobs(body.items);
         if (jobs.length > 0) {
           await ctx.runMutation(api.router.ingestJobsFromScrape, {
-            jobs: jobs.map((j) => ({ ...j, postedAt: now })),
+            jobs: jobs.map((j) => ({ ...j, postedAt: j.postedAt ?? now })),
           });
         }
       } catch (err: any) {
@@ -964,31 +964,80 @@ function extractJobs(items: any): {
   level: "junior" | "mid" | "senior" | "staff";
   totalCompensation: number;
   url: string;
+  postedAt?: number;
 }[] {
   const rawList: any[] = [];
+
+  const DEFAULT_TOTAL_COMPENSATION = 151000;
   const maybeArray = (val: any) => (Array.isArray(val) ? val : []);
 
   if (Array.isArray(items)) {
     rawList.push(...items);
   } else if (items && typeof items === "object") {
+    if (Array.isArray((items as any).normalized)) rawList.push(...(items as any).normalized);
     if (Array.isArray((items as any).items)) rawList.push(...(items as any).items);
     if (Array.isArray((items as any).results)) rawList.push(...(items as any).results);
     if ((items as any).results && Array.isArray((items as any).results.items)) {
       rawList.push(...(items as any).results.items);
     }
+    if ((items as any).raw && Array.isArray((items as any).raw.items)) {
+      rawList.push(...(items as any).raw.items);
+    }
   }
 
-  const coerceBool = (val: any) => {
+  const coerceBool = (val: any, location: string, title: string) => {
     if (typeof val === "boolean") return val;
-    if (typeof val === "string") return ["true", "yes", "1"].includes(val.toLowerCase());
-    return false;
+    if (typeof val === "string") {
+      const lowered = val.toLowerCase();
+      if (["true", "yes", "1", "remote", "hybrid", "fully remote"].includes(lowered)) return true;
+    }
+    const loc = (location || "").toLowerCase();
+    const ttl = (title || "").toLowerCase();
+    return loc.includes("remote") || ttl.includes("remote");
   };
-  const coerceLevel = (val: any): "junior" | "mid" | "senior" | "staff" => {
+  const coerceLevel = (val: any, title: string): "junior" | "mid" | "senior" | "staff" => {
     const norm = typeof val === "string" ? val.toLowerCase() : "";
-    if (norm === "junior") return "junior";
-    if (norm === "senior") return "senior";
-    if (norm === "staff") return "staff";
+    const titleNorm = title.toLowerCase();
+    const merged = norm || titleNorm;
+    if (merged.includes("staff") || merged.includes("principal")) return "staff";
+    if (
+      merged.includes("senior") ||
+      merged.includes("sr ") ||
+      merged.includes("sr.") ||
+      merged.includes("sr-") ||
+      merged.includes("lead") ||
+      merged.includes("manager") ||
+      merged.includes("director") ||
+      merged.includes("vp") ||
+      merged.includes("chief")
+    )
+      return "senior";
+    if (merged.includes("jr") || merged.includes("junior") || merged.includes("intern")) return "junior";
     return "mid";
+  };
+  const parseComp = (val: any): number => {
+    if (typeof val === "number" && Number.isFinite(val) && val > 0) return val;
+    if (typeof val === "string") {
+      const matches = val.replace(/\u00a0/g, " ").match(/[0-9][0-9,.]+/g);
+      if (matches && matches.length) {
+        const parsed = matches
+          .map((m) => Number(m.replace(/,/g, "")))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        if (parsed.length) return Math.max(...parsed);
+      }
+    }
+    return DEFAULT_TOTAL_COMPENSATION;
+  };
+  const parsePostedAt = (val: any, fallback: number): number => {
+    if (typeof val === "number" && Number.isFinite(val)) {
+      if (val > 1e12) return val;
+      if (val > 1e9) return Math.floor(val * 1000);
+    }
+    if (typeof val === "string") {
+      const parsed = Date.parse(val);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    return fallback;
   };
 
   return rawList
@@ -997,11 +1046,13 @@ function extractJobs(items: any): {
       const company = String(row.company || row.employer || "Unknown").trim();
       const url = String(row.url || row.link || row.href || "").trim();
       const location = String(row.location || row.city || "Unknown").trim();
-      const remote = coerceBool(row.remote);
+      const remote = coerceBool(row.remote, location, title);
       const description =
         typeof row.description === "string"
           ? row.description
           : JSON.stringify(row, null, 2).slice(0, 4000);
+      const totalCompensation = parseComp((row as any).totalCompensation ?? (row as any).total_compensation ?? (row as any).salary ?? (row as any).compensation);
+      const postedAt = parsePostedAt((row as any).postedAt ?? (row as any).posted_at, Date.now());
 
       return {
         title: title || "Untitled",
@@ -1009,9 +1060,10 @@ function extractJobs(items: any): {
         description,
         location: location || "Unknown",
         remote,
-        level: coerceLevel((row as any).level),
-        totalCompensation: 0,
+        level: coerceLevel((row as any).level, title),
+        totalCompensation,
         url: url || "",
+        postedAt,
       };
     })
     .filter((j) => j.url); // require a URL to keep signal

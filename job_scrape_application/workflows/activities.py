@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional, TypedDict
+from urllib.parse import urlparse
 
 import httpx
 from fetchfox_sdk import FetchFox
@@ -15,6 +18,7 @@ from .config import settings
 
 
 MAX_FETCHFOX_VISITS = 20
+DEFAULT_TOTAL_COMPENSATION = 151000
 
 
 class FetchFoxPriority(BaseModel):
@@ -126,10 +130,19 @@ async def scrape_site(site: Site) -> Dict[str, Any]:
     skip_urls = await fetch_seen_urls_for_site(site["url"], pattern)
     start_urls = [site["url"]]
     template = {
+        # Keep simple strings so FetchFox LLM extractor can infer fields from detail pages
         "job_title": "str | None",
+        "company": "str | None",
+        "description": "str | None",
         "url": "str | None",
         "location": "str | None",
         "remote": "True | False | None",
+        "level": (
+            "junior | mid | senior | staff | lead | principal | director | manager | vp | cxo | intern | None"
+        ),
+        "salary": "str | number | None",
+        "total_compensation": "number | None",
+        "posted_at": "datetime | date | str | None",
     }
 
     request = FetchFoxScrapeRequest(
@@ -156,6 +169,8 @@ async def scrape_site(site: Site) -> Dict[str, Any]:
         # Last resort: wrap opaque content
         result_obj = {"raw": "Scrape failed or returned invalid data"}
 
+    normalized_items = normalize_fetchfox_items(result_obj)
+
     completed_at = int(time.time() * 1000)
 
     return {
@@ -163,8 +178,210 @@ async def scrape_site(site: Site) -> Dict[str, Any]:
         "pattern": pattern,
         "startedAt": started_at,
         "completedAt": completed_at,
-        "items": result_obj,
+        "items": {"normalized": normalized_items, "raw": result_obj},
     }
+
+
+def normalize_fetchfox_items(payload: Any) -> List[Dict[str, Any]]:
+    """Convert a FetchFox scrape response into normalized job objects for Convex ingestion.
+
+    We keep the raw payload alongside normalized rows so the UI can still render the raw JSON
+    block while top-level fields stay clean.
+    """
+
+    def collect_rows(obj: Any) -> List[Dict[str, Any]]:
+        rows: List[Dict[str, Any]] = []
+        if isinstance(obj, list):
+            rows.extend([r for r in obj if isinstance(r, dict)])
+            return rows
+
+        if isinstance(obj, dict):
+            if isinstance(obj.get("normalized"), list):
+                rows.extend([r for r in obj["normalized"] if isinstance(r, dict)])
+            if isinstance(obj.get("items"), list):
+                rows.extend([r for r in obj["items"] if isinstance(r, dict)])
+            if isinstance(obj.get("results"), list):
+                rows.extend([r for r in obj["results"] if isinstance(r, dict)])
+            results_obj = obj.get("results")
+            if isinstance(results_obj, dict):
+                if isinstance(results_obj.get("items"), list):
+                    rows.extend([r for r in results_obj["items"] if isinstance(r, dict)])
+                if isinstance(results_obj.get("normalized"), list):
+                    rows.extend([r for r in results_obj["normalized"] if isinstance(r, dict)])
+            # Some payloads nest under a "data" key
+            if isinstance(obj.get("data"), dict):
+                rows.extend(collect_rows(obj.get("data")))
+
+        return rows
+
+    raw_rows = collect_rows(payload)
+    normalized: List[Dict[str, Any]] = []
+    for row in raw_rows:
+        norm = normalize_single_row(row)
+        if norm:
+            normalized.append(norm)
+
+    return normalized
+
+
+def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    title = stringify(row.get("job_title") or row.get("title") or "Untitled")
+    url = stringify(row.get("url") or row.get("link") or row.get("href") or row.get("_url") or "")
+    if not url:
+        return None
+
+    company_raw = stringify(row.get("company") or row.get("employer") or row.get("organization") or "")
+    company = company_raw or derive_company_from_url(url) or "Unknown"
+
+    location = stringify(row.get("location") or row.get("city") or row.get("region") or "")
+    remote = coerce_remote(row.get("remote"), location, title)
+    if not location:
+        location = "Remote" if remote else "Unknown"
+
+    level = coerce_level(row.get("level"), title)
+    description = extract_description(row)
+    total_comp = parse_compensation(row.get("total_compensation") or row.get("salary") or row.get("compensation"))
+    posted_at = parse_posted_at(
+        row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
+    )
+
+    normalized_row: Dict[str, Any] = {
+        "job_title": title,
+        "title": title,
+        "company": company,
+        "location": location,
+        "remote": remote,
+        "level": level,
+        "total_compensation": total_comp,
+        "url": url,
+        "description": description,
+        "posted_at": posted_at,
+        "_raw": row,
+    }
+
+    return normalized_row
+
+
+def stringify(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        return value.strip()
+    return str(value)
+
+
+def derive_company_from_url(url: str) -> str:
+    try:
+        hostname = urlparse(url).hostname or ""
+    except Exception:
+        return ""
+
+    hostname = hostname.lower()
+    # Strip common subdomains seen on career sites
+    for prefix in ("careers.", "jobs.", "boards.", "boards-", "job-", "boards-"):
+        if hostname.startswith(prefix):
+            hostname = hostname[len(prefix) :]
+            break
+
+    parts = hostname.split(".")
+    if len(parts) >= 2:
+        name = parts[-2]
+    elif parts:
+        name = parts[0]
+    else:
+        return ""
+
+    # Convert hyphenated hostnames to title case words
+    cleaned = re.sub(r"[^a-z0-9]+", " ", name).strip()
+    return cleaned.title() if cleaned else ""
+
+
+def coerce_remote(value: Any, location: str, title: str) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.lower()
+        if lowered in {"true", "yes", "remote", "hybrid", "fully remote"}:
+            return True
+    loc_lower = (location or "").lower()
+    title_lower = (title or "").lower()
+    return "remote" in loc_lower or "remote" in title_lower
+
+
+def coerce_level(value: Any, title: str) -> str:
+    if isinstance(value, str):
+        normalized = value.lower()
+    else:
+        normalized = ""
+
+    title_lower = title.lower()
+    markers = normalized or title_lower
+    if any(token in markers for token in ("staff", "principal")):
+        return "staff"
+    if any(token in markers for token in ("senior", "sr ", "sr.", "sr-", "sr/")):
+        return "senior"
+    if any(token in markers for token in ("lead", "manager", "director", "vp", "chief", "head")):
+        return "senior"
+    if "intern" in markers:
+        return "junior"
+    if "jr" in markers or "junior" in markers:
+        return "junior"
+    return "mid"
+
+
+def parse_compensation(value: Any) -> int:
+    if isinstance(value, (int, float)) and value > 0:
+        return int(value)
+    if isinstance(value, str):
+        numbers = re.findall(r"[0-9][0-9,\.]+", value.replace("\u00a0", " "))
+        if numbers:
+            try:
+                # Choose the highest number to approximate total comp if range provided
+                parsed = max(float(num.replace(",", "")) for num in numbers)
+                if parsed > 0:
+                    return int(parsed)
+            except ValueError:
+                pass
+    return DEFAULT_TOTAL_COMPENSATION
+
+
+def extract_description(row: Dict[str, Any]) -> str:
+    for key in ("description", "job_description", "desc", "body", "summary"):
+        val = row.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    # Fallback to raw JSON if nothing else is available
+    try:
+        return json.dumps(row, ensure_ascii=False)
+    except Exception:
+        return str(row)
+
+
+def parse_posted_at(value: Any) -> int:
+    """Return a UNIX epoch (ms). Defaults to current time if missing."""
+
+    now_ms = int(time.time() * 1000)
+    if value is None:
+        return now_ms
+
+    if isinstance(value, (int, float)):
+        # Heuristic: numbers above 10^12 are already ms, otherwise treat as seconds
+        if value > 1e12:
+            return int(value)
+        if value > 1e9:
+            return int(value * 1000)
+        return now_ms
+
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+
+    return now_ms
 
 
 @activity.defn
