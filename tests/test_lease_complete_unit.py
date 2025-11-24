@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict, Optional
 
-import types
 import pytest
 
 # Target module
-import os, sys
+import os
+import sys
 sys.path.insert(0, os.path.abspath('.'))
 from job_scrape_application.workflows import activities as acts
 
@@ -54,9 +53,11 @@ class FakeAsyncClient:
 
     # Minimal POST router for the endpoints we use
     async def post(self, url: str, json: Optional[Dict[str, Any]] = None):
+        data: Dict[str, Any] = json or {}
+
         if url.endswith("/api/sites"):
             # Create site
-            sid = self._insert_site(json.get("name") or "site")
+            sid = self._insert_site(data.get("name") or "site")
             return FakeResponse({"success": True, "id": sid})
         if url.endswith("/api/sites/lease"):
             # Lease first unlocked + not completed
@@ -66,12 +67,13 @@ class FakeAsyncClient:
                     continue
                 if s.get("lockExpiresAt") and s["lockExpiresAt"] > now:
                     continue
-                s["lockedBy"] = json.get("workerId")
-                s["lockExpiresAt"] = now + int(json.get("lockSeconds") or 300) * 1000
+                s["lockedBy"] = data.get("workerId")
+                s["lockExpiresAt"] = now + int(data.get("lockSeconds") or 300) * 1000
                 return FakeResponse(s)
             return FakeResponse(None)
         if url.endswith("/api/sites/complete"):
-            sid = json.get("id")
+            sid = data.get("id")
+            assert isinstance(sid, str), "complete payload missing id"
             s = self.sites.get(sid)
             assert s, f"unknown site id {sid}"
             s["completed"] = True
@@ -103,9 +105,11 @@ async def test_lease_complete_sequence(monkeypatch):
     async with fake_client as c:
         # Create two
         r1 = await c.post(base + "/api/sites", json={"name": "A", "url": "u", "enabled": True})
-        r1.raise_for_status(); sid1 = r1.json()["id"]
+        r1.raise_for_status()
+        sid1 = r1.json()["id"]
         r2 = await c.post(base + "/api/sites", json={"name": "B", "url": "u", "enabled": True})
-        r2.raise_for_status(); sid2 = r2.json()["id"]
+        r2.raise_for_status()
+        sid2 = r2.json()["id"]
 
     # Lease one
     leased1 = await acts.lease_site("worker-x", 60)

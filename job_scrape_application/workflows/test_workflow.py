@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import List
 
 from temporalio import workflow
@@ -21,20 +22,19 @@ class ScrapeWorkflowTest:
 
         sites = await workflow.execute_activity(
             "fetch_sites",
-            schedule_to_close_timeout=workflow.timedelta(seconds=30),
+            schedule_to_close_timeout=timedelta(seconds=30),
         )
         scrape_ids: List[str] = []
         for site in sites:
             res = await workflow.execute_activity(
                 "scrape_site",
                 site,
-                start_to_close_timeout=workflow.timedelta(seconds=30),
+                start_to_close_timeout=timedelta(seconds=30),
             )
             scrape_id = await workflow.execute_activity(
                 "store_scrape",
                 res,
-                schedule_to_close_timeout=workflow.timedelta(seconds=30),
+                schedule_to_close_timeout=timedelta(seconds=30),
             )
             scrape_ids.append(scrape_id)
         return ScrapeSummary(site_count=len(sites), scrape_ids=scrape_ids)
-

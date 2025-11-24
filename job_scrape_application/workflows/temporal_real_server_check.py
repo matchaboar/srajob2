@@ -4,7 +4,6 @@ import asyncio
 import os
 import uuid
 from datetime import timedelta
-from typing import Any, Dict
 
 from temporalio.client import (
     Client,
@@ -37,7 +36,7 @@ async def main() -> None:
         try:
             client = await Client.connect(temporal_address, namespace=temporal_namespace)
             break
-        except Exception as e:
+        except Exception:
             if attempt == 29:
                 raise
             await asyncio.sleep(1)

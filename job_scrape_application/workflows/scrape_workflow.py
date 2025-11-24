@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import List
 
 from temporalio import workflow
@@ -9,13 +10,11 @@ from temporalio.exceptions import ActivityError, ApplicationError
 # Import activity call prototypes inside workflow via type hints / names
 with workflow.unsafe.imports_passed_through():
     from .activities import (
-        fetch_sites,
         lease_site,
         scrape_site,
         store_scrape,
         complete_site,
         fail_site,
-        Site,
         record_workflow_run,
     )
 
@@ -43,7 +42,7 @@ class ScrapeWorkflow:
                 site = await workflow.execute_activity(
                     lease_site,
                     "scraper-worker",  # logical worker id; replace if needed
-                    schedule_to_close_timeout=workflow.timedelta(seconds=30),
+                    schedule_to_close_timeout=timedelta(seconds=30),
                 )
 
                 if not site:
@@ -56,12 +55,12 @@ class ScrapeWorkflow:
                     res = await workflow.execute_activity(
                         scrape_site,
                         site,
-                        start_to_close_timeout=workflow.timedelta(minutes=10),
+                        start_to_close_timeout=timedelta(minutes=10),
                     )
                     scrape_id = await workflow.execute_activity(
                         store_scrape,
                         res,
-                        schedule_to_close_timeout=workflow.timedelta(seconds=30),
+                        schedule_to_close_timeout=timedelta(seconds=30),
                     )
                     scrape_ids.append(scrape_id)
 
@@ -69,14 +68,14 @@ class ScrapeWorkflow:
                     await workflow.execute_activity(
                         complete_site,
                         site["_id"],
-                        schedule_to_close_timeout=workflow.timedelta(seconds=30),
+                        schedule_to_close_timeout=timedelta(seconds=30),
                     )
                 except Exception as e:  # noqa: BLE001
                     # On failure, record and release the lock for retry after TTL or immediately
                     await workflow.execute_activity(
                         fail_site,
                         {"id": site["_id"], "error": str(e)},
-                        start_to_close_timeout=workflow.timedelta(seconds=30),
+                        start_to_close_timeout=timedelta(seconds=30),
                     )
                     status = "failed"
                     if isinstance(e, ActivityError) and e.cause:
@@ -112,7 +111,7 @@ class ScrapeWorkflow:
                         "taskQueue": "scraper-task-queue",
                         "error": "; ".join(failure_reasons) if failure_reasons else None,
                     },
-                    schedule_to_close_timeout=workflow.timedelta(seconds=30),
+                    schedule_to_close_timeout=timedelta(seconds=30),
                 )
             except Exception:
                 # Best-effort; do not fail workflow on log write issues

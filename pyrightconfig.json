@@ -1,0 +1,17 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": [
+    "job_scrape_application",
+    "job_board_application",
+    "scripts",
+    "src",
+    "tests"
+  ],
+  "exclude": [
+    "job_scrape_application/scraper-worker"
+  ],
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "warning",
+  "pythonVersion": "3.13"
+}

@@ -29,11 +29,12 @@ async def main():
             # List open workflows
             workflows = []
             async for wf in client.list_workflows('ExecutionStatus="Running"'):
+                start_time = getattr(wf, "start_time", None)
                 workflows.append({
-                    "id": wf.id,
-                    "type": wf.type,
+                    "id": getattr(wf, "id", ""),
+                    "type": getattr(wf, "type", getattr(wf, "workflow_type", "unknown")),
                     "status": "Running",
-                    "startTime": wf.start_time.isoformat(),
+                    "startTime": start_time.isoformat() if start_time else "",
                 })
             
             # Determine reason if no workflows

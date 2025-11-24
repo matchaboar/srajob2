@@ -11,6 +11,8 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
+from .test_workflow import ScrapeWorkflowTest
+
 
 def normalize_convex_base(url: str) -> str:
     base = url.strip().rstrip("/")
@@ -66,9 +68,6 @@ class TestActivities:
     @activity.defn
     async def store_scrape(self, scrape: Dict[str, Any]) -> str:
         return await http_post_scrape(self.base, scrape)
-
-
-from .test_workflow import ScrapeWorkflowTest
 
 
 async def main() -> None:

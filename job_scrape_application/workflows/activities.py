@@ -5,67 +5,38 @@ import json
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict, NotRequired
 from urllib.parse import urlparse
 
 import httpx
 from fetchfox_sdk import FetchFox
-from pydantic import BaseModel, Field, field_validator
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from .config import settings
+from .models import FetchFoxPriority, FetchFoxScrapeRequest, MAX_FETCHFOX_VISITS
 
 
-MAX_FETCHFOX_VISITS = 20
 DEFAULT_TOTAL_COMPENSATION = 151000
 
 
-class FetchFoxPriority(BaseModel):
-    """Priority block passed to FetchFox crawl API.
+class Site(TypedDict):
+    """Site record stored in Convex.
 
-    Mirrors the cURL example from the FetchFox docs: the `skip` array contains URLs we
-    have already stored as jobs in Convex, so the crawler should avoid visiting them.
+    `_id` and `url` are always present, the rest are optional flags/metadata returned
+    by the API. Using ``NotRequired`` keeps type safety while matching runtime
+    payloads.
     """
 
-    skip: List[str] = Field(
-        default_factory=list,
-        description=(
-            "Job detail URLs already persisted for this site; always send the full set so FetchFox skips them."
-        ),
-    )
-    only: Optional[List[str]] = None
-    high: Optional[List[str]] = None
-    low: Optional[List[str]] = None
-
-
-class FetchFoxScrapeRequest(BaseModel):
-    pattern: Optional[str] = None
-    start_urls: List[str]
-    max_depth: int = 5
-    max_visits: int = Field(
-        default=MAX_FETCHFOX_VISITS,
-        description="Hard cap per run to avoid excessive crawling; forced to 20 for scraper workloads.",
-    )
-    template: Dict[str, str]
-    priority: FetchFoxPriority
-
-    @field_validator("max_visits")
-    @classmethod
-    def cap_visits(cls, value: int) -> int:
-        return min(MAX_FETCHFOX_VISITS, value)
-
-
-class Site(TypedDict, total=False):
     _id: str
-    name: Optional[str]
     url: str
-    pattern: Optional[str]
-    enabled: bool
-    lastRunAt: Optional[int]
-    lockedBy: Optional[str]
-    lockExpiresAt: Optional[int]
-    completed: Optional[bool]
+    name: NotRequired[Optional[str]]
+    pattern: NotRequired[Optional[str]]
+    enabled: NotRequired[bool]
+    lastRunAt: NotRequired[Optional[int]]
+    lockedBy: NotRequired[Optional[str]]
+    lockExpiresAt: NotRequired[Optional[int]]
+    completed: NotRequired[Optional[bool]]
 
 
 async def fetch_seen_urls_for_site(source_url: str, pattern: Optional[str]) -> List[str]:
@@ -124,7 +95,9 @@ async def lease_site(worker_id: str, lock_seconds: int = 300) -> Optional[Site]:
 async def scrape_site(site: Site) -> Dict[str, Any]:
     if not settings.fetchfox_api_key:
         # Mark as non-retryable to avoid endless attempts for a known config issue
-        raise ApplicationError("FETCHFOX_API_KEY env var is required for FetchFox", non_retryable=True)
+        raise ApplicationError(
+            "FETCHFOX_API_KEY env var is required for FetchFox", non_retryable=True
+        )
 
     pattern = site.get("pattern")
     skip_urls = await fetch_seen_urls_for_site(site["url"], pattern)
@@ -152,6 +125,7 @@ async def scrape_site(site: Site) -> Dict[str, Any]:
         max_visits=MAX_FETCHFOX_VISITS,
         template=template,
         priority=FetchFoxPriority(skip=skip_urls),
+        content_transform="text_only",
     ).model_dump(exclude_none=True)
 
     # Run blocking FetchFox init and scrape in a thread
@@ -230,7 +204,9 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not url:
         return None
 
-    company_raw = stringify(row.get("company") or row.get("employer") or row.get("organization") or "")
+    company_raw = stringify(
+        row.get("company") or row.get("employer") or row.get("organization") or ""
+    )
     company = company_raw or derive_company_from_url(url) or "Unknown"
 
     location = stringify(row.get("location") or row.get("city") or row.get("region") or "")
@@ -240,7 +216,9 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     level = coerce_level(row.get("level"), title)
     description = extract_description(row)
-    total_comp = parse_compensation(row.get("total_compensation") or row.get("salary") or row.get("compensation"))
+    total_comp = parse_compensation(
+        row.get("total_compensation") or row.get("salary") or row.get("compensation")
+    )
     posted_at = parse_posted_at(
         row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
     )
@@ -430,4 +408,6 @@ async def record_workflow_run(run: Dict[str, Any]) -> None:
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
             body = e.response.text if e.response else ""
-            raise RuntimeError(f"Failed to record workflow run ({e.response.status_code if e.response else '???'}): {body}") from e
+            raise RuntimeError(
+                f"Failed to record workflow run ({e.response.status_code if e.response else '???'}): {body}"
+            ) from e

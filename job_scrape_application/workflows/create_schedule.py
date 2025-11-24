@@ -51,6 +51,9 @@ async def main() -> None:
         await handle.describe()
         await handle.update(lambda _: ScheduleUpdate(schedule=schedule))
         print(f"Updated schedule: {SCHEDULE_ID}")
+    except ScheduleAlreadyRunningError:
+        # Another instance created it between describe and create; treat as success
+        print(f"Schedule already running: {SCHEDULE_ID}")
     except Exception:
         handle = await client.create_schedule(
             id=SCHEDULE_ID,
@@ -59,9 +62,6 @@ async def main() -> None:
         )
         print(f"Created schedule: {SCHEDULE_ID}")
         print("Triggered schedule immediately for first run.")
-    except ScheduleAlreadyRunningError:
-        # Another instance created it between describe and create; treat as success
-        print(f"Schedule already running: {SCHEDULE_ID}")
 
 
 if __name__ == "__main__":

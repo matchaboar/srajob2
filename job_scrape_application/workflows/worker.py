@@ -30,11 +30,12 @@ async def monitor_loop(client: Client) -> None:
             workflows = []
             # List running workflows
             async for wf in client.list_workflows('ExecutionStatus="Running"'):
+                start_time = getattr(wf, "start_time", None)
                 workflows.append({
                     "id": wf.id,
                     "type": getattr(wf, "type", getattr(wf, "workflow_type", "unknown")),
                     "status": "Running",
-                    "startTime": getattr(wf, "start_time", None).isoformat() if getattr(wf, "start_time", None) else "",
+                    "startTime": start_time.isoformat() if start_time else "",
                 })
             
             # Determine reason if no workflows
@@ -70,7 +71,7 @@ async def monitor_loop(client: Client) -> None:
 
 
 async def main() -> None:
-    print(f"Worker main() started.")
+    print("Worker main() started.")
     print(f"Settings: Temporal={settings.temporal_address}, Convex={settings.convex_http_url}")
     print(f"Connecting to Temporal at {settings.temporal_address}...")
     try:
@@ -98,13 +99,13 @@ async def main() -> None:
         activities=[
             activities.fetch_sites,
             activities.lease_site,
-        activities.scrape_site,
-        activities.store_scrape,
-        activities.complete_site,
-        activities.fail_site,
+            activities.scrape_site,
+            activities.store_scrape,
+            activities.complete_site,
+            activities.fail_site,
             activities.record_workflow_run,
-    ],
-)
+        ],
+    )
 
     # Start the monitor loop in the background
     monitor_task = asyncio.create_task(monitor_loop(client))

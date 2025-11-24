@@ -9,3 +9,4 @@ job_board_application/.env.local
 !*.env.example
 !job_board_application/.env.production
 job_board_application/.env.production
+.env.production
