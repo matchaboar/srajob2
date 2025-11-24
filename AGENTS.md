@@ -1,18 +1,26 @@
 # Rules
-- This is a powershell 7 shell on Windows. This is not BASH. Do not use BASH commands.
-- NEVER allow a powershell command or file to run forever. This wastes time as someone must fix your process. ALWAYS have a timeout or background task.
-- More examples of long running shell commands that should not be allowed to run forever: `convex dev` or `npm run dev`
-- If you need to use python, use `uv` and not python/pip commands. Example: `uv run` or `uv add`
-- Do not use docker, use podman instead.
-- Do not use docker-compose, use podman-compose instead.
+- Powershell is safely aliased to `pwsh` and is on PowerShell 7.
+- If you make any edits to a python file, you must aggressively lint it and fix any linting errors before completing your task.
+- Any infinite time running command should have a 10 second timeout.
+- Long-running commands like `npm run test` should have a 30 second timeout.
+- Do not use `docker`, use `podman` instead.
+- Do not use `docker-compose`, use `podman-compose` instead.
+
+# Python
+- Python packages, use `uv` and not python/pip commands. Example: `uv run` or `uv add`. 
+- DO NOT `uv pip`
 
 # Frontend Code Structure
 - The UI is in job_board_application.
-- The components job_board_application/src
 
 # Data & Storage
 - The database is in job_board_application
 - The database is convex and its configuration is in job_board_application/convex
+- **IMPORTANT**: Convex has TWO different URL domains:
+  - `.convex.cloud` - Used for Convex client SDK connections (e.g., `ConvexReactClient`)
+  - `.convex.site` - Used for HTTP routes (e.g., `httpRouter`, `httpAction`)
+  - When configuring external services (like Temporal workers) to POST to Convex HTTP endpoints, ALWAYS use the `.convex.site` domain
+  - Example: `CONVEX_HTTP_URL=https://elegant-magpie-239.convex.site` (NOT `.convex.cloud`)
 
 # Job Scrape Application
 - The scrape workflow logic is in job_scrape_application

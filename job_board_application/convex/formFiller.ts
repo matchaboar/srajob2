@@ -48,7 +48,7 @@ export const nextApplication = query({
   args: {},
   returns: v.union(
     v.null(),
-    v.object({ _id: v.id("form_fill_queue"), jobUrl: v.string() })
+    v.object({ _id: v.id("form_fill_queue"), jobUrl: v.optional(v.string()) })
   ),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
@@ -68,5 +68,21 @@ export const nextApplication = query({
     }
 
     return { _id: next._id, jobUrl: next.jobUrl };
+  },
+});
+
+export const updateStatus = mutation({
+  args: {
+    id: v.id("form_fill_queue"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Note: We don't strictly check userId here to allow a worker (potentially running as a different user or system)
+    // to update the status. In a real app, you'd want an API key or system auth.
+    await ctx.db.patch(args.id, {
+      status: args.status,
+      updatedAt: Date.now(),
+    });
+    return null;
   },
 });

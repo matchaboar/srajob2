@@ -1,0 +1,6 @@
+[settings]
+# Requires windows >10 and developer mode enabled in windows configuration.
+windows_shim_mode = "symlink"
+
+[tools]
+node = "latest"

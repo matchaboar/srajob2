@@ -118,3 +118,101 @@ export const getScrapeHistoryForUrls = query({
     return out;
   },
 });
+
+export const listScrapeActivity = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      siteId: v.id("sites"),
+      name: v.optional(v.string()),
+      url: v.string(),
+      pattern: v.optional(v.string()),
+      enabled: v.boolean(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      lastRunAt: v.optional(v.number()),
+      lastScrapeStart: v.optional(v.number()),
+      lastScrapeEnd: v.optional(v.number()),
+      lastJobsScraped: v.number(),
+      workerId: v.optional(v.string()),
+      lastFailureAt: v.optional(v.number()),
+      failed: v.optional(v.boolean()),
+      totalScrapes: v.number(),
+      totalJobsScraped: v.number(),
+    })
+  ),
+  handler: async (ctx) => {
+    const sites = await ctx.db.query("sites").collect();
+    const runs = await ctx.db.query("workflow_runs").collect();
+
+    const countJobs = (items: any): number => {
+      if (!items) return 0;
+
+      // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
+      if (Array.isArray(items)) return items.length;
+      if (typeof items === "object") {
+        if (Array.isArray((items as any).items)) return (items as any).items.length;
+        if (Array.isArray((items as any).results)) return (items as any).results.length;
+        if (items.results && Array.isArray((items as any).results.items)) {
+          return (items as any).results.items.length;
+        }
+      }
+      return 0;
+    };
+
+    const rows = [];
+
+    for (const site of sites as any[]) {
+      const scrapes = await ctx.db
+        .query("scrapes")
+        .withIndex("by_source", (q) => q.eq("sourceUrl", site.url))
+        .collect();
+
+      const sortedScrapes = scrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+      const latest = sortedScrapes[0];
+
+      const totalJobsScraped = (scrapes as any[]).reduce((sum, s) => sum + countJobs((s as any).items), 0);
+      const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
+
+      const runsForSite = runs
+        .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
+        .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
+      const latestRun = runsForSite[0];
+      const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
+      const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
+      const latestSuccessTime = latestCompletedRun ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0) : undefined;
+
+      const updatedAt = Math.max(
+        site._creationTime ?? 0,
+        site.lastRunAt ?? 0,
+        site.lastFailureAt ?? 0,
+        site.lockExpiresAt ?? 0,
+      );
+
+      rows.push({
+        siteId: site._id,
+        name: site.name,
+        url: site.url,
+        pattern: site.pattern,
+        enabled: site.enabled,
+        createdAt: site._creationTime ?? 0,
+        updatedAt,
+        lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
+        lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
+        lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
+        lastJobsScraped,
+        workerId: site.lockedBy,
+        lastFailureAt: site.lastFailureAt,
+        failed: site.failed,
+        totalScrapes: scrapes.length,
+        totalJobsScraped,
+      });
+    }
+
+    return rows.sort((a, b) => {
+      const aLast = Math.max(a.lastRunAt ?? 0, a.lastFailureAt ?? 0, a.lastScrapeEnd ?? 0);
+      const bLast = Math.max(b.lastRunAt ?? 0, b.lastFailureAt ?? 0, b.lastScrapeEnd ?? 0);
+      return bLast - aLast;
+    });
+  },
+});

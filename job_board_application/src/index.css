@@ -1,6 +1,30 @@
+@import "./keymason/full.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  @apply bg-slate-950 text-slate-200;
+}
+
+/* Custom Scrollbar for Dark Mode */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-950;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-700;
+}
 
 :root {
   --color-light: #ffffff;
@@ -56,6 +80,7 @@ body {
     transform: translateY(-10px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -64,17 +89,102 @@ body {
 
 @keyframes highlightFade {
   from {
-    background-color: #fef3c7; /* yellow-100 */
+    background-color: #fef3c7;
+    /* yellow-100 */
   }
+
   to {
     background-color: transparent;
   }
 }
 
 .live-job-enter {
-  animation: 
+  animation:
     slideInFromTop 300ms ease-out,
     highlightFade 1500ms ease-out;
 }
 
 /* Job card animations handled by Framer Motion */
+
+/* Salary slider styling */
+.salary-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.5rem;
+  width: 100%;
+  border-radius: 9999px;
+  background-color: #0f172a;
+  /* slate-900 */
+  accent-color: #3b82f6;
+  /* blue-500 thumb color */
+  cursor: pointer;
+}
+
+.salary-slider:focus {
+  outline: none;
+}
+
+.salary-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background-color: #3b82f6;
+  /* blue-500 */
+  box-shadow: 0 0 0 2px #0f172a;
+  cursor: pointer;
+}
+
+.salary-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 9999px;
+  background-color: #3b82f6;
+  box-shadow: 0 0 0 2px #0f172a;
+  cursor: pointer;
+}
+
+.salary-slider::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: #0f172a;
+}
+
+/* Status Tracker Arrow Shapes */
+.status-tracker-arrow {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%);
+}
+
+/* Status Tracker Glow Effects */
+.status-tracker-glow-blue {
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6), 0 0 24px rgba(59, 130, 246, 0.3);
+}
+
+.status-tracker-glow-emerald {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 0 0 24px rgba(16, 185, 129, 0.3);
+}
+
+.status-tracker-glow-red {
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.6), 0 0 24px rgba(220, 38, 38, 0.3);
+}
+
+/* Status Tracker Pulse Animation */
+@keyframes statusTrackerPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.status-tracker-pulse {
+  animation: statusTrackerPulse 2s ease-in-out infinite;
+}

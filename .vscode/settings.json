@@ -1,0 +1,40 @@
+{
+    "explorer.confirmDragAndDrop": false,
+    "python.analysis.autoImportCompletions": true,
+    "editor.formatOnSave": true,
+    "notebook.formatOnSave.enabled": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "ruff.importStrategy": "useBundled",
+    "ruff.format.preview": true,
+    "ruff.lint.preview": true,
+    "ruff.nativeServer": "on",
+    "explorer.compactFolders": false,
+    "workbench.editor.highlightModifiedTabs": true,
+    "workbench.editor.scrollToSwitchTabs": true,
+    "workbench.editor.tabSizing": "fixed",
+    "workbench.editor.wrapTabs": true,
+    "workbench.editor.pinnedTabsOnSeparateRow": true,
+    "workbench.editorLargeFileConfirmation": 10000,
+    "workbench.enableExperiments": false,
+    "workbench.list.mouseWheelScrollSensitivity": 2,
+    "workbench.colorTheme": "Tokyo Night nv",
+    "explorer.enableUndo": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "chatgpt.runCodexInWindowsSubsystemForLinux": true,
+    "chatgpt.openOnStartup": true,
+    "workbench.editor.showTabs": "multiple",
+    "workbench.editor.pinnedTabSizing": "normal",
+    "workbench.editor.showTabIndex": true,
+    "window.density.editorTabHeight": "default",
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.limit.value": 1,
+    "files.exclude": {
+        "**/__pycache__": true,
+        ".pytest_cache": true,
+        ".venv": true,
+        "**/*.pyc": true
+    }
+}

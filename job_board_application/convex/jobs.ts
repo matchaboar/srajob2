@@ -56,7 +56,7 @@ export const listJobs = query({
       if (appliedJobIds.has(job._id)) {
         return false;
       }
-      
+
       // Apply compensation filters
       if (args.minCompensation !== undefined && job.totalCompensation < args.minCompensation) {
         return false;
@@ -188,11 +188,20 @@ export const getAppliedJobs = query({
       applications.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
-        
+
+        // Fetch worker status from form_fill_queue
+        const workerStatus = await ctx.db
+          .query("form_fill_queue")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .filter((q) => q.eq(q.field("jobUrl"), job.url))
+          .first();
+
         return {
           ...job,
           appliedAt: application.appliedAt,
           userStatus: application.status,
+          workerStatus: workerStatus?.status ?? null,
+          workerUpdatedAt: workerStatus?.updatedAt ?? workerStatus?.queuedAt ?? null,
         };
       })
     );
@@ -200,6 +209,38 @@ export const getAppliedJobs = query({
     return appliedJobs
       .filter((job) => job !== null)
       .sort((a, b) => b.appliedAt - a.appliedAt);
+  },
+});
+
+export const getRejectedJobs = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const applications = await ctx.db
+      .query("applications")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("status"), "rejected"))
+      .collect();
+
+    const rejectedJobs = await Promise.all(
+      applications.map(async (application) => {
+        const job = await ctx.db.get(application.jobId);
+        if (!job) return null;
+        return {
+          ...job,
+          rejectedAt: application.appliedAt,
+          userStatus: application.status,
+        };
+      })
+    );
+
+    return rejectedJobs
+      .filter((job) => job !== null)
+      .sort((a, b) => (b?.rejectedAt ?? 0) - (a?.rejectedAt ?? 0));
   },
 });
 

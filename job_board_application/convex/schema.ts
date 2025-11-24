@@ -22,6 +22,20 @@ const applicationTables = {
       filterFields: ["remote", "level"],
     }),
 
+  saved_filters: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    search: v.optional(v.string()),
+    remote: v.optional(v.boolean()),
+    level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
+    minCompensation: v.optional(v.number()),
+    maxCompensation: v.optional(v.number()),
+    isSelected: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_selected", ["userId", "isSelected"]),
+
   applications: defineTable({
     userId: v.id("users"),
     jobId: v.id("jobs"),
@@ -31,13 +45,15 @@ const applicationTables = {
     .index("by_user", ["userId"])
     .index("by_job", ["jobId"])
     .index("by_user_and_job", ["userId", "jobId"]),
-  
+
   // List of websites to scrape for jobs
   sites: defineTable({
     name: v.optional(v.string()),
     url: v.string(),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),
+    // Optional reusable schedule reference
+    scheduleId: v.optional(v.id("scrape_schedules")),
     enabled: v.boolean(),
     // Optional timestamp of the last successful run
     lastRunAt: v.optional(v.number()),
@@ -53,7 +69,8 @@ const applicationTables = {
     lastFailureAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
   })
-    .index("by_enabled", ["enabled"]),
+    .index("by_enabled", ["enabled"])
+    .index("by_schedule", ["scheduleId"]),
 
   // Raw scrape results captured by the scraper
   scrapes: defineTable({
@@ -69,12 +86,84 @@ const applicationTables = {
     data: v.any(),
   }).index("by_user", ["userId"]),
 
-  form_fill_queue: defineTable({
-    userId: v.id("users"),
-    jobUrl: v.string(),
-    status: v.union(v.literal("pending"), v.literal("completed")),
-    queuedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  form_fill_queue: defineTable(v.any()).index("by_user", ["userId"]),
+
+  temporal_status: defineTable({
+    // Worker identification
+    workerId: v.string(),
+    hostname: v.string(),
+
+    // Temporal connection details
+    temporalAddress: v.string(),
+    temporalNamespace: v.string(),
+    taskQueue: v.string(),
+
+    // Health check
+    lastHeartbeat: v.number(),
+
+    // Workflow status
+    workflows: v.array(
+      v.object({
+        id: v.string(),
+        type: v.string(),
+        status: v.string(),
+        startTime: v.string(),
+      })
+    ),
+
+    // Reason when no workflows are running
+    noWorkflowsReason: v.optional(v.string()),
+  })
+    .index("by_worker_id", ["workerId"])
+    .index("by_heartbeat", ["lastHeartbeat"]),
+
+  workflow_runs: defineTable({
+    runId: v.string(),
+    workflowId: v.string(),
+    workflowName: v.optional(v.string()),
+    status: v.string(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    siteUrls: v.array(v.string()),
+    sitesProcessed: v.optional(v.number()),
+    jobsScraped: v.optional(v.number()),
+    workerId: v.optional(v.string()),
+    taskQueue: v.optional(v.string()),
+    error: v.optional(v.string()),
+  })
+    .index("by_run", ["runId"])
+    .index("by_started", ["startedAt"]),
+
+  schedule_config: defineTable({
+    key: v.string(),
+    mode: v.union(v.literal("daily"), v.literal("interval")),
+    time: v.optional(v.string()), // HH:MM 24h format
+    timezone: v.optional(v.string()),
+    intervalMinutes: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // Reusable scrape schedules for sites
+  scrape_schedules: defineTable({
+    name: v.string(),
+    days: v.array(
+      v.union(
+        v.literal("mon"),
+        v.literal("tue"),
+        v.literal("wed"),
+        v.literal("thu"),
+        v.literal("fri"),
+        v.literal("sat"),
+        v.literal("sun")
+      )
+    ),
+    startTime: v.string(), // HH:MM 24h format
+    intervalMinutes: v.number(),
+    timezone: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_name", ["name"]),
 };
 
 export default defineSchema({

@@ -3,18 +3,21 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 
-from temporalio.client import Client
-from temporalio.client.schedule import (
+from temporalio.client import (
+    Client,
+    Schedule,
     ScheduleActionStartWorkflow,
-    ScheduleCalendarSpec,
+    ScheduleIntervalSpec,
+    ScheduleOverlapPolicy,
     SchedulePolicy,
+    ScheduleUpdate,
+    ScheduleAlreadyRunningError,
     ScheduleSpec,
 )
-
 from .config import settings
 
 
-SCHEDULE_ID = "scrape-every-12-hours"
+SCHEDULE_ID = "scrape-every-15-mins"
 
 
 async def main() -> None:
@@ -24,9 +27,8 @@ async def main() -> None:
     )
 
     spec = ScheduleSpec(
-        calendars=[
-            # Every 12 hours, at minute 0
-            ScheduleCalendarSpec(hour="*/12", minute="0"),
+        intervals=[
+            ScheduleIntervalSpec(every=timedelta(minutes=15)),
         ]
     )
 
@@ -39,25 +41,28 @@ async def main() -> None:
     policy = SchedulePolicy(
         # If a run is missed (e.g., worker down), buffer at most 1 and run once
         catchup_window=timedelta(hours=12),
-        overlap=SchedulePolicy.OverlapPolicy.SKIP,
+        overlap=ScheduleOverlapPolicy.SKIP,
     )
+    schedule = Schedule(action=action, spec=spec, policy=policy)
 
     # Create or update the schedule idempotently
     handle = client.get_schedule_handle(SCHEDULE_ID)
     try:
         await handle.describe()
-        await handle.update(overwrite=True, spec=spec, action=action, policy=policy)
+        await handle.update(lambda _: ScheduleUpdate(schedule=schedule))
         print(f"Updated schedule: {SCHEDULE_ID}")
     except Exception:
-        await client.create_schedule(
+        handle = await client.create_schedule(
             id=SCHEDULE_ID,
-            spec=spec,
-            action=action,
-            policy=policy,
+            schedule=schedule,
+            trigger_immediately=True,
         )
         print(f"Created schedule: {SCHEDULE_ID}")
+        print("Triggered schedule immediately for first run.")
+    except ScheduleAlreadyRunningError:
+        # Another instance created it between describe and create; treat as success
+        print(f"Schedule already running: {SCHEDULE_ID}")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-

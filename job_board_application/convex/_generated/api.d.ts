@@ -15,12 +15,14 @@ import type {
 } from "convex/server";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
+import type * as filters from "../filters.js";
 import type * as formFiller from "../formFiller.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as router from "../router.js";
 import type * as seedData from "../seedData.js";
 import type * as sites from "../sites.js";
+import type * as temporal from "../temporal.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,12 +35,14 @@ import type * as sites from "../sites.js";
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   crons: typeof crons;
+  filters: typeof filters;
   formFiller: typeof formFiller;
   http: typeof http;
   jobs: typeof jobs;
   router: typeof router;
   seedData: typeof seedData;
   sites: typeof sites;
+  temporal: typeof temporal;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
