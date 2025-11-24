@@ -186,6 +186,146 @@ body {
   }
 }
 
+@keyframes highlight {
+  0% {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-highlight {
+  animation: highlight 2s ease-out;
+}
+
+@keyframes pulse-subtle {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status Tracker Animations */
+@keyframes flow-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-flow-gradient {
+  background-size: 200% 200%;
+  animation: flow-gradient 3s ease infinite;
+}
+
+@keyframes bounce-x-wide {
+  0% {
+    transform: translateX(-50px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  15% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  25% {
+    transform: translateX(-25px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  35% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  45% {
+    transform: translateX(-12px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  55% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  65% {
+    transform: translateX(-6px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  75% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  85% {
+    transform: translateX(-3px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  90% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50px);
+  }
+}
+
+.animate-bounce-x-wide {
+  animation: bounce-x-wide 2.5s infinite;
+}
+
+@keyframes text-glow {
+
+  0%,
+  10%,
+  20%,
+  30%,
+  40%,
+  50%,
+  60%,
+  70%,
+  80%,
+  95%,
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+
+  15%,
+  35%,
+  55%,
+  75%,
+  90% {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+}
+
+.animate-text-glow {
+  animation: text-glow 2.5s infinite;
+}
+
 .status-tracker-pulse {
   animation: statusTrackerPulse 2s ease-in-out infinite;
 }
