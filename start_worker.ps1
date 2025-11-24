@@ -1,5 +1,7 @@
 param(
-    [switch]$ForceScrapeAll = $false
+    [switch]$ForceScrapeAll = $false,
+    [switch]$UseProd = $false,
+    [string]$EnvFile = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,10 +51,20 @@ function Load-DotEnv($path) {
 }
 
 # Core configuration (env overrides respected)
-Load-DotEnv ".env"
+$envFilePath = if ($EnvFile) {
+    $EnvFile
+} elseif ($UseProd -and (Test-Path ".env.production")) {
+    ".env.production"
+} else {
+    ".env"
+}
+
+Write-Host "Loading environment from $envFilePath" -ForegroundColor Cyan
+Load-DotEnv $envFilePath
 
 $TemporalAddress = if ($env:TEMPORAL_ADDRESS) { $env:TEMPORAL_ADDRESS } else { "127.0.0.1:7233" }
 $TemporalNamespace = if ($env:TEMPORAL_NAMESPACE) { $env:TEMPORAL_NAMESPACE } else { "default" }
+$ConvexUrl = $env:CONVEX_HTTP_URL
 $TemporalHost = ($TemporalAddress -split ":")[0]
 $TemporalPort = 7233
 if ($TemporalAddress -match ":(\d+)$") {
@@ -253,5 +265,10 @@ if ($ForceScrapeAll) {
 Write-Host "Starting Worker..."
 $env:TEMPORAL_ADDRESS = $TemporalAddress
 $env:TEMPORAL_NAMESPACE = $TemporalNamespace
+if ($ConvexUrl) {
+    Write-Host "Using CONVEX_HTTP_URL=$ConvexUrl" -ForegroundColor Green
+} else {
+    Write-Warning "CONVEX_HTTP_URL is not set. Worker will fail to reach Convex." 
+}
 uv run python -u -m job_scrape_application.workflows.worker
 Assert-LastExit "Worker exited unexpectedly"

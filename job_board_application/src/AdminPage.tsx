@@ -324,6 +324,7 @@ function ScraperConfigSection() {
   const schedules = useQuery(api.router.listSchedules);
   const upsertSite = useMutation(api.router.upsertSite);
   const bulkUpsertSites = useMutation(api.router.bulkUpsertSites);
+  const runSiteNow = useMutation(api.router.runSiteNow);
   const updateSiteEnabled = useMutation(api.router.updateSiteEnabled);
   const updateSiteSchedule = useMutation(api.router.updateSiteSchedule);
   const upsertSchedule = useMutation(api.router.upsertSchedule);
@@ -930,6 +931,23 @@ function ScraperConfigSection() {
                 >
                   {s.enabled ? "Disable" : "Enable"}
                 </button>
+                <button
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        await runSiteNow({ id: siteId as any });
+                        toast.success("Queued for next scrape run");
+                      } catch {
+                        toast.error("Failed to queue run");
+                      }
+                    })();
+                  }}
+                  className="px-2 py-1 text-xs font-medium rounded border border-blue-700 bg-blue-900/40 text-blue-200 hover:bg-blue-800/60 transition-colors whitespace-nowrap"
+                  disabled={!s.enabled}
+                  title={s.enabled ? "Trigger on next workflow cycle" : "Enable site to run"}
+                >
+                  Run now
+                </button>
               </div>
             </div>
           );
@@ -1332,4 +1350,3 @@ function DatabaseSection() {
     </div>
   );
 }
-

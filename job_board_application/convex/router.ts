@@ -551,6 +551,26 @@ export const releaseSite = mutation({
   },
 });
 
+// Mark a site to be picked up immediately on the next workflow run
+export const runSiteNow = mutation({
+  args: { id: v.id("sites") },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.id, {
+      completed: false,
+      failed: false,
+      lockedBy: "",
+      lockExpiresAt: 0,
+      lastRunAt: 0,
+      lastFailureAt: undefined,
+      lastError: undefined,
+      // Hint to dashboards when this was requested
+      manualTriggerAt: now,
+    } as any);
+    return { success: true };
+  },
+});
+
 // Record a failure and release the lock so it can be retried later
 export const failSite = mutation({
   args: {

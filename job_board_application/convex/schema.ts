@@ -68,6 +68,7 @@ const applicationTables = {
     failCount: v.optional(v.number()),
     lastFailureAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
+    manualTriggerAt: v.optional(v.number()),
   })
     .index("by_enabled", ["enabled"])
     .index("by_schedule", ["scheduleId"]),

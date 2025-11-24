@@ -218,7 +218,19 @@ export const getScrapeSchedule = query({
             time: existing.time ?? DEFAULT_SCHEDULE.time,
             timezone: existing.timezone ?? DEFAULT_SCHEDULE.timezone,
             intervalMinutes: existing.intervalMinutes ?? DEFAULT_SCHEDULE.intervalMinutes,
+            name: existing.key,
         };
+    },
+});
+
+export const triggerScrapeNow = mutation({
+    args: {
+        url: v.string(),
+    },
+    handler: async (_ctx, args) => {
+        // The worker polls Temporal; we just return a directive so the UI can request it.
+        // The actual immediate run should be triggered by a Temporal client, not Convex.
+        return { requested: true, url: args.url };
     },
 });
 
