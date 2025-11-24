@@ -3,6 +3,7 @@ import { httpAction, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
+import { splitLocation, formatLocationLabel } from "./location";
 
 const http = httpRouter();
 const DEFAULT_TIMEZONE = "America/Denver";
@@ -178,11 +179,16 @@ http.route({
         );
       }
 
+      const { city, state } = splitLocation(body.location);
+      const locationLabel = formatLocationLabel(city, state, body.location);
+
       const jobId = await ctx.runMutation(api.router.insertJobRecord, {
         title: body.title,
         company: body.company,
         description: body.description,
-        location: body.location,
+        location: locationLabel,
+        city,
+        state,
         remote: body.remote,
         level: body.level,
         totalCompensation: body.totalCompensation,
@@ -769,6 +775,8 @@ export const insertJobRecord = mutation({
     company: v.string(),
     description: v.string(),
     location: v.string(),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
     remote: v.boolean(),
     level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
     totalCompensation: v.number(),
@@ -776,8 +784,15 @@ export const insertJobRecord = mutation({
     test: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const parsed = splitLocation(args.location);
+    const city = args.city ?? parsed.city;
+    const state = args.state ?? parsed.state;
+    const locationLabel = formatLocationLabel(city, state, args.location);
     const jobId = await ctx.db.insert("jobs", {
       ...args,
+      location: locationLabel,
+      city,
+      state,
       postedAt: Date.now(),
     });
     return jobId;
@@ -930,6 +945,8 @@ export const ingestJobsFromScrape = mutation({
         company: v.string(),
         description: v.string(),
         location: v.string(),
+        city: v.optional(v.string()),
+        state: v.optional(v.string()),
         remote: v.boolean(),
         level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
         totalCompensation: v.number(),
@@ -947,7 +964,13 @@ export const ingestJobsFromScrape = mutation({
         .first();
       if (dup) continue;
 
-      await ctx.db.insert("jobs", job);
+      const { city, state } = splitLocation(job.city ?? job.state ? `${job.city ?? ""}, ${job.state ?? ""}` : job.location);
+      await ctx.db.insert("jobs", {
+        ...job,
+        city: job.city ?? city,
+        state: job.state ?? state,
+        location: formatLocationLabel(job.city ?? city, job.state ?? state, job.location),
+      });
       inserted += 1;
     }
     return { inserted };
@@ -1046,7 +1069,9 @@ function extractJobs(items: any): {
       const company = String(row.company || row.employer || "Unknown").trim();
       const url = String(row.url || row.link || row.href || "").trim();
       const location = String(row.location || row.city || "Unknown").trim();
-      const remote = coerceBool(row.remote, location, title);
+      const { city, state } = splitLocation(location);
+      const locationLabel = formatLocationLabel(city, state, location);
+      const remote = coerceBool(row.remote, locationLabel, title);
       const description =
         typeof row.description === "string"
           ? row.description
@@ -1058,7 +1083,9 @@ function extractJobs(items: any): {
         title: title || "Untitled",
         company: company || "Unknown",
         description,
-        location: location || "Unknown",
+        location: locationLabel || "Unknown",
+        city,
+        state,
         remote,
         level: coerceLevel((row as any).level, title),
         totalCompensation,

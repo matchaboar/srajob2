@@ -2,12 +2,62 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
+import { splitLocation, formatLocationLabel } from "./location";
+
+type DbJob = {
+  _id: any;
+  location?: string;
+  city?: string | null;
+  state?: string | null;
+  remote?: boolean;
+  [key: string]: any;
+};
+
+const ensureLocationFields = async (ctx: any, job: DbJob) => {
+  const { city, state } = splitLocation(job.location || "");
+  const patched: Record<string, any> = {};
+  if (!job.city) patched.city = city;
+  if (!job.state) patched.state = state;
+
+  const locationLabel = formatLocationLabel(job.city ?? city, job.state ?? state, job.location);
+  if (!job.location || job.location !== locationLabel) {
+    patched.location = locationLabel;
+  }
+
+  if (Object.keys(patched).length > 0) {
+    await ctx.db.patch(job._id, patched);
+    return { ...job, ...patched } as DbJob;
+  }
+
+  return { ...job, city: job.city ?? city, state: job.state ?? state, location: locationLabel } as DbJob;
+};
+
+const runLocationMigration = async (ctx: any, limit = 500) => {
+  const jobs = await ctx.db.query("jobs").take(limit);
+  let patched = 0;
+
+  for (const job of jobs) {
+    const { city, state } = splitLocation(job.location || "");
+    const locationLabel = formatLocationLabel(city, state, job.location);
+    const update: Record<string, any> = {};
+    if (job.city !== city) update.city = city;
+    if (job.state !== state) update.state = state;
+    if (job.location !== locationLabel) update.location = locationLabel;
+    if (Object.keys(update).length) {
+      await ctx.db.patch(job._id, update);
+      patched += 1;
+    }
+  }
+
+  return { patched };
+};
 
 export const listJobs = query({
   args: {
     paginationOpts: paginationOptsValidator,
     search: v.optional(v.string()),
-    remote: v.optional(v.boolean()),
+    includeRemote: v.optional(v.boolean()),
+    state: v.optional(v.string()),
     level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
@@ -33,8 +83,11 @@ export const listJobs = query({
         .query("jobs")
         .withSearchIndex("search_title", (q) => {
           let searchQuery = q.search("title", args.search!);
-          if (args.remote !== undefined) {
-            searchQuery = searchQuery.eq("remote", args.remote);
+          if (args.includeRemote === false) {
+            searchQuery = searchQuery.eq("remote", false);
+          }
+          if (args.state) {
+            searchQuery = searchQuery.eq("state", args.state);
           }
           if (args.level) {
             searchQuery = searchQuery.eq("level", args.level);
@@ -43,17 +96,38 @@ export const listJobs = query({
         })
         .paginate(args.paginationOpts);
     } else {
-      jobs = await ctx.db
-        .query("jobs")
-        .withIndex("by_posted_at")
-        .order("desc")
-        .paginate(args.paginationOpts);
+      let baseQuery: any = ctx.db.query("jobs");
+
+      if (args.state) {
+        baseQuery = baseQuery.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+      } else {
+        baseQuery = baseQuery.withIndex("by_posted_at");
+      }
+
+      baseQuery = baseQuery.order("desc");
+
+      if (args.includeRemote === false) {
+        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("remote"), false));
+      }
+      if (args.level) {
+        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("level"), args.level));
+      }
+
+      jobs = await baseQuery.paginate(args.paginationOpts);
     }
 
     // Filter out applied/rejected jobs and apply compensation filters
     let filteredJobs = jobs.page.filter((job: any) => {
       // Remove jobs user has already applied to or rejected
       if (appliedJobIds.has(job._id)) {
+        return false;
+      }
+
+      if (args.state) {
+        const parsedState = job.state ?? splitLocation(job.location || "").state;
+        if (parsedState !== args.state) return false;
+      }
+      if (args.includeRemote === false && job.remote) {
         return false;
       }
 
@@ -70,6 +144,7 @@ export const listJobs = query({
     // Get application counts for remaining jobs
     const jobsWithData = await Promise.all(
       filteredJobs.map(async (job: any) => {
+        const normalizedJob = await ensureLocationFields(ctx, job);
         const applicationCount = await ctx.db
           .query("applications")
           .withIndex("by_job", (q) => q.eq("jobId", job._id))
@@ -77,7 +152,7 @@ export const listJobs = query({
           .collect();
 
         return {
-          ...job,
+          ...normalizedJob,
           applicationCount: applicationCount.length,
           userStatus: null, // These jobs don't have user applications by definition
         };
@@ -166,7 +241,8 @@ export const getRecentJobs = query({
       .order("desc")
       .take(20); // Increased from 10 to show more recent jobs
 
-    return jobs;
+    const normalized = await Promise.all(jobs.map((job: any) => ensureLocationFields(ctx, job)));
+    return normalized;
   },
 });
 
@@ -188,6 +264,7 @@ export const getAppliedJobs = query({
       applications.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
+        const normalized = await ensureLocationFields(ctx, job as any);
 
         // Fetch worker status from form_fill_queue
         const workerStatus = await ctx.db
@@ -197,7 +274,7 @@ export const getAppliedJobs = query({
           .first();
 
         return {
-          ...job,
+          ...normalized,
           appliedAt: application.appliedAt,
           userStatus: application.status,
           workerStatus: workerStatus?.status ?? null,
@@ -230,8 +307,9 @@ export const getRejectedJobs = query({
       applications.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
+        const normalized = await ensureLocationFields(ctx, job as any);
         return {
-          ...job,
+          ...normalized,
           rejectedAt: application.appliedAt,
           userStatus: application.status,
         };
@@ -309,18 +387,32 @@ export const normalizeDevTestJobs = mutation({
     for (const j of needsFix) {
       const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
       const comp = 100000 + Math.floor(Math.random() * 90000);
+      const loc = pick(locations);
+      const { city, state } = splitLocation(loc);
       await ctx.db.patch(j._id, {
         title: pick(titles),
         company: pick(companies),
-        location: pick(locations),
+        location: formatLocationLabel(city, state, loc),
+        city,
+        state,
         description:
           "This is a realistic sample listing used for development. Replace with real scraped data in production.",
         totalCompensation: comp,
-        remote: j.location?.toLowerCase().includes("remote") ?? true,
+        remote: loc.toLowerCase().includes("remote") ?? true,
       });
       updates++;
     }
     return { success: true, updated: updates };
+  },
+});
+
+export const migrateJobLocations = mutation({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 500;
+    return runLocationMigration(ctx, limit);
   },
 });
 

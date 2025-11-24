@@ -8,6 +8,8 @@ const applicationTables = {
     company: v.string(),
     description: v.string(),
     location: v.string(),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
     remote: v.boolean(),
     level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
     totalCompensation: v.number(),
@@ -17,9 +19,10 @@ const applicationTables = {
     test: v.optional(v.boolean()),
   })
     .index("by_posted_at", ["postedAt"])
+    .index("by_state_posted", ["state", "postedAt"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["remote", "level"],
+      filterFields: ["remote", "level", "state"],
     }),
 
   saved_filters: defineTable({
@@ -27,6 +30,8 @@ const applicationTables = {
     name: v.string(),
     search: v.optional(v.string()),
     remote: v.optional(v.boolean()),
+    includeRemote: v.optional(v.boolean()),
+    state: v.optional(v.string()),
     level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),

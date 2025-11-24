@@ -1,5 +1,6 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { splitLocation, formatLocationLabel } from "./location";
 
 export const insertFakeJobs = mutation({
   args: {},
@@ -119,7 +120,13 @@ export const insertFakeJobs = mutation({
 
     const insertedJobs = [];
     for (const job of fakeJobs) {
-      const jobId = await ctx.db.insert("jobs", job);
+      const { city, state } = splitLocation(job.location);
+      const jobId = await ctx.db.insert("jobs", {
+        ...job,
+        city,
+        state,
+        location: formatLocationLabel(city, state, job.location),
+      });
       insertedJobs.push(jobId);
     }
 

@@ -5,7 +5,7 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
-MAX_FETCHFOX_VISITS = 20
+MAX_FETCHFOX_VISITS = 40
 
 
 class FetchFoxPriority(BaseModel):
@@ -54,4 +54,3 @@ class FetchFoxScrapeRequest(BaseModel):
     @classmethod
     def cap_visits(cls, value: int) -> int:
         return min(MAX_FETCHFOX_VISITS, value)
-

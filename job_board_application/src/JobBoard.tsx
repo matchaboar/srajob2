@@ -10,10 +10,13 @@ import { Keycap } from "./components/Keycap";
 import { formatCompensationDisplay, parseCompensationInput } from "./lib/compensation";
 
 type Level = "junior" | "mid" | "senior" | "staff";
+const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
+type TargetState = (typeof TARGET_STATES)[number];
 
 interface Filters {
   search: string;
-  remote: boolean | null;
+  includeRemote: boolean;
+  state: TargetState | null;
   level: Level | null;
   minCompensation: number | null;
   maxCompensation: number | null;
@@ -24,6 +27,8 @@ interface SavedFilter {
   name: string;
   search?: string;
   remote?: boolean;
+  includeRemote?: boolean;
+  state?: TargetState | null;
   level?: Level | null;
   minCompensation?: number;
   maxCompensation?: number;
@@ -32,7 +37,8 @@ interface SavedFilter {
 
 const buildEmptyFilters = (): Filters => ({
   search: "",
-  remote: null,
+  includeRemote: true,
+  state: null,
   level: null,
   minCompensation: null,
   maxCompensation: null,
@@ -40,6 +46,8 @@ const buildEmptyFilters = (): Filters => ({
 
 const buildFilterLabel = (filter: {
   search?: string | null;
+  state?: TargetState | null;
+  includeRemote?: boolean | null;
   level?: Level | null;
   remote?: boolean | null;
   minCompensation?: number | null;
@@ -53,8 +61,12 @@ const buildFilterLabel = (filter: {
   if (filter.level) {
     parts.push(filter.level.charAt(0).toUpperCase() + filter.level.slice(1));
   }
-  if (filter.remote !== null && filter.remote !== undefined) {
-    parts.push(filter.remote ? "Remote" : "On-site");
+  if (filter.state) {
+    parts.push(filter.state);
+  }
+  const includeRemote = filter.includeRemote ?? (filter.remote !== false);
+  if (includeRemote === false) {
+    parts.push("On-site only");
   }
 
   const formatSalary = (value: number) => `$${Math.round(value / 1000)}k`;
@@ -182,7 +194,8 @@ export function JobBoard() {
     api.jobs.listJobs,
     {
       search: throttledFilters.search || undefined,
-      remote: throttledFilters.remote ?? undefined,
+      state: throttledFilters.state ?? undefined,
+      includeRemote: throttledFilters.includeRemote,
       level: throttledFilters.level ?? undefined,
       minCompensation: throttledFilters.minCompensation ?? undefined,
       maxCompensation: throttledFilters.maxCompensation ?? undefined,
@@ -314,7 +327,8 @@ export function JobBoard() {
     setSelectedSavedFilterId(filter._id);
     setFilters({
       search: filter.search ?? "",
-      remote: filter.remote ?? null,
+      includeRemote: filter.includeRemote ?? (filter.remote !== false),
+      state: (filter.state as TargetState | null) ?? null,
       level: (filter.level as Level | null) ?? null,
       minCompensation: filter.minCompensation ?? null,
       maxCompensation: filter.maxCompensation ?? null,
@@ -352,7 +366,7 @@ export function JobBoard() {
   const MAX_SALARY = 800000;
   const SALARY_STEP = 20000;
   const DEFAULT_SLIDER_VALUE = 200000;
-  const locationSelectId = "job-board-location-filter";
+  const stateSelectId = "job-board-state-filter";
   const levelSelectId = "job-board-level-filter";
   const clampToSliderRange = useCallback(
     (value: number) => Math.min(Math.max(value, MIN_SALARY), MAX_SALARY),
@@ -446,6 +460,7 @@ export function JobBoard() {
     }
   }, [DEFAULT_SLIDER_VALUE, clampToSliderRange, filters.minCompensation]);
 
+
   const generatedFilterName = useMemo(() => buildFilterLabel(filters), [filters]);
 
   const resetFilters = useCallback((alsoClearSavedSelection: boolean = true) => {
@@ -469,7 +484,8 @@ export function JobBoard() {
       await saveFilter({
         name: trimmedName,
         search: filters.search || undefined,
-        remote: filters.remote ?? undefined,
+        includeRemote: filters.includeRemote,
+        state: filters.state || undefined,
         level: filters.level ?? undefined,
         minCompensation: filters.minCompensation ?? undefined,
         maxCompensation: filters.maxCompensation ?? undefined,
@@ -840,26 +856,52 @@ export function JobBoard() {
 
                 <div>
                   <label
-                    htmlFor={locationSelectId}
+                    htmlFor={stateSelectId}
                     className="block text-xs font-semibold text-slate-500 uppercase mb-2"
                   >
-                    Location
+                    State
                   </label>
                   <select
-                    id={locationSelectId}
-                    value={filters.remote === null ? "" : filters.remote.toString()}
+                    id={stateSelectId}
+                    value={filters.state ?? ""}
                     onChange={(e) =>
-                      updateFilters({
-                        remote: e.target.value === "" ? null : e.target.value === "true",
-                      })
+                      updateFilters(
+                        {
+                          state: (e.target.value || null) as TargetState | null,
+                        },
+                        { forceImmediate: true },
+                      )
                     }
                     style={selectSurfaceStyle}
                     className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
                   >
-                    <option style={selectOptionStyle} value="">Any Location</option>
-                    <option style={selectOptionStyle} value="true">Remote Only</option>
-                    <option style={selectOptionStyle} value="false">On-site</option>
+                    <option style={selectOptionStyle} value="">Any Target State</option>
+                    {TARGET_STATES.map((state) => (
+                      <option key={state} style={selectOptionStyle} value={state}>
+                        {state}
+                      </option>
+                    ))}
                   </select>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2">
+                  <div className="text-xs font-semibold text-slate-500 uppercase">Remote</div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={filters.includeRemote}
+                    onClick={() => updateFilters({ includeRemote: !filters.includeRemote }, { forceImmediate: true })}
+                    className={`relative h-6 w-11 rounded-full border transition-colors duration-150 overflow-hidden ${
+                      filters.includeRemote ? "bg-emerald-500/40 border-emerald-400" : "bg-slate-800 border-slate-700"
+                    }`}
+                    aria-label={filters.includeRemote ? "Remote on" : "Remote off"}
+                  >
+                    <span
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                        filters.includeRemote ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 <div>
@@ -881,10 +923,10 @@ export function JobBoard() {
                     className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
                   >
                     <option style={selectOptionStyle} value="">Any Level</option>
-                    <option style={selectOptionStyle} value="junior">Junior</option>
-                    <option style={selectOptionStyle} value="mid">Mid</option>
-                    <option style={selectOptionStyle} value="senior">Senior</option>
                     <option style={selectOptionStyle} value="staff">Staff</option>
+                    <option style={selectOptionStyle} value="senior">Senior</option>
+                    <option style={selectOptionStyle} value="mid">Mid</option>
+                    <option style={selectOptionStyle} value="junior">Junior</option>
                   </select>
                 </div>
 
@@ -967,8 +1009,9 @@ export function JobBoard() {
                         const isActive = filter._id === selectedSavedFilterId || filter.isSelected;
                         const filterLabel = buildFilterLabel({
                           search: filter.search ?? "",
+                          state: (filter.state as TargetState | null) ?? null,
+                          includeRemote: filter.includeRemote ?? (filter.remote !== false),
                           level: (filter.level as Level | null) ?? null,
-                          remote: filter.remote ?? null,
                           minCompensation: filter.minCompensation ?? null,
                           maxCompensation: filter.maxCompensation ?? null,
                         });

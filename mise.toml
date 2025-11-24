@@ -3,4 +3,4 @@
 windows_shim_mode = "symlink"
 
 [tools]
-node = "latest"
+node = "22"

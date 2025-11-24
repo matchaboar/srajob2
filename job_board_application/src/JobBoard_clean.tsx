@@ -4,10 +4,13 @@ import { api } from "../convex/_generated/api";
 import { toast } from "sonner";
 
 type Level = "junior" | "mid" | "senior" | "staff";
+const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
+type TargetState = (typeof TARGET_STATES)[number];
 
 interface Filters {
   search: string;
-  remote: boolean | null;
+  includeRemote: boolean;
+  state: TargetState | null;
   level: Level | null;
   minCompensation: number | null;
   maxCompensation: number | null;
@@ -17,7 +20,8 @@ export function JobBoard() {
   const [activeTab, setActiveTab] = useState<"jobs" | "applied" | "live">("jobs");
   const [filters, setFilters] = useState<Filters>({
     search: "",
-    remote: null,
+    includeRemote: true,
+    state: null,
     level: null,
     minCompensation: null,
     maxCompensation: null,
@@ -45,7 +49,8 @@ export function JobBoard() {
     api.jobs.listJobs,
     {
       search: filters.search || undefined,
-      remote: filters.remote ?? undefined,
+      state: filters.state ?? undefined,
+      includeRemote: filters.includeRemote,
       level: filters.level ?? undefined,
       minCompensation: filters.minCompensation ?? undefined,
       maxCompensation: filters.maxCompensation ?? undefined,
@@ -166,7 +171,8 @@ export function JobBoard() {
   const clearFilters = () => {
     setFilters({
       search: "",
-      remote: null,
+      includeRemote: true,
+      state: null,
       level: null,
       minCompensation: null,
       maxCompensation: null,
@@ -175,6 +181,7 @@ export function JobBoard() {
 
   // Filter out locally applied/rejected jobs from the results
   const filteredResults = results?.filter(job => !locallyAppliedJobs.has(job._id)) || [];
+
 
   // Live Feed: detect new jobs and trigger animation/sound
   useEffect(() => {
@@ -324,25 +331,47 @@ export function JobBoard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
-
                 <select
-                  value={filters.remote === null ? "" : filters.remote.toString()}
+                  value={filters.state ?? ""}
                   onChange={(e) =>
                     setFilters({
                       ...filters,
-                      remote: e.target.value === "" ? null : e.target.value === "true",
+                      state: (e.target.value || null) as TargetState | null,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
-                  <option value="">Any Location</option>
-                  <option value="true">Remote</option>
-                  <option value="false">On-site</option>
+                  <option value="">Any Target State</option>
+                  {TARGET_STATES.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {/* Second Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center">
+                <div className="flex items-center justify-end">
+                  <span className="text-xs font-semibold text-gray-500 mr-2 uppercase">Remote</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={filters.includeRemote}
+                    onClick={() => setFilters({ ...filters, includeRemote: !filters.includeRemote })}
+                    className={`relative h-6 w-11 rounded-full border transition-colors duration-150 overflow-hidden ${
+                      filters.includeRemote ? "bg-emerald-200 border-emerald-400" : "bg-gray-200 border-gray-300"
+                    }`}
+                    aria-label={filters.includeRemote ? "Remote on" : "Remote off"}
+                  >
+                    <span
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                        filters.includeRemote ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 <select
                   value={filters.level || ""}
                   onChange={(e) =>
@@ -354,10 +383,10 @@ export function JobBoard() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
                   <option value="">Any Level</option>
-                  <option value="junior">Junior</option>
-                  <option value="mid">Mid</option>
-                  <option value="senior">Senior</option>
                   <option value="staff">Staff</option>
+                  <option value="senior">Senior</option>
+                  <option value="mid">Mid</option>
+                  <option value="junior">Junior</option>
                 </select>
 
                 <input
