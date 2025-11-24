@@ -1125,8 +1125,44 @@ export function JobBoard() {
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                       <div className="p-5 space-y-4">
+                        <div className="flex gap-2">
+                          {selectedJob.url && (
+                            <button
+                              onClick={() => { void handleApply(selectedJob._id, "manual", selectedJob.url); }}
+                              className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
+                            >
+                              Direct Apply
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { }}
+                            disabled
+                            className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
+                          >
+                            Apply with AI
+                          </button>
+                        </div>
+
+                        {selectedJobDetails.find(item => item.label === "Job URL") && (
+                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
+                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                              Job URL
+                            </div>
+                            <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
+                              <a
+                                href={selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
+                              >
+                                {selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-2">
-                          {selectedJobDetails.map((item) => (
+                          {selectedJobDetails.filter(item => item.label !== "Job URL").map((item) => (
                             <div
                               key={item.label}
                               className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1"
@@ -1169,23 +1205,7 @@ export function JobBoard() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2 pt-1">
-                          {selectedJob.url && (
-                            <button
-                              onClick={() => { void handleApply(selectedJob._id, "manual", selectedJob.url); }}
-                              className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
-                            >
-                              Direct Apply
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { }}
-                            disabled
-                            className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
-                          >
-                            Apply with AI
-                          </button>
-                        </div>
+
                       </div>
                     </div>
                   </div>

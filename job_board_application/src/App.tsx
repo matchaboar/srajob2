@@ -2,7 +2,7 @@ import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { JobBoard } from "./JobBoard";
 import { PublicJobPreview } from "./PublicJobPreview";
 import { AdminPage } from "./AdminPage";
@@ -10,12 +10,14 @@ import { StatusTrackerTest } from "./test/StatusTrackerTest";
 import { useState, useEffect } from "react";
 
 export default function App() {
+  const isAdmin = useQuery(api.auth.isAdmin);
+
   // Check for test page route
   const [showTestPage, setShowTestPage] = useState(() => {
     return window.location.hash === "#test-status-tracker";
   });
 
-  // Use URL hash to persist showAdmin state across refreshes
+  // Use URL hash to persist showAdmin intent across refreshes
   const [showAdmin, setShowAdmin] = useState(() => {
     return window.location.hash.startsWith("#admin");
   });
@@ -45,6 +47,28 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // If admin hash is present but user is not an admin, bounce them back gracefully
+  useEffect(() => {
+    if (showAdmin && isAdmin === false) {
+      setShowAdmin(false);
+      window.location.hash = "";
+      toast.error("Admin access requires an admin account.");
+    }
+  }, [showAdmin, isAdmin]);
+
+  const handleAdminToggle = () => {
+    if (isAdmin === undefined) return; // still loading auth state
+    if (!isAdmin) {
+      toast.error("Admin access requires an admin account.");
+      return;
+    }
+    setShowAdmin((prev) => !prev);
+  };
+
+  const showAdminPage = showAdmin && isAdmin === true;
+  const adminLoading = showAdmin && isAdmin === undefined;
+  const adminBlocked = showAdmin && isAdmin === false;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-200">
       <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 h-16 flex justify-between items-center px-6">
@@ -53,8 +77,9 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => setShowAdmin(!showAdmin)}
+            onClick={handleAdminToggle}
             className="text-sm text-slate-400 hover:text-white transition-colors"
+            disabled={isAdmin === undefined}
           >
             {showAdmin ? "Back to Jobs" : "Admin"}
           </button>
@@ -64,7 +89,17 @@ export default function App() {
         </div>
       </header>
       <main className="flex-1 flex flex-col overflow-hidden">
-        {showTestPage ? <StatusTrackerTest /> : showAdmin ? <AdminPage /> : <Content />}
+        {showTestPage ? (
+          <StatusTrackerTest />
+        ) : adminLoading ? (
+          <AdminLoading />
+        ) : adminBlocked ? (
+          <AdminDenied />
+        ) : showAdminPage ? (
+          <AdminPage />
+        ) : (
+          <Content />
+        )}
       </main>
       <Toaster theme="dark" />
     </div>
@@ -90,6 +125,28 @@ function Content() {
       <Unauthenticated>
         <PublicJobPreview />
       </Unauthenticated>
+    </div>
+  );
+}
+
+function AdminLoading() {
+  return (
+    <div className="flex flex-1 items-center justify-center text-slate-400">
+      Checking admin access...
+    </div>
+  );
+}
+
+function AdminDenied() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded p-6 text-center">
+        <h3 className="text-lg font-semibold text-white mb-2">Admins only</h3>
+        <p className="text-sm text-slate-400 mb-4">
+          You must sign in with an admin account to view the admin panel.
+        </p>
+        <SignInForm />
+      </div>
     </div>
   );
 }
