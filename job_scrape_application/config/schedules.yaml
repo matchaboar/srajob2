@@ -1,0 +1,13 @@
+schedules:
+  - id: scrape-every-10-secs
+    workflow: ScraperFirecrawl
+    interval_seconds: 10
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+  - id: greenhouse-scrape-every-10-secs
+    workflow: GreenhouseScraperWorkflow
+    interval_seconds: 10
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip

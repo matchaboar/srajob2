@@ -16,7 +16,7 @@ async def test_scrape_site_prefers_firecrawl_when_available(monkeypatch):
     site = {"_id": "1", "url": "https://example.com", "pattern": None}
     calls = {"fire": 0, "fetch": 0}
 
-    async def fake_fire(site_arg: Dict[str, Any]) -> Dict[str, Any]:
+    async def fake_fire(site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
         calls["fire"] += 1
         return {"ok": "fire"}
 

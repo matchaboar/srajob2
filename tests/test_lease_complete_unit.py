@@ -10,7 +10,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('.'))
 from job_scrape_application.workflows import activities as acts
-from job_scrape_application.workflows import convex_client
+from job_scrape_application.services import convex_client
 
 
 class FakeConvex:

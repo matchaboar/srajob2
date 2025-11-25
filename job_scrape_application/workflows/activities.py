@@ -15,8 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from .config import settings
-from .models import (
+from ..config import settings
+from ..components.models import (
     FetchFoxPriority,
     FetchFoxScrapeRequest,
     GreenhouseBoardResponse,
@@ -100,7 +100,7 @@ class Site(TypedDict):
 async def fetch_seen_urls_for_site(source_url: str, pattern: Optional[str]) -> List[str]:
     """Return every URL we've already scraped for the site so scrapers can skip them."""
 
-    from .convex_client import convex_query
+    from ..services.convex_client import convex_query
 
     try:
         res = await convex_query(
@@ -160,11 +160,11 @@ async def fetch_sites() -> List[Site]:
 
 @activity.defn
 async def lease_site(worker_id: str, lock_seconds: int = 300, site_type: Optional[str] = None) -> Optional[Site]:
-    from .convex_client import convex_mutation
+    from ..services.convex_client import convex_mutation
 
     payload: Dict[str, Any] = {"workerId": worker_id, "lockSeconds": lock_seconds}
-    if site_type:
-        payload["siteType"] = site_type
+    # NOTE: Some deployed Convex validators do not yet accept siteType; omit for compatibility.
+    # When validators are updated, reintroduce passing siteType conditionally.
 
     res = await convex_mutation("router:leaseSite", payload)
     if res is None:
@@ -240,6 +240,8 @@ async def scrape_site_fetchfox(site: Site) -> Dict[str, Any]:
         "startedAt": started_at,
         "completedAt": completed_at,
         "items": {"normalized": normalized_items, "raw": result_obj},
+        "provider": "fetchfox",
+        "costMilliCents": None,
     }
 
     # Trim heavy fields before sending to Convex
@@ -310,6 +312,7 @@ async def scrape_site_firecrawl(site: Site, skip_urls: Optional[List[str]] = Non
             "raw": raw_payload,
             "provider": "firecrawl",
         },
+        "provider": "firecrawl",
     }
 
     return trim_scrape_for_convex(scrape_payload)
@@ -556,8 +559,16 @@ def normalize_firecrawl_items(payload: Any) -> List[Dict[str, Any]]:
     return normalized
 
 
-def _jobs_from_scrape_items(items: Any, *, default_posted_at: int) -> List[Dict[str, Any]]:
-    """Convert trimmed scrape items into Convex job ingest shape."""
+def _jobs_from_scrape_items(
+    items: Any,
+    *,
+    default_posted_at: int,
+    scraped_at: Optional[int] = None,
+    scraped_with: Optional[str] = None,
+    workflow_name: Optional[str] = None,
+    scraped_cost_milli_cents: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """Convert trimmed scrape items into Convex job ingest shape, carrying scrape metadata."""
 
     jobs: List[Dict[str, Any]] = []
     normalized = None
@@ -582,6 +593,14 @@ def _jobs_from_scrape_items(items: Any, *, default_posted_at: int) -> List[Dict[
         }
         if not job["url"]:
             continue
+        if scraped_at:
+            job["scrapedAt"] = scraped_at
+        if scraped_with:
+            job["scrapedWith"] = scraped_with
+        if workflow_name:
+            job["workflowName"] = workflow_name
+        if scraped_cost_milli_cents is not None:
+            job["scrapedCostMilliCents"] = scraped_cost_milli_cents
         jobs.append(job)
 
     return jobs
@@ -868,10 +887,26 @@ def trim_scrape_for_convex(
 
 @activity.defn
 async def store_scrape(scrape: Dict[str, Any]) -> str:
-    from .convex_client import convex_mutation
+    from ..services.convex_client import convex_mutation
 
     payload = trim_scrape_for_convex(scrape)
     now = int(time.time() * 1000)
+    scraped_with = None
+    if isinstance(payload.get("items"), dict):
+        scraped_with = payload["items"].get("provider")
+    scraped_with = scraped_with or payload.get("provider")
+    workflow_name = payload.get("workflowName")
+    cost_milli_cents = payload.get("costMilliCents")
+    if cost_milli_cents is None and isinstance(payload.get("items"), dict):
+        maybe_cost = payload["items"].get("costMilliCents")
+        if isinstance(maybe_cost, (int, float)):
+            cost_milli_cents = int(maybe_cost)
+    # Support costCents fallback
+    if cost_milli_cents is None and payload.get("costCents") is not None:
+        try:
+            cost_milli_cents = int(float(payload["costCents"]) * 1000)
+        except Exception:
+            cost_milli_cents = None
 
     try:
         scrape_id = await convex_mutation(
@@ -882,6 +917,9 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 "startedAt": payload.get("startedAt", now),
                 "completedAt": payload.get("completedAt", now),
                 "items": payload.get("items"),
+                "provider": scraped_with,
+                "workflowName": workflow_name,
+                "costMilliCents": cost_milli_cents,
             },
         )
     except Exception:
@@ -902,12 +940,26 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 "startedAt": fallback.get("startedAt", now),
                 "completedAt": fallback.get("completedAt", now),
                 "items": fallback.get("items"),
+                "provider": scraped_with,
+                "workflowName": workflow_name,
+                "costMilliCents": cost_milli_cents,
             },
         )
 
     # Best-effort job ingestion (mimics router.ts behavior)
     try:
-        jobs = _jobs_from_scrape_items(payload.get("items"), default_posted_at=now)
+        jobs = _jobs_from_scrape_items(
+            payload.get("items"),
+            default_posted_at=now,
+            scraped_at=payload.get("completedAt", now),
+            scraped_with=scraped_with,
+            workflow_name=workflow_name,
+            scraped_cost_milli_cents=(
+                int(cost_milli_cents / max(len(payload.get("items", {}).get("normalized") or []) or 1, 1))
+                if isinstance(cost_milli_cents, (int, float))
+                else None
+            ),
+        )
         if jobs:
             await convex_mutation("router:ingestJobsFromScrape", {"jobs": jobs})
     except Exception:
@@ -919,24 +971,27 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
 @activity.defn
 async def complete_site(site_id: str) -> None:
-    from .convex_client import convex_mutation
+    from ..services.convex_client import convex_mutation
 
     await convex_mutation("router:completeSite", {"id": site_id})
 
 
 @activity.defn
 async def fail_site(payload: Dict[str, Any]) -> None:
-    from .convex_client import convex_mutation
+    from ..services.convex_client import convex_mutation
 
     await convex_mutation("router:failSite", {"id": payload["id"], "error": payload.get("error")})
 
 
 @activity.defn
 async def record_workflow_run(run: Dict[str, Any]) -> None:
-    from .convex_client import convex_mutation
+    from ..services.convex_client import convex_mutation
 
     payload = {k: v for k, v in run.items() if v is not None}
     try:
         await convex_mutation("temporal:recordWorkflowRun", payload)
+    except asyncio.CancelledError:
+        # Shutdown/interrupt paths shouldn't surface as activity failures
+        return None
     except Exception as e:  # noqa: BLE001
         raise RuntimeError(f"Failed to record workflow run: {e}") from e

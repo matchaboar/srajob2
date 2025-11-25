@@ -2,10 +2,25 @@ from __future__ import annotations
 
 import asyncio
 import time
+from pathlib import Path
+
+import yaml
 from temporalio.client import Client
 from temporalio.service import RPCError, RPCStatusCode
 
-from .config import settings
+from ..config import settings
+
+SCHEDULES_YAML = Path(__file__).resolve().parents[1] / "config" / "schedules.yaml"
+
+
+def _load_ids_from_yaml() -> list[tuple[str, str]]:
+    data = yaml.safe_load(SCHEDULES_YAML.read_text()) if SCHEDULES_YAML.exists() else {}
+    items = data.get("schedules", []) if isinstance(data, dict) else []
+    out: list[tuple[str, str]] = []
+    for item in items:
+        if isinstance(item, dict) and "id" in item and "workflow" in item:
+            out.append((str(item["id"]), str(item["workflow"])))
+    return out
 
 
 async def main() -> None:
@@ -30,8 +45,8 @@ async def main() -> None:
             else:
                 raise
 
-    await trigger_or_start("scrape-every-15-mins", "ScraperFirecrawl")
-    await trigger_or_start("greenhouse-scrape-every-15-mins", "GreenhouseScraperWorkflow")
+    for schedule_id, workflow_name in _load_ids_from_yaml():
+        await trigger_or_start(schedule_id, workflow_name)
 
 
 if __name__ == "__main__":

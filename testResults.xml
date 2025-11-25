@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="4" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-11-24" time="16:30:35">
+  <environment os-version="5.15.167.4-microsoft-standard-WSL2" user-domain="" cwd="/home/boarcoder/documents/github/srajob2" machine-name="DESKTOP-NFS14HP" user="boarcoder" platform="Linux" clr-version="9.0.10" nunit-version="2.5.8.0" />
+  <culture-info current-culture="" current-uiculture="" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="1.1052" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1" executed="True" result="Success" success="True" time="1.1052" asserts="0" description="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="start_worker.ps1" executed="True" result="Success" success="True" time="0.888" asserts="0" description="start_worker.ps1">
+            <results>
+              <test-case description="loads dotenv respecting override flag" name="start_worker.ps1.loads dotenv respecting override flag" time="0.0763" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="constructs python commands with expected parameters" name="start_worker.ps1.constructs python commands with expected parameters" time="0.6323" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="retries schedule creation failures then succeeds" name="start_worker.ps1.retries schedule creation failures then succeeds" time="0.0632" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="surfaces error after exhausting schedule retries" name="start_worker.ps1.surfaces error after exhausting schedule retries" time="0.0854" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>

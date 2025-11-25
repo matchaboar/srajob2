@@ -1,26 +1,90 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from datetime import timedelta
+from pathlib import Path
+from typing import List
+
+import yaml
 
 from temporalio.client import (
     Client,
     Schedule,
     ScheduleActionStartWorkflow,
+    ScheduleAlreadyRunningError,
     ScheduleIntervalSpec,
     ScheduleOverlapPolicy,
     SchedulePolicy,
-    ScheduleUpdate,
-    ScheduleAlreadyRunningError,
     ScheduleSpec,
+    ScheduleUpdate,
 )
-from .config import settings
+from temporalio.service import RPCError, RPCStatusCode
+
+from ..config import settings
 
 
-SCHEDULES = (
-    ("scrape-every-15-mins", "ScraperFirecrawl"),
-    ("greenhouse-scrape-every-15-mins", "GreenhouseScraperWorkflow"),
-)
+SCHEDULES_YAML = Path(__file__).resolve().parents[1] / "config" / "schedules.yaml"
+
+
+@dataclass
+class ScheduleConfig:
+    id: str
+    workflow: str
+    interval_seconds: int
+    task_queue: str | None = None
+    catchup_window_hours: int = 12
+    overlap: str = "skip"
+
+
+def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
+    data = yaml.safe_load(path.read_text()) if path.exists() else {}
+    items = data.get("schedules", []) if isinstance(data, dict) else []
+    configs: List[ScheduleConfig] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        configs.append(
+            ScheduleConfig(
+                id=str(item["id"]),
+                workflow=str(item["workflow"]),
+                interval_seconds=int(item.get("interval_seconds", 15)),
+                task_queue=item.get("task_queue"),
+                catchup_window_hours=int(item.get("catchup_window_hours", 12)),
+                overlap=str(item.get("overlap", "skip")).lower(),
+            )
+        )
+    return configs
+
+
+def _overlap_policy(name: str) -> ScheduleOverlapPolicy:
+    name = name.lower()
+    if name == "skip":
+        return ScheduleOverlapPolicy.SKIP
+    if name == "buffer_all":
+        return ScheduleOverlapPolicy.BUFFER_ALL
+    if name == "cancel_other":
+        return ScheduleOverlapPolicy.CANCEL_OTHER
+    return ScheduleOverlapPolicy.SKIP
+
+
+def build_schedule(cfg: ScheduleConfig) -> Schedule:
+    spec = ScheduleSpec(
+        intervals=[ScheduleIntervalSpec(every=timedelta(seconds=cfg.interval_seconds))]
+    )
+
+    action = ScheduleActionStartWorkflow(
+        cfg.workflow,
+        id=f"wf-{cfg.id}",
+        task_queue=cfg.task_queue or settings.task_queue,
+    )
+
+    policy = SchedulePolicy(
+        catchup_window=timedelta(hours=cfg.catchup_window_hours),
+        overlap=_overlap_policy(cfg.overlap),
+    )
+
+    return Schedule(action=action, spec=spec, policy=policy)
 
 
 async def main() -> None:
@@ -29,26 +93,28 @@ async def main() -> None:
         namespace=settings.temporal_namespace,
     )
 
-    for schedule_id, workflow_name in SCHEDULES:
-        spec = ScheduleSpec(
-            intervals=[
-                ScheduleIntervalSpec(every=timedelta(minutes=15)),
-            ]
-        )
+    configs = load_schedule_configs()
+    desired_ids = {cfg.id for cfg in configs}
 
-        action = ScheduleActionStartWorkflow(
-            workflow_name,
-            id=f"wf-{schedule_id}",
-            task_queue=settings.task_queue,
-        )
+    # Delete any schedules not present in YAML
+    schedule_iter = await client.list_schedules()
+    async for entry in schedule_iter:
+        existing_id = entry.id
+        if existing_id not in desired_ids:
+            handle = client.get_schedule_handle(existing_id)
+            try:
+                await handle.delete()
+                print(f"Deleted schedule not in config: {existing_id}")
+            except RPCError as e:
+                if e.status != RPCStatusCode.NOT_FOUND:
+                    raise
+            except Exception:
+                pass
 
-        policy = SchedulePolicy(
-            # If a run is missed (e.g., worker down), buffer at most 1 and run once
-            catchup_window=timedelta(hours=12),
-            overlap=ScheduleOverlapPolicy.SKIP,
-        )
-        schedule = Schedule(action=action, spec=spec, policy=policy)
-
+    # Upsert desired schedules
+    for cfg in configs:
+        schedule_id = cfg.id
+        schedule = build_schedule(cfg)
         handle = client.get_schedule_handle(schedule_id)
         try:
             await handle.describe()
@@ -56,14 +122,17 @@ async def main() -> None:
             print(f"Updated schedule: {schedule_id}")
         except ScheduleAlreadyRunningError:
             print(f"Schedule already running: {schedule_id}")
-        except Exception:
-            handle = await client.create_schedule(
-                id=schedule_id,
-                schedule=schedule,
-                trigger_immediately=True,
-            )
-            print(f"Created schedule: {schedule_id}")
-            print("Triggered schedule immediately for first run.")
+        except RPCError as e:
+            if e.status == RPCStatusCode.NOT_FOUND:
+                await client.create_schedule(
+                    id=schedule_id,
+                    schedule=schedule,
+                    trigger_immediately=True,
+                )
+                print(f"Created schedule: {schedule_id}")
+                print("Triggered schedule immediately for first run.")
+            else:
+                raise
 
 
 if __name__ == "__main__":

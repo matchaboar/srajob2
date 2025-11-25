@@ -8,7 +8,7 @@ const DEFAULT_SCHEDULE = {
   time: "08:00",
   timezone: "MST",
   intervalMinutes: 24 * 60,
-  name: "scrape-every-15-mins",
+  name: "scrape-every-10-secs",
   catchupWindowHours: 12,
   overlap: "skip",
   workflow: "ScrapeWorkflow",

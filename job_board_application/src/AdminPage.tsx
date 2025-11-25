@@ -62,8 +62,13 @@ const deriveSiteName = (rawUrl: string): string => {
 
     // Greenhouse boards: company slug is usually the first path segment
     if (/greenhouse/.test(host) && pathSegments.length > 0) {
+      const boardsIdx = pathSegments.findIndex((p) => p.toLowerCase() === "boards");
+      if (boardsIdx >= 0 && boardsIdx + 1 < pathSegments.length) {
+        const candidate = toTitleCaseSlug(pathSegments[boardsIdx + 1]);
+        if (candidate) return candidate;
+      }
       const candidate = toTitleCaseSlug(pathSegments[0]);
-      if (candidate) return candidate;
+      if (candidate && candidate !== "V1") return candidate;
     }
 
     const hostParts = host.split(".");
@@ -435,7 +440,6 @@ function ScraperConfigSection() {
     if (siteType !== "greenhouse") setSiteType("greenhouse");
     if (pattern) setPattern("");
     if (!enabled) setEnabled(true);
-    if (selectedScheduleId) setSelectedScheduleId("");
   }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId]);
 
   useEffect(() => {

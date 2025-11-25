@@ -44,9 +44,7 @@ class GreenhouseScraperWorkflow:
             while True:
                 site = await workflow.execute_activity(
                     lease_site,
-                    "scraper-worker",
-                    300,
-                    "greenhouse",
+                    args=["scraper-worker", 300, "greenhouse"],
                     schedule_to_close_timeout=timedelta(seconds=30),
                 )
 
@@ -59,14 +57,14 @@ class GreenhouseScraperWorkflow:
                 try:
                     listing = await workflow.execute_activity(
                         fetch_greenhouse_listing,
-                        site,
+                        args=[site],
                         start_to_close_timeout=timedelta(minutes=2),
                     )
 
                     job_urls: List[str] = listing.get("job_urls", []) if isinstance(listing, dict) else []
                     existing = await workflow.execute_activity(
                         filter_existing_job_urls,
-                        job_urls,
+                        args=[job_urls],
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
                     existing_set = set(existing)
@@ -75,7 +73,7 @@ class GreenhouseScraperWorkflow:
                     if urls_to_scrape:
                         scrape_res = await workflow.execute_activity(
                             scrape_greenhouse_jobs,
-                            {"urls": urls_to_scrape, "source_url": site["url"]},
+                            args=[{"urls": urls_to_scrape, "source_url": site["url"]}],
                             start_to_close_timeout=timedelta(minutes=10),
                         )
                         scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None
@@ -84,20 +82,20 @@ class GreenhouseScraperWorkflow:
                         if scrape_payload:
                             scrape_id = await workflow.execute_activity(
                                 store_scrape,
-                                scrape_payload,
+                                args=[scrape_payload],
                                 schedule_to_close_timeout=timedelta(seconds=30),
                             )
                             scrape_ids.append(scrape_id)
 
                     await workflow.execute_activity(
                         complete_site,
-                        site["_id"],
+                        args=[site["_id"]],
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
                 except Exception as e:  # noqa: BLE001
                     await workflow.execute_activity(
                         fail_site,
-                        {"id": site["_id"], "error": str(e)},
+                        args=[{"id": site["_id"], "error": str(e)}],
                         start_to_close_timeout=timedelta(seconds=30),
                     )
                     status = "failed"
@@ -121,20 +119,22 @@ class GreenhouseScraperWorkflow:
             try:
                 await workflow.execute_activity(
                     record_workflow_run,
-                    {
-                        "runId": workflow.info().run_id,
-                        "workflowId": workflow.info().workflow_id,
-                        "workflowName": "GreenhouseScraperWorkflow",
-                        "status": status,
-                        "startedAt": started_at,
-                        "completedAt": completed_at,
-                        "siteUrls": site_urls,
-                        "sitesProcessed": site_count,
-                        "jobsScraped": jobs_scraped,
-                        "workerId": "scraper-worker",
-                        "taskQueue": "scraper-task-queue",
-                        "error": "; ".join(failure_reasons) if failure_reasons else None,
-                    },
+                    args=[
+                        {
+                            "runId": workflow.info().run_id,
+                            "workflowId": workflow.info().workflow_id,
+                            "workflowName": "GreenhouseScraperWorkflow",
+                            "status": status,
+                            "startedAt": started_at,
+                            "completedAt": completed_at,
+                            "siteUrls": site_urls,
+                            "sitesProcessed": site_count,
+                            "jobsScraped": jobs_scraped,
+                            "workerId": "scraper-worker",
+                            "taskQueue": "scraper-task-queue",
+                            "error": "; ".join(failure_reasons) if failure_reasons else None,
+                        }
+                    ],
                     schedule_to_close_timeout=timedelta(seconds=30),
                 )
             except Exception:

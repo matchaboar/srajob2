@@ -265,6 +265,7 @@ export function JobBoard() {
       label: "Posted",
       value: typeof selectedJob.postedAt === "number" ? formatPostedLabel(selectedJob.postedAt) : "Not provided",
     });
+    // Scrape metadata rendered below description; omit here.
     details.push({
       label: "Applications",
       value: String(selectedJob.applicationCount ?? 0),
@@ -1187,22 +1188,22 @@ export function JobBoard() {
                         </div>
 
                         {selectedJobDetails.find(item => item.label === "Job URL") && (
-                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
-                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                              Job URL
-                            </div>
-                            <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
-                              <a
-                                href={selectedJobDetails.find(item => item.label === "Job URL")?.value}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
-                              >
-                                {selectedJobDetails.find(item => item.label === "Job URL")?.value}
-                              </a>
-                            </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Job URL
                           </div>
-                        )}
+                          <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
+                            <a
+                              href={selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
+                            >
+                              {selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                            </a>
+                          </div>
+                        </div>
+                      )}
 
                         <div className="grid grid-cols-2 gap-2">
                           {selectedJobDetails.filter(item => item.label !== "Job URL").map((item) => (
@@ -1245,6 +1246,59 @@ export function JobBoard() {
                           </div>
                           <div className="text-sm leading-relaxed text-slate-300 whitespace-pre-wrap font-sans max-h-72 overflow-y-auto pr-1">
                             {descriptionText}
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3 space-y-2">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Scrape Info
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-slate-200">
+                            <span className="w-28 text-slate-500">Scraped</span>
+                            <span className="font-semibold text-slate-100 break-words">
+                              {typeof selectedJob?.scrapedAt === "number"
+                                ? new Date(selectedJob.scrapedAt).toLocaleString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "None"}
+                              {selectedJob?.scrapedWith ? ` • ${selectedJob.scrapedWith}` : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-slate-200">
+                            <span className="w-28 text-slate-500">Workflow</span>
+                            <span className="font-semibold text-slate-100 break-words">
+                              {selectedJob?.workflowName || "None"}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-slate-200">
+                            <span className="w-28 text-slate-500">Scrape Cost</span>
+                            <span className="font-semibold text-slate-100 break-words">
+                              {typeof selectedJob?.scrapedCostMilliCents === "number"
+                                ? (() => {
+                                    const mc = selectedJob.scrapedCostMilliCents;
+                                    const renderFraction = (numerator: number, denominator: number) => (
+                            <span className="inline-flex items-center text-[12px] font-semibold text-amber-400/90">
+                                <span className="flex flex-col leading-tight items-center mr-0.5">
+                                    <span className="px-0.5">{numerator}</span>
+                                    <span className="px-0.5">{denominator}</span>
+                                </span>
+                                <span className="text-[10px] text-amber-300 mx-0.5">/</span>
+                                <span className="text-[10px] text-amber-300 ml-0.5">¢</span>
+                            </span>
+                                    );
+
+                                    if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
+                                    if (mc === 100) return renderFraction(1, 10);
+                                    if (mc === 10) return renderFraction(1, 100);
+                                    if (mc === 1) return renderFraction(1, 1000);
+                                    if (mc > 0) return `${(mc / 1000).toFixed(3)} ¢`;
+                                    return "0 ¢";
+                                  })()
+                                : "None"}
+                            </span>
                           </div>
                         </div>
 

@@ -3,12 +3,12 @@ from __future__ import annotations
 import os
 import sys
 
-import httpx
 import pytest
 
 # Ensure repo root is importable for job_scrape_application
 sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.services import convex_client  # noqa: E402
 
 
 def test_normalize_fetchfox_items_emits_convex_shape():
@@ -75,46 +75,17 @@ def test_normalize_fetchfox_items_emits_convex_shape():
 async def test_store_scrape_retries_on_transient_failure(monkeypatch):
     attempts: list[dict[str, object]] = []
 
-    class FakeResponse:
-        def __init__(self, status_code: int, data: dict[str, object] | None = None):
-            self.status_code = status_code
-            self._data = data or {}
+    async def fake_convex_mutation(name: str, args: dict[str, object] | None = None):
+        attempts.append({"name": name, "args": args})
+        if len(attempts) == 1:
+            raise RuntimeError("transient")
+        return "abc123"
 
-        def raise_for_status(self) -> None:
-            if self.status_code >= 400:
-                request = httpx.Request("POST", "https://convex.test/api/scrapes")
-                response = httpx.Response(self.status_code, request=request)
-                raise httpx.HTTPStatusError("error", request=request, response=response)
-
-        def json(self) -> dict[str, object]:
-            return self._data
-
-    class FakeAsyncClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        async def post(self, url: str, json: dict[str, object]):
-            attempts.append({"url": url, "json": json})
-            if len(attempts) == 1:
-                return FakeResponse(429)
-            return FakeResponse(201, {"scrapeId": "abc123"})
-
-    async def _noop_sleep(_duration: float):
-        return None
-
-    monkeypatch.setattr(acts.httpx, "AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(acts.asyncio, "sleep", _noop_sleep)
-    monkeypatch.setattr(acts.settings, "convex_http_url", "https://convex.test")
+    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
 
     payload = {
         "sourceUrl": "https://example.com",
-        "items": {"normalized": []},
+        "items": {"normalized": [{"url": "https://example.com/job/1", "title": "Engineer"}]},
         "startedAt": 0,
         "completedAt": 0,
     }
@@ -122,4 +93,14 @@ async def test_store_scrape_retries_on_transient_failure(monkeypatch):
     scrape_id = await acts.store_scrape(payload)
 
     assert scrape_id == "abc123"
-    assert len(attempts) == 2  # one failure (429) + one successful retry
+    assert len(attempts) == 3  # insert fails once, retry succeeds, then ingest jobs
+
+    # Second call should contain the fallback payload with a truncated marker
+    second_args = attempts[1]["args"]
+    assert isinstance(second_args, dict)
+    items = second_args.get("items", {})
+    assert isinstance(items, dict)
+    assert items.get("truncated") is True
+
+    # Third call should be the ingestJobs mutation
+    assert attempts[2]["name"] == "router:ingestJobsFromScrape"

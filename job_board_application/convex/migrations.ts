@@ -24,7 +24,51 @@ export const fixJobLocations = migrations.define({
   },
 });
 
+export const backfillScrapeMetadata = migrations.define({
+  table: "jobs",
+  migrateOne: async (ctx, doc) => {
+    const update: Record<string, any> = {};
+    if (doc.scrapedAt === undefined) {
+      update.scrapedAt = doc.postedAt ?? Date.now();
+    }
+    if (doc.scrapedWith === undefined) {
+      update.scrapedWith = null;
+    }
+    if (doc.workflowName === undefined) {
+      update.workflowName = null;
+    }
+    if (doc.scrapedCostMilliCents === undefined) {
+      update.scrapedCostMilliCents = null;
+    }
+    if (Object.keys(update).length > 0) {
+      await ctx.db.patch(doc._id, update);
+    }
+  },
+});
+
+export const backfillScrapeRecords = migrations.define({
+  table: "scrapes",
+  migrateOne: async (ctx, doc) => {
+    const update: Record<string, any> = {};
+    if (doc.provider === undefined) {
+      const provider = (doc.items as any)?.provider;
+      update.provider = typeof provider === "string" ? provider : null;
+    }
+    if (doc.workflowName === undefined) {
+      update.workflowName = null;
+    }
+    if (doc.costMilliCents === undefined) {
+      const maybeCost = (doc.items as any)?.costMilliCents;
+      update.costMilliCents = typeof maybeCost === "number" ? maybeCost : null;
+    }
+    if (Object.keys(update).length > 0) {
+      await ctx.db.patch(doc._id, update);
+    }
+  },
+});
+
 export const runAll = migrations.runner([
   internal.migrations.fixJobLocations,
+  internal.migrations.backfillScrapeMetadata,
+  internal.migrations.backfillScrapeRecords,
 ]);
-

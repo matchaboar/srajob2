@@ -29,9 +29,15 @@ const adminEmails = (process.env.ADMIN_EMAILS ?? "")
   .filter(Boolean);
 
 // In local/dev environments we skip admin gating to simplify testing the admin UI.
-// Convex sets NODE_ENV="production" for deployed functions, so this only applies when
-// running `convex dev` or similar local setups.
-const isDevEnv = process.env.NODE_ENV !== "production";
+// Convex hosted deployments always set NODE_ENV="production", even for dev deployments,
+// so rely on other signals that we control (local SITE_URL or an explicit deployment flag).
+const isDevEnv =
+  process.env.NODE_ENV !== "production" ||
+  Boolean(
+    process.env.SITE_URL &&
+      (process.env.SITE_URL.includes("127.0.0.1") || process.env.SITE_URL.includes("localhost")),
+  ) ||
+  (process.env.CONVEX_DEPLOYMENT?.startsWith("dev:") ?? false);
 
 export const loggedInUser = query({
   handler: async (ctx) => {

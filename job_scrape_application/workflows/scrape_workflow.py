@@ -39,9 +39,7 @@ async def _run_scrape_workflow(scrape_activity, workflow_name: str) -> ScrapeSum
         while True:
             site = await workflow.execute_activity(
                 lease_site,
-                "scraper-worker",  # logical worker id; replace if needed
-                300,
-                "general",
+                args=["scraper-worker", 300],
                 schedule_to_close_timeout=timedelta(seconds=30),
             )
 
@@ -54,12 +52,15 @@ async def _run_scrape_workflow(scrape_activity, workflow_name: str) -> ScrapeSum
             try:
                 res = await workflow.execute_activity(
                     scrape_activity,
-                    site,
+                    args=[site],
                     start_to_close_timeout=timedelta(minutes=10),
                 )
+                # Tag scrape payload with workflow name for downstream storage
+                if isinstance(res, dict):
+                    res.setdefault("workflowName", workflow_name)
                 scrape_id = await workflow.execute_activity(
                     store_scrape,
-                    res,
+                    args=[res],
                     schedule_to_close_timeout=timedelta(seconds=30),
                 )
                 scrape_ids.append(scrape_id)
@@ -67,14 +68,14 @@ async def _run_scrape_workflow(scrape_activity, workflow_name: str) -> ScrapeSum
                 # Mark site completed so next lease skips it
                 await workflow.execute_activity(
                     complete_site,
-                    site["_id"],
+                    args=[site["_id"]],
                     schedule_to_close_timeout=timedelta(seconds=30),
                 )
             except Exception as e:  # noqa: BLE001
                 # On failure, record and release the lock for retry after TTL or immediately
                 await workflow.execute_activity(
                     fail_site,
-                    {"id": site["_id"], "error": str(e)},
+                    args=[{"id": site["_id"], "error": str(e)}],
                     start_to_close_timeout=timedelta(seconds=30),
                 )
                 status = "failed"
@@ -97,20 +98,22 @@ async def _run_scrape_workflow(scrape_activity, workflow_name: str) -> ScrapeSum
         try:
             await workflow.execute_activity(
                 record_workflow_run,
-                {
-                    "runId": workflow.info().run_id,
-                    "workflowId": workflow.info().workflow_id,
-                    "workflowName": workflow_name,
-                    "status": status,
-                    "startedAt": started_at,
-                    "completedAt": completed_at,
-                    "siteUrls": site_urls,
-                    "sitesProcessed": leased_count,
-                    "jobsScraped": len(scrape_ids),
-                    "workerId": "scraper-worker",
-                    "taskQueue": "scraper-task-queue",
-                    "error": "; ".join(failure_reasons) if failure_reasons else None,
-                },
+                args=[
+                    {
+                        "runId": workflow.info().run_id,
+                        "workflowId": workflow.info().workflow_id,
+                        "workflowName": workflow_name,
+                        "status": status,
+                        "startedAt": started_at,
+                        "completedAt": completed_at,
+                        "siteUrls": site_urls,
+                        "sitesProcessed": leased_count,
+                        "jobsScraped": len(scrape_ids),
+                        "workerId": "scraper-worker",
+                        "taskQueue": "scraper-task-queue",
+                        "error": "; ".join(failure_reasons) if failure_reasons else None,
+                    }
+                ],
                 schedule_to_close_timeout=timedelta(seconds=30),
             )
         except Exception:

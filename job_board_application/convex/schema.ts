@@ -15,6 +15,10 @@ const applicationTables = {
     totalCompensation: v.number(),
     url: v.string(),
     postedAt: v.number(),
+    scrapedAt: v.optional(v.number()),
+    scrapedWith: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    scrapedCostMilliCents: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
   })
@@ -87,6 +91,9 @@ const applicationTables = {
     startedAt: v.number(),
     completedAt: v.number(),
     items: v.any(),
+    provider: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    costMilliCents: v.optional(v.number()),
   }).index("by_source", ["sourceUrl"]),
 
   resumes: defineTable({

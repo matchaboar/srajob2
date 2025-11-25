@@ -911,6 +911,9 @@ http.route({
         startedAt: body.startedAt ?? now,
         completedAt: body.completedAt ?? now,
         items: body.items,
+        provider: body.provider ?? body.items?.provider,
+        workflowName: body.workflowName,
+        costMilliCents: body.costMilliCents ?? (typeof body.costCents === "number" ? Math.round(body.costCents * 1000) : undefined),
       });
 
       // Opportunistically ingest jobs into jobs table for UI
@@ -918,7 +921,17 @@ http.route({
         const jobs = extractJobs(body.items);
         if (jobs.length > 0) {
           await ctx.runMutation(api.router.ingestJobsFromScrape, {
-            jobs: jobs.map((j) => ({ ...j, postedAt: j.postedAt ?? now })),
+            jobs: jobs.map((j) => ({
+              ...j,
+              postedAt: j.postedAt ?? now,
+              scrapedAt: body.completedAt ?? now,
+              scrapedWith: body.provider ?? body.items?.provider,
+              workflowName: body.workflowName,
+              scrapedCostMilliCents:
+                typeof body.costMilliCents === "number"
+                  ? Math.floor(body.costMilliCents / Math.max(jobs.length, 1))
+                  : undefined,
+            })),
           });
         }
       } catch (err: any) {
@@ -1000,6 +1013,9 @@ export const insertScrapeRecord = mutation({
     startedAt: v.number(),
     completedAt: v.number(),
     items: v.any(),
+    provider: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    costMilliCents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("scrapes", args);
@@ -1022,6 +1038,10 @@ export const ingestJobsFromScrape = mutation({
         totalCompensation: v.number(),
         url: v.string(),
         postedAt: v.number(),
+        scrapedAt: v.optional(v.number()),
+        scrapedWith: v.optional(v.string()),
+        workflowName: v.optional(v.string()),
+        scrapedCostMilliCents: v.optional(v.number()),
       })
     ),
   },
@@ -1040,6 +1060,10 @@ export const ingestJobsFromScrape = mutation({
         city: job.city ?? city,
         state: job.state ?? state,
         location: formatLocationLabel(job.city ?? city, job.state ?? state, job.location),
+        scrapedAt: job.scrapedAt ?? Date.now(),
+        scrapedWith: job.scrapedWith,
+        workflowName: job.workflowName,
+        scrapedCostMilliCents: job.scrapedCostMilliCents,
       });
       inserted += 1;
     }

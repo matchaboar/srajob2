@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from convex import ConvexClient
 
-from .config import settings
+from ..config import settings
 
 _client: Optional[ConvexClient] = None
 

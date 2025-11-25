@@ -3,7 +3,7 @@ import httpx
 import socket
 import os
 from temporalio.client import Client
-from .config import settings
+from ...config import settings
 
 async def main():
     if not settings.convex_http_url:

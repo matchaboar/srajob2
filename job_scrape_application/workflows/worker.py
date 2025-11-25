@@ -3,7 +3,7 @@ import httpx
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from .config import settings
+from ..config import settings
 from . import activities
 from .scrape_workflow import FirecrawlScrapeWorkflow, ScrapeWorkflow
 from .greenhouse_workflow import GreenhouseScraperWorkflow

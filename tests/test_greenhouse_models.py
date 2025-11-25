@@ -7,7 +7,7 @@ import sys
 # Ensure repo root is importable
 sys.path.insert(0, os.path.abspath("."))
 
-from job_scrape_application.workflows.models import (  # noqa: E402
+from job_scrape_application.components.models import (  # noqa: E402
     extract_greenhouse_job_urls,
     load_greenhouse_board,
 )

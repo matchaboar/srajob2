@@ -36,6 +36,46 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
         return Math.floor(seconds) + "s";
     };
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
+    const scrapedBadge = job.scrapedWith ? (job.scrapedWith as string) : null;
+    const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
+    const scrapedCostMilliCents =
+        typeof job.scrapedCostMilliCents === "number" ? job.scrapedCostMilliCents : null;
+
+    const formatCost = (milliCents: number) => {
+        if (milliCents >= 1000) {
+            return `${(milliCents / 1000).toFixed(2)} ¢`;
+        }
+        if (milliCents === 100) return "1/10 ¢";
+        if (milliCents === 10) return "1/100 ¢";
+        if (milliCents === 1) return "1/1000 ¢";
+        if (milliCents > 0) {
+            const cents = milliCents / 1000;
+            return `${cents.toFixed(3)} ¢`;
+        }
+        return "0 ¢";
+    };
+    const scrapedCostLabel =
+        scrapedCostMilliCents !== null && scrapedCostMilliCents !== undefined
+            ? (() => {
+                const mc = scrapedCostMilliCents;
+                const renderFraction = (num: number, den: number) => (
+                    <span className="inline-flex items-center text-[10px] font-semibold text-amber-400/90">
+                        <span className="flex flex-col leading-tight items-center mr-0.5">
+                            <span className="px-0.5">{num}</span>
+                            <span className="px-0.5">{den}</span>
+                        </span>
+                        <span className="text-[10px] text-amber-300 mx-0.5">/</span>
+                        <span className="text-[10px] text-amber-300">¢</span>
+                    </span>
+                );
+                if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
+                if (mc === 100) return renderFraction(1, 10);
+                if (mc === 10) return renderFraction(1, 100);
+                if (mc === 1) return renderFraction(1, 1000);
+                if (mc > 0) return `${(mc / 1000).toFixed(3)} ¢`;
+                return "0 ¢";
+              })()
+            : null;
 
     return (
         <motion.div
@@ -113,6 +153,19 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                             </div>
                         ) : (
                             <div className="h-4" /> /* Spacer to maintain height consistency if needed, or just omit */
+                        )}
+                        {scrapedAt && (
+                            <span className="text-[10px] text-slate-600 font-mono">
+                                scraped {timeAgo(scrapedAt)} ago{scrapedBadge ? ` · ${scrapedBadge}` : ""}
+                            </span>
+                        )}
+                        {scrapedCostLabel && (
+                            <span
+                                data-testid="scrape-cost"
+                                className="text-[10px] text-amber-500 font-mono flex items-center gap-1"
+                            >
+                                cost {scrapedCostLabel}
+                            </span>
                         )}
                     </div>
                 </div>
