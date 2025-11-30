@@ -61,6 +61,7 @@ const applicationTables = {
     name: v.optional(v.string()),
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),
     // Optional reusable schedule reference
@@ -94,7 +95,38 @@ const applicationTables = {
     provider: v.optional(v.string()),
     workflowName: v.optional(v.string()),
     costMilliCents: v.optional(v.number()),
+    // Optional metadata for richer audit/history views
+    jobBoardJobId: v.optional(v.string()),
+    batchId: v.optional(v.string()),
+    workflowId: v.optional(v.string()),
+    workflowType: v.optional(v.string()),
+    response: v.optional(v.any()),
+    asyncState: v.optional(v.string()),
+    asyncResponse: v.optional(v.any()),
+    subUrls: v.optional(v.array(v.string())),
+    // Canonical snapshot of the outbound request to the provider (body, headers, etc.)
+    request: v.optional(v.any()),
+    // Provider-specific request payload (Firecrawl, FetchFox, etc.)
+    providerRequest: v.optional(v.any()),
   }).index("by_source", ["sourceUrl"]),
+
+  firecrawl_webhooks: defineTable({
+    jobId: v.string(),
+    event: v.string(),
+    status: v.optional(v.string()),
+    success: v.optional(v.boolean()),
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    statusUrl: v.optional(v.string()),
+    payload: v.any(),
+    metadata: v.optional(v.any()),
+    receivedAt: v.number(),
+    processed: v.boolean(),
+    processedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_job", ["jobId"])
+    .index("by_processed", ["processed"]),
 
   resumes: defineTable({
     userId: v.id("users"),
@@ -179,6 +211,50 @@ const applicationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_name", ["name"]),
+
+  scratchpad_entries: defineTable({
+    runId: v.optional(v.string()),
+    workflowId: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    siteUrl: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
+    event: v.string(),
+    message: v.optional(v.string()),
+    data: v.optional(v.any()),
+    level: v.optional(v.union(v.literal("info"), v.literal("warn"), v.literal("error"))),
+    createdAt: v.number(),
+  })
+    .index("by_run", ["runId"])
+    .index("by_site", ["siteUrl"])
+    .index("by_workflow", ["workflowName"])
+    .index("by_created", ["createdAt"]),
+
+  // Centralized log of scraper failures (e.g., invalid Firecrawl job ids)
+  scrape_errors: defineTable({
+    jobId: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    event: v.optional(v.string()),
+    status: v.optional(v.string()),
+    error: v.string(),
+    metadata: v.optional(v.any()),
+    payload: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_job", ["jobId"])
+    .index("by_created", ["createdAt"]),
+
+  // Manual run-now requests initiated from the admin UI
+  run_requests: defineTable({
+    siteId: v.id("sites"),
+    siteUrl: v.string(),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("done")),
+    createdAt: v.number(),
+    expectedEta: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
 };
 
 export default defineSchema({

@@ -1,7 +1,7 @@
 import asyncio
 import json
-from pathlib import Path
 import pprint
+from pathlib import Path
 from pydantic import BaseModel
 from crawl4ai import (
     AsyncWebCrawler,
@@ -9,7 +9,6 @@ from crawl4ai import (
     JsonXPathExtractionStrategy,
     CacheMode,
 )
-from requests import session
 
 
 class JobListing(BaseModel):
@@ -46,7 +45,7 @@ async def try_xpath_schema(
             else:
                 print(f"Failed to crawl raw HTML: {text_result.error_message}")
 
-            next_page_result = await crawler.arun(url=file_url, config=next_page_run_config)
+            await crawler.arun(url=file_url, config=next_page_run_config)
 
     print("extracted_content: ----------")
     pprint.pprint(session_results)
@@ -79,9 +78,8 @@ def _get_run_config(schema: dict, session_id=""):
 
 
 async def main():
-    html_file_path = Path("test/datadog_live_page.html")
-    local_file_path = "test/datadog_live_page.html"
-    file_url = f"file://{local_file_path}"
+    local_file_path = Path("test/datadog_live_page.html")
+    file_url = local_file_path.as_uri()
     print(f"file_url: {file_url}")
 
     schema_python = {

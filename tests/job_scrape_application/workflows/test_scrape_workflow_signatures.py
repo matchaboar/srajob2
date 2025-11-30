@@ -13,7 +13,7 @@ from job_scrape_application.services import convex_client  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_lease_site_does_not_send_site_type(monkeypatch):
+async def test_lease_site_sends_filters(monkeypatch):
     captured: dict[str, object] = {}
 
     async def fake_mutation(name: str, args: dict[str, object] | None = None):
@@ -23,11 +23,16 @@ async def test_lease_site_does_not_send_site_type(monkeypatch):
 
     monkeypatch.setattr(convex_client, "convex_mutation", fake_mutation)
 
-    result = await acts.lease_site("worker-x", 120, "greenhouse")
+    result = await acts.lease_site("worker-x", 120, "greenhouse", "firecrawl")
 
     assert result["_id"] == "site-1"
     assert captured["name"] == "router:leaseSite"
-    assert captured["args"] == {"workerId": "worker-x", "lockSeconds": 120}
+    assert captured["args"] == {
+        "workerId": "worker-x",
+        "lockSeconds": 120,
+        "siteType": "greenhouse",
+        "scrapeProvider": "firecrawl",
+    }
 
 
 @pytest.mark.asyncio
@@ -69,7 +74,7 @@ async def test_scrape_workflow_uses_args_kw(monkeypatch):
     for activity, args, kwargs in calls:
         assert args == ()
         if activity is acts.lease_site:
-            assert kwargs["args"] == ["scraper-worker", 300]
+            assert kwargs["args"] == ["scraper-worker", 300, None, "fetchfox"]
             assert kwargs["schedule_to_close_timeout"] == timedelta(seconds=30)
         if activity is acts.scrape_site:
             assert kwargs["args"] == [{"_id": "site-123", "url": "https://example.com"}]
@@ -137,6 +142,12 @@ async def test_store_scrape_passes_metadata(monkeypatch):
         "completedAt": completed_at,
         "provider": "firecrawl",
         "workflowName": "ScrapeWorkflow",
+        "request": {
+            "method": "POST",
+            "url": "https://api.firecrawl.dev/v2/batch/scrape",
+            "body": {"urls": ["https://example.com"], "jobId": "job-123"},
+            "headers": {"Authorization": "secret-token"},
+        },
         "items": {
             "provider": "firecrawl",
             "normalized": [
@@ -160,6 +171,12 @@ async def test_store_scrape_passes_metadata(monkeypatch):
     insert = next(c for c in captured if c["name"] == "router:insertScrapeRecord")
     assert insert["args"]["provider"] == "firecrawl"
     assert insert["args"]["workflowName"] == "ScrapeWorkflow"
+    stored_request = insert["args"]["request"]
+    assert stored_request["method"] == "POST"
+    assert stored_request["body"]["jobId"] == "job-123"
+    assert stored_request["headers"]["Authorization"] != "secret-token"
+    assert "..." in stored_request["headers"]["Authorization"]
+    assert insert["args"]["items"]["request"] == stored_request
 
     ingest = next(c for c in captured if c["name"] == "router:ingestJobsFromScrape")
     jobs = ingest["args"]["jobs"]

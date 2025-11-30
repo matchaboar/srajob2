@@ -1,17 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="4" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-11-24" time="16:30:35">
-  <environment os-version="5.15.167.4-microsoft-standard-WSL2" user-domain="" cwd="/home/boarcoder/documents/github/srajob2" machine-name="DESKTOP-NFS14HP" user="boarcoder" platform="Linux" clr-version="9.0.10" nunit-version="2.5.8.0" />
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="6" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-11-24" time="23:40:07">
+  <environment cwd="/home/boarcoder/documents/github/srajob2" platform="Linux" user="boarcoder" machine-name="DESKTOP-NFS14HP" clr-version="9.0.10" os-version="5.15.167.4-microsoft-standard-WSL2" nunit-version="2.5.8.0" user-domain="" />
   <culture-info current-culture="" current-uiculture="" />
-  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="1.1052" asserts="0" description="Pester">
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="4.0555" asserts="0" description="Pester">
     <results>
-      <test-suite type="TestFixture" name="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1" executed="True" result="Success" success="True" time="1.1052" asserts="0" description="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1">
+      <test-suite type="TestFixture" name="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1" executed="True" result="Success" success="True" time="4.0555" asserts="0" description="/home/boarcoder/documents/github/srajob2/tests/start_worker.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="start_worker.ps1" executed="True" result="Success" success="True" time="0.888" asserts="0" description="start_worker.ps1">
+          <test-suite type="TestFixture" name="start_worker.ps1" executed="True" result="Success" success="True" time="3.8292" asserts="0" description="start_worker.ps1">
             <results>
-              <test-case description="loads dotenv respecting override flag" name="start_worker.ps1.loads dotenv respecting override flag" time="0.0763" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="constructs python commands with expected parameters" name="start_worker.ps1.constructs python commands with expected parameters" time="0.6323" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="retries schedule creation failures then succeeds" name="start_worker.ps1.retries schedule creation failures then succeeds" time="0.0632" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="surfaces error after exhausting schedule retries" name="start_worker.ps1.surfaces error after exhausting schedule retries" time="0.0854" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="loads dotenv respecting override flag" name="start_worker.ps1.loads dotenv respecting override flag" time="0.0902" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="constructs python commands with expected parameters" name="start_worker.ps1.constructs python commands with expected parameters" time="1.27" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="retries schedule creation failures then succeeds" name="start_worker.ps1.retries schedule creation failures then succeeds" time="0.6122" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="surfaces error after exhausting schedule retries" name="start_worker.ps1.surfaces error after exhausting schedule retries" time="0.5902" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="launches worker inline without Start-Process and cleans up watcher jobs" name="start_worker.ps1.launches worker inline without Start-Process and cleans up watcher jobs" time="0.6102" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="fails fast when worker exits with an error code" name="start_worker.ps1.fails fast when worker exits with an error code" time="0.6122" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
         </results>

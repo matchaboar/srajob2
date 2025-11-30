@@ -6,8 +6,16 @@ import { Toaster, toast } from "sonner";
 import { JobBoard } from "./JobBoard";
 import { PublicJobPreview } from "./PublicJobPreview";
 import { AdminPage } from "./AdminPage";
+import { JobDetailsPage } from "./JobDetailsPage";
 import { StatusTrackerTest } from "./test/StatusTrackerTest";
 import { useState, useEffect } from "react";
+import type { Id } from "../convex/_generated/dataModel";
+
+const parseJobDetailsId = (hash: string) => {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  const match = cleaned.match(/^job-details-([A-Za-z0-9:_-]+)$/);
+  return match ? match[1] : null;
+};
 
 export default function App() {
   const isAdmin = useQuery(api.auth.isAdmin);
@@ -16,6 +24,8 @@ export default function App() {
   const [showTestPage, setShowTestPage] = useState(() => {
     return window.location.hash === "#test-status-tracker";
   });
+
+  const [jobDetailsId, setJobDetailsId] = useState<string | null>(() => parseJobDetailsId(window.location.hash));
 
   // Use URL hash to persist showAdmin intent across refreshes
   const [showAdmin, setShowAdmin] = useState(() => {
@@ -42,6 +52,7 @@ export default function App() {
       const hash = window.location.hash;
       setShowTestPage(hash === "#test-status-tracker");
       setShowAdmin(hash.startsWith("#admin"));
+      setJobDetailsId(parseJobDetailsId(hash));
     };
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
@@ -52,14 +63,14 @@ export default function App() {
     if (showAdmin && isAdmin === false) {
       setShowAdmin(false);
       window.location.hash = "";
-      toast.error("Admin access requires an admin account.");
+      toast.error("Sign in (admin or guest) to open the admin panel.");
     }
   }, [showAdmin, isAdmin]);
 
   const handleAdminToggle = () => {
     if (isAdmin === undefined) return; // still loading auth state
     if (!isAdmin) {
-      toast.error("Admin access requires an admin account.");
+      toast.error("Sign in (admin or guest) to open the admin panel.");
       return;
     }
     setShowAdmin((prev) => !prev);
@@ -97,6 +108,11 @@ export default function App() {
           <AdminDenied />
         ) : showAdminPage ? (
           <AdminPage />
+        ) : jobDetailsId ? (
+          <JobDetailsPage
+            jobId={jobDetailsId as Id<"jobs">}
+            onBack={() => { window.location.hash = "#admin-urlScrapes"; }}
+          />
         ) : (
           <Content />
         )}
@@ -141,10 +157,8 @@ function AdminDenied() {
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded p-6 text-center">
-        <h3 className="text-lg font-semibold text-white mb-2">Admins only</h3>
-        <p className="text-sm text-slate-400 mb-4">
-          You must sign in with an admin account to view the admin panel.
-        </p>
+        <h3 className="text-lg font-semibold text-white mb-2">Sign in required</h3>
+        <p className="text-sm text-slate-400 mb-4">Use any account (password or guest) to view the admin panel.</p>
         <SignInForm />
       </div>
     </div>

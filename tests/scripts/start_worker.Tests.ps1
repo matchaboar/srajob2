@@ -11,6 +11,16 @@ Describe "start_worker.ps1" {
         $env:SKIP_START_WORKER_MAIN = "1"
         $scriptFile = Get-Item -LiteralPath $scriptPath
         . $scriptFile.FullName
+
+        function Set-ContainerMocks {
+            Mock -CommandName Get-Command -MockWith { [pscustomobject]@{ Name = "podman" } }
+            Set-Item -Path Function:podman -Value { param([Parameter(ValueFromRemainingArguments = $true)] $Args) $global:LASTEXITCODE = 0 }
+            Set-Item -Path Function:docker -Value { param([Parameter(ValueFromRemainingArguments = $true)] $Args) $global:LASTEXITCODE = 0 }
+            Set-Item -Path Function:"docker-compose" -Value { param([Parameter(ValueFromRemainingArguments = $true)] $Args) $global:LASTEXITCODE = 0 }
+            Mock -CommandName Test-TemporalPort -MockWith { $true }
+            Mock -CommandName Start-Sleep -MockWith { }
+            Mock -CommandName Invoke-WebRequest -MockWith { }
+        }
     }
 
     It "loads dotenv respecting override flag" {
@@ -38,16 +48,9 @@ EXISTING=override
             $global:LASTEXITCODE = 0
         }
 
-        # Keep infrastructure mocks lightweight
-        Mock -CommandName Get-Command -MockWith { [pscustomobject]@{ Name = "podman" } }
-        Set-Item -Path Function:podman -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:docker -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:"docker-compose" -Value { param($args) $global:LASTEXITCODE = 0 }
-        Mock -CommandName Test-TemporalPort -MockWith { $true }
-        Mock -CommandName Start-Sleep -MockWith { }
+        Set-ContainerMocks
         $script:ThreadJobs = @()
         Mock -CommandName Start-ThreadJob -MockWith { $script:ThreadJobs += ,$args; return 1 }
-        Mock -CommandName Invoke-WebRequest -MockWith { }
 
         Push-Location $TestDrive
         try {
@@ -82,15 +85,9 @@ EXISTING=override
             }
         }
 
-        Mock -CommandName Get-Command -MockWith { [pscustomobject]@{ Name = "podman" } }
-        Set-Item -Path Function:podman -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:docker -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:"docker-compose" -Value { param($args) $global:LASTEXITCODE = 0 }
-        Mock -CommandName Test-TemporalPort -MockWith { $true }
-        Mock -CommandName Start-Sleep -MockWith { }
+        Set-ContainerMocks
         $script:ThreadJobs = @()
         Mock -CommandName Start-ThreadJob -MockWith { $script:ThreadJobs += ,$args; return 1 }
-        Mock -CommandName Invoke-WebRequest -MockWith { }
 
         Push-Location $TestDrive
         try {
@@ -120,15 +117,9 @@ EXISTING=override
             }
         }
 
-        Mock -CommandName Get-Command -MockWith { [pscustomobject]@{ Name = "podman" } }
-        Set-Item -Path Function:podman -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:docker -Value { param($args) $global:LASTEXITCODE = 0 }
-        Set-Item -Path Function:"docker-compose" -Value { param($args) $global:LASTEXITCODE = 0 }
-        Mock -CommandName Test-TemporalPort -MockWith { $true }
-        Mock -CommandName Start-Sleep -MockWith { }
+        Set-ContainerMocks
         $script:ThreadJobs = @()
         Mock -CommandName Start-ThreadJob -MockWith { $script:ThreadJobs += ,$args; return 1 }
-        Mock -CommandName Invoke-WebRequest -MockWith { }
 
         Push-Location $TestDrive
         try {
@@ -143,5 +134,66 @@ EXISTING=override
 
         ($UvCalls | Where-Object { $_ -like "*create_schedule*" }).Count | Should -Be 5
         ($UvCalls | Where-Object { $_ -like "*worker*" }).Count | Should -Be 0
+    }
+
+    It "launches worker inline without Start-Process and cleans up watcher jobs" {
+        $script:UvCalls = @()
+        Mock -CommandName uv -MockWith {
+            param([Parameter(ValueFromRemainingArguments = $true)] $rest)
+            $script:UvCalls += ($rest -join " ")
+            $global:LASTEXITCODE = 0
+        }
+
+        # Guard against regressions to Start-Process (which caused TextWriter disposal issues)
+        Mock -CommandName Start-Process -MockWith { throw "Start-Process should not be called" }
+
+        Set-ContainerMocks
+        $script:ThreadJobs = @()
+        Mock -CommandName Start-ThreadJob -MockWith { $script:ThreadJobs += ,$args; return 1 }
+
+        Push-Location $TestDrive
+        try {
+            Set-Content ".env" ""
+            $env:CONVEX_HTTP_URL = "https://convex.test"
+            $env:SKIP_START_WORKER_MAIN = "0"
+
+            Start-WorkerMain
+        } finally {
+            Pop-Location
+        }
+
+        ($UvCalls | Where-Object { $_ -like "*worker*" }).Count | Should -Be 1
+        if ($script:ErrorWatcher) {
+            Get-Job -Id $script:ErrorWatcher.Id -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+    }
+
+    It "fails fast when worker exits with an error code" {
+        $script:UvCalls = @()
+        Mock -CommandName uv -MockWith {
+            param([Parameter(ValueFromRemainingArguments = $true)] $rest)
+            $cmdline = ($rest -join " ")
+            $script:UvCalls += $cmdline
+            if ($cmdline -like "*worker*") {
+                $global:LASTEXITCODE = 9
+            } else {
+                $global:LASTEXITCODE = 0
+            }
+        }
+
+        Set-ContainerMocks
+
+        Push-Location $TestDrive
+        try {
+            Set-Content ".env" ""
+            $env:CONVEX_HTTP_URL = "https://convex.test"
+            $env:SKIP_START_WORKER_MAIN = "0"
+
+            { Start-WorkerMain } | Should -Throw
+        } finally {
+            Pop-Location
+        }
+
+        ($UvCalls | Where-Object { $_ -like "*worker*" }).Count | Should -Be 1
     }
 }

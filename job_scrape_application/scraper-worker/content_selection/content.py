@@ -1,15 +1,7 @@
 import asyncio
-import json
 from pathlib import Path
-from pydantic import BaseModel, Field
-from crawl4ai import (
-    AsyncWebCrawler,
-    CrawlerRunConfig,
-    JsonXPathExtractionStrategy,
-    LLMConfig,
-    CacheMode,
-)
-from crawl4ai import LLMExtractionStrategy
+from pydantic import BaseModel
+from crawl4ai import JsonXPathExtractionStrategy, LLMConfig
 from srajob.constants import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, MODEL_NAME
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -110,12 +110,13 @@ def extract_forms(html: str) -> List[Form]:
         # Minimal fallback parser using regex; not robust but avoids extra deps.
         import re
 
-        input_re = re.compile(
-            r"<(input|textarea|select)([^>]*)>", re.IGNORECASE | re.MULTILINE
+        input_re = re.compile(r"<(input|textarea|select)([^>]*)>", re.IGNORECASE | re.MULTILINE)
+        attr_re = re.compile(
+            r"""(\w+)="([^"]*)"|
+                (\w+)='([^']*)'|
+                (\w+)=([^\s>]+)""",
+            re.IGNORECASE | re.VERBOSE,
         )
-        attr_re = re.compile(r"(\w+)=\"([^\"]*)\"|
-                              (\w+)=\'([^\']*)\'|
-                              (\w+)=([^\s>]+)", re.IGNORECASE | re.VERBOSE)
 
         def parse_attrs(s: str) -> Dict[str, str]:
             out: Dict[str, str] = {}
@@ -146,4 +147,3 @@ def extract_forms(html: str) -> List[Form]:
             )
 
         return [Form(action=None, method="get", fields=fields)]
-

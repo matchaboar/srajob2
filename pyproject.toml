@@ -33,4 +33,7 @@ requires = ["uv_build>=0.8.8,<0.9.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["pyright>=1.1.407"]
+dev = [
+    "green>=4.0.2",
+    "pyright>=1.1.407",
+]

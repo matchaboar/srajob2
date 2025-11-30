@@ -1,0 +1,13 @@
+2025-11-30 13:39:49,751 | INFO | temporal.worker | Worker main() started.
+2025-11-30 13:39:49,752 | INFO | temporal.worker | Settings: Temporal=127.0.0.1:7233, Convex=https://elegant-magpie-239.convex.site
+2025-11-30 13:39:49,752 | INFO | temporal.worker | Connecting to Temporal at 127.0.0.1:7233...
+2025-11-30 13:39:49,759 | INFO | temporal.worker | Connected to Temporal!
+2025-11-30 13:39:49,816 | INFO | temporal.worker | Worker started. Namespace=default Address=127.0.0.1:7233 TaskQueue=scraper-task-queue
+2025-11-30 13:39:49,817 | INFO | temporal.worker.monitor | Monitor loop started (worker_id=DESKTOP-NFS14HP-60345 host=DESKTOP-NFS14HP)
+2025-11-30 13:39:50,293 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-11-30 13:39:50,947 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-11-30 13:39:50,948 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=2)
+2025-11-30 13:39:52,150 | INFO | temporalio.worker._worker | Worker cancelled, shutting down
+2025-11-30 13:39:52,151 | INFO | temporalio.worker._worker | Beginning worker shutdown, will wait 0:00:00 before cancelling activities
+2025-11-30 13:39:52,154 | INFO | temporal.worker | Worker cancelled; shutting down...
+2025-11-30 13:39:52,154 | INFO | temporal.worker.webhooks | Webhook wait logger stopped.

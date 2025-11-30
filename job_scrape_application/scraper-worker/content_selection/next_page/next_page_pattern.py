@@ -82,9 +82,10 @@ def _get_next_page_js(baseSelector: str, selector: str):
     with open(Path("./src/srajob/content_selection/next_page/next_page.js"), "r") as f:
         load_js = f.read()
     load_js += f"clickNextPage(f{baseSelector}, f{selector})"
-    load_js = """js: () => {
+    load_js = f"""js: () => {{
         {load_js}
-    }"""
+    }}"""
+    return load_js
 
 
 def _get_next_page_wait_for_js(baseSelector: str, selector: str):
@@ -92,9 +93,10 @@ def _get_next_page_wait_for_js(baseSelector: str, selector: str):
     with open(Path("./src/srajob/content_selection/next_page/wait_condition.js"), "r") as f:
         load_js = f.read()
     load_js += f"checkForNextPage(f{baseSelector}, f{selector});"
-    load_js = """js: () => {
+    load_js = f"""js: () => {{
         {load_js}
-    }"""
+    }}"""
+    return load_js
 
 
 def _get_run_config(schema: dict, session_id="", wait_for="", js_code=""):

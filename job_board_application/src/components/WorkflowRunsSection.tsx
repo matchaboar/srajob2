@@ -1,7 +1,8 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
+import { LiveTimer } from "./LiveTimer";
 
 type Props = { url: string | null; onBack: () => void };
 
@@ -39,6 +40,113 @@ const formatDuration = (start?: number | null, end?: number | null) => {
   return `${mins}m ${secs.toString().padStart(2, "0")}s`;
 };
 
+const formatDataPreview = (data: any) => {
+  if (data === null || data === undefined) return "";
+  try {
+    const text = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    if (text.length > 800) return `${text.slice(0, 800)}… (+${text.length - 800} chars)`;
+    return text;
+  } catch {
+    return String(data);
+  }
+};
+
+function ScratchpadEntries({ runId }: { runId: string }) {
+  const entries = useQuery(api.scratchpad.listByRun, runId ? { runId, limit: 10 } : { runId: "", limit: 10 });
+
+  if (!runId) {
+    return null;
+  }
+
+  if (entries === undefined) {
+    return <div className="text-[11px] text-slate-500">Loading scratchpad…</div>;
+  }
+
+  if (!entries || entries.length === 0) {
+    return <div className="text-[11px] text-slate-500">No scratchpad entries yet.</div>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map((entry: any) => {
+        const rows: { key: string; value: ReactNode }[] = [
+          {
+            key: "event",
+            value: (
+              <span
+                className={clsx(
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono",
+                  entry.level === "error"
+                    ? "border-red-800 text-red-300 bg-red-900/30"
+                    : entry.level === "warn"
+                      ? "border-amber-800 text-amber-300 bg-amber-900/30"
+                      : "border-slate-700 text-slate-200 bg-slate-900"
+                )}
+              >
+                {entry.event}
+              </span>
+            ),
+          },
+        ];
+
+        if (entry.message) {
+          rows.push({ key: "message", value: <span className="text-slate-100">{entry.message}</span> });
+        }
+
+        if (entry.data !== undefined && entry.data !== null) {
+          rows.push({
+            key: "data",
+            value: (
+              <pre className="text-[10px] text-slate-200 bg-slate-950/60 border border-slate-900/70 rounded p-2 whitespace-pre-wrap break-words overflow-x-auto">
+                {formatDataPreview(entry.data)}
+              </pre>
+            ),
+          });
+        }
+
+        const createdLabel = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "";
+
+        return (
+          <div key={entry._id} className="border border-slate-800 rounded bg-slate-950/40 overflow-hidden">
+            <table className="w-full text-[11px] text-slate-300">
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={row.key} className={idx === 0 ? "" : "border-t border-slate-800/70"}>
+                    {idx === 0 && (
+                      <td
+                        rowSpan={rows.length}
+                        className="w-48 align-top bg-slate-950/60 border-r border-slate-800 px-3 py-2 text-left"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-[10px] text-slate-400">{createdLabel}</span>
+                          {entry.createdAt && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-900/70 text-slate-200 w-fit">
+                              <LiveTimer
+                                startTime={entry.createdAt}
+                                colorize
+                                warnAfterMs={5 * 60 * 1000}
+                                dangerAfterMs={30 * 60 * 1000}
+                                showAgo
+                                suffixClassName="text-slate-400"
+                              />
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    <td className="w-28 uppercase tracking-wide text-[10px] text-slate-500 px-2 py-2 align-top">{row.key}</td>
+                    <td className="px-2 py-2 align-top text-slate-100 break-words">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function WorkflowRunsSection({ url, onBack }: Props) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -50,6 +158,37 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
     api.temporal.listWorkflowRunsByUrl,
     url ? { url, limit: 50 } : { url: "", limit: 50 }
   );
+  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, { limit: 50 });
+
+  const pendingForUrl = useMemo(() => {
+    if (!url || !pendingWebhooks || !Array.isArray(pendingWebhooks)) return [];
+    return pendingWebhooks
+      .map((event: any) => {
+        const meta = event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
+        const siteUrl = event?.siteUrl || meta?.siteUrl || meta?.sourceUrl || meta?.url;
+        if (siteUrl !== url) return null;
+        return {
+          id: event?.jobId ?? meta?.jobId ?? event?._id ?? "unknown",
+          receivedAt: event?.receivedAt ?? null,
+          statusUrl:
+            event?.statusUrl ||
+            event?.status_url ||
+            meta?.statusUrl ||
+            meta?.status_url ||
+            meta?.status_endpoint ||
+            null,
+          siteId: event?.siteId ?? meta?.siteId ?? null,
+          waitingFor: event?.event || "webhook",
+        };
+      })
+      .filter(Boolean) as {
+      id: string;
+      receivedAt: number | null;
+      statusUrl: string | null;
+      siteId: string | null;
+      waitingFor: string;
+    }[];
+  }, [pendingWebhooks, url]);
 
   if (!url) {
     return (
@@ -88,6 +227,44 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
 
       {runs === undefined && <div className="text-xs text-slate-500">Loading runs...</div>}
       {runs && runs.length === 0 && <div className="text-xs text-slate-500">No runs recorded yet.</div>}
+      {pendingForUrl.length > 0 && (
+        <div className="border border-amber-800 rounded bg-amber-900/20 p-3 text-[12px] text-amber-100 space-y-2">
+          <div className="text-[11px] uppercase tracking-wide text-amber-200">Waiting for webhooks</div>
+          <div className="space-y-2">
+            {pendingForUrl.map((item) => (
+              <div
+                key={`${item.id}-${item.statusUrl ?? "n/a"}`}
+                className="border border-amber-700/60 rounded bg-amber-950/30 p-2"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="font-mono text-amber-100">job {item.id}</span>
+                  {item.siteId && (
+                    <span className="text-amber-200/80">
+                      site <span className="font-mono">{item.siteId}</span>
+                    </span>
+                  )}
+                  <span className="text-amber-200/80">waiting for {item.waitingFor}</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-700 bg-amber-900/50 text-[10px]">
+                    <LiveTimer
+                      startTime={item.receivedAt ?? Date.now()}
+                      colorize
+                      warnAfterMs={15 * 60 * 1000}
+                      dangerAfterMs={60 * 60 * 1000}
+                      showAgo
+                      suffixClassName="text-amber-200/70"
+                    />
+                  </span>
+                </div>
+                {item.statusUrl && (
+                  <div className="text-[10px] text-amber-200/80 break-all mt-1">
+                    status: <span className="font-mono">{item.statusUrl}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {runs && runs.length > 0 && (
         <div className="space-y-2">
           {runs.map((run: any) => {
@@ -172,6 +349,14 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
                     {run.error}
                   </div>
                 )}
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase text-slate-500 mb-1">Scratchpad</div>
+                  {run.runId ? (
+                    <ScratchpadEntries runId={run.runId} />
+                  ) : (
+                    <div className="text-[11px] text-slate-500">No run id available.</div>
+                  )}
+                </div>
               </div>
             );
           })}

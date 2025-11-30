@@ -322,6 +322,19 @@ export const getRejectedJobs = query({
   },
 });
 
+export const getJobById = query({
+  args: {
+    id: v.id("jobs"),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.id);
+    if (!job) return null;
+
+    const normalized = await ensureLocationFields(ctx, job as any);
+    return normalized;
+  },
+});
+
 export const checkIfJobsExist = query({
   args: {},
   handler: async (ctx) => {

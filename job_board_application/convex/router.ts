@@ -4,6 +4,8 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
 import { splitLocation, formatLocationLabel } from "./location";
+import { FIRECRAWL_SIGNATURE_HEADER, runFirecrawlCors } from "./middleware/firecrawlCors";
+import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 
 const http = httpRouter();
 const DEFAULT_TIMEZONE = "America/Denver";
@@ -489,11 +491,13 @@ export const leaseSite = mutation({
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
     siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const ttlMs = Math.max(1, Math.floor((args.lockSeconds ?? 300) * 1000));
     const requestedType = args.siteType;
+    const requestedProvider = args.scrapeProvider;
 
     // Pull enabled sites and pick the first that is not completed and not locked (or lock expired)
     const candidates = await ctx.db
@@ -506,7 +510,11 @@ export const leaseSite = mutation({
 
     for (const site of candidates as any[]) {
       const siteType = (site as any).type ?? "general";
+      const scrapeProvider =
+        (site as any).scrapeProvider ??
+        (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
       if (requestedType && siteType !== requestedType) continue;
+      if (requestedProvider && scrapeProvider !== requestedProvider) continue;
       if (site.completed) continue;
       if (site.failed) continue;
       if (site.lockExpiresAt && site.lockExpiresAt > now) continue;
@@ -557,11 +565,15 @@ export const leaseSite = mutation({
     const fresh = await ctx.db.get(pick._id as Id<"sites">);
     if (!fresh) return null;
     const s = fresh as Doc<"sites">;
+    const resolvedProvider =
+      (s as any).scrapeProvider ??
+      ((s as any).type === "greenhouse" ? "firecrawl" : "fetchfox");
     return {
       _id: s._id,
       name: s.name,
       url: s.url,
       type: (s as any).type ?? "general",
+      scrapeProvider: resolvedProvider,
       pattern: s.pattern,
       scheduleId: s.scheduleId,
       enabled: s.enabled,
@@ -616,6 +628,20 @@ export const runSiteNow = mutation({
       // Hint to dashboards + leasing logic to pick up immediately
       manualTriggerAt: now,
     } as any);
+
+    try {
+      await ctx.db.insert("run_requests", {
+        siteId: args.id,
+        siteUrl: (await ctx.db.get(args.id))?.url ?? "",
+        status: "pending",
+        createdAt: now,
+        expectedEta: now + 15_000, // next SiteLease tick (~15s interval)
+        completedAt: undefined,
+      });
+    } catch (err) {
+      // best-effort; don't block the manual trigger
+      console.error("Failed to record run request", err);
+    }
     return { success: true };
   },
 });
@@ -641,6 +667,18 @@ export const failSite = mutation({
       lockExpiresAt: 0,
     });
     return { success: true };
+  },
+});
+
+export const listRunRequests = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
+    return await ctx.db
+      .query("run_requests")
+      .withIndex("by_created", (q) => q.gte("createdAt", 0))
+      .order("desc")
+      .take(lim);
   },
 });
 
@@ -742,6 +780,7 @@ export const upsertSite = mutation({
     name: v.optional(v.string()),
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
     pattern: v.optional(v.string()),
     scheduleId: v.optional(v.id("scrape_schedules")),
     enabled: v.boolean(),
@@ -749,11 +788,14 @@ export const upsertSite = mutation({
   handler: async (ctx, args) => {
     // For simplicity, just insert a new record
     const siteType = args.type ?? "general";
+    const scrapeProvider =
+      args.scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
 
     return await ctx.db.insert("sites", {
       name: args.name,
       url: args.url,
       type: siteType,
+      scrapeProvider,
       pattern: args.pattern,
       scheduleId: args.scheduleId,
       enabled: args.enabled,
@@ -781,6 +823,7 @@ export const bulkUpsertSites = mutation({
         name: v.optional(v.string()),
         url: v.string(),
         type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+        scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
         pattern: v.optional(v.string()),
         scheduleId: v.optional(v.id("scrape_schedules")),
         enabled: v.boolean(),
@@ -791,9 +834,12 @@ export const bulkUpsertSites = mutation({
     const ids = [];
     for (const site of args.sites) {
       const siteType = site.type ?? "general";
+      const scrapeProvider =
+        site.scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
       const id = await ctx.db.insert("sites", {
         ...site,
         type: siteType,
+        scrapeProvider,
         // Same behavior as single add: make new sites immediately leaseable
         lastRunAt: 0,
       });
@@ -914,6 +960,7 @@ http.route({
         provider: body.provider ?? body.items?.provider,
         workflowName: body.workflowName,
         costMilliCents: body.costMilliCents ?? (typeof body.costCents === "number" ? Math.round(body.costCents * 1000) : undefined),
+        request: body.request ?? body.requestData ?? body.items?.request,
       });
 
       // Opportunistically ingest jobs into jobs table for UI
@@ -1006,6 +1053,279 @@ http.route({
   }),
 });
 
+// Firecrawl webhook receiver (uses .convex.site domain)
+http.route({
+  path: "/api/firecrawl/webhook",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const { preflight, headers, originAllowed } = await runFirecrawlCors(request);
+    if (!originAllowed) return new Response(null, { status: 403 });
+    if (preflight) return preflight;
+    return new Response(null, { status: 204, headers });
+  }),
+});
+
+http.route({
+  path: "/api/firecrawl/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const { headers: corsHeaders, originAllowed } = await runFirecrawlCors(request);
+    const withCors = (headers?: HeadersInit) => ({ ...corsHeaders, ...headers });
+
+    const origin = request.headers.get("Origin");
+    if (origin && !originAllowed) {
+      return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+        status: 403,
+        headers: withCors({ "Content-Type": "application/json" }),
+      });
+    }
+
+    const parsed = await parseFirecrawlWebhook(request);
+    if (!parsed.ok) {
+      return new Response(
+        JSON.stringify({ error: parsed.error, detail: parsed.detail }),
+        { status: parsed.status, headers: withCors({ "Content-Type": "application/json" }) }
+      );
+    }
+
+    const body = parsed.body;
+
+    const now = Date.now();
+    const event = typeof body?.type === "string" ? body.type : typeof body?.event === "string" ? body.event : "unknown";
+    const jobId =
+      typeof body?.id === "string"
+        ? body.id
+        : typeof body?.jobId === "string"
+          ? body.jobId
+          : typeof body?.crawl_id === "string"
+            ? body.crawl_id
+            : typeof body?.batchId === "string"
+              ? body.batchId
+              : "unknown";
+    const status = typeof body?.status === "string" ? body.status : undefined;
+    const success = typeof body?.success === "boolean" ? body.success : undefined;
+    const statusUrl =
+      typeof body?.status_url === "string"
+        ? body.status_url
+        : typeof body?.statusUrl === "string"
+          ? body.statusUrl
+          : undefined;
+
+    const metadataCandidate = body?.metadata;
+    const metadata =
+      metadataCandidate && typeof metadataCandidate === "object" && !Array.isArray(metadataCandidate)
+        ? (metadataCandidate as Record<string, any>)
+        : {};
+    const dataArray = Array.isArray(body?.data) ? (body.data as any[]) : [];
+    const firstData = dataArray.find((item) => item && typeof item === "object") as any;
+    const dataMetadata =
+      firstData && typeof firstData.metadata === "object" && !Array.isArray(firstData.metadata)
+        ? (firstData.metadata as Record<string, any>)
+        : undefined;
+
+    const combinedMetadata = { ...(dataMetadata ?? {}), ...metadata };
+
+    const sourceUrl =
+      typeof combinedMetadata?.url === "string"
+        ? combinedMetadata.url
+        : typeof combinedMetadata?.sourceUrl === "string"
+          ? combinedMetadata.sourceUrl
+          : typeof combinedMetadata?.sourceURL === "string"
+            ? combinedMetadata.sourceURL
+            : typeof body?.url === "string"
+              ? body.url
+              : typeof firstData?.url === "string"
+                ? firstData.url
+                : undefined;
+    const siteId =
+      typeof combinedMetadata?.siteId === "string"
+        ? combinedMetadata.siteId
+        : typeof dataMetadata?.siteId === "string"
+          ? dataMetadata.siteId
+          : undefined;
+
+    await ctx.runMutation(api.router.insertFirecrawlWebhookEvent, {
+      jobId,
+      event,
+      status,
+      success,
+      sourceUrl,
+      siteId,
+      statusUrl,
+      metadata: combinedMetadata,
+      payload: body,
+      receivedAt: now,
+    });
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: withCors({ "Content-Type": "application/json" }),
+    });
+  }),
+});
+
+export const insertFirecrawlWebhookEvent = mutation({
+  args: {
+    jobId: v.string(),
+    event: v.string(),
+    status: v.optional(v.string()),
+    success: v.optional(v.boolean()),
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    statusUrl: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    payload: v.any(),
+    receivedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const jobRows = await ctx.db
+      .query("firecrawl_webhooks")
+      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+      .collect();
+
+    const existing = jobRows.find((row: any) => row.event === args.event);
+    const pending = jobRows.find((row: any) => row.event === "pending");
+    const processedRow = jobRows.find((row: any) => row.processed === true);
+
+    const base = {
+      jobId: args.jobId,
+      event: args.event,
+      status: args.status,
+      success: args.success,
+      sourceUrl: args.sourceUrl,
+      siteId: args.siteId,
+      statusUrl: args.statusUrl,
+      metadata: args.metadata,
+      payload: args.payload,
+      receivedAt: args.receivedAt,
+    };
+
+    const markProcessed = args.event !== "pending" && Boolean(processedRow);
+
+    if (pending && args.event !== "pending" && !pending.processed) {
+      await ctx.db.patch(pending._id as Id<"firecrawl_webhooks">, {
+        processed: true,
+        processedAt: Date.now(),
+        error: args.event,
+      });
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id as Id<"firecrawl_webhooks">, {
+        ...base,
+        processed: markProcessed ? true : existing.processed ?? false,
+        processedAt: markProcessed ? Date.now() : existing.processedAt,
+        error: existing.error,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("firecrawl_webhooks", {
+      ...base,
+      processed: markProcessed,
+      processedAt: markProcessed ? Date.now() : undefined,
+      error: markProcessed ? "already_processed" : undefined,
+    });
+  },
+});
+
+export const markFirecrawlWebhookProcessed = mutation({
+  args: {
+    id: v.id("firecrawl_webhooks"),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      processed: true,
+      processedAt: Date.now(),
+      error: args.error,
+    });
+    return { success: true };
+  },
+});
+
+export const getFirecrawlWebhookStatus = query({
+  args: {
+    jobId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("firecrawl_webhooks")
+      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+      .collect();
+
+    const pending = rows.find((row: any) => row.event === "pending");
+    const realEvents = rows.filter((row: any) => row.event !== "pending");
+    const processed =
+      realEvents.find((row: any) => row.processed) ?? (pending?.processed ? pending : undefined);
+    const unprocessed = realEvents.find((row: any) => !row.processed);
+
+    return {
+      hasProcessed: Boolean(processed),
+      hasRealEvent: Boolean(processed || unprocessed),
+      pendingProcessed: pending ? Boolean((pending as any).processed) : false,
+      pendingId: pending?._id,
+    };
+  },
+});
+
+export const insertScrapeError = mutation({
+  args: {
+    jobId: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    event: v.optional(v.string()),
+    status: v.optional(v.string()),
+    error: v.string(),
+    metadata: v.optional(v.any()),
+    payload: v.optional(v.any()),
+    createdAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("scrape_errors", args);
+  },
+});
+
+export const listScrapeErrors = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
+    const rows = await ctx.db
+      .query("scrape_errors")
+      .withIndex("by_created", (q) => q.gte("createdAt", 0))
+      .order("desc")
+      .take(lim);
+    return rows;
+  },
+});
+
+export const listPendingFirecrawlWebhooks = query({
+  args: {
+    limit: v.optional(v.number()),
+    event: v.optional(v.string()),
+    receivedBefore: v.optional(v.number()),
+    excludePending: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 25, 200));
+    let q = ctx.db
+      .query("firecrawl_webhooks")
+      .withIndex("by_processed", (idx) => idx.eq("processed", false));
+    if (args.event) {
+      q = q.filter((f) => f.eq(f.field("event"), args.event));
+    }
+    if (args.excludePending) {
+      q = q.filter((f) => f.neq(f.field("event"), "pending"));
+    }
+    if (args.receivedBefore !== undefined) {
+      q = q.filter((f) => f.lte(f.field("receivedAt"), args.receivedBefore as number));
+    }
+    return await q.take(lim);
+  },
+});
+
 export const insertScrapeRecord = mutation({
   args: {
     sourceUrl: v.string(),
@@ -1016,10 +1336,247 @@ export const insertScrapeRecord = mutation({
     provider: v.optional(v.string()),
     workflowName: v.optional(v.string()),
     costMilliCents: v.optional(v.number()),
+    jobBoardJobId: v.optional(v.string()),
+    batchId: v.optional(v.string()),
+    workflowId: v.optional(v.string()),
+    workflowType: v.optional(v.string()),
+    response: v.optional(v.any()),
+    asyncState: v.optional(v.string()),
+    asyncResponse: v.optional(v.any()),
+    subUrls: v.optional(v.array(v.string())),
+    request: v.optional(v.any()),
+    providerRequest: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("scrapes", args);
     return id;
+  },
+});
+
+export const listScrapes = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
+    const rows = await ctx.db
+      .query("scrapes")
+      .withIndex("by_source", (q) => q.gt("sourceUrl", ""))
+      .order("desc")
+      .take(lim);
+
+    return rows.map((row: any) => ({
+      _id: row._id,
+      sourceUrl: row.sourceUrl,
+      provider: row.provider ?? row.items?.provider ?? "unknown",
+      workflowName: row.workflowName,
+      workflowId: row.workflowId,
+      workflowType: row.workflowType,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      batchId: row.batchId,
+      jobBoardJobId: row.jobBoardJobId,
+      response: row.response,
+      asyncState: row.asyncState,
+      asyncResponse: row.asyncResponse,
+      subUrls: row.subUrls ?? row.items?.seedUrls ?? [],
+      type: row.items?.kind ?? row.workflowName ?? row.provider,
+    }));
+  },
+});
+
+export const listUrlScrapeLogs = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
+    const scrapes = await ctx.db.query("scrapes").order("desc").take(limit * 2);
+    const jobs = await ctx.db.query("jobs").collect();
+
+    const normalizeUrlKey = (url: any) => {
+      if (typeof url !== "string") return "";
+      const trimmed = url.trim();
+      if (!trimmed) return "";
+      return trimmed.replace(/\/+$/, "");
+    };
+
+    const existingUrls = new Set(
+      (jobs as any[])
+        .map((j: any) => normalizeUrlKey((j as any).url))
+        .filter((u: string) => !!u)
+    );
+
+    const jobByUrl = new Map<string, any>();
+    for (const job of jobs as any[]) {
+      const key = normalizeUrlKey((job as any).url);
+      if (key && !jobByUrl.has(key)) {
+        jobByUrl.set(key, job);
+      }
+    }
+
+    const clampRequest = (value: any) => {
+      if (!value || typeof value !== "object") return value;
+      if (!("body" in value) && !("headers" in value) && !("method" in value) && !("url" in value)) {
+        return value;
+      }
+      const snapshot: Record<string, any> = {};
+      if ((value as any).method) snapshot.method = (value as any).method;
+      if ((value as any).url) snapshot.url = (value as any).url;
+      if ((value as any).headers) snapshot.headers = (value as any).headers;
+      if ("body" in value) {
+        try {
+          const bodyStr = JSON.stringify((value as any).body);
+          snapshot.body =
+            bodyStr.length > 900 ? `${bodyStr.slice(0, 900)}… (+${bodyStr.length - 900} chars)` : (value as any).body;
+        } catch {
+          snapshot.body = (value as any).body;
+        }
+      }
+      return snapshot;
+    };
+
+    const sanitize = (value: any) => {
+      if (value === null || value === undefined) return undefined;
+      value = clampRequest(value);
+      try {
+        const serialized = JSON.stringify(value);
+        if (serialized.length <= 1200) return value;
+        return `${serialized.slice(0, 1200)}… (+${serialized.length - 1200} chars)`;
+      } catch {
+        const str = String(value);
+        return str.length > 1200 ? `${str.slice(0, 1200)}… (+${str.length - 1200} chars)` : str;
+      }
+    };
+
+    const urlFromJob = (job: any) => {
+      if (!job || typeof job !== "object") return null;
+      const candidates = [
+        (job as any).url,
+        (job as any).job_url,
+        (job as any).jobUrl,
+        (job as any)._url,
+        (job as any).link,
+        (job as any).href,
+        (job as any)._rawUrl,
+      ];
+      const url = candidates.find((u) => typeof u === "string" && u.trim());
+      return url ? String(url) : null;
+    };
+
+    const normalizedFromItems = (items: any): any[] => {
+      if (!items) return [];
+      if (Array.isArray(items.normalized)) return items.normalized;
+      if (Array.isArray(items.results?.items)) return items.results.items;
+      if (Array.isArray(items.items)) return items.items;
+      return [];
+    };
+
+    const batchIdFromScrape = (scrape: any): string | undefined => {
+      const candidates = [
+        scrape?.batchId,
+        scrape?.items?.batchId,
+        scrape?.items?.jobId,
+        scrape?.items?.request?.batchId,
+        scrape?.items?.request?.jobId,
+        scrape?.items?.request?.id,
+        scrape?.items?.request?.idempotencyKey,
+        scrape?.items?.raw?.batchId,
+        scrape?.items?.raw?.batch_id,
+        scrape?.items?.raw?.jobId,
+        scrape?.items?.raw?.job_id,
+        scrape?.items?.raw?.id,
+        scrape?.response?.batchId,
+        scrape?.response?.jobId,
+        scrape?.asyncResponse?.batchId,
+        scrape?.asyncResponse?.jobId,
+      ];
+      const found = candidates.find((id) => typeof id === "string" && id.trim());
+      return found ? String(found).trim() : undefined;
+    };
+
+    const logs: any[] = [];
+
+    for (const scrape of scrapes as any[]) {
+      const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
+      const workflow = scrape.workflowName ?? scrape.workflowType;
+      const batchId = batchIdFromScrape(scrape);
+      const timestamp = scrape.completedAt ?? scrape.startedAt ?? scrape._creationTime ?? Date.now();
+      const response = sanitize(scrape.response);
+      const asyncResponse = sanitize(scrape.asyncResponse);
+      const normalized = normalizedFromItems(scrape.items);
+      const rawJobUrls = Array.isArray(scrape.items?.raw?.job_urls)
+        ? (scrape.items.raw.job_urls as any[]).filter((u) => typeof u === "string" && u.trim())
+        : [];
+      const seedUrls = Array.isArray(scrape.items?.seedUrls)
+        ? (scrape.items.seedUrls as any[]).filter((u) => typeof u === "string" && u.trim())
+        : [];
+
+      const requestCandidates = [
+        (scrape as any).providerRequest,
+        scrape.request,
+        (scrape as any).requestData,
+        scrape.items?.request,
+        scrape.items?.requestData,
+        scrape.items?.raw?.request,
+        scrape.items?.raw?.request_data,
+        scrape.items?.raw?.requestData,
+        scrape.items?.raw?.requestBody,
+        scrape.items?.raw?.input,
+        scrape.items?.raw?.payload?.request,
+        scrape.items?.raw?.payload?.request_data,
+      ];
+
+      const baseRequest: Record<string, any> = {};
+      if (scrape.sourceUrl) baseRequest.sourceUrl = scrape.sourceUrl;
+      if (scrape.pattern) baseRequest.pattern = scrape.pattern;
+      if (seedUrls.length > 0) baseRequest.seedUrls = seedUrls;
+      const requestId = scrape.items?.raw?.jobId ?? scrape.items?.jobId ?? scrape.jobId;
+      if (requestId) baseRequest.jobId = requestId;
+      if (workflow) baseRequest.workflow = workflow;
+      const requestPayload = requestCandidates.find((candidate) => candidate !== undefined && candidate !== null) ?? baseRequest;
+      const sanitizedRequest = sanitize(requestPayload);
+
+      const pushEntry = (url: string | null, reason?: string) => {
+        const trimmedUrl = url?.trim() || scrape.sourceUrl;
+        const normalizedUrl = normalizeUrlKey(trimmedUrl);
+        const existing = normalizedUrl ? existingUrls.has(normalizedUrl) : false;
+        const matchedJob = normalizedUrl ? jobByUrl.get(normalizedUrl) : undefined;
+        const skipped = reason === "already_saved" || reason === "listing_only" || reason === "no_items" || existing;
+        logs.push({
+          url: trimmedUrl ?? "unknown",
+          reason: reason ?? (existing ? "already_saved" : undefined),
+          action: skipped ? "skipped" : "scraped",
+          provider,
+          workflow,
+          batchId,
+          requestData: sanitizedRequest,
+          response,
+          asyncResponse,
+          timestamp,
+          jobId: matchedJob?._id,
+          jobTitle: matchedJob?.title,
+          jobCompany: matchedJob?.company,
+        });
+      };
+
+      if (normalized.length > 0) {
+        for (const job of normalized) {
+          const url = urlFromJob(job);
+          pushEntry(url, !url ? "missing_url" : undefined);
+        }
+      } else if (rawJobUrls.length > 0) {
+        for (const url of rawJobUrls) {
+          pushEntry(url, "listing_only");
+        }
+      } else {
+        pushEntry(scrape.sourceUrl, "no_items");
+      }
+    }
+
+    return logs
+      .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
+      .slice(0, limit);
   },
 });
 

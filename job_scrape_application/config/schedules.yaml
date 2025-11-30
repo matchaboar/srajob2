@@ -1,13 +1,16 @@
 schedules:
-  - id: scrape-every-10-secs
-    workflow: ScraperFirecrawl
-    interval_seconds: 10
+  # Kick off Firecrawl jobs with webhooks
+  - id: site-lease-firecrawl
+    workflow: SiteLease
+    interval_seconds: 15
     task_queue: scraper-task-queue
     catchup_window_hours: 12
     overlap: skip
-  - id: greenhouse-scrape-every-10-secs
-    workflow: GreenhouseScraperWorkflow
-    interval_seconds: 10
+
+  # Poll and process completed webhook deliveries
+  - id: process-firecrawl-webhooks
+    workflow: ProcessWebhookScrape
+    interval_seconds: 20
     task_queue: scraper-task-queue
     catchup_window_hours: 12
     overlap: skip

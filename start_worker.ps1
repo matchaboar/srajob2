@@ -13,10 +13,22 @@ $PSNativeCommandUseErrorActionPreference = $true
 if (-not $env:UV_LINK_MODE) {
     $env:UV_LINK_MODE = "copy"
 }
+$env:UV_NO_PROGRESS = "1"
 $env:PATH = "$HOME/.cargo/bin;$env:PATH"
 # Prefer a stable Python that has prebuilt wheels (helps tiktoken, xxhash, etc.)
 if (-not $env:UV_PYTHON) {
     $env:UV_PYTHON = "3.13"
+}
+$ProgressPreference = "SilentlyContinue"
+if ($PSStyle.PSObject.Properties.Name -contains "Progress" -and $PSStyle.Progress.PSObject.Properties.Name -contains "View") {
+    # PowerShell 7.4+ only supports Minimal/Classic; fall back to Minimal if None is unavailable
+    $progressViewNames = [enum]::GetNames([System.Management.Automation.ProgressView])
+    $targetView = if ($progressViewNames -contains "None") {
+        [System.Management.Automation.ProgressView]::None
+    } else {
+        [System.Management.Automation.ProgressView]::Minimal
+    }
+    $PSStyle.Progress.View = $targetView
 }
 
 function Assert-LastExit([string]$step) {
@@ -125,7 +137,50 @@ function Start-TemporaliteContainer {
     }
 }
 
+function Start-WorkerProcess {
+    param(
+        [string]$ErrorLogPath,
+        [string]$TemporalAddress,
+        [string]$TemporalNamespace
+    )
+
+    $env:TEMPORAL_ADDRESS = $TemporalAddress
+    $env:TEMPORAL_NAMESPACE = $TemporalNamespace
+
+    $workerArgs = @("run", "python", "-u", "-m", "job_scrape_application.workflows.worker")
+    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath
+    if (-not $proc) {
+        throw "Failed to start worker process."
+    }
+    $script:WorkerProcId = $proc.Id
+    return $proc
+}
+
 function Start-WorkerMain {
+    $errorLogPath = Join-Path "logs" "worker-errors.log"
+    if (-not (Test-Path (Split-Path $errorLogPath -Parent))) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $errorLogPath -Parent) | Out-Null
+    }
+    if (Test-Path $errorLogPath) {
+        Remove-Item $errorLogPath -Force -ErrorAction SilentlyContinue
+    }
+
+    # Background watcher to surface error count without flooding stdout
+    $script:ErrorWatcher = Start-Job -ArgumentList $errorLogPath -ScriptBlock {
+        param($logPath)
+        $count = 0
+        while ($true) {
+            if (Test-Path $logPath) {
+                $newCount = (Get-Content $logPath -ErrorAction SilentlyContinue | Measure-Object -Line).Lines
+                if ($newCount -ne $count) {
+                    $count = $newCount
+                    Write-Host "ERRORS: $count" -ForegroundColor Red
+                }
+            }
+            Start-Sleep -Seconds 2
+        }
+    }
+
     # Core configuration (env overrides respected)
     $envFilePath = if ($EnvFile) {
         $EnvFile
@@ -275,16 +330,63 @@ function Start-WorkerMain {
         Assert-LastExit "Trigger schedule once"
     }
 
+    # Clear any stale progress bars from uv before showing live worker logs
+    Clear-Host
+
     Write-Host "Starting Worker..."
-    $env:TEMPORAL_ADDRESS = $TemporalAddress
-    $env:TEMPORAL_NAMESPACE = $TemporalNamespace
     if ($ConvexUrl) {
         Write-Host "Using CONVEX_HTTP_URL=$ConvexUrl" -ForegroundColor Green
     } else {
         Write-Warning "CONVEX_HTTP_URL is not set. Worker will fail to reach Convex."
     }
-    uv run python -u -m job_scrape_application.workflows.worker
-    Assert-LastExit "Worker exited unexpectedly"
+
+    # Spawn worker as a child process so Ctrl+C can force-kill it immediately.
+    $script:WorkerProcId = $null
+    $cancelSub = Register-EngineEvent -SourceIdentifier ConsoleCancelEvent -Action {
+        if ($script:ErrorWatcher) {
+            Stop-Job $script:ErrorWatcher -ErrorAction SilentlyContinue | Out-Null
+        }
+        if ($script:WorkerProcId) {
+            Stop-Process -Id $script:WorkerProcId -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    $workerProcess = Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace
+    Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
+    try {
+        while ($true) {
+            if ($workerProcess.HasExited) {
+                $exitCode = $workerProcess.ExitCode
+                break
+            }
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq "R") {
+                    Write-Host "Ctrl+R detected: restarting worker..." -ForegroundColor Yellow
+                    try {
+                        Stop-Process -Id $workerProcess.Id -Force -ErrorAction SilentlyContinue
+                        Wait-Process -Id $workerProcess.Id -ErrorAction SilentlyContinue
+                    } catch {}
+                    $workerProcess = Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace
+                    continue
+                }
+            }
+            Start-Sleep -Milliseconds 200
+        }
+    } finally {
+        if ($cancelSub) {
+            Unregister-Event -SubscriptionId $cancelSub.Id -ErrorAction SilentlyContinue
+        }
+    }
+
+    if ($ErrorWatcher) {
+        Stop-Job $ErrorWatcher -ErrorAction SilentlyContinue | Out-Null
+        Remove-Job $ErrorWatcher -Force | Out-Null
+    }
+
+    if ($exitCode -ne 0) {
+        throw "Worker exited unexpectedly (exit $exitCode). See $errorLogPath for details."
+    }
 }
 
 if ($env:SKIP_START_WORKER_MAIN -ne "1") {

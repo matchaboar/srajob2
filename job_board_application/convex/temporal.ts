@@ -136,6 +136,19 @@ export const clearAllWorkers = mutation({
   },
 });
 
+const sanitizeScratchpadData = (value: any) => {
+    if (value === null || value === undefined) return undefined;
+
+    try {
+        const serialized = JSON.stringify(value);
+        if (serialized.length <= 1200) return value;
+        return `${serialized.slice(0, 1200)}... (+${serialized.length - 1200} chars)`;
+    } catch {
+        const str = String(value);
+        return str.length > 1200 ? `${str.slice(0, 1200)}... (+${str.length - 1200} chars)` : str;
+    }
+};
+
 export const recordWorkflowRun = mutation({
     args: {
         runId: v.string(),
@@ -157,17 +170,56 @@ export const recordWorkflowRun = mutation({
             .withIndex("by_run", (q) => q.eq("runId", args.runId))
             .first();
 
+        let runDocId: Id<"workflow_runs"> | null = null;
+
         if (existing) {
             const patch: any = { ...args };
             // Avoid storing null for error to satisfy TS/Convex types
             if (patch.error === null) delete patch.error;
             await ctx.db.patch(existing._id as Id<"workflow_runs">, patch);
-            return existing._id;
+            runDocId = existing._id as Id<"workflow_runs">;
+        } else {
+            const insertArgs: any = { ...args };
+            if (insertArgs.error === null) delete insertArgs.error;
+            runDocId = await ctx.db.insert("workflow_runs", insertArgs);
         }
 
-        const insertArgs: any = { ...args };
-        if (insertArgs.error === null) delete insertArgs.error;
-        return await ctx.db.insert("workflow_runs", insertArgs);
+        if (args.error) {
+            const existingErrorEntry = await ctx.db
+                .query("scratchpad_entries")
+                .withIndex("by_run", (q) => q.eq("runId", args.runId))
+                .filter((q) => q.eq(q.field("event"), "workflow.run.error"))
+                .first();
+
+            const scratchData = sanitizeScratchpadData({
+                workflowId: args.workflowId,
+                workflowName: args.workflowName,
+                siteUrls: (args.siteUrls || []).slice(0, 10),
+                status: args.status,
+                workerId: args.workerId,
+                taskQueue: args.taskQueue,
+            });
+
+            const scratchpadPayload = {
+                runId: args.runId,
+                workflowId: args.workflowId,
+                workflowName: args.workflowName,
+                siteUrl: args.siteUrls?.[0],
+                event: "workflow.run.error",
+                message: args.error,
+                data: scratchData,
+                level: "error" as const,
+                createdAt: args.completedAt ?? Date.now(),
+            };
+
+            if (existingErrorEntry) {
+                await ctx.db.patch(existingErrorEntry._id as Id<"scratchpad_entries">, scratchpadPayload);
+            } else {
+                await ctx.db.insert("scratchpad_entries", scratchpadPayload);
+            }
+        }
+
+        return runDocId;
     },
 });
 

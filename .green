@@ -1,0 +1,9 @@
+# Force deterministic single-process runs to avoid async/multiprocess flakiness.
+processes = 1
+# Match repo's test naming convention.
+file-pattern = test*.py
+test-pattern = *
+# Produce JUnit XML for CI tools (keeps existing testResults.xml filename).
+junit-report = testResults.xml
+# Keep output readable.
+verbose = 2

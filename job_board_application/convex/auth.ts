@@ -55,10 +55,12 @@ export const loggedInUser = query({
 
 export const isAdmin = query({
   handler: async (ctx) => {
-    if (isDevEnv) return true;
+    const userId = await getAuthUserId(ctx);
+    // In local/dev we only require that the user is signed in (password or anonymous).
+    // Admin email gating remains for hosted environments.
+    if (isDevEnv) return Boolean(userId);
     if (adminEmails.length === 0) return false;
 
-    const userId = await getAuthUserId(ctx);
     if (!userId) return false;
 
     const user = await ctx.db.get(userId);

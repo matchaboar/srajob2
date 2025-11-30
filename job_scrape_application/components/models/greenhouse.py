@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from ...constants import title_matches_required_keywords
 
 
 class GreenhouseJobLocation(BaseModel):
@@ -15,7 +17,7 @@ class GreenhouseJobLocation(BaseModel):
 class GreenhouseJob(BaseModel):
     absolute_url: str = Field(alias="absolute_url")
     id: int
-    title: str
+    title: Optional[str] = None
     requisition_id: Optional[str] = Field(default=None, alias="requisition_id")
     company_name: Optional[str] = Field(default=None, alias="company_name")
     updated_at: Optional[str] = Field(default=None, alias="updated_at")
@@ -52,10 +54,16 @@ def load_greenhouse_board(raw_payload: Any) -> GreenhouseBoardResponse:
     return GreenhouseBoardResponse.model_validate(data)
 
 
-def extract_greenhouse_job_urls(board: GreenhouseBoardResponse) -> list[str]:
-    """Return unique, non-empty job URLs from a board response."""
+def extract_greenhouse_job_urls(
+    board: GreenhouseBoardResponse, required_keywords: Iterable[str] | None = None
+) -> list[str]:
+    """Return unique, non-empty job URLs from a board response that match title filters."""
 
-    urls = [job.absolute_url for job in board.jobs if job.absolute_url]
+    urls = [
+        job.absolute_url
+        for job in board.jobs
+        if job.absolute_url and title_matches_required_keywords(job.title, required_keywords)
+    ]
     # Preserve order while deduping
     seen: set[str] = set()
     deduped: list[str] = []

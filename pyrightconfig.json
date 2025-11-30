@@ -5,12 +5,10 @@
     "job_scrape_application",
     "job_board_application",
     "scripts",
-    "src",
-    "tests"
+    "src"
   ],
-  "exclude": [
-    "job_scrape_application/scraper-worker"
-  ],
+  "exclude": [],
+  "typeCheckingMode": "basic",
   "reportMissingImports": "error",
   "reportMissingTypeStubs": "warning",
   "pythonVersion": "3.13"

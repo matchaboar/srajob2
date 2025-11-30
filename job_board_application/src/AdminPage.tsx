@@ -1,14 +1,17 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { toast } from "sonner";
-import { useState, useEffect, useMemo } from "react";
-import type { FormEvent } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import clsx from "clsx";
 import { WorkflowRunsSection } from "./components/WorkflowRunsSection";
 import { LiveTimer } from "./components/LiveTimer";
+import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
 
-type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal";
+type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes";
+type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+type ScrapeProvider = "fetchfox" | "firecrawl";
 const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
   mon: "Mon",
   tue: "Tue",
@@ -217,8 +220,14 @@ function TemporalStatusSection() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-slate-500 mb-1">Last heartbeat</div>
-                    <div className={clsx("text-sm font-medium font-mono", isStale ? "text-amber-400" : "text-green-400")}>
-                      <LiveTimer startTime={worker.lastHeartbeat} /> ago
+                    <div className="text-sm font-medium font-mono text-slate-200">
+                      <LiveTimer
+                        startTime={worker.lastHeartbeat}
+                        colorize
+                        warnAfterMs={90_000}
+                        dangerAfterMs={5 * 60 * 1000}
+                        showAgo
+                      />
                     </div>
                     <div className="text-[10px] text-slate-600 mt-0.5">
                       {new Date(worker.lastHeartbeat).toLocaleTimeString()}
@@ -281,18 +290,363 @@ function TemporalStatusSection() {
   );
 }
 
+function ScrapeHistorySection() {
+  const scrapes = useQuery(api.router.listScrapes, { limit: 50 });
+
+  if (scrapes === undefined) {
+    return <div className="text-slate-400 p-4">Loading scrape history...</div>;
+  }
+
+  if (!scrapes?.length) {
+    return (
+      <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
+        No scrapes recorded yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm overflow-x-auto h-full w-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-white">Scrape History</h2>
+        <span className="text-xs text-slate-400">Latest {scrapes.length}</span>
+      </div>
+      <table className="min-w-full w-full text-left text-sm text-slate-200 flex-1">
+        <thead className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wide">
+          <tr>
+            <th className="px-2 py-2">URL</th>
+            <th className="px-2 py-2">Type</th>
+            <th className="px-2 py-2">Provider</th>
+            <th className="px-2 py-2">Job</th>
+            <th className="px-2 py-2">Batch</th>
+            <th className="px-2 py-2">Workflow</th>
+            <th className="px-2 py-2">Sync Response</th>
+            <th className="px-2 py-2">Async State</th>
+            <th className="px-2 py-2">Async Response</th>
+            <th className="px-2 py-2">Sub URLs</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-800">
+          {scrapes.map((row: any) => {
+            const jobLink = row.jobBoardJobId ? `/jobs/${row.jobBoardJobId}` : null;
+            return (
+              <tr key={row._id} className="hover:bg-slate-800/70 bg-slate-900/70">
+                <td className="px-2 py-2 max-w-[200px] truncate" title={row.sourceUrl}>
+                  {row.sourceUrl}
+                </td>
+                <td className="px-2 py-2">{row.type || "n/a"}</td>
+                <td className="px-2 py-2">{row.provider || "n/a"}</td>
+                <td className="px-2 py-2">
+                  {jobLink ? (
+                    <a href={jobLink} className="text-blue-300 hover:text-blue-100 underline">
+                      {row.jobBoardJobId}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-2 py-2">{row.batchId || "—"}</td>
+                <td className="px-2 py-2">
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs text-slate-300">{row.workflowName || row.workflowType || "—"}</span>
+                    <span className="text-[11px] text-slate-500">{row.workflowId || "—"}</span>
+                  </div>
+                </td>
+                <td className="px-2 py-2 max-w-[200px] truncate" title={JSON.stringify(row.response)?.slice(0, 500)}>
+                  {row.response ? JSON.stringify(row.response).slice(0, 80) : "—"}
+                </td>
+                <td className="px-2 py-2">{row.asyncState || "—"}</td>
+                <td className="px-2 py-2 max-w-[200px] truncate" title={JSON.stringify(row.asyncResponse)?.slice(0, 500)}>
+                  {row.asyncResponse ? JSON.stringify(row.asyncResponse).slice(0, 80) : "—"}
+                </td>
+                <td className="px-2 py-2 max-w-[160px] truncate" title={(row.subUrls || []).join(", ")}>
+                  {(row.subUrls || []).slice(0, 3).join(", ") || "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UrlScrapeListSection() {
+  const logs = useQuery(api.router.listUrlScrapeLogs, { limit: 200 });
+
+  const formatJson = (value: any) => {
+    if (value === undefined) return "—";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  };
+
+  if (logs === undefined) {
+    return <div className="text-slate-400 p-4">Loading URL scrapes...</div>;
+  }
+
+  if (!logs?.length) {
+    return (
+      <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
+        No URL scrapes recorded yet.
+      </div>
+    );
+  }
+
+  const ExpandableJsonCell = ({ value }: { value: any }) => {
+    const [hovered, setHovered] = useState(false);
+    const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number; maxWidth: number; maxHeight: number }>(() => ({
+      top: 0,
+      left: 0,
+      maxWidth: 520,
+      maxHeight: 520,
+    }));
+    const [copied, setCopied] = useState(false);
+    const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (copyResetRef.current) {
+          clearTimeout(copyResetRef.current);
+        }
+      };
+    }, []);
+
+    const handleMove = (event: MouseEvent<HTMLDivElement>) => {
+      const vw = window.innerWidth || 1200;
+      const vh = window.innerHeight || 800;
+      const maxWidth = Math.min(520, vw - 24);
+      const maxHeight = Math.min(520, vh - 24);
+      const preferredLeft = event.clientX - maxWidth * 0.2;
+      const clampedLeft = Math.min(Math.max(12, preferredLeft), vw - maxWidth - 12);
+      const preferredTop = event.clientY + 12;
+      const clampedTop = Math.min(preferredTop, vh - maxHeight - 12);
+      setPopoverStyle({ top: clampedTop, left: clampedLeft, maxWidth, maxHeight });
+    };
+
+    const formatted = formatJson(value);
+    const handleCopy = async () => {
+      if (!formatted || formatted === "—") return;
+      if (copyResetRef.current) {
+        clearTimeout(copyResetRef.current);
+      }
+      try {
+        if (typeof navigator === "undefined" || !navigator.clipboard) {
+          toast.error("Clipboard not available in this browser");
+          return;
+        }
+        await navigator.clipboard.writeText(formatted);
+        setCopied(true);
+        copyResetRef.current = setTimeout(() => setCopied(false), 1200);
+      } catch (err) {
+        console.error("Failed to copy JSON", err);
+        toast.error("Failed to copy");
+      }
+    };
+
+    return (
+      <div
+        className="relative flex items-start gap-2 group"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseMove={handleMove}
+      >
+        <pre
+          className="bg-slate-950/60 border border-slate-800 rounded p-1 max-h-7 min-h-[14px] leading-tight overflow-hidden whitespace-pre-wrap break-words font-mono text-[11px] cursor-pointer transition-colors hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          onClick={handleCopy}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleCopy();
+            }
+          }}
+          title={copied ? "Copied" : "Click to copy"}
+        >
+          {formatted}
+        </pre>
+        <div className="flex flex-col items-start gap-1 pt-0.5">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleCopy();
+            }}
+            className="inline-flex h-7 w-7 items-center justify-center rounded border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            title={copied ? "Copied" : "Copy JSON"}
+            aria-label="Copy JSON to clipboard"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <rect x="9" y="9" width="11" height="11" rx="2" ry="2" />
+              <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+            </svg>
+          </button>
+          {copied && <span className="text-[10px] text-emerald-300 font-semibold">Copied</span>}
+        </div>
+        {hovered && (
+          <div
+            className="fixed z-50 pointer-events-none"
+            style={{
+              top: popoverStyle.top,
+              left: popoverStyle.left,
+              width: popoverStyle.maxWidth,
+              maxWidth: popoverStyle.maxWidth,
+              maxHeight: popoverStyle.maxHeight,
+            }}
+          >
+            <div className="bg-slate-950 border border-slate-600 rounded shadow-2xl p-3 max-h-[32rem] overflow-auto">
+              <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">{formatted}</pre>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const TimestampCell = ({ timestamp }: { timestamp?: number | string }) => {
+    const parsed = typeof timestamp === "string" ? Date.parse(timestamp) : timestamp;
+    if (!parsed || Number.isNaN(parsed)) return <span className="text-slate-600">—</span>;
+
+    const formatted = new Date(parsed).toLocaleString();
+
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] text-slate-200 font-mono">{formatted}</span>
+        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-900/70 text-slate-200 w-fit">
+          <LiveTimer
+            startTime={parsed}
+            colorize
+            warnAfterMs={10 * 60 * 1000}
+            dangerAfterMs={60 * 60 * 1000}
+            showAgo
+            suffixClassName="text-slate-400"
+          />
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col w-full h-full min-h-screen bg-slate-950">
+      <div className="flex items-center justify-end px-4 py-3 border-b border-slate-900 bg-slate-950">
+        <span className="text-xs text-slate-400">Showing {logs.length}</span>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto">
+          <table className="min-w-full w-full text-left text-[11px] text-slate-200 table-fixed">
+            <thead className="bg-slate-800 text-slate-50 uppercase tracking-wide border-b border-slate-700 shadow-inner sticky top-0 z-10">
+              <tr>
+                <th className="px-3 py-2 w-56 font-bold">URL</th>
+                <th className="px-3 py-2 w-40 font-bold">Timestamp</th>
+                <th className="px-3 py-2 w-48 font-bold">JobBoard</th>
+                <th className="px-3 py-2 w-28 font-bold">Reason</th>
+                <th className="px-3 py-2 w-20 font-bold">Action</th>
+                <th className="px-3 py-2 w-24 font-bold">Provider</th>
+                <th className="px-3 py-2 w-32 font-bold">Workflow</th>
+                <th className="px-3 py-2 w-28 font-bold">Batch</th>
+                <th className="px-3 py-2 w-64 font-bold">Request Data</th>
+                <th className="px-3 py-2 w-64 font-bold">Response</th>
+                <th className="px-3 py-2 w-64 font-bold">Async Response</th>
+              </tr>
+            </thead>
+            <tbody className="bg-slate-950 divide-y divide-slate-800">
+              {logs.map((row: any, idx: number) => (
+                <tr key={`${row.url}-${idx}`} className="hover:bg-slate-900 transition-colors">
+                  <td className="px-3 py-2 align-top">
+                    {row.url ? (
+                      <a href={row.url} className="text-blue-300 hover:text-blue-100 underline break-all">
+                        {row.url}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <TimestampCell timestamp={row.timestamp} />
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    {row.jobId ? (
+                      <div className="flex flex-col gap-1">
+                        <a
+                          href={`/#job-details-${row.jobId}`}
+                          className="text-emerald-300 hover:text-emerald-200 font-semibold underline underline-offset-2 break-all"
+                          title="Open job details in JobBoard"
+                        >
+                          {row.jobTitle || "Open in JobBoard"}
+                        </a>
+                        {row.jobCompany && (
+                          <span className="text-[11px] text-slate-400 truncate">{row.jobCompany}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    {row.reason ? (
+                      <span className="px-2 py-1 rounded bg-slate-800 text-slate-100 border border-slate-700">{row.reason}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <span
+                      className={clsx(
+                        "px-2 py-1 rounded text-[10px] font-semibold uppercase",
+                        row.action === "skipped"
+                          ? "bg-amber-900/40 text-amber-200 border border-amber-800"
+                          : "bg-green-900/40 text-green-200 border border-green-800"
+                      )}
+                    >
+                      {row.action || "n/a"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 align-top">{row.provider || "—"}</td>
+                  <td className="px-3 py-2 align-top break-words">{row.workflow || "—"}</td>
+                  <td className="px-3 py-2 align-top break-all">{row.batchId || "—"}</td>
+                  <td className="px-3 py-2 align-top">
+                    <ExpandableJsonCell value={row.requestData} />
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <ExpandableJsonCell value={row.response} />
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <ExpandableJsonCell value={row.asyncResponse} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminPage() {
   // Use URL hash to persist active section across refreshes
   const parseHash = () => {
     const raw = window.location.hash.replace("#admin-", "");
     const [section, query] = raw.split("?");
     const urlParam = new URLSearchParams(query || "").get("url");
-    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal"] as const;
-    const sec = allowed.includes(section as any) ? (section as AdminSection) : "scraper";
+    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "scrapeHistory", "urlScrapes"] as const;
+    const sec = allowed.includes(section as any) ? (section as AdminSectionExtended) : "scraper";
     return { section: sec, urlParam };
   };
 
-  const [{ section, runsUrl }, setNavState] = useState<{ section: AdminSection; runsUrl: string | null }>(() => {
+  const [{ section, runsUrl }, setNavState] = useState<{ section: AdminSectionExtended; runsUrl: string | null }>(() => {
     const { section, urlParam } = parseHash();
     return { section, runsUrl: urlParam || null };
   });
@@ -343,9 +697,24 @@ export function AdminPage() {
             onClick={() => setNavState({ section: "worker", runsUrl: null })}
           />
           <SidebarItem
+            label="Pending Requests"
+            active={section === "pending"}
+            onClick={() => setNavState({ section: "pending", runsUrl: null })}
+          />
+          <SidebarItem
             label="Database"
             active={section === "database"}
             onClick={() => setNavState({ section: "database", runsUrl: null })}
+          />
+          <SidebarItem
+            label="Scrape History"
+            active={section === "scrapeHistory"}
+            onClick={() => setNavState({ section: "scrapeHistory", runsUrl: null })}
+          />
+          <SidebarItem
+            label="URL scrape list"
+            active={section === "urlScrapes"}
+            onClick={() => setNavState({ section: "urlScrapes", runsUrl: null })}
           />
           <SidebarItem
             label="Temporal Status"
@@ -359,15 +728,23 @@ export function AdminPage() {
       <main
         className={clsx(
           "flex-1 ml-60 overflow-y-auto",
-          section === "activity" ? "p-0" : "p-8"
+          section === "activity" || section === "urlScrapes" ? "p-0" : "p-8"
         )}
       >
-        <div className={clsx("w-full", section === "activity" ? "max-w-none" : "max-w-5xl mx-auto")}>
+        <div
+          className={clsx(
+            "w-full",
+            section === "activity" || section === "urlScrapes" ? "max-w-none" : "max-w-5xl mx-auto"
+          )}
+        >
           {section === "scraper" && <ScraperConfigSection />}
           {section === "activity" && <ScrapeActivitySection onOpenRuns={(url) => setNavState({ section: "activityRuns", runsUrl: url })} />}
           {section === "activityRuns" && <WorkflowRunsSection url={runsUrl} onBack={() => setNavState({ section: "activity", runsUrl: null })} />}
           {section === "worker" && <WorkerStatusSection />}
+          {section === "pending" && <PendingRequestsSection />}
           {section === "database" && <DatabaseSection />}
+          {section === "scrapeHistory" && <ScrapeHistorySection />}
+          {section === "urlScrapes" && <UrlScrapeListSection />}
           {section === "temporal" && <TemporalStatusSection />}
         </div>
       </main>
@@ -425,12 +802,14 @@ function ScraperConfigSection() {
   // Single add state
   const [url, setUrl] = useState("");
   const [siteType, setSiteType] = useState<"general" | "greenhouse">("general");
+  const [scrapeProvider, setScrapeProvider] = useState<ScrapeProvider>("fetchfox");
   const [pattern, setPattern] = useState("");
   const [enabled, setEnabled] = useState(true);
 
   // Bulk add state
   const [bulkText, setBulkText] = useState("");
   const [bulkSiteType, setBulkSiteType] = useState<"general" | "greenhouse">("general");
+  const [bulkScrapeProvider, setBulkScrapeProvider] = useState<ScrapeProvider>("fetchfox");
 
   const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
   const generatedName = useMemo(() => deriveSiteName(url), [url]);
@@ -438,20 +817,21 @@ function ScraperConfigSection() {
   useEffect(() => {
     if (!isGreenhouseUrl) return;
     if (siteType !== "greenhouse") setSiteType("greenhouse");
+    if (scrapeProvider !== "firecrawl") setScrapeProvider("firecrawl");
     if (pattern) setPattern("");
     if (!enabled) setEnabled(true);
-  }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId]);
+  }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId, scrapeProvider]);
 
   useEffect(() => {
     if (!schedules || schedules.length === 0) return;
     const first = schedules[0]._id as unknown as string;
-    if (!selectedScheduleId && !isGreenhouseUrl) {
+    if (!selectedScheduleId) {
       setSelectedScheduleId(first);
     }
     if (!bulkScheduleId) {
       setBulkScheduleId(first);
     }
-  }, [schedules, selectedScheduleId, bulkScheduleId, isGreenhouseUrl]);
+  }, [schedules, selectedScheduleId, bulkScheduleId]);
 
   const scheduleMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -594,11 +974,13 @@ function ScraperConfigSection() {
       const normalizedType = greenhouseSubmission ? "greenhouse" : siteType ?? "general";
       const normalizedPattern = normalizedType === "greenhouse" ? undefined : (pattern.trim() || undefined);
       const generatedName = deriveSiteName(trimmedUrl);
+      const normalizedProvider: ScrapeProvider = greenhouseSubmission ? "firecrawl" : scrapeProvider;
 
       await upsertSite({
         name: generatedName,
         url: trimmedUrl,
         type: normalizedType,
+        scrapeProvider: normalizedProvider,
         pattern: normalizedPattern,
         scheduleId: selectedScheduleId || undefined,
         enabled,
@@ -607,6 +989,7 @@ function ScraperConfigSection() {
       setUrl("");
       setPattern("");
       setSiteType("general");
+      setScrapeProvider("fetchfox");
       setEnabled(true);
     } catch {
       toast.error("Failed to add site");
@@ -626,12 +1009,17 @@ function ScraperConfigSection() {
 
       const [u, ...rest] = parts;
       let parsedType: "general" | "greenhouse" | undefined;
+      let parsedProvider: ScrapeProvider | undefined;
       let parsedPattern: string | undefined;
 
       for (const segment of rest) {
         const lowered = segment.toLowerCase();
         if (!parsedType && (lowered === "general" || lowered === "greenhouse")) {
           parsedType = lowered as "general" | "greenhouse";
+          continue;
+        }
+        if (!parsedProvider && (lowered === "fetchfox" || lowered === "firecrawl")) {
+          parsedProvider = lowered as ScrapeProvider;
           continue;
         }
         if (!parsedPattern) {
@@ -643,6 +1031,9 @@ function ScraperConfigSection() {
       const normalizedType = greenhouseSubmission
         ? "greenhouse"
         : parsedType ?? bulkSiteType ?? "general";
+      const normalizedProvider: ScrapeProvider = greenhouseSubmission
+        ? "firecrawl"
+        : parsedProvider ?? bulkScrapeProvider ?? "fetchfox";
       const patternValue = normalizedType === "greenhouse" ? undefined : parsedPattern;
       const generatedName = deriveSiteName(u);
 
@@ -651,6 +1042,7 @@ function ScraperConfigSection() {
         name: generatedName,
         pattern: patternValue,
         type: normalizedType,
+        scrapeProvider: normalizedProvider,
         scheduleId: bulkScheduleId || selectedScheduleId || undefined,
         enabled: true,
       });
@@ -870,13 +1262,13 @@ function ScraperConfigSection() {
 
       {mode === "single" ? (
         <form onSubmit={(e) => { void handleAddSite(e); }} className="space-y-3 mb-6 bg-slate-950/50 p-3 rounded border border-slate-800">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-            <div className="md:col-span-6">
-              <label className="text-xs text-slate-400 block mb-1">Start URL</label>
-              <input
-                type="url"
-                placeholder="Start URL (required)"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+        <div className="md:col-span-6">
+          <label className="text-xs text-slate-400 block mb-1">Start URL</label>
+          <input
+            type="url"
+            placeholder="Start URL (required)"
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 required
@@ -894,28 +1286,46 @@ function ScraperConfigSection() {
                 )}
               </div>
             </div>
-            <div className="md:col-span-3">
-              <label className="text-xs text-slate-400 block mb-1">Site type</label>
-              <select
-                value={siteType}
-                onChange={(e) => {
-                  const next = e.target.value as "general" | "greenhouse";
-                  setSiteType(next);
-                  if (next === "greenhouse") setPattern("");
-                }}
-                disabled={isGreenhouseUrl}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
-              >
-                <option value="general">General (FetchFox)</option>
-                <option value="greenhouse">Greenhouse board</option>
-              </select>
-            </div>
-            <div className="md:col-span-3">
-              <label className="text-xs text-slate-400 block mb-1">Pattern (optional)</label>
-              <input
-                type="text"
-                placeholder="Pattern (optional)"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+        <div className="md:col-span-2">
+          <label className="text-xs text-slate-400 block mb-1">Site type</label>
+          <select
+            value={siteType}
+            onChange={(e) => {
+              const next = e.target.value as "general" | "greenhouse";
+              setSiteType(next);
+              if (next === "greenhouse") {
+                setPattern("");
+                setScrapeProvider("firecrawl");
+              } else if (!isGreenhouseUrl && scrapeProvider === "firecrawl") {
+                setScrapeProvider("fetchfox");
+              }
+            }}
+            disabled={isGreenhouseUrl}
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+          >
+            <option value="general">General</option>
+            <option value="greenhouse">Greenhouse board</option>
+          </select>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-slate-400 block mb-1">Scraper</label>
+          <select
+            value={scrapeProvider}
+            onChange={(e) => setScrapeProvider(e.target.value as ScrapeProvider)}
+            disabled={isGreenhouseUrl || siteType === "greenhouse"}
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+          >
+            <option value="fetchfox">FetchFox (structured JSON)</option>
+            <option value="firecrawl">Firecrawl (webhook)</option>
+          </select>
+          <p className="text-[11px] text-slate-500 mt-1">FetchFox defaults for non-Greenhouse sites.</p>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-xs text-slate-400 block mb-1">Pattern (optional)</label>
+          <input
+            type="text"
+            placeholder="Pattern (optional)"
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-60"
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
                 disabled={isGreenhouseUrl || siteType === "greenhouse"}
@@ -929,7 +1339,7 @@ function ScraperConfigSection() {
               <select
                 value={selectedScheduleId}
                 onChange={(e) => setSelectedScheduleId(e.target.value)}
-                disabled={isGreenhouseUrl}
+                disabled={!schedules}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
               >
                 {!schedules && <option value="">Loading schedules...</option>}
@@ -966,11 +1376,11 @@ function ScraperConfigSection() {
         </form>
       ) : (
         <div className="space-y-3 mb-6 bg-slate-950/50 p-3 rounded border border-slate-800">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="text-xs text-slate-400 sm:col-span-2">
-              Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, pattern (optional), type (optional)</code>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="text-xs text-slate-400 sm:col-span-2 lg:col-span-2">
+              Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, pattern (optional), type/provider (optional)</code>
               <div className="text-[11px] text-slate-500 mt-1">
-                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; patterns are ignored for Greenhouse.
+                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; providers accept <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">firecrawl</code>. Greenhouse entries always use Firecrawl.
               </div>
             </div>
             <div>
@@ -996,8 +1406,19 @@ function ScraperConfigSection() {
                 onChange={(e) => setBulkSiteType(e.target.value as "general" | "greenhouse")}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
               >
-                <option value="general">General (FetchFox)</option>
+                <option value="general">General</option>
                 <option value="greenhouse">Greenhouse board</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Scraper (batch default)</label>
+              <select
+                value={bulkScrapeProvider}
+                onChange={(e) => setBulkScrapeProvider(e.target.value as ScrapeProvider)}
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+              >
+                <option value="fetchfox">FetchFox (structured JSON)</option>
+                <option value="firecrawl">Firecrawl (webhook)</option>
               </select>
             </div>
           </div>
@@ -1051,6 +1472,8 @@ function ScraperConfigSection() {
           const scheduleLabel = schedule ? formatScheduleSummary(schedule) : "No schedule";
           const siteType = (s as any).type ?? "general";
           const siteTypeLabel = siteType === "greenhouse" ? "Greenhouse" : "General";
+          const scrapeProvider: ScrapeProvider = (s as any).scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
+          const scrapeProviderLabel = scrapeProvider === "firecrawl" ? "Firecrawl" : "FetchFox";
 
           return (
             <div key={siteId} className={clsx("p-3 flex items-center justify-between gap-3", !s.enabled && "opacity-50")}>
@@ -1067,6 +1490,14 @@ function ScraperConfigSection() {
                       : "bg-slate-800 text-slate-300 border-slate-700"
                   )}>
                     {siteTypeLabel}
+                  </span>
+                  <span className={clsx(
+                    "text-[10px] px-1.5 py-0.5 rounded border",
+                    scrapeProvider === "firecrawl"
+                      ? "bg-blue-900/30 text-blue-200 border-blue-800"
+                      : "bg-emerald-900/30 text-emerald-200 border-emerald-800"
+                  )}>
+                    {scrapeProviderLabel}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 truncate font-mono">{s.url}</div>
@@ -1332,6 +1763,7 @@ function WorkerStatusSection() {
   const successfulSites = useQuery(api.sites.listSuccessfulSites, { limit: 100 });
   const failedSites = useQuery(api.sites.listFailedSites, { limit: 100 });
   const retrySite = useMutation(api.sites.retrySite);
+  const scrapeErrors = useQuery(api.router.listScrapeErrors, { limit: 25 });
 
   const rows: any[] = [];
   if (successfulSites) {
@@ -1348,86 +1780,304 @@ function WorkerStatusSection() {
   });
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-white">Worker Status</h2>
-          <p className="text-xs text-slate-500">Recent successful/failed site scrapes.</p>
+    <div className="space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Worker Status</h2>
+            <p className="text-xs text-slate-500">Recent successful/failed site scrapes.</p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Use <span className="text-amber-200 font-semibold">Clear failures</span> to reset a stuck site:
+              it clears the failed flag and immediately requeues the site for the next scrape cycle.
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                <th className="px-3 py-2 border-b border-slate-800">URL</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last run</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last failure</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Failures</th>
+                <th className="px-3 py-2 border-b border-slate-800 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-3 text-center text-slate-500">
+                    {successfulSites === undefined || failedSites === undefined ? "Loading..." : "No data yet."}
+                  </td>
+                </tr>
+              )}
+              {sorted.map((row) => (
+                <tr key={row._id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="px-3 py-2">
+                    <span
+                      className={clsx(
+                        "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
+                        row.status === "success"
+                          ? "bg-green-900/30 text-green-300 border-green-800"
+                          : "bg-red-900/30 text-red-300 border-red-800"
+                      )}
+                    >
+                      {row.status === "success" ? "Success" : "Failed"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-sm text-white truncate max-w-[180px]">{row.name || "Untitled"}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 font-mono truncate max-w-[260px]">{row.url}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
+                    {row.lastRunAt ? new Date(row.lastRunAt).toLocaleString() : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
+                    {row.lastFailureAt ? new Date(row.lastFailureAt).toLocaleString() : row.lastError ? "Failed" : "—"}
+                    {row.lastError && (
+                      <div className="text-[10px] text-red-300 mt-1 line-clamp-2">{row.lastError}</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 text-center">
+                    {row.failCount ?? (row.status === "failed" ? 1 : 0)}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {row.status === "failed" && (
+                      <button
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              await retrySite({ id: row._id, clearError: true });
+                              toast.success("Failures cleared; site requeued");
+                            } catch {
+                              toast.error("Failed to clear site errors");
+                            }
+                          })();
+                        }}
+                        className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
+                      >
+                        Clear failures
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div className="overflow-auto">
-        <table className="min-w-full text-left text-xs text-slate-200">
-          <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-            <tr>
-              <th className="px-3 py-2 border-b border-slate-800">Status</th>
-              <th className="px-3 py-2 border-b border-slate-800">Site</th>
-              <th className="px-3 py-2 border-b border-slate-800">URL</th>
-              <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last run</th>
-              <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last failure</th>
-              <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Failures</th>
-              <th className="px-3 py-2 border-b border-slate-800 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {sorted.length === 0 && (
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Scrape Errors</h2>
+            <p className="text-xs text-slate-500">Latest Firecrawl/worker failures captured from webhooks.</p>
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">{scrapeErrors?.length ?? 0} recent</span>
+        </div>
+
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
               <tr>
-                <td colSpan={7} className="px-3 py-3 text-center text-slate-500">
-                  {successfulSites === undefined || failedSites === undefined ? "Loading..." : "No data yet."}
-                </td>
+                <th className="px-3 py-2 border-b border-slate-800">Job ID</th>
+                <th className="px-3 py-2 border-b border-slate-800">Source</th>
+                <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                <th className="px-3 py-2 border-b border-slate-800">Error</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">When</th>
               </tr>
-            )}
-            {sorted.map((row) => (
-              <tr key={row._id} className="hover:bg-slate-800/50 transition-colors">
-                <td className="px-3 py-2">
-                  <span
-                    className={clsx(
-                      "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
-                      row.status === "success"
-                        ? "bg-green-900/30 text-green-300 border-green-800"
-                        : "bg-red-900/30 text-red-300 border-red-800"
-                    )}
-                  >
-                    {row.status === "success" ? "Success" : "Failed"}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-sm text-white truncate max-w-[180px]">{row.name || "Untitled"}</td>
-                <td className="px-3 py-2 text-[11px] text-slate-300 font-mono truncate max-w-[260px]">{row.url}</td>
-                <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
-                  {row.lastRunAt ? new Date(row.lastRunAt).toLocaleString() : "—"}
-                </td>
-                <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
-                  {row.lastFailureAt ? new Date(row.lastFailureAt).toLocaleString() : row.lastError ? "Failed" : "—"}
-                  {row.lastError && (
-                    <div className="text-[10px] text-red-300 mt-1 line-clamp-2">{row.lastError}</div>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-[11px] text-slate-300 text-center">
-                  {row.failCount ?? (row.status === "failed" ? 1 : 0)}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {row.status === "failed" && (
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          try {
-                            await retrySite({ id: row._id, clearError: true });
-                            toast.success("Retry queued");
-                          } catch {
-                            toast.error("Retry failed");
-                          }
-                        })();
-                      }}
-                      className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(scrapeErrors ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-3 text-center text-slate-500">
+                    {scrapeErrors === undefined ? "Loading..." : "No errors recorded."}
+                  </td>
+                </tr>
+              )}
+              {(scrapeErrors ?? []).map((err: any) => (
+                <tr key={err._id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[160px]">
+                    {err.jobId || "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">{err.sourceUrl || "—"}</div>
+                    {err.siteId && <div className="text-[10px] text-slate-500">site: {err.siteId}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">
+                    <span className="px-1.5 py-0.5 rounded bg-red-900/30 border border-red-800 text-red-200 text-[10px] font-medium">
+                      {err.status || "error"}
+                    </span>
+                    {err.event && <div className="text-[10px] text-slate-500 mt-0.5">{err.event}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-red-200 max-w-[260px]">
+                    <div className="line-clamp-2 leading-snug">{err.error}</div>
+                  </td>
+                  <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
+                    {err.createdAt ? new Date(err.createdAt).toLocaleString() : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+function WorkflowMetaSummary({ workflow }: { workflow: WorkflowScheduleMeta }) {
+  return (
+    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 mt-1">
+      <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-100 font-medium">
+        {workflow.name}
+      </span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Schedule: {workflow.scheduleId}</span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">
+        Cadence: every {formatInterval(workflow.intervalSeconds)}
+      </span>
+      {workflow.taskQueue && (
+        <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Queue: {workflow.taskQueue}</span>
+      )}
+    </div>
+  );
+}
+
+function PendingRequestsSection() {
+  const runRequests = useQuery(api.router.listRunRequests, { limit: 25 });
+  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, { limit: 25 });
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Pending Requests</h2>
+            <p className="text-xs text-slate-500">{SITE_LEASE_WORKFLOW.description}</p>
+            <WorkflowMetaSummary workflow={SITE_LEASE_WORKFLOW} />
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">{runRequests?.length ?? 0} pending</span>
+        </div>
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                <th className="px-3 py-2 border-b border-slate-800">Elapsed</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">ETA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(runRequests ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
+                    {runRequests === undefined ? "Loading..." : "No pending run requests."}
+                  </td>
+                </tr>
+              )}
+              {(runRequests ?? []).map((req: any) => (
+                <tr key={req._id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-2">
+                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">{req.siteUrl || "—"}</div>
+                    <div className="text-[10px] text-slate-500 font-mono">{String(req.siteId)}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={clsx(
+                        "px-1.5 py-0.5 rounded border text-[10px] font-medium",
+                        req.status === "done"
+                          ? "bg-green-900/30 text-green-200 border-green-800"
+                          : req.status === "processing"
+                            ? "bg-amber-900/30 text-amber-200 border-amber-800"
+                            : "bg-slate-900/50 text-slate-300 border-slate-700"
+                      )}
                     >
-                      Retry
-                    </button>
-                  )}
-                </td>
+                      {req.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">
+                    {req.createdAt ? (
+                      <LiveTimer
+                        startTime={req.createdAt}
+                        colorize
+                        warnAfterMs={2 * 60 * 1000}
+                        dangerAfterMs={10 * 60 * 1000}
+                        showAgo
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
+                    {req.expectedEta ? new Date(req.expectedEta).toLocaleTimeString() : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Pending Firecrawl Webhooks</h2>
+            <p className="text-xs text-slate-500">{PROCESS_WEBHOOK_WORKFLOW.description}</p>
+            <WorkflowMetaSummary workflow={PROCESS_WEBHOOK_WORKFLOW} />
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">{pendingWebhooks?.length ?? 0} pending</span>
+        </div>
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Job</th>
+                <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                <th className="px-3 py-2 border-b border-slate-800">Event</th>
+                <th className="px-3 py-2 border-b border-slate-800">Received</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(pendingWebhooks ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
+                    {pendingWebhooks === undefined ? "Loading..." : "No pending webhooks."}
+                  </td>
+                </tr>
+              )}
+              {(pendingWebhooks ?? []).map((hook: any) => (
+                <tr key={hook._id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[180px]">
+                    {hook.jobId || "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">
+                      {hook.siteUrl || (hook.metadata || {}).siteUrl || "—"}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">{hook.siteId || (hook.metadata || {}).siteId || ""}</div>
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">{hook.event || "—"}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">
+                    {hook.receivedAt ? (
+                      <LiveTimer
+                        startTime={hook.receivedAt}
+                        colorize
+                        warnAfterMs={2 * 60 * 1000}
+                        dangerAfterMs={10 * 60 * 1000}
+                        showAgo
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

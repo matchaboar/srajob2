@@ -1,0 +1,3 @@
+"""Placeholder datadog schema."""
+
+schema = {}

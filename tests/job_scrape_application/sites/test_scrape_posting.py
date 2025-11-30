@@ -26,7 +26,7 @@ def test_normalize_fetchfox_items_emits_convex_shape():
                 "posted_at": "2024-10-01T12:30:00Z",
             },
             {
-                "title": "Data Intern",
+                "title": "Data Engineer Intern",
                 "employer": "Beta Corp",
                 "description": "Summer internship",
                 "city": "Austin, TX",
@@ -69,6 +69,23 @@ def test_normalize_fetchfox_items_emits_convex_shape():
     assert second["remote"] is False  # no remote markers in title/location
     assert first["level"] == "staff"  # "Principal" -> staff
     assert second["level"] == "junior"  # internship should down-rank
+
+
+def test_normalize_fetchfox_items_filters_required_keywords():
+    payload = {
+        "normalized": [
+            {"job_title": "Product Manager", "url": "https://example.com/pm"},
+            {"job_title": None, "url": "https://example.com/unknown"},
+            {"job_title": "Platform Engineer", "url": "https://example.com/eng"},
+        ]
+    }
+
+    normalized = acts.normalize_fetchfox_items(payload)
+    urls = [row["url"] for row in normalized]
+
+    assert "https://example.com/pm" not in urls
+    assert "https://example.com/unknown" in urls  # unknown title should be allowed
+    assert "https://example.com/eng" in urls
 
 
 @pytest.mark.asyncio

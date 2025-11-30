@@ -19,7 +19,7 @@ def test_greenhouse_board_parsing_and_urls():
             {
                 "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7278362?t=gh_src=&gh_jid=7278362",
                 "id": 7278362,
-                "title": "AML Investigator, Crypto",
+                "title": "AML Engineer, Crypto",
                 "updated_at": "2025-11-24T15:20:56-05:00",
                 "location": {"name": "Denver, CO; New York, NY; Westlake, TX"},
             },
@@ -33,7 +33,7 @@ def test_greenhouse_board_parsing_and_urls():
             {
                 "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/5702135?t=gh_src=&gh_jid=5702135",
                 "id": 5702135,
-                "title": "Android Developer",
+                "title": "Android Engineer",
                 "location": {"name": "Toronto, ON"},
             },
         ]
@@ -52,9 +52,9 @@ def test_greenhouse_board_parsing_and_urls():
 def test_extract_greenhouse_job_urls_dedupes():
     payload = {
         "jobs": [
-            {"absolute_url": "https://example.com/job/1", "id": 1, "title": "One"},
-            {"absolute_url": "https://example.com/job/1", "id": 2, "title": "Two"},
-            {"absolute_url": "https://example.com/job/2", "id": 3, "title": "Three"},
+            {"absolute_url": "https://example.com/job/1", "id": 1, "title": "Engineer One"},
+            {"absolute_url": "https://example.com/job/1", "id": 2, "title": "Engineer Two"},
+            {"absolute_url": "https://example.com/job/2", "id": 3, "title": "Engineer Three"},
         ]
     }
 
@@ -62,3 +62,20 @@ def test_extract_greenhouse_job_urls_dedupes():
     urls = extract_greenhouse_job_urls(board)
 
     assert urls == ["https://example.com/job/1", "https://example.com/job/2"]
+
+
+def test_extract_greenhouse_job_urls_filters_titles():
+    payload = {
+        "jobs": [
+            {"absolute_url": "https://example.com/job/eng", "id": 1, "title": "QA Engineer"},
+            {"absolute_url": "https://example.com/job/pm", "id": 2, "title": "Product Manager"},
+            {"absolute_url": "https://example.com/job/unknown", "id": 3, "title": None},
+        ]
+    }
+
+    board = load_greenhouse_board(payload)
+    urls = extract_greenhouse_job_urls(board)
+
+    assert "https://example.com/job/eng" in urls
+    assert "https://example.com/job/unknown" in urls  # Unknown title should still be scraped
+    assert "https://example.com/job/pm" not in urls

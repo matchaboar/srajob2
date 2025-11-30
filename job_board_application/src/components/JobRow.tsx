@@ -21,20 +21,6 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
         }).format(amount);
     };
 
-    const timeAgo = (date: number) => {
-        const seconds = Math.floor((new Date().getTime() - date) / 1000);
-        let interval = seconds / 31536000;
-        if (interval > 1) return Math.floor(interval) + "y";
-        interval = seconds / 2592000;
-        if (interval > 1) return Math.floor(interval) + "mo";
-        interval = seconds / 86400;
-        if (interval > 1) return Math.floor(interval) + "d";
-        interval = seconds / 3600;
-        if (interval > 1) return Math.floor(interval) + "h";
-        interval = seconds / 60;
-        if (interval > 1) return Math.floor(interval) + "m";
-        return Math.floor(seconds) + "s";
-    };
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
     const scrapedBadge = job.scrapedWith ? (job.scrapedWith as string) : null;
     const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
@@ -148,15 +134,28 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                             })}
                         </span>
                         {(Date.now() - job.postedAt) < 5 * 24 * 60 * 60 * 1000 ? (
-                            <div className="text-xs font-medium font-mono text-slate-500 flex items-center gap-1">
-                                <LiveTimer startTime={job.postedAt} /> ago
-                            </div>
+                            <LiveTimer
+                                className="text-xs font-medium text-slate-500"
+                                startTime={job.postedAt}
+                                colorize
+                                warnAfterMs={24 * 60 * 60 * 1000}
+                                dangerAfterMs={3 * 24 * 60 * 60 * 1000}
+                                showAgo
+                            />
                         ) : (
                             <div className="h-4" /> /* Spacer to maintain height consistency if needed, or just omit */
                         )}
                         {scrapedAt && (
-                            <span className="text-[10px] text-slate-600 font-mono">
-                                scraped {timeAgo(scrapedAt)} ago{scrapedBadge ? ` · ${scrapedBadge}` : ""}
+                            <span className="text-[10px] text-slate-600 font-mono flex items-center gap-1">
+                                scraped
+                                <LiveTimer
+                                    startTime={scrapedAt}
+                                    colorize
+                                    warnAfterMs={12 * 60 * 60 * 1000}
+                                    dangerAfterMs={48 * 60 * 60 * 1000}
+                                    showAgo
+                                    />
+                                {scrapedBadge ? ` · ${scrapedBadge}` : ""}
                             </span>
                         )}
                         {scrapedCostLabel && (

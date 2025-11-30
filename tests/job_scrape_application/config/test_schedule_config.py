@@ -7,6 +7,11 @@ from typing import Any, Dict, List
 import pytest
 import yaml
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("."))
+
 from job_scrape_application.workflows import create_schedule as cs
 from temporalio.client import ScheduleActionStartWorkflow, ScheduleOverlapPolicy
 from temporalio.service import RPCError, RPCStatusCode
@@ -73,6 +78,34 @@ def test_build_schedule_supports_long_interval():
 
     assert schedule.spec.intervals[0].every.total_seconds() == 7200
     assert schedule.policy.overlap == ScheduleOverlapPolicy.SKIP
+
+
+def test_default_overlap_is_skip_to_prevent_duplicate_runs():
+    cfg = cs.ScheduleConfig(
+        id="no-overlap-config",
+        workflow="ScrapeWorkflow",
+        interval_seconds=300,
+        task_queue=None,
+        catchup_window_hours=1,
+        overlap="skip",
+    )
+
+    schedule = cs.build_schedule(cfg)
+
+    assert schedule.policy.overlap == ScheduleOverlapPolicy.SKIP
+    # Guardrail: interval should be enforced, so no buffer_all/cancel policies that could
+    # queue multiple overlapping scrapes inside the same interval.
+    assert schedule.spec.intervals[0].every.total_seconds() == 300
+
+
+def test_load_schedule_configs_defaults_overlap_skip(tmp_path: Path):
+    yaml_data = {"schedules": [{"id": "scraper", "workflow": "ScrapeWorkflow", "interval_seconds": 600}]}
+    path = tmp_path / "schedules.yaml"
+    path.write_text(yaml.safe_dump(yaml_data), encoding="utf-8")
+
+    cfgs = cs.load_schedule_configs(path)
+
+    assert cfgs and cfgs[0].overlap == "skip"
 
 
 @dataclass

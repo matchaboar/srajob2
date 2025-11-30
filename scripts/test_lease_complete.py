@@ -4,9 +4,8 @@ import asyncio
 import json
 import os
 import sys
-import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import httpx
 
@@ -106,7 +105,7 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except SystemExit as e:
+    except SystemExit:
         # Propagate intended exits (e.g., SKIP)
         raise
     except Exception as e:
