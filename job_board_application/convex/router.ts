@@ -2535,10 +2535,11 @@ function extractJobs(items: any): {
   return rawList
     .map((row: any) => {
       const title = String(row.job_title || row.title || "Untitled").trim();
-      const company = String(row.company || row.employer || "Unknown").trim();
+      const rawCompany = String(row.company || row.employer || "Unknown").trim();
       const url = String(row.url || row.link || row.href || "").trim();
       const location = String(row.location || row.city || "Unknown").trim();
       const { city, state } = splitLocation(location);
+      const company = rawCompany || fallbackCompanyName(rawCompany, url);
       const locationLabel = formatLocationLabel(city, state, location);
       const remote = coerceBool(row.remote, locationLabel, title);
       const description =
