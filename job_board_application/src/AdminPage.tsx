@@ -1732,7 +1732,7 @@ function ScraperConfigSection() {
                       />
                       <button
                         onClick={() => { void handleSaveSiteName(siteId, nameEdits[siteId] ?? s.name ?? ""); }}
-                        disabled={savingSiteNameId === siteId || !(nameEdits[siteId] ?? s.name ?? "").trim() || (nameEdits[siteId] ?? s.name ?? "").trim() === (s.name ?? "").trim()}
+                        disabled={savingSiteNameId === siteId || !(nameEdits[siteId] ?? s.name ?? "").trim()}
                         className={clsx(
                           "text-[11px] px-2 py-1 rounded border transition-colors",
                           savingSiteNameId === siteId

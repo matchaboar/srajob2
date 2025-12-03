@@ -28,6 +28,7 @@ with workflow.unsafe.imports_passed_through():
     )
 
 from .scratchpad_utils import extract_http_exchange
+from ..config import runtime_config
 
 
 logger = logging.getLogger("temporal.worker.scrape")
@@ -151,6 +152,7 @@ async def _run_scrape_workflow(
                 if isinstance(res, dict):
                     res_dict: Dict[str, Any] = res
                     res_dict.setdefault("workflowName", workflow_name)
+                    res_dict.setdefault("siteId", site.get("_id"))
                     items_raw = res_dict.get("items")
                     items: Dict[str, Any] = items_raw if isinstance(items_raw, dict) else {}
                     job_id = res_dict.get("jobId") or items.get("jobId")
@@ -374,7 +376,9 @@ class SpidercloudJobDetailsWorkflow:
                     res = await workflow.execute_activity(
                         process_spidercloud_job_batch,
                         args=[batch],
-                        start_to_close_timeout=timedelta(minutes=20),
+                        start_to_close_timeout=timedelta(
+                            minutes=runtime_config.spidercloud_job_details_timeout_minutes
+                        ),
                     )
                     scrapes = res.get("scrapes") if isinstance(res, dict) else []
                     if not isinstance(scrapes, list):
@@ -445,6 +449,23 @@ class SpidercloudJobDetailsWorkflow:
                     await _log("batch.error", level="error", data={"error": str(exc)})
                     failure_reasons.append(str(exc))
                     status = "failed"
+                    # Release leased URLs so they can be retried
+                    try:
+                        leased_urls = []
+                        if isinstance(batch, dict):
+                            raw_urls = batch.get("urls")
+                            if isinstance(raw_urls, list):
+                                for entry in raw_urls:
+                                    if isinstance(entry, dict) and isinstance(entry.get("url"), str):
+                                        leased_urls.append(entry["url"])
+                        if leased_urls:
+                            await workflow.execute_activity(
+                                complete_scrape_urls,
+                                args=[{"urls": leased_urls, "status": "failed", "error": "batch_failed"}],
+                                schedule_to_close_timeout=timedelta(seconds=20),
+                            )
+                    except Exception:
+                        pass
                     continue
 
             return ScrapeSummary(site_count=site_count, scrape_ids=scrape_ids)

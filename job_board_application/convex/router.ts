@@ -1615,9 +1615,14 @@ export const updateSiteName = mutation({
     );
 
     let updatedJobs = 0;
-    for (const prev of prevVariants) {
-      if (prev === name) continue;
-      updatedJobs += await updateJobsCompany(ctx, prev, name);
+    try {
+      for (const prev of prevVariants) {
+        if (prev === name) continue;
+        updatedJobs += await updateJobsCompany(ctx, prev, name);
+      }
+    } catch (err) {
+      console.error("updateSiteName: failed retagging jobs", err);
+      // Continue returning success so the admin UI doesn't block; jobs can be retagged manually later.
     }
 
     return { id: args.id, updatedJobs };
@@ -2421,8 +2426,17 @@ export const ingestJobsFromScrape = mutation({
         compensationReason: v.optional(v.string()),
       })
     ),
+    siteId: v.optional(v.id("sites")),
   },
   handler: async (ctx, args) => {
+    let companyOverride: string | undefined;
+    if (args.siteId) {
+      const site = await ctx.db.get(args.siteId);
+      if (site && typeof (site as any).name === "string") {
+        companyOverride = (site as any).name;
+      }
+    }
+
     let inserted = 0;
     for (const job of args.jobs) {
       const dup = await ctx.db
@@ -2443,6 +2457,7 @@ export const ingestJobsFromScrape = mutation({
               : "compensation provided in scrape payload";
       await ctx.db.insert("jobs", {
         ...job,
+        company: companyOverride ?? job.company,
         city: job.city ?? city,
         state: job.state ?? state,
         location: formatLocationLabel(job.city ?? city, job.state ?? state, job.location),

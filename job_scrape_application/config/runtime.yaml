@@ -1,0 +1,5 @@
+# Minutes the Spidercloud job-detail activity is allowed to run before the lease is considered failed.
+spidercloud_job_details_timeout_minutes: 15
+
+# Number of Spidercloud job-detail URLs to lease and process per batch; larger batches increase throughput but also per-activity time.
+spidercloud_job_details_batch_size: 50

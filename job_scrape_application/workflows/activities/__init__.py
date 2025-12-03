@@ -15,7 +15,7 @@ from fetchfox_sdk import FetchFox
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
-from ...config import settings
+from ...config import settings, runtime_config
 from ...components.models import (
     FetchFoxPriority,
     MAX_FETCHFOX_VISITS,
@@ -92,7 +92,7 @@ __all__ = [
 ]
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
-SPIDERCLOUD_BATCH_SIZE = 50
+SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
 
 logger = logging.getLogger("temporal.worker.activities")
 
@@ -1558,6 +1558,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             "completedAt": data.get("completedAt", now),
             "items": data.get("items"),
         }
+        if data.get("siteId") is not None:
+            body["siteId"] = data.get("siteId")
         provider_value = scraped_with
         if provider_value is None:
             provider_value = data.get("provider")
@@ -1632,7 +1634,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             ),
         )
         if jobs:
-            await convex_mutation("router:ingestJobsFromScrape", {"jobs": jobs})
+            ingest_payload: Dict[str, Any] = {"jobs": jobs}
+            if payload.get("siteId") is not None:
+                ingest_payload["siteId"] = payload.get("siteId")
+            await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
     except Exception:
         # Non-fatal: ingestion failures shouldn't block scrape recording
         pass
