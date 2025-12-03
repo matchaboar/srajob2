@@ -541,7 +541,7 @@ function Stop-ExistingWorkers {
                     Write-Host "[preflight] Stopping stale worker pid=$pid" -ForegroundColor Yellow
                     Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
                 } catch {
-                    Write-Warning "Failed to stop stale worker pid=$pid: $($_.Exception.Message)"
+                    Write-Warning "Failed to stop stale worker pid=$($pid): $($_.Exception.Message)"
                 }
             }
         }

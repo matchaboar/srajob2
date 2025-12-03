@@ -10,6 +10,7 @@ from fetchfox_sdk import FetchFox
 from temporalio.exceptions import ApplicationError
 
 from ...components.models import FetchFoxPriority, FetchFoxScrapeRequest, GreenhouseBoardResponse, MAX_FETCHFOX_VISITS
+from ..helpers.scrape_utils import _shrink_payload
 from .base import BaseScraper
 
 if TYPE_CHECKING:
@@ -94,6 +95,11 @@ class FetchfoxScraper(BaseScraper):
             result_obj = {"raw": "Scrape failed or returned invalid data"}
 
         normalized_items = self.deps.normalize_fetchfox_items(result_obj)
+        raw_urls: List[str] = []
+        if isinstance(result_obj, dict):
+            urls_field = result_obj.get("urls")
+            if isinstance(urls_field, list):
+                raw_urls = [u for u in urls_field if isinstance(u, str)]
 
         completed_at = int(time.time() * 1000)
 
@@ -118,8 +124,9 @@ class FetchfoxScraper(BaseScraper):
             action="scrape",
             url=site.get("url"),
             kind="site_crawl",
-            summary=f"items={len(normalized_items)}",
+            summary=f"items={len(normalized_items)} urls={len(raw_urls)}",
             metadata={"siteId": site.get("_id"), "pattern": pattern, "seed": len(start_urls)},
+            response=_shrink_payload(result_obj, 20000),
         )
 
         return self.deps.trim_scrape_for_convex(scrape_payload)

@@ -622,6 +622,17 @@ export const listSeenJobUrlsForSite = query({
       }
     }
 
+    const ignored = await ctx.db
+      .query("ignored_jobs")
+      .withIndex("by_source", (q) => q.eq("sourceUrl", args.sourceUrl))
+      .collect();
+    for (const row of ignored as any[]) {
+      const url = (row as any).url;
+      if (typeof url === "string" && matcher(url)) {
+        seen.add(url);
+      }
+    }
+
     return { sourceUrl: args.sourceUrl, urls: Array.from(seen) };
   },
 });
@@ -731,6 +742,54 @@ export const leaseSite = mutation({
       lockExpiresAt: s.lockExpiresAt,
       completed: s.completed,
     };
+  },
+});
+
+export const insertIgnoredJob = mutation({
+  args: {
+    url: v.string(),
+    sourceUrl: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    details: v.optional(v.any()),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("ignored_jobs", {
+      url: args.url,
+      sourceUrl: args.sourceUrl,
+      reason: args.reason,
+      provider: args.provider,
+      workflowName: args.workflowName,
+      details: args.details,
+      title: args.title,
+      description: args.description,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const listIgnoredJobs = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
+    const rows = await ctx.db.query("ignored_jobs").order("desc").take(limit);
+    return rows.map((row: any) => ({
+      _id: row._id,
+      url: row.url,
+      sourceUrl: row.sourceUrl,
+      reason: row.reason,
+      provider: row.provider,
+      workflowName: row.workflowName,
+      details: row.details,
+      title: row.title,
+      description: row.description,
+      createdAt: row.createdAt,
+    }));
   },
 });
 

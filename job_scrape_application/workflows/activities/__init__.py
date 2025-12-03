@@ -727,7 +727,7 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
                 url_val = value.get(key)
                 if isinstance(url_val, str):
                     _collect_urls(url_val, acc)
-            for key in ("urls", "links", "visited_urls", "visitedUrls", "job_urls", "jobUrls", "results", "items", "data"):
+            for key in ("urls", "links", "visited_urls", "visitedUrls", "job_urls", "jobUrls", "results", "items", "data", "hits"):
                 nested = value.get(key)
                 if nested is not None:
                     _collect_urls(nested, acc)
@@ -792,8 +792,14 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
         action="crawl",
         url=source_url,
         kind="site_crawl",
-        summary=f"urls={len(unique_urls)} queued={len(enqueued)}",
-        metadata={"siteId": site.get("_id"), "pattern": pattern, "queueProvider": "spidercloud"},
+        summary=f"urls={len(candidates)} queued={len(enqueued)}",
+        metadata={
+            "siteId": site.get("_id"),
+            "pattern": pattern,
+            "queueProvider": "spidercloud",
+            "rawUrlCount": len(crawled_urls),
+        },
+        response=_shrink_payload(result_obj, 20000),
     )
 
     return {
@@ -808,7 +814,8 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
         "items": {
             "provider": "spidercloud",
             "crawlProvider": "fetchfox",
-            "job_urls": unique_urls,
+            "job_urls": candidates,
+            "rawUrls": unique_urls,
             "queued": bool(enqueued),
             "queuedCount": len(enqueued),
             "existing": list(skip_set),
@@ -816,7 +823,12 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
             "seedUrls": start_urls,
         },
         "skippedUrls": skipped_urls,
-        "response": {"queued": len(enqueued), "urls": unique_urls[:25], "totalUrls": len(unique_urls)},
+        "response": {
+            "queued": len(enqueued),
+            "urls": unique_urls[:25],
+            "totalUrls": len(unique_urls),
+            "rawResponse": _shrink_payload(result_obj, 20000),
+        },
     }
 
 
@@ -1461,6 +1473,52 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             cost_milli_cents = None
     response_preview = _shrink_payload(payload.get("response"), 4000)
     async_response_preview = _shrink_payload(payload.get("asyncResponse"), 4000)
+    items_provider = None
+    if isinstance(payload.get("items"), dict):
+        items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
+    provider_for_log = scraped_with or payload.get("provider") or items_provider
+
+    # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
+    try:
+        if provider_for_log and str(provider_for_log).startswith("fetchfox"):
+            items_block = scrape.get("items") if isinstance(scrape.get("items"), dict) else {}
+            raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
+            normalized = items_block.get("normalized") if isinstance(items_block, dict) else None
+
+            raw_urls: List[str] = []
+            if isinstance(raw_block, dict):
+                urls_field = raw_block.get("urls")
+                if isinstance(urls_field, list):
+                    raw_urls = [u for u in urls_field if isinstance(u, str)]
+                items_field = raw_block.get("items")
+                if not raw_urls and isinstance(items_field, list):
+                    for entry in items_field:
+                        if isinstance(entry, dict):
+                            url_val = entry.get("url") or entry.get("link")
+                            if isinstance(url_val, str):
+                                raw_urls.append(url_val)
+                data_field = raw_block.get("data")
+                if not raw_urls and isinstance(data_field, list):
+                    for entry in data_field:
+                        if isinstance(entry, dict):
+                            url_val = entry.get("url") or entry.get("link")
+                            if isinstance(url_val, str):
+                                raw_urls.append(url_val)
+
+            await _log_scratchpad(
+                "scrape.fetchfox.raw",
+                message="Captured FetchFox raw payload",
+                data={
+                    "pattern": payload.get("pattern"),
+                    "rawUrlCount": len(raw_urls) if raw_urls else None,
+                    "rawUrlSample": raw_urls[:20] if raw_urls else None,
+                    "normalizedCount": len(normalized) if isinstance(normalized, list) else None,
+                    "rawPreview": _shrink_payload(raw_block, 20000),
+                },
+            )
+    except Exception:
+        # Best-effort; do not block on debug logging
+        pass
 
     def _resolve_source_url(data: Dict[str, Any]) -> str:
         """Best-effort source URL extraction that tolerates missing fields."""
@@ -1569,6 +1627,41 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             await convex_mutation("router:ingestJobsFromScrape", {"jobs": jobs})
     except Exception:
         # Non-fatal: ingestion failures shouldn't block scrape recording
+        pass
+
+    # Record ignored entries (e.g., filtered by keyword) so future crawls can skip quickly.
+    try:
+        ignored_entries = []
+        if isinstance(payload.get("items"), dict):
+            ignored_entries = payload["items"].get("ignored") or []
+        if isinstance(ignored_entries, list):
+            for entry in ignored_entries:
+                if not isinstance(entry, dict):
+                    continue
+                url_val = entry.get("url")
+                if not isinstance(url_val, str) or not url_val.strip():
+                    continue
+                title_val = entry.get("title")
+                desc_val = entry.get("description")
+                if not isinstance(title_val, str) or not title_val.strip():
+                    title_val = "Unknown"
+                if isinstance(desc_val, str) and len(desc_val) > 4000:
+                    desc_val = desc_val[:4000]
+                await convex_mutation(
+                    "router:insertIgnoredJob",
+                    {
+                        "url": url_val.strip(),
+                        "sourceUrl": payload.get("sourceUrl") or payload.get("pattern"),
+                        "reason": entry.get("reason") or "filtered",
+                        "provider": scraped_with or payload.get("provider"),
+                        "workflowName": payload.get("workflowName"),
+                        "details": _shrink_payload(entry, 4000),
+                        "title": title_val,
+                        "description": desc_val,
+                    },
+                )
+    except Exception:
+        # Best-effort; ignore failures
         pass
 
     # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
@@ -1800,6 +1893,18 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     urls: list[str] = []
     seen: set[str] = set()
+    # Direct URL arrays from crawl payloads (e.g., job_urls/rawUrls) should be enqueued even if we haven't parsed titles yet.
+    if isinstance(items, dict):
+        for key in ("job_urls", "rawUrls", "urls"):
+            url_list = items.get(key)
+            if isinstance(url_list, list):
+                for url_val in url_list:
+                    if isinstance(url_val, str) and url_val.strip():
+                        url = url_val.strip()
+                        if url not in seen:
+                            seen.add(url)
+                            urls.append(url)
+
     for text in list(candidates):
         if isinstance(text, str):
             try:

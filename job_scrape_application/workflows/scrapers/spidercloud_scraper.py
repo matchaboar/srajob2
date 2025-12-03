@@ -226,12 +226,19 @@ class SpiderCloudScraper(BaseScraper):
                 url,
                 title,
             )
+            self._last_ignored_job = {
+                "url": url,
+                "reason": "missing_required_keyword",
+                "title": title,
+                "description": markdown,
+            }
             return None
         company = derive_company_from_url(url) or "Unknown"
         remote = coerce_remote(None, "", f"{title}\n{markdown}")
         level = coerce_level(None, title)
         description = markdown or ""
 
+        self._last_ignored_job = None
         return {
             "job_title": title,
             "title": title,
@@ -374,6 +381,7 @@ class SpiderCloudScraper(BaseScraper):
             cost_milli_cents = int(float(credits_used) * 10)
         cost_usd = (cost_milli_cents / 100000) if isinstance(cost_milli_cents, (int, float)) else None
         normalized = self._normalize_job(url, markdown_text, raw_events, started_at)
+        ignored_entry = getattr(self, "_last_ignored_job", None)
 
         logger.info(
             "SpiderCloud stream finished url=%s events=%s markdown_fragments=%s credits=%s cost_mc=%s cost_usd=%s",
@@ -396,6 +404,7 @@ class SpiderCloudScraper(BaseScraper):
             "creditsUsed": credits_used,
             "costMilliCents": cost_milli_cents,
             "startedAt": started_at,
+            "ignored": ignored_entry,
         }
         logger.info(
             "SpiderCloud normalized url=%s title=%s credits=%s description_len=%s",
@@ -437,6 +446,7 @@ class SpiderCloudScraper(BaseScraper):
         started_at = int(time.time() * 1000)
         normalized_items: List[Dict[str, Any]] = []
         raw_items: List[Dict[str, Any]] = []
+        ignored_items: List[Dict[str, Any]] = []
         total_cost_milli_cents = 0.0
         saw_cost_field = False
 
@@ -445,6 +455,8 @@ class SpiderCloudScraper(BaseScraper):
                 result = await self._scrape_single_url(client, url, params)
                 if result.get("normalized"):
                     normalized_items.append(result["normalized"])
+                if result.get("ignored"):
+                    ignored_items.append(result["ignored"])
                 if result.get("raw"):
                     raw_items.append(result["raw"])
                 cost_mc = result.get("costMilliCents")
@@ -489,6 +501,8 @@ class SpiderCloudScraper(BaseScraper):
             "seedUrls": urls,
             "request": request_snapshot,
         }
+        if ignored_items:
+            items_block["ignored"] = ignored_items
         if cost_milli_cents is not None:
             items_block["costMilliCents"] = cost_milli_cents
 

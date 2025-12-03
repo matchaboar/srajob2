@@ -50,8 +50,10 @@ def extract_http_exchange(scrape_result: Any) -> Optional[Dict[str, Any]]:
     status_url = scrape_result.get("statusUrl") or item_block.get("statusUrl")
     webhook_id = scrape_result.get("webhookId") or item_block.get("webhookId")
 
-    request_preview = _shrink_for_log(request)
-    response_preview = _shrink_for_log(response)
+    max_chars = 12000 if provider == "fetchfox" else 400
+
+    request_preview = _shrink_for_log(request, max_chars=max_chars)
+    response_preview = _shrink_for_log(response, max_chars=max_chars)
 
     if request_preview is None and response_preview is None:
         return None

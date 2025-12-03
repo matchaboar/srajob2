@@ -248,6 +248,20 @@ const applicationTables = {
     sentInWindow: v.number(),
   }).index("by_domain", ["domain"]),
 
+  ignored_jobs: defineTable({
+    url: v.string(),
+    sourceUrl: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    details: v.optional(v.any()),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_url", ["url"])
+    .index("by_source", ["sourceUrl", "createdAt"]),
+
   schedule_config: defineTable({
     key: v.string(),
     mode: v.union(v.literal("daily"), v.literal("interval")),

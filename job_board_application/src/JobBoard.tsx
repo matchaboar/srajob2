@@ -170,9 +170,9 @@ const DeleteXIcon = ({ className }: { className?: string }) => (
 
 export function JobBoard() {
   // Use URL hash to persist active tab across refreshes
-  const [activeTab, setActiveTab] = useState<"jobs" | "applied" | "rejected" | "live">(() => {
+  const [activeTab, setActiveTab] = useState<"jobs" | "applied" | "rejected" | "live" | "ignored">(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "applied" || hash === "rejected" || hash === "live") return hash as any;
+    if (hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
     return "jobs";
   });
 
@@ -253,7 +253,7 @@ export function JobBoard() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "applied" || hash === "rejected" || hash === "live") {
+      if (hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") {
         setActiveTab(hash);
       } else if (hash === "" || hash === "jobs") {
         setActiveTab("jobs");
@@ -298,6 +298,20 @@ export function JobBoard() {
     limit: 8,
   }) as CompanySuggestion[] | undefined;
   const savedFilters = useQuery(api.filters.getSavedFilters);
+  const ignoredJobs = useQuery(api.router.listIgnoredJobs, { limit: 200 }) as
+    | Array<{
+        _id: string;
+        url: string;
+        sourceUrl?: string;
+        reason?: string;
+        provider?: string;
+        workflowName?: string;
+        createdAt: number;
+        details?: any;
+        title?: string;
+        description?: string;
+      }>
+    | undefined;
   const recentJobs = useQuery(api.jobs.getRecentJobs);
   const appliedJobs = useQuery(api.jobs.getAppliedJobs);
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs);
@@ -988,7 +1002,7 @@ export function JobBoard() {
       {/* Top Bar / Tabs */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-900/50">
         <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-          {(["jobs", "applied", "rejected", "live"] as const).map((tab) => (
+          {(["jobs", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1709,6 +1723,55 @@ export function JobBoard() {
               Loading your filters...
             </div>
           )
+        )}
+        {activeTab === "ignored" && (
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Ignored URLs</h2>
+              <span className="text-xs text-slate-400">
+                {(ignoredJobs?.length ?? 0).toLocaleString()} entries
+              </span>
+            </div>
+                <div className="space-y-3">
+                  {(ignoredJobs || []).map((row) => (
+                    <div
+                      key={row._id}
+                      className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-1"
+                    >
+                      <div className="text-sm text-blue-200 break-all flex flex-col gap-1">
+                        <span className="text-xs uppercase tracking-wide text-slate-500">Ignored</span>
+                        <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
+                          {row.title || "Unknown"}
+                        </a>
+                        <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline text-slate-400 text-[12px]">
+                          {row.url}
+                        </a>
+                        {row.description && (
+                          <p className="text-[12px] text-slate-300 line-clamp-3 whitespace-pre-wrap break-words">
+                            {row.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400 flex flex-wrap gap-2">
+                        {row.reason && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Reason: {row.reason}</span>}
+                        {row.provider && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Provider: {row.provider}</span>}
+                        {row.workflowName && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Workflow: {row.workflowName}</span>}
+                        <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">
+                      Seen: {new Date(row.createdAt).toLocaleString()}
+                    </span>
+                    {row.sourceUrl && (
+                      <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px] break-all">
+                        Source: {row.sourceUrl}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {(ignoredJobs?.length ?? 0) === 0 && (
+                <div className="text-sm text-slate-500">No ignored URLs yet.</div>
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === "applied" && (

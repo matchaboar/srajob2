@@ -15,7 +15,7 @@ FILTERS_YAML_PATH = Path(__file__).resolve().parent / "scraper_filters.yaml"
 # Simple US ZIP code heuristic to catch addresses in the listing.
 ZIP_CODE_RE = re.compile(r"\b\d{5}(?:-\d{4})?\b")
 
-DEFAULT_REQUIRED_KEYWORDS: Tuple[str, ...] = ("engineer",)
+DEFAULT_REQUIRED_KEYWORDS: Tuple[str, ...] = ("engineer", "developer", "software", "development")
 DEFAULT_ALLOW_UNKNOWN_TITLE = True
 DEFAULT_REQUIRE_US = True
 DEFAULT_ALLOW_UNKNOWN_LOCATION = True

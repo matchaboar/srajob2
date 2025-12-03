@@ -10,3 +10,5 @@ job_board_application/.env.local
 !job_board_application/.env.production
 job_board_application/.env.production
 .env.production
+*.log
+tmp
