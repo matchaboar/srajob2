@@ -1602,7 +1602,24 @@ export const updateSiteName = mutation({
     }
     await ctx.db.patch(args.id, { name });
     await upsertCompanyProfile(ctx, name, (site as any).url, (site as any).name ?? undefined);
-    const updatedJobs = await updateJobsCompany(ctx, (site as any).name ?? "", name);
+
+    // Retag jobs even if the visible name was already the desired value by
+    // trying common legacy variants derived from the site URL.
+    const prevName = (site as any).name ?? "";
+    const urlDerived = fallbackCompanyName(undefined, (site as any).url);
+    const prevVariants = Array.from(
+      new Set(
+        [prevName, urlDerived, fallbackCompanyName(prevName, (site as any).url)]
+          .filter((val): val is string => typeof val === "string" && val.trim().length > 0)
+      )
+    );
+
+    let updatedJobs = 0;
+    for (const prev of prevVariants) {
+      if (prev === name) continue;
+      updatedJobs += await updateJobsCompany(ctx, prev, name);
+    }
+
     return { id: args.id, updatedJobs };
   },
 });
