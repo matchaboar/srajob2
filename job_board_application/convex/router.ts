@@ -12,6 +12,114 @@ const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
+const toSlug = (value: string) =>
+  (value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "") || "unknown";
+const hostFromUrl = (url: string) => {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+};
+const baseDomainFromHost = (host: string): string => {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 1) return host;
+  const last = parts[parts.length - 1];
+  const secondLast = parts[parts.length - 2];
+  const shouldUseThree = secondLast.length === 2 || last.length === 2;
+  if (shouldUseThree && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+};
+const fallbackCompanyName = (name: string | undefined | null, url: string | undefined | null) => {
+  const trimmed = (name ?? "").trim();
+  if (trimmed) return trimmed;
+  const host = hostFromUrl(url ?? "");
+  if (host) {
+    const base = baseDomainFromHost(host);
+    const parts = base.split(".");
+    if (parts.length > 1) return parts[0];
+    return base;
+  }
+  return "Site";
+};
+const upsertCompanyProfile = async (
+  ctx: any,
+  name: string,
+  url?: string | null,
+  previousName?: string | null
+) => {
+  const normalizedName = (name || "").trim() || fallbackCompanyName(name, url);
+  const slug = toSlug(normalizedName);
+  const now = Date.now();
+  const domain = baseDomainFromHost(hostFromUrl(url ?? ""));
+
+  const existing = await ctx.db
+    .query("company_profiles")
+    .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+    .first();
+  const aliases = new Set<string>((existing?.aliases ?? []).filter(Boolean));
+  const domains = new Set<string>((existing?.domains ?? []).filter(Boolean));
+  if (previousName && previousName.trim().toLowerCase() !== normalizedName.toLowerCase()) {
+    aliases.add(previousName.trim());
+  }
+  if (domain) domains.add(domain);
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      name: normalizedName,
+      aliases: aliases.size ? Array.from(aliases) : undefined,
+      domains: domains.size ? Array.from(domains) : undefined,
+      updatedAt: now,
+    });
+    return existing._id;
+  }
+
+  const insertPayload: any = {
+    slug,
+    name: normalizedName,
+    updatedAt: now,
+    createdAt: now,
+  };
+  if (aliases.size) insertPayload.aliases = Array.from(aliases);
+  if (domains.size) insertPayload.domains = Array.from(domains);
+
+  return await ctx.db.insert("company_profiles", insertPayload);
+};
+const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) => {
+  const prev = (oldName || "").trim();
+  const next = (nextName || "").trim();
+  if (!prev || !next || prev === next) return 0;
+
+  let cursor: string | null = null;
+  let updated = 0;
+
+  while (true) {
+    const page = await ctx.db
+      .query("jobs")
+      .withIndex("by_company_posted", (q: any) => q.eq("company", prev))
+      .paginate({ cursor, numItems: 200 }) as {
+        page: any[];
+        isDone: boolean;
+        continueCursor: string | null;
+      };
+
+    for (const job of page.page as any[]) {
+      await ctx.db.patch(job._id, { company: next });
+      updated += 1;
+    }
+
+    if (page.isDone) break;
+    cursor = page.continueCursor;
+  }
+
+  return updated;
+};
 const scheduleDay = v.union(
   v.literal("mon"),
   v.literal("tue"),
@@ -526,7 +634,12 @@ export const leaseSite = mutation({
     lockSeconds: v.optional(v.number()),
     siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
     scrapeProvider: v.optional(
-      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+      v.union(
+        v.literal("fetchfox"),
+        v.literal("firecrawl"),
+        v.literal("spidercloud"),
+        v.literal("fetchfox_spidercloud")
+      )
     ),
   },
   handler: async (ctx, args) => {
@@ -1318,7 +1431,12 @@ export const upsertSite = mutation({
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
     scrapeProvider: v.optional(
-      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+      v.union(
+        v.literal("fetchfox"),
+        v.literal("firecrawl"),
+        v.literal("spidercloud"),
+        v.literal("fetchfox_spidercloud")
+      )
     ),
     pattern: v.optional(v.string()),
     scheduleId: v.optional(v.id("scrape_schedules")),
@@ -1329,9 +1447,10 @@ export const upsertSite = mutation({
     const siteType = args.type ?? "general";
     const scrapeProvider =
       args.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+    const resolvedName = fallbackCompanyName(args.name, args.url);
 
-    return await ctx.db.insert("sites", {
-      name: args.name,
+    const id = await ctx.db.insert("sites", {
+      name: args.name ?? resolvedName,
       url: args.url,
       type: siteType,
       scrapeProvider,
@@ -1341,6 +1460,9 @@ export const upsertSite = mutation({
       // New sites should be leased immediately; keep lastRunAt at 0
       lastRunAt: 0,
     });
+
+    await upsertCompanyProfile(ctx, resolvedName, args.url, args.name);
+    return id;
   },
 });
 
@@ -1355,6 +1477,27 @@ export const updateSiteEnabled = mutation({
   },
 });
 
+export const updateSiteName = mutation({
+  args: {
+    id: v.id("sites"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const name = (args.name || "").trim();
+    if (!name) {
+      throw new Error("Name is required");
+    }
+    const site = await ctx.db.get(args.id);
+    if (!site) {
+      throw new Error("Site not found");
+    }
+    await ctx.db.patch(args.id, { name });
+    await upsertCompanyProfile(ctx, name, (site as any).url, (site as any).name ?? undefined);
+    const updatedJobs = await updateJobsCompany(ctx, (site as any).name ?? "", name);
+    return { id: args.id, updatedJobs };
+  },
+});
+
 export const bulkUpsertSites = mutation({
   args: {
     sites: v.array(
@@ -1363,7 +1506,12 @@ export const bulkUpsertSites = mutation({
         url: v.string(),
         type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
         scrapeProvider: v.optional(
-          v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+          v.union(
+            v.literal("fetchfox"),
+            v.literal("firecrawl"),
+            v.literal("spidercloud"),
+            v.literal("fetchfox_spidercloud")
+          )
         ),
         pattern: v.optional(v.string()),
         scheduleId: v.optional(v.id("scrape_schedules")),
@@ -1377,13 +1525,16 @@ export const bulkUpsertSites = mutation({
       const siteType = site.type ?? "general";
       const scrapeProvider =
         site.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+      const resolvedName = fallbackCompanyName(site.name, site.url);
       const id = await ctx.db.insert("sites", {
         ...site,
+        name: site.name ?? resolvedName,
         type: siteType,
         scrapeProvider,
         // Same behavior as single add: make new sites immediately leaseable
         lastRunAt: 0,
       });
+      await upsertCompanyProfile(ctx, resolvedName, site.url, site.name ?? undefined);
       ids.push(id);
     }
     return ids;

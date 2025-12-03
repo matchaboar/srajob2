@@ -23,6 +23,14 @@ schedules:
     catchup_window_hours: 12
     overlap: skip
 
+  # FetchFox crawl of listings, queueing SpiderCloud detail scrapes
+  - id: fetchfox-spidercloud
+    workflow: FetchfoxSpidercloud
+    interval_seconds: 45
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
   # Continuously drain job-detail queue for SpiderCloud (batch scraping)
   - id: spidercloud-job-details
     workflow: SpidercloudJobDetails

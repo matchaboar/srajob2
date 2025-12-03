@@ -11,11 +11,18 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from firecrawl import Firecrawl
 from firecrawl.v2.types import PaginationConfig
+from fetchfox_sdk import FetchFox
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from ...config import settings
-from ...components.models import GreenhouseBoardResponse, extract_greenhouse_job_urls, load_greenhouse_board
+from ...components.models import (
+    FetchFoxPriority,
+    MAX_FETCHFOX_VISITS,
+    GreenhouseBoardResponse,
+    extract_greenhouse_job_urls,
+    load_greenhouse_board,
+)
 from ...constants import location_matches_usa, title_matches_required_keywords
 from ..helpers.firecrawl import (
     build_firecrawl_webhook as _build_firecrawl_webhook,
@@ -629,6 +636,188 @@ async def start_firecrawl_webhook_scrape(site: Site) -> Dict[str, Any]:
         },
     )
     return payload
+
+
+@activity.defn
+async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
+    """Use FetchFox crawl to queue job detail URLs for SpiderCloud extraction."""
+
+    from ...services.convex_client import convex_mutation, convex_query
+
+    if not settings.fetchfox_api_key:
+        raise ApplicationError("FETCHFOX_API_KEY env var is required for FetchFox", non_retryable=True)
+
+    source_url = site.get("url") or ""
+    if not source_url:
+        raise ApplicationError("Site URL is required for FetchFox crawl", non_retryable=True)
+    pattern = site.get("pattern")
+    start_urls = [source_url] if source_url else []
+
+    skip_urls: list[str] = []
+    try:
+        if source_url:
+            skip_urls = await fetch_seen_urls_for_site(source_url, pattern)
+    except Exception:
+        skip_urls = []
+
+    queued_urls: list[str] = []
+    try:
+        queued_rows = await convex_query(
+            "router:listQueuedScrapeUrls",
+            _strip_none_values({"siteId": site.get("_id"), "provider": "spidercloud", "limit": 500}),
+        )
+        if isinstance(queued_rows, list):
+            for row in queued_rows:
+                if isinstance(row, dict):
+                    status_val = str(row.get("status") or "").lower()
+                    if status_val and status_val not in {"pending", "processing"}:
+                        continue
+                    url_val = row.get("url")
+                    if isinstance(url_val, str) and url_val.strip():
+                        queued_urls.append(url_val.strip())
+    except Exception:
+        queued_urls = []
+
+    skip_set = {u for u in skip_urls if isinstance(u, str)}
+    skip_set.update(u for u in queued_urls if isinstance(u, str))
+
+    priority = FetchFoxPriority(skip=list(skip_set))
+    crawl_request = {
+        "pattern": pattern,
+        "start_urls": start_urls,
+        "max_depth": 5,
+        "max_visits": MAX_FETCHFOX_VISITS,
+        "priority": priority.model_dump(exclude_none=True),
+    }
+    request_snapshot = _build_request_snapshot(
+        crawl_request,
+        provider="fetchfox",
+        method="POST",
+        url="https://api.fetchfox.ai/crawl",
+    )
+
+    _log_provider_dispatch(
+        "fetchfox",
+        source_url,
+        pattern=pattern,
+        siteId=site.get("_id"),
+        kind="crawl",
+    )
+
+    started_at = int(time.time() * 1000)
+    try:
+        fox = FetchFox(api_key=settings.fetchfox_api_key)
+        result = await asyncio.to_thread(fox.crawl, crawl_request)
+        result_obj: Dict[str, Any] | Any = result if isinstance(result, dict) else json.loads(result)
+    except Exception as exc:  # noqa: BLE001
+        raise ApplicationError(f"FetchFox crawl failed: {exc}") from exc
+    completed_at = int(time.time() * 1000)
+
+    def _collect_urls(value: Any, acc: list[str]) -> None:
+        if isinstance(value, str):
+            if value.startswith("http"):
+                acc.append(value.strip())
+            return
+        if isinstance(value, list):
+            for item in value:
+                _collect_urls(item, acc)
+            return
+        if isinstance(value, dict):
+            for key in ("url", "href", "link", "target", "job_url", "absolute_url"):
+                url_val = value.get(key)
+                if isinstance(url_val, str):
+                    _collect_urls(url_val, acc)
+            for key in ("urls", "links", "visited_urls", "visitedUrls", "job_urls", "jobUrls", "results", "items", "data"):
+                nested = value.get(key)
+                if nested is not None:
+                    _collect_urls(nested, acc)
+
+    crawled_urls: list[str] = []
+    _collect_urls(result_obj, crawled_urls)
+    for row in normalize_fetchfox_items(result_obj):
+        if isinstance(row, dict):
+            url_val = row.get("url")
+            if isinstance(url_val, str) and url_val.strip():
+                crawled_urls.append(url_val.strip())
+
+    # Deduplicate while preserving order
+    seen_urls: set[str] = set()
+    unique_urls: list[str] = []
+    for url_val in crawled_urls:
+        if not isinstance(url_val, str):
+            continue
+        cleaned = url_val.strip()
+        if not cleaned or not cleaned.startswith("http"):
+            continue
+        if cleaned in seen_urls:
+            continue
+        seen_urls.add(cleaned)
+        unique_urls.append(cleaned)
+
+    existing_jobs: list[str] = []
+    try:
+        existing_jobs = await filter_existing_job_urls(unique_urls)
+    except Exception:
+        existing_jobs = []
+
+    skip_set.update(u for u in existing_jobs if isinstance(u, str))
+    candidates = [u for u in unique_urls if u not in skip_set]
+
+    enqueued: list[str] = []
+    if candidates:
+        try:
+            res = await convex_mutation(
+                "router:enqueueScrapeUrls",
+                _strip_none_values(
+                  {
+                    "urls": candidates,
+                    "sourceUrl": source_url,
+                    "provider": "spidercloud",
+                    "siteId": site.get("_id"),
+                    "pattern": pattern,
+                  }
+                ),
+            )
+            if isinstance(res, dict):
+                queued = res.get("queued")
+                if isinstance(queued, list):
+                    enqueued = [u for u in queued if isinstance(u, str)]
+        except Exception:
+            enqueued = []
+
+    skipped_urls = [u for u in unique_urls if u in skip_set]
+
+    _log_sync_response(
+        "fetchfox",
+        action="crawl",
+        url=source_url,
+        kind="site_crawl",
+        summary=f"urls={len(unique_urls)} queued={len(enqueued)}",
+        metadata={"siteId": site.get("_id"), "pattern": pattern, "queueProvider": "spidercloud"},
+    )
+
+    return {
+        "provider": "fetchfox-crawl",
+        "workflowName": "FetchfoxSpidercloud",
+        "sourceUrl": source_url,
+        "pattern": pattern,
+        "startedAt": started_at,
+        "completedAt": completed_at,
+        "request": request_snapshot,
+        "providerRequest": crawl_request,
+        "items": {
+            "provider": "spidercloud",
+            "crawlProvider": "fetchfox",
+            "job_urls": unique_urls,
+            "queued": bool(enqueued),
+            "queuedCount": len(enqueued),
+            "existing": list(skip_set),
+            "request": request_snapshot,
+            "seedUrls": start_urls,
+        },
+        "skippedUrls": skipped_urls,
+        "response": {"queued": len(enqueued), "urls": unique_urls[:25], "totalUrls": len(unique_urls)},
+    }
 
 
 @activity.defn

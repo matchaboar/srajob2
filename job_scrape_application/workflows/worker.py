@@ -12,6 +12,7 @@ from ..services.convex_client import convex_query
 from . import activities
 from .scrape_workflow import (
     FirecrawlScrapeWorkflow,
+    FetchfoxSpidercloudWorkflow,
     ScrapeWorkflow,
     SpidercloudJobDetailsWorkflow,
     SpidercloudScrapeWorkflow,
@@ -27,6 +28,7 @@ from .webhook_workflow import (
 WORKFLOW_CLASSES = [
     ScrapeWorkflow,
     FirecrawlScrapeWorkflow,
+    FetchfoxSpidercloudWorkflow,
     SpidercloudScrapeWorkflow,
     SpidercloudJobDetailsWorkflow,
     HeuristicJobDetailsWorkflow,
@@ -42,6 +44,7 @@ ACTIVITY_FUNCTIONS = [
     activities.scrape_site,
     activities.scrape_site_firecrawl,
     activities.scrape_site_fetchfox,
+    activities.crawl_site_fetchfox,
     activities.fetch_greenhouse_listing,
     activities.filter_existing_job_urls,
     activities.scrape_greenhouse_jobs,

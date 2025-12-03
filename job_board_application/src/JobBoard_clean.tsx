@@ -14,6 +14,7 @@ interface Filters {
   level: Level | null;
   minCompensation: number | null;
   maxCompensation: number | null;
+  companies: string[];
 }
 
 export function JobBoard() {
@@ -25,6 +26,7 @@ export function JobBoard() {
     level: null,
     minCompensation: null,
     maxCompensation: null,
+    companies: [],
   });
 
   // Track applied/rejected jobs locally for immediate UI updates
@@ -54,6 +56,7 @@ export function JobBoard() {
       level: filters.level ?? undefined,
       minCompensation: filters.minCompensation ?? undefined,
       maxCompensation: filters.maxCompensation ?? undefined,
+      companies: filters.companies.length > 0 ? filters.companies : undefined,
     },
     { initialNumItems: 20 }
   );

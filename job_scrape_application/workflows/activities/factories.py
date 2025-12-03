@@ -117,6 +117,7 @@ async def select_scraper_for_site(
 
     factories: Dict[str, Callable[[], BaseScraper]] = {
         "fetchfox": make_fetchfox,
+        "fetchfox_spidercloud": make_fetchfox,
         "firecrawl": make_firecrawl,
         "spidercloud": make_spidercloud,
     }

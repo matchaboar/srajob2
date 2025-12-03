@@ -29,11 +29,26 @@ const applicationTables = {
   })
     .index("by_posted_at", ["postedAt"])
     .index("by_state_posted", ["state", "postedAt"])
+    .index("by_company_posted", ["company", "postedAt"])
     .index("by_url", ["url"])
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["remote", "level", "state"],
+    })
+    .searchIndex("search_company", {
+      searchField: "company",
     }),
+
+  company_profiles: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    aliases: v.optional(v.array(v.string())),
+    domains: v.optional(v.array(v.string())),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_name", ["name"]),
 
   saved_filters: defineTable({
     userId: v.id("users"),
@@ -46,6 +61,7 @@ const applicationTables = {
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
+    companies: v.optional(v.array(v.string())),
     isSelected: v.boolean(),
     createdAt: v.number(),
   })
@@ -68,7 +84,12 @@ const applicationTables = {
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
     scrapeProvider: v.optional(
-      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+      v.union(
+        v.literal("fetchfox"),
+        v.literal("firecrawl"),
+        v.literal("spidercloud"),
+        v.literal("fetchfox_spidercloud")
+      )
     ),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),

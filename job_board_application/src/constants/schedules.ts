@@ -23,5 +23,13 @@ export const PROCESS_WEBHOOK_WORKFLOW: WorkflowScheduleMeta = {
   taskQueue: "scraper-task-queue",
 };
 
+export const FETCHFOX_SPIDERCLOUD_WORKFLOW: WorkflowScheduleMeta = {
+  name: "FetchfoxSpidercloud",
+  scheduleId: "fetchfox-spidercloud",
+  intervalSeconds: 45,
+  description: "Crawls listings with FetchFox and queues SpiderCloud detail scrapes",
+  taskQueue: "scraper-task-queue",
+};
+
 export const formatInterval = (seconds: number) =>
   seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;

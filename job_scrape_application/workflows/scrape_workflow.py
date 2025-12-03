@@ -15,6 +15,7 @@ with workflow.unsafe.imports_passed_through():
         SPIDERCLOUD_BATCH_SIZE,
         complete_scrape_urls,
         complete_site,
+        crawl_site_fetchfox,
         fail_site,
         lease_scrape_url_batch,
         lease_site,
@@ -294,6 +295,18 @@ class FirecrawlScrapeWorkflow:
             scrape_site_firecrawl,
             "ScraperFirecrawl",
             scrape_provider="firecrawl",
+        )
+
+
+@workflow.defn(name="FetchfoxSpidercloud")
+class FetchfoxSpidercloudWorkflow:
+    @workflow.run
+    async def run(self) -> ScrapeSummary:  # type: ignore[override]
+        return await _run_scrape_workflow(
+            crawl_site_fetchfox,
+            "FetchfoxSpidercloud",
+            scrape_provider="fetchfox_spidercloud",
+            activity_timeout=timedelta(minutes=10),
         )
 
 

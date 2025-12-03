@@ -288,12 +288,17 @@ export const listJobs = query({
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
+    companies: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Not authenticated");
     }
+
+    const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
+    const normalizedCompanyFilters = new Set(companyFilters.map((c) => c.toLowerCase()));
+    const hasCompanyFilter = normalizedCompanyFilters.size > 0;
 
     // Get user's applied/rejected jobs first
     const userApplications = await ctx.db
@@ -357,6 +362,12 @@ export const listJobs = query({
       if (args.includeRemote === false && job.remote) {
         return false;
       }
+      if (hasCompanyFilter) {
+        const companyName = typeof job.company === "string" ? job.company.trim().toLowerCase() : "";
+        if (!normalizedCompanyFilters.has(companyName)) {
+          return false;
+        }
+      }
 
       // Apply compensation filters
       const compensationUnknown = job.compensationUnknown === true;
@@ -396,6 +407,51 @@ export const listJobs = query({
       isDone: jobs.isDone,
       continueCursor: jobs.continueCursor,
     };
+  },
+});
+
+export const searchCompanies = query({
+  args: {
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const searchTerm = (args.search ?? "").trim();
+    const limit = Math.max(1, Math.min(args.limit ?? 12, 50));
+    const baseQuery = searchTerm
+      ? ctx.db
+          .query("jobs")
+          .withSearchIndex("search_company", (q) => q.search("company", searchTerm))
+      : ctx.db.query("jobs").withIndex("by_posted_at").order("desc");
+
+    const matches = await baseQuery.take(200);
+    const counts = new Map<string, { name: string; count: number }>();
+
+    for (const job of matches) {
+      const companyName = typeof (job as any).company === "string" ? (job as any).company.trim() : "";
+      if (!companyName) continue;
+      const key = companyName.toLowerCase();
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, { name: companyName, count: 1 });
+      }
+    }
+
+    const suggestions = Array.from(counts.values())
+      .sort((a, b) => {
+        if (b.count === a.count) return a.name.localeCompare(b.name);
+        return b.count - a.count;
+      })
+      .slice(0, limit);
+
+    return suggestions;
   },
 });
 

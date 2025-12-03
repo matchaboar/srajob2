@@ -87,15 +87,20 @@ export const saveFilter = mutation({
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
+    companies: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     await clearSelected(ctx, userId);
 
+    const normalizedCompanies = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
+    const uniqueCompanies = Array.from(new Set(normalizedCompanies));
+
     const id = await ctx.db.insert("saved_filters", {
       ...args,
       includeRemote: args.includeRemote ?? true,
       hideUnknownCompensation: args.hideUnknownCompensation ?? false,
+      companies: uniqueCompanies.length > 0 ? uniqueCompanies : undefined,
       userId,
       isSelected: true,
       createdAt: Date.now(),
