@@ -2,15 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
-
-const formatCurrency = (value?: number) => {
-  if (typeof value !== "number") return "Unknown";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-};
+import { buildCompensationMeta } from "./lib/compensation";
 
 const formatDateTime = (value?: number) => {
   if (typeof value !== "number") return "Unknown";
@@ -19,10 +11,39 @@ const formatDateTime = (value?: number) => {
 
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });
+  const compensationMeta = useMemo(() => buildCompensationMeta(job), [job]);
 
   const description = useMemo(() => {
     if (!job?.description) return "No description provided.";
     return job.description;
+  }, [job]);
+
+  const parsingSteps = useMemo(() => {
+    const scrapedWith = job?.scrapedWith || job?.workflowName;
+    const heuristicRan =
+      (job?.workflowName || "").toLowerCase() === "heuristicjobdetails" ||
+      (job?.compensationReason || "").toLowerCase().includes("heuristic") ||
+      (job?.heuristicAttempts ?? 0) > 0 ||
+      !!job?.heuristicLastTried;
+    return [
+      {
+        label: "Initial scrape",
+        checked: Boolean(scrapedWith),
+        note: scrapedWith ? `via ${scrapedWith}` : "pending",
+      },
+      {
+        label: "Heuristic parsing",
+        checked: heuristicRan,
+        note: heuristicRan
+          ? job?.workflowName || `attempts ${job?.heuristicAttempts ?? 0}`
+          : "not run",
+      },
+      {
+        label: "LLM parsing",
+        checked: false,
+        note: "optional (not run)",
+      },
+    ];
   }, [job]);
 
   const handleBack = () => {
@@ -74,11 +95,33 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
               <DetailCard label="Location" value={job.location || "Unknown"} />
               <DetailCard label="Level" value={job.level ?? "Not specified"} />
               <DetailCard label="Remote" value={job.remote ? "Yes" : "No"} />
-              <DetailCard label="Total Compensation" value={formatCurrency(job.totalCompensation)} />
+              <DetailCard label="Total Compensation" value={compensationMeta.display} />
+              {compensationMeta.currencyCode && compensationMeta.currencyCode !== "USD" && (
+                <DetailCard label="Currency" value={compensationMeta.currencyCode} />
+              )}
               <DetailCard label="Posted" value={formatDateTime(job.postedAt)} />
               <DetailCard label="Scraped At" value={formatDateTime(job.scrapedAt)} />
               <DetailCard label="Workflow" value={job.workflowName || "—"} />
               <DetailCard label="Source URL" value={job.url ?? "—"} isLink />
+            </div>
+
+            <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-4 shadow-inner space-y-3">
+              <div className="text-xs uppercase tracking-wide font-semibold text-slate-500">Parsing Workflows</div>
+              <div className="flex flex-col gap-2">
+                {parsingSteps.map((step) => (
+                  <label key={step.label} className="flex items-center gap-3 text-sm text-slate-100">
+                    <input type="checkbox" checked={step.checked} readOnly className="h-4 w-4 accent-emerald-400" />
+                    <span className="flex-1">
+                      <span className="font-semibold">{step.label}</span>
+                      <span className="ml-2 text-xs text-slate-400">{step.note}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 pt-1">Parse Notes</div>
+              <div className="rounded border border-slate-800 bg-slate-950/70 text-sm text-slate-200 px-3 py-2 whitespace-pre-wrap">
+                {compensationMeta.reason || "No additional notes."}
+              </div>
             </div>
 
             <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 shadow-inner">

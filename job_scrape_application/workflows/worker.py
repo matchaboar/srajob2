@@ -10,13 +10,56 @@ from temporalio.worker import Worker
 from ..config import settings
 from ..services.convex_client import convex_query
 from . import activities
-from .scrape_workflow import FirecrawlScrapeWorkflow, ScrapeWorkflow
+from .scrape_workflow import (
+    FirecrawlScrapeWorkflow,
+    ScrapeWorkflow,
+    SpidercloudJobDetailsWorkflow,
+    SpidercloudScrapeWorkflow,
+)
+from .heuristic_workflow import HeuristicJobDetailsWorkflow
 from .greenhouse_workflow import GreenhouseScraperWorkflow
 from .webhook_workflow import (
     ProcessWebhookIngestWorkflow,
     RecoverMissingFirecrawlWebhookWorkflow,
     SiteLeaseWorkflow,
 )
+
+WORKFLOW_CLASSES = [
+    ScrapeWorkflow,
+    FirecrawlScrapeWorkflow,
+    SpidercloudScrapeWorkflow,
+    SpidercloudJobDetailsWorkflow,
+    HeuristicJobDetailsWorkflow,
+    GreenhouseScraperWorkflow,
+    SiteLeaseWorkflow,
+    ProcessWebhookIngestWorkflow,
+    RecoverMissingFirecrawlWebhookWorkflow,
+]
+
+ACTIVITY_FUNCTIONS = [
+    activities.fetch_sites,
+    activities.lease_site,
+    activities.scrape_site,
+    activities.scrape_site_firecrawl,
+    activities.scrape_site_fetchfox,
+    activities.fetch_greenhouse_listing,
+    activities.filter_existing_job_urls,
+    activities.scrape_greenhouse_jobs,
+    activities.start_firecrawl_webhook_scrape,
+    activities.fetch_pending_firecrawl_webhooks,
+    activities.get_firecrawl_webhook_status,
+    activities.mark_firecrawl_webhook_processed,
+    activities.collect_firecrawl_job_result,
+    activities.store_scrape,
+    activities.complete_site,
+    activities.fail_site,
+    activities.record_workflow_run,
+    activities.record_scratchpad,
+    activities.lease_scrape_url_batch,
+    activities.process_spidercloud_job_batch,
+    activities.complete_scrape_urls,
+    activities.process_pending_job_details_batch,
+]
 
 
 def _setup_logging() -> logging.Logger:
@@ -167,34 +210,8 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=settings.task_queue,
-        workflows=[
-            ScrapeWorkflow,
-            FirecrawlScrapeWorkflow,
-            GreenhouseScraperWorkflow,
-            SiteLeaseWorkflow,
-            ProcessWebhookIngestWorkflow,
-            RecoverMissingFirecrawlWebhookWorkflow,
-        ],
-        activities=[
-            activities.fetch_sites,
-            activities.lease_site,
-            activities.scrape_site,
-            activities.scrape_site_firecrawl,
-            activities.scrape_site_fetchfox,
-            activities.fetch_greenhouse_listing,
-            activities.filter_existing_job_urls,
-            activities.scrape_greenhouse_jobs,
-            activities.start_firecrawl_webhook_scrape,
-            activities.fetch_pending_firecrawl_webhooks,
-            activities.get_firecrawl_webhook_status,
-            activities.mark_firecrawl_webhook_processed,
-            activities.collect_firecrawl_job_result,
-            activities.store_scrape,
-            activities.complete_site,
-            activities.fail_site,
-            activities.record_workflow_run,
-            activities.record_scratchpad,
-        ],
+        workflows=WORKFLOW_CLASSES,
+        activities=ACTIVITY_FUNCTIONS,
     )
 
     # Start the monitor loop in the background

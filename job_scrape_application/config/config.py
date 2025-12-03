@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # Temporal workflow sandbox may not have third-party modules available;
+    # fall back silently when dotenv isn't installed.
+    def load_dotenv(*args: object, **kwargs: object) -> bool:  # type: ignore[return-type]
+        return False
 
 
 load_dotenv()
@@ -27,6 +34,9 @@ class Settings:
 
     # API key for Firecrawl SDK (preferred scraper)
     firecrawl_api_key: str | None = os.getenv("FIRECRAWL_API_KEY")
+
+    # API key for SpiderCloud (streaming markdown scraping)
+    spider_api_key: str | None = os.getenv("SPIDER_API_KEY") or os.getenv("SPIDER_KEY")
 
 
 settings = Settings()

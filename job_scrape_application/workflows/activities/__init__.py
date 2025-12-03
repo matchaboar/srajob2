@@ -1,0 +1,1900 @@
+from __future__ import annotations
+
+import asyncio
+import inspect
+import json
+import logging
+import time
+import re
+from html.parser import HTMLParser
+from typing import Any, Dict, List, Optional, Tuple
+
+from firecrawl import Firecrawl
+from firecrawl.v2.types import PaginationConfig
+from temporalio import activity
+from temporalio.exceptions import ApplicationError
+
+from ...config import settings
+from ...components.models import GreenhouseBoardResponse, extract_greenhouse_job_urls, load_greenhouse_board
+from ...constants import location_matches_usa, title_matches_required_keywords
+from ..helpers.firecrawl import (
+    build_firecrawl_webhook as _build_firecrawl_webhook,
+    extract_first_json_doc as _extract_first_json_doc,
+    extract_first_text_doc as _extract_first_text_doc,
+    metadata_urls_to_list as _metadata_urls_to_list,
+    should_mock_convex_webhooks as _should_mock_convex_webhooks,
+    should_use_mock_firecrawl as _should_use_mock_firecrawl,
+    stringify_firecrawl_metadata as _stringify_firecrawl_metadata,
+)
+from ..helpers.provider import (
+    build_provider_status_url,
+    build_request_snapshot,
+    log_provider_dispatch,
+    log_sync_response,
+    mask_secret,
+    sanitize_headers,
+)
+from ..helpers.scrape_utils import (
+    _jobs_from_scrape_items,
+    _shrink_payload,
+    build_firecrawl_schema,
+    parse_markdown_hints,
+    fetch_seen_urls_for_site,
+    normalize_fetchfox_items,
+    normalize_firecrawl_items,
+    trim_scrape_for_convex,
+)
+from ..scrapers import BaseScraper, FetchfoxScraper, FirecrawlScraper, SpiderCloudScraper
+from .constants import (
+    FIRECRAWL_CACHE_MAX_AGE_MS,
+    FIRECRAWL_STATUS_EXPIRATION_MS,
+    FIRECRAWL_STATUS_WARN_MS,
+    FirecrawlJobKind,
+)
+from .errors import ScrapeErrorInput, clean_scrape_error_payload, log_scrape_error as _log_scrape_error
+from .factories import (
+    build_fetchfox_scraper as _build_fetchfox_scraper,
+    build_firecrawl_scraper as _build_firecrawl_scraper,
+    build_spidercloud_scraper as _build_spidercloud_scraper,
+    select_scraper_for_site as _select_scraper_for_site,
+)
+from .firecrawl import (
+    WebhookModel as _WebhookModel,
+    mock_firecrawl_status_response as _mock_firecrawl_status_response,
+    record_pending_firecrawl_webhook as _record_pending_firecrawl_webhook,
+    serialize_firecrawl_job as _serialize_firecrawl_job,
+    start_firecrawl_batch as _start_firecrawl_batch,
+)
+from .types import FirecrawlWebhookEvent, Site
+_log_provider_dispatch = log_provider_dispatch
+_log_sync_response = log_sync_response
+_build_request_snapshot = build_request_snapshot
+_build_provider_status_url = build_provider_status_url
+_mask_secret = mask_secret
+_sanitize_headers = sanitize_headers
+_trim_scrape_for_convex = trim_scrape_for_convex
+_clean_scrape_error_payload = clean_scrape_error_payload
+
+__all__ = [
+    "fetch_seen_urls_for_site",
+    "normalize_fetchfox_items",
+    "lease_scrape_url_batch",
+    "process_pending_job_details_batch",
+    "process_spidercloud_job_batch",
+    "complete_scrape_urls",
+]
+
+SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
+SPIDERCLOUD_BATCH_SIZE = 50
+
+logger = logging.getLogger("temporal.worker.activities")
+
+
+def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove keys whose values are None so Convex does not receive nulls."""
+
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+def _make_fetchfox_scraper() -> FetchfoxScraper:
+    return _build_fetchfox_scraper(
+        build_request_snapshot=_build_request_snapshot,
+        log_provider_dispatch=_log_provider_dispatch,
+        log_sync_response=_log_sync_response,
+    )
+
+
+def _make_firecrawl_scraper() -> FirecrawlScraper:
+    return _build_firecrawl_scraper(
+        start_firecrawl_webhook_scrape=start_firecrawl_webhook_scrape,
+        log_scrape_error=_log_scrape_error,
+        build_request_snapshot=_build_request_snapshot,
+        log_provider_dispatch=_log_provider_dispatch,
+        log_sync_response=_log_sync_response,
+        firecrawl_cls=Firecrawl,
+    )
+
+
+def _make_spidercloud_scraper() -> SpiderCloudScraper:
+    return _build_spidercloud_scraper(
+        mask_secret=_mask_secret,
+        sanitize_headers=_sanitize_headers,
+        build_request_snapshot=_build_request_snapshot,
+        log_provider_dispatch=_log_provider_dispatch,
+        log_sync_response=_log_sync_response,
+        trim_scrape_for_convex=_trim_scrape_for_convex,
+    )
+
+
+async def select_scraper_for_site(site: Site) -> tuple[BaseScraper, Optional[List[str]]]:
+    """Return the scraper instance and any precomputed skip URLs for a site."""
+
+    scraper, skip_urls = await _select_scraper_for_site(
+        site,
+        make_fetchfox=_make_fetchfox_scraper,
+        make_firecrawl=_make_firecrawl_scraper,
+        make_spidercloud=_make_spidercloud_scraper,
+    )
+
+    # Allow callers/tests to monkeypatch fetch_seen_urls_for_site and still forward skip URLs
+    if isinstance(scraper, FirecrawlScraper) and not skip_urls:
+        url = site.get("url")
+        if url:
+            skip_urls = await fetch_seen_urls_for_site(url, site.get("pattern"))
+
+    return scraper, skip_urls
+
+
+@activity.defn
+async def fetch_sites() -> List[Site]:
+    from ...services.convex_client import convex_query
+
+    res = await convex_query("router:listSites", {"enabledOnly": True})
+    if not isinstance(res, list):
+        raise RuntimeError(f"Unexpected sites payload: {res!r}")
+    return res  # type: ignore[return-value]
+
+
+@activity.defn
+async def lease_site(
+    worker_id: str,
+    lock_seconds: int = 300,
+    site_type: Optional[str] = None,
+    scrape_provider: Optional[str] = None,
+) -> Optional[Site]:
+    from ...services.convex_client import convex_mutation
+
+    payload: Dict[str, Any] = {"workerId": worker_id, "lockSeconds": lock_seconds}
+    if site_type:
+        payload["siteType"] = site_type
+    if scrape_provider:
+        payload["scrapeProvider"] = scrape_provider
+
+    res = await convex_mutation("router:leaseSite", payload)
+    if res is None:
+        return None
+    if not isinstance(res, dict):
+        raise RuntimeError(f"Unexpected lease payload: {res!r}")
+    return res  # type: ignore[return-value]
+
+
+@activity.defn
+async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site, skip_urls: list[str]) -> Dict[str, Any]:
+    """Fetch Greenhouse listing via SpiderCloud and scrape individual jobs."""
+
+    from ...services.convex_client import convex_mutation, convex_query
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+    job_urls = listing.get("job_urls") if isinstance(listing, dict) else []
+    urls: list[str] = [u for u in job_urls if isinstance(u, str) and u]
+
+    seen_for_site: list[str] = []
+    try:
+        source_url = site.get("url") or ""
+        if source_url:
+            seen_for_site = await fetch_seen_urls_for_site(source_url, site.get("pattern"))
+    except Exception:
+        seen_for_site = []
+    skip_set = set(skip_urls or [])
+    skip_set.update(seen_for_site)
+
+    if not urls:
+        return {
+            "provider": scraper.provider,
+            "sourceUrl": site.get("url"),
+            "items": {
+                "normalized": [],
+                "provider": scraper.provider,
+                "job_urls": [],
+                "existing": list(skip_set),
+                "queued": False,
+            },
+            "skippedUrls": [],
+        }
+
+    pending_urls = [u for u in urls if u not in skip_set]
+    existing = await filter_existing_job_urls(pending_urls)
+    existing_set = set(existing) | skip_set
+    urls_to_scrape = [u for u in urls if u not in existing_set]
+
+    # Persist URLs so they can be retried later even if the worker dies mid-scrape.
+    try:
+        await convex_mutation(
+            "router:enqueueScrapeUrls",
+            _strip_none_values(
+                {
+                    "urls": urls_to_scrape,
+                    "sourceUrl": site.get("url") or "",
+                    "provider": scraper.provider,
+                    "siteId": site.get("_id"),
+                    "pattern": site.get("pattern"),
+                }
+            ),
+        )
+    except Exception:
+        # best-effort; continue to scrape even if enqueue fails
+        pass
+
+    # Pull queued URLs for this site/provider (pending or processing)
+    queued_urls: list[Dict[str, Any]] = []
+    list_args = _strip_none_values(
+        {"siteId": site.get("_id"), "provider": scraper.provider, "limit": 500}
+    )
+    try:
+        queued_urls = await convex_query("router:listQueuedScrapeUrls", list_args) or []
+    except Exception:
+        queued_urls = []
+
+    stale_urls: list[str] = []
+    fresh_urls: list[str] = []
+    now = int(time.time() * 1000)
+    for row in queued_urls:
+        created = int(row.get("createdAt") or 0)
+        url = row.get("url")
+        if not isinstance(url, str):
+            continue
+        status = str(row.get("status") or "").lower()
+        if status not in {"pending", "processing", ""}:
+            continue
+        if created and created < now - SCRAPE_URL_QUEUE_TTL_MS:
+            stale_urls.append(url)
+        else:
+            fresh_urls.append(url)
+
+    # Cap batch size and drop invalid URLs
+    fresh_urls = [u for u in fresh_urls if isinstance(u, str) and u.strip() and u.startswith("http")]
+    fresh_urls = fresh_urls[:SPIDERCLOUD_BATCH_SIZE]
+
+    if stale_urls:
+        try:
+            await convex_mutation(
+                "router:completeScrapeUrls",
+                {"urls": stale_urls, "status": "failed", "error": "stale (>48h)"},
+            )
+        except Exception:
+            pass
+
+    urls_to_scrape = [u for u in fresh_urls if u not in existing_set]
+
+    # Listing flow now only enqueues; job detail scrape handled by separate workflow.
+    return {
+        "provider": scraper.provider,
+        "sourceUrl": site.get("url"),
+        "items": {
+            "normalized": [],
+            "provider": scraper.provider,
+            "job_urls": urls,
+            "existing": list(existing_set),
+            "queued": True,
+            "queuedCount": len(urls_to_scrape),
+        },
+        "skippedUrls": stale_urls,
+    }
+
+
+@activity.defn
+async def scrape_site(site: Site) -> Dict[str, Any]:
+    """Scrape a site, selecting provider based on per-site preference."""
+
+    selection = select_scraper_for_site(site)
+    scraper, skip_urls = (
+        await selection if inspect.isawaitable(selection) else selection
+    )
+    precomputed_skip = skip_urls
+    skip_count = len(precomputed_skip or [])
+
+    try:
+        logger.info(
+            "Scrape dispatch provider=%s site=%s pattern=%s skip_count=%s",
+            getattr(scraper, "provider", "unknown"),
+            site.get("url"),
+            site.get("pattern"),
+            skip_count,
+        )
+    except Exception:
+        pass
+
+    site_type = (site.get("type") or "general").lower()
+    if isinstance(scraper, SpiderCloudScraper) and site_type == "greenhouse":
+        return await _scrape_spidercloud_greenhouse(scraper, site, precomputed_skip or [])
+
+    # Tests expect skip_urls to be forwarded for firecrawl so it can dedupe visited URLs
+    return await scraper.scrape_site(site, skip_urls=precomputed_skip)
+
+
+@activity.defn
+async def start_firecrawl_webhook_scrape(site: Site) -> Dict[str, Any]:
+    """Kick off a Firecrawl batch scrape with a Convex webhook callback."""
+
+    site_type = site.get("type") or "general"
+    kind = (
+        FirecrawlJobKind.GREENHOUSE_LISTING
+        if site_type == "greenhouse"
+        else FirecrawlJobKind.SITE_CRAWL
+    )
+    logger.info(
+        "start_firecrawl_webhook_scrape site=%s type=%s use_mock=%s mock_convex=%s",
+        site.get("url"),
+        site_type,
+        _should_use_mock_firecrawl(site.get("url")),
+        _should_mock_convex_webhooks(),
+    )
+
+    webhook_dict = _build_firecrawl_webhook(site, kind)
+    site_url = site.get("url")
+    if site_url:
+        metadata_block = webhook_dict.setdefault("metadata", {})
+        metadata_block.setdefault("urls", [site_url])
+
+    webhook_metadata_raw = webhook_dict.get("metadata") or {}
+    webhook_dict["metadata"] = _stringify_firecrawl_metadata(webhook_metadata_raw)
+
+    webhook_model = _WebhookModel(webhook_dict)
+    webhook_payload: Dict[str, Any] = webhook_model.model_dump(exclude_none=True)
+
+    if _should_use_mock_firecrawl(site.get("url")):
+        from ...testing.firecrawl_mock import MockFirecrawl
+
+        mock_client = MockFirecrawl()
+        logger.info("firecrawl.start mock client path site=%s", site.get("url"))
+        provider_request = {
+            "urls": [site.get("url")],
+            "webhook": webhook_payload,
+            "kind": kind,
+        }
+        job = mock_client.start_batch_scrape([site["url"]], webhook=webhook_model)
+        raw_start = (
+            job.model_dump(mode="json", exclude_none=True)
+            if hasattr(job, "model_dump")
+            else {
+                "jobId": getattr(job, "jobId", None),
+                "statusUrl": getattr(job, "statusUrl", None),
+                "status": "queued",
+                "kind": kind,
+                "mock": True,
+            }
+        )
+        payload = _serialize_firecrawl_job(job, site, webhook_payload, kind)
+        payload["metadata"] = webhook_payload.get("metadata")
+        payload["receivedAt"] = int(time.time() * 1000)
+        payload["rawStart"] = raw_start
+        payload["providerRequest"] = provider_request
+        payload["request"] = _build_request_snapshot(
+            provider_request,
+            provider="firecrawl_mock",
+            method="POST",
+            url="mock://firecrawl/batch",
+        )
+        payload["webhookId"] = await _record_pending_firecrawl_webhook(
+            payload, site, webhook_payload, kind
+        )
+        _log_provider_dispatch(
+            "firecrawl_mock",
+            site["url"],
+            kind=kind,
+            webhook=webhook_payload.get("url"),
+            siteId=site.get("_id"),
+            pattern=site.get("pattern"),
+        )
+        _log_sync_response(
+            "firecrawl_mock",
+            action="start",
+            url=site["url"],
+            job_id=payload.get("jobId"),
+            status_url=payload.get("statusUrl") or f"mock://firecrawl/status/{payload.get('jobId')}",
+            kind=kind,
+            summary="mock start (example.com)",
+            metadata={
+                "siteId": site.get("_id"),
+                "webhook": webhook_payload.get("url"),
+                "pattern": site.get("pattern"),
+            },
+        )
+        return payload
+
+    firecrawl_api_key = settings.firecrawl_api_key
+    if not firecrawl_api_key:
+        raise ApplicationError(
+            "FIRECRAWL_API_KEY env var is required for Firecrawl",
+            non_retryable=True,
+        )
+
+    if site_type == "greenhouse":
+        # Ask Firecrawl to return the full Greenhouse board JSON so we can parse jobs reliably
+        json_format = {
+            "type": "json",
+            "prompt": "Return the full Greenhouse board JSON payload (jobs array and metadata) with no summary.",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "jobs": {"type": "array", "items": {"type": "object"}},
+                },
+                "required": ["jobs"],
+                "additionalProperties": True,
+            },
+        }
+
+        client = Firecrawl(api_key=firecrawl_api_key)
+        provider_request = {
+            "urls": [site["url"]],
+            "options": {
+                "formats": [json_format],
+                "proxy": "auto",
+                "max_age": FIRECRAWL_CACHE_MAX_AGE_MS,
+                "store_in_cache": True,
+            },
+            "webhook": webhook_payload,
+        }
+
+        def _do_start_batch(webhook_arg: Any) -> Any:
+            return client.start_batch_scrape(
+                [site["url"]],
+                formats=[json_format],
+                webhook=webhook_arg,
+                proxy="auto",
+                max_age=FIRECRAWL_CACHE_MAX_AGE_MS,
+                store_in_cache=True,
+            )
+
+        logger.info("firecrawl.start real client begin site=%s kind=%s", site.get("url"), kind)
+        _log_provider_dispatch(
+            "firecrawl",
+            site["url"],
+            kind=FirecrawlJobKind.GREENHOUSE_LISTING,
+            webhook=webhook_payload.get("url"),
+            siteId=site.get("_id"),
+        )
+        request_snapshot = _build_request_snapshot(
+            provider_request,
+            provider="firecrawl",
+            method="POST",
+            url="https://api.firecrawl.dev/v2/batch/scrape",
+        )
+        try:
+            job = await _start_firecrawl_batch(_do_start_batch, webhook_model, webhook_payload)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("firecrawl.start greenhouse failed site=%s exc=%s", site.get("url"), exc)
+            error_payload: ScrapeErrorInput = {
+                "sourceUrl": site.get("url"),
+                "event": "start_batch_scrape",
+                "error": str(exc),
+                "metadata": {"kind": FirecrawlJobKind.GREENHOUSE_LISTING},
+            }
+            site_id = site.get("_id")
+            if site_id is not None:
+                error_payload["siteId"] = site_id
+            if not _should_mock_convex_webhooks():
+                await _log_scrape_error(error_payload)
+            msg = str(exc).lower()
+            retryable = "429" in msg or "rate" in msg or "timeout" in msg
+            raise ApplicationError(f"Firecrawl batch start failed: {exc}", non_retryable=not retryable) from exc
+
+        raw_start = (
+            job.model_dump(mode="json", exclude_none=True)
+            if hasattr(job, "model_dump")
+            else job
+        )
+        payload = _serialize_firecrawl_job(
+            job, site, webhook_payload, FirecrawlJobKind.GREENHOUSE_LISTING
+        )
+        payload["metadata"] = webhook_payload.get("metadata")
+        payload["receivedAt"] = int(time.time() * 1000)
+        payload["rawStart"] = raw_start
+        payload["providerRequest"] = provider_request
+        payload["request"] = request_snapshot
+        payload["webhookId"] = await _record_pending_firecrawl_webhook(
+            payload, site, webhook_payload, FirecrawlJobKind.GREENHOUSE_LISTING
+        )
+        _log_sync_response(
+            "firecrawl",
+            action="start",
+            url=site["url"],
+            job_id=payload.get("jobId"),
+            status_url=_build_provider_status_url(
+                "firecrawl",
+                payload.get("jobId"),
+                status_url=payload.get("statusUrl"),
+                kind=FirecrawlJobKind.GREENHOUSE_LISTING,
+            ),
+            kind=FirecrawlJobKind.GREENHOUSE_LISTING,
+            summary="greenhouse batch started",
+            metadata={
+                "siteId": site.get("_id"),
+                "webhook": webhook_payload.get("url"),
+                "jobs": len(raw_start.get("jobs", [])) if isinstance(raw_start, dict) else None,
+                "startStatus": (raw_start.get("status") or raw_start.get("state")) if isinstance(raw_start, dict) else None,
+            },
+        )
+        return payload
+
+    pattern = site.get("pattern")
+    job_schema = build_firecrawl_schema()
+    scrape_formats: List[Any] = [
+        "markdown",
+        {"type": "json", "schema": job_schema},
+    ]
+
+    client = Firecrawl(api_key=firecrawl_api_key)
+
+    provider_request = {
+        "urls": [site["url"]],
+        "options": {
+            "formats": scrape_formats,
+            "only_main_content": True,
+            "proxy": "auto",
+            "max_age": FIRECRAWL_CACHE_MAX_AGE_MS,
+            "store_in_cache": True,
+        },
+        "webhook": webhook_payload,
+        "ignore_invalid_urls": True,
+    }
+
+    def _do_start_batch_crawl(webhook_arg: Any) -> Any:
+        return client.start_batch_scrape(
+            [site["url"]],
+            formats=scrape_formats,
+            only_main_content=True,
+            proxy="auto",
+            max_age=FIRECRAWL_CACHE_MAX_AGE_MS,
+            store_in_cache=True,
+            webhook=webhook_arg,
+            ignore_invalid_urls=True,
+        )
+
+    logger.info("firecrawl.start real client begin site=%s kind=%s", site.get("url"), kind)
+    _log_provider_dispatch(
+        "firecrawl",
+        site["url"],
+        kind=FirecrawlJobKind.SITE_CRAWL,
+        webhook=webhook_payload.get("url"),
+        siteId=site.get("_id"),
+        pattern=pattern,
+    )
+    try:
+        job = await _start_firecrawl_batch(_do_start_batch_crawl, webhook_model, webhook_payload)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("firecrawl.start site_crawl failed site=%s exc=%s", site.get("url"), exc)
+        error_payload: ScrapeErrorInput = {
+            "sourceUrl": site.get("url"),
+            "event": "start_batch_scrape",
+            "error": str(exc),
+            "metadata": {"pattern": pattern},
+        }
+        site_id = site.get("_id")
+        if site_id is not None:
+            error_payload["siteId"] = site_id
+        if not _should_mock_convex_webhooks():
+            await _log_scrape_error(error_payload)
+        msg = str(exc).lower()
+        retryable = "429" in msg or "rate" in msg or "timeout" in msg
+        raise ApplicationError(f"Firecrawl batch start failed: {exc}", non_retryable=not retryable) from exc
+
+    raw_start = (
+        job.model_dump(mode="json", exclude_none=True)
+        if hasattr(job, "model_dump")
+        else job
+    )
+    payload = _serialize_firecrawl_job(job, site, webhook_payload, FirecrawlJobKind.SITE_CRAWL)
+    payload["metadata"] = webhook_payload.get("metadata")
+    payload["receivedAt"] = int(time.time() * 1000)
+    payload["rawStart"] = raw_start
+    payload["providerRequest"] = provider_request
+    payload["request"] = _build_request_snapshot(
+        provider_request,
+        provider="firecrawl",
+        method="POST",
+        url="https://api.firecrawl.dev/v2/batch/scrape",
+    )
+    payload["webhookId"] = await _record_pending_firecrawl_webhook(
+        payload, site, webhook_payload, FirecrawlJobKind.SITE_CRAWL
+    )
+    _log_sync_response(
+        "firecrawl",
+        action="start",
+        url=site["url"],
+        job_id=payload.get("jobId"),
+        status_url=_build_provider_status_url(
+            "firecrawl",
+            payload.get("jobId"),
+            status_url=payload.get("statusUrl"),
+            kind=FirecrawlJobKind.SITE_CRAWL,
+        ),
+        kind=FirecrawlJobKind.SITE_CRAWL,
+        summary="batch queued",
+        metadata={
+            "siteId": site.get("_id"),
+            "webhook": webhook_payload.get("url"),
+            "pattern": pattern,
+            "startStatus": (raw_start.get("status") or raw_start.get("state")) if isinstance(raw_start, dict) else None,
+        },
+    )
+    return payload
+
+
+@activity.defn
+async def scrape_site_fetchfox(site: Site) -> Dict[str, Any]:
+    scraper = _build_fetchfox_scraper()
+    return await scraper.scrape_site(site)
+
+
+@activity.defn
+async def scrape_site_firecrawl(site: Site, skip_urls: Optional[List[str]] = None) -> Dict[str, Any]:
+    scraper = _make_firecrawl_scraper()
+    return await scraper.scrape_site(site, skip_urls=skip_urls)
+
+
+@activity.defn
+async def fetch_greenhouse_listing(site: Site) -> Dict[str, Any]:
+    scraper, _ = await select_scraper_for_site(site)
+    return await scraper.fetch_greenhouse_listing(site)
+
+
+@activity.defn
+async def fetch_greenhouse_listing_firecrawl(site: Site) -> Dict[str, Any]:
+    scraper = _make_firecrawl_scraper()
+    return await scraper.fetch_greenhouse_listing(site)
+
+
+@activity.defn
+async def filter_existing_job_urls(urls: List[str]) -> List[str]:
+    """Return the subset of URLs that already exist in Convex jobs table."""
+
+    if not urls:
+        return []
+    from ...services.convex_client import convex_query
+
+    try:
+        data = await convex_query("router:findExistingJobUrls", {"urls": urls})
+    except Exception:
+        return []
+
+    existing = data.get("existing", []) if isinstance(data, dict) else []
+    if not isinstance(existing, list):
+        return []
+
+    return [u for u in existing if isinstance(u, str)]
+
+
+@activity.defn
+async def complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Mark queued scrape URLs as completed/failed in Convex."""
+
+    from ...services.convex_client import convex_mutation
+
+    res = await convex_mutation("router:completeScrapeUrls", payload)
+    return res if isinstance(res, dict) else {"updated": 0}
+
+
+@activity.defn
+async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SPIDERCLOUD_BATCH_SIZE) -> Dict[str, Any]:
+    """Lease a batch of queued job-detail URLs from Convex."""
+
+    from ...services.convex_client import convex_mutation
+
+    res = await convex_mutation(
+        "router:leaseScrapeUrlBatch",
+        _strip_none_values({"provider": provider, "limit": limit, "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE}),
+    )
+    return res if isinstance(res, dict) else {"urls": []}
+
+
+@activity.defn
+async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]:
+    """Process a batch of job URLs via SpiderCloud."""
+
+    urls: list[str] = []
+    source_url = ""
+    pattern = None
+    for row in batch.get("urls", []):
+        if isinstance(row, dict):
+            url_val = row.get("url")
+            if isinstance(url_val, str) and url_val.strip():
+                urls.append(url_val)
+            if not source_url and isinstance(row.get("sourceUrl"), str):
+                source_url = row["sourceUrl"]
+            if pattern is None and isinstance(row.get("pattern"), str):
+                pattern = row["pattern"]
+
+    if not urls:
+        return {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url}
+
+    scraper = _make_spidercloud_scraper()
+    payload = {"urls": urls, "source_url": source_url, "pattern": pattern}
+    result = await scraper.scrape_greenhouse_jobs(payload) or {}
+
+    # Unwrap and split into per-URL scrape payloads so they can be stored independently.
+    base_payload: Dict[str, Any] | None = None
+    if isinstance(result, dict):
+        base_payload = result.get("scrape") if isinstance(result.get("scrape"), dict) else result  # support direct payload
+
+    if not isinstance(base_payload, dict):
+        return {"scrapes": [], "sourceUrl": source_url}
+
+    base_payload.setdefault("provider", "spidercloud")
+    base_payload.setdefault("workflowName", "SpidercloudJobDetails")
+
+    scrapes: list[Dict[str, Any]] = []
+    items = base_payload.get("items") if isinstance(base_payload, dict) else {}
+    normalized = items.get("normalized") if isinstance(items, dict) else []
+    raw_items = items.get("raw") if isinstance(items, dict) else []
+    cost_milli_cents_total: float | None = None
+    if isinstance(base_payload.get("costMilliCents"), (int, float)):
+        cost_milli_cents_total = float(base_payload["costMilliCents"])
+    elif isinstance(items, dict) and isinstance(items.get("costMilliCents"), (int, float)):
+        cost_milli_cents_total = float(items["costMilliCents"])
+
+    url_count = len(urls) if urls else (len(normalized) if isinstance(normalized, list) else 0)
+    per_url_cost = (
+        int(cost_milli_cents_total / max(url_count, 1))
+        if cost_milli_cents_total is not None and url_count
+        else None
+    )
+
+    if isinstance(normalized, list) and normalized:
+        for idx, row in enumerate(normalized):
+            if not isinstance(row, dict):
+                continue
+            single_items: Dict[str, Any] = {"normalized": [row]}
+            if isinstance(raw_items, list) and idx < len(raw_items):
+                single_items["raw"] = raw_items[idx]
+            per_url_payload = dict(base_payload)
+            per_url_payload["items"] = single_items
+            # Track the specific URL we processed for easier diagnostics.
+            per_url_payload["subUrls"] = [row.get("url") or row.get("job_url") or row.get("absolute_url") or source_url]
+            if per_url_cost is not None:
+                per_url_payload["costMilliCents"] = per_url_cost
+                per_url_payload["items"]["costMilliCents"] = per_url_cost
+            scrapes.append(per_url_payload)
+    else:
+        scrapes.append(base_payload)
+
+    return {"scrapes": scrapes, "sourceUrl": source_url}
+
+
+@activity.defn
+async def scrape_greenhouse_jobs(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Scrape new Greenhouse job URLs with a single FetchFox request."""
+
+    idempotency_key = payload.get("idempotency_key") or payload.get("webhook_id")
+    if settings.spider_api_key and not idempotency_key:
+        scraper = _make_spidercloud_scraper()
+    elif settings.firecrawl_api_key:
+        scraper = _make_firecrawl_scraper()
+    else:
+        scraper = _build_fetchfox_scraper()
+    return await scraper.scrape_greenhouse_jobs(payload)
+
+
+@activity.defn
+async def scrape_greenhouse_jobs_firecrawl(payload: Dict[str, Any]) -> Dict[str, Any]:
+    scraper = _make_firecrawl_scraper()
+    return await scraper.scrape_greenhouse_jobs(payload)
+
+
+@activity.defn
+async def fetch_pending_firecrawl_webhooks(limit: int = 25, event: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Return unprocessed Firecrawl webhook rows from Convex."""
+
+    from ...services.convex_client import convex_query
+
+    args: Dict[str, Any] = {"limit": limit}
+    if event:
+        args["event"] = event
+    res = await convex_query("router:listPendingFirecrawlWebhooks", args)
+    if not isinstance(res, list):
+        return []
+    return res  # type: ignore[return-value]
+
+
+@activity.defn
+async def get_firecrawl_webhook_status(job_id: str) -> Dict[str, Any]:
+    """Return the current Convex state for a Firecrawl job's webhook rows."""
+
+    from ...services.convex_client import convex_query
+
+    try:
+        res = await convex_query("router:getFirecrawlWebhookStatus", {"jobId": job_id})
+    except Exception:
+        return {}
+    return res if isinstance(res, dict) else {}
+
+
+@activity.defn
+async def mark_firecrawl_webhook_processed(webhook_id: str, error: Optional[str] = None) -> None:
+    """Mark a webhook row as processed and optionally attach an error."""
+
+    from ...services.convex_client import convex_mutation
+
+    payload = {"id": webhook_id}
+    if error is not None:
+        payload["error"] = error
+
+    await convex_mutation(
+        "router:markFirecrawlWebhookProcessed",
+        payload,
+    )
+
+
+@activity.defn
+async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str, Any]:
+    """Fetch Firecrawl job status and build a scrape payload."""
+
+    job_id = str(event.get("jobId") or event.get("id") or "")
+    if not job_id:
+        raise ApplicationError("Webhook payload missing jobId", non_retryable=True)
+
+    metadata_raw = event.get("metadata")
+    metadata: Dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
+    payload_raw = event.get("payload")
+    payload_dict: Dict[str, Any] = payload_raw if isinstance(payload_raw, dict) else {}
+    data_block = payload_dict.get("data") or event.get("data")
+
+    def _data_source_url() -> Optional[str]:
+        if not isinstance(data_block, list):
+            return None
+        for item in data_block:
+            if not isinstance(item, dict):
+                continue
+            meta = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+            for key in ("sourceURL", "sourceUrl", "url"):
+                candidate = meta.get(key) or item.get(key)
+                if isinstance(candidate, str) and candidate.strip():
+                    return candidate
+        return None
+
+    source_url = (
+        event.get("sourceUrl")
+        or metadata.get("siteUrl")
+        or metadata.get("sourceUrl")
+        or metadata.get("sourceURL")
+        or metadata.get("url")
+        or payload_dict.get("url")
+        or _data_source_url()
+    )
+    pattern = metadata.get("pattern")
+    site_id = metadata.get("siteId") or event.get("siteId")
+    kind = metadata.get("kind") or (
+        FirecrawlJobKind.GREENHOUSE_LISTING
+        if metadata.get("siteType") == "greenhouse"
+        else FirecrawlJobKind.SITE_CRAWL
+    )
+    raw_status_url = (
+        event.get("statusUrl")
+        or event.get("status_url")
+        or metadata.get("statusUrl")
+        or metadata.get("status_url")
+    )
+    status_link = _build_provider_status_url("firecrawl", job_id, status_url=raw_status_url, kind=kind)
+    data_items = len(event.get("data", [])) if isinstance(event.get("data"), list) else 0
+    metadata_keys = len(metadata)
+
+    now = int(time.time() * 1000)
+
+    def _coerce_int(val: Any) -> Optional[int]:
+        if isinstance(val, (int, float)):
+            return int(val)
+        return None
+
+    def _first_seen_ms() -> int:
+        """Best-effort timestamp for when the job was initially queued/received."""
+
+        candidates = [
+            metadata.get("queuedAt"),
+            metadata.get("createdAt"),
+            metadata.get("startedAt"),
+            event.get("receivedAt"),
+            event.get("createdAt"),
+        ]
+        payload = event.get("payload")
+        if isinstance(payload, dict):
+            candidates.extend([payload.get("queuedAt"), payload.get("receivedAt"), payload.get("createdAt")])
+
+        for val in candidates:
+            coerced = _coerce_int(val)
+            if coerced is not None:
+                return coerced
+        return now
+
+    first_seen_ms = _first_seen_ms()
+    age_ms = max(0, now - first_seen_ms)
+    status_endpoint_default = f"https://api.firecrawl.dev/v2/batch/scrape/{job_id}"
+    status_endpoint = status_link or status_endpoint_default
+    use_mock_provider = _should_use_mock_firecrawl(source_url)
+    if use_mock_provider:
+        status_endpoint = status_endpoint.replace("https://api.firecrawl.dev", "mock://firecrawl")
+    status_link = status_endpoint
+
+    logger.info(
+        "collect_firecrawl_job_result start job_id=%s kind=%s site_id=%s site_url=%s data_items=%s status_link=%s",
+        job_id,
+        kind,
+        site_id,
+        source_url,
+        data_items,
+        status_link,
+    )
+    print(
+        "\x1b[35m[WEBHOOK] fetch status "
+        f"job_id={job_id} kind={kind} url={source_url} site_id={site_id} pattern={pattern} "
+        f"age_ms={age_ms} status_url={status_endpoint or 'n/a'} "
+        f"data_items={data_items} metadata_keys={metadata_keys} mock_provider={use_mock_provider}\x1b[0m"
+    )
+    raw_url_candidates = (
+        metadata.get("urls")
+        or metadata.get("seedUrls")
+        or metadata.get("urlsRequested")
+    )
+    url_candidates = _metadata_urls_to_list(raw_url_candidates)
+    request_payload: Dict[str, Any] = {
+        "jobId": job_id,
+        "kind": kind,
+        "siteId": site_id,
+        "siteUrl": source_url,
+        "pattern": pattern,
+    }
+    if url_candidates:
+        request_payload["urls"] = url_candidates
+    if event.get("webhookId"):
+        request_payload["webhookId"] = event.get("webhookId")
+
+    request_provider = "firecrawl_mock" if use_mock_provider else "firecrawl"
+    request_snapshot = _build_request_snapshot(
+        request_payload,
+        provider=request_provider,
+        method="GET",
+        url=status_endpoint,
+    )
+
+    if use_mock_provider:
+        return _mock_firecrawl_status_response(
+            event=event,
+            job_id=job_id,
+            kind=kind,
+            site_id=site_id,
+            source_url=source_url,
+            pattern=pattern,
+            status_endpoint=status_endpoint,
+            request_snapshot=request_snapshot,
+            first_seen_ms=first_seen_ms,
+        )
+
+    firecrawl_api_key = settings.firecrawl_api_key
+    if not firecrawl_api_key:
+        raise ApplicationError(
+            "FIRECRAWL_API_KEY env var is required for Firecrawl",
+            non_retryable=True,
+        )
+
+    pagination = PaginationConfig(auto_paginate=True, max_wait_time=30, max_results=5000)
+
+    async def _record_scrape_error(error: str) -> None:
+        from ...services.convex_client import convex_mutation
+
+        error_payload: ScrapeErrorInput = {
+            "sourceUrl": source_url,
+            "error": error,
+            "metadata": metadata,
+            "payload": event,
+            "createdAt": int(time.time() * 1000),
+        }
+        if job_id is not None:
+            error_payload["jobId"] = job_id
+        if site_id is not None:
+            error_payload["siteId"] = site_id
+        event_name = event.get("event") or event.get("type")
+        if event_name is not None:
+            error_payload["event"] = event_name
+        status_value = event.get("status")
+        if status_value is not None:
+            error_payload["status"] = status_value
+
+        try:
+            cleaned_payload = clean_scrape_error_payload(error_payload)
+            if _should_mock_convex_webhooks():
+                logger.info(
+                    "collect_firecrawl_job_result skip error log (mock convex) job_id=%s error=%s",
+                    job_id,
+                    error,
+                )
+                return
+            await convex_mutation("router:insertScrapeError", cleaned_payload)
+        except Exception:
+            # Non-fatal best-effort logging; keep workflow progress
+            pass
+
+    if age_ms >= FIRECRAWL_STATUS_EXPIRATION_MS:
+        msg = (
+            "Firecrawl job expired (>24h); skipping status lookup "
+            f"(job_id={job_id}, site_id={site_id}, age_ms={age_ms})"
+        )
+        logger.warning("collect_firecrawl_job_result expired job: %s", msg)
+        await _record_scrape_error(msg)
+        return {
+            "kind": kind,
+            "siteId": site_id,
+            "siteUrl": source_url,
+            "status": "cancelled_expired",
+            "jobsScraped": 0,
+            "error": msg,
+            "scrape": None,
+        }
+
+    if age_ms >= FIRECRAWL_STATUS_WARN_MS:
+        logger.info(
+            "collect_firecrawl_job_result nearing expiration job_id=%s age_ms=%s",
+            job_id,
+            age_ms,
+        )
+
+    def _get_status() -> Any:
+        client = Firecrawl(api_key=firecrawl_api_key)
+        return client.get_batch_scrape_status(job_id, pagination_config=pagination)
+
+    try:
+        status = await asyncio.to_thread(_get_status)
+    except Exception as exc:  # noqa: BLE001
+        error_msg = str(exc)
+        logger.warning(
+            "collect_firecrawl_job_result status fetch failed job_id=%s kind=%s error=%s",
+            job_id,
+            kind,
+            error_msg,
+            exc_info=True,
+        )
+        await _record_scrape_error(error_msg)
+        msg_lower = error_msg.lower()
+        missing_method = "no attribute" in msg_lower or "has no attribute" in msg_lower
+        if (("404" in msg_lower) or missing_method) and age_ms >= FIRECRAWL_STATUS_WARN_MS:
+            msg = (
+                "Firecrawl failed to complete within 24h; treating job as cancelled "
+                f"(job_id={job_id}, site_id={site_id}, age_ms={age_ms})"
+            )
+            return {
+                "kind": kind,
+                "siteId": site_id,
+                "siteUrl": source_url,
+                "status": "cancelled_expired",
+                "httpStatus": "404",
+                "itemsCount": 0,
+                "jobsScraped": 0,
+                "error": msg,
+                "scrape": None,
+            }
+        retryable = "429" in msg_lower or "timeout" in msg_lower or "too many requests" in msg_lower
+        if "invalid job id" in msg_lower:
+            return {
+                "kind": kind,
+                "siteId": site_id,
+                "siteUrl": source_url,
+                "status": "error",
+                "httpStatus": "invalid_job",
+                "itemsCount": 0,
+                "jobsScraped": 0,
+                "error": error_msg,
+                "scrape": None,
+            }
+        raise ApplicationError(f"Failed to fetch Firecrawl status for job {job_id}: {exc}", non_retryable=not retryable) from exc
+
+    status_value = getattr(status, "status", None)
+    http_status = "ok"
+    now = int(time.time() * 1000)
+
+    if kind == FirecrawlJobKind.GREENHOUSE_LISTING:
+        json_payload = _extract_first_json_doc(status)
+        raw_text = None
+
+        # When using rawHtml format, status may hold raw_html instead of json
+        if json_payload is None:
+            raw_text = _extract_first_text_doc(status)
+            try:
+                if raw_text:
+                    json_payload = json.loads(raw_text)
+            except Exception:
+                json_payload = None
+
+        if raw_text is None and json_payload is not None:
+            raw_text = json.dumps(json_payload, ensure_ascii=False)
+
+        if json_payload is None:
+            # Attempt direct fetch of the board JSON as a fallback
+            try:
+                fallback_site: Site = {
+                    "_id": str(site_id or "unknown"),
+                    "url": source_url or "",
+                    "type": metadata.get("siteType"),
+                    "pattern": metadata.get("pattern"),
+                    "name": metadata.get("siteName"),
+                }
+                fallback = await fetch_greenhouse_listing_firecrawl(fallback_site)
+                raw_text = fallback.get("raw") if isinstance(fallback, dict) else None
+                json_payload = raw_text
+            except Exception:
+                # No structured payload returned; treat as empty result but still mark processed
+                return {
+                    "kind": FirecrawlJobKind.GREENHOUSE_LISTING,
+                    "siteId": site_id,
+                    "siteUrl": source_url,
+                    "status": status_value,
+                    "httpStatus": http_status,
+                    "itemsCount": 0,
+                    "job_urls": [],
+                    "raw": raw_text or "{}",
+                }
+
+        response_block = {
+            "status": status_value,
+            "raw": raw_text or json_payload,
+        }
+        async_response_block = {
+            "jobId": job_id,
+            "status": status_value,
+            "event": event.get("event") or event.get("type"),
+            "receivedAt": event.get("receivedAt"),
+            "payload": event,
+            "metadata": metadata,
+        }
+
+        try:
+            board: GreenhouseBoardResponse = load_greenhouse_board(raw_text or json_payload)
+            job_urls = extract_greenhouse_job_urls(board, required_keywords=())
+        except Exception as exc:  # noqa: BLE001
+            raise ApplicationError(f"Unable to parse Greenhouse board payload (webhook): {exc}", non_retryable=True) from exc
+
+        logger.info(
+            "collect_firecrawl_job_result greenhouse job_id=%s status=%s urls=%d status_url=%s",
+            job_id,
+            status_value,
+            len(job_urls),
+            status_link,
+        )
+        print(
+            "\x1b[35m[WEBHOOK] status "
+            f"job_id={job_id} kind={FirecrawlJobKind.GREENHOUSE_LISTING} status={status_value} "
+            f"urls={len(job_urls)} http={http_status} status_url={status_link or 'n/a'}\x1b[0m"
+        )
+        return {
+            "kind": FirecrawlJobKind.GREENHOUSE_LISTING,
+            "siteId": site_id,
+            "siteUrl": source_url,
+            "status": status_value,
+            "httpStatus": http_status,
+            "request": request_snapshot,
+            "response": response_block,
+            "asyncResponse": async_response_block,
+            "itemsCount": len(job_urls),
+            "jobsScraped": len(job_urls),
+            "job_urls": job_urls,
+            "raw": raw_text,
+        }
+
+    raw_payload = (
+        status.model_dump(mode="json", exclude_none=True)
+        if hasattr(status, "model_dump")
+        else status
+    )
+    normalized_items = normalize_firecrawl_items(raw_payload)
+    print(
+        "\x1b[35m[WEBHOOK] status "
+        f"job_id={job_id} kind={kind} status={status_value} items={len(normalized_items)} "
+        f"http={http_status} status_url={status_link or 'n/a'}\x1b[0m"
+    )
+
+    scrape_payload = {
+        "sourceUrl": source_url or "",
+        "pattern": pattern,
+        "startedAt": event.get("receivedAt") or metadata.get("startedAt") or now,
+        "completedAt": now,
+        "request": request_snapshot,
+        "items": {
+            "normalized": normalized_items,
+            "raw": raw_payload,
+            "provider": "firecrawl",
+            "seedUrls": url_candidates or None,
+            "request": request_snapshot,
+        },
+        "provider": "firecrawl",
+        "workflowName": "ProcessWebhookScrape",
+    }
+
+    return {
+        "kind": kind,
+        "siteId": site_id,
+        "siteUrl": source_url,
+        "status": status_value,
+        "httpStatus": http_status,
+        "request": request_snapshot,
+        "scrape": scrape_payload,
+        "jobsScraped": len(normalized_items),
+        "itemsCount": len(normalized_items),
+    }
+@activity.defn
+async def store_scrape(scrape: Dict[str, Any]) -> str:
+    from ...services.convex_client import convex_mutation
+
+    async def _log_scratchpad(event: str, message: str | None = None, data: Dict[str, Any] | None = None):
+        site_url = scrape.get("sourceUrl")
+        if not isinstance(site_url, str):
+            site_url = ""
+        payload = _strip_none_values(
+            {
+                "event": event,
+                "message": message,
+                "data": data,
+                "createdAt": int(time.time() * 1000),
+                "workflowName": scrape.get("workflowName"),
+                "siteUrl": site_url or "",
+                "level": "info",
+            }
+        )
+        try:
+            await convex_mutation("scratchpad:append", payload)
+        except Exception:
+            # best-effort; ignore logging errors
+            pass
+
+    payload = trim_scrape_for_convex(scrape)
+    now = int(time.time() * 1000)
+    scraped_with = None
+    if isinstance(payload.get("items"), dict):
+        scraped_with = payload["items"].get("provider")
+    scraped_with = scraped_with or payload.get("provider")
+    workflow_name = payload.get("workflowName")
+    cost_milli_cents = payload.get("costMilliCents")
+    if cost_milli_cents is None and isinstance(payload.get("items"), dict):
+        maybe_cost = payload["items"].get("costMilliCents")
+        if isinstance(maybe_cost, (int, float)):
+            cost_milli_cents = int(maybe_cost)
+    # Support costCents fallback
+    if cost_milli_cents is None and payload.get("costCents") is not None:
+        try:
+            cost_milli_cents = int(float(payload["costCents"]) * 1000)
+        except Exception:
+            cost_milli_cents = None
+    response_preview = _shrink_payload(payload.get("response"), 4000)
+    async_response_preview = _shrink_payload(payload.get("asyncResponse"), 4000)
+
+    def _resolve_source_url(data: Dict[str, Any]) -> str:
+        """Best-effort source URL extraction that tolerates missing fields."""
+
+        for key in ("sourceUrl", "sourceURL", "source_url", "siteUrl", "url"):
+            val = data.get(key)
+            if isinstance(val, str) and val.strip():
+                return val
+
+        request_block = data.get("request")
+        if isinstance(request_block, dict):
+            req_url = request_block.get("url")
+            if isinstance(req_url, str) and req_url.strip():
+                return req_url
+
+        provider_request = data.get("providerRequest")
+        if isinstance(provider_request, dict):
+            req_url = provider_request.get("url")
+            if isinstance(req_url, str) and req_url.strip():
+                return req_url
+
+        return ""
+
+    def _base_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+        source_url = _resolve_source_url(data)
+        body = {
+            "sourceUrl": source_url,
+            "startedAt": data.get("startedAt", now),
+            "completedAt": data.get("completedAt", now),
+            "items": data.get("items"),
+        }
+        provider_value = scraped_with
+        if provider_value is None:
+            provider_value = data.get("provider")
+        if provider_value is None and isinstance(data.get("items"), dict):
+            provider_value = data["items"].get("provider")
+        if provider_value is not None:
+            body["provider"] = str(provider_value)
+        workflow_value = data.get("workflowName")
+        if workflow_value is None:
+            workflow_value = workflow_name
+        if workflow_value is not None:
+            body["workflowName"] = str(workflow_value)
+        pattern = data.get("pattern")
+        if pattern is not None:
+            body["pattern"] = pattern
+        if data.get("request") is not None:
+            body["request"] = data.get("request")
+        if data.get("providerRequest") is not None:
+            body["providerRequest"] = data.get("providerRequest")
+        if cost_milli_cents is not None:
+            body["costMilliCents"] = cost_milli_cents
+        if response_preview is not None:
+            body["response"] = response_preview
+        if async_response_preview is not None:
+            body["asyncResponse"] = async_response_preview
+        if data.get("asyncState") is not None:
+            body["asyncState"] = data.get("asyncState")
+        if data.get("batchId") is not None:
+            body["batchId"] = data.get("batchId")
+        if data.get("workflowId") is not None:
+            body["workflowId"] = data.get("workflowId")
+        if data.get("workflowType") is not None:
+            body["workflowType"] = data.get("workflowType")
+        if data.get("jobBoardJobId") is not None:
+            body["jobBoardJobId"] = data.get("jobBoardJobId")
+        if data.get("subUrls") is not None:
+            body["subUrls"] = data.get("subUrls")
+        return body
+
+    try:
+        scrape_id = await convex_mutation(
+            "router:insertScrapeRecord",
+            _base_payload(payload),
+        )
+    except Exception:
+        # Fallback: aggressively trim and retry once so we still record the run
+        fallback = trim_scrape_for_convex(
+            scrape,
+            max_items=100,
+            max_description=400,
+            raw_preview_chars=0,
+        )
+        if isinstance(fallback.get("items"), dict):
+            fallback["items"]["truncated"] = True
+        scrape_id = await convex_mutation(
+            "router:insertScrapeRecord",
+            _base_payload(fallback),
+        )
+
+    # Best-effort job ingestion (mimics router.ts behavior)
+    try:
+        jobs = _jobs_from_scrape_items(
+            payload.get("items"),
+            default_posted_at=now,
+            scraped_at=payload.get("completedAt", now),
+            scraped_with=scraped_with,
+            workflow_name=workflow_name,
+            scraped_cost_milli_cents=(
+                int(cost_milli_cents / max(len(payload.get("items", {}).get("normalized") or []) or 1, 1))
+                if isinstance(cost_milli_cents, (int, float))
+                else None
+            ),
+        )
+        if jobs:
+            await convex_mutation("router:ingestJobsFromScrape", {"jobs": jobs})
+    except Exception:
+        # Non-fatal: ingestion failures shouldn't block scrape recording
+        pass
+
+    # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
+    try:
+        urls_from_raw = _extract_job_urls_from_scrape(scrape)
+        await _log_scratchpad(
+            "scrape.url_extraction.raw",
+            message="Attempted URL extraction from raw scrape payload",
+            data={"urls": len(urls_from_raw or []), "sourceUrl": payload.get("sourceUrl")},
+        )
+
+        urls_from_trimmed = _extract_job_urls_from_scrape(payload) if not urls_from_raw else []
+        if not urls_from_raw:
+            await _log_scratchpad(
+                "scrape.url_extraction.trimmed",
+                message="Attempted URL extraction from trimmed payload",
+                data={"urls": len(urls_from_trimmed or []), "sourceUrl": payload.get("sourceUrl")},
+            )
+
+        urls = urls_from_raw or urls_from_trimmed or []
+        if urls:
+            await convex_mutation(
+                "router:enqueueScrapeUrls",
+                {
+                    "urls": urls,
+                    "sourceUrl": payload.get("sourceUrl") or "",
+                    "provider": scraped_with or payload.get("provider") or "",
+                    "siteId": payload.get("siteId"),
+                    "pattern": payload.get("pattern"),
+                },
+            )
+            await _log_scratchpad(
+                "scrape.url_enqueue",
+                message="Enqueued URLs from scrape payload",
+                data={"urls": len(urls), "sourceUrl": payload.get("sourceUrl")},
+            )
+        else:
+            await _log_scratchpad(
+                "scrape.url_extraction.none",
+                message="No URLs extracted from scrape payload",
+                data={"sourceUrl": payload.get("sourceUrl")},
+            )
+    except Exception as exc:
+        await _log_scratchpad(
+            "scrape.url_extraction.error",
+            message="Failed to enqueue URLs from scrape payload",
+            data={"error": str(exc), "sourceUrl": payload.get("sourceUrl")},
+        )
+        # Non-fatal
+
+    return str(scrape_id)
+
+
+@activity.defn
+async def complete_site(site_id: str) -> None:
+    from ...services.convex_client import convex_mutation
+
+    if not _looks_like_convex_id(site_id):
+        # Skip best-effort if id is not a Convex document id
+        return
+
+    try:
+        await convex_mutation("router:completeSite", {"id": site_id})
+    except Exception as exc:  # noqa: BLE001
+        # Swallow validator errors so workflows continue
+        if "ArgumentValidationError" in str(exc) and ".id" in str(exc):
+            return
+        raise
+
+
+@activity.defn
+async def fail_site(payload: Dict[str, Any]) -> None:
+    from ...services.convex_client import convex_mutation
+
+    site_id = payload.get("id")
+    if not isinstance(site_id, str) or not _looks_like_convex_id(site_id):
+        return
+
+    try:
+        await convex_mutation("router:failSite", {"id": site_id, "error": payload.get("error")})
+    except Exception as exc:  # noqa: BLE001
+        if "ArgumentValidationError" in str(exc) and ".id" in str(exc):
+            return
+        raise
+
+
+def _looks_like_convex_id(value: str) -> bool:
+    return isinstance(value, str) and len(value) >= 26 and value.isalnum()
+
+
+def _firecrawl_key_suffix() -> Optional[str]:
+    key = settings.firecrawl_api_key
+    if not key:
+        return None
+
+    trimmed = key.strip()
+    if not trimmed:
+        return None
+
+    return trimmed[-4:]
+
+
+def _is_firecrawl_related(entry: Dict[str, Any]) -> bool:
+    event = str(entry.get("event") or "").lower()
+    if "firecrawl" in event:
+        return True
+
+    data = entry.get("data")
+    if not isinstance(data, dict):
+        return False
+
+    provider = data.get("provider")
+    if isinstance(provider, str) and "firecrawl" in provider.lower():
+        return True
+
+    items = data.get("items")
+    if isinstance(items, dict):
+        items_provider = items.get("provider")
+        if isinstance(items_provider, str) and "firecrawl" in items_provider.lower():
+            return True
+
+    async_response = data.get("asyncResponse")
+    if isinstance(async_response, dict):
+        async_provider = async_response.get("provider")
+        if isinstance(async_provider, str) and "firecrawl" in async_provider.lower():
+            return True
+
+    return False
+
+
+def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
+    """Heuristic extraction of job URLs (Greenhouse or plain HTML) from a scrape payload."""
+
+    md_link_re = re.compile(r"(?<!!)\[([^\]]+)\]\((https?://[^\s)]+)\)")
+    greenhouse_re = re.compile(r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+", re.IGNORECASE)
+    dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
+
+    class _AnchorParser(HTMLParser):  # noqa: N801
+        def __init__(self):
+            super().__init__()
+            self.links: list[tuple[str, str]] = []
+            self._current_href: str | None = None
+            self._text_parts: list[str] = []
+
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            if tag.lower() != "a":
+                return
+            href = None
+            for key, val in attrs:
+                if key.lower() == "href":
+                    href = val
+                    break
+            if href and href.startswith("http"):
+                self._current_href = href
+                self._text_parts = []
+
+        def handle_data(self, data: str) -> None:
+            if self._current_href is not None:
+                self._text_parts.append(data)
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag.lower() != "a" or self._current_href is None:
+                return
+            text = "".join(self._text_parts).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._text_parts = []
+
+    def _gather_strings(value: Any) -> list[str]:
+        results: list[str] = []
+        if isinstance(value, str):
+            results.append(value)
+            return results
+        if isinstance(value, dict):
+            for v in value.values():
+                results.extend(_gather_strings(v))
+        elif isinstance(value, list):
+            for item in value:
+                results.extend(_gather_strings(item))
+        return results
+
+    def _split_title_and_location(text: str) -> tuple[Optional[str], Optional[str]]:
+        if not text:
+            return None, None
+        val = text.strip()
+        paren_match = re.match(r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$", val)
+        if paren_match:
+            return paren_match.group(1).strip() or None, paren_match.group(2).strip() or None
+        for sep in dash_separators:
+            if sep in val:
+                left, right = val.rsplit(sep, 1)
+                return (left.strip() or None, right.strip() or None)
+        return val, None
+
+    def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
+        links: list[tuple[str, Optional[str], Optional[str]]] = []
+        for match in md_link_re.finditer(text):
+            title_text = match.group(1).strip()
+            url = match.group(2).strip()
+            title, loc = _split_title_and_location(title_text)
+            links.append((url, title or title_text, loc))
+
+        parser = _AnchorParser()
+        try:
+            parser.feed(text)
+        except Exception:
+            # best-effort; ignore parsing failures
+            parser.close()
+        for href, anchor_text in parser.links:
+            title, loc = _split_title_and_location(anchor_text)
+            links.append((href.strip(), title, loc))
+
+        for match in greenhouse_re.findall(text):
+            if "jobs" not in match:
+                continue
+            links.append((match.strip(), None, None))
+
+        return links
+
+    candidates: list[str] = []
+    items = scrape.get("items") if isinstance(scrape, dict) else {}
+    if isinstance(items, dict):
+        raw_val = items.get("raw")
+        candidates.extend(_gather_strings(raw_val))
+        if "raw" in items and not raw_val and isinstance(items.get("normalized"), list):
+            for job in items["normalized"]:
+                candidates.extend(_gather_strings(job))
+    candidates.extend(_gather_strings(scrape.get("response")))
+
+    urls: list[str] = []
+    seen: set[str] = set()
+    for text in list(candidates):
+        if isinstance(text, str):
+            try:
+                parsed = json.loads(text)
+                candidates.extend(_gather_strings(parsed))
+            except Exception:
+                pass
+        if not isinstance(text, str):
+            continue
+        for url, title, location in _extract_from_text(text):
+            if not url or not url.startswith("http"):
+                continue
+            if not title_matches_required_keywords(title):
+                continue
+            if location and not location_matches_usa(location):
+                continue
+            if url in seen:
+                continue
+            seen.add(url)
+            urls.append(url)
+
+    return urls
+
+
+def _domain_from_url(url: str) -> str:
+    try:
+        return str(url or "").split("://", 1)[-1].split("/", 1)[0].lower()
+    except Exception:
+        return ""
+
+
+def _build_ordered_regexes(configs: List[Dict[str, Any]], field: str, defaults: List[str]) -> List[str]:
+    ordered: List[str] = []
+    seen: set[str] = set()
+    for cfg in configs:
+        if (cfg.get("field") or "").lower() != field.lower():
+            continue
+        regex = cfg.get("regex")
+        if not isinstance(regex, str) or not regex.strip():
+            continue
+        if regex in seen:
+            continue
+        seen.add(regex)
+        ordered.append(regex)
+    for regex in defaults:
+        if regex not in seen:
+            seen.add(regex)
+            ordered.append(regex)
+    return ordered
+
+
+def _detect_currency_code(text: str) -> Optional[str]:
+    """Lightweight currency detector to prioritize non-USD listings (e.g., INR, EUR, GBP)."""
+
+    lowered = text.lower()
+    currency_hints = [
+        ("INR", [r"₹", r"\brupees?\b", r"\brupee\b", r"\bINR\b", r"\blakh\b", r"\blpa\b"]),
+        ("GBP", [r"£", r"\bGBP\b"]),
+        ("EUR", [r"€", r"\bEUR\b"]),
+        ("AUD", [r"\bAUD\b", r"\bA\\$"]),
+        ("CAD", [r"\bCAD\b", r"\bC\\$"]),
+    ]
+    for code, patterns in currency_hints:
+        for pat in patterns:
+            try:
+                if re.search(pat, text, flags=re.IGNORECASE):
+                    return code
+            except re.error:
+                continue
+    if "$" in text and "aud" not in lowered and "cad" not in lowered:
+        return "USD"
+    return None
+
+
+def _looks_like_location_anywhere(value: Optional[str]) -> bool:
+    """Allow non-US locations such as 'Bangalore, India' to pass heuristic parsing."""
+    if not value:
+        return False
+    text = value.strip()
+    if len(text) < 3 or len(text) > 80:
+        return False
+    return bool(re.search(r"[A-Za-z].*,\s*[A-Za-z]", text))
+
+
+def _first_match(text: str, regexes: List[str]) -> tuple[Optional[str], Optional[str]]:
+    for pattern in regexes:
+        try:
+            match = re.search(pattern, text, flags=re.MULTILINE | re.IGNORECASE)
+        except re.error:
+            continue
+        if match:
+            group_dict = match.groupdict() if match.groupdict() else {}
+            # Prefer named groups if present.
+            if "location" in group_dict:
+                return pattern, group_dict.get("location")
+            if "value" in group_dict:
+                return pattern, group_dict.get("value")
+            return pattern, match.group(0)
+    return None, None
+
+
+@activity.defn
+async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
+    """Parse pending job descriptions with heuristics and persist learned regex configs."""
+
+    from ...services.convex_client import convex_mutation, convex_query
+
+    pending = await convex_query("router:listPendingJobDetails", {"limit": limit}) or []
+    processed = 0
+    updated: List[str] = []
+    for row in pending:
+        try:
+            job_id = row.get("_id")
+            description = row.get("description") or ""
+            url = row.get("url") or ""
+            domain = _domain_from_url(url)
+
+            configs = await convex_query("router:listJobDetailConfigs", {"domain": domain}) or []
+            attempts = int(row.get("heuristicAttempts") or 0)
+            now_ms = int(time.time() * 1000)
+
+            location_defaults = [
+                r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})",
+                r"location[:\-\s]+(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})",
+                r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})",
+                r"\((?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\)",
+            ]
+            comp_defaults = [
+                r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?))?",
+                r"[₹]\s*(?P<low>\d{1,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*[₹]?\s*(?P<high>\d{1,3}(?:[.,]\d{3})?))?",
+                r"(?P<value>\d{2,3})k",
+                r"(?P<value>\d{1,3})\s*(lpa|lakh)",
+            ]
+
+            location_regexes = _build_ordered_regexes(configs, "location", location_defaults)
+            comp_regexes = _build_ordered_regexes(configs, "compensation", comp_defaults)
+
+            hints = parse_markdown_hints(description)
+            location = row.get("location") or hints.get("location")
+            comp_reason = row.get("compensationReason")
+            total_comp = row.get("totalCompensation") or 0
+            compensation_unknown = bool(row.get("compensationUnknown"))
+            currency_code = row.get("currencyCode")
+            currency_hint = _detect_currency_code(description)
+            if currency_hint and currency_hint != currency_code:
+                currency_code = currency_hint
+
+            if (not location or location.lower() == "unknown") and description:
+                used_pattern, found = _first_match(description, location_regexes)
+                if found and (location_matches_usa(found) or _looks_like_location_anywhere(found)):
+                    location = found.strip()
+                    if used_pattern:
+                        await convex_mutation(
+                            "router:recordJobDetailHeuristic",
+                            {"domain": domain or "default", "field": "location", "regex": used_pattern},
+                        )
+            if (not location or location.lower() == "unknown") and currency_hint and currency_hint != "USD":
+                if currency_hint == "INR":
+                    location = "India"
+                elif currency_hint == "GBP":
+                    location = "United Kingdom"
+                elif currency_hint == "EUR":
+                    location = "Europe"
+
+            if (not total_comp or total_comp <= 0) and description:
+                used_pattern, found_val = _first_match(description, comp_regexes)
+                if found_val:
+                    # Support k shorthand
+                    cleaned = found_val.replace(",", "").lower()
+                    try:
+                        if "lpa" in cleaned or "lakh" in cleaned:
+                            base_val = re.sub(r"[^0-9.]", "", cleaned)
+                            comp_val = int(float(base_val) * 100_000) if base_val else None
+                        elif cleaned.endswith("k"):
+                            comp_val = int(float(cleaned[:-1]) * 1000)
+                        else:
+                            comp_val = int(float(re.sub(r"[^0-9]", "", cleaned)))
+                    except Exception:
+                        comp_val = None
+                    if comp_val and comp_val > 0:
+                        total_comp = comp_val
+                        compensation_unknown = False
+                        comp_reason = "parsed with heuristic"
+                        if currency_hint and currency_hint != "USD":
+                            currency_code = currency_hint
+                    if used_pattern:
+                        await convex_mutation(
+                            "router:recordJobDetailHeuristic",
+                            {"domain": domain or "default", "field": "compensation", "regex": used_pattern},
+                        )
+
+            if not job_id:
+                continue
+
+            patch: Dict[str, Any] = {}
+            patch["heuristicAttempts"] = attempts + 1
+            patch["heuristicLastTried"] = now_ms
+            if location:
+                patch["location"] = location
+            if total_comp and total_comp > 0:
+                patch["totalCompensation"] = int(total_comp)
+            if comp_reason:
+                patch["compensationReason"] = comp_reason
+            if compensation_unknown is not None:
+                patch["compensationUnknown"] = compensation_unknown
+            if currency_code:
+                patch["currencyCode"] = currency_code
+            if hints.get("remote") is True:
+                patch["remote"] = True
+            elif hints.get("remote") is False and row.get("remote") is None:
+                patch["remote"] = False
+
+            if patch:
+                await convex_mutation("router:updateJobWithHeuristic", {"id": job_id, **patch})
+                updated.append(job_id)
+                processed += 1
+        except Exception:
+            continue
+
+    return {"processed": processed, "updated": updated}
+
+
+def _with_firecrawl_suffix(entry: Dict[str, Any]) -> Dict[str, Any]:
+    suffix = _firecrawl_key_suffix()
+    if not suffix or not _is_firecrawl_related(entry):
+        return entry
+
+    data = entry.get("data")
+    if isinstance(data, dict):
+        entry["data"] = {**data, "firecrawlKeySuffix": suffix}
+    else:
+        payload: Dict[str, Any] = {"firecrawlKeySuffix": suffix}
+        if data is not None:
+            payload["value"] = data
+        entry["data"] = payload
+    return entry
+
+
+@activity.defn
+async def record_workflow_run(run: Dict[str, Any]) -> None:
+    from ...services.convex_client import convex_mutation
+
+    payload = {k: v for k, v in run.items() if v is not None}
+    try:
+        await convex_mutation("temporal:recordWorkflowRun", payload)
+    except asyncio.CancelledError:
+        # Shutdown/interrupt paths shouldn't surface as activity failures
+        return None
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(f"Failed to record workflow run: {e}") from e
+
+
+def _shrink_for_scratchpad(data: Any, max_len: int = 900) -> Any:
+    """Keep scratchpad payloads small to fit Convex doc limits."""
+
+    if data is None:
+        return None
+
+    try:
+        serialized = json.dumps(data, ensure_ascii=False)
+    except Exception:
+        serialized = str(data)
+
+    if len(serialized) <= max_len:
+        return data
+
+    return f"{serialized[:max_len]}... (+{len(serialized) - max_len} chars)"
+
+
+@activity.defn
+async def record_scratchpad(entry: Dict[str, Any]) -> None:
+    """Write a lightweight scratchpad entry to Convex."""
+
+    from ...services.convex_client import convex_mutation
+
+    payload = _with_firecrawl_suffix({k: v for k, v in entry.items() if v is not None})
+    if payload.get("siteUrl") is None:
+        payload["siteUrl"] = ""
+    if "data" in payload:
+        payload["data"] = _shrink_for_scratchpad(payload.get("data"))
+
+    try:
+        await convex_mutation("scratchpad:append", payload)
+    except asyncio.CancelledError:
+        return None
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(f"Failed to record scratchpad entry: {e}") from e

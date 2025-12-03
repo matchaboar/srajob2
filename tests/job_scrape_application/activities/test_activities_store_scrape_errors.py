@@ -66,11 +66,13 @@ async def test_store_scrape_retries_on_failure(monkeypatch):
         "costMilliCents": 1500,
     }
 
-    calls: Dict[str, Any] = {"attempts": 0}
+    calls: list[str] = []
+    first_insert_failed: Dict[str, bool] = {"value": False}
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
-        calls["attempts"] += 1
-        if calls["attempts"] == 1:
+        calls.append(name)
+        if name == "router:insertScrapeRecord" and not first_insert_failed["value"]:
+            first_insert_failed["value"] = True
             raise RuntimeError("first failure")
         return "scrape-id"
 
@@ -80,7 +82,8 @@ async def test_store_scrape_retries_on_failure(monkeypatch):
     res = await acts.store_scrape(payload)
 
     assert res == "scrape-id"
-    assert calls["attempts"] == 2
+    assert first_insert_failed["value"] is True
+    assert calls.count("router:insertScrapeRecord") == 2
 
 
 @pytest.mark.asyncio

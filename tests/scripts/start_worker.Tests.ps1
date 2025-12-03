@@ -163,9 +163,7 @@ EXISTING=override
         }
 
         ($UvCalls | Where-Object { $_ -like "*worker*" }).Count | Should -Be 1
-        if ($script:ErrorWatcher) {
-            Get-Job -Id $script:ErrorWatcher.Id -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
-        }
+        $script:ErrorWatcher | Should -BeNullOrEmpty
     }
 
     It "fails fast when worker exits with an error code" {

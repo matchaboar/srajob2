@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { LiveTimer } from "./LiveTimer";
+import { CompanyIcon } from "./CompanyIcon";
+import { buildCompensationMeta } from "../lib/compensation";
 
 interface JobRowProps {
     job: any;
@@ -12,56 +14,11 @@ interface JobRowProps {
 }
 
 export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting, keyboardBlur }: JobRowProps) {
-    const formatSalary = (amount: number) => {
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
-    };
-
+    const compensationMeta = buildCompensationMeta(job);
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
-    const scrapedBadge = job.scrapedWith ? (job.scrapedWith as string) : null;
     const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
-    const scrapedCostMilliCents =
-        typeof job.scrapedCostMilliCents === "number" ? job.scrapedCostMilliCents : null;
-
-    const formatCost = (milliCents: number) => {
-        if (milliCents >= 1000) {
-            return `${(milliCents / 1000).toFixed(2)} ¢`;
-        }
-        if (milliCents === 100) return "1/10 ¢";
-        if (milliCents === 10) return "1/100 ¢";
-        if (milliCents === 1) return "1/1000 ¢";
-        if (milliCents > 0) {
-            const cents = milliCents / 1000;
-            return `${cents.toFixed(3)} ¢`;
-        }
-        return "0 ¢";
-    };
-    const scrapedCostLabel =
-        scrapedCostMilliCents !== null && scrapedCostMilliCents !== undefined
-            ? (() => {
-                const mc = scrapedCostMilliCents;
-                const renderFraction = (num: number, den: number) => (
-                    <span className="inline-flex items-center text-[10px] font-semibold text-amber-400/90">
-                        <span className="flex flex-col leading-tight items-center mr-0.5">
-                            <span className="px-0.5">{num}</span>
-                            <span className="px-0.5">{den}</span>
-                        </span>
-                        <span className="text-[10px] text-amber-300 mx-0.5">/</span>
-                        <span className="text-[10px] text-amber-300">¢</span>
-                    </span>
-                );
-                if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
-                if (mc === 100) return renderFraction(1, 10);
-                if (mc === 10) return renderFraction(1, 100);
-                if (mc === 1) return renderFraction(1, 1000);
-                if (mc > 0) return `${(mc / 1000).toFixed(3)} ¢`;
-                return "0 ¢";
-              })()
-            : null;
+    const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
+    const timerClass = "text-xs font-medium text-slate-400 font-mono";
 
     return (
         <motion.div
@@ -81,7 +38,7 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
             onClick={onSelect}
             data-job-id={job._id}
             className={`
-        relative group flex items-center gap-4 px-4 pr-36 py-2 border-b border-slate-800 cursor-pointer transition-colors
+        relative group flex items-center gap-3 px-4 pr-36 py-2 border-b border-slate-800 cursor-pointer transition-colors
         ${isSelected ? "bg-slate-800" : "hover:bg-slate-900"}
         ${keyboardBlur ? "blur-[1px] opacity-70" : ""}
       `}
@@ -89,7 +46,8 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
             {/* Selection Indicator */}
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
 
-            <div className="flex-1 min-w-0 grid grid-cols-[4fr_3fr_2fr_3fr_2fr] gap-4 items-center">
+            <div className="flex-1 min-w-0 grid grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-center">
+                <CompanyIcon company={job.company ?? ""} size={32} />
                 {/* Title & Company */}
                 <div className="min-w-0">
                     <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
@@ -117,56 +75,76 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
 
                 {/* Salary */}
                 <div className="text-right">
-                    <span className="text-xs font-medium text-emerald-400">
-                        {formatSalary(job.totalCompensation)}
+                    <span
+                        className={`text-xs font-medium ${compensationMeta.isUnknown ? "text-slate-400" : "text-emerald-400"}`}
+                        title={compensationMeta.reason}
+                    >
+                        {compensationMeta.display}
                     </span>
                 </div>
 
                 {/* Posted Date */}
                 <div className="text-right">
                     <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[10px] text-slate-500 font-medium">
-                            {new Date(job.postedAt).toLocaleString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit"
-                            })}
-                        </span>
-                        {(Date.now() - job.postedAt) < 5 * 24 * 60 * 60 * 1000 ? (
-                            <LiveTimer
-                                className="text-xs font-medium text-slate-500"
-                                startTime={job.postedAt}
-                                colorize
-                                warnAfterMs={24 * 60 * 60 * 1000}
-                                dangerAfterMs={3 * 24 * 60 * 60 * 1000}
-                                showAgo
-                            />
-                        ) : (
-                            <div className="h-4" /> /* Spacer to maintain height consistency if needed, or just omit */
-                        )}
-                        {scrapedAt && (
-                            <span className="text-[10px] text-slate-600 font-mono flex items-center gap-1">
-                                scraped
-                                <LiveTimer
-                                    startTime={scrapedAt}
-                                    colorize
-                                    warnAfterMs={12 * 60 * 60 * 1000}
-                                    dangerAfterMs={48 * 60 * 60 * 1000}
-                                    showAgo
+                        {postedAt ? (
+                            <>
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                    {new Date(postedAt).toLocaleString(undefined, {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "numeric",
+                                        minute: "2-digit"
+                                    })}
+                                </span>
+                                {(Date.now() - postedAt) < 5 * 24 * 60 * 60 * 1000 ? (
+                                    <LiveTimer
+                                        className={timerClass}
+                                        startTime={postedAt}
+                                        colorize={isSelected}
+                                        warnAfterMs={24 * 60 * 60 * 1000}
+                                        dangerAfterMs={3 * 24 * 60 * 60 * 1000}
+                                        showAgo
+                                        showSeconds={isSelected}
+                                        dataTestId="posted-timer"
                                     />
-                                {scrapedBadge ? ` · ${scrapedBadge}` : ""}
-                            </span>
-                        )}
-                        {scrapedCostLabel && (
-                            <span
-                                data-testid="scrape-cost"
-                                className="text-[10px] text-amber-500 font-mono flex items-center gap-1"
-                            >
-                                cost {scrapedCostLabel}
-                            </span>
+                                ) : (
+                                    <div className="h-4" />
+                                )}
+                            </>
+                        ) : (
+                            <span className="text-[11px] text-slate-600">Unknown</span>
                         )}
                     </div>
+                </div>
+
+                {/* Scraped */}
+                <div className="text-right">
+                    {scrapedAt ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-[10px] text-slate-500 font-medium">
+                                {new Date(scrapedAt).toLocaleString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit"
+                                })}
+                            </span>
+                            <LiveTimer
+                                className={timerClass}
+                                startTime={scrapedAt}
+                                colorize={isSelected}
+                                warnAfterMs={12 * 60 * 60 * 1000}
+                                dangerAfterMs={48 * 60 * 60 * 1000}
+                                showAgo
+                                showSeconds={isSelected}
+                                dataTestId="scraped-timer"
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-end gap-0.5 text-right">
+                            <span className="text-[11px] text-slate-600">Not scraped</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

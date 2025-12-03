@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "preinstall": "npx --yes only-allow pnpm",
+    "preupdate": "npx --yes only-allow pnpm",
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "dev:frontend": "vite --open",
     "dev:backend": "convex dev",
@@ -22,6 +24,7 @@
     "playwright-chromium": "^1.56.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "simple-icons": "^15.22.0",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.1.0"
   },
@@ -50,5 +53,6 @@
     "typescript-eslint": "^8.24.1",
     "vite": "^7.2.4",
     "vitest": "4.0.13"
-  }
+  },
+  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
 }

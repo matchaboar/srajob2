@@ -124,7 +124,7 @@ class GreenhouseScraperWorkflow:
                         scrape_res = await workflow.execute_activity(
                             scrape_greenhouse_jobs,
                             args=[{"urls": urls_to_scrape, "source_url": site["url"]}],
-                            start_to_close_timeout=timedelta(minutes=10),
+                            start_to_close_timeout=timedelta(minutes=30),
                         )
                         scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None
                         jobs_scraped += int(scrape_res.get("jobsScraped") or 0) if isinstance(scrape_res, dict) else 0

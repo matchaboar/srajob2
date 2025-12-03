@@ -59,11 +59,13 @@ def extract_greenhouse_job_urls(
 ) -> list[str]:
     """Return unique, non-empty job URLs from a board response that match title filters."""
 
-    urls = [
-        job.absolute_url
-        for job in board.jobs
-        if job.absolute_url and title_matches_required_keywords(job.title, required_keywords)
-    ]
+    urls = []
+    for job in board.jobs:
+        if not job.absolute_url:
+            continue
+        if not title_matches_required_keywords(job.title, keywords=required_keywords):
+            continue
+        urls.append(job.absolute_url)
     # Preserve order while deduping
     seen: set[str] = set()
     deduped: list[str] = []

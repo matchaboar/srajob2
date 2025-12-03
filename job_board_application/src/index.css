@@ -171,6 +171,14 @@ body {
   box-shadow: 0 0 12px rgba(220, 38, 38, 0.6), 0 0 24px rgba(220, 38, 38, 0.3);
 }
 
+.live-timer[data-color] {
+  color: var(--live-timer-color) !important;
+}
+
+.live-timer[data-color] span {
+  color: var(--live-timer-color) !important;
+}
+
 /* Status Tracker Pulse Animation */
 @keyframes statusTrackerPulse {
 

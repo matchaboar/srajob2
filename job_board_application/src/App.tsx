@@ -4,7 +4,7 @@ import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster, toast } from "sonner";
 import { JobBoard } from "./JobBoard";
-import { PublicJobPreview } from "./PublicJobPreview";
+import { FakePublicJobPreview } from "./FakePublicJobPreview";
 import { AdminPage } from "./AdminPage";
 import { JobDetailsPage } from "./JobDetailsPage";
 import { StatusTrackerTest } from "./test/StatusTrackerTest";
@@ -139,7 +139,7 @@ function Content() {
         <JobBoard />
       </Authenticated>
       <Unauthenticated>
-        <PublicJobPreview />
+        <FakePublicJobPreview />
       </Unauthenticated>
     </div>
   );

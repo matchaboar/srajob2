@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows import scrape_workflow as sw  # noqa: E402
 from job_scrape_application.services import convex_client  # noqa: E402
+from job_scrape_application.workflows import worker  # noqa: E402
 
 
 @pytest.mark.asyncio
@@ -120,6 +121,23 @@ async def test_scrape_workflow_handles_no_sites(monkeypatch):
     payload = record_calls[0][2]["args"][0]
     assert payload["sitesProcessed"] == 0
     assert "No sites were leased" in (payload["error"] or "")
+
+
+def test_worker_registers_spidercloud_job_details_workflow():
+    names = {wf.__name__ for wf in worker.WORKFLOW_CLASSES}
+    assert "SpidercloudJobDetailsWorkflow" in names
+
+
+def test_activities_exports_job_detail_batch_helpers():
+    assert hasattr(acts, "lease_scrape_url_batch")
+    assert hasattr(acts, "process_spidercloud_job_batch")
+    assert hasattr(acts, "complete_scrape_urls")
+
+
+def test_worker_registers_job_detail_activities():
+    names = {fn.__name__ for fn in worker.ACTIVITY_FUNCTIONS}
+    assert "lease_scrape_url_batch" in names
+    assert "process_spidercloud_job_batch" in names
 
 
 @pytest.mark.asyncio

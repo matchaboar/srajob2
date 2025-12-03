@@ -73,5 +73,7 @@ def test_jobs_from_scrape_items_filters_and_defaults():
     assert job["company"] == "Unknown"  # default fallback
     assert job["remote"] is False
     assert job["level"] == "mid"
-    assert job["totalCompensation"] == acts.DEFAULT_TOTAL_COMPENSATION
+    assert job["totalCompensation"] == 0
+    assert job.get("compensationUnknown") is True
+    assert "compensationReason" in job
     assert job["postedAt"] == 1234

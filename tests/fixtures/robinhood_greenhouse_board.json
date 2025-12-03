@@ -1,0 +1,3279 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7379020?t=gh_src=&gh_jid=7379020",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3289690,
+      "location": {
+        "name": "Denver, CO; New York, NY; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FRAUD  & FINANCIAL CRIMES",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7379020,
+      "updated_at": "2025-11-25T20:49:51-05:00",
+      "requisition_id": "JR107648",
+      "title": "AML Investigator, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-25T20:49:51-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7318478?t=gh_src=&gh_jid=7318478",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3098288,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7318478,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1689",
+      "title": " Analytics Engineering",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-13T16:06:48-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/5702135?t=gh_src=&gh_jid=5702135",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 2785697,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 5702135,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1566",
+      "title": "Android Developer",
+      "company_name": "Robinhood",
+      "first_published": "2024-02-13T19:03:30-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6669758?t=gh_src=&gh_jid=6669758",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3085172,
+      "location": {
+        "name": "New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6669758,
+      "updated_at": "2025-11-26T18:10:55-05:00",
+      "requisition_id": "1683",
+      "title": "Android Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-05-08T14:52:01-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7158345?t=gh_src=&gh_jid=7158345",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3216300,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7158345,
+      "updated_at": "2025-11-25T19:35:40-05:00",
+      "requisition_id": "JR107278",
+      "title": "Brokerage Operations Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T10:25:46-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7158347?t=gh_src=&gh_jid=7158347",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3216301,
+      "location": {
+        "name": "Chicago, IL; Denver, CO"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7158347,
+      "updated_at": "2025-11-25T19:35:42-05:00",
+      "requisition_id": "JR107287",
+      "title": "Brokerage Risk Analyst Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T10:26:18-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7373442?t=gh_src=&gh_jid=7373442",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3287553,
+      "location": {
+        "name": "London, UK"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "BUSINESS & STRATEGY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7373442,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1776",
+      "title": "Business Development Lead, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T15:25:21-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7380582?t=gh_src=&gh_jid=7380582",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3290273,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY; Washington, DC"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "COMPLIANCE & RISK",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7380582,
+      "updated_at": "2025-11-25T19:39:07-05:00",
+      "requisition_id": "JR107634",
+      "title": "Compliance Advisor, Integration & Growth",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-11T15:04:13-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7155909?t=gh_src=&gh_jid=7155909",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3215459,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7155909,
+      "updated_at": "2025-11-25T19:35:24-05:00",
+      "requisition_id": "JR107279",
+      "title": "Corporate Strategy Intern",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T14:13:01-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7155913?t=gh_src=&gh_jid=7155913",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3215461,
+      "location": {
+        "name": "Washington, DC"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7155913,
+      "updated_at": "2025-11-25T19:35:25-05:00",
+      "requisition_id": "JR107282",
+      "title": "Corporate Treasury Operations Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T14:13:30-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7011307?t=gh_src=&gh_jid=7011307",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3179215,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "CUSTOMER EXPERIENCE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7011307,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1719",
+      "title": "Customer Experience Representative, Advanced Services ",
+      "company_name": "Robinhood",
+      "first_published": "2025-06-25T17:00:05-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7066053?t=gh_src=&gh_jid=7066053",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3191437,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "CUSTOMER EXPERIENCE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7066053,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1725",
+      "title": "Customer Experience Representative, Concierge",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-11T16:32:45-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7017682?t=gh_src=&gh_jid=7017682",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3181323,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "CUSTOMER EXPERIENCE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7017682,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1720",
+      "title": "Customer Experience Representative, Core Services",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-02T11:45:02-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7271334?t=gh_src=&gh_jid=7271334",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3254839,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "CUSTOMER EXPERIENCE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7271334,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1764",
+      "title": "Customer Experience Representative, Derivatives ",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-24T19:20:29-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7335713?t=gh_src=&gh_jid=7335713",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3273606,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "CUSTOMER EXPERIENCE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7335713,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "JR107586",
+      "title": "CX Agent, Money",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-17T10:24:37-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7257962?t=gh_src=&gh_jid=7257962",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3249329,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7257962,
+      "updated_at": "2025-11-25T19:37:44-05:00",
+      "requisition_id": "JR107446",
+      "title": "Director of Design, Brokerage",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-17T18:31:21-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7018119?t=gh_src=&gh_jid=7018119",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3115817,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7018119,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1695",
+      "title": "Director of Design, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-06-27T17:57:13-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7022496?t=gh_src=&gh_jid=7022496",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3182396,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7022496,
+      "updated_at": "2025-11-25T19:34:54-05:00",
+      "requisition_id": "JR106933",
+      "title": "Director of Engineering, Trading Products",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-24T13:27:40-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7003658?t=gh_src=&gh_jid=7003658",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3177169,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7003658,
+      "updated_at": "2025-11-25T19:34:47-05:00",
+      "requisition_id": "JR106940",
+      "title": "Engineering Manager, Offensive Security & Vulnerability Management",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-08T13:14:26-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7003656?t=gh_src=&gh_jid=7003656",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3177169,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7003656,
+      "updated_at": "2025-11-25T19:34:47-05:00",
+      "requisition_id": "JR106940",
+      "title": "Engineering Manager, Offensive Security & Vulnerability Management",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-08T13:13:18-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6816948?t=gh_src=&gh_jid=6816948",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3126352,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6816948,
+      "updated_at": "2025-11-25T19:34:37-05:00",
+      "requisition_id": "JR106592",
+      "title": "Engineering Manager, Prediction Markets",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-10T19:47:53-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6816946?t=gh_src=&gh_jid=6816946",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3126352,
+      "location": {
+        "name": "New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6816946,
+      "updated_at": "2025-11-25T19:34:37-05:00",
+      "requisition_id": "JR106592",
+      "title": "Engineering Manager, Prediction Markets",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-14T16:11:18-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7117648?t=gh_src=&gh_jid=7117648",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3206182,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7117648,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1731",
+      "title": "Engineering Manager, Toronto",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-31T13:21:29-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7155936?t=gh_src=&gh_jid=7155936",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3215471,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7155936,
+      "updated_at": "2025-11-25T19:35:34-05:00",
+      "requisition_id": "JR107290",
+      "title": "Enterprise Risk Management Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T14:13:41-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7429786?t=gh_src=&gh_jid=7429786",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3266301,
+      "location": {
+        "name": "Clearwater, FL; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "OPERATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7429786,
+      "updated_at": "2025-11-26T13:50:11-05:00",
+      "requisition_id": "1767",
+      "title": "Estate Processing Associate",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-26T13:49:35-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7340954?t=gh_src=&gh_jid=7340954",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3275651,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FINANCE & ACCOUNTING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7340954,
+      "updated_at": "2025-11-25T19:38:36-05:00",
+      "requisition_id": "JR107579",
+      "title": "Finance & Strategy Manager",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-21T22:46:14-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7389136?t=gh_src=&gh_jid=7389136",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3293464,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Westlake, TX"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FRAUD  & FINANCIAL CRIMES",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7389136,
+      "updated_at": "2025-11-28T11:46:25-05:00",
+      "requisition_id": "JR107675",
+      "title": "Fraud Investigator",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-12T17:13:03-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7341387?t=gh_src=&gh_jid=7341387",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3183302,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7341387,
+      "updated_at": "2025-11-25T19:34:56-05:00",
+      "requisition_id": "JR107038",
+      "title": "Full Stack Engineer, Credit Cards & Banking",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-17T13:53:53-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7373941?t=gh_src=&gh_jid=7373941",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3287553,
+      "location": {
+        "name": "London, UK"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "BUSINESS & STRATEGY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7373941,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1776",
+      "title": "Institutional Sales, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T15:27:12-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7155943?t=gh_src=&gh_jid=7155943",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3215474,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7155943,
+      "updated_at": "2025-11-25T19:35:37-05:00",
+      "requisition_id": "JR107286",
+      "title": "Internal Audit Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-03T14:13:56-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7360391?t=gh_src=&gh_jid=7360391",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3282609,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FINANCE & ACCOUNTING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7360391,
+      "updated_at": "2025-11-25T19:38:54-05:00",
+      "requisition_id": "JR107636",
+      "title": "Internal Audit Senior Manager - Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-29T14:07:51-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7095057?t=gh_src=&gh_jid=7095057",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3199729,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FINANCE & ACCOUNTING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7095057,
+      "updated_at": "2025-11-25T19:35:08-05:00",
+      "requisition_id": "JR107132",
+      "title": "International Tax Manager",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-24T11:13:05-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/5700357?t=gh_src=&gh_jid=5700357",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 2785306,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 5700357,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1565",
+      "title": "iOS Developer",
+      "company_name": "Robinhood",
+      "first_published": "2024-02-12T20:03:13-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6674980?t=gh_src=&gh_jid=6674980",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3086217,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6674980,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1684",
+      "title": "iOS Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-05-06T15:22:16-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7026567?t=gh_src=&gh_jid=7026567",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3183302,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7026567,
+      "updated_at": "2025-11-25T19:34:56-05:00",
+      "requisition_id": "JR107038",
+      "title": "iOS Engineer, Credit Cards & Banking",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-02T13:42:15-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7295335?t=gh_src=&gh_jid=7295335",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3263606,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PEOPLE OPERATIONS & RECRUITING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7295335,
+      "updated_at": "2025-11-25T19:38:08-05:00",
+      "requisition_id": "JR107516",
+      "title": "Learning & Development Program Manager",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-14T16:24:12-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7374365?t=gh_src=&gh_jid=7374365",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3287876,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "OPERATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7374365,
+      "updated_at": "2025-11-25T19:39:03-05:00",
+      "requisition_id": "JR107663",
+      "title": "Manager of Crypto Operations",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-17T18:31:57-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7255773?t=gh_src=&gh_jid=7255773",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3248538,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Lake Mary, FL"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "OPERATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7255773,
+      "updated_at": "2025-11-25T19:37:37-05:00",
+      "requisition_id": "JR107418",
+      "title": " Market Operations Specialist (Overnight)",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-28T19:19:40-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7376747?t=gh_src=&gh_jid=7376747",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3288826,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PEOPLE OPERATIONS & RECRUITING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7376747,
+      "updated_at": "2025-11-25T19:39:12-05:00",
+      "requisition_id": "JR107669",
+      "title": "People Compliance & Policy Manager",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-05T16:03:54-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7344212?t=gh_src=&gh_jid=7344212",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3276836,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "WORKPLACE OPERATIONS & PHYSICAL SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7344212,
+      "updated_at": "2025-11-25T19:38:40-05:00",
+      "requisition_id": "JR107574",
+      "title": "Physical Security Systems Architect",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-28T15:45:42-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7202302?t=gh_src=&gh_jid=7202302",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3231408,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7202302,
+      "updated_at": "2025-11-25T19:37:15-05:00",
+      "requisition_id": "JR107383",
+      "title": "Product Designer, Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-29T12:48:02-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7411506?t=gh_src=&gh_jid=7411506",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3302149,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7411506,
+      "updated_at": "2025-11-25T19:39:49-05:00",
+      "requisition_id": "JR107698",
+      "title": "Product Design Manager, Banking",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-21T13:24:31-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7382294?t=gh_src=&gh_jid=7382294",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3290773,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PRODUCT & RESEARCH",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7382294,
+      "updated_at": "2025-11-25T19:39:08-05:00",
+      "requisition_id": "JR107591",
+      "title": "Product Manager, Prediction Markets",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-14T16:39:53-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7125765?t=gh_src=&gh_jid=7125765",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3208261,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PRODUCT & RESEARCH",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7125765,
+      "updated_at": "2025-11-25T19:35:11-05:00",
+      "requisition_id": "JR106789",
+      "title": "Product Manager, Trading Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-01T12:51:31-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7176465?t=gh_src=&gh_jid=7176465",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3222027,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PRODUCT & RESEARCH",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7176465,
+      "updated_at": "2025-11-25T19:37:10-05:00",
+      "requisition_id": "JR107326",
+      "title": "Product Manager, Wallet",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-20T18:01:16-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7346630?t=gh_src=&gh_jid=7346630",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3098288,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7346630,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1689",
+      "title": "Senior Analytics Engineer, Corporate Strategy",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-21T11:21:28-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7160621?t=gh_src=&gh_jid=7160621",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3214811,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7160621,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1735",
+      "title": "Senior Android Developer",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-12T10:27:21-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7383820?t=gh_src=&gh_jid=7383820",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3137110,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7383820,
+      "updated_at": "2025-11-25T19:34:42-05:00",
+      "requisition_id": "JR106788",
+      "title": "Senior Android Engineer, Frontend Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-07T13:30:40-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7374056?t=gh_src=&gh_jid=7374056",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3287767,
+      "location": {
+        "name": "New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7374056,
+      "updated_at": "2025-11-25T19:39:10-05:00",
+      "requisition_id": "JR107659",
+      "title": "Senior AV Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-04T12:50:10-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7178427?t=gh_src=&gh_jid=7178427",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3222812,
+      "location": {
+        "name": "Bellevue, WA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7178427,
+      "updated_at": "2025-11-25T19:37:12-05:00",
+      "requisition_id": "JR107331",
+      "title": "Senior Cloud Security Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-29T14:38:02-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7292406?t=gh_src=&gh_jid=7292406",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3262606,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "MARKETING & COMMUNICATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7292406,
+      "updated_at": "2025-11-25T19:38:05-05:00",
+      "requisition_id": "JR107536",
+      "title": "Senior Communications Manager, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-27T14:41:14-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7409936?t=gh_src=&gh_jid=7409936",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3301363,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FINANCE & ACCOUNTING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7409936,
+      "updated_at": "2025-11-25T19:39:31-05:00",
+      "requisition_id": "JR107672",
+      "title": "Senior Corporate Accountant",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-20T19:34:29-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7272710?t=gh_src=&gh_jid=7272710",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3255302,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7272710,
+      "updated_at": "2025-11-25T19:37:52-05:00",
+      "requisition_id": "JR107424",
+      "title": "Senior Data Scientist, Experimentation",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-24T20:54:45-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7324981?t=gh_src=&gh_jid=7324981",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3271880,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7324981,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1770",
+      "title": "Senior Data Scientist, Product",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-14T13:55:26-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6675129?t=gh_src=&gh_jid=6675129",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3086259,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6675129,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1685",
+      "title": "Senior iOS Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-31T12:55:54-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6675127?t=gh_src=&gh_jid=6675127",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3086259,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6675127,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1685",
+      "title": "Senior iOS Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-01T16:58:07-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7121213?t=gh_src=&gh_jid=7121213",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3207033,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7121213,
+      "updated_at": "2025-11-25T19:35:09-05:00",
+      "requisition_id": "JR107141",
+      "title": "Senior Machine Learning Engineer, Agentic",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-05T22:14:11-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7279872?t=gh_src=&gh_jid=7279872",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3258085,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7279872,
+      "updated_at": "2025-11-25T19:38:02-05:00",
+      "requisition_id": "JR107500",
+      "title": "Senior Offensive Security Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-26T13:49:54-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7279870?t=gh_src=&gh_jid=7279870",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3258085,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7279870,
+      "updated_at": "2025-11-25T19:38:02-05:00",
+      "requisition_id": "JR107500",
+      "title": "Senior Offensive Security Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-26T13:23:11-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7259133?t=gh_src=&gh_jid=7259133",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3249698,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7259133,
+      "updated_at": "2025-11-25T19:37:49-05:00",
+      "requisition_id": "JR107430",
+      "title": "Senior QA Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-07T12:49:23-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7252911?t=gh_src=&gh_jid=7252911",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3247443,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7252911,
+      "updated_at": "2025-11-25T19:37:41-05:00",
+      "requisition_id": "JR107442",
+      "title": "Senior Security Engineer, Blockchain",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-16T13:53:34-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7007025?t=gh_src=&gh_jid=7007025",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3177989,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7007025,
+      "updated_at": "2025-11-25T19:34:48-05:00",
+      "requisition_id": "JR106979",
+      "title": "Senior Software Developer, Backend Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-18T22:08:44-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7301811?t=gh_src=&gh_jid=7301811",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3265921,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7301811,
+      "updated_at": "2025-11-25T19:38:21-05:00",
+      "requisition_id": "JR107530",
+      "title": "Senior Software Developer, DevX",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-10T15:50:02-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7412393?t=gh_src=&gh_jid=7412393",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3302456,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7412393,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1783",
+      "title": "Senior Software Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-24T12:24:45-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/4738660?t=gh_src=&gh_jid=4738660",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 2426068,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 4738660,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1473",
+      "title": "Senior Software Engineer, Data Engineering",
+      "company_name": "Robinhood",
+      "first_published": "2022-12-08T13:08:49-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7066515?t=gh_src=&gh_jid=7066515",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3191562,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7066515,
+      "updated_at": "2025-11-25T19:34:59-05:00",
+      "requisition_id": "JR107041",
+      "title": "Senior Software Engineer, Tokenization",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-25T18:44:59-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7066517?t=gh_src=&gh_jid=7066517",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3191562,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7066517,
+      "updated_at": "2025-11-25T19:34:59-05:00",
+      "requisition_id": "JR107041",
+      "title": "Senior Software Engineer, Tokenization",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-25T18:45:44-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6913966?t=gh_src=&gh_jid=6913966",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3154504,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6913966,
+      "updated_at": "2025-11-25T19:34:45-05:00",
+      "requisition_id": "JR106871",
+      "title": "Senior Staff Software Developer, Developer Infrastructure",
+      "company_name": "Robinhood",
+      "first_published": "2025-06-03T17:36:49-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7275483?t=gh_src=&gh_jid=7275483",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3256331,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "FINANCE & ACCOUNTING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7275483,
+      "updated_at": "2025-11-25T19:37:57-05:00",
+      "requisition_id": "JR107423",
+      "title": "Senior Tax Analyst",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-03T13:41:45-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7255779?t=gh_src=&gh_jid=7255779",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3248539,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Lake Mary, FL; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "OPERATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7255779,
+      "updated_at": "2025-11-25T19:37:42-05:00",
+      "requisition_id": "JR107417",
+      "title": "Social Designated Principal",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-08T13:17:59-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7022255?t=gh_src=&gh_jid=7022255",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3182376,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7022255,
+      "updated_at": "2025-11-26T17:32:18-05:00",
+      "requisition_id": "JR107032",
+      "title": "Software Backend Engineer, Credit Cards & Banking Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-11T00:38:14-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7235228?t=gh_src=&gh_jid=7235228",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3241153,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7235228,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1748",
+      "title": "Software Developer Intern, Backend (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:12:22-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7238998?t=gh_src=&gh_jid=7238998",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3242577,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7238998,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1750",
+      "title": "Software Developer Intern, Web (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:12:15-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7393110?t=gh_src=&gh_jid=7393110",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3295060,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7393110,
+      "updated_at": "2025-11-25T19:39:21-05:00",
+      "requisition_id": "JR107642",
+      "title": "Software Developer, Observability ",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-19T12:14:02-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7308537?t=gh_src=&gh_jid=7308537",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3267994,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7308537,
+      "updated_at": "2025-11-25T19:38:23-05:00",
+      "requisition_id": "JR107533",
+      "title": "Software Developer, Security",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-09T17:31:00-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7390553?t=gh_src=&gh_jid=7390553",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3294063,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7390553,
+      "updated_at": "2025-11-25T19:39:25-05:00",
+      "requisition_id": "JR107655",
+      "title": "Software Engineer, Data Governance",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-14T17:00:51-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7239199?t=gh_src=&gh_jid=7239199",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3242643,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7239199,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1751",
+      "title": "Software Engineering Intern, Android (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:12:37-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7239236?t=gh_src=&gh_jid=7239236",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3242653,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7239236,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1752",
+      "title": "Software Engineering Intern, Backend (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:12:55-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7239268?t=gh_src=&gh_jid=7239268",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3242665,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7239268,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1753",
+      "title": "Software Engineering Intern, iOS (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:13:11-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7239280?t=gh_src=&gh_jid=7239280",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3242672,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "EARLY TALENT",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7239280,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1754",
+      "title": "Software Engineering Intern, Web (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:13:23-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7415737?t=gh_src=&gh_jid=7415737",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3303132,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PEOPLE OPERATIONS & RECRUITING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7415737,
+      "updated_at": "2025-11-26T17:18:03-05:00",
+      "requisition_id": "JR107697",
+      "title": "Sr. Technical Recruiter",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-26T17:18:03-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7415739?t=gh_src=&gh_jid=7415739",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3303132,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PEOPLE OPERATIONS & RECRUITING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7415739,
+      "updated_at": "2025-11-26T17:21:22-05:00",
+      "requisition_id": "JR107697",
+      "title": "Sr. Technical Recruiter",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-26T17:21:22-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7078960?t=gh_src=&gh_jid=7078960",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3195551,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7078960,
+      "updated_at": "2025-11-25T19:35:04-05:00",
+      "requisition_id": "JR106985",
+      "title": "Staff iOS Engineer, Agentic Applications",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-06T16:30:33-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7272718?t=gh_src=&gh_jid=7272718",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3255303,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7272718,
+      "updated_at": "2025-11-25T19:37:54-05:00",
+      "requisition_id": "JR107515",
+      "title": "Staff Motion Designer, Product Creative",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-24T10:04:55-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6545329?t=gh_src=&gh_jid=6545329",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3049866,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6545329,
+      "updated_at": "2025-11-25T19:34:32-05:00",
+      "requisition_id": "JR106180",
+      "title": "Staff Product Designer, Crypto",
+      "company_name": "Robinhood",
+      "first_published": "2025-01-16T18:09:26-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7354848?t=gh_src=&gh_jid=7354848",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3280473,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "DESIGN & CREATIVE",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7354848,
+      "updated_at": "2025-11-25T19:38:45-05:00",
+      "requisition_id": "JR107595",
+      "title": "Staff Product Designer, Growth",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-28T14:13:19-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7250116?t=gh_src=&gh_jid=7250116",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3246274,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7250116,
+      "updated_at": "2025-11-25T19:37:39-05:00",
+      "requisition_id": "JR107427",
+      "title": "Staff Quality Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-16T19:16:45-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7250118?t=gh_src=&gh_jid=7250118",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3246274,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7250118,
+      "updated_at": "2025-11-25T19:37:39-05:00",
+      "requisition_id": "JR107427",
+      "title": "Staff Quality Engineer",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-23T15:53:17-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7301788?t=gh_src=&gh_jid=7301788",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3265916,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7301788,
+      "updated_at": "2025-11-25T19:38:17-05:00",
+      "requisition_id": "JR107537",
+      "title": "Staff Software Developer, Cloud Networking",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-29T10:56:31-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7062936?t=gh_src=&gh_jid=7062936",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3190530,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7062936,
+      "updated_at": "2025-11-25T19:34:58-05:00",
+      "requisition_id": "JR106928",
+      "title": "Staff Software Developer, DevX",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-22T18:19:34-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7343918?t=gh_src=&gh_jid=7343918",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3276732,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7343918,
+      "updated_at": "2025-11-25T19:38:37-05:00",
+      "requisition_id": "JR107605",
+      "title": "Staff Software Developer, Security",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-21T12:10:15-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/6689453?t=gh_src=&gh_jid=6689453",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3090777,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 6689453,
+      "updated_at": "2025-11-25T19:34:35-05:00",
+      "requisition_id": "JR106501",
+      "title": "Staff Software Developer, TestX",
+      "company_name": "Robinhood",
+      "first_published": "2025-03-07T11:17:47-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7363642?t=gh_src=&gh_jid=7363642",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3283792,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7363642,
+      "updated_at": "2025-11-25T19:38:57-05:00",
+      "requisition_id": "JR107625",
+      "title": "Staff Software Engineer, Advisory Platform",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-28T18:18:12-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7272881?t=gh_src=&gh_jid=7272881",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3255343,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7272881,
+      "updated_at": "2025-11-25T19:37:56-05:00",
+      "requisition_id": "JR107503",
+      "title": "Staff Software Engineer, Care AI",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-30T16:25:44-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7170015?t=gh_src=&gh_jid=7170015",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3219936,
+      "location": {
+        "name": "Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7170015,
+      "updated_at": "2025-11-25T19:37:09-05:00",
+      "requisition_id": "JR107313",
+      "title": "Staff Software Engineer, Credit Cards & Banking Infrastructure",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-19T10:12:51-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7132630?t=gh_src=&gh_jid=7132630",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3210254,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7132630,
+      "updated_at": "2025-11-25T19:35:18-05:00",
+      "requisition_id": "JR107152",
+      "title": "Staff Software Engineer, Reliability",
+      "company_name": "Robinhood",
+      "first_published": "2025-08-04T13:56:12-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7086141?t=gh_src=&gh_jid=7086141",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3183672,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7086141,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1722",
+      "title": "Staff Web Engineer, Robinhood Legend",
+      "company_name": "Robinhood",
+      "first_published": "2025-07-18T13:00:53-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7420966?t=gh_src=&gh_jid=7420966",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3304153,
+      "location": {
+        "name": "Chicago, IL; Menlo Park, CA; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "PEOPLE OPERATIONS & RECRUITING",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7420966,
+      "updated_at": "2025-11-26T03:04:58-05:00",
+      "requisition_id": "JR107664",
+      "title": "Talent Management Partner, Performance",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-25T16:27:54-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7387372?t=gh_src=&gh_jid=7387372",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 3292754,
+      "location": {
+        "name": "Chicago, IL; Denver, CO; Lake Mary, FL; New York, NY"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "OPERATIONS",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7387372,
+      "updated_at": "2025-11-25T19:39:13-05:00",
+      "requisition_id": "JR107667",
+      "title": "Trading Operations Lead",
+      "company_name": "Robinhood",
+      "first_published": "2025-11-24T16:35:14-05:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7319651?t=gh_src=&gh_jid=7319651",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3223006,
+      "location": {
+        "name": "Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "BUSINESS & STRATEGY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7319651,
+      "updated_at": "2025-11-25T18:51:15-05:00",
+      "requisition_id": "1739",
+      "title": "Venture Capital Partner, Robinhood Ventures",
+      "company_name": "Robinhood",
+      "first_published": "2025-10-13T19:44:14-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7161069?t=gh_src=&gh_jid=7161069",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3217263,
+      "location": {
+        "name": "Bellevue, WA; Menlo Park, CA"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7161069,
+      "updated_at": "2025-11-25T19:35:50-05:00",
+      "requisition_id": "JR107202",
+      "title": "Vulnerability Management Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:08:48-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/robinhood/jobs/7161070?t=gh_src=&gh_jid=7161070",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3217263,
+      "location": {
+        "name": "Toronto, Canada"
+      },
+      "metadata": [
+        {
+          "id": 4288026,
+          "name": "Careers Page Bucket",
+          "value": "ENGINEERING & SECURITY",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7161070,
+      "updated_at": "2025-11-25T19:35:50-05:00",
+      "requisition_id": "JR107202",
+      "title": "Vulnerability Management Intern (Summer 2026)",
+      "company_name": "Robinhood",
+      "first_published": "2025-09-22T10:08:49-04:00",
+      "language": "en"
+    }
+  ],
+  "meta": {
+    "total": 102
+  }
+}

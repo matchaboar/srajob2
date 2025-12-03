@@ -23,6 +23,9 @@
   - When configuring external services (like Temporal workers) to POST to Convex HTTP endpoints, ALWAYS use the `.convex.site` domain
   - Example: `CONVEX_HTTP_URL=https://elegant-magpie-239.convex.site` (NOT `.convex.cloud`)
 
+# MCP usage
+- The Convex MCP server here only exposes tools (status/tables/run/etc.) and does **not** implement `resources/list`; expect “method not found” if you call `list_mcp_resources/templates`. Use the `mcp__convex__*` functions instead.
+
 # Job Scrape Application
 - The scrape workflow logic is in job_scrape_application
 - This should use temporal for workflows

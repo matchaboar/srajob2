@@ -4,23 +4,32 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, List
 
+import logging
+
 from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
 # Import activity call prototypes inside workflow via type hints / names
 with workflow.unsafe.imports_passed_through():
     from .activities import (
+        SPIDERCLOUD_BATCH_SIZE,
+        complete_scrape_urls,
+        complete_site,
+        fail_site,
+        lease_scrape_url_batch,
         lease_site,
+        process_spidercloud_job_batch,
+        record_scratchpad,
+        record_workflow_run,
         scrape_site,
         scrape_site_firecrawl,
         store_scrape,
-        complete_site,
-        fail_site,
-        record_workflow_run,
-        record_scratchpad,
     )
 
 from .scratchpad_utils import extract_http_exchange
+
+
+logger = logging.getLogger("temporal.worker.scrape")
 
 
 @dataclass
@@ -36,6 +45,7 @@ def summarize_scrape_result(res: Dict[str, Any]) -> Dict[str, Any]:
     items = res.get("items") if isinstance(res, dict) else {}
     normalized = items.get("normalized") if isinstance(items, dict) else None
     jobs = len(normalized) if isinstance(normalized, list) else 0
+    skipped_urls = res.get("skippedUrls") if isinstance(res, dict) else None
     summary: Dict[str, Any] = {
         "provider": res.get("provider") or items.get("provider") if isinstance(items, dict) else None,
         "queued": items.get("queued") if isinstance(items, dict) else None,
@@ -43,6 +53,8 @@ def summarize_scrape_result(res: Dict[str, Any]) -> Dict[str, Any]:
         "statusUrl": items.get("statusUrl") if isinstance(items, dict) else None,
         "jobs": jobs,
     }
+    if skipped_urls:
+        summary["skippedUrls"] = skipped_urls
     if res.get("workflowName"):
         summary["workflowName"] = res.get("workflowName")
     if res.get("costMilliCents"):
@@ -55,6 +67,7 @@ async def _run_scrape_workflow(
     workflow_name: str,
     *,
     scrape_provider: str | None = "fetchfox",
+    activity_timeout: timedelta = timedelta(minutes=10),
 ) -> ScrapeSummary:
     scrape_ids: List[str] = []
     leased_count = 0
@@ -64,6 +77,15 @@ async def _run_scrape_workflow(
     failure_reasons: List[str] = []
     run_info = workflow.info()
 
+    def _emit(event: str, *, level: str = "info", **payload: Any) -> None:
+        msg = f"{workflow_name} | event={event} | {payload}"
+        if level == "error":
+            logger.error(msg)
+        elif level == "warn" or level == "warning":
+            logger.warning(msg)
+        else:
+            logger.info(msg)
+
     async def _log(
         event: str,
         *,
@@ -72,6 +94,7 @@ async def _run_scrape_workflow(
         site_url: str | None = None,
         level: str = "info",
     ) -> None:
+        _emit(event, level=level, siteUrl=site_url, message=message, data=data)
         try:
             await workflow.execute_activity(
                 record_scratchpad,
@@ -121,7 +144,7 @@ async def _run_scrape_workflow(
                 res = await workflow.execute_activity(
                     scrape_activity,
                     args=[site],
-                    start_to_close_timeout=timedelta(minutes=10),
+                    start_to_close_timeout=activity_timeout,
                 )
                 # Tag scrape payload with workflow name for downstream storage
                 if isinstance(res, dict):
@@ -272,3 +295,172 @@ class FirecrawlScrapeWorkflow:
             "ScraperFirecrawl",
             scrape_provider="firecrawl",
         )
+
+
+@workflow.defn(name="ScraperSpidercloud")
+class SpidercloudScrapeWorkflow:
+    @workflow.run
+    async def run(self) -> ScrapeSummary:  # type: ignore[override]
+        return await _run_scrape_workflow(
+            scrape_site,
+            "ScraperSpidercloud",
+            scrape_provider="spidercloud",
+            activity_timeout=timedelta(minutes=25),
+        )
+
+
+@workflow.defn(name="SpidercloudJobDetails")
+class SpidercloudJobDetailsWorkflow:
+    @workflow.run
+    async def run(self) -> ScrapeSummary:  # type: ignore[override]
+        scrape_ids: list[str] = []
+        site_count = 0
+        started_at = int(workflow.now().timestamp() * 1000)
+        status = "completed"
+        failure_reasons: list[str] = []
+        run_info = workflow.info()
+
+        async def _log(event: str, *, level: str = "info", data: dict | None = None):
+            try:
+                await workflow.execute_activity(
+                    record_scratchpad,
+                    args=[
+                        {
+                            "runId": run_info.run_id,
+                            "workflowId": run_info.workflow_id,
+                            "workflowName": "SpidercloudJobDetails",
+                            "event": event,
+                            "data": data,
+                            "level": level,
+                            "createdAt": int(workflow.now().timestamp() * 1000),
+                        }
+                    ],
+                    schedule_to_close_timeout=timedelta(seconds=20),
+                )
+            except Exception:
+                pass
+
+
+        await _log("workflow.start")
+
+        try:
+            while True:
+                batch = await workflow.execute_activity(
+                    lease_scrape_url_batch,
+                    args=["spidercloud", SPIDERCLOUD_BATCH_SIZE],
+                    schedule_to_close_timeout=timedelta(seconds=20),
+                )
+                urls = batch.get("urls") if isinstance(batch, dict) else None
+                if not urls:
+                    break
+
+                site_count += 1
+                await _log("batch.leased", data={"count": len(urls)})
+
+                try:
+                    res = await workflow.execute_activity(
+                        process_spidercloud_job_batch,
+                        args=[batch],
+                        start_to_close_timeout=timedelta(minutes=20),
+                    )
+                    scrapes = res.get("scrapes") if isinstance(res, dict) else []
+                    if not isinstance(scrapes, list):
+                        scrapes = []
+
+                    # Store each scrape independently so individual URL results are persisted even if others fail.
+                    store_futures: list[tuple[str | None, workflow.ActivityFuture[str]]] = []
+                    for scrape in scrapes:
+                        if not isinstance(scrape, dict):
+                            continue
+                        urls_for_scrape = []
+                        sub_urls = scrape.get("subUrls")
+                        if isinstance(sub_urls, list) and sub_urls:
+                            urls_for_scrape = [u for u in sub_urls if isinstance(u, str)]
+                        url_for_scrape = urls_for_scrape[0] if urls_for_scrape else scrape.get("sourceUrl")
+                        store_futures.append(
+                            (
+                                url_for_scrape if isinstance(url_for_scrape, str) else None,
+                                workflow.start_activity(
+                                    store_scrape,
+                                    args=[scrape],
+                                    start_to_close_timeout=timedelta(seconds=45),
+                                ),
+                            )
+                        )
+
+                    succeeded: list[str] = []
+                    failed: list[str] = []
+                    if store_futures:
+                        for url_val, fut in store_futures:
+                            try:
+                                res_id = await fut
+                                if isinstance(res_id, str):
+                                    scrape_ids.append(res_id)
+                                if url_val:
+                                    succeeded.append(url_val)
+                            except Exception as activity_exc:  # noqa: BLE001
+                                if url_val:
+                                    failed.append(url_val)
+                                await _log(
+                                    "batch.error",
+                                    level="error",
+                                    data={"error": str(activity_exc), "url": url_val},
+                                )
+
+                    # Mark queue statuses per-URL regardless of other outcomes.
+                    if succeeded:
+                        try:
+                            await workflow.execute_activity(
+                                complete_scrape_urls,
+                                args=[{"urls": succeeded, "status": "completed"}],
+                                schedule_to_close_timeout=timedelta(seconds=20),
+                            )
+                        except Exception:
+                            pass
+                    if failed:
+                        try:
+                            await workflow.execute_activity(
+                                complete_scrape_urls,
+                                args=[{"urls": failed, "status": "failed", "error": "store_scrape_failed"}],
+                                schedule_to_close_timeout=timedelta(seconds=20),
+                            )
+                        except Exception:
+                            pass
+
+                    await _log("batch.processed", data={"count": len(scrapes) or len(urls)})
+                except Exception as exc:  # noqa: BLE001
+                    await _log("batch.error", level="error", data={"error": str(exc)})
+                    failure_reasons.append(str(exc))
+                    status = "failed"
+                    continue
+
+            return ScrapeSummary(site_count=site_count, scrape_ids=scrape_ids)
+        except Exception as exc:  # noqa: BLE001
+            failure_reasons.append(str(exc))
+            status = "failed"
+            raise
+        finally:
+            completed_at = int(workflow.now().timestamp() * 1000)
+            try:
+                await workflow.execute_activity(
+                    record_workflow_run,
+                    args=[
+                        {
+                            "runId": run_info.run_id,
+                            "workflowId": run_info.workflow_id,
+                            "workflowName": "SpidercloudJobDetails",
+                            "status": status,
+                            "startedAt": started_at,
+                            "completedAt": completed_at,
+                            "siteUrls": [],
+                            "sitesProcessed": site_count,
+                            "jobsScraped": len(scrape_ids),
+                            "workerId": "scraper-worker",
+                            "taskQueue": "scraper-task-queue",
+                            "error": "; ".join(failure_reasons) if failure_reasons else None,
+                        }
+                    ],
+                    schedule_to_close_timeout=timedelta(seconds=30),
+                )
+            except Exception:
+                pass

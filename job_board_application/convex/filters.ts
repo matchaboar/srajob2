@@ -68,6 +68,7 @@ export const ensureDefaultFilter = mutation({
       minCompensation: 150000,
        includeRemote: true,
        state: undefined,
+       hideUnknownCompensation: false,
       isSelected: true,
       createdAt: Date.now(),
     });
@@ -85,6 +86,7 @@ export const saveFilter = mutation({
     level: v.optional(levelValidator),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
+    hideUnknownCompensation: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -93,6 +95,7 @@ export const saveFilter = mutation({
     const id = await ctx.db.insert("saved_filters", {
       ...args,
       includeRemote: args.includeRemote ?? true,
+      hideUnknownCompensation: args.hideUnknownCompensation ?? false,
       userId,
       isSelected: true,
       createdAt: Date.now(),

@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { api } from "./_generated/api";
 import { v } from "convex/values";
 
 export const listSuccessfulSites = query({
@@ -81,6 +82,123 @@ export const retrySite = mutation({
     }
     await ctx.db.patch(args.id, patch);
     return { success: true };
+  },
+});
+
+export const retryProcessing = mutation({
+  args: { id: v.id("sites"), limitScrapes: v.optional(v.number()) },
+  returns: v.object({
+    success: v.boolean(),
+    scrapesProcessed: v.number(),
+    jobsAttempted: v.number(),
+    jobsInserted: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const site = await ctx.db.get(args.id);
+    if (!site) {
+      throw new Error("Site not found");
+    }
+
+    // Clear failure flags so the site can resume normal scheduling
+    await ctx.db.patch(args.id, {
+      completed: false,
+      failed: false,
+      lockedBy: "",
+      lockExpiresAt: 0,
+      lastRunAt: site.lastRunAt ?? 0,
+      lastError: undefined,
+      lastFailureAt: undefined,
+    } as any);
+
+    const limit = Math.max(1, Math.min(args.limitScrapes ?? 5, 20));
+    const scrapes = await ctx.db
+      .query("scrapes")
+      .withIndex("by_source", (q) => q.eq("sourceUrl", site.url))
+      .order("desc")
+      .take(limit);
+
+    const normalizeJob = (row: any, scrape: any) => {
+      if (!row || typeof row !== "object") return null;
+      const urlCandidates = [row.url, row.job_url, row.jobUrl, row.link, row.href, row._url];
+      const url = urlCandidates.find((u) => typeof u === "string" && u.trim());
+      if (!url) return null;
+
+      const titleCandidates = [row.title, row.job_title, row.jobTitle];
+      const title = (titleCandidates.find((t) => typeof t === "string" && t.trim()) as string | undefined) || "Untitled";
+
+      const company = typeof row.company === "string" && row.company.trim() ? row.company : "Unknown";
+      const description = typeof row.description === "string" ? row.description : typeof row.job_description === "string" ? row.job_description : "";
+      const location = typeof row.location === "string" && row.location.trim() ? row.location : "Unknown";
+      const remote = Boolean(row.remote);
+
+      const rawLevel = typeof row.level === "string" ? row.level.toLowerCase() : "";
+      const level: "junior" | "mid" | "senior" | "staff" = (["junior", "mid", "senior", "staff"] as const).includes(rawLevel as any)
+        ? (rawLevel as any)
+        : "mid";
+
+      const totalComp = typeof row.total_compensation === "number" ? row.total_compensation : 0;
+      const postedAt =
+        typeof row.posted_at === "number"
+          ? row.posted_at
+          : typeof row.postedAt === "number"
+            ? row.postedAt
+            : Date.now();
+
+      const compensationUnknown = row.compensation_unknown === true || totalComp <= 0;
+      const compensationReason =
+        typeof row.compensation_reason === "string" && row.compensation_reason.trim()
+          ? row.compensation_reason
+          : compensationUnknown
+            ? "unknown_compensation"
+            : undefined;
+
+      return {
+        title,
+        company,
+        description,
+        location,
+        remote,
+        level,
+        totalCompensation: totalComp,
+        url,
+        postedAt,
+        scrapedAt: scrape.completedAt ?? scrape.startedAt ?? Date.now(),
+        scrapedWith: scrape.provider ?? scrape.items?.provider,
+        workflowName: scrape.workflowName ?? scrape.workflowType,
+        scrapedCostMilliCents:
+          typeof scrape.costMilliCents === "number"
+            ? scrape.costMilliCents
+            : typeof scrape.items?.costMilliCents === "number"
+              ? scrape.items.costMilliCents
+              : undefined,
+        compensationUnknown,
+        compensationReason,
+      };
+    };
+
+    let jobs: any[] = [];
+    for (const scrape of scrapes as any[]) {
+      const normalized = Array.isArray(scrape.items?.normalized) ? scrape.items.normalized : [];
+      for (const row of normalized) {
+        const job = normalizeJob(row, scrape);
+        if (job) jobs.push(job);
+      }
+    }
+
+    if (jobs.length === 0) {
+      return { success: true, scrapesProcessed: scrapes.length, jobsAttempted: 0, jobsInserted: 0 };
+    }
+
+    // Cap batch size to avoid accidental overload
+    jobs = jobs.slice(0, 500);
+    await ctx.runMutation(api.router.ingestJobsFromScrape, { jobs });
+
+    return {
+      success: true,
+      scrapesProcessed: scrapes.length,
+      jobsAttempted: jobs.length,
+      jobsInserted: jobs.length,
+    };
   },
 });
 

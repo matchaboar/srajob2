@@ -2,7 +2,227 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
-import { splitLocation, formatLocationLabel } from "./location";
+import { splitLocation, formatLocationLabel, findCityInText, isUnknownLocationValue } from "./location";
+
+const TITLE_RE = /^[ \t]*#{1,6}\s+(?<title>.+)$/im;
+const LEVEL_RE =
+  /\b(?<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b/i;
+const LOCATION_RE =
+  /\b(?:location|office|based\s+in)\s*[:\-–]\s*(?<location>[^\n,;]+(?:,\s*[^\n,;]+)?)/i;
+const SIMPLE_LOCATION_LINE_RE = /^[ \t]*(?<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$/m;
+const SALARY_RE =
+  /\$\s*(?<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?<high>\d{2,3}(?:[.,]\d{3})*))?\s*(?<period>per\s+year|per\s+annum|annual|yr|year|\/year|per\s+hour|hr|hour)?/i;
+const SALARY_K_RE =
+  /(?<currency>[$£€])?\s*(?<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?<high>\d{2,3})\s*[kK])?\s*(?<code>USD|EUR|GBP)?/i;
+const REMOTE_RE = /\b(remote(-first)?|hybrid|onsite|on-site)\b/i;
+
+const isUnknownLabel = (value?: string | null) => {
+  const normalized = (value || "").trim().toLowerCase();
+  return (
+    !normalized ||
+    normalized === "unknown" ||
+    normalized === "n/a" ||
+    normalized === "na" ||
+    normalized === "unspecified" ||
+    normalized === "not available"
+  );
+};
+
+export const deriveCompanyFromUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    const hostname = (parsed.hostname || "").toLowerCase();
+    if (hostname.endsWith("greenhouse.io")) {
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length > 0) {
+        const slug = parts[0];
+        const cleaned = slug.replace(/[^a-z0-9]+/gi, " ").trim();
+        if (cleaned) {
+          return cleaned
+            .split(" ")
+            .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+            .join(" ");
+        }
+      }
+    }
+
+    let baseHost = hostname;
+    for (const prefix of ["careers.", "jobs.", "boards.", "boards-", "job-", "boards-"]) {
+      if (baseHost.startsWith(prefix)) {
+        baseHost = baseHost.slice(prefix.length);
+        break;
+      }
+    }
+    const parts = baseHost.split(".").filter(Boolean);
+    const name = parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
+    const cleaned = name.replace(/[^a-z0-9]+/gi, " ").trim();
+    return cleaned
+      ? cleaned
+          .split(" ")
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join(" ")
+      : "";
+  } catch {
+    return "";
+  }
+};
+
+const toInt = (value: string | undefined | null) => {
+  if (!value) return undefined;
+  try {
+    const digits = value.replace(/[,\.]/g, "");
+    return Number.isFinite(Number(digits)) ? parseInt(digits, 10) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const coerceLevelFromHint = (hint: string): "junior" | "mid" | "senior" | "staff" => {
+  const h = hint.toLowerCase();
+  if (h.includes("intern")) return "junior";
+  if (h.includes("junior")) return "junior";
+  if (h.includes("staff") || h.includes("principal") || h.includes("lead") || h.includes("director") || h.includes("vp") || h.includes("chief")) {
+    return "staff";
+  }
+  if (h.includes("senior") || h === "sr") return "senior";
+  if (h.includes("mid")) return "mid";
+  return "mid";
+};
+
+export const parseMarkdownHints = (markdown: string) => {
+  const hints: Record<string, any> = {};
+  if (!markdown) return hints;
+
+  const titleMatch = TITLE_RE.exec(markdown);
+  if (titleMatch?.groups?.title) {
+    hints.title = titleMatch.groups.title.trim();
+  }
+
+  // Location: prefer a short line beneath the header that looks like "City, State".
+  const lines = markdown.split(/\r?\n/);
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const lower = t.toLowerCase();
+    if (lower.startsWith("job application for")) continue;
+    if (t.includes("http")) continue;
+    if (t.split(" ").length > 8) continue;
+    if (t.includes(",")) {
+      const candidate = t.split(";")[0].trim();
+      if (/^[A-Za-z].*,/.test(candidate)) {
+        hints.location = candidate;
+        break;
+      }
+    }
+  }
+  if (!hints.location) {
+    const cityHit = findCityInText(markdown);
+    if (cityHit?.city && cityHit?.state) {
+      hints.location = `${cityHit.city}, ${cityHit.state}`;
+    }
+  }
+  if (!hints.location) {
+    const locMatch = LOCATION_RE.exec(markdown) || SIMPLE_LOCATION_LINE_RE.exec(markdown);
+    if (locMatch?.groups?.location) {
+      hints.location = locMatch.groups.location.trim();
+    }
+  }
+
+  const levelMatch = LEVEL_RE.exec(markdown);
+  if (levelMatch?.groups?.level) {
+    hints.level = coerceLevelFromHint(levelMatch.groups.level);
+  }
+
+  const remoteMatch = REMOTE_RE.exec(markdown);
+  if (remoteMatch) {
+    const token = remoteMatch[1]?.toLowerCase() ?? "";
+    if (token.includes("remote") || token.includes("hybrid")) {
+      hints.remote = true;
+    } else {
+      hints.remote = false;
+    }
+  }
+
+  const collectSalaryValues = () => {
+    const salaryValues: number[] = [];
+    const patterns = [
+      { regex: SALARY_RE, multiplier: 1 },
+      { regex: SALARY_K_RE, multiplier: 1000 },
+    ];
+
+    for (const { regex, multiplier } of patterns) {
+      const flags = regex.flags.includes("g") ? regex.flags : `${regex.flags}g`;
+      const globalRegex = new RegExp(regex.source, flags);
+      for (const match of markdown.matchAll(globalRegex)) {
+        const groups = match.groups ?? {};
+        const period = typeof groups.period === "string" ? groups.period.toLowerCase() : "";
+        if (period.includes("hour")) continue;
+
+        const low = toInt(groups.low);
+        const high = toInt(groups.high);
+        if (low) salaryValues.push(low * multiplier);
+        if (high) salaryValues.push(high * multiplier);
+      }
+    }
+
+    return salaryValues.filter((value) => value >= 10_000);
+  };
+
+  const salaryValues = collectSalaryValues();
+  if (salaryValues.length > 0) {
+    const minSalary = Math.min(...salaryValues);
+    const maxSalary = Math.max(...salaryValues);
+    const averageSalary = Math.floor((minSalary + maxSalary) / 2);
+    hints.compensation = averageSalary;
+  }
+
+  return hints;
+};
+
+export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
+  const updates: Record<string, any> = {};
+
+  if (hints.title && typeof job.title === "string" && job.title.toLowerCase().startsWith("job application for")) {
+    updates.title = hints.title;
+  }
+  if (!updates.title && hints.title && typeof job.title === "string" && job.title !== hints.title) {
+    updates.title = hints.title;
+  }
+
+  if (hints.location) {
+    const { city, state } = splitLocation(hints.location);
+    const locationLabel = formatLocationLabel(city, state, hints.location);
+    if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationLabel) {
+      updates.location = locationLabel;
+    }
+    if ((isUnknownLocationValue(job.city) || !job.city) && city) updates.city = city;
+    if ((isUnknownLocationValue(job.state) || !job.state) && state) updates.state = state;
+  }
+
+  if (hints.level) {
+    const nextLevel = coerceLevelFromHint(hints.level);
+    if (job.level !== nextLevel) updates.level = nextLevel;
+  }
+
+  if (hints.remote === true && job.remote !== true) {
+    updates.remote = true;
+  } else if (hints.remote === false && job.remote === undefined) {
+    updates.remote = false;
+  }
+
+  if (hints.compensation && (!job.totalCompensation || job.totalCompensation <= 0)) {
+    updates.totalCompensation = hints.compensation;
+    updates.compensationUnknown = false;
+    updates.compensationReason = "parsed from description";
+  } else if (hints.compensation && job.totalCompensation && job.totalCompensation > 0) {
+    // Optionally tighten comp reason if we filled something previously from defaults.
+    if (!job.compensationReason || job.compensationReason === "compensation provided in scrape payload") {
+      updates.compensationReason = "parsed from description";
+    }
+  }
+
+  return updates;
+};
 
 type DbJob = {
   _id: any;
@@ -15,21 +235,27 @@ type DbJob = {
 
 const ensureLocationFields = async (ctx: any, job: DbJob) => {
   const { city, state } = splitLocation(job.location || "");
-  const patched: Record<string, any> = {};
-  if (!job.city) patched.city = city;
-  if (!job.state) patched.state = state;
+  const normalizedCity = isUnknownLocationValue(job.city) ? city : job.city ?? city;
+  const normalizedState = isUnknownLocationValue(job.state) ? state : job.state ?? state;
+  const locationLabel = formatLocationLabel(normalizedCity, normalizedState, job.location);
 
-  const locationLabel = formatLocationLabel(job.city ?? city, job.state ?? state, job.location);
-  if (!job.location || job.location !== locationLabel) {
+  const patched: Record<string, any> = {};
+  if ((isUnknownLocationValue(job.city) || !job.city) && city) patched.city = city;
+  if ((isUnknownLocationValue(job.state) || !job.state) && state) patched.state = state;
+  if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationLabel) {
     patched.location = locationLabel;
   }
 
-  if (Object.keys(patched).length > 0) {
+  if (Object.keys(patched).length > 0 && typeof ctx.db?.patch === "function") {
     await ctx.db.patch(job._id, patched);
-    return { ...job, ...patched } as DbJob;
   }
 
-  return { ...job, city: job.city ?? city, state: job.state ?? state, location: locationLabel } as DbJob;
+  return {
+    ...job,
+    location: patched.location ?? locationLabel,
+    city: patched.city ?? normalizedCity,
+    state: patched.state ?? normalizedState,
+  } as DbJob;
 };
 
 const runLocationMigration = async (ctx: any, limit = 500) => {
@@ -61,6 +287,7 @@ export const listJobs = query({
     level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
+    hideUnknownCompensation: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -132,10 +359,15 @@ export const listJobs = query({
       }
 
       // Apply compensation filters
-      if (args.minCompensation !== undefined && job.totalCompensation < args.minCompensation) {
+      const compensationUnknown = job.compensationUnknown === true;
+      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : 0;
+      if (args.hideUnknownCompensation && compensationUnknown) {
         return false;
       }
-      if (args.maxCompensation !== undefined && job.totalCompensation > args.maxCompensation) {
+      if (args.minCompensation !== undefined && !compensationUnknown && compValue < args.minCompensation) {
+        return false;
+      }
+      if (args.maxCompensation !== undefined && !compensationUnknown && compValue > args.maxCompensation) {
         return false;
       }
       return true;
@@ -227,6 +459,56 @@ export const rejectJob = mutation({
     }
 
     return { success: true };
+  },
+});
+
+export const reparseJobFromDescription = mutation({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    if (!job) throw new Error("Job not found");
+
+    const description = typeof job.description === "string" ? job.description : "";
+    const hints = parseMarkdownHints(description);
+    const updates = buildUpdatesFromHints(job, hints);
+    const derivedCompany = deriveCompanyFromUrl(job.url || "");
+    if (derivedCompany && (isUnknownLabel(job.company) || job.company === "Greenhouse")) {
+      updates.company = derivedCompany;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { updated: 0, hints };
+    }
+
+    await ctx.db.patch(args.jobId, updates);
+    return { updated: Object.keys(updates).length, hints };
+  },
+});
+
+export const reparseAllJobs = mutation({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 200;
+    const jobs = await ctx.db.query("jobs").take(limit);
+    let updated = 0;
+
+    for (const job of jobs) {
+      const description = typeof (job as any).description === "string" ? (job as any).description : "";
+      const hints = parseMarkdownHints(description);
+      const updates = buildUpdatesFromHints(job as any, hints);
+      const derivedCompany = deriveCompanyFromUrl((job as any).url || "");
+      if (derivedCompany && (isUnknownLabel((job as any).company) || (job as any).company === "Greenhouse")) {
+        updates.company = derivedCompany;
+      }
+      if (Object.keys(updates).length > 0) {
+        await ctx.db.patch(job._id, updates);
+        updated += 1;
+      }
+    }
+
+    return { scanned: jobs.length, updated };
   },
 });
 

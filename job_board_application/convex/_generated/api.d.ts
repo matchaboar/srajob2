@@ -14,6 +14,7 @@ import type * as filters from "../filters.js";
 import type * as firecrawlWebhookUtil from "../firecrawlWebhookUtil.js";
 import type * as formFiller from "../formFiller.js";
 import type * as http from "../http.js";
+import type * as jobRecords from "../jobRecords.js";
 import type * as jobs from "../jobs.js";
 import type * as location from "../location.js";
 import type * as middleware_firecrawlCors from "../middleware/firecrawlCors.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   firecrawlWebhookUtil: typeof firecrawlWebhookUtil;
   formFiller: typeof formFiller;
   http: typeof http;
+  jobRecords: typeof jobRecords;
   jobs: typeof jobs;
   location: typeof location;
   "middleware/firecrawlCors": typeof middleware_firecrawlCors;
@@ -144,6 +146,7 @@ export declare const components: {
           fnHandle: string;
           name: string;
           next?: Array<{ fnHandle: string; name: string }>;
+          oneBatchOnly?: boolean;
         },
         {
           batchSize?: number;

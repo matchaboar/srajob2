@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { StatusTracker } from "./StatusTracker";
+import { CompanyIcon } from "./CompanyIcon";
 
 interface AppliedJobRowProps {
     job: any;
@@ -27,16 +28,17 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
             }}
             onClick={onSelect}
             className={`
-        group flex items-center gap-4 px-4 py-2 border-b border-slate-800 cursor-pointer transition-colors
+        group flex items-center gap-3 px-4 py-2 border-b border-slate-800 cursor-pointer transition-colors
         ${isSelected ? "bg-slate-800" : "hover:bg-slate-900"}
       `}
         >
             {/* Selection Indicator */}
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
 
-            <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
+            <div className="flex-1 min-w-0 grid grid-cols-[auto_4fr_2fr_2fr_4fr] gap-3 items-center">
+                <CompanyIcon company={job.company ?? ""} size={30} />
                 {/* Title & Company */}
-                <div className="col-span-4">
+                <div className="min-w-0">
                     <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
                         {job.title}
                     </h3>
@@ -44,8 +46,8 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
                 </div>
 
                 {/* Location */}
-                <div className="col-span-2 flex items-center gap-2">
-                    <span className="text-xs text-slate-400 truncate max-w-[100px]">{job.location}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-slate-400 truncate max-w-[120px]">{job.location}</span>
                     {job.remote && (
                         <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-medium rounded border border-emerald-500/20">
                             Remote
@@ -54,13 +56,13 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
                 </div>
 
                 {/* Applied Date */}
-                <div className="col-span-2 text-right">
+                <div className="text-right">
                     <span className="text-xs text-slate-500 block">Applied</span>
                     <span className="text-xs text-slate-300">{formatDate(job.appliedAt)}</span>
                 </div>
 
                 {/* Status Tracker */}
-                <div className="col-span-4 flex justify-end">
+                <div className="flex justify-end">
                     <StatusTracker
                         status={job.workerStatus || (job.userStatus === 'applied' ? 'Applied' : null)}
                         updatedAt={job.workerUpdatedAt || job.appliedAt}

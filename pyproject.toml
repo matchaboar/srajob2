@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
     "pyyaml>=6.0.2",
+    "spider-client>=0.1.82",
     "temporalio==1.17.0",
 ]
 
@@ -36,4 +37,5 @@ build-backend = "uv_build"
 dev = [
     "green>=4.0.2",
     "pyright>=1.1.407",
+    "ruff>=0.12.8",
 ]

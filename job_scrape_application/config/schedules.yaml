@@ -14,3 +14,27 @@ schedules:
     task_queue: scraper-task-queue
     catchup_window_hours: 12
     overlap: skip
+
+  # Lease and run Spidercloud scraper jobs (e.g., Greenhouse boards with spidercloud provider)
+  - id: scraper-spidercloud
+    workflow: ScraperSpidercloud
+    interval_seconds: 20
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # Continuously drain job-detail queue for SpiderCloud (batch scraping)
+  - id: spidercloud-job-details
+    workflow: SpidercloudJobDetails
+    interval_seconds: 15
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # Periodic heuristic parsing of pending jobs (markdown extraction fallbacks)
+  - id: heuristic-job-details
+    workflow: HeuristicJobDetails
+    interval_seconds: 120
+    task_queue: scraper-task-queue
+    catchup_window_hours: 6
+    overlap: skip

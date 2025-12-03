@@ -7,7 +7,8 @@ import { JobRow } from "./components/JobRow";
 import { AppliedJobRow } from "./components/AppliedJobRow";
 import { RejectedJobRow } from "./components/RejectedJobRow";
 import { Keycap } from "./components/Keycap";
-import { formatCompensationDisplay, parseCompensationInput } from "./lib/compensation";
+import { DiagonalFraction } from "./components/DiagonalFraction";
+import { buildCompensationMeta, formatCompensationDisplay, parseCompensationInput } from "./lib/compensation";
 
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
@@ -20,6 +21,7 @@ interface Filters {
   level: Level | null;
   minCompensation: number | null;
   maxCompensation: number | null;
+  hideUnknownCompensation: boolean;
 }
 
 interface SavedFilter {
@@ -32,6 +34,7 @@ interface SavedFilter {
   level?: Level | null;
   minCompensation?: number;
   maxCompensation?: number;
+  hideUnknownCompensation?: boolean;
   isSelected: boolean;
 }
 
@@ -42,6 +45,7 @@ const buildEmptyFilters = (): Filters => ({
   level: null,
   minCompensation: null,
   maxCompensation: null,
+  hideUnknownCompensation: false,
 });
 
 const buildFilterLabel = (filter: {
@@ -52,6 +56,7 @@ const buildFilterLabel = (filter: {
   remote?: boolean | null;
   minCompensation?: number | null;
   maxCompensation?: number | null;
+  hideUnknownCompensation?: boolean | null;
 }) => {
   const parts: string[] = [];
   const trimmedSearch = (filter.search ?? "").trim();
@@ -79,6 +84,9 @@ const buildFilterLabel = (filter: {
     parts.push(`${formatSalary(filter.minCompensation as number)}+`);
   } else if (hasMax) {
     parts.push(`Up to ${formatSalary(filter.maxCompensation as number)}`);
+  }
+  if (filter.hideUnknownCompensation) {
+    parts.push("Hide unknown comp");
   }
 
   return parts.join(" • ") || "All jobs";
@@ -199,6 +207,7 @@ export function JobBoard() {
       level: throttledFilters.level ?? undefined,
       minCompensation: throttledFilters.minCompensation ?? undefined,
       maxCompensation: throttledFilters.maxCompensation ?? undefined,
+      hideUnknownCompensation: throttledFilters.hideUnknownCompensation,
     },
     { initialNumItems: 50 } // Load more items for the dense list
   );
@@ -216,6 +225,7 @@ export function JobBoard() {
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs);
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
+  const reparseJob = useMutation(api.jobs.reparseJobFromDescription);
   // Withdraw not used in this view; keep mutation available for future enhancements
   const ensureDefaultFilter = useMutation(api.filters.ensureDefaultFilter);
   const saveFilter = useMutation(api.filters.saveFilter);
@@ -230,21 +240,46 @@ export function JobBoard() {
     filteredResults.find((job) => job._id === selectedJobId) ??
     (displayedResults || []).find((job) => job._id === selectedJobId) ??
     null;
-  const formatCurrency = useCallback((value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  }, []);
   const formatPostedLabel = useCallback((timestamp: number) => {
     const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
     const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return `${dateLabel} • ${days}d ago`;
   }, []);
+  const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJob), [selectedJob]);
   const formatLevelLabel = useCallback((level?: string | null) => {
     if (!level || typeof level !== "string") return "Not specified";
     return level.charAt(0).toUpperCase() + level.slice(1);
+  }, []);
+  const renderScrapeCost = useCallback((mc: number) => {
+    if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
+    if (mc === 0) return "0 ¢";
+    if (mc > 0 && 1000 % mc === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[#d9ae52]">
+          <DiagonalFraction numerator={1} denominator={1000 / mc} />
+          <span
+            className="text-[#eac56e] font-semibold"
+            style={{ fontFamily: '"Times New Roman","Times",serif', fontSize: "14px" }}
+          >
+            ¢
+          </span>
+        </span>
+      );
+    }
+    if (mc > 0 && mc < 1000) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[#d9ae52]">
+          <DiagonalFraction numerator={mc} denominator={1000} />
+          <span
+            className="text-[#eac56e] font-semibold"
+            style={{ fontFamily: '"Times New Roman","Times",serif', fontSize: "14px" }}
+          >
+            ¢
+          </span>
+        </span>
+      );
+    }
+    return "0 ¢";
   }, []);
   const selectedJobDetails = useMemo(() => {
     if (!selectedJob) return [];
@@ -259,7 +294,7 @@ export function JobBoard() {
     });
     details.push({
       label: "Compensation",
-      value: formatCurrency(typeof selectedJob.totalCompensation === "number" ? selectedJob.totalCompensation : 0),
+      value: selectedCompMeta.display,
     });
     details.push({
       label: "Posted",
@@ -279,7 +314,36 @@ export function JobBoard() {
     }
 
     return details;
-  }, [selectedJob, formatCurrency, formatLevelLabel, formatPostedLabel]);
+  }, [selectedJob, selectedCompMeta, formatLevelLabel, formatPostedLabel]);
+  const parsingSteps = useMemo(() => {
+    if (!selectedJob) return [];
+    const scrapedWith = selectedJob.scrapedWith || selectedJob.workflowName;
+    const heuristicRan =
+      (selectedJob.workflowName || "").toLowerCase().includes("heuristic") ||
+      (selectedJob.compensationReason || "").toLowerCase().includes("heuristic");
+
+    return [
+      {
+        label: "Initial scrape",
+        checked: Boolean(scrapedWith),
+        note: scrapedWith ? `via ${scrapedWith}` : "pending",
+      },
+      {
+        label: "Heuristic parsing",
+        checked: heuristicRan,
+        note: heuristicRan ? selectedJob.workflowName || "HeuristicJobDetails" : "not run",
+      },
+      {
+        label: "LLM parsing",
+        checked: false,
+        note: "optional (not run)",
+      },
+    ];
+  }, [selectedJob]);
+  const parseNotes = useMemo(() => {
+    if (!selectedJob) return "No additional notes.";
+    return selectedJob.compensationReason || selectedCompMeta.reason || "No additional notes.";
+  }, [selectedJob, selectedCompMeta]);
   const descriptionText = selectedJob?.description || selectedJob?.job_description || "No description available.";
   const descriptionWordCount =
     selectedJob && (selectedJob.description || selectedJob.job_description)
@@ -333,6 +397,7 @@ export function JobBoard() {
       level: (filter.level as Level | null) ?? null,
       minCompensation: filter.minCompensation ?? null,
       maxCompensation: filter.maxCompensation ?? null,
+      hideUnknownCompensation: filter.hideUnknownCompensation ?? false,
     });
     setSelectedJobId(null);
     setTimeout(() => {
@@ -490,6 +555,7 @@ export function JobBoard() {
         level: filters.level ?? undefined,
         minCompensation: filters.minCompensation ?? undefined,
         maxCompensation: filters.maxCompensation ?? undefined,
+        hideUnknownCompensation: filters.hideUnknownCompensation,
       });
       toast.success("Filter saved");
     } catch (_error) {
@@ -663,6 +729,16 @@ export function JobBoard() {
       toast.error("Failed to reject");
     }
   }, [rejectJob, exitingJobs, filteredResults]);
+
+  const handleReparseJob = useCallback(async (jobId: string) => {
+    try {
+      const res = await reparseJob({ jobId: jobId as any });
+      const updated = (res as any)?.updated ?? 0;
+      toast.success(updated > 0 ? `Updated ${updated} fields` : "No changes from reparse");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to reparse job");
+    }
+  }, [reparseJob]);
 
   // Keyboard Navigation
   useEffect(() => {
@@ -977,6 +1053,15 @@ export function JobBoard() {
                       className="salary-slider w-full"
                     />
                   </div>
+                  <label className="mt-3 flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2 cursor-pointer">
+                    <span className="text-[11px] font-semibold uppercase text-slate-500">Hide unknown compensation</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                      checked={filters.hideUnknownCompensation}
+                      onChange={(e) => updateFilters({ hideUnknownCompensation: e.target.checked }, { forceImmediate: true })}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-2">
@@ -1015,6 +1100,7 @@ export function JobBoard() {
                           level: (filter.level as Level | null) ?? null,
                           minCompensation: filter.minCompensation ?? null,
                           maxCompensation: filter.maxCompensation ?? null,
+                          hideUnknownCompensation: filter.hideUnknownCompensation ?? false,
                         });
                         return (
                           <div key={filter._id} className="min-w-0">
@@ -1084,12 +1170,13 @@ export function JobBoard() {
                     {/* Header Row (sticky for alignment with scrollbar) */}
                     <div className="sticky top-0 z-20 relative flex items-center gap-4 px-4 pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       <div className="w-1" /> {/* Spacer for alignment with selection indicator */}
-                      <div className="flex-1 grid grid-cols-[4fr_3fr_2fr_3fr_2fr] gap-4 items-center">
+                      <div className="flex-1 grid grid-cols-[4fr_3fr_2fr_3fr_3fr_3fr] gap-4 items-center">
                         <div>Job</div>
                         <div>Location</div>
                         <div className="text-center">Level</div>
                         <div className="text-right">Salary</div>
                         <div className="text-right">Posted</div>
+                        <div className="text-right">Scraped</div>
                       </div>
                       <div className="absolute inset-y-0 right-0 flex items-center justify-end gap-0 w-36 pl-2 pr-0 pointer-events-none" aria-hidden="true">
                         <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Action</span>
@@ -1149,7 +1236,12 @@ export function JobBoard() {
                             {formatLevelLabel(selectedJob.level)}
                           </span>
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            {formatCurrency(typeof selectedJob.totalCompensation === "number" ? selectedJob.totalCompensation : 0)}
+                            <span
+                              className={`${selectedCompMeta.isUnknown ? "text-amber-200" : "text-emerald-200"}`}
+                              title={selectedCompMeta.reason}
+                            >
+                              {selectedCompMeta.display}
+                            </span>
                           </span>
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
                             {typeof selectedJob.postedAt === "number" ? formatPostedLabel(selectedJob.postedAt) : "Not provided"}
@@ -1178,14 +1270,23 @@ export function JobBoard() {
                               Direct Apply
                             </button>
                           )}
-                          <button
-                            onClick={() => { }}
-                            disabled
-                            className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
-                          >
-                            Apply with AI
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => { }}
+                          disabled
+                          className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
+                        >
+                          Apply with AI
+                        </button>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => { if (selectedJob) void handleReparseJob(selectedJob._id); }}
+                          className="text-[11px] px-3 py-1.5 rounded-md border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
+                        >
+                          Re-run parsing
+                        </button>
+                      </div>
 
                         {selectedJobDetails.find(item => item.label === "Job URL") && (
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
@@ -1230,7 +1331,7 @@ export function JobBoard() {
                                     {item.value}
                                   </a>
                                 ) : (
-                                  <span className="truncate text-slate-200">{item.value}</span>
+                                  <span className="text-slate-200 break-words">{item.value}</span>
                                 )}
                               </div>
                             </div>
@@ -1278,27 +1379,38 @@ export function JobBoard() {
                             <span className="font-semibold text-slate-100 break-words">
                               {typeof selectedJob?.scrapedCostMilliCents === "number"
                                 ? (() => {
-                                    const mc = selectedJob.scrapedCostMilliCents;
-                                    const renderFraction = (numerator: number, denominator: number) => (
-                            <span className="inline-flex items-center text-[12px] font-semibold text-amber-400/90">
-                                <span className="flex flex-col leading-tight items-center mr-0.5">
-                                    <span className="px-0.5">{numerator}</span>
-                                    <span className="px-0.5">{denominator}</span>
-                                </span>
-                                <span className="text-[10px] text-amber-300 mx-0.5">/</span>
-                                <span className="text-[10px] text-amber-300 ml-0.5">¢</span>
-                            </span>
-                                    );
-
-                                    if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
-                                    if (mc === 100) return renderFraction(1, 10);
-                                    if (mc === 10) return renderFraction(1, 100);
-                                    if (mc === 1) return renderFraction(1, 1000);
-                                    if (mc > 0) return `${(mc / 1000).toFixed(3)} ¢`;
-                                    return "0 ¢";
+                                    return renderScrapeCost(selectedJob.scrapedCostMilliCents as number);
                                   })()
                                 : "None"}
                             </span>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3 space-y-2">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Parsing Workflows
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            {parsingSteps.map((step) => (
+                              <label key={step.label} className="flex items-center gap-2 text-sm text-slate-100">
+                                <input
+                                  type="checkbox"
+                                  checked={step.checked}
+                                  readOnly
+                                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-400 focus:ring-emerald-500"
+                                />
+                                <span className="flex-1 flex flex-col leading-tight">
+                                  <span className="font-semibold">{step.label}</span>
+                                  <span className="text-[11px] text-slate-400">{step.note}</span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 pt-1">
+                            Parse Notes
+                          </div>
+                          <div className="rounded border border-slate-800 bg-slate-950/70 text-sm text-slate-200 px-3 py-2 whitespace-pre-wrap">
+                            {parseNotes}
                           </div>
                         </div>
 

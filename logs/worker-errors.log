@@ -1,13 +1,232 @@
-2025-11-30 13:39:49,751 | INFO | temporal.worker | Worker main() started.
-2025-11-30 13:39:49,752 | INFO | temporal.worker | Settings: Temporal=127.0.0.1:7233, Convex=https://elegant-magpie-239.convex.site
-2025-11-30 13:39:49,752 | INFO | temporal.worker | Connecting to Temporal at 127.0.0.1:7233...
-2025-11-30 13:39:49,759 | INFO | temporal.worker | Connected to Temporal!
-2025-11-30 13:39:49,816 | INFO | temporal.worker | Worker started. Namespace=default Address=127.0.0.1:7233 TaskQueue=scraper-task-queue
-2025-11-30 13:39:49,817 | INFO | temporal.worker.monitor | Monitor loop started (worker_id=DESKTOP-NFS14HP-60345 host=DESKTOP-NFS14HP)
-2025-11-30 13:39:50,293 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
-2025-11-30 13:39:50,947 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
-2025-11-30 13:39:50,948 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=2)
-2025-11-30 13:39:52,150 | INFO | temporalio.worker._worker | Worker cancelled, shutting down
-2025-11-30 13:39:52,151 | INFO | temporalio.worker._worker | Beginning worker shutdown, will wait 0:00:00 before cancelling activities
-2025-11-30 13:39:52,154 | INFO | temporal.worker | Worker cancelled; shutting down...
-2025-11-30 13:39:52,154 | INFO | temporal.worker.webhooks | Webhook wait logger stopped.
+2025-12-02 23:49:33,632 | INFO | temporal.worker | Worker main() started.
+2025-12-02 23:49:33,632 | INFO | temporal.worker | Settings: Temporal=127.0.0.1:7233, Convex=https://elegant-magpie-239.convex.site
+2025-12-02 23:49:33,632 | INFO | temporal.worker | Connecting to Temporal at 127.0.0.1:7233...
+2025-12-02 23:49:33,641 | INFO | temporal.worker | Connected to Temporal!
+2025-12-02 23:49:33,721 | INFO | temporal.worker | Worker started. Namespace=default Address=127.0.0.1:7233 TaskQueue=scraper-task-queue
+2025-12-02 23:49:33,721 | INFO | temporal.worker.monitor | Monitor loop started (worker_id=DESKTOP-NFS14HP-194973 host=DESKTOP-NFS14HP)
+2025-12-02 23:49:34,338 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:49:34,341 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:49:35,374 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:49:35,375 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=5)
+2025-12-02 23:49:37,662 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:49:40,132 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:49:43,497 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:49:44,645 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:49:54,761 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:00,242 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:50:05,019 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:05,457 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:50:07,140 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:50:07,140 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=4)
+2025-12-02 23:50:15,609 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:20,340 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:50:23,247 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:50:26,123 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:36,490 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:38,339 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:50:38,340 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=1)
+2025-12-02 23:50:40,357 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:50:44,119 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:50:46,582 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:50:56,988 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:00,438 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:51:03,647 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:51:07,362 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:09,758 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:51:09,758 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=1)
+2025-12-02 23:51:17,443 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:20,021 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:51:20,830 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:51:27,532 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:37,620 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:40,017 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:51:40,234 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:51:40,235 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:51:40,610 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:51:47,701 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:51:57,790 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:00,018 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:52:01,559 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:52:07,887 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:10,552 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:52:10,552 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:52:17,971 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:20,023 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:52:20,863 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:52:28,082 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:38,161 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:40,025 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:52:40,735 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:52:41,159 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:52:41,160 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=2)
+2025-12-02 23:52:48,243 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:52:58,333 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:00,024 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:53:01,079 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:53:08,421 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:11,457 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:53:11,457 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:53:18,505 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:20,024 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:53:20,619 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:53:28,659 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:38,745 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:40,015 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:53:40,838 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:53:41,763 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:53:41,763 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:53:48,872 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:53:58,958 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:00,024 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:54:01,393 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:54:09,047 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:12,061 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:54:12,061 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:54:19,220 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:20,016 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:54:20,623 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:54:29,307 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:39,405 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:42,022 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:54:42,386 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:54:42,630 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:54:42,630 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=1)
+2025-12-02 23:54:49,493 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:54:59,572 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:55:00,023 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:55:01,280 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:55:09,667 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:55:12,931 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:55:12,931 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:55:19,748 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:55:20,016 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:55:20,721 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:55:29,840 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:55:39,951 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:55:40,019 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:55:40,734 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:55:43,231 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:55:43,232 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:55:50,031 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:00,115 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:00,116 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:56:01,748 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:56:10,203 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:13,533 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:56:13,534 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:56:20,016 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:56:20,328 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:21,005 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:56:30,629 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:40,018 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:56:40,620 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:56:40,803 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:56:43,840 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:56:43,841 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:56:50,895 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:00,144 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:57:01,022 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:01,639 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:57:11,128 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:14,143 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:57:14,143 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:57:20,027 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:57:20,732 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:57:21,207 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:31,289 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:40,022 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:57:40,721 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:57:41,368 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:57:44,449 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:57:44,449 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:57:51,451 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:00,136 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:58:01,573 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:01,575 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:58:11,675 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:14,756 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:58:14,756 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:58:20,016 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:58:20,727 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:58:21,759 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:31,840 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:40,024 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:58:40,612 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:58:41,920 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:58:45,131 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:58:45,132 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:58:52,007 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:00,040 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:59:01,572 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:59:02,085 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:12,176 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:15,812 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:59:15,812 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=2)
+2025-12-02 23:59:20,027 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:59:20,727 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:59:22,257 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:32,339 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:40,014 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-02 23:59:40,587 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-02 23:59:42,431 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-02 23:59:46,116 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-02 23:59:46,117 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-02 23:59:52,516 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:00,173 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:00:03,104 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:03,894 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:00:13,282 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:17,526 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:00:17,527 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=3)
+2025-12-03 00:00:20,017 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:00:20,746 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:00:23,553 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:33,641 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:40,024 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:00:40,847 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:00:43,725 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:00:47,831 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:00:47,832 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-03 00:00:53,807 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:00,044 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:01:01,559 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:01:03,991 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:14,133 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:18,148 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:01:18,149 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-03 00:01:20,017 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:01:20,727 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:01:24,216 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:34,299 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:40,017 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:01:40,735 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:01:44,382 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:01:48,459 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:01:48,459 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-03 00:01:54,467 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:00,025 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:02:02,979 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:02:04,663 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:15,208 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:19,536 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:02:19,536 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=2)
+2025-12-03 00:02:20,018 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:02:20,629 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:02:25,298 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:35,414 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:40,027 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:02:40,839 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:02:45,548 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:02:49,838 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:02:49,839 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-03 00:02:55,633 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:03:00,148 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:03:01,393 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:03:05,713 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:03:15,871 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:03:20,025 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.start | {'siteUrl': None, 'message': 'Scrape workflow started', 'data': None}
+2025-12-03 00:03:20,242 | INFO | httpx | HTTP Request: POST https://elegant-magpie-239.convex.site/api/temporal/status "HTTP/1.1 200 OK"
+2025-12-03 00:03:20,243 | INFO | temporal.worker.monitor | Monitor heartbeat sent (workflows=0)
+2025-12-03 00:03:20,752 | INFO | temporal.worker.scrape | ScraperSpidercloud | event=workflow.complete | {'siteUrl': None, 'message': 'Scrape workflow finished', 'data': {'status': 'completed', 'sitesProcessed': 0, 'jobsScraped': 0}}
+2025-12-03 00:03:25,953 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending
+2025-12-03 00:03:36,039 | INFO | temporal.worker.webhooks | Waiting for Firecrawl webhooks: none pending

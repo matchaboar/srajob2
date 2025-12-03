@@ -1,0 +1,12 @@
+{
+  "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
+  "params": {
+    "limit": 1,
+    "metadata": true,
+    "request": "smart",
+    "return_format": [
+      "commonmark"
+    ]
+  },
+  "contentType": "application/jsonl"
+}

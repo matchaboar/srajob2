@@ -1,0 +1,220 @@
+title_keywords:
+  # Jobs must include at least one of these keywords (case-insensitive).
+  required:
+    - engineer
+  # If a title is missing/unknown we still keep the job (admin UI needs to see it).
+  allow_when_missing: true
+
+location_filters:
+  # Require the job to be in the United States when a location is present.
+  require_usa: true
+  # If location is missing or unusable we still keep the job.
+  allow_when_missing: true
+
+  # Extra hints that should count as "US".
+  us_terms:
+    - united states
+    - united states of america
+    - usa
+    - u.s.
+    - u.s.a
+    - u.s
+    - america
+    - within the us
+    - anywhere in the us
+    - remote in us
+    - remote - us
+    - us remote
+    - us-based
+    - us only
+
+  # State/territory abbreviations to match in location strings.
+  us_state_codes:
+    - AL
+    - AK
+    - AZ
+    - AR
+    - CA
+    - CO
+    - CT
+    - DE
+    - DC
+    - FL
+    - GA
+    - HI
+    - ID
+    - IL
+    - IN
+    - IA
+    - KS
+    - KY
+    - LA
+    - ME
+    - MD
+    - MA
+    - MI
+    - MN
+    - MS
+    - MO
+    - MT
+    - NE
+    - NV
+    - NH
+    - NJ
+    - NM
+    - NY
+    - NC
+    - ND
+    - OH
+    - OK
+    - OR
+    - PA
+    - RI
+    - SC
+    - SD
+    - TN
+    - TX
+    - UT
+    - VT
+    - VA
+    - WA
+    - WV
+    - WI
+    - WY
+    - PR
+    - GU
+    - VI
+
+  # State/territory names are matched case-insensitively.
+  us_state_names:
+    - Alabama
+    - Alaska
+    - Arizona
+    - Arkansas
+    - California
+    - Colorado
+    - Connecticut
+    - Delaware
+    - District of Columbia
+    - Florida
+    - Georgia
+    - Hawaii
+    - Idaho
+    - Illinois
+    - Indiana
+    - Iowa
+    - Kansas
+    - Kentucky
+    - Louisiana
+    - Maine
+    - Maryland
+    - Massachusetts
+    - Michigan
+    - Minnesota
+    - Mississippi
+    - Missouri
+    - Montana
+    - Nebraska
+    - Nevada
+    - New Hampshire
+    - New Jersey
+    - New Mexico
+    - New York
+    - North Carolina
+    - North Dakota
+    - Ohio
+    - Oklahoma
+    - Oregon
+    - Pennsylvania
+    - Rhode Island
+    - South Carolina
+    - South Dakota
+    - Tennessee
+    - Texas
+    - Utah
+    - Vermont
+    - Virginia
+    - Washington
+    - West Virginia
+    - Wisconsin
+    - Wyoming
+    - Puerto Rico
+    - Guam
+    - Virgin Islands
+
+  # Cities used as hints when the state/country is omitted.
+  us_city_hints:
+    - new york
+    - san francisco
+    - seattle
+    - austin
+    - boston
+    - los angeles
+    - denver
+    - atlanta
+    - chicago
+    - portland
+    - san diego
+    - dallas
+    - houston
+    - miami
+    - phoenix
+    - raleigh
+    - washington
+    - san jose
+    - philadelphia
+    - salt lake city
+    - columbus
+    - charlotte
+
+  # If any of these appear, treat the job as non-US and skip it.
+  non_us_terms:
+    - canada
+    - toronto
+    - ontario
+    - vancouver
+    - montreal
+    - london
+    - united kingdom
+    - uk
+    - ireland
+    - scotland
+    - wales
+    - australia
+    - new zealand
+    - singapore
+    - india
+    - pakistan
+    - bangladesh
+    - germany
+    - france
+    - spain
+    - italy
+    - netherlands
+    - sweden
+    - norway
+    - finland
+    - denmark
+    - poland
+    - canada
+    - mexico
+    - brazil
+    - argentina
+    - chile
+    - colombia
+    - peru
+    - japan
+    - china
+    - taiwan
+    - hong kong
+    - south korea
+    - korea
+    - vietnam
+    - thailand
+    - philippines
+    - malaysia
+    - indonesia
+    - south africa
+    - nigeria
+    - egypt
+    - israel

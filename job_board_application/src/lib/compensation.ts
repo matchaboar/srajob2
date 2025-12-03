@@ -3,6 +3,23 @@ export const formatCompensationDisplay = (value: number | null) => {
   return `$${Math.round(value / 1000)}k`;
 };
 
+export const formatCurrencyCompensation = (value?: number, currencyCode: string = "USD") => {
+  if (typeof value !== "number" || Number.isNaN(value)) return "Unknown";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode || "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  }
+};
+
 export const parseCompensationInput = (value: string, opts?: { max?: number }) => {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return null;
@@ -20,4 +37,38 @@ export const parseCompensationInput = (value: string, opts?: { max?: number }) =
     dollars = Math.min(dollars, opts.max);
   }
   return dollars;
+};
+
+export const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
+
+export type CompensationMeta = {
+  display: string;
+  isUnknown: boolean;
+  reason: string;
+  currencyCode: string;
+};
+
+export const buildCompensationMeta = (job: any): CompensationMeta => {
+  const isUnknown = job?.compensationUnknown === true || typeof job?.totalCompensation !== "number";
+  const currencyCode = job?.currencyCode || "USD";
+
+  const display = isUnknown
+    ? "Unknown"
+    : formatCurrencyCompensation(job?.totalCompensation as number | undefined, currencyCode);
+
+  const reason =
+    typeof job?.compensationReason === "string" && job.compensationReason.trim()
+      ? job.compensationReason.trim()
+      : isUnknown
+        ? UNKNOWN_COMPENSATION_REASON
+        : typeof job?.scrapedWith === "string" && job.scrapedWith.trim()
+          ? `${job.scrapedWith} extracted compensation`
+          : "Compensation provided in listing";
+
+  return {
+    display,
+    isUnknown,
+    reason,
+    currencyCode,
+  };
 };

@@ -11,7 +11,7 @@ import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type Wor
 type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes";
 type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
-type ScrapeProvider = "fetchfox" | "firecrawl";
+type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud";
 const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
   mon: "Mon",
   tue: "Tue",
@@ -817,7 +817,7 @@ function ScraperConfigSection() {
   useEffect(() => {
     if (!isGreenhouseUrl) return;
     if (siteType !== "greenhouse") setSiteType("greenhouse");
-    if (scrapeProvider !== "firecrawl") setScrapeProvider("firecrawl");
+    if (scrapeProvider !== "spidercloud") setScrapeProvider("spidercloud");
     if (pattern) setPattern("");
     if (!enabled) setEnabled(true);
   }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId, scrapeProvider]);
@@ -974,7 +974,7 @@ function ScraperConfigSection() {
       const normalizedType = greenhouseSubmission ? "greenhouse" : siteType ?? "general";
       const normalizedPattern = normalizedType === "greenhouse" ? undefined : (pattern.trim() || undefined);
       const generatedName = deriveSiteName(trimmedUrl);
-      const normalizedProvider: ScrapeProvider = greenhouseSubmission ? "firecrawl" : scrapeProvider;
+      const normalizedProvider: ScrapeProvider = greenhouseSubmission ? "spidercloud" : scrapeProvider;
 
       await upsertSite({
         name: generatedName,
@@ -1018,7 +1018,7 @@ function ScraperConfigSection() {
           parsedType = lowered as "general" | "greenhouse";
           continue;
         }
-        if (!parsedProvider && (lowered === "fetchfox" || lowered === "firecrawl")) {
+        if (!parsedProvider && (lowered === "fetchfox" || lowered === "firecrawl" || lowered === "spidercloud")) {
           parsedProvider = lowered as ScrapeProvider;
           continue;
         }
@@ -1032,7 +1032,7 @@ function ScraperConfigSection() {
         ? "greenhouse"
         : parsedType ?? bulkSiteType ?? "general";
       const normalizedProvider: ScrapeProvider = greenhouseSubmission
-        ? "firecrawl"
+        ? "spidercloud"
         : parsedProvider ?? bulkScrapeProvider ?? "fetchfox";
       const patternValue = normalizedType === "greenhouse" ? undefined : parsedPattern;
       const generatedName = deriveSiteName(u);
@@ -1295,8 +1295,8 @@ function ScraperConfigSection() {
               setSiteType(next);
               if (next === "greenhouse") {
                 setPattern("");
-                setScrapeProvider("firecrawl");
-              } else if (!isGreenhouseUrl && scrapeProvider === "firecrawl") {
+                setScrapeProvider("spidercloud");
+              } else if (!isGreenhouseUrl && scrapeProvider === "spidercloud") {
                 setScrapeProvider("fetchfox");
               }
             }}
@@ -1317,8 +1317,9 @@ function ScraperConfigSection() {
           >
             <option value="fetchfox">FetchFox (structured JSON)</option>
             <option value="firecrawl">Firecrawl (webhook)</option>
+            <option value="spidercloud">SpiderCloud (streaming markdown)</option>
           </select>
-          <p className="text-[11px] text-slate-500 mt-1">FetchFox defaults for non-Greenhouse sites.</p>
+          <p className="text-[11px] text-slate-500 mt-1">SpiderCloud defaults for Greenhouse sites; FetchFox defaults for general sites.</p>
         </div>
         <div className="md:col-span-2">
           <label className="text-xs text-slate-400 block mb-1">Pattern (optional)</label>
@@ -1380,7 +1381,7 @@ function ScraperConfigSection() {
             <div className="text-xs text-slate-400 sm:col-span-2 lg:col-span-2">
               Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, pattern (optional), type/provider (optional)</code>
               <div className="text-[11px] text-slate-500 mt-1">
-                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; providers accept <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">firecrawl</code>. Greenhouse entries always use Firecrawl.
+                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; providers accept <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox</code>, <code className="bg-slate-900 px-1 rounded text-slate-300">firecrawl</code>, or <code className="bg-slate-900 px-1 rounded text-slate-300">spidercloud</code>. Greenhouse entries default to SpiderCloud.
               </div>
             </div>
             <div>
@@ -1419,6 +1420,7 @@ function ScraperConfigSection() {
               >
                 <option value="fetchfox">FetchFox (structured JSON)</option>
                 <option value="firecrawl">Firecrawl (webhook)</option>
+                <option value="spidercloud">SpiderCloud (streaming markdown)</option>
               </select>
             </div>
           </div>
@@ -1472,8 +1474,13 @@ function ScraperConfigSection() {
           const scheduleLabel = schedule ? formatScheduleSummary(schedule) : "No schedule";
           const siteType = (s as any).type ?? "general";
           const siteTypeLabel = siteType === "greenhouse" ? "Greenhouse" : "General";
-          const scrapeProvider: ScrapeProvider = (s as any).scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
-          const scrapeProviderLabel = scrapeProvider === "firecrawl" ? "Firecrawl" : "FetchFox";
+          const scrapeProvider: ScrapeProvider = (s as any).scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+          const scrapeProviderLabel =
+            scrapeProvider === "firecrawl"
+              ? "Firecrawl"
+              : scrapeProvider === "spidercloud"
+                ? "SpiderCloud"
+                : "FetchFox";
 
           return (
             <div key={siteId} className={clsx("p-3 flex items-center justify-between gap-3", !s.enabled && "opacity-50")}>
@@ -1495,7 +1502,9 @@ function ScraperConfigSection() {
                     "text-[10px] px-1.5 py-0.5 rounded border",
                     scrapeProvider === "firecrawl"
                       ? "bg-blue-900/30 text-blue-200 border-blue-800"
-                      : "bg-emerald-900/30 text-emerald-200 border-emerald-800"
+                      : scrapeProvider === "spidercloud"
+                        ? "bg-indigo-900/30 text-indigo-200 border-indigo-800"
+                        : "bg-emerald-900/30 text-emerald-200 border-emerald-800"
                   )}>
                     {scrapeProviderLabel}
                   </span>
@@ -1763,6 +1772,14 @@ function WorkerStatusSection() {
   const successfulSites = useQuery(api.sites.listSuccessfulSites, { limit: 100 });
   const failedSites = useQuery(api.sites.listFailedSites, { limit: 100 });
   const retrySite = useMutation(api.sites.retrySite);
+  const retryProcessing = useMutation(api.sites.retryProcessing);
+  const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
+  const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
+  const rateLimits = useQuery(api.router.listJobDetailRateLimits, {});
+  const upsertRateLimit = useMutation(api.router.upsertJobDetailRateLimit);
+  const deleteRateLimit = useMutation(api.router.deleteJobDetailRateLimit);
+  const [rateDomain, setRateDomain] = useState("");
+  const [rateValue, setRateValue] = useState("50");
   const scrapeErrors = useQuery(api.router.listScrapeErrors, { limit: 25 });
 
   const rows: any[] = [];
@@ -1789,6 +1806,22 @@ function WorkerStatusSection() {
             <p className="text-[11px] text-slate-500 mt-1">
               Use <span className="text-amber-200 font-semibold">Clear failures</span> to reset a stuck site:
               it clears the failed flag and immediately requeues the site for the next scrape cycle.
+            </p>
+            <p className="text-[11px] text-slate-500">
+              <span className="text-blue-200 font-semibold">Retry processing</span> replays existing scraped data for
+              the site (no new scrape) and re-ingests jobs, while also clearing failures.
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              <span className="text-cyan-200 font-semibold">Job detail rate limits</span> control batch scraping for
+              individual job URLs (default 50/min per domain). Configure per-domain overrides below.
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Use <span className="text-emerald-200 font-semibold">Reset processing</span> to move any stuck job-detail
+              URLs back to pending for reprocessing.
+            </p>
+            <p className="text-[11px] text-slate-500">
+              <span className="text-indigo-200 font-semibold">Reset completed</span> will reopen finished job-detail
+              URLs (e.g., for re-scrape) and move them back to pending.
             </p>
           </div>
         </div>
@@ -1844,27 +1877,154 @@ function WorkerStatusSection() {
                   </td>
                   <td className="px-3 py-2 text-right">
                     {row.status === "failed" && (
-                      <button
-                        onClick={() => {
-                          void (async () => {
-                            try {
-                              await retrySite({ id: row._id, clearError: true });
-                              toast.success("Failures cleared; site requeued");
-                            } catch {
-                              toast.error("Failed to clear site errors");
-                            }
-                          })();
-                        }}
-                        className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
-                      >
-                        Clear failures
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                await retrySite({ id: row._id, clearError: true });
+                                toast.success("Failures cleared; site requeued");
+                              } catch {
+                                toast.error("Failed to clear site errors");
+                              }
+                            })();
+                          }}
+                          className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
+                        >
+                          Clear failures
+                        </button>
+                        <button
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                const res = await retryProcessing({ id: row._id });
+                                toast.success(
+                                  `Replayed ${res.jobsAttempted ?? 0} jobs from ${res.scrapesProcessed ?? 0} scrapes`
+                                );
+                              } catch (err: any) {
+                                toast.error(`Retry processing failed: ${err?.message ?? "unknown error"}`);
+                              }
+                            })();
+                          }}
+                          className="text-[11px] px-2 py-1 rounded border border-blue-700 bg-blue-900/30 text-blue-200 hover:bg-blue-800/40 transition-colors"
+                        >
+                          Retry processing
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Job detail rate limits</h3>
+            <p className="text-[11px] text-slate-500">
+              Default is 50/minute per domain. Override specific domains here (SpiderCloud job-detail batches).
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={rateDomain}
+              onChange={(e) => setRateDomain(e.target.value)}
+              placeholder="domain (e.g., boards.greenhouse.io)"
+              className="bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-700"
+            />
+            <input
+              value={rateValue}
+              onChange={(e) => setRateValue(e.target.value)}
+              placeholder="50"
+              type="number"
+              min={1}
+              className="bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-700 w-20"
+            />
+            <button
+              onClick={() => {
+                void (async () => {
+                  const domain = rateDomain.trim();
+                  const val = Number(rateValue);
+                  if (!domain || !val) return toast.error("Domain and rate are required");
+                  try {
+                    await upsertRateLimit({ domain, maxPerMinute: val });
+                    toast.success("Rate limit saved");
+                    setRateDomain("");
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Failed to save rate limit");
+                  }
+                })();
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-cyan-700 bg-cyan-900/30 text-cyan-200 hover:bg-cyan-800/40 transition-colors"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const res = await resetScrapeUrlProcessing({});
+                    toast.success(`Reset ${res.updated ?? 0} processing URLs to pending`);
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Failed to reset processing URLs");
+                  }
+                })();
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-emerald-700 bg-emerald-900/30 text-emerald-200 hover:bg-emerald-800/40 transition-colors"
+            >
+              Reset processing
+            </button>
+            <button
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const res = await resetScrapeUrlsByStatus({});
+                    toast.success(`Reset ${res.updated ?? 0} completed URLs to pending`);
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Failed to reset completed URLs");
+                  }
+                })();
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
+            >
+              Reset completed
+            </button>
+          </div>
+        </div>
+        <div className="divide-y divide-slate-800">
+          {(rateLimits as any[] | undefined)?.length ? (
+            (rateLimits as any[]).map((row: any) => (
+              <div key={row._id} className="flex items-center justify-between px-4 py-2 text-xs text-slate-200">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-slate-300">{row.domain}</span>
+                  <span className="text-slate-400">{row.maxPerMinute}/min</span>
+                  <span className="text-slate-500 text-[11px]">
+                    window sent: {row.sentInWindow ?? 0} (started {new Date(row.lastWindowStart).toLocaleTimeString()})
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        await deleteRateLimit({ id: row._id });
+                        toast.success("Rate limit removed");
+                      } catch {
+                        toast.error("Failed to delete rate limit");
+                      }
+                    })();
+                  }}
+                  className="text-[11px] px-2 py-1 rounded border border-red-700 bg-red-900/30 text-red-200 hover:bg-red-800/40 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-[11px] text-slate-500">No overrides configured (using defaults).</div>
+          )}
         </div>
       </div>
 
@@ -2086,6 +2246,7 @@ function PendingRequestsSection() {
 function DatabaseSection() {
   const insertFakeJobs = useMutation(api.seedData.insertFakeJobs);
   const normalizeDevTestJobs = useMutation(api.jobs.normalizeDevTestJobs);
+  const reparseAllJobs = useMutation(api.jobs.reparseAllJobs);
   const deleteJob = useMutation(api.jobs.deleteJob);
   const recentJobs = useQuery(api.jobs.getRecentJobs);
 
@@ -2123,6 +2284,21 @@ function DatabaseSection() {
             className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-500 transition-colors"
           >
             Normalize Dev/Test Jobs
+          </button>
+          <button
+            onClick={() => {
+              void (async () => {
+                try {
+                  const res = await reparseAllJobs({});
+                  toast.success(`Re-parsed ${res.updated} of ${res.scanned} jobs`);
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Failed to re-parse");
+                }
+              })();
+            }}
+            className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded hover:bg-amber-500 transition-colors"
+          >
+            Re-parse All Jobs
           </button>
         </div>
       </div>

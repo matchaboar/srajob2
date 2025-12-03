@@ -13,12 +13,17 @@ const applicationTables = {
     remote: v.boolean(),
     level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
     totalCompensation: v.number(),
+    compensationUnknown: v.optional(v.boolean()),
+    compensationReason: v.optional(v.string()),
+    currencyCode: v.optional(v.string()),
     url: v.string(),
     postedAt: v.number(),
     scrapedAt: v.optional(v.number()),
     scrapedWith: v.optional(v.string()),
     workflowName: v.optional(v.string()),
     scrapedCostMilliCents: v.optional(v.number()),
+    heuristicAttempts: v.optional(v.number()),
+    heuristicLastTried: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
   })
@@ -40,6 +45,7 @@ const applicationTables = {
     level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
+    hideUnknownCompensation: v.optional(v.boolean()),
     isSelected: v.boolean(),
     createdAt: v.number(),
   })
@@ -61,7 +67,9 @@ const applicationTables = {
     name: v.optional(v.string()),
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
-    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
+    scrapeProvider: v.optional(
+      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+    ),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),
     // Optional reusable schedule reference
@@ -180,6 +188,42 @@ const applicationTables = {
   })
     .index("by_run", ["runId"])
     .index("by_started", ["startedAt"]),
+
+  // Queue of individual job URLs discovered from site listings (e.g., Greenhouse boards)
+  scrape_url_queue: defineTable({
+    url: v.string(),
+    sourceUrl: v.string(),
+    provider: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
+    pattern: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    attempts: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_url", ["url"])
+    .index("by_status", ["status"])
+    .index("by_site_status", ["siteId", "status"]),
+
+  job_detail_configs: defineTable({
+    domain: v.string(),
+    field: v.string(),
+    regex: v.string(),
+    successCount: v.number(),
+    lastSuccessAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_domain", ["domain"])
+    .index("by_domain_field", ["domain", "field"]),
+
+  job_detail_rate_limits: defineTable({
+    domain: v.string(),
+    maxPerMinute: v.number(),
+    lastWindowStart: v.number(),
+    sentInWindow: v.number(),
+  }).index("by_domain", ["domain"]),
 
   schedule_config: defineTable({
     key: v.string(),

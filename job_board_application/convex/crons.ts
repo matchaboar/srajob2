@@ -28,5 +28,11 @@ crons.interval(
   internal.crons.clearExpiredSiteLocks,
 );
 
-export default crons;
+// Hourly, purge stale queued URLs older than 48 hours
+crons.interval(
+  "clearStaleScrapeQueue",
+  { hours: 1 },
+  internal.router.clearStaleScrapeQueue,
+);
 
+export default crons;

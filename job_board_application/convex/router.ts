@@ -1,14 +1,17 @@
 import { httpRouter } from "convex/server";
-import { httpAction, mutation, query } from "./_generated/server";
+import { httpAction, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
 import { splitLocation, formatLocationLabel } from "./location";
 import { FIRECRAWL_SIGNATURE_HEADER, runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
+import { buildJobInsert } from "./jobRecords";
 
 const http = httpRouter();
+const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const DEFAULT_TIMEZONE = "America/Denver";
+const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
 const scheduleDay = v.union(
   v.literal("mon"),
   v.literal("tue"),
@@ -434,7 +437,38 @@ export const updateSiteSchedule = mutation({
     scheduleId: v.optional(v.id("scrape_schedules")),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { scheduleId: args.scheduleId });
+    const site = await ctx.db.get(args.id);
+    if (!site) {
+      throw new Error("Site not found");
+    }
+
+    const updates: Record<string, any> = { scheduleId: args.scheduleId };
+
+    // If a new schedule is attached and its window for today has already started,
+    // backdate lastRunAt so the site is eligible immediately.
+    if (args.scheduleId && args.scheduleId !== (site as any).scheduleId) {
+      const sched = await ctx.db.get(args.scheduleId);
+      if (sched) {
+        const eligibleAt = latestEligibleTime(
+          {
+            days: (sched as any).days ?? [],
+            startTime: (sched as any).startTime,
+            intervalMinutes: (sched as any).intervalMinutes,
+            timezone: (sched as any).timezone,
+          },
+          Date.now()
+        );
+        if (eligibleAt !== null && eligibleAt <= Date.now()) {
+          const currentLast = (site as any).lastRunAt ?? 0;
+          const desiredLast = Math.max(0, Math.min(currentLast, eligibleAt - 1));
+          if (desiredLast < currentLast) {
+            updates.lastRunAt = desiredLast;
+          }
+        }
+      }
+    }
+
+    await ctx.db.patch(args.id, updates);
     return args.id;
   },
 });
@@ -491,7 +525,9 @@ export const leaseSite = mutation({
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
     siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
-    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
+    scrapeProvider: v.optional(
+      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+    ),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -512,7 +548,7 @@ export const leaseSite = mutation({
       const siteType = (site as any).type ?? "general";
       const scrapeProvider =
         (site as any).scrapeProvider ??
-        (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
+        (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
       if (requestedType && siteType !== requestedType) continue;
       if (requestedProvider && scrapeProvider !== requestedProvider) continue;
       if (site.completed) continue;
@@ -567,7 +603,7 @@ export const leaseSite = mutation({
     const s = fresh as Doc<"sites">;
     const resolvedProvider =
       (s as any).scrapeProvider ??
-      ((s as any).type === "greenhouse" ? "firecrawl" : "fetchfox");
+      ((s as any).type === "greenhouse" ? "spidercloud" : "fetchfox");
     return {
       _id: s._id,
       name: s.name,
@@ -612,6 +648,48 @@ export const releaseSite = mutation({
   },
 });
 
+export const listQueuedScrapeUrls = query({
+  args: {
+    siteId: v.optional(v.id("sites")),
+    provider: v.optional(v.string()),
+    status: v.optional(
+      v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    ),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 200, 500));
+    const baseQuery = ctx.db.query("scrape_url_queue");
+    const status = args.status;
+    const query =
+      status === undefined
+        ? baseQuery
+        : baseQuery.withIndex("by_status", (qi) => qi.eq("status", status));
+    const rows = await query.order("asc").take(limit);
+
+    return rows
+      .filter((row: any) => {
+        if (args.siteId && row.siteId !== args.siteId) return false;
+        if (args.provider && row.provider !== args.provider) return false;
+        return true;
+      })
+      .map((row) => ({
+        _id: row._id,
+        url: row.url,
+        sourceUrl: row.sourceUrl,
+        provider: row.provider,
+        siteId: row.siteId,
+        pattern: row.pattern,
+        status: row.status,
+        attempts: row.attempts,
+        lastError: row.lastError,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        completedAt: row.completedAt,
+      }));
+  },
+});
+
 // Mark a site to be picked up immediately on the next workflow run
 export const runSiteNow = mutation({
   args: { id: v.id("sites") },
@@ -643,6 +721,465 @@ export const runSiteNow = mutation({
       console.error("Failed to record run request", err);
     }
     return { success: true };
+  },
+});
+
+export const enqueueScrapeUrls = mutation({
+  args: {
+    urls: v.array(v.string()),
+    sourceUrl: v.string(),
+    provider: v.string(),
+    siteId: v.optional(v.id("sites")),
+    pattern: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const queued: string[] = [];
+    const seen = new Set<string>();
+
+    for (const rawUrl of args.urls) {
+      const url = (rawUrl || "").trim();
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+
+      // Skip if already queued
+      const existing = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_url", (q) => q.eq("url", url))
+        .first();
+      if (existing) {
+        const createdAt = (existing as any).createdAt ?? 0;
+        if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
+          // Mark stale and skip requeue
+          await ctx.db.patch(existing._id, {
+            status: "failed",
+            lastError: "stale (>48h)",
+            updatedAt: now,
+          });
+        }
+        continue;
+      }
+
+      await ctx.db.insert("scrape_url_queue", {
+        url,
+        sourceUrl: args.sourceUrl,
+        provider: args.provider,
+        siteId: args.siteId,
+        pattern: args.pattern === null ? undefined : args.pattern,
+        status: "pending",
+        attempts: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      queued.push(url);
+    }
+
+    return { queued };
+  },
+});
+
+export const leaseScrapeUrlBatch = mutation({
+  args: {
+    provider: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    maxPerMinuteDefault: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
+    const now = Date.now();
+    const maxPerMinuteDefault = Math.max(1, Math.min(args.maxPerMinuteDefault ?? 50, 1000));
+
+    const normalizeDomain = (url: string) => {
+      try {
+        const u = new URL(url);
+        return u.hostname.toLowerCase();
+      } catch {
+        return "";
+      }
+    };
+
+    const rateLimits = new Map<string, any>();
+    const rateRows = await ctx.db.query("job_detail_rate_limits").collect();
+    for (const row of rateRows as any[]) {
+      const domain = (row.domain || "").toLowerCase();
+      if (!domain) continue;
+      rateLimits.set(domain, row);
+    }
+
+    const applyRateLimit = async (domain: string) => {
+      const nowTs = Date.now();
+      const existing = rateLimits.get(domain);
+      const maxPerMinute = existing?.maxPerMinute ?? maxPerMinuteDefault;
+      const windowStart = existing?.lastWindowStart ?? nowTs;
+      const sent = existing?.sentInWindow ?? 0;
+      const windowMs = 60_000;
+      let newWindowStart = windowStart;
+      let newSent = sent;
+      if (nowTs - windowStart >= windowMs) {
+        newWindowStart = nowTs;
+        newSent = 0;
+      }
+      if (newSent >= maxPerMinute) {
+        return { allowed: false, maxPerMinute };
+      }
+      newSent += 1;
+      let upsertId = existing?._id;
+      if (existing && existing._id) {
+        await ctx.db.patch(existing._id, {
+          lastWindowStart: newWindowStart,
+          sentInWindow: newSent,
+        });
+      } else {
+        const insertedId = await ctx.db.insert("job_detail_rate_limits", {
+          domain,
+          maxPerMinute,
+          lastWindowStart: newWindowStart,
+          sentInWindow: newSent,
+        });
+        upsertId = insertedId;
+      }
+      rateLimits.set(domain, {
+        _id: upsertId,
+        domain,
+        maxPerMinute,
+        lastWindowStart: newWindowStart,
+        sentInWindow: newSent,
+      });
+      return { allowed: true, maxPerMinute };
+    };
+
+    const baseQuery = ctx.db.query("scrape_url_queue").withIndex("by_status", (q) => q.eq("status", "pending"));
+    const rows = await baseQuery.order("asc").take(limit * 3);
+    const picked: any[] = [];
+    for (const row of rows as any[]) {
+      if (picked.length >= limit) break;
+      if (args.provider && row.provider !== args.provider) continue;
+      const domain = normalizeDomain(row.url);
+      const rate = await applyRateLimit(domain || "default");
+      if (!rate.allowed) continue;
+      picked.push(row);
+    }
+
+    if (picked.length === 0) return { urls: [] };
+
+    for (const row of picked) {
+      await ctx.db.patch(row._id, {
+        status: "processing",
+        attempts: ((row as any).attempts ?? 0) + 1,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      urls: picked.map((r) => ({
+        url: r.url,
+        sourceUrl: r.sourceUrl,
+        provider: r.provider,
+        siteId: r.siteId,
+        pattern: r.pattern,
+        _id: r._id,
+      })),
+    };
+  },
+});
+
+export const listPendingJobDetails = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 25, 200));
+    const pendingReason = "pending markdown structured extraction";
+    const retryCutoff = Date.now() - 10 * 60 * 1000;
+    const rows = await ctx.db
+      .query("jobs")
+      .filter((q) =>
+        q.and(
+          q.or(
+            q.eq(q.field("compensationReason"), pendingReason),
+            q.and(
+              q.eq(q.field("compensationUnknown"), true),
+              q.or(q.eq(q.field("totalCompensation"), 0), q.eq(q.field("totalCompensation"), null))
+            )
+          ),
+          q.or(
+            q.eq(q.field("heuristicAttempts"), null),
+            q.lt(q.field("heuristicAttempts"), 3),
+            q.lt(q.field("heuristicLastTried"), retryCutoff)
+          )
+        )
+      )
+      .take(lim);
+
+    return rows.map((row: any) => ({
+      _id: row._id,
+      title: row.title,
+      company: row.company,
+      description: row.description,
+      location: row.location,
+      remote: row.remote,
+      url: row.url,
+      compensationReason: row.compensationReason,
+      totalCompensation: row.totalCompensation,
+      compensationUnknown: row.compensationUnknown,
+      scrapedAt: row.scrapedAt,
+      heuristicAttempts: row.heuristicAttempts,
+      heuristicLastTried: row.heuristicLastTried,
+      currencyCode: row.currencyCode,
+    }));
+  },
+});
+
+export const completeScrapeUrls = mutation({
+  args: {
+    urls: v.array(v.string()),
+    status: v.union(v.literal("completed"), v.literal("failed")),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const rawUrl of args.urls) {
+      const url = (rawUrl || "").trim();
+      if (!url) continue;
+
+      const existing = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_url", (q) => q.eq("url", url))
+        .first();
+      if (!existing) continue;
+
+      const attempts = (existing as any).attempts ?? 0;
+      await ctx.db.patch(existing._id, {
+        status: args.status,
+        attempts: attempts + 1,
+        lastError: args.error,
+        updatedAt: now,
+        completedAt: args.status === "completed" ? now : undefined,
+      });
+    }
+    return { updated: args.urls.length };
+  },
+});
+
+export const listJobDetailConfigs = query({
+  args: { domain: v.optional(v.string()), field: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const domain = (args.domain || "").toLowerCase();
+    const field = (args.field || "").toLowerCase();
+    let rows;
+    if (domain) {
+      rows = await ctx.db.query("job_detail_configs").withIndex("by_domain", (q) => q.eq("domain", domain)).take(200);
+    } else {
+      rows = await ctx.db.query("job_detail_configs").take(200);
+    }
+    if (field) {
+      rows = rows.filter((row: any) => (row.field || "").toLowerCase() === field);
+    }
+    rows.sort((a: any, b: any) => (b.successCount ?? 0) - (a.successCount ?? 0));
+    return rows.map((row: any) => ({
+      _id: row._id,
+      domain: row.domain,
+      field: row.field,
+      regex: row.regex,
+      successCount: row.successCount,
+      lastSuccessAt: row.lastSuccessAt,
+      createdAt: row.createdAt,
+    }));
+  },
+});
+
+export const recordJobDetailHeuristic = mutation({
+  args: {
+    domain: v.string(),
+    field: v.string(),
+    regex: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const domain = args.domain.trim().toLowerCase();
+    const field = args.field.trim().toLowerCase();
+    const regex = args.regex.trim();
+    if (!domain || !field || !regex) throw new Error("domain, field, and regex are required");
+    const existing = await ctx.db
+      .query("job_detail_configs")
+      .withIndex("by_domain_field", (q) => q.eq("domain", domain).eq("field", field))
+      .filter((q) => q.eq(q.field("regex"), regex))
+      .first();
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        successCount: (existing as any).successCount + 1,
+        lastSuccessAt: now,
+      });
+      return { updated: true };
+    }
+    await ctx.db.insert("job_detail_configs", {
+      domain,
+      field,
+      regex,
+      successCount: 1,
+      lastSuccessAt: now,
+      createdAt: now,
+    });
+    return { created: true };
+  },
+});
+
+export const updateJobWithHeuristic = mutation({
+  args: {
+    id: v.id("jobs"),
+    location: v.optional(v.string()),
+    totalCompensation: v.optional(v.number()),
+    compensationReason: v.optional(v.string()),
+    compensationUnknown: v.optional(v.boolean()),
+    remote: v.optional(v.boolean()),
+    heuristicAttempts: v.optional(v.number()),
+    heuristicLastTried: v.optional(v.number()),
+    currencyCode: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const patch: any = {};
+    for (const key of [
+      "location",
+      "totalCompensation",
+      "compensationReason",
+      "compensationUnknown",
+      "remote",
+      "heuristicAttempts",
+      "heuristicLastTried",
+      "currencyCode",
+    ] as const) {
+      if (args[key] !== undefined) {
+        patch[key] = args[key] as any;
+      }
+    }
+    if (Object.keys(patch).length === 0) return { updated: false };
+    await ctx.db.patch(args.id, patch);
+    return { updated: true };
+  },
+});
+
+export const clearStaleScrapeQueue = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - SCRAPE_URL_QUEUE_TTL_MS;
+    let removed = 0;
+
+    // Only pending/processing entries need cleanup; keep completed for audit until other cleanup.
+    const statuses: ("pending" | "processing")[] = ["pending", "processing"];
+    for (const status of statuses) {
+      const stale = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .filter((q) => q.lt(q.field("createdAt"), cutoff))
+        .take(200);
+
+      for (const row of stale) {
+        await ctx.db.delete(row._id);
+        removed++;
+      }
+    }
+
+    return { removed };
+  },
+});
+
+export const resetScrapeUrlProcessing = mutation({
+  args: {
+    provider: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
+  },
+  handler: async (ctx, args) => {
+    const base = ctx.db.query("scrape_url_queue").withIndex("by_status", (q) => q.eq("status", "processing"));
+    const rows = await base.take(500);
+    let updated = 0;
+    for (const row of rows as any[]) {
+      if (args.provider && row.provider !== args.provider) continue;
+      if (args.siteId && row.siteId !== args.siteId) continue;
+      await ctx.db.patch(row._id, { status: "pending", updatedAt: Date.now() });
+      updated += 1;
+    }
+    return { updated };
+  },
+});
+
+// Move completed/failed job-detail URLs back to pending for reprocessing.
+export const resetScrapeUrlsByStatus = mutation({
+  args: {
+    provider: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
+    status: v.optional(v.union(v.literal("completed"), v.literal("failed"))),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const status = args.status ?? "completed";
+    const limit = Math.max(1, Math.min(args.limit ?? 500, 2000));
+    const rows = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_status", (q) => q.eq("status", status))
+      .take(limit);
+
+    let updated = 0;
+    const now = Date.now();
+    for (const row of rows as any[]) {
+      if (args.provider && row.provider !== args.provider) continue;
+      if (args.siteId && row.siteId !== args.siteId) continue;
+      await ctx.db.patch(row._id, {
+        status: "pending",
+        updatedAt: now,
+        completedAt: undefined,
+        lastError: status === "failed" ? undefined : row.lastError,
+      });
+      updated += 1;
+    }
+    return { updated };
+  },
+});
+
+export const listJobDetailRateLimits = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("job_detail_rate_limits").order("asc").take(200);
+    return rows.map((row: any) => ({
+      _id: row._id,
+      domain: row.domain,
+      maxPerMinute: row.maxPerMinute,
+      lastWindowStart: row.lastWindowStart,
+      sentInWindow: row.sentInWindow,
+    }));
+  },
+});
+
+export const upsertJobDetailRateLimit = mutation({
+  args: {
+    domain: v.string(),
+    maxPerMinute: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const domain = args.domain.trim().toLowerCase();
+    if (!domain) throw new Error("domain is required");
+    const existing = await ctx.db.query("job_detail_rate_limits").withIndex("by_domain", (q) => q.eq("domain", domain)).first();
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        maxPerMinute: args.maxPerMinute,
+        lastWindowStart: existing.lastWindowStart ?? now,
+        sentInWindow: existing.sentInWindow ?? 0,
+      });
+      return { updated: true };
+    }
+    await ctx.db.insert("job_detail_rate_limits", {
+      domain,
+      maxPerMinute: args.maxPerMinute,
+      lastWindowStart: now,
+      sentInWindow: 0,
+    });
+    return { created: true };
+  },
+});
+
+export const deleteJobDetailRateLimit = mutation({
+  args: { id: v.id("job_detail_rate_limits") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+    return { deleted: true };
   },
 });
 
@@ -780,7 +1317,9 @@ export const upsertSite = mutation({
     name: v.optional(v.string()),
     url: v.string(),
     type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
-    scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
+    scrapeProvider: v.optional(
+      v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+    ),
     pattern: v.optional(v.string()),
     scheduleId: v.optional(v.id("scrape_schedules")),
     enabled: v.boolean(),
@@ -789,7 +1328,7 @@ export const upsertSite = mutation({
     // For simplicity, just insert a new record
     const siteType = args.type ?? "general";
     const scrapeProvider =
-      args.scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
+      args.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
 
     return await ctx.db.insert("sites", {
       name: args.name,
@@ -823,7 +1362,9 @@ export const bulkUpsertSites = mutation({
         name: v.optional(v.string()),
         url: v.string(),
         type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
-        scrapeProvider: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
+        scrapeProvider: v.optional(
+          v.union(v.literal("fetchfox"), v.literal("firecrawl"), v.literal("spidercloud"))
+        ),
         pattern: v.optional(v.string()),
         scheduleId: v.optional(v.id("scrape_schedules")),
         enabled: v.boolean(),
@@ -835,7 +1376,7 @@ export const bulkUpsertSites = mutation({
     for (const site of args.sites) {
       const siteType = site.type ?? "general";
       const scrapeProvider =
-        site.scrapeProvider ?? (siteType === "greenhouse" ? "firecrawl" : "fetchfox");
+        site.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
       const id = await ctx.db.insert("sites", {
         ...site,
         type: siteType,
@@ -875,21 +1416,21 @@ export const insertJobRecord = mutation({
     remote: v.boolean(),
     level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
     totalCompensation: v.number(),
+    compensationUnknown: v.optional(v.boolean()),
+    compensationReason: v.optional(v.string()),
     url: v.string(),
     test: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const parsed = splitLocation(args.location);
-    const city = args.city ?? parsed.city;
-    const state = args.state ?? parsed.state;
-    const locationLabel = formatLocationLabel(city, state, args.location);
-    const jobId = await ctx.db.insert("jobs", {
-      ...args,
-      location: locationLabel,
-      city,
-      state,
-      postedAt: Date.now(),
-    });
+    const jobId = await ctx.db.insert(
+      "jobs",
+      buildJobInsert({
+        ...args,
+        compensationUnknown: args.compensationUnknown ?? false,
+        compensationReason: args.compensationReason,
+        postedAt: Date.now(),
+      })
+    );
     return jobId;
   },
 });
@@ -1599,6 +2140,8 @@ export const ingestJobsFromScrape = mutation({
         scrapedWith: v.optional(v.string()),
         workflowName: v.optional(v.string()),
         scrapedCostMilliCents: v.optional(v.number()),
+        compensationUnknown: v.optional(v.boolean()),
+        compensationReason: v.optional(v.string()),
       })
     ),
   },
@@ -1612,6 +2155,15 @@ export const ingestJobsFromScrape = mutation({
       if (dup) continue;
 
       const { city, state } = splitLocation(job.city ?? job.state ? `${job.city ?? ""}, ${job.state ?? ""}` : job.location);
+      const compensationUnknown = job.compensationUnknown === true;
+      const compensationReason =
+        typeof job.compensationReason === "string" && job.compensationReason.trim()
+          ? job.compensationReason.trim()
+          : compensationUnknown
+            ? UNKNOWN_COMPENSATION_REASON
+            : job.scrapedWith
+              ? `${job.scrapedWith} extracted compensation`
+              : "compensation provided in scrape payload";
       await ctx.db.insert("jobs", {
         ...job,
         city: job.city ?? city,
@@ -1621,6 +2173,8 @@ export const ingestJobsFromScrape = mutation({
         scrapedWith: job.scrapedWith,
         workflowName: job.workflowName,
         scrapedCostMilliCents: job.scrapedCostMilliCents,
+        compensationUnknown,
+        compensationReason,
       });
       inserted += 1;
     }
@@ -1637,12 +2191,14 @@ function extractJobs(items: any): {
   remote: boolean;
   level: "junior" | "mid" | "senior" | "staff";
   totalCompensation: number;
+  compensationUnknown?: boolean;
+  compensationReason?: string;
   url: string;
   postedAt?: number;
 }[] {
   const rawList: any[] = [];
 
-  const DEFAULT_TOTAL_COMPENSATION = 151000;
+  const DEFAULT_TOTAL_COMPENSATION = 0;
   const maybeArray = (val: any) => (Array.isArray(val) ? val : []);
 
   if (Array.isArray(items)) {
@@ -1689,18 +2245,20 @@ function extractJobs(items: any): {
     if (merged.includes("jr") || merged.includes("junior") || merged.includes("intern")) return "junior";
     return "mid";
   };
-  const parseComp = (val: any): number => {
-    if (typeof val === "number" && Number.isFinite(val) && val > 0) return val;
+  const parseComp = (val: any): { value: number; unknown: boolean } => {
+    if (typeof val === "number" && Number.isFinite(val) && val > 0) return { value: val, unknown: false };
     if (typeof val === "string") {
       const matches = val.replace(/\u00a0/g, " ").match(/[0-9][0-9,.]+/g);
       if (matches && matches.length) {
         const parsed = matches
           .map((m) => Number(m.replace(/,/g, "")))
           .filter((n) => Number.isFinite(n) && n > 0);
-        if (parsed.length) return Math.max(...parsed);
+        if (parsed.length) {
+          return { value: Math.max(...parsed), unknown: false };
+        }
       }
     }
-    return DEFAULT_TOTAL_COMPENSATION;
+    return { value: DEFAULT_TOTAL_COMPENSATION, unknown: true };
   };
   const parsePostedAt = (val: any, fallback: number): number => {
     if (typeof val === "number" && Number.isFinite(val)) {
@@ -1727,8 +2285,21 @@ function extractJobs(items: any): {
         typeof row.description === "string"
           ? row.description
           : JSON.stringify(row, null, 2).slice(0, 4000);
-      const totalCompensation = parseComp((row as any).totalCompensation ?? (row as any).total_compensation ?? (row as any).salary ?? (row as any).compensation);
+      const { value: totalCompensation, unknown: compensationUnknown } = parseComp(
+        (row as any).totalCompensation ??
+          (row as any).total_compensation ??
+          (row as any).salary ??
+          (row as any).compensation
+      );
       const postedAt = parsePostedAt((row as any).postedAt ?? (row as any).posted_at, Date.now());
+      const compensationReason =
+        typeof (row as any).compensationReason === "string" && (row as any).compensationReason.trim()
+          ? (row as any).compensationReason.trim()
+          : typeof (row as any).compensation_reason === "string" && (row as any).compensation_reason.trim()
+            ? (row as any).compensation_reason.trim()
+            : compensationUnknown
+              ? UNKNOWN_COMPENSATION_REASON
+              : "compensation provided in scrape payload";
 
       return {
         title: title || "Untitled",
@@ -1740,6 +2311,8 @@ function extractJobs(items: any): {
         remote,
         level: coerceLevel((row as any).level, title),
         totalCompensation,
+        compensationUnknown,
+        compensationReason,
         url: url || "",
         postedAt,
       };

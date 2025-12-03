@@ -16,16 +16,17 @@ async def test_scrape_site_prefers_fetchfox_when_set(monkeypatch):
     site = {"_id": "1", "url": "https://example.com", "pattern": None, "scrapeProvider": "fetchfox"}
     calls = {"fire": 0, "fetch": 0}
 
-    async def fake_fire(site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
+    async def fake_fire(self, site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
         calls["fire"] += 1
         return {"ok": "fire"}
 
-    async def fake_fetch(site_arg: Dict[str, Any]) -> Dict[str, Any]:
+    async def fake_fetch(self, site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
         calls["fetch"] += 1
+        assert skip_urls is None
         return {"ok": "fetch"}
 
-    monkeypatch.setattr(acts, "scrape_site_firecrawl", fake_fire)
-    monkeypatch.setattr(acts, "scrape_site_fetchfox", fake_fetch)
+    monkeypatch.setattr(acts.FirecrawlScraper, "scrape_site", fake_fire)
+    monkeypatch.setattr(acts.FetchfoxScraper, "scrape_site", fake_fetch)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-test-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "ff-test-key")
 
@@ -41,20 +42,20 @@ async def test_scrape_site_uses_firecrawl_provider(monkeypatch):
     site = {"_id": "1", "url": "https://example.com", "pattern": None, "scrapeProvider": "firecrawl"}
     calls = {"fire": 0, "fetch": 0}
 
-    async def fake_fire(site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
+    async def fake_fire(self, site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
         calls["fire"] += 1
         assert skip_urls == ["seen-one"]
         return {"ok": "fire"}
 
-    async def fake_fetch(site_arg: Dict[str, Any]) -> Dict[str, Any]:
+    async def fake_fetch(self, site_arg: Dict[str, Any], skip_urls: list[str] | None = None) -> Dict[str, Any]:
         calls["fetch"] += 1
         return {"ok": "fetch"}
 
     async def fake_seen(url: str, pattern: str | None) -> list[str]:
         return ["seen-one"]
 
-    monkeypatch.setattr(acts, "scrape_site_firecrawl", fake_fire)
-    monkeypatch.setattr(acts, "scrape_site_fetchfox", fake_fetch)
+    monkeypatch.setattr(acts.FirecrawlScraper, "scrape_site", fake_fire)
+    monkeypatch.setattr(acts.FetchfoxScraper, "scrape_site", fake_fetch)
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-test-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "ff-test-key")

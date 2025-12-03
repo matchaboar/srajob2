@@ -110,14 +110,18 @@ async def test_store_scrape_retries_on_transient_failure(monkeypatch):
     scrape_id = await acts.store_scrape(payload)
 
     assert scrape_id == "abc123"
-    assert len(attempts) == 3  # insert fails once, retry succeeds, then ingest jobs
+    insert_calls = [call for call in attempts if call["name"] == "router:insertScrapeRecord"]
+    ingest_calls = [call for call in attempts if call["name"] == "router:ingestJobsFromScrape"]
+
+    assert len(insert_calls) == 2  # insert fails once, retry succeeds
+    assert len(ingest_calls) == 1
 
     # Second call should contain the fallback payload with a truncated marker
-    second_args = attempts[1]["args"]
+    second_args = insert_calls[1]["args"]
     assert isinstance(second_args, dict)
     items = second_args.get("items", {})
     assert isinstance(items, dict)
     assert items.get("truncated") is True
 
-    # Third call should be the ingestJobs mutation
-    assert attempts[2]["name"] == "router:ingestJobsFromScrape"
+    # One call should be the ingestJobs mutation
+    assert ingest_calls[0]["name"] == "router:ingestJobsFromScrape"
