@@ -902,7 +902,14 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
 
     res = await convex_mutation(
         "router:leaseScrapeUrlBatch",
-        _strip_none_values({"provider": provider, "limit": limit, "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE}),
+        _strip_none_values(
+            {
+                "provider": provider,
+                "limit": limit,
+                "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE,
+                "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
+            }
+        ),
     )
     return res if isinstance(res, dict) else {"urls": []}
 

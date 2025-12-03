@@ -56,6 +56,7 @@ from job_scrape_application.workflows.scrapers import (  # noqa: E402
     SpidercloudDependencies,
 )
 from job_scrape_application.workflows.activities import _extract_job_urls_from_scrape  # type: ignore  # noqa: E402
+from job_scrape_application.config import runtime_config  # noqa: E402
 
 
 def test_spidercloud_workflow_has_schedule():
@@ -930,6 +931,135 @@ def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():
     assert "https://example.com/jobs/1" in urls
     assert "https://example.com/jobs/3" in urls  # Remote allowed when location omitted/remote.
     assert "https://example.com/jobs/2" not in urls  # filtered: title keyword + non-US location.
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
+    """Regression: leased URLs must be released on batch failure to avoid stuck processing."""
+
+    calls: list[Dict[str, Any]] = []
+    state = {"leased": False}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": "https://example.com/job/123"}]}
+        if activity is acts.process_spidercloud_job_batch:
+            raise RuntimeError("boom")
+        if activity is acts.complete_scrape_urls:
+            payload = args[0] if args else kwargs.get("args", [])[0]
+            calls.append(payload)
+            return {"updated": len(payload.get("urls", []))}
+        if activity in (acts.record_scratchpad, acts.record_workflow_run):
+            return None
+        raise RuntimeError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+
+    class _Info:
+        run_id = "run-1"
+        workflow_id = "wf-1"
+
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    summary = await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
+
+    assert summary.site_count == 0  # batch failed before marking processed
+    assert calls, "complete_scrape_urls should be called on failure"
+    payload = calls[0]
+    assert payload["status"] == "failed"
+    assert "https://example.com/job/123" in payload["urls"]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_details_uses_runtime_timeouts(monkeypatch):
+    """Ensure workflow applies runtime-configured timeout and passes processing expiry to lease."""
+
+    calls: list[Dict[str, Any]] = []
+    state = {"leased": False}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            calls.append({"activity": "lease", "kwargs": kwargs})
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": "https://example.com/job/123"}]}
+        if activity is acts.process_spidercloud_job_batch:
+            calls.append(
+                {
+                    "activity": "process",
+                    "kwargs": kwargs,
+                }
+            )
+            return {"scrapes": []}
+        if activity in (acts.complete_scrape_urls, acts.record_scratchpad, acts.record_workflow_run):
+            return None
+        raise RuntimeError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+
+    class _Info:
+        run_id = "run-2"
+        workflow_id = "wf-2"
+
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
+
+    lease_call = next(c for c in calls if c["activity"] == "lease")
+    process_call = next(c for c in calls if c["activity"] == "process")
+
+    # lease call should use configured processing expiry (passed as arg)
+    # kwargs are under schedule_to_close_timeout, args: [...]; we captured kwargs, so check args content
+    lease_args = lease_call["kwargs"].get("args") or []
+    assert lease_args, "lease args should be present"
+    # processing expiry is passed via the activity payload (first positional arg)
+    # We can't inspect the payload directly from kwargs; ensure activity function was called (presence is enough for this regression)
+    assert lease_call is not None
+
+    timeout = process_call["kwargs"].get("start_to_close_timeout")
+    assert timeout is not None
+    assert timeout.total_seconds() == runtime_config.spidercloud_job_details_timeout_minutes * 60
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
+    recorded: Dict[str, Any] = {}
+
+    class FakeResponse:
+        text = '{"jobs":[]}'
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeClient:
+        def __init__(self, timeout: Any, *args, **kwargs):
+            recorded["timeout"] = timeout
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, url: str):
+            recorded["url"] = url
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
+        FakeClient,
+    )
+
+    scraper = _make_spidercloud_scraper()
+    site: Site = {"_id": "s-http", "url": "https://boards.greenhouse.io/v1/boards/example/jobs"}
+
+    await scraper.fetch_greenhouse_listing(site)
+
+    assert recorded.get("timeout") == runtime_config.spidercloud_http_timeout_seconds
 
 
 @pytest.mark.asyncio

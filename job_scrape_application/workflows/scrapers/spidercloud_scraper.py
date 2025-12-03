@@ -14,6 +14,7 @@ from temporalio.exceptions import ApplicationError
 
 from ...components.models import extract_greenhouse_job_urls, load_greenhouse_board
 from ...constants import title_matches_required_keywords
+from ...config import runtime_config
 from ..helpers.scrape_utils import (
     UNKNOWN_COMPENSATION_REASON,
     coerce_level,
@@ -627,7 +628,7 @@ class SpiderCloudScraper(BaseScraper):
         self.deps.log_dispatch(self.provider, url, kind="greenhouse_board", siteId=site.get("_id"))
         started_at = int(time.time() * 1000)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=runtime_config.spidercloud_http_timeout_seconds) as client:
                 resp = await client.get(api_url)
                 resp.raise_for_status()
                 raw_text = resp.text

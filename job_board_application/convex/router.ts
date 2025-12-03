@@ -10,6 +10,7 @@ import { buildJobInsert } from "./jobRecords";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
+const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
 const toSlug = (value: string) =>
@@ -1005,11 +1006,13 @@ export const leaseScrapeUrlBatch = mutation({
     provider: v.optional(v.string()),
     limit: v.optional(v.number()),
     maxPerMinuteDefault: v.optional(v.number()),
+    processingExpiryMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
     const now = Date.now();
     const maxPerMinuteDefault = Math.max(1, Math.min(args.maxPerMinuteDefault ?? 50, 1000));
+    const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000));
 
     const normalizeDomain = (url: string) => {
       try {
@@ -1070,12 +1073,55 @@ export const leaseScrapeUrlBatch = mutation({
       return { allowed: true, maxPerMinute };
     };
 
+    // Release stale processing rows back to pending so they can be retried.
+    try {
+      const cutoff = now - processingExpiryMs;
+      const processingRows = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q) => q.eq("status", "processing"))
+        .take(500);
+      for (const row of processingRows as any[]) {
+        if ((row as any).updatedAt && (row as any).updatedAt >= cutoff) continue;
+        if (args.provider && row.provider !== args.provider) continue;
+        await ctx.db.patch(row._id, {
+          status: "pending",
+          updatedAt: now,
+        });
+      }
+    } catch (err) {
+      console.error("leaseScrapeUrlBatch: failed releasing stale processing", err);
+    }
+
     const baseQuery = ctx.db.query("scrape_url_queue").withIndex("by_status", (q) => q.eq("status", "pending"));
     const rows = await baseQuery.order("asc").take(limit * 3);
     const picked: any[] = [];
     for (const row of rows as any[]) {
       if (picked.length >= limit) break;
       if (args.provider && row.provider !== args.provider) continue;
+      const createdAt = (row as any).createdAt ?? 0;
+      if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
+        // Skip stale (>48h) entries; mark ignored
+        await ctx.db.patch(row._id, {
+          status: "failed",
+          lastError: "stale (>48h)",
+          updatedAt: now,
+          completedAt: now,
+        });
+        try {
+          await ctx.db.insert("ignored_jobs", {
+            url: row.url,
+            sourceUrl: row.sourceUrl ?? "",
+            provider: row.provider,
+            workflowName: "leaseScrapeUrlBatch",
+            reason: "stale_scrape_queue_entry",
+            details: { siteId: row.siteId, createdAt },
+            createdAt: now,
+          });
+        } catch {
+          // best-effort
+        }
+        continue;
+      }
       const domain = normalizeDomain(row.url);
       const rate = await applyRateLimit(domain || "default");
       if (!rate.allowed) continue;
@@ -1168,10 +1214,40 @@ export const completeScrapeUrls = mutation({
         .first();
       if (!existing) continue;
 
-      const attempts = (existing as any).attempts ?? 0;
+      const attempts = ((existing as any).attempts ?? 0) + 1;
+      const shouldIgnore =
+        args.status === "failed" &&
+        (attempts >= JOB_DETAIL_MAX_ATTEMPTS ||
+          (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
+
+      if (shouldIgnore) {
+        try {
+          await ctx.db.insert("ignored_jobs", {
+            url,
+            sourceUrl: (existing as any).sourceUrl ?? "",
+            provider: (existing as any).provider,
+            workflowName: "leaseScrapeUrlBatch",
+            reason:
+              typeof args.error === "string" && args.error.toLowerCase().includes("404")
+                ? "http_404"
+                : "max_attempts",
+            details: { attempts, siteId: (existing as any).siteId, lastError: args.error },
+            createdAt: now,
+          });
+        } catch (err) {
+          console.error("completeScrapeUrls: failed to insert ignored_jobs", err);
+        }
+        try {
+          await ctx.db.delete(existing._id);
+        } catch (err) {
+          console.error("completeScrapeUrls: failed to delete queue row", err);
+        }
+        continue;
+      }
+
       await ctx.db.patch(existing._id, {
         status: args.status,
-        attempts: attempts + 1,
+        attempts,
         lastError: args.error,
         updatedAt: now,
         completedAt: args.status === "completed" ? now : undefined,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import logging
@@ -64,6 +64,17 @@ def summarize_scrape_result(res: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in summary.items() if v is not None}
 
 
+def _workflow_now_ms() -> int:
+    """
+    Return current workflow time in ms; fall back to wall clock when outside a workflow loop.
+    """
+
+    try:
+        return int(workflow.now().timestamp() * 1000)
+    except Exception:
+        return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
 async def _run_scrape_workflow(
     scrape_activity,
     workflow_name: str,
@@ -74,7 +85,7 @@ async def _run_scrape_workflow(
     scrape_ids: List[str] = []
     leased_count = 0
     site_urls: List[str] = []
-    started_at = int(workflow.now().timestamp() * 1000)
+    started_at = _workflow_now_ms()
     status = "completed"
     failure_reasons: List[str] = []
     run_info = workflow.info()
@@ -110,7 +121,7 @@ async def _run_scrape_workflow(
                         "message": message,
                         "data": data,
                         "level": level,
-                        "createdAt": int(workflow.now().timestamp() * 1000),
+                        "createdAt": _workflow_now_ms(),
                     }
                 ],
                 schedule_to_close_timeout=timedelta(seconds=20),
@@ -238,7 +249,7 @@ async def _run_scrape_workflow(
         await _log("workflow.error", message=str(e), level="error")
         raise
     finally:
-        completed_at = int(workflow.now().timestamp() * 1000)
+        completed_at = _workflow_now_ms()
         if not site_urls:
             failure_reasons.append("No sites were leased (siteUrls empty).")
         try:
@@ -330,7 +341,7 @@ class SpidercloudJobDetailsWorkflow:
     async def run(self) -> ScrapeSummary:  # type: ignore[override]
         scrape_ids: list[str] = []
         site_count = 0
-        started_at = int(workflow.now().timestamp() * 1000)
+        started_at = _workflow_now_ms()
         status = "completed"
         failure_reasons: list[str] = []
         run_info = workflow.info()
@@ -347,7 +358,7 @@ class SpidercloudJobDetailsWorkflow:
                             "event": event,
                             "data": data,
                             "level": level,
-                            "createdAt": int(workflow.now().timestamp() * 1000),
+                            "createdAt": _workflow_now_ms(),
                         }
                     ],
                     schedule_to_close_timeout=timedelta(seconds=20),
@@ -369,7 +380,6 @@ class SpidercloudJobDetailsWorkflow:
                 if not urls:
                     break
 
-                site_count += 1
                 await _log("batch.leased", data={"count": len(urls)})
 
                 try:
@@ -445,6 +455,7 @@ class SpidercloudJobDetailsWorkflow:
                             pass
 
                     await _log("batch.processed", data={"count": len(scrapes) or len(urls)})
+                    site_count += 1
                 except Exception as exc:  # noqa: BLE001
                     await _log("batch.error", level="error", data={"error": str(exc)})
                     failure_reasons.append(str(exc))
@@ -474,7 +485,7 @@ class SpidercloudJobDetailsWorkflow:
             status = "failed"
             raise
         finally:
-            completed_at = int(workflow.now().timestamp() * 1000)
+            completed_at = _workflow_now_ms()
             try:
                 await workflow.execute_activity(
                     record_workflow_run,
