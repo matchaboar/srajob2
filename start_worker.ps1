@@ -302,7 +302,7 @@ function Run-PreflightChecks {
     Write-Host "=== Preflight checks completed ===" -ForegroundColor Cyan
 }
 
-function Load-DotEnv($path, [bool]$Override = $false) {
+function Load-DotEnv($path, [bool]$Override = $false, [hashtable]$SourceMap = $null) {
     if (-not (Test-Path $path)) { return }
     Get-Content $path | ForEach-Object {
         if ($_ -match "^\s*#" -or $_.Trim() -eq "") { return }
@@ -313,6 +313,9 @@ function Load-DotEnv($path, [bool]$Override = $false) {
             $shouldSet = $Override -or [string]::IsNullOrEmpty($existing)
             if (-not [string]::IsNullOrEmpty($key) -and $shouldSet) {
                 [Environment]::SetEnvironmentVariable($key, $val)
+                if ($SourceMap) {
+                    $SourceMap[$key] = $path
+                }
             }
         }
     }
@@ -465,6 +468,13 @@ function Stop-WorkerAndContainer {
     if ($WorkerProcess -and -not $WorkerProcess.HasExited) {
         Write-Host "[shutdown] Killing worker process pid=$($WorkerProcess.Id)" -ForegroundColor Yellow
         try { Stop-Process -Id $WorkerProcess.Id -Force -ErrorAction SilentlyContinue } catch {}
+        try {
+            Wait-Process -Id $WorkerProcess.Id -Timeout 5 -ErrorAction SilentlyContinue
+        } catch {}
+        if (-not $WorkerProcess.HasExited) {
+            Write-Warning "[shutdown] Worker still running after kill attempt; stopping any detected worker children."
+        }
+        Stop-ExistingWorkers
     }
 
     if (-not $SkipContainer -and $script:TemporalContainerStartedByScript) {
@@ -504,15 +514,35 @@ function Start-WorkerProcess {
 
 function Stop-ExistingWorkers {
     try {
-        $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-            $_.CommandLine -match "job_scrape_application\.workflows\.worker"
+        if ($IsWindows) {
+            $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.CommandLine -match "job_scrape_application\.workflows\.worker"
+            }
+            foreach ($p in $procs) {
+                try {
+                    Write-Host "[preflight] Stopping stale worker pid=$($p.ProcessId)" -ForegroundColor Yellow
+                    Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Write-Warning "Failed to stop stale worker pid=$($p.ProcessId): $($_.Exception.Message)"
+                }
+            }
+            return
         }
-        foreach ($p in $procs) {
-            try {
-                Write-Host "[preflight] Stopping stale worker pid=$($p.ProcessId)" -ForegroundColor Yellow
-                Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
-            } catch {
-                Write-Warning "Failed to stop stale worker pid=$($p.ProcessId): $($_.Exception.Message)"
+
+        $psPath = "/bin/ps"
+        if (-not (Test-Path $psPath)) { $psPath = "/usr/bin/ps" }
+        if (-not (Test-Path $psPath)) { return }
+
+        $psOutput = & $psPath -eo pid,args 2>$null
+        foreach ($line in $psOutput) {
+            if ($line -match "^\s*(\d+)\s+.*job_scrape_application\.workflows\.worker") {
+                $pid = [int]$matches[1]
+                try {
+                    Write-Host "[preflight] Stopping stale worker pid=$pid" -ForegroundColor Yellow
+                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                } catch {
+                    Write-Warning "Failed to stop stale worker pid=$pid: $($_.Exception.Message)"
+                }
             }
         }
     } catch {
@@ -533,21 +563,67 @@ function Start-WorkerMain {
     Start-ErrorWatcher -LogPath $errorLogPath
 
     # Core configuration (env overrides respected)
-    $envFilePath = if ($EnvFile) {
-        $EnvFile
-    } elseif ($UseProd -and (Test-Path ".env.production")) {
-        ".env.production"
-    } else {
-        ".env"
+    $envSourceMap = @{}
+    $envLoadOrder = @()
+    $environmentLabel = if ($UseProd) { "Production" } else { "Development" }
+
+    $resolveEnvPath = {
+        param([string]$relativePath)
+        $wdCandidate = Join-Path (Get-Location) $relativePath
+        if (Test-Path $wdCandidate) {
+            return (Resolve-Path $wdCandidate).ProviderPath
+        }
+        if ($PSScriptRoot) {
+            $scriptCandidate = Join-Path $PSScriptRoot $relativePath
+            if (Test-Path $scriptCandidate) {
+                return (Resolve-Path $scriptCandidate).ProviderPath
+            }
+        }
+        return $wdCandidate
     }
 
-    Write-Host "Loading environment from $envFilePath" -ForegroundColor Cyan
-    $overrideEnv = $UseProd -or -not [string]::IsNullOrEmpty($EnvFile)
-    Load-DotEnv $envFilePath -Override:$overrideEnv
+    $defaultEnvPath = & $resolveEnvPath ".env"
+    $prodEnvPath = & $resolveEnvPath "job_board_application/.env.production"
+
+    if ($EnvFile) {
+        $environmentLabel = "Custom"
+        $envLoadOrder += @{ Path = (& $resolveEnvPath $EnvFile); Override = $true; Label = "Custom env file" }
+    } elseif ($UseProd) {
+        $envLoadOrder += @{ Path = $defaultEnvPath; Override = $false; Label = "Development defaults (.env)" }
+        if (Test-Path $prodEnvPath) {
+            $envLoadOrder += @{ Path = $prodEnvPath; Override = $true; Label = "Production overrides (job_board_application/.env.production)" }
+        } else {
+            Write-Warning "Production env file not found at $prodEnvPath; falling back to .env for missing keys."
+        }
+    } else {
+        $envLoadOrder += @{ Path = $defaultEnvPath; Override = $false; Label = "Development (.env)" }
+    }
+
+    Write-Host ("Environment mode: {0}" -f $environmentLabel) -ForegroundColor Cyan
+    foreach ($envEntry in $envLoadOrder) {
+        if (-not (Test-Path $envEntry.Path)) {
+            Write-Warning ("Env file not found: {0}" -f $envEntry.Path)
+            continue
+        }
+        Write-Host ("Loading {0}: {1}" -f $envEntry.Label, $envEntry.Path) -ForegroundColor DarkCyan
+        Load-DotEnv $envEntry.Path -Override:$envEntry.Override -SourceMap:$envSourceMap
+    }
 
     $TemporalAddress = if ($env:TEMPORAL_ADDRESS) { $env:TEMPORAL_ADDRESS } else { "127.0.0.1:7233" }
     $TemporalNamespace = if ($env:TEMPORAL_NAMESPACE) { $env:TEMPORAL_NAMESPACE } else { "default" }
     $ConvexUrl = $env:CONVEX_HTTP_URL
+    $convexSourcePath = if ($envSourceMap.ContainsKey("CONVEX_HTTP_URL")) { $envSourceMap["CONVEX_HTTP_URL"] } else { "existing environment" }
+    $convexSourceLabel = switch ($convexSourcePath) {
+        { $_ -eq $prodEnvPath } { "production env ($convexSourcePath)" ; break }
+        { $_ -eq $defaultEnvPath } { "development env ($convexSourcePath)" ; break }
+        default { $convexSourcePath }
+    }
+    if ($ConvexUrl) {
+        $convexColor = if ($UseProd -and $convexSourcePath -eq $prodEnvPath) { "Green" } elseif ($UseProd) { "Yellow" } else { "Green" }
+        Write-Host ("CONVEX_HTTP_URL from {0}: {1}" -f $convexSourceLabel, $ConvexUrl) -ForegroundColor $convexColor
+    } else {
+        Write-Host "CONVEX_HTTP_URL is not set after loading environment files." -ForegroundColor Red
+    }
 
     # Ensure any old worker processes from previous runs are terminated
     Stop-ExistingWorkers

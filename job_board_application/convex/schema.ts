@@ -30,6 +30,7 @@ const applicationTables = {
     .index("by_posted_at", ["postedAt"])
     .index("by_state_posted", ["state", "postedAt"])
     .index("by_company_posted", ["company", "postedAt"])
+    .index("by_title_posted", ["title", "postedAt"])
     .index("by_url", ["url"])
     .searchIndex("search_title", {
       searchField: "title",
@@ -61,6 +62,7 @@ const applicationTables = {
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
+    useSearch: v.optional(v.boolean()),
     companies: v.optional(v.array(v.string())),
     isSelected: v.boolean(),
     createdAt: v.number(),

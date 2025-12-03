@@ -2,7 +2,11 @@
 
 Utilities for job scraping and application automation.
 
-## form-filler-bot
+# deployment - Convex db and UI
 
-The form-filler bot reads a user's `resume.yaml` and, when a job application has been queued, operates on the job application link.
-Resume data and queued applications are stored in the Convex database. The actual form-filling behavior is not yet implemented.
+- `./job_board_application`
+- `pnpm run dev` will deploy convex functions to dev deployment.
+- `npx convex deploy` will deploy to prod.
+- `netlify` is setup to deploy to prod all UI changes and convex changes in code whenever the repo has a push to `main`.
+
+#

@@ -65,6 +65,7 @@ export const ensureDefaultFilter = mutation({
       userId,
       name: "Software Engineer $150k+",
       search: "software engineer",
+      useSearch: false,
       minCompensation: 150000,
        includeRemote: true,
        state: undefined,
@@ -81,6 +82,7 @@ export const saveFilter = mutation({
     name: v.string(),
     search: v.optional(v.string()),
     remote: v.optional(v.boolean()),
+    useSearch: v.optional(v.boolean()),
     includeRemote: v.optional(v.boolean()),
     state: v.optional(v.string()),
     level: v.optional(levelValidator),
@@ -98,6 +100,7 @@ export const saveFilter = mutation({
 
     const id = await ctx.db.insert("saved_filters", {
       ...args,
+      useSearch: args.useSearch ?? false,
       includeRemote: args.includeRemote ?? true,
       hideUnknownCompensation: args.hideUnknownCompensation ?? false,
       companies: uniqueCompanies.length > 0 ? uniqueCompanies : undefined,
