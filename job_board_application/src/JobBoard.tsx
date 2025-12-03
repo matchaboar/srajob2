@@ -1389,15 +1389,18 @@ export function JobBoard() {
                     )}
 
                     {/* Header Row (sticky for alignment with scrollbar) */}
-                    <div className="sticky top-0 z-20 relative flex items-center gap-4 px-4 pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <div className="w-1" /> {/* Spacer for alignment with selection indicator */}
-                      <div className="flex-1 grid grid-cols-[4fr_3fr_2fr_3fr_3fr_3fr] gap-4 items-center">
-                        <div>Job</div>
-                        <div>Location</div>
-                        <div className="text-center">Level</div>
-                        <div className="text-right">Salary</div>
-                        <div className="text-right">Posted</div>
-                        <div className="text-right">Scraped</div>
+                    <div className="sticky top-0 z-20 relative">
+                      <div className="flex items-center gap-3 px-4 pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <div className="w-1" /> {/* Spacer for alignment with selection indicator */}
+                        <div className="flex-1 grid grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-center">
+                          <div className="w-8 h-8" />
+                          <div>Job</div>
+                          <div>Location</div>
+                          <div className="text-center">Level</div>
+                          <div className="text-right">Salary</div>
+                          <div className="text-right">Posted</div>
+                          <div className="text-right">Scraped</div>
+                        </div>
                       </div>
                       <div className="absolute inset-y-0 right-0 flex items-center justify-end gap-0 w-36 pl-2 pr-0 pointer-events-none" aria-hidden="true">
                         <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Action</span>

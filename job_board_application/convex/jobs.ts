@@ -348,8 +348,13 @@ export const listJobs = query({
       jobs = await baseQuery.paginate(args.paginationOpts);
     }
 
+    // Ensure descending order by postedAt for all paths
+    const orderedPage = [...jobs.page].sort(
+      (a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)
+    );
+
     // Filter out applied/rejected jobs and apply compensation filters
-    let filteredJobs = jobs.page.filter((job: any) => {
+    let filteredJobs = orderedPage.filter((job: any) => {
       // Remove jobs user has already applied to or rejected
       if (appliedJobIds.has(job._id)) {
         return false;
