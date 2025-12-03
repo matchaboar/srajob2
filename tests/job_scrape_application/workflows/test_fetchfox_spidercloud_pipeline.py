@@ -158,3 +158,53 @@ async def test_store_scrape_enqueues_urls_when_no_jobs(monkeypatch, datadog_craw
 
     # No jobs were ingested; this ensures URLs without matching keywords later get marked via queue rather than dropped
     assert "router:ingestJobsFromScrape" not in mutation_names
+
+
+@pytest.mark.asyncio
+async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_payload):
+    captured_queries: list[Dict[str, Any]] = []
+    captured_mutations: list[Dict[str, Any]] = []
+
+    class FakeFox:
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+
+        def crawl(self, payload: Dict[str, Any]):
+            return datadog_crawl_payload
+
+    monkeypatch.setattr(acts, "FetchFox", FakeFox)
+    monkeypatch.setattr(acts.settings, "fetchfox_api_key", "test-key")
+
+    async def fake_fetch_seen(source_url: str, pattern: str | None):
+        return []
+
+    async def fake_filter_existing(urls: List[str]):
+        return []
+
+    async def fake_convex_query(name: str, args: Dict[str, Any]):
+        captured_queries.append({"name": name, "args": args})
+        return []
+
+    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+        captured_mutations.append({"name": name, "args": args})
+        return {"queued": args.get("urls", [])}
+
+    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+
+    site: Site = {
+        "_id": "site-1",
+        "url": "https://careers.datadoghq.com/all-jobs/?s=software%20developer",
+        "pattern": "https://careers.datadoghq.com/detail/**",
+    }
+
+    await acts.crawl_site_fetchfox(site)
+
+    assert captured_queries, "listQueuedScrapeUrls should be invoked"
+    assert all("siteId" not in q["args"] for q in captured_queries if q["name"] == "router:listQueuedScrapeUrls")
+
+    enqueue_calls = [m for m in captured_mutations if m["name"] == "router:enqueueScrapeUrls"]
+    assert enqueue_calls
+    assert all("siteId" not in call["args"] for call in enqueue_calls)

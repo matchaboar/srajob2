@@ -103,6 +103,15 @@ def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in payload.items() if v is not None}
 
 
+def _convex_site_id(value: Any) -> Optional[str]:
+    """Return a Convex document id if the value looks valid, else None."""
+
+    candidate = value.get("_id") if isinstance(value, dict) else value
+    if isinstance(candidate, str) and _looks_like_convex_id(candidate):
+        return candidate
+    return None
+
+
 def _make_fetchfox_scraper() -> FetchfoxScraper:
     return _build_fetchfox_scraper(
         build_request_snapshot=_build_request_snapshot,
@@ -204,6 +213,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
         seen_for_site = []
     skip_set = set(skip_urls or [])
     skip_set.update(seen_for_site)
+    site_id = _convex_site_id(site)
 
     if not urls:
         return {
@@ -233,7 +243,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
                     "urls": urls_to_scrape,
                     "sourceUrl": site.get("url") or "",
                     "provider": scraper.provider,
-                    "siteId": site.get("_id"),
+                    "siteId": site_id,
                     "pattern": site.get("pattern"),
                 }
             ),
@@ -244,9 +254,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
 
     # Pull queued URLs for this site/provider (pending or processing)
     queued_urls: list[Dict[str, Any]] = []
-    list_args = _strip_none_values(
-        {"siteId": site.get("_id"), "provider": scraper.provider, "limit": 500}
-    )
+    list_args = _strip_none_values({"siteId": site_id, "provider": scraper.provider, "limit": 500})
     try:
         queued_urls = await convex_query("router:listQueuedScrapeUrls", list_args) or []
     except Exception:
@@ -652,6 +660,7 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
         raise ApplicationError("Site URL is required for FetchFox crawl", non_retryable=True)
     pattern = site.get("pattern")
     start_urls = [source_url] if source_url else []
+    site_id = _convex_site_id(site)
 
     skip_urls: list[str] = []
     try:
@@ -664,7 +673,7 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
     try:
         queued_rows = await convex_query(
             "router:listQueuedScrapeUrls",
-            _strip_none_values({"siteId": site.get("_id"), "provider": "spidercloud", "limit": 500}),
+            _strip_none_values({"siteId": site_id, "provider": "spidercloud", "limit": 500}),
         )
         if isinstance(queued_rows, list):
             for row in queued_rows:
@@ -762,7 +771,6 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
 
     skip_set.update(u for u in existing_jobs if isinstance(u, str))
     candidates = [u for u in unique_urls if u not in skip_set]
-
     enqueued: list[str] = []
     if candidates:
         try:
@@ -773,7 +781,7 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
                     "urls": candidates,
                     "sourceUrl": source_url,
                     "provider": "spidercloud",
-                    "siteId": site.get("_id"),
+                    "siteId": site_id,
                     "pattern": pattern,
                   }
                 ),
@@ -1683,13 +1691,14 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
         urls = urls_from_raw or urls_from_trimmed or []
         if urls:
+            site_id = _convex_site_id(payload.get("siteId"))
             await convex_mutation(
                 "router:enqueueScrapeUrls",
                 {
                     "urls": urls,
                     "sourceUrl": payload.get("sourceUrl") or "",
                     "provider": scraped_with or payload.get("provider") or "",
-                    "siteId": payload.get("siteId"),
+                    "siteId": site_id,
                     "pattern": payload.get("pattern"),
                 },
             )

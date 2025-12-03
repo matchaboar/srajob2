@@ -36,6 +36,7 @@ const baseDomainFromHost = (host: string): string => {
   }
   return parts.slice(-2).join(".");
 };
+const normalizeCompany = (value: string) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const fallbackCompanyName = (name: string | undefined | null, url: string | undefined | null) => {
   const trimmed = (name ?? "").trim();
   if (trimmed) return trimmed;
@@ -96,29 +97,78 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
   const next = (nextName || "").trim();
   if (!prev || !next || prev === next) return 0;
 
+  const prevNorm = normalizeCompany(prev);
+  const nextNorm = normalizeCompany(next);
+  if (!prevNorm || prevNorm === nextNorm) return 0;
+
+  const candidates = new Set<string>();
+  candidates.add(prev);
+  const lowered = prev.toLowerCase();
+  if (lowered) candidates.add(lowered);
+  const capitalized = lowered ? lowered.charAt(0).toUpperCase() + lowered.slice(1) : "";
+  if (capitalized) candidates.add(capitalized);
+
   let cursor: string | null = null;
-  let updated = 0;
+  const patchedIds = new Set<string>();
 
-  while (true) {
-    const page = await ctx.db
-      .query("jobs")
-      .withIndex("by_company_posted", (q: any) => q.eq("company", prev))
-      .paginate({ cursor, numItems: 200 }) as {
-        page: any[];
-        isDone: boolean;
-        continueCursor: string | null;
-      };
+  const patchJob = async (job: any) => {
+    const id = String(job?._id ?? "");
+    if (!id || patchedIds.has(id)) return;
+    const company = (job as any).company ?? "";
+    if (normalizeCompany(company) !== prevNorm) return;
+    await ctx.db.patch(job._id, { company: next });
+    patchedIds.add(id);
+  };
 
-    for (const job of page.page as any[]) {
-      await ctx.db.patch(job._id, { company: next });
-      updated += 1;
+  const paginateByCompany = async (companyValue: string) => {
+    let idxCursor: string | null = null;
+    while (true) {
+      const page = (await ctx.db
+        .query("jobs")
+        .withIndex("by_company_posted", (q: any) => q.eq("company", companyValue))
+        .paginate({ cursor: idxCursor, numItems: 200 })) as {
+          page: any[];
+          isDone: boolean;
+          continueCursor: string | null;
+        };
+
+      for (const job of page.page as any[]) {
+        await patchJob(job);
+      }
+
+      if (page.isDone) break;
+      idxCursor = page.continueCursor;
     }
+  };
 
-    if (page.isDone) break;
-    cursor = page.continueCursor;
+  for (const candidate of candidates) {
+    if (candidate) await paginateByCompany(candidate);
   }
 
-  return updated;
+  // Fallback: search index to catch mixed-case / spaced variants
+  try {
+    let searchCursor: string | null = null;
+    while (true) {
+      const page = (await ctx.db
+        .search("jobs", "search_company", prev)
+        .paginate({ cursor: searchCursor, numItems: 200 })) as {
+          page: any[];
+          isDone: boolean;
+          continueCursor: string | null;
+        };
+
+      for (const job of page.page as any[]) {
+        await patchJob(job);
+      }
+
+      if (page.isDone) break;
+      searchCursor = page.continueCursor;
+    }
+  } catch {
+    // search index unavailable; best-effort
+  }
+
+  return patchedIds.size;
 };
 const scheduleDay = v.union(
   v.literal("mon"),

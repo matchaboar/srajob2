@@ -193,7 +193,7 @@ async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
 @pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_fanout(monkeypatch):
     site: Site = {
-        "_id": "s-gh",
+        "_id": "01hzconvexsiteid123456789abc",
         "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "type": "greenhouse",
         "scrapeProvider": "spidercloud",
@@ -254,7 +254,7 @@ async def test_spidercloud_greenhouse_listing_fanout(monkeypatch):
 @pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
     site: Site = {
-        "_id": "s-gh-empty",
+        "_id": "01hzconvexsiteid123456789abd",
         "url": "https://api.greenhouse.io/v1/boards/example/jobs",
         "type": "greenhouse",
         "scrapeProvider": "spidercloud",
@@ -289,7 +289,7 @@ async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
 @pytest.mark.asyncio
 async def test_spidercloud_convex_calls_strip_none_fields(monkeypatch):
     site: Site = {
-        "_id": "s-gh-none",
+        "_id": "01hzconvexsiteid123456789abe",
         "url": "https://api.greenhouse.io/v1/boards/example/jobs",
         "type": "greenhouse",
         "scrapeProvider": "spidercloud",
@@ -345,6 +345,48 @@ async def test_spidercloud_convex_calls_strip_none_fields(monkeypatch):
     assert "pattern" not in enqueue_payload
     assert "siteId" in enqueue_payload  # still forwards known identifiers
     assert all(value is not None for value in enqueue_payload.values())
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_skips_invalid_site_ids(monkeypatch):
+    site: Site = {
+        "_id": "site-1",
+        "url": "https://api.greenhouse.io/v1/boards/example/jobs",
+        "type": "greenhouse",
+        "scrapeProvider": "spidercloud",
+    }
+
+    scraper = _make_spidercloud_scraper()
+    queue_payloads: list[Dict[str, Any]] = []
+    mutation_calls: list[Dict[str, Any]] = []
+
+    async def fake_listing(site_arg: Site):
+        return {"job_urls": ["https://example.com/new"]}
+
+    async def fake_filter_existing(urls: list[str]):
+        return []
+
+    async def fake_convex_query(name, payload):
+        if name == "router:listQueuedScrapeUrls":
+            queue_payloads.append(payload)
+        return [{"url": "https://example.com/new", "createdAt": 0, "status": "pending"}]
+
+    async def fake_convex_mutation(name, payload):
+        mutation_calls.append({"name": name, "payload": payload})
+        return {"queued": payload.get("urls", [])}
+
+    monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
+    monkeypatch.setattr(acts, "select_scraper_for_site", lambda _site: (scraper, []))
+    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+
+    res = await acts.scrape_site(site)
+
+    assert res.get("items", {}).get("queued") is True
+    assert queue_payloads and "siteId" not in queue_payloads[0]
+    enqueue_payload = next(call["payload"] for call in mutation_calls if call["name"] == "router:enqueueScrapeUrls")
+    assert "siteId" not in enqueue_payload
 
 
 def test_strip_none_values_keeps_falsey():
@@ -448,7 +490,7 @@ async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
     )
 
     site: Site = {
-        "_id": "s-gh-slug",
+        "_id": "01hzconvexsiteid123456789abf",
         "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "type": "greenhouse",
     }
@@ -505,7 +547,7 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
     )
 
     site: Site = {
-        "_id": "s-gh-regex",
+        "_id": "01hzconvexsiteid123456789abg",
         "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "type": "greenhouse",
     }
@@ -555,7 +597,7 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
 
     site: Site = {
-        "_id": "s-gh-enqueue",
+        "_id": "01hzconvexsiteid123456789abh",
         "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "type": "greenhouse",
         "scrapeProvider": "spidercloud",
