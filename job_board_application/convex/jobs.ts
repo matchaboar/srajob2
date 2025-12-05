@@ -278,53 +278,6 @@ const runLocationMigration = async (ctx: any, limit = 500) => {
   return { patched };
 };
 
-const parsePaginationOffset = (cursor: string | null | undefined) => {
-  const parsed = Number.parseInt(cursor ?? "", 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-};
-
-// Search queries can't be ordered by postedAt directly, so we read enough rows to
-// cover the requested page, sort by postedAt, and then slice the page window.
-const paginateSearchByPostedAt = async (
-  ctx: any,
-  paginationOpts: { numItems: number; cursor: string | null },
-  buildSearchFilter: (q: any) => any
-) => {
-  const pageSize = Math.max(1, paginationOpts.numItems ?? 50);
-  const start = parsePaginationOffset(paginationOpts.cursor);
-  const end = start + pageSize;
-  // Fetch a bigger batch than requested to reduce the number of roundtrips.
-  const batchSize = Math.min(200, Math.max(pageSize * 2, 50));
-
-  let cursor: string | null = null;
-  let searchIsDone = false;
-  const matches: any[] = [];
-
-  while (matches.length < end) {
-    const pageResult: { page: any[]; isDone: boolean; continueCursor: string | null } = await ctx.db
-      .query("jobs")
-      .withSearchIndex("search_title", buildSearchFilter)
-      .paginate({
-        numItems: batchSize,
-        cursor,
-      });
-
-    matches.push(...pageResult.page);
-    searchIsDone = pageResult.isDone;
-    if (pageResult.isDone) break;
-    cursor = pageResult.continueCursor;
-  }
-
-  const ordered = matches.sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
-  const pagedResults = ordered.slice(start, end);
-  const isDone = searchIsDone && ordered.length <= end;
-  return {
-    page: pagedResults,
-    isDone,
-    continueCursor: isDone ? null : String(end),
-  };
-};
-
 export const listJobs = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -345,7 +298,7 @@ export const listJobs = query({
     }
 
     const rawSearch = (args.search ?? "").trim();
-    const shouldUseSearch = args.useSearch === true && rawSearch.length > 0;
+    const shouldUseSearch = rawSearch.length > 0;
 
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
     const normalizedCompanyFilters = new Set(companyFilters.map((c) => c.toLowerCase()));
@@ -362,25 +315,33 @@ export const listJobs = query({
     // Apply search and filters
     let jobs;
     if (shouldUseSearch) {
-      jobs = await paginateSearchByPostedAt(ctx, args.paginationOpts, (q: any) => {
-        let searchQuery = q.search("title", rawSearch);
-        if (args.includeRemote === false) {
-          searchQuery = searchQuery.eq("remote", false);
-        }
-        if (args.state) {
-          searchQuery = searchQuery.eq("state", args.state);
-        }
-        if (args.level) {
-          searchQuery = searchQuery.eq("level", args.level);
-        }
-        return searchQuery;
-      });
+      const SEARCH_LIMIT = 100;
+      const matches = await ctx.db
+        .query("jobs")
+        .withSearchIndex("search_title", (q: any) => {
+          let searchQuery = q.search("title", rawSearch);
+          if (args.includeRemote === false) {
+            searchQuery = searchQuery.eq("remote", false);
+          }
+          if (args.state) {
+            searchQuery = searchQuery.eq("state", args.state);
+          }
+          if (args.level) {
+            searchQuery = searchQuery.eq("level", args.level);
+          }
+          return searchQuery;
+        })
+        .take(SEARCH_LIMIT);
+
+      jobs = {
+        page: matches.sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)),
+        isDone: true,
+        continueCursor: null,
+      };
     } else {
       let baseQuery: any = ctx.db.query("jobs");
 
-      if (rawSearch) {
-        baseQuery = baseQuery.withIndex("by_title_posted", (q: any) => q.eq("title", rawSearch));
-      } else if (args.state) {
+      if (args.state) {
         baseQuery = baseQuery.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
       } else {
         baseQuery = baseQuery.withIndex("by_posted_at");

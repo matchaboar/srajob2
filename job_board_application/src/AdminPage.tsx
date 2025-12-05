@@ -8,7 +8,7 @@ import { WorkflowRunsSection } from "./components/WorkflowRunsSection";
 import { LiveTimer } from "./components/LiveTimer";
 import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
 
-type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes";
+type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes" | "companyNames";
 type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
@@ -672,7 +672,7 @@ export function AdminPage() {
     const raw = window.location.hash.replace("#admin-", "");
     const [section, query] = raw.split("?");
     const urlParam = new URLSearchParams(query || "").get("url");
-    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "scrapeHistory", "urlScrapes"] as const;
+    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "scrapeHistory", "urlScrapes", "companyNames"] as const;
     const sec = allowed.includes(section as any) ? (section as AdminSectionExtended) : "scraper";
     return { section: sec, urlParam };
   };
@@ -716,6 +716,11 @@ export function AdminPage() {
             label="Scraper Config"
             active={section === "scraper"}
             onClick={() => setNavState({ section: "scraper", runsUrl: null })}
+          />
+          <SidebarItem
+            label="Company Names"
+            active={section === "companyNames"}
+            onClick={() => setNavState({ section: "companyNames", runsUrl: null })}
           />
           <SidebarItem
             label="Scrape Activity"
@@ -769,6 +774,7 @@ export function AdminPage() {
           )}
         >
           {section === "scraper" && <ScraperConfigSection />}
+          {section === "companyNames" && <CompanyNamesSection />}
           {section === "activity" && <ScrapeActivitySection onOpenRuns={(url) => setNavState({ section: "activityRuns", runsUrl: url })} />}
           {section === "activityRuns" && <WorkflowRunsSection url={runsUrl} onBack={() => setNavState({ section: "activity", runsUrl: null })} />}
           {section === "worker" && <WorkerStatusSection />}
@@ -796,6 +802,179 @@ function SidebarItem({ label, active, onClick }: { label: string; active: boolea
     >
       {label}
     </button>
+  );
+}
+
+function CompanyNamesSection() {
+  const domainAliases = useQuery(api.router.listDomainAliases);
+  const setDomainAlias = useMutation(api.router.setDomainAlias);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingDomain, setSavingDomain] = useState<string | null>(null);
+
+  const handleSave = async (domain: string, fallbackAlias: string, siteUrl?: string) => {
+    const nextAlias = (drafts[domain] ?? fallbackAlias ?? "").trim();
+    if (!nextAlias) {
+      toast.error("Alias cannot be empty");
+      return;
+    }
+    try {
+      setSavingDomain(domain);
+      const res = await setDomainAlias({ domainOrUrl: siteUrl || domain, alias: nextAlias });
+      const updatedJobs = (res as any)?.updatedJobs ?? 0;
+      const updatedSites = (res as any)?.updatedSites ?? 0;
+      const jobMessage = updatedJobs > 0 ? ` • ${updatedJobs} job${updatedJobs === 1 ? "" : "s"} retagged` : "";
+      const siteMessage = updatedSites > 0 ? ` • ${updatedSites} site${updatedSites === 1 ? "" : "s"} renamed` : "";
+      toast.success(`Alias saved${jobMessage}${siteMessage}`);
+      setDrafts((prev) => ({ ...prev, [domain]: nextAlias }));
+    } catch {
+      toast.error("Failed to save alias");
+    } finally {
+      setSavingDomain((prev) => (prev === domain ? null : prev));
+    }
+  };
+
+  const handleResetDraft = (domain: string, derivedName?: string) => {
+    setDrafts((prev) => {
+      const next = { ...prev };
+      if (derivedName) {
+        next[domain] = derivedName;
+      } else {
+        delete next[domain];
+      }
+      return next;
+    });
+  };
+
+  if (domainAliases === undefined) {
+    return <div className="text-slate-400 p-4">Loading company names...</div>;
+  }
+
+  if (!domainAliases?.length) {
+    return (
+      <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Company Names</h2>
+            <p className="text-xs text-slate-400">
+              Map scrape domains to the names that should appear on every job.
+            </p>
+          </div>
+        </div>
+        <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
+          No scrape domains found yet.
+        </div>
+      </div>
+    );
+  }
+
+  const rows = domainAliases as any[];
+
+  return (
+    <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Company Names</h2>
+          <p className="text-xs text-slate-400 max-w-2xl">
+            Give each scrape domain a clean, human-friendly company name. Aliases are applied to historical jobs
+            and to all future scrapes for that domain.
+          </p>
+        </div>
+        <div className="text-[11px] text-slate-400 px-2 py-1 border border-slate-800 rounded bg-slate-950/50">
+          {rows.length} domain{rows.length === 1 ? "" : "s"}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm text-slate-200">
+          <thead className="text-[11px] uppercase tracking-wide bg-slate-950 text-slate-400 border border-slate-800">
+            <tr>
+              <th className="px-3 py-2 border-r border-slate-800">Domain</th>
+              <th className="px-3 py-2 border-r border-slate-800">Derived from URL</th>
+              <th className="px-3 py-2 border-r border-slate-800">Aliased name</th>
+              <th className="px-3 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {rows.map((row) => {
+              const draftValue = drafts[row.domain] ?? row.alias ?? row.derivedName ?? "";
+              const usesAlias = (row.alias ?? row.derivedName ?? "") !== (row.derivedName ?? "");
+              return (
+                <tr key={row.domain} className="bg-slate-950/50 hover:bg-slate-900/60">
+                  <td className="px-3 py-3 align-top">
+                    <div className="font-mono text-xs text-white">{row.domain}</div>
+                    {row.siteUrl && (
+                      <div className="text-[11px] text-slate-500 truncate" title={row.siteUrl}>
+                        {row.siteUrl}
+                      </div>
+                    )}
+                    {row.siteName && (
+                      <div className="inline-flex mt-1 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 border border-slate-700">
+                        {row.siteName}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <div className="text-sm font-medium text-white">{row.derivedName}</div>
+                    <p className="text-[11px] text-slate-500">Derived from the scrape URL</p>
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={draftValue}
+                        onChange={(e) => setDrafts((prev) => ({ ...prev, [row.domain]: e.target.value }))}
+                        placeholder={row.derivedName}
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                        {usesAlias ? (
+                          <span className="px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-200 border border-emerald-800">
+                            Alias applied
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            Using derived name
+                          </span>
+                        )}
+                        {row.updatedAt && (
+                          <span className="text-[10px] text-slate-500">
+                            Updated {new Date(row.updatedAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { void handleSave(row.domain, draftValue || row.derivedName, row.siteUrl); }}
+                        disabled={savingDomain === row.domain}
+                        className={clsx(
+                          "px-3 py-1.5 rounded text-sm font-medium transition-colors",
+                          savingDomain === row.domain
+                            ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
+                            : "bg-emerald-600 text-white hover:bg-emerald-500"
+                        )}
+                      >
+                        {savingDomain === row.domain ? "Saving..." : "Save alias"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResetDraft(row.domain, row.derivedName)}
+                        className="px-3 py-1.5 rounded text-sm font-medium bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors"
+                      >
+                        Reset to derived
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

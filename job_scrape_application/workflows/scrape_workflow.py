@@ -376,6 +376,18 @@ class SpidercloudJobDetailsWorkflow:
                     args=["spidercloud", SPIDERCLOUD_BATCH_SIZE],
                     schedule_to_close_timeout=timedelta(seconds=20),
                 )
+
+                skipped_urls = []
+                if isinstance(batch, dict):
+                    raw_skipped = batch.get("skippedUrls")
+                    if isinstance(raw_skipped, list):
+                        skipped_urls = [u for u in raw_skipped if isinstance(u, str)]
+                if skipped_urls:
+                    await _log(
+                        "batch.skipped_urls",
+                        data={"count": len(skipped_urls), "sample": skipped_urls[:25]},
+                    )
+
                 urls = batch.get("urls") if isinstance(batch, dict) else None
                 if not urls:
                     break

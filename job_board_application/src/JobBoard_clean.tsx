@@ -9,7 +9,6 @@ type TargetState = (typeof TARGET_STATES)[number];
 
 interface Filters {
   search: string;
-  useSearch: boolean;
   includeRemote: boolean;
   state: TargetState | null;
   level: Level | null;
@@ -22,7 +21,6 @@ export function JobBoard() {
   const [activeTab, setActiveTab] = useState<"jobs" | "applied" | "live">("jobs");
   const [filters, setFilters] = useState<Filters>({
     search: "",
-    useSearch: false,
     includeRemote: true,
     state: null,
     level: null,
@@ -53,7 +51,6 @@ export function JobBoard() {
     api.jobs.listJobs,
     {
       search: filters.search || undefined,
-      useSearch: filters.useSearch,
       state: filters.state ?? undefined,
       includeRemote: filters.includeRemote,
       level: filters.level ?? undefined,
@@ -182,6 +179,7 @@ export function JobBoard() {
       level: null,
       minCompensation: null,
       maxCompensation: null,
+      companies: [],
     });
   };
 

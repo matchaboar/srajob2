@@ -44,6 +44,31 @@ async def test_record_scratchpad_sanitizes_required_strings(monkeypatch):
     assert captured["payload"].get("siteUrl") == ""
 
 
+@pytest.mark.asyncio
+async def test_lease_scrape_url_batch_payload_types(monkeypatch):
+    """Ensure Convex payload contains only supported types/keys."""
+
+    captured: Dict[str, Any] = {}
+
+    async def fake_convex_mutation(name: str, payload: Dict[str, Any] | None = None):
+        captured["name"] = name
+        captured["payload"] = payload or {}
+        return {"urls": [{"url": "https://example.com/job/1"}]}
+
+    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+
+    res = await acts.lease_scrape_url_batch(provider=None, limit=5)
+
+    assert captured["name"] == "router:leaseScrapeUrlBatch"
+    payload = captured["payload"]
+    assert "provider" not in payload  # None should be stripped
+    assert payload["limit"] == 5
+    assert isinstance(payload["maxPerMinuteDefault"], int)
+    assert isinstance(payload["processingExpiryMs"], int)
+    assert res["urls"] == [{"url": "https://example.com/job/1"}]
+    assert res.get("skippedUrls") == []
+
+
 def test_jobs_from_scrape_items_produces_convex_safe_payload():
     """Ensure required Convex job fields are never None/invalid."""
 

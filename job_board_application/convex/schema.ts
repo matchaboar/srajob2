@@ -28,6 +28,7 @@ const applicationTables = {
     test: v.optional(v.boolean()),
   })
     .index("by_posted_at", ["postedAt"])
+    .index("by_company", ["company"])
     .index("by_state_posted", ["state", "postedAt"])
     .index("by_company_posted", ["company", "postedAt"])
     .index("by_title_posted", ["title", "postedAt"])
@@ -50,6 +51,14 @@ const applicationTables = {
   })
     .index("by_slug", ["slug"])
     .index("by_name", ["name"]),
+
+  domain_aliases: defineTable({
+    domain: v.string(),
+    alias: v.string(),
+    derivedName: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_domain", ["domain"]),
 
   saved_filters: defineTable({
     userId: v.id("users"),
@@ -124,6 +133,7 @@ const applicationTables = {
     completedAt: v.number(),
     items: v.any(),
     provider: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
     workflowName: v.optional(v.string()),
     costMilliCents: v.optional(v.number()),
     // Optional metadata for richer audit/history views

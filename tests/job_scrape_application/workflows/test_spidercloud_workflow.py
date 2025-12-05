@@ -1026,6 +1026,49 @@ async def test_spidercloud_job_details_uses_runtime_timeouts(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_spidercloud_job_details_logs_skipped_urls(monkeypatch):
+    scratchpad_events: list[dict[str, Any]] = []
+    lease_calls = {"count": 0}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            lease_calls["count"] += 1
+            if lease_calls["count"] == 1:
+                return {
+                    "urls": [{"url": "https://example.com/job", "sourceUrl": "https://example.com"}],
+                    "skippedUrls": ["https://example.com/skip-me"],
+                }
+            return {"urls": []}
+        if activity is acts.process_spidercloud_job_batch:
+            return {"scrapes": []}
+        if activity is acts.record_scratchpad:
+            payload = None
+            if args and args[0]:
+                payload = args[0][0] if isinstance(args[0], list) else args[0]
+            elif kwargs.get("args"):
+                arg_list = kwargs.get("args")
+                if isinstance(arg_list, list) and arg_list:
+                    payload = arg_list[0]
+            if isinstance(payload, dict):
+                scratchpad_events.append(payload)
+            return None
+        raise RuntimeError(f"Unexpected activity {activity}")
+
+    class _Info:
+        run_id = "run-logs"
+        workflow_id = "wf-logs"
+        task_queue = "scraper-task-queue"
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    wf = sw.SpidercloudJobDetailsWorkflow()
+    await wf.run()
+
+    assert any(evt.get("event") == "batch.skipped_urls" for evt in scratchpad_events)
+
+
+@pytest.mark.asyncio
 async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
     recorded: Dict[str, Any] = {}
 

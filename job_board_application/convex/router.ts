@@ -50,6 +50,48 @@ const fallbackCompanyName = (name: string | undefined | null, url: string | unde
   }
   return "Site";
 };
+const normalizeDomainInput = (value: string): string => {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    return baseDomainFromHost(parsed.hostname.toLowerCase());
+  } catch {
+    const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
+    return baseDomainFromHost(hostOnly.toLowerCase());
+  }
+};
+const deriveNameFromDomain = (domain: string): string => {
+  if (!domain) return "Site";
+  return fallbackCompanyName(undefined, `https://${domain}`);
+};
+const resolveCompanyForUrl = async (
+  ctx: any,
+  url: string,
+  currentCompany: string,
+  siteName?: string,
+  cache?: Map<string, string | null>
+) => {
+  const domain = normalizeDomainInput(url);
+  const aliasCache = cache ?? new Map<string, string | null>();
+  let alias: string | null = null;
+
+  if (domain) {
+    if (aliasCache.has(domain)) {
+      alias = aliasCache.get(domain) ?? null;
+    } else {
+      const match = await ctx.db
+        .query("domain_aliases")
+        .withIndex("by_domain", (q: any) => q.eq("domain", domain))
+        .first();
+      alias = typeof match?.alias === "string" && match.alias.trim() ? match.alias.trim() : null;
+      aliasCache.set(domain, alias);
+    }
+  }
+
+  const chosen = alias ?? siteName ?? currentCompany;
+  return chosen?.trim() || fallbackCompanyName(currentCompany, url);
+};
 const upsertCompanyProfile = async (
   ctx: any,
   name: string,
@@ -109,7 +151,6 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
   const capitalized = lowered ? lowered.charAt(0).toUpperCase() + lowered.slice(1) : "";
   if (capitalized) candidates.add(capitalized);
 
-  let cursor: string | null = null;
   const patchedIds = new Set<string>();
 
   const patchJob = async (job: any) => {
@@ -121,49 +162,22 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
     patchedIds.add(id);
   };
 
-  const paginateByCompany = async (companyValue: string) => {
-    let idxCursor: string | null = null;
-    while (true) {
-      const page = (await ctx.db
-        .query("jobs")
-        .withIndex("by_company_posted", (q: any) => q.eq("company", companyValue))
-        .paginate({ cursor: idxCursor, numItems: 200 })) as {
-          page: any[];
-          isDone: boolean;
-          continueCursor: string | null;
-        };
-
-      for (const job of page.page as any[]) {
-        await patchJob(job);
-      }
-
-      if (page.isDone) break;
-      idxCursor = page.continueCursor;
-    }
-  };
-
   for (const candidate of candidates) {
-    if (candidate) await paginateByCompany(candidate);
+    if (!candidate) continue;
+    const rows = await ctx.db
+      .query("jobs")
+      .withIndex("by_company", (q: any) => q.eq("company", candidate))
+      .collect();
+    for (const job of rows as any[]) {
+      await patchJob(job);
+    }
   }
 
   // Fallback: search index to catch mixed-case / spaced variants
   try {
-    let searchCursor: string | null = null;
-    while (true) {
-      const page = (await ctx.db
-        .search("jobs", "search_company", prev)
-        .paginate({ cursor: searchCursor, numItems: 200 })) as {
-          page: any[];
-          isDone: boolean;
-          continueCursor: string | null;
-        };
-
-      for (const job of page.page as any[]) {
-        await patchJob(job);
-      }
-
-      if (page.isDone) break;
-      searchCursor = page.continueCursor;
+    const searchMatches = await ctx.db.search("jobs", "search_company", prev).collect();
+    for (const job of searchMatches as any[]) {
+      await patchJob(job);
     }
   } catch {
     // search index unavailable; best-effort
@@ -1748,6 +1762,149 @@ export const bulkUpsertSites = mutation({
   },
 });
 
+export const listDomainAliases = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      domain: v.string(),
+      derivedName: v.string(),
+      alias: v.optional(v.string()),
+      siteName: v.optional(v.string()),
+      siteUrl: v.optional(v.string()),
+      updatedAt: v.optional(v.number()),
+    })
+  ),
+  handler: async (ctx) => {
+    const sites = await ctx.db.query("sites").collect();
+    const aliases = await ctx.db.query("domain_aliases").collect();
+    const byDomain = new Map<
+      string,
+      {
+        domain: string;
+        derivedName: string;
+        alias?: string;
+        siteName?: string;
+        siteUrl?: string;
+        updatedAt?: number;
+      }
+    >();
+
+    for (const row of aliases) {
+      const domain = (row as any).domain ?? "";
+      if (!domain) continue;
+      byDomain.set(domain, {
+        domain,
+        derivedName: (row as any).derivedName ?? deriveNameFromDomain(domain),
+        alias: (row as any).alias ?? undefined,
+        updatedAt: (row as any).updatedAt ?? (row as any).createdAt,
+      });
+    }
+
+    for (const site of sites) {
+      const domain = normalizeDomainInput((site as any).url);
+      if (!domain) continue;
+      const existing = byDomain.get(domain);
+      const derivedName = fallbackCompanyName(undefined, (site as any).url);
+      if (existing) {
+        existing.siteName = existing.siteName ?? (site as any).name;
+        existing.siteUrl = existing.siteUrl ?? (site as any).url;
+        if (!existing.derivedName && derivedName) {
+          existing.derivedName = derivedName;
+        }
+        continue;
+      }
+      byDomain.set(domain, {
+        domain,
+        derivedName,
+        alias: undefined,
+        siteName: (site as any).name,
+        siteUrl: (site as any).url,
+        updatedAt: undefined,
+      });
+    }
+
+    return Array.from(byDomain.values()).sort((a, b) => a.domain.localeCompare(b.domain));
+  },
+});
+
+export const setDomainAlias = mutation({
+  args: {
+    domainOrUrl: v.string(),
+    alias: v.string(),
+  },
+  returns: v.object({
+    domain: v.string(),
+    alias: v.string(),
+    derivedName: v.string(),
+    updatedJobs: v.number(),
+    updatedSites: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const domain = normalizeDomainInput(args.domainOrUrl);
+    const alias = (args.alias || "").trim();
+    if (!domain) {
+      throw new Error("Domain is required");
+    }
+    if (!alias) {
+      throw new Error("Alias is required");
+    }
+
+    const sites = await ctx.db.query("sites").collect();
+    const matchingSites = sites.filter((site: any) => normalizeDomainInput(site.url) === domain);
+    const sampleSite = matchingSites[0];
+    const derivedName = fallbackCompanyName(undefined, sampleSite?.url ?? `https://${domain}`);
+    const now = Date.now();
+
+    const existing = await ctx.db
+      .query("domain_aliases")
+      .withIndex("by_domain", (q) => q.eq("domain", domain))
+      .first();
+    const previousAlias = existing?.alias;
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        alias,
+        derivedName,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("domain_aliases", {
+        domain,
+        alias,
+        derivedName,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await upsertCompanyProfile(ctx, alias, sampleSite?.url ?? `https://${domain}`, derivedName);
+
+    let updatedJobs = 0;
+    const previousNames = new Set<string>();
+    if (derivedName) previousNames.add(derivedName);
+    if (previousAlias) previousNames.add(previousAlias);
+    matchingSites.forEach((site: any) => {
+      if (site?.name) previousNames.add(site.name);
+    });
+
+    for (const prev of Array.from(previousNames)) {
+      if (prev && prev !== alias) {
+        updatedJobs += await updateJobsCompany(ctx, prev, alias);
+      }
+    }
+
+    let updatedSites = 0;
+    for (const site of matchingSites) {
+      if ((site as any).name !== alias) {
+        await ctx.db.patch(site._id, { name: alias });
+        updatedSites += 1;
+      }
+    }
+
+    return { domain, alias, derivedName, updatedJobs, updatedSites };
+  },
+});
+
 // Test helper: insert a dummy scrape row
 export const insertDummyScrape = mutation({
   args: {},
@@ -1780,10 +1937,12 @@ export const insertJobRecord = mutation({
     test: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const resolvedCompany = await resolveCompanyForUrl(ctx, args.url, args.company);
     const jobId = await ctx.db.insert(
       "jobs",
       buildJobInsert({
         ...args,
+        company: resolvedCompany,
         compensationUnknown: args.compensationUnknown ?? false,
         compensationReason: args.compensationReason,
         postedAt: Date.now(),
@@ -2233,6 +2392,7 @@ export const insertScrapeRecord = mutation({
     completedAt: v.number(),
     items: v.any(),
     provider: v.optional(v.string()),
+    siteId: v.optional(v.id("sites")),
     workflowName: v.optional(v.string()),
     costMilliCents: v.optional(v.number()),
     jobBoardJobId: v.optional(v.string()),
@@ -2512,6 +2672,7 @@ export const ingestJobsFromScrape = mutation({
         companyOverride = (site as any).name;
       }
     }
+    const aliasCache = new Map<string, string | null>();
 
     let inserted = 0;
     for (const job of args.jobs) {
@@ -2531,9 +2692,16 @@ export const ingestJobsFromScrape = mutation({
             : job.scrapedWith
               ? `${job.scrapedWith} extracted compensation`
               : "compensation provided in scrape payload";
+      const resolvedCompany = await resolveCompanyForUrl(
+        ctx,
+        job.url,
+        job.company,
+        companyOverride,
+        aliasCache
+      );
       await ctx.db.insert("jobs", {
         ...job,
-        company: companyOverride ?? job.company,
+        company: resolvedCompany,
         city: job.city ?? city,
         state: job.state ?? state,
         location: formatLocationLabel(job.city ?? city, job.state ?? state, job.location),

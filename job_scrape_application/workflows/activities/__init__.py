@@ -911,7 +911,47 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
             }
         ),
     )
-    return res if isinstance(res, dict) else {"urls": []}
+    if not isinstance(res, dict):
+        return {"urls": []}
+
+    raw_urls = res.get("urls")
+    if not isinstance(raw_urls, list) or not raw_urls:
+        return {"urls": []}
+
+    skipped: list[str] = []
+    filtered: list[Dict[str, Any]] = []
+    skip_cache: dict[tuple[str | None, str | None], set[str]] = {}
+
+    for entry in raw_urls:
+        if not isinstance(entry, dict):
+            continue
+        url_val = entry.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
+        pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
+        cache_key = (source_val, pattern_val)
+        if cache_key not in skip_cache:
+            try:
+                skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
+            except Exception:
+                skip_list = []
+            skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
+        if url_val in skip_cache[cache_key]:
+            skipped.append(url_val)
+            continue
+        filtered.append(entry)
+
+    if skipped:
+        try:
+            await convex_mutation(
+                "router:completeScrapeUrls",
+                {"urls": skipped, "status": "failed", "error": "skip_listed_url"},
+            )
+        except Exception as skip_err:
+            logger.warning("Failed to mark skipped URLs as failed: %s", skip_err, exc_info=skip_err)
+
+    return {"urls": filtered, "skippedUrls": skipped}
 
 
 @activity.defn
@@ -1606,12 +1646,14 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             body["subUrls"] = data.get("subUrls")
         return body
 
+    scrape_id: str | None = None
     try:
         scrape_id = await convex_mutation(
             "router:insertScrapeRecord",
             _base_payload(payload),
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
         # Fallback: aggressively trim and retry once so we still record the run
         fallback = trim_scrape_for_convex(
             scrape,
@@ -1621,10 +1663,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         )
         if isinstance(fallback.get("items"), dict):
             fallback["items"]["truncated"] = True
-        scrape_id = await convex_mutation(
-            "router:insertScrapeRecord",
-            _base_payload(fallback),
-        )
+        try:
+            scrape_id = await convex_mutation(
+                "router:insertScrapeRecord",
+                _base_payload(fallback),
+            )
+        except Exception as fallback_exc:
+            logger.error(
+                "Failed to persist scrape after fallback: %s",
+                fallback_exc,
+                exc_info=fallback_exc,
+            )
+            return f"store-error:{int(time.time() * 1000)}"
 
     # Best-effort job ingestion (mimics router.ts behavior)
     try:
@@ -2036,8 +2086,11 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
     pending = await convex_query("router:listPendingJobDetails", {"limit": limit}) or []
     processed = 0
     updated: List[str] = []
-    for row in pending:
+    total = len(pending)
+    for idx, row in enumerate(pending):
         try:
+            # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
+            activity.heartbeat({"processed": processed, "index": idx, "total": total})
             job_id = row.get("_id")
             description = row.get("description") or ""
             url = row.get("url") or ""
@@ -2142,6 +2195,8 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                 await convex_mutation("router:updateJobWithHeuristic", {"id": job_id, **patch})
                 updated.append(job_id)
                 processed += 1
+        except asyncio.CancelledError:
+            raise
         except Exception:
             continue
 

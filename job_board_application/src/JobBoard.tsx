@@ -19,7 +19,6 @@ type TargetState = (typeof TARGET_STATES)[number];
 
 interface Filters {
   search: string;
-  useSearch: boolean;
   includeRemote: boolean;
   state: TargetState | null;
   level: Level | null;
@@ -47,7 +46,6 @@ interface SavedFilter {
 
 const buildEmptyFilters = (): Filters => ({
   search: "",
-  useSearch: false,
   includeRemote: true,
   state: null,
   level: null,
@@ -179,7 +177,6 @@ export function JobBoard() {
   const [filters, setFilters] = useState<Filters>(buildEmptyFilters);
   const [throttledFilters, setThrottledFilters] = useState<Filters>(buildEmptyFilters);
   const [filtersReady, setFiltersReady] = useState(false);
-  const [filterTab, setFilterTab] = useState<"filters" | "search">("filters");
   const [selectedSavedFilterId, setSelectedSavedFilterId] = useState<string | null>(null);
   const [companyInput, setCompanyInput] = useState("");
   const [debouncedCompanyInput, setDebouncedCompanyInput] = useState("");
@@ -274,7 +271,6 @@ export function JobBoard() {
     api.jobs.listJobs,
     {
       search: throttledFilters.search.trim() || undefined,
-      useSearch: throttledFilters.useSearch,
       state: throttledFilters.state ?? undefined,
       includeRemote: throttledFilters.includeRemote,
       level: throttledFilters.level ?? undefined,
@@ -505,7 +501,6 @@ export function JobBoard() {
     setSelectedSavedFilterId(filter._id);
     setFilters({
       search: filter.search ?? "",
-      useSearch: filter.useSearch ?? false,
       includeRemote: filter.includeRemote ?? (filter.remote !== false),
       state: (filter.state as TargetState | null) ?? null,
       level: (filter.level as Level | null) ?? null,
@@ -542,14 +537,6 @@ export function JobBoard() {
       clearSavedSelection();
     }
   }, [clearSavedSelection, selectedSavedFilterId]);
-
-  const switchFilterTab = useCallback(
-    (next: "filters" | "search") => {
-      setFilterTab(next);
-      updateFilters({ useSearch: next === "search" }, { forceImmediate: true });
-    },
-    [updateFilters]
-  );
 
   const FILTER_THROTTLE_MS = 5000;
   const MIN_SALARY = 50000;
@@ -591,13 +578,10 @@ export function JobBoard() {
       throttleDeadlineRef.current = null;
       setThrottledFilters(filters);
       setFilterUpdatePending(false);
-    setFilterCountdownMs(0);
-    throttleTimeoutRef.current = null;
-  }, remaining);
-}, [FILTER_THROTTLE_MS, filters]);
-  useEffect(() => {
-    setFilterTab(filters.useSearch ? "search" : "filters");
-  }, [filters.useSearch]);
+      setFilterCountdownMs(0);
+      throttleTimeoutRef.current = null;
+    }, remaining);
+  }, [FILTER_THROTTLE_MS, filters]);
   useEffect(() => {
     if (!filterUpdatePending) {
       if (countdownIntervalRef.current) {
@@ -681,7 +665,6 @@ export function JobBoard() {
       await saveFilter({
         name: trimmedName,
         search: filters.search || undefined,
-        useSearch: filters.useSearch,
         includeRemote: filters.includeRemote,
         state: filters.state || undefined,
         level: filters.level ?? undefined,
@@ -1093,56 +1076,19 @@ export function JobBoard() {
               {/* Sidebar Filters */}
               <div className="w-64 bg-slate-900/30 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto">
                 <div className="space-y-3">
-                  <div className="inline-flex rounded-lg bg-slate-800/60 p-1 text-xs font-semibold text-slate-300">
-                    <button
-                      type="button"
-                      onClick={() => switchFilterTab("filters")}
-                      className={`px-3 py-1.5 rounded-md transition-colors ${
-                        filterTab === "filters"
-                          ? "bg-slate-700 text-white shadow-inner"
-                          : "hover:text-white hover:bg-slate-700/60"
-                      }`}
-                      title="Uses indexed filters (state, level, title) sorted by posted date."
-                    >
-                      Filters
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => switchFilterTab("search")}
-                      className={`px-3 py-1.5 rounded-md transition-colors ${
-                        filterTab === "search"
-                          ? "bg-slate-700 text-white shadow-inner"
-                          : "hover:text-white hover:bg-slate-700/60"
-                      }`}
-                      title="Full-text search (titles/descriptions) re-ordered by posted date."
-                    >
-                      Full-text search
-                    </button>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase">Search</label>
+                    <input
+                      type="text"
+                      value={filters.search}
+                      onChange={(e) => updateFilters({ search: e.target.value })}
+                      placeholder="Search titles..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Full-text search returns up to 100 of the most recent matching jobs.
+                    </p>
                   </div>
-
-                  {filterTab === "filters" ? (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-slate-500 uppercase">Job Title</label>
-                      <input
-                        type="text"
-                        value={filters.search}
-                        onChange={(e) => updateFilters({ search: e.target.value })}
-                        placeholder="Exact job title"
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600"
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-slate-500 uppercase">Search</label>
-                      <input
-                        type="text"
-                        value={filters.search}
-                        onChange={(e) => updateFilters({ search: e.target.value, useSearch: true })}
-                        placeholder="Search titles/descriptions..."
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600"
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div>
