@@ -634,6 +634,11 @@ function Start-WorkerMain {
         $TemporalPort = [int]$matches[1]
     }
     $TemporalUiPort = 8233
+    $TemporalUiHost = if ([string]::IsNullOrWhiteSpace($TemporalHost) -or $TemporalHost -eq "0.0.0.0" -or $TemporalHost -eq "::") { "127.0.0.1" } else { $TemporalHost }
+    if ($TemporalUiHost -match ":" -and -not $TemporalUiHost.StartsWith("[")) {
+        $TemporalUiHost = "[${TemporalUiHost}]"
+    }
+    $TemporalUiUrl = "http://${TemporalUiHost}:${TemporalUiPort}"
     $TemporalContainerName = "temporalite"
     $TemporalImageName = "temporal-dev:local"
     $TemporalDockerfile = "docker/temporal/Dockerfile.temporal-dev"
@@ -773,6 +778,9 @@ function Start-WorkerMain {
 
     # Clear any stale progress bars from uv before showing live worker logs
     Clear-Host
+    if ($TemporalUiUrl) {
+        Write-Host ("Temporal UI available at {0}" -f $TemporalUiUrl) -ForegroundColor Cyan
+    }
 
     Write-Host "Starting Worker..."
     if ($ConvexUrl) {

@@ -7,7 +7,7 @@ import logging
 import time
 import re
 from html.parser import HTMLParser
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from firecrawl import Firecrawl
 from firecrawl.v2.types import PaginationConfig
@@ -46,6 +46,7 @@ from ..helpers.scrape_utils import (
     _shrink_payload,
     build_firecrawl_schema,
     parse_markdown_hints,
+    strip_known_nav_blocks,
     fetch_seen_urls_for_site,
     normalize_fetchfox_items,
     normalize_firecrawl_items,
@@ -110,6 +111,16 @@ def _convex_site_id(value: Any) -> Optional[str]:
     if isinstance(candidate, str) and _looks_like_convex_id(candidate):
         return candidate
     return None
+
+
+def _safe_activity_heartbeat(details: Dict[str, Any]) -> None:
+    """Send a Temporal heartbeat when running in an activity context."""
+
+    try:
+        activity.heartbeat(details)
+    except RuntimeError:
+        # Not running inside a Temporal activity (e.g., unit tests); ignore.
+        return
 
 
 def _make_fetchfox_scraper() -> FetchfoxScraper:
@@ -2060,6 +2071,90 @@ def _looks_like_location_anywhere(value: Optional[str]) -> bool:
     return bool(re.search(r"[A-Za-z].*,\s*[A-Za-z]", text))
 
 
+def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
+    """Split and dedupe multiple location hints (e.g., 'Madrid, Spain; Paris, France')."""
+
+    seen: set[str] = set()
+    cleaned: List[str] = []
+    for raw in raw_locations:
+        if not raw:
+            continue
+        for part in re.split(r"[;|/]", str(raw)):
+            candidate = (part or "").strip(" ;|/\t")
+            if not candidate:
+                continue
+            candidate = re.sub(r"\s+", " ", candidate)
+            lowered = candidate.lower()
+            if lowered in ("unknown", "n/a", "na"):
+                continue
+            if len(candidate) < 3 or len(candidate) > 100:
+                continue
+            if not _is_plausible_location(candidate):
+                continue
+            if candidate not in seen:
+                seen.add(candidate)
+                cleaned.append(candidate)
+
+    return cleaned[:5]
+
+
+def _is_plausible_location(value: str) -> bool:
+    lowered = value.lower()
+    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture")):
+        return False
+    if "," in value:
+        left, right = [p.strip() for p in value.split(",", 1)]
+        if len(left.split()) > 4 or len(right.split()) > 4:
+            return False
+        if "remote" in right.lower():
+            return True
+        return bool(re.match(r"^[A-Z][^,]*,\s*[A-Z][^,]*$", value))
+    if "remote" in lowered:
+        return True
+    return len(value.split()) <= 4
+
+
+def _derive_location_states(locations: List[str]) -> List[str]:
+    states: List[str] = []
+    for loc in locations:
+        parts = [p.strip() for p in str(loc).split(",") if p.strip()]
+        if len(parts) >= 2:
+            state_val = parts[-1]
+            if state_val and state_val not in states:
+                states.append(state_val)
+    return states
+
+
+def _derive_countries(locations: List[str]) -> List[str]:
+    countries: List[str] = []
+    for loc in locations:
+        parts = [p.strip() for p in str(loc).split(",") if p.strip()]
+        if not parts:
+            continue
+        country = parts[-1]
+        lowered = country.lower()
+        if lowered in {"remote", "locations"}:
+            continue
+        if re.match(r"^[A-Z]{2}$", country):
+            continue
+        if country not in countries:
+            countries.append(country)
+    return countries
+
+
+def _build_location_search(locations: List[str]) -> str:
+    tokens: set[str] = set()
+    for loc in locations:
+        for token in re.split(r"[,\s]+", loc):
+            cleaned = token.strip()
+            if cleaned:
+                tokens.add(cleaned)
+    return " ".join(tokens)
+
+
+HEURISTIC_VERSION = 3
+
+
 def _first_match(text: str, regexes: List[str]) -> tuple[Optional[str], Optional[str]]:
     for pattern in regexes:
         try:
@@ -2090,9 +2185,12 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
     for idx, row in enumerate(pending):
         try:
             # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
-            activity.heartbeat({"processed": processed, "index": idx, "total": total})
+            _safe_activity_heartbeat({"processed": processed, "index": idx, "total": total})
             job_id = row.get("_id")
-            description = row.get("description") or ""
+            title = (str(row.get("title") or row.get("jobTitle") or "")).strip() or "<untitled>"
+            logger.info("heuristic.view job id=%s title=%s", job_id or "<missing>", title)
+            raw_description = row.get("description") or ""
+            description = strip_known_nav_blocks(raw_description)
             url = row.get("url") or ""
             domain = _domain_from_url(url)
 
@@ -2117,31 +2215,43 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             comp_regexes = _build_ordered_regexes(configs, "compensation", comp_defaults)
 
             hints = parse_markdown_hints(description)
-            location = row.get("location") or hints.get("location")
+            locations_hint = hints.get("locations") or []
+            location_fallback = row.get("location") or hints.get("location")
+            locations = _normalize_locations(locations_hint or ([location_fallback] if location_fallback else []))
+            countries = _derive_countries(locations)
             comp_reason = row.get("compensationReason")
             total_comp = row.get("totalCompensation") or 0
-            compensation_unknown = bool(row.get("compensationUnknown"))
+            compensation_unknown = row.get("compensationUnknown")
+            if compensation_unknown is None:
+                compensation_unknown = True
+            else:
+                compensation_unknown = bool(compensation_unknown)
             currency_code = row.get("currencyCode")
             currency_hint = _detect_currency_code(description)
             if currency_hint and currency_hint != currency_code:
                 currency_code = currency_hint
 
-            if (not location or location.lower() == "unknown") and description:
+            matched_locations: List[str] = []
+            if description:
                 used_pattern, found = _first_match(description, location_regexes)
                 if found and (location_matches_usa(found) or _looks_like_location_anywhere(found)):
-                    location = found.strip()
-                    if used_pattern:
-                        await convex_mutation(
-                            "router:recordJobDetailHeuristic",
-                            {"domain": domain or "default", "field": "location", "regex": used_pattern},
-                        )
-            if (not location or location.lower() == "unknown") and currency_hint and currency_hint != "USD":
+                    found_locations = _normalize_locations([found])
+                    if found_locations:
+                        matched_locations = found_locations
+                        if used_pattern:
+                            await convex_mutation(
+                                "router:recordJobDetailHeuristic",
+                                {"domain": domain or "default", "field": "location", "regex": used_pattern},
+                            )
+            if matched_locations and not locations:
+                locations = _normalize_locations(matched_locations + locations)
+            if (not locations) and currency_hint and currency_hint != "USD":
                 if currency_hint == "INR":
-                    location = "India"
+                    locations = ["India"]
                 elif currency_hint == "GBP":
-                    location = "United Kingdom"
+                    locations = ["United Kingdom"]
                 elif currency_hint == "EUR":
-                    location = "Europe"
+                    locations = ["Europe"]
 
             if (not total_comp or total_comp <= 0) and description:
                 used_pattern, found_val = _first_match(description, comp_regexes)
@@ -2176,8 +2286,15 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             patch: Dict[str, Any] = {}
             patch["heuristicAttempts"] = attempts + 1
             patch["heuristicLastTried"] = now_ms
-            if location:
-                patch["location"] = location
+            patch["heuristicVersion"] = HEURISTIC_VERSION
+            if locations:
+                patch["locations"] = locations
+                patch["location"] = locations[0]
+                patch["locationStates"] = _derive_location_states(locations)
+                patch["locationSearch"] = _build_location_search(locations)
+            if countries:
+                patch["countries"] = countries
+                patch["country"] = countries[0]
             if total_comp and total_comp > 0:
                 patch["totalCompensation"] = int(total_comp)
             if comp_reason:
@@ -2190,9 +2307,29 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                 patch["remote"] = True
             elif hints.get("remote") is False and row.get("remote") is None:
                 patch["remote"] = False
+            if description and description != raw_description:
+                patch["description"] = description
 
             if patch:
                 await convex_mutation("router:updateJobWithHeuristic", {"id": job_id, **patch})
+                update_summary = {
+                    key: value
+                    for key, value in {
+                        "location": patch.get("location"),
+                        "totalCompensation": patch.get("totalCompensation"),
+                        "currencyCode": patch.get("currencyCode"),
+                        "remote": patch.get("remote"),
+                        "compensationUnknown": patch.get("compensationUnknown"),
+                        "compensationReason": patch.get("compensationReason"),
+                    }.items()
+                    if value is not None
+                }
+                logger.info(
+                    "heuristic.updated job id=%s title=%s changes=%s",
+                    job_id or "<missing>",
+                    title,
+                    update_summary or {"note": "heuristic bookkeeping only"},
+                )
                 updated.append(job_id)
                 processed += 1
         except asyncio.CancelledError:

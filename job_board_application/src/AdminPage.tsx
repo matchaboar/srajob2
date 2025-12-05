@@ -7,11 +7,13 @@ import clsx from "clsx";
 import { WorkflowRunsSection } from "./components/WorkflowRunsSection";
 import { LiveTimer } from "./components/LiveTimer";
 import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
+import type { Id } from "../convex/_generated/dataModel";
 
 type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes" | "companyNames";
 type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
+type ScheduleId = Id<"scrape_schedules">;
 const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
   mon: "Mon",
   tue: "Tue",
@@ -135,42 +137,41 @@ function TemporalStatusSection() {
   const staleWorkers = useQuery(api.temporal?.getStaleWorkers);
 
   const workers = activeTab === "active" ? activeWorkers : staleWorkers;
-  const mergedWorkers = workers
-    ? (() => {
-      const byHost = new Map<string, any>();
-      for (const w of workers as any[]) {
-        const existing = byHost.get(w.hostname);
-        if (!existing) {
-          byHost.set(w.hostname, {
-            ...w,
-            workerIds: [w.workerId],
-            latestWorkerId: w.workerId,
-            workflows: w.workflows || [],
-          });
-          continue;
-        }
-
-        // Merge workflows and keep latest heartbeat info
-        const merged: any = {
-          ...existing,
-          lastHeartbeat:
-            (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.lastHeartbeat : existing.lastHeartbeat,
-          latestWorkerId:
-            (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.workerId : existing.latestWorkerId,
-          temporalAddress: w.temporalAddress ?? existing.temporalAddress,
-          temporalNamespace: w.temporalNamespace ?? existing.temporalNamespace,
-          taskQueue: w.taskQueue ?? existing.taskQueue,
-          workflows: [
-            ...existing.workflows,
-            ...((w.workflows || []).filter((wf: any) => !(existing.workflows || []).some((e: any) => e.id === wf.id))),
-          ],
-          workerIds: Array.from(new Set([...(existing.workerIds || []), w.workerId])),
-        };
-        byHost.set(w.hostname, merged);
+  const mergedWorkers = useMemo(() => {
+    if (!workers) return [] as any[];
+    const byHost = new Map<string, any>();
+    for (const w of workers as any[]) {
+      const existing = byHost.get(w.hostname);
+      if (!existing) {
+        byHost.set(w.hostname, {
+          ...w,
+          workerIds: [w.workerId],
+          latestWorkerId: w.workerId,
+          workflows: w.workflows || [],
+        });
+        continue;
       }
-      return Array.from(byHost.values());
-    })()
-    : workers;
+
+      // Merge workflows and keep latest heartbeat info
+      const merged: any = {
+        ...existing,
+        lastHeartbeat:
+          (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.lastHeartbeat : existing.lastHeartbeat,
+        latestWorkerId:
+          (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.workerId : existing.latestWorkerId,
+        temporalAddress: w.temporalAddress ?? existing.temporalAddress,
+        temporalNamespace: w.temporalNamespace ?? existing.temporalNamespace,
+        taskQueue: w.taskQueue ?? existing.taskQueue,
+        workflows: [
+          ...existing.workflows,
+          ...((w.workflows || []).filter((wf: any) => !(existing.workflows || []).some((e: any) => e.id === wf.id))),
+        ],
+        workerIds: Array.from(new Set([...(existing.workerIds || []), w.workerId])),
+      };
+      byHost.set(w.hostname, merged);
+    }
+    return Array.from(byHost.values());
+  }, [workers]);
 
   if (workers === undefined) {
     return <div className="text-slate-400 p-4">Loading workers...</div>;
@@ -994,12 +995,12 @@ function ScraperConfigSection() {
   const deleteSchedule = useMutation(api.router.deleteSchedule);
 
   const [mode, setMode] = useState<"single" | "bulk">("single");
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
-  const [bulkScheduleId, setBulkScheduleId] = useState<string>("");
-  const [defaultScheduleId, setDefaultScheduleId] = useState<string>(() => {
+  const [selectedScheduleId, setSelectedScheduleId] = useState<ScheduleId | "">("");
+  const [bulkScheduleId, setBulkScheduleId] = useState<ScheduleId | "">("");
+  const [defaultScheduleId, setDefaultScheduleId] = useState<ScheduleId | "">(() => {
     if (typeof window === "undefined") return "";
     try {
-      return window.localStorage.getItem(DEFAULT_SCHEDULE_STORAGE_KEY) || "";
+      return (window.localStorage.getItem(DEFAULT_SCHEDULE_STORAGE_KEY) as ScheduleId | "") || "";
     } catch {
       return "";
     }
@@ -1013,9 +1014,9 @@ function ScraperConfigSection() {
   const [scheduleIntervalHours, setScheduleIntervalHours] = useState(24);
   const [scheduleIntervalMinutes, setScheduleIntervalMinutes] = useState(0);
   const [scheduleTimezone, setScheduleTimezone] = useState(defaultTimezone);
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [editingScheduleId, setEditingScheduleId] = useState<ScheduleId | null>(null);
   const [savingSchedule, setSavingSchedule] = useState(false);
-  const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null);
+  const [deletingScheduleId, setDeletingScheduleId] = useState<ScheduleId | null>(null);
   const [updatingSiteScheduleId, setUpdatingSiteScheduleId] = useState<string | null>(null);
   const [nameEdits, setNameEdits] = useState<Record<string, string>>({});
   const [savingSiteNameId, setSavingSiteNameId] = useState<string | null>(null);
@@ -1037,11 +1038,11 @@ function ScraperConfigSection() {
   const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
   const generatedName = useMemo(() => deriveSiteName(url), [url]);
 
-  const setDefaultSchedule = (id: string) => {
+  const setDefaultSchedule = (id: ScheduleId | "") => {
     setDefaultScheduleId(id);
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(DEFAULT_SCHEDULE_STORAGE_KEY, id);
+        window.localStorage.setItem(DEFAULT_SCHEDULE_STORAGE_KEY, id || "");
       } catch {
         // ignore storage errors
       }
@@ -1060,35 +1061,37 @@ function ScraperConfigSection() {
 
   useEffect(() => {
     if (!schedules || schedules.length === 0) return;
-    const first = schedules[0]._id as unknown as string;
+    const first = schedules[0]?._id as ScheduleId | undefined;
     if (!defaultScheduleId && first) {
       setDefaultSchedule(first);
       return;
     }
-    const hasDefault = defaultScheduleId && (schedules as any[]).some((s) => (s._id as unknown as string) === defaultScheduleId);
-    const target = hasDefault ? defaultScheduleId : first;
+    const hasDefault =
+      Boolean(defaultScheduleId) &&
+      (schedules as any[]).some((s) => (s._id as ScheduleId) === defaultScheduleId);
+    const target: ScheduleId | "" = hasDefault ? defaultScheduleId : first ?? "";
 
     if (!hasDefault && defaultScheduleId && typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(DEFAULT_SCHEDULE_STORAGE_KEY, target);
+        window.localStorage.setItem(DEFAULT_SCHEDULE_STORAGE_KEY, target || "");
       } catch {
         // ignore
       }
       setDefaultScheduleId(target);
     }
 
-    if (!selectedScheduleId) {
+    if (!selectedScheduleId && target) {
       setSelectedScheduleId(target);
     }
-    if (!bulkScheduleId) {
+    if (!bulkScheduleId && target) {
       setBulkScheduleId(target);
     }
   }, [schedules, selectedScheduleId, bulkScheduleId, defaultScheduleId]);
 
   const scheduleMap = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new Map<ScheduleId, any>();
     (schedules ?? []).forEach((s: any) => {
-      map.set(s._id as unknown as string, s);
+      map.set(s._id as ScheduleId, s);
     });
     return map;
   }, [schedules]);
@@ -1124,7 +1127,7 @@ function ScraperConfigSection() {
   };
 
   const handleEditSchedule = (schedule: any) => {
-    setEditingScheduleId(schedule._id as string);
+    setEditingScheduleId(schedule._id as ScheduleId);
     setScheduleName(schedule.name ?? "");
     setScheduleDays(new Set((schedule.days ?? []) as ScheduleDay[]));
     setScheduleStartTime(schedule.startTime ?? "08:00");
@@ -1152,18 +1155,17 @@ function ScraperConfigSection() {
 
     try {
       setSavingSchedule(true);
-      const savedId = await upsertSchedule({
+      const savedId = (await upsertSchedule({
         id: editingScheduleId ?? undefined,
         name: scheduleName.trim() || "Untitled schedule",
         days: Array.from(scheduleDays) as ScheduleDay[],
         startTime: scheduleStartTime,
         intervalMinutes: totalMinutes,
         timezone: scheduleTimezone || defaultTimezone,
-      });
-      const savedIdStr = savedId as unknown as string;
+      })) as ScheduleId;
       toast.success(editingScheduleId ? "Schedule updated" : "Schedule created");
-      setSelectedScheduleId((prev) => prev || savedIdStr);
-      setBulkScheduleId((prev) => prev || savedIdStr);
+      setSelectedScheduleId((prev) => prev || savedId);
+      setBulkScheduleId((prev) => prev || savedId);
       resetScheduleForm();
     } catch {
       toast.error("Failed to save schedule");
@@ -1172,7 +1174,7 @@ function ScraperConfigSection() {
     }
   };
 
-  const handleDeleteSchedule = async (id: string) => {
+  const handleDeleteSchedule = async (id: ScheduleId) => {
     try {
       setDeletingScheduleId(id);
       await deleteSchedule({ id: id as any });
@@ -1187,12 +1189,12 @@ function ScraperConfigSection() {
     }
   };
 
-  const handleSiteScheduleChange = async (siteId: string, scheduleId: string) => {
+  const handleSiteScheduleChange = async (siteId: string, scheduleId: ScheduleId | "") => {
     try {
       setUpdatingSiteScheduleId(siteId);
       await updateSiteSchedule({
         id: siteId as any,
-        scheduleId: scheduleId ? (scheduleId as any) : undefined,
+        scheduleId: scheduleId || undefined,
       });
       toast.success("Site schedule updated");
     } catch {
@@ -1538,16 +1540,16 @@ function ScraperConfigSection() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setDefaultSchedule(sched._id as unknown as string)}
-                        disabled={(sched._id as unknown as string) === defaultScheduleId}
+                        onClick={() => setDefaultSchedule(sched._id as ScheduleId)}
+                        disabled={sched._id === defaultScheduleId}
                         className={clsx(
                           "text-[11px] px-2 py-1 rounded border transition-colors",
-                          (sched._id as unknown as string) === defaultScheduleId
+                          sched._id === defaultScheduleId
                             ? "border-blue-900/60 text-blue-200 bg-blue-900/20 cursor-not-allowed"
                             : "border-blue-800 text-blue-100 hover:bg-blue-900/30"
                         )}
                       >
-                        {(sched._id as unknown as string) === defaultScheduleId ? "Default" : "Set default"}
+                        {sched._id === defaultScheduleId ? "Default" : "Set default"}
                       </button>
                       <button
                         onClick={() => handleEditSchedule(sched)}
@@ -1556,8 +1558,8 @@ function ScraperConfigSection() {
                         Edit
                       </button>
                       <button
-                        onClick={() => { void handleDeleteSchedule(sched._id as unknown as string); }}
-                        disabled={sched.siteCount > 0 || deletingScheduleId === (sched._id as unknown as string)}
+                        onClick={() => { void handleDeleteSchedule(sched._id as ScheduleId); }}
+                        disabled={sched.siteCount > 0 || deletingScheduleId === (sched._id as ScheduleId)}
                         className={clsx(
                           "text-[11px] px-2 py-1 rounded border transition-colors",
                           sched.siteCount > 0
@@ -1565,7 +1567,7 @@ function ScraperConfigSection() {
                             : "border-red-900/50 text-red-300 hover:bg-red-900/20"
                         )}
                       >
-                        {deletingScheduleId === (sched._id as unknown as string) ? "Deleting..." : "Delete"}
+                        {deletingScheduleId === (sched._id as ScheduleId) ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>
@@ -1656,14 +1658,14 @@ function ScraperConfigSection() {
               <label className="text-xs text-slate-400 block mb-1">Schedule</label>
               <select
                 value={selectedScheduleId}
-                onChange={(e) => setSelectedScheduleId(e.target.value)}
+                onChange={(e) => setSelectedScheduleId((e.target.value as ScheduleId | "") || "")}
                 disabled={!schedules}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
               >
                 {!schedules && <option value="">Loading schedules...</option>}
                 <option value="">{schedules ? "No schedule (manual)" : " "}</option>
                 {schedules?.map((sched: any) => (
-                  <option key={sched._id as unknown as string} value={sched._id as unknown as string}>
+                  <option key={sched._id as ScheduleId} value={sched._id as ScheduleId}>
                     {sched.name} • {formatScheduleSummary(sched)}
                   </option>
                 ))}
@@ -1705,13 +1707,13 @@ function ScraperConfigSection() {
               <label className="text-xs text-slate-400 block mb-1">Schedule</label>
               <select
                 value={bulkScheduleId || selectedScheduleId}
-                onChange={(e) => setBulkScheduleId(e.target.value)}
+                onChange={(e) => setBulkScheduleId((e.target.value as ScheduleId | "") || "")}
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
               >
                 {!schedules && <option value="">Loading schedules...</option>}
                 <option value="">{schedules ? "No schedule (manual)" : " "}</option>
                 {schedules?.map((sched: any) => (
-                  <option key={sched._id as unknown as string} value={sched._id as unknown as string}>
+                  <option key={sched._id as ScheduleId} value={sched._id as ScheduleId}>
                     {sched.name} • {formatScheduleSummary(sched)}
                   </option>
                 ))}
@@ -1795,7 +1797,7 @@ function ScraperConfigSection() {
           {sites && sites.length === 0 && <div className="p-3 text-xs text-slate-500">No sites found.</div>}
           {sites && sites.map((s) => {
             const siteId = s._id as unknown as string;
-            const scheduleId = s.scheduleId ? (s.scheduleId as unknown as string) : "";
+            const scheduleId: ScheduleId | "" = s.scheduleId ? (s.scheduleId as ScheduleId) : "";
             const schedule = scheduleId ? scheduleMap.get(scheduleId) : null;
             const scheduleLabel = schedule ? formatScheduleSummary(schedule) : "No schedule";
             const siteType = (s as any).type ?? "general";
@@ -1948,13 +1950,13 @@ function ScraperConfigSection() {
                         <span className="text-slate-400">Change schedule</span>
                         <select
                           value={scheduleId}
-                          onChange={(e) => { void handleSiteScheduleChange(siteId, e.target.value); }}
+                          onChange={(e) => { void handleSiteScheduleChange(siteId, (e.target.value as ScheduleId | "") || ""); }}
                           disabled={!schedules || updatingSiteScheduleId === siteId}
                           className="bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                         >
                           <option value="">No schedule</option>
                           {schedules?.map((sched: any) => (
-                            <option key={sched._id as unknown as string} value={sched._id as unknown as string}>
+                            <option key={sched._id as ScheduleId} value={sched._id as ScheduleId}>
                               {sched.name}
                             </option>
                           ))}

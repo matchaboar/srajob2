@@ -75,7 +75,7 @@ describe("parseFirecrawlRequest", () => {
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.body.id).toBe("manual-test-job-002");
-      expect(res.body.metadata.siteId).toBe("manual-site-1");
+      expect(res.body.metadata?.siteId).toBe("manual-site-1");
     }
   });
 

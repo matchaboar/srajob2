@@ -20,6 +20,7 @@ from ..helpers.scrape_utils import (
     coerce_level,
     coerce_remote,
     derive_company_from_url,
+    strip_known_nav_blocks,
 )
 from .base import BaseScraper
 
@@ -221,6 +222,7 @@ class SpiderCloudScraper(BaseScraper):
             from_content = True
 
         title = payload_title or self._title_from_url(url)
+        cleaned_markdown = strip_known_nav_blocks(markdown or "")
         if from_content and not title_matches_required_keywords(title):
             logger.info(
                 "SpiderCloud dropping job due to missing required keyword url=%s title=%s",
@@ -231,13 +233,13 @@ class SpiderCloudScraper(BaseScraper):
                 "url": url,
                 "reason": "missing_required_keyword",
                 "title": title,
-                "description": markdown,
+                "description": cleaned_markdown,
             }
             return None
         company = derive_company_from_url(url) or "Unknown"
-        remote = coerce_remote(None, "", f"{title}\n{markdown}")
+        remote = coerce_remote(None, "", f"{title}\n{cleaned_markdown}")
         level = coerce_level(None, title)
-        description = markdown or ""
+        description = cleaned_markdown or ""
 
         self._last_ignored_job = None
         return {

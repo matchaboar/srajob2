@@ -5,10 +5,19 @@ interface KeycapProps {
     className?: string;
 }
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "k-cap": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      "k-legend": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+    }
+  }
+}
+
 export const Keycap: React.FC<KeycapProps> = ({ label, className }) => {
-    return (
-        <k-cap className={`custom-theme ${className || ''}`}>
-            <k-legend className="center medium">{label}</k-legend>
-        </k-cap>
+    return React.createElement(
+      "k-cap",
+      { className: `custom-theme ${className || ""}` },
+      React.createElement("k-legend", { className: "center medium" }, label),
     );
 };

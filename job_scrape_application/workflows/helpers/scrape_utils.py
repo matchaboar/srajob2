@@ -13,6 +13,40 @@ from pydantic import BaseModel, ConfigDict, Field
 DEFAULT_TOTAL_COMPENSATION = 0
 MAX_DESCRIPTION_CHARS = 8000  # allow longer descriptions while fitting Convex document limits
 UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
+_NAV_MENU_SEQUENCE = [
+    "Welcome",
+    "Culture",
+    "Workplace Benefits",
+    "Candidate Experience",
+    "Diversity, Equity & Inclusion",
+    "Learning & Development",
+    "Pup Culture Blog",
+    "Teams",
+    "Engineering",
+    "General & Administrative",
+    "Marketing",
+    "Product Design",
+    "Product Management",
+    "Sales",
+    "Technical Solutions",
+    "Early Career & Internships",
+    "Locations",
+    "Americas",
+    "Asia Pacific",
+    "EMEA",
+    "Remote",
+    "All Jobs",
+]
+_NAV_MENU_TERMS = set(_NAV_MENU_SEQUENCE + ["Careers"])
+
+_NAV_BLOCK_REGEX = re.compile(
+    r"(?:"
+    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
+    + r")(?:\s+###\s*Careers)?(?:\s+"
+    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
+    + r")?",
+    flags=re.IGNORECASE,
+)
 
 
 def build_job_template() -> Dict[str, str]:
@@ -108,6 +142,50 @@ def stringify(value: Any) -> str:
     return str(value)
 
 
+def strip_known_nav_blocks(markdown: str) -> str:
+    """Remove repeated navigation/footer menus scraped into markdown bodies."""
+
+    if not markdown:
+        return markdown
+
+    cleaned = _NAV_BLOCK_REGEX.sub("\n", markdown)
+
+    def _normalize_line(line: str) -> str:
+        return line.strip().lstrip("#").strip()
+
+    lines = cleaned.splitlines()
+    nav_indices = [i for i, line in enumerate(lines[:200]) if _normalize_line(line) in _NAV_MENU_TERMS]
+    if len(nav_indices) < 8:
+        return cleaned
+
+    start = nav_indices[0]
+    end = nav_indices[-1]
+    if start > 120 or end - start > 200:
+        return cleaned
+
+    segment = lines[start : end + 1]
+    non_empty = [ln for ln in segment if ln.strip()]
+    if not non_empty:
+        return cleaned
+
+    nav_like = sum(1 for ln in segment if _normalize_line(ln) in _NAV_MENU_TERMS)
+    if nav_like < max(8, int(len(non_empty) * 0.6)):
+        return cleaned
+
+    while start > 0 and not lines[start - 1].strip():
+        start -= 1
+    stop = end + 1
+    while stop < len(lines):
+        normalized = _normalize_line(lines[stop])
+        if not lines[stop].strip() or normalized in _NAV_MENU_TERMS:
+            stop += 1
+            continue
+        break
+
+    trimmed = lines[:start] + lines[stop:]
+    return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
 _TITLE_RE = re.compile(r"^[ \t]*#{1,6}\s+(?P<title>.+)$", flags=re.IGNORECASE | re.MULTILINE)
 _LEVEL_RE = re.compile(
     r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b",
@@ -141,6 +219,48 @@ def _to_int(value: str) -> Optional[int]:
         return None
 
 
+def _normalize_locations(locations: List[str]) -> List[str]:
+    seen: set[str] = set()
+    normalized: List[str] = []
+    for raw in locations:
+        if not raw:
+            continue
+        for part in re.split(r"[;|/]", raw):
+            candidate = stringify(part)
+            if not candidate:
+                continue
+            candidate = re.sub(r"\s+", " ", candidate).strip(" ,;/\t")
+            if not candidate:
+                continue
+            lowered = candidate.lower()
+            if lowered in ("unknown", "n/a", "na"):
+                continue
+            if len(candidate) < 3 or len(candidate) > 100:
+                continue
+            if not _is_plausible_location(candidate):
+                continue
+            if candidate not in seen:
+                seen.add(candidate)
+                normalized.append(candidate)
+    return normalized
+
+
+def _is_plausible_location(value: str) -> bool:
+    lowered = value.lower()
+    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture")):
+        return False
+    if "," in value:
+        left, right = [p.strip() for p in value.split(",", 1)]
+        if len(left.split()) > 4 or len(right.split()) > 4:
+            return False
+        if "remote" in right.lower():
+            return True
+        return bool(re.match(r"^[A-Z][^,]*,\s*[A-Z][^,]*$", value))
+    if "remote" in lowered:
+        return True
+    return len(value.split()) <= 4
+
+
 def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     """
     Extract lightweight hints (title, level, location, compensation, remote) from markdown text.
@@ -151,10 +271,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     if not markdown:
         return hints
 
+    markdown = strip_known_nav_blocks(markdown)
+
+    title_lower = ""
     if m := _TITLE_RE.search(markdown):
         title = stringify(m.group("title"))
         if title:
             hints["title"] = title
+            title_lower = title.lower()
 
     if m := _LEVEL_RE.search(markdown):
         lvl = stringify(m.group("level")).lower()
@@ -166,7 +290,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         hints["level"] = level_map.get(lvl, lvl)
 
     # Prefer a lightweight line-based location guess (line under heading, short, with comma).
-    location_val: Optional[str] = None
+    location_candidates: List[str] = []
     for line in markdown.splitlines():
         t = line.strip()
         if not t or t.startswith("#"):
@@ -174,31 +298,41 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         lower = t.lower()
         if lower.startswith("job application for"):
             continue
+        if "|" in t or "career" in lower:
+            continue
         if "http" in t:
             continue
         if len(t.split()) > 8:
             continue
+        if title_lower and title_lower in lower:
+            continue
         if "," in t:
-            candidate = t.split(";")[0].strip()
-            if re.match(r"^[A-Za-z].*,", candidate):
-                location_val = candidate
-                break
-    if not location_val:
+            candidate_line = re.sub(r"^(?:location|office|based in)\s*[:\-–]\s*", "", t, flags=re.IGNORECASE)
+            candidate = stringify(candidate_line)
+            if candidate:
+                location_candidates.extend([p.strip() for p in re.split(r"[;|/]", candidate) if p.strip()])
+    if not location_candidates:
         loc_match = _LOCATION_RE.search(markdown) or _SIMPLE_LOCATION_LINE_RE.search(markdown)
         if loc_match:
-            location_val = stringify(loc_match.group("location"))
-    if location_val:
-        hints["location"] = location_val
+            location_candidates.append(stringify(loc_match.group("location")))
+    normalized_locations = _normalize_locations(location_candidates)
+    if normalized_locations:
+        hints["locations"] = normalized_locations
+        hints["location"] = normalized_locations[0]
 
+    has_physical_location = any("remote" not in loc.lower() for loc in normalized_locations)
     remote_match = _REMOTE_RE.search(markdown)
     if remote_match:
         token = remote_match.group(1).lower()
+        remote_hint: Optional[bool]
         if "remote" in token:
-            hints["remote"] = True
+            remote_hint = True
         elif "hybrid" in token:
-            hints["remote"] = True
+            remote_hint = True
         else:
-            hints["remote"] = False
+            remote_hint = False
+        if not (remote_hint is True and has_physical_location):
+            hints["remote"] = remote_hint
 
     comp_candidates: List[int] = []
     for salary_match in _SALARY_RE.finditer(markdown):
@@ -554,7 +688,7 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         location = "Remote" if remote else "Unknown"
 
     level = coerce_level(row.get("level"), title)
-    description = extract_description(row)
+    description = strip_known_nav_blocks(extract_description(row))
     if len(description) > MAX_DESCRIPTION_CHARS:
         description = description[:MAX_DESCRIPTION_CHARS]
     # Use markdown hints to fill missing data.

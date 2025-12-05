@@ -3,7 +3,7 @@ import { httpAction, internalMutation, mutation, query } from "./_generated/serv
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import type { Id, Doc } from "./_generated/dataModel";
-import { splitLocation, formatLocationLabel } from "./location";
+import { splitLocation, formatLocationLabel, deriveLocationFields } from "./location";
 import { FIRECRAWL_SIGNATURE_HEADER, runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
@@ -13,6 +13,7 @@ const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
+const HEURISTIC_VERSION = 3;
 const toSlug = (value: string) =>
   (value || "")
     .toLowerCase()
@@ -1171,6 +1172,15 @@ export const listPendingJobDetails = query({
     const lim = Math.max(1, Math.min(args.limit ?? 25, 200));
     const pendingReason = "pending markdown structured extraction";
     const retryCutoff = Date.now() - 10 * 60 * 1000;
+    const needsVersionUpgrade = (q: any) =>
+      q.or(q.eq(q.field("heuristicVersion"), null), q.lt(q.field("heuristicVersion"), HEURISTIC_VERSION));
+    const attemptGate = (q: any) =>
+      q.or(
+        q.eq(q.field("heuristicAttempts"), null),
+        q.lt(q.field("heuristicAttempts"), 3),
+        q.lt(q.field("heuristicLastTried"), retryCutoff)
+      );
+
     const rows = await ctx.db
       .query("jobs")
       .filter((q) =>
@@ -1182,11 +1192,7 @@ export const listPendingJobDetails = query({
               q.or(q.eq(q.field("totalCompensation"), 0), q.eq(q.field("totalCompensation"), null))
             )
           ),
-          q.or(
-            q.eq(q.field("heuristicAttempts"), null),
-            q.lt(q.field("heuristicAttempts"), 3),
-            q.lt(q.field("heuristicLastTried"), retryCutoff)
-          )
+          q.or(attemptGate(q), needsVersionUpgrade(q))
         )
       )
       .take(lim);
@@ -1197,6 +1203,8 @@ export const listPendingJobDetails = query({
       company: row.company,
       description: row.description,
       location: row.location,
+      locations: row.locations,
+      locationStates: row.locationStates,
       remote: row.remote,
       url: row.url,
       compensationReason: row.compensationReason,
@@ -1205,6 +1213,7 @@ export const listPendingJobDetails = query({
       scrapedAt: row.scrapedAt,
       heuristicAttempts: row.heuristicAttempts,
       heuristicLastTried: row.heuristicLastTried,
+      heuristicVersion: row.heuristicVersion,
       currencyCode: row.currencyCode,
     }));
   },
@@ -1338,6 +1347,12 @@ export const updateJobWithHeuristic = mutation({
   args: {
     id: v.id("jobs"),
     location: v.optional(v.string()),
+    locations: v.optional(v.array(v.string())),
+    locationStates: v.optional(v.array(v.string())),
+    locationSearch: v.optional(v.string()),
+    countries: v.optional(v.array(v.string())),
+    country: v.optional(v.string()),
+    description: v.optional(v.string()),
     totalCompensation: v.optional(v.number()),
     compensationReason: v.optional(v.string()),
     compensationUnknown: v.optional(v.boolean()),
@@ -1350,6 +1365,12 @@ export const updateJobWithHeuristic = mutation({
     const patch: any = {};
     for (const key of [
       "location",
+      "locations",
+      "locationStates",
+      "locationSearch",
+      "countries",
+      "country",
+      "description",
       "totalCompensation",
       "compensationReason",
       "compensationUnknown",
@@ -2647,6 +2668,7 @@ export const ingestJobsFromScrape = mutation({
         company: v.string(),
         description: v.string(),
         location: v.string(),
+        locations: v.optional(v.array(v.string())),
         city: v.optional(v.string()),
         state: v.optional(v.string()),
         remote: v.boolean(),
@@ -2682,7 +2704,9 @@ export const ingestJobsFromScrape = mutation({
         .first();
       if (dup) continue;
 
-      const { city, state } = splitLocation(job.city ?? job.state ? `${job.city ?? ""}, ${job.state ?? ""}` : job.location);
+      const locationSeed = job.locations ?? [job.location];
+      const locationInfo = deriveLocationFields({ locations: locationSeed, location: job.location });
+      const { city, state } = splitLocation(job.city ?? job.state ? `${job.city ?? ""}, ${job.state ?? ""}` : locationInfo.primaryLocation);
       const compensationUnknown = job.compensationUnknown === true;
       const compensationReason =
         typeof job.compensationReason === "string" && job.compensationReason.trim()
@@ -2704,7 +2728,12 @@ export const ingestJobsFromScrape = mutation({
         company: resolvedCompany,
         city: job.city ?? city,
         state: job.state ?? state,
-        location: formatLocationLabel(job.city ?? city, job.state ?? state, job.location),
+        location: formatLocationLabel(job.city ?? city, job.state ?? state, locationInfo.primaryLocation),
+        locations: locationInfo.locations,
+        countries: locationInfo.countries,
+        country: locationInfo.country,
+        locationStates: locationInfo.locationStates,
+        locationSearch: locationInfo.locationSearch,
         scrapedAt: job.scrapedAt ?? Date.now(),
         scrapedWith: job.scrapedWith,
         workflowName: job.workflowName,

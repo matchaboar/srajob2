@@ -1,5 +1,5 @@
 import type { Doc } from "./_generated/dataModel";
-import { formatLocationLabel, splitLocation } from "./location";
+import { deriveLocationFields, formatLocationLabel } from "./location";
 
 export type JobInsert = Omit<Doc<"jobs">, "_id" | "_creationTime">;
 
@@ -10,22 +10,32 @@ export type JobInsert = Omit<Doc<"jobs">, "_id" | "_creationTime">;
  */
 export type JobSeed = Omit<JobInsert, "location" | "city" | "state" | "postedAt"> & {
   location: string;
+  locations?: string[];
+  countries?: string[];
+  country?: string;
+  locationStates?: string[];
+  locationSearch?: string;
   postedAt?: number;
   city?: JobInsert["city"];
   state?: JobInsert["state"];
 };
 
 export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
-  const { location, city: seedCity, state: seedState, postedAt, ...rest } = seed;
-  const { city: parsedCity, state: parsedState } = splitLocation(location);
-  const city = seedCity ?? parsedCity;
-  const state = seedState ?? parsedState;
-  const locationLabel = formatLocationLabel(city, state, location);
+  const { location, locations: seedLocations, city: seedCity, state: seedState, postedAt, ...rest } = seed;
+  const locationInfo = deriveLocationFields({ locations: seedLocations ?? [location], location });
+  const city = seedCity ?? locationInfo.city;
+  const state = seedState ?? locationInfo.state;
+  const locationLabel = formatLocationLabel(city, state, locationInfo.primaryLocation);
   const postedAtValue = postedAt ?? now;
 
   const base: JobInsert = {
     ...rest,
     location: locationLabel,
+    locations: locationInfo.locations,
+    countries: locationInfo.countries,
+    country: locationInfo.country,
+    locationStates: locationInfo.locationStates,
+    locationSearch: locationInfo.locationSearch,
     city,
     state,
     postedAt: postedAtValue,

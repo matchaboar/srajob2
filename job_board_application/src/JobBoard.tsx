@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
-import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
+import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type HTMLAttributes } from "react";
+import { usePaginatedQuery, useMutation, useQuery, type PaginatedQueryItem } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { JobRow } from "./components/JobRow";
@@ -16,11 +18,19 @@ import { buildCompensationMeta, formatCompensationDisplay, parseCompensationInpu
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
 type TargetState = (typeof TARGET_STATES)[number];
+type JobId = Id<"jobs">;
+type SavedFilterId = Id<"saved_filters">;
+type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
+type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
+type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
+type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
+type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 
 interface Filters {
   search: string;
   includeRemote: boolean;
   state: TargetState | null;
+  country: string;
   level: Level | null;
   minCompensation: number | null;
   maxCompensation: number | null;
@@ -29,13 +39,14 @@ interface Filters {
 }
 
 interface SavedFilter {
-  _id: string;
+  _id: SavedFilterId;
   name: string;
   search?: string;
   useSearch?: boolean;
   remote?: boolean;
   includeRemote?: boolean;
   state?: TargetState | null;
+  country?: string | null;
   level?: Level | null;
   minCompensation?: number;
   maxCompensation?: number;
@@ -48,6 +59,7 @@ const buildEmptyFilters = (): Filters => ({
   search: "",
   includeRemote: true,
   state: null,
+  country: "United States",
   level: null,
   minCompensation: null,
   maxCompensation: null,
@@ -58,6 +70,7 @@ const buildEmptyFilters = (): Filters => ({
 const buildFilterLabel = (filter: {
   search?: string | null;
   state?: TargetState | null;
+  country?: string | null;
   includeRemote?: boolean | null;
   level?: Level | null;
   remote?: boolean | null;
@@ -78,6 +91,9 @@ const buildFilterLabel = (filter: {
   }
   if (filter.level) {
     parts.push(filter.level.charAt(0).toUpperCase() + filter.level.slice(1));
+  }
+  if (filter.country && filter.country !== "United States") {
+    parts.push(filter.country);
   }
   if (filter.state) {
     parts.push(filter.state);
@@ -143,6 +159,13 @@ type CompanySuggestion = {
   count: number;
 };
 
+type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+  node?: unknown;
+};
+
 const keyboardShortcuts: Array<KeyboardShortcut> = [
   { keys: ["j", "k"], label: "Navigate" },
   { keys: ["a"], label: "Apply" },
@@ -177,7 +200,7 @@ export function JobBoard() {
   const [filters, setFilters] = useState<Filters>(buildEmptyFilters);
   const [throttledFilters, setThrottledFilters] = useState<Filters>(buildEmptyFilters);
   const [filtersReady, setFiltersReady] = useState(false);
-  const [selectedSavedFilterId, setSelectedSavedFilterId] = useState<string | null>(null);
+  const [selectedSavedFilterId, setSelectedSavedFilterId] = useState<SavedFilterId | null>(null);
   const [companyInput, setCompanyInput] = useState("");
   const [debouncedCompanyInput, setDebouncedCompanyInput] = useState("");
   const [companyInputFocused, setCompanyInputFocused] = useState(false);
@@ -191,37 +214,43 @@ export function JobBoard() {
   const [keyboardTopIndex, setKeyboardTopIndex] = useState<number | null>(null);
   const jobListRef = useRef<HTMLDivElement | null>(null);
   const companyBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const markdownComponents = useMemo(
-    () => ({
-      p: ({ children }: { children: ReactNode }) => <p className="mb-3 last:mb-0">{children}</p>,
-      a: ({ children, ...props }: { children: ReactNode; href?: string }) => (
-        <a {...props} className="text-blue-300 hover:text-blue-200 underline">
+  const markdownComponents = useMemo<Components>(() => {
+    const renderCode = ({ inline, children, className: _className, ...props }: MarkdownCodeProps) =>
+      inline ? (
+        <code {...props} className="font-mono px-1 py-0.5 rounded bg-slate-800 text-slate-100">
           {children}
+        </code>
+      ) : (
+        <code
+          {...props}
+          className="font-mono block bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto text-slate-100"
+        >
+          {children}
+        </code>
+      );
+
+    return {
+      p: ({ node: _node, ...props }) => <p {...props} className="mb-3 last:mb-0" />,
+      a: ({ node: _node, ...props }) => (
+        <a {...props} className="text-blue-300 hover:text-blue-200 underline">
+          {props.children}
         </a>
       ),
-      ul: ({ children }: { children: ReactNode }) => <ul className="list-disc ml-5 space-y-1">{children}</ul>,
-      ol: ({ children }: { children: ReactNode }) => <ol className="list-decimal ml-5 space-y-1">{children}</ol>,
-      li: ({ children }: { children: ReactNode }) => <li className="list-disc ml-5">{children}</li>,
-      code: ({ inline, children }: { inline?: boolean; children: ReactNode }) =>
-        inline ? (
-          <code className="font-mono px-1 py-0.5 rounded bg-slate-800 text-slate-100">{children}</code>
-        ) : (
-          <code className="font-mono block bg-slate-900 p-3 rounded border border-slate-800 overflow-x-auto text-slate-100">
-            {children}
-          </code>
-        ),
-      strong: ({ children }: { children: ReactNode }) => <strong className="font-semibold text-slate-100">{children}</strong>,
-      em: ({ children }: { children: ReactNode }) => <em className="italic text-slate-200">{children}</em>,
-    }),
-    []
-  );
+      ul: ({ node: _node, ...props }) => <ul {...props} className="list-disc ml-5 space-y-1" />,
+      ol: ({ node: _node, ...props }) => <ol {...props} className="list-decimal ml-5 space-y-1" />,
+      li: ({ node: _node, ...props }) => <li {...props} className="list-disc ml-5" />,
+      code: renderCode,
+      strong: ({ node: _node, ...props }) => <strong {...props} className="font-semibold text-slate-100" />,
+      em: ({ node: _node, ...props }) => <em {...props} className="italic text-slate-200" />,
+    };
+  }, []);
 
-  const [locallyAppliedJobs, setLocallyAppliedJobs] = useState<Set<string>>(new Set());
+  const [locallyAppliedJobs, setLocallyAppliedJobs] = useState<Set<JobId>>(new Set());
   const [exitingJobs, setExitingJobs] = useState<Record<string, "apply" | "reject">>({});
-  const [locallyWithdrawnJobs] = useState<Set<string>>(new Set());
+  const [locallyWithdrawnJobs] = useState<Set<JobId>>(new Set());
 
   // Selection state for keyboard navigation
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<JobId | null>(null);
   const defaultFilterRequestedRef = useRef(false);
   const applyingSavedFilterRef = useRef(false);
   const pendingSelectionClearRef = useRef(false);
@@ -267,11 +296,12 @@ export function JobBoard() {
     return () => clearTimeout(handle);
   }, [companyInput]);
 
-  const { results, status, loadMore } = usePaginatedQuery(
+  const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
     api.jobs.listJobs,
     {
       search: throttledFilters.search.trim() || undefined,
       state: throttledFilters.state ?? undefined,
+      country: (throttledFilters.country ?? "United States").trim() || "United States",
       includeRemote: throttledFilters.includeRemote,
       level: throttledFilters.level ?? undefined,
       minCompensation: throttledFilters.minCompensation ?? undefined,
@@ -282,7 +312,7 @@ export function JobBoard() {
     { initialNumItems: 50 } // Load more items for the dense list
   );
 
-  const [displayedResults, setDisplayedResults] = useState(results);
+  const [displayedResults, setDisplayedResults] = useState<ListedJob[]>(results);
   useEffect(() => {
     // Keep showing the previous page while a new filter set is loading.
     if (status === "LoadingFirstPage") return;
@@ -308,9 +338,9 @@ export function JobBoard() {
         description?: string;
       }>
     | undefined;
-  const recentJobs = useQuery(api.jobs.getRecentJobs);
-  const appliedJobs = useQuery(api.jobs.getAppliedJobs);
-  const rejectedJobs = useQuery(api.jobs.getRejectedJobs);
+  const recentJobs = useQuery(api.jobs.getRecentJobs) as ListedJob[] | undefined;
+  const appliedJobs = useQuery(api.jobs.getAppliedJobs) as AppliedJobsResult | undefined;
+  const rejectedJobs = useQuery(api.jobs.getRejectedJobs) as RejectedJobsResult | undefined;
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
   const reparseJob = useMutation(api.jobs.reparseJobFromDescription);
@@ -321,14 +351,16 @@ export function JobBoard() {
   const deleteSavedFilter = useMutation(api.filters.deleteSavedFilter);
 
   // Filter out locally applied/rejected jobs
-  const filteredResults = (displayedResults || []).filter(job => !locallyAppliedJobs.has(job._id));
-  const appliedList = (appliedJobs || []).filter(job => !locallyWithdrawnJobs.has(job._id));
-  const rejectedList = rejectedJobs || [];
-  const selectedJob =
+  const filteredResults: ListedJob[] = displayedResults.filter((job) => !locallyAppliedJobs.has(job._id));
+  const appliedList: AppliedJob[] = (appliedJobs ?? []).filter(
+    (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job as AppliedJob)._id)
+  );
+  const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean) as RejectedJob[];
+  const selectedJob: ListedJob | null =
     filteredResults.find((job) => job._id === selectedJobId) ??
-    (displayedResults || []).find((job) => job._id === selectedJobId) ??
+    displayedResults.find((job) => job._id === selectedJobId) ??
     null;
-  const selectedAppliedJob = useMemo(() => {
+  const selectedAppliedJob = useMemo<AppliedJob | null>(() => {
     if (appliedList.length === 0) return null;
     if (!selectedJobId) return appliedList[0];
     return appliedList.find((job) => job._id === selectedJobId) ?? appliedList[0];
@@ -461,7 +493,7 @@ export function JobBoard() {
   const blurFromIndex =
     keyboardNavActive && keyboardTopIndex !== null ? keyboardTopIndex + 3 : Infinity;
   const scrollToJob = useCallback(
-    (jobId: string, alignToFloor: boolean) => {
+    (jobId: JobId, alignToFloor: boolean) => {
       const container = jobListRef.current;
       if (!container) return;
       const row = container.querySelector<HTMLElement>(`[data-job-id="${jobId}"]`);
@@ -503,6 +535,7 @@ export function JobBoard() {
       search: filter.search ?? "",
       includeRemote: filter.includeRemote ?? (filter.remote !== false),
       state: (filter.state as TargetState | null) ?? null,
+      country: filter.country ?? "United States",
       level: (filter.level as Level | null) ?? null,
       minCompensation: filter.minCompensation ?? null,
       maxCompensation: filter.maxCompensation ?? null,
@@ -543,6 +576,7 @@ export function JobBoard() {
   const MAX_SALARY = 800000;
   const SALARY_STEP = 20000;
   const DEFAULT_SLIDER_VALUE = 200000;
+  const countrySelectId = "job-board-country-filter";
   const stateSelectId = "job-board-state-filter";
   const levelSelectId = "job-board-level-filter";
   const clampToSliderRange = useCallback(
@@ -667,6 +701,7 @@ export function JobBoard() {
         search: filters.search || undefined,
         includeRemote: filters.includeRemote,
         state: filters.state || undefined,
+        country: filters.country || undefined,
         level: filters.level ?? undefined,
         minCompensation: filters.minCompensation ?? undefined,
         maxCompensation: filters.maxCompensation ?? undefined,
@@ -679,7 +714,7 @@ export function JobBoard() {
     }
   }, [filters, generatedFilterName, saveFilter]);
 
-  const handleSelectSavedFilter = useCallback(async (filterId: string | null) => {
+  const handleSelectSavedFilter = useCallback(async (filterId: SavedFilterId | null) => {
     try {
       await selectSavedFilter({ filterId: filterId ?? undefined });
       if (filterId) {
@@ -731,7 +766,7 @@ export function JobBoard() {
   const anyServerSelection = savedFilterList.some((f) => f.isSelected);
   const noFilterActive = !selectedSavedFilterId && !anyServerSelection;
 
-  const handleDeleteSavedFilter = useCallback(async (filterId: string) => {
+  const handleDeleteSavedFilter = useCallback(async (filterId: SavedFilterId) => {
     const matchingFilter = savedFilterList.find((f) => f._id === filterId);
     const wasActive = filterId === selectedSavedFilterId || matchingFilter?.isSelected;
 
@@ -758,6 +793,35 @@ export function JobBoard() {
       return key && !selectedCompanySet.has(key);
     });
   }, [companySuggestions, selectedCompanySet]);
+
+  const countryOptions = useMemo(() => {
+    const uniqueCountries = new Set<string>();
+    const addCountry = (value?: string | null) => {
+      const trimmed = (value ?? "").trim();
+      if (trimmed) {
+        uniqueCountries.add(trimmed);
+      }
+    };
+
+    results.forEach((job) => {
+      (job.countries ?? []).forEach(addCountry);
+      addCountry((job as any).country);
+    });
+    (recentJobs ?? []).forEach((job) => {
+      (job.countries ?? []).forEach(addCountry);
+      addCountry((job as any).country);
+    });
+
+    uniqueCountries.add("United States");
+    uniqueCountries.add("Other");
+
+    const prioritized = Array.from(uniqueCountries).filter(
+      (country) => country !== "United States" && country.toLowerCase() !== "other"
+    );
+    prioritized.sort((a, b) => a.localeCompare(b));
+
+    return ["United States", ...prioritized, "Other"];
+  }, [recentJobs, results]);
 
   const addCompanyFilter = useCallback((name: string) => {
     const trimmed = name.trim();
@@ -798,14 +862,14 @@ export function JobBoard() {
     }
   }, [activeTab, appliedList, selectedJobId]);
 
-  const handleSelectJob = useCallback((jobId: string) => {
+  const handleSelectJob = useCallback((jobId: JobId) => {
     setSelectedJobId(jobId);
     setShowJobDetails(true);
     setKeyboardNavActive(false);
     setKeyboardTopIndex(null);
   }, []);
 
-  const handleApply = useCallback(async (jobId: string, type: "ai" | "manual", url?: string) => {
+  const handleApply = useCallback(async (jobId: JobId, type: "ai" | "manual", url?: string) => {
     if (exitingJobs[jobId]) return;
 
     setExitingJobs(prev => ({ ...prev, [jobId]: "apply" }));
@@ -826,7 +890,7 @@ export function JobBoard() {
     }, 200); // Faster animation for compact view
 
     try {
-      await applyToJob({ jobId: jobId as any, type });
+      await applyToJob({ jobId, type });
       toast.success(`Applied to job!`);
       if (type === "manual" && url) {
         window.open(url, "_blank");
@@ -847,7 +911,7 @@ export function JobBoard() {
     }
   }, [applyToJob, exitingJobs, filteredResults]);
 
-  const handleReject = useCallback(async (jobId: string) => {
+  const handleReject = useCallback(async (jobId: JobId) => {
     if (exitingJobs[jobId]) return;
 
     setExitingJobs(prev => ({ ...prev, [jobId]: "reject" }));
@@ -868,7 +932,7 @@ export function JobBoard() {
     }, 200);
 
     try {
-      await rejectJob({ jobId: jobId as any });
+      await rejectJob({ jobId });
       toast.success("Job rejected");
     } catch (_error) {
       setExitingJobs(prev => {
@@ -885,9 +949,9 @@ export function JobBoard() {
     }
   }, [rejectJob, exitingJobs, filteredResults]);
 
-  const handleReparseJob = useCallback(async (jobId: string) => {
+  const handleReparseJob = useCallback(async (jobId: JobId) => {
     try {
-      const res = await reparseJob({ jobId: jobId as any });
+      const res = await reparseJob({ jobId });
       const updated = (res as any)?.updated ?? 0;
       toast.success(updated > 0 ? `Updated ${updated} fields` : "No changes from reparse");
     } catch (err: any) {
@@ -1169,6 +1233,40 @@ export function JobBoard() {
 
                 <div>
                   <label
+                    htmlFor={countrySelectId}
+                    className="block text-xs font-semibold text-slate-500 uppercase mb-2"
+                  >
+                    Country
+                  </label>
+                  <select
+                    id={countrySelectId}
+                    value={filters.country}
+                    onChange={(e) => {
+                      const next = (e.target.value || "United States").trim() || "United States";
+                      updateFilters(
+                        {
+                          country: next,
+                          state: next === "United States" ? filters.state : null,
+                        },
+                        { forceImmediate: true },
+                      );
+                    }}
+                    style={selectSurfaceStyle}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  >
+                    {countryOptions.map((country) => (
+                      <option key={country} style={selectOptionStyle} value={country}>
+                        {country === "Other" ? "Other (non-US)" : country}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Choose "Other" to see roles outside the United States.
+                  </p>
+                </div>
+
+                <div>
+                  <label
                     htmlFor={stateSelectId}
                     className="block text-xs font-semibold text-slate-500 uppercase mb-2"
                   >
@@ -1332,6 +1430,7 @@ export function JobBoard() {
                         const filterLabel = buildFilterLabel({
                           search: filter.search ?? "",
                           state: (filter.state as TargetState | null) ?? null,
+                          country: filter.country ?? "United States",
                           includeRemote: filter.includeRemote ?? (filter.remote !== false),
                           level: (filter.level as Level | null) ?? null,
                           minCompensation: filter.minCompensation ?? null,

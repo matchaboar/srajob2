@@ -2,7 +2,17 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
-import { splitLocation, formatLocationLabel, findCityInText, isUnknownLocationValue } from "./location";
+import {
+  splitLocation,
+  formatLocationLabel,
+  findCityInText,
+  isUnknownLocationValue,
+  normalizeLocations,
+  deriveLocationStates,
+  buildLocationSearch,
+  deriveLocationFields,
+} from "./location";
+import type { Doc } from "./_generated/dataModel";
 
 const TITLE_RE = /^[ \t]*#{1,6}\s+(?<title>.+)$/im;
 const LEVEL_RE =
@@ -76,6 +86,9 @@ const toInt = (value: string | undefined | null) => {
     return undefined;
   }
 };
+
+const arraysEqual = (a?: string[] | null, b?: string[] | null) =>
+  JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 
 const coerceLevelFromHint = (hint: string): "junior" | "mid" | "senior" | "staff" => {
   const h = hint.toLowerCase();
@@ -189,14 +202,29 @@ export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
     updates.title = hints.title;
   }
 
-  if (hints.location) {
-    const { city, state } = splitLocation(hints.location);
-    const locationLabel = formatLocationLabel(city, state, hints.location);
-    if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationLabel) {
-      updates.location = locationLabel;
+  const normalizedLocations = normalizeLocations(hints.locations ?? hints.location);
+  if (normalizedLocations.length) {
+    const locationInfo = deriveLocationFields({ locations: normalizedLocations, location: normalizedLocations[0] });
+    if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationInfo.primaryLocation) {
+      updates.location = locationInfo.primaryLocation;
     }
-    if ((isUnknownLocationValue(job.city) || !job.city) && city) updates.city = city;
-    if ((isUnknownLocationValue(job.state) || !job.state) && state) updates.state = state;
+    if (!arraysEqual(job.locations, locationInfo.locations)) {
+      updates.locations = locationInfo.locations;
+    }
+    if (!arraysEqual(job.locationStates, locationInfo.locationStates)) {
+      updates.locationStates = locationInfo.locationStates;
+    }
+    if (!arraysEqual(job.countries, locationInfo.countries)) {
+      updates.countries = locationInfo.countries;
+    }
+    if (job.country !== locationInfo.country) {
+      updates.country = locationInfo.country;
+    }
+    if (locationInfo.locationSearch && job.locationSearch !== locationInfo.locationSearch) {
+      updates.locationSearch = locationInfo.locationSearch;
+    }
+    if ((isUnknownLocationValue(job.city) || !job.city) && locationInfo.city) updates.city = locationInfo.city;
+    if ((isUnknownLocationValue(job.state) || !job.state) && locationInfo.state) updates.state = locationInfo.state;
   }
 
   if (hints.level) {
@@ -224,26 +252,55 @@ export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
   return updates;
 };
 
-type DbJob = {
-  _id: any;
-  location?: string;
+type DbJob = Omit<
+  Doc<"jobs">,
+  | "location"
+  | "locations"
+  | "countries"
+  | "country"
+  | "locationStates"
+  | "locationSearch"
+  | "city"
+  | "state"
+> & {
+  location?: string | null;
+  locations?: string[] | null;
+  countries?: string[] | null;
+  country?: string | null;
+  locationStates?: string[] | null;
+  locationSearch?: string | null;
   city?: string | null;
   state?: string | null;
-  remote?: boolean;
-  [key: string]: any;
+  job_description?: string | null;
 };
 
 const ensureLocationFields = async (ctx: any, job: DbJob) => {
-  const { city, state } = splitLocation(job.location || "");
-  const normalizedCity = isUnknownLocationValue(job.city) ? city : job.city ?? city;
-  const normalizedState = isUnknownLocationValue(job.state) ? state : job.state ?? state;
-  const locationLabel = formatLocationLabel(normalizedCity, normalizedState, job.location);
+  const locationInfo = deriveLocationFields(job);
+  const { city, state } = locationInfo;
+  const normalizedCity = isUnknownLocationValue(job.city) ? locationInfo.city : job.city ?? locationInfo.city;
+  const normalizedState = isUnknownLocationValue(job.state) ? locationInfo.state : job.state ?? locationInfo.state;
+  const locationLabel = formatLocationLabel(normalizedCity, normalizedState, job.location ?? locationInfo.primaryLocation);
 
   const patched: Record<string, any> = {};
   if ((isUnknownLocationValue(job.city) || !job.city) && city) patched.city = city;
   if ((isUnknownLocationValue(job.state) || !job.state) && state) patched.state = state;
   if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationLabel) {
     patched.location = locationLabel;
+  }
+  if (!Array.isArray(job.locations) || JSON.stringify(job.locations) !== JSON.stringify(locationInfo.locations)) {
+    patched.locations = locationInfo.locations;
+  }
+  if (!Array.isArray(job.countries) || JSON.stringify(job.countries) !== JSON.stringify(locationInfo.countries)) {
+    patched.countries = locationInfo.countries;
+  }
+  if (!job.country || job.country !== locationInfo.country) {
+    patched.country = locationInfo.country;
+  }
+  if (!Array.isArray(job.locationStates) || JSON.stringify(job.locationStates) !== JSON.stringify(locationInfo.locationStates)) {
+    patched.locationStates = locationInfo.locationStates;
+  }
+  if (!job.locationSearch || job.locationSearch !== locationInfo.locationSearch) {
+    patched.locationSearch = locationInfo.locationSearch;
   }
 
   if (Object.keys(patched).length > 0 && typeof ctx.db?.patch === "function") {
@@ -253,9 +310,46 @@ const ensureLocationFields = async (ctx: any, job: DbJob) => {
   return {
     ...job,
     location: patched.location ?? locationLabel,
+    locations: patched.locations ?? locationInfo.locations,
+    locationStates: patched.locationStates ?? locationInfo.locationStates,
+    locationSearch: patched.locationSearch ?? locationInfo.locationSearch,
     city: patched.city ?? normalizedCity,
     state: patched.state ?? normalizedState,
   } as DbJob;
+};
+
+export const computeJobCountry = (job: DbJob) => {
+  const locationInfo = deriveLocationFields(job);
+  const locationCountries = locationInfo.countries ?? [];
+  const locationStates = locationInfo.locationStates ?? [];
+  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
+
+  const explicitCountry = job.country?.trim();
+  if (explicitCountry) {
+    return explicitCountry;
+  }
+
+  const primaryCountry = locationCountries.find((c) => c && c !== "Unknown");
+  if (primaryCountry && primaryCountry !== "Other") {
+    return primaryCountry;
+  }
+
+  if (hasNonUnknownState) {
+    return "United States";
+  }
+
+  if (primaryCountry === "Other") {
+    return "Unknown";
+  }
+
+  return "Unknown";
+};
+
+export const matchesCountryFilter = (jobCountry: string, countryFilter: string, isOtherCountry: boolean) => {
+  if (!isOtherCountry) {
+    return jobCountry === countryFilter || jobCountry === "Unknown";
+  }
+  return jobCountry !== "United States";
 };
 
 const runLocationMigration = async (ctx: any, limit = 500) => {
@@ -263,12 +357,28 @@ const runLocationMigration = async (ctx: any, limit = 500) => {
   let patched = 0;
 
   for (const job of jobs) {
-    const { city, state } = splitLocation(job.location || "");
-    const locationLabel = formatLocationLabel(city, state, job.location);
+    const locationInfo = deriveLocationFields(job);
+    const { city, state, primaryLocation, locations, locationStates, locationSearch, countries, country } = locationInfo;
+    const locationLabel = formatLocationLabel(city, state, primaryLocation);
     const update: Record<string, any> = {};
     if (job.city !== city) update.city = city;
     if (job.state !== state) update.state = state;
     if (job.location !== locationLabel) update.location = locationLabel;
+    if (!Array.isArray(job.locations) || JSON.stringify(job.locations) !== JSON.stringify(locations)) {
+      update.locations = locations;
+    }
+    if (!Array.isArray(job.countries) || JSON.stringify(job.countries) !== JSON.stringify(countries)) {
+      update.countries = countries;
+    }
+    if (job.country !== country) {
+      update.country = country;
+    }
+    if (!Array.isArray(job.locationStates) || JSON.stringify(job.locationStates) !== JSON.stringify(locationStates)) {
+      update.locationStates = locationStates;
+    }
+    if (job.locationSearch !== locationSearch) {
+      update.locationSearch = locationSearch;
+    }
     if (Object.keys(update).length) {
       await ctx.db.patch(job._id, update);
       patched += 1;
@@ -284,6 +394,7 @@ export const listJobs = query({
     search: v.optional(v.string()),
     includeRemote: v.optional(v.boolean()),
     state: v.optional(v.string()),
+    country: v.optional(v.string()),
     level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
@@ -298,6 +409,10 @@ export const listJobs = query({
     }
 
     const rawSearch = (args.search ?? "").trim();
+    const countryFilterRaw = (args.country ?? "United States").trim();
+    const countryFilter = countryFilterRaw || "United States";
+    const isOtherCountry = countryFilter.toLowerCase() === "other";
+    const stateFilter = (args.state ?? "").trim();
     const shouldUseSearch = rawSearch.length > 0;
 
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
@@ -338,16 +453,52 @@ export const listJobs = query({
         isDone: true,
         continueCursor: null,
       };
-    } else {
-      let baseQuery: any = ctx.db.query("jobs");
+    } else if (stateFilter) {
+      const SEARCH_LIMIT = 200;
+      const matches = await ctx.db
+        .query("jobs")
+        .withSearchIndex("search_locations", (q: any) => {
+          let searchQuery = q.search("locationSearch", stateFilter);
+          if (args.includeRemote === false) {
+            searchQuery = searchQuery.eq("remote", false);
+          }
+          if (args.level) {
+            searchQuery = searchQuery.eq("level", args.level);
+          }
+          return searchQuery;
+        })
+        .take(SEARCH_LIMIT);
 
-      if (args.state) {
-        baseQuery = baseQuery.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
-      } else {
-        baseQuery = baseQuery.withIndex("by_posted_at");
+      const fallbackCandidates = await ctx.db.query("jobs").withIndex("by_posted_at").order("desc").take(SEARCH_LIMIT);
+      const combined = new Map<string, any>();
+      for (const job of matches) {
+        combined.set(String(job._id), job);
+      }
+      for (const job of fallbackCandidates) {
+        const locationInfo = deriveLocationFields(job);
+        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        if (args.includeRemote === false && job.remote) continue;
+        if (args.level && job.level !== args.level) continue;
+        if (statesForFilter.includes(stateFilter)) {
+          combined.set(String(job._id), job);
+        }
       }
 
-      baseQuery = baseQuery.order("desc");
+      jobs = {
+        page: Array.from(combined.values()).sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)),
+        isDone: true,
+        continueCursor: null,
+      };
+  } else {
+    let baseQuery: any = ctx.db.query("jobs");
+
+    if (stateFilter) {
+      baseQuery = baseQuery.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+    } else {
+      baseQuery = baseQuery.withIndex("by_posted_at");
+    }
+
+    baseQuery = baseQuery.order("desc");
 
       if (args.includeRemote === false) {
         baseQuery = baseQuery.filter((q: any) => q.eq(q.field("remote"), false));
@@ -374,9 +525,15 @@ export const listJobs = query({
         return false;
       }
 
-      if (args.state) {
-        const parsedState = job.state ?? splitLocation(job.location || "").state;
-        if (parsedState !== args.state) return false;
+      const locationInfo = deriveLocationFields(job);
+      const jobCountry = computeJobCountry(job);
+
+      if (!matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
+        return false;
+      }
+      if (stateFilter) {
+        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        if (!statesForFilter.includes(stateFilter)) return false;
       }
       if (args.includeRemote === false && job.remote) {
         return false;

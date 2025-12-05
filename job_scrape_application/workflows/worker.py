@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import httpx
+from temporalio import workflow
 from temporalio.client import Client
-from temporalio.worker import Worker
+from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor
 
 from ..config import settings
 from ..services.convex_client import convex_query
@@ -65,6 +67,35 @@ ACTIVITY_FUNCTIONS = [
 ]
 
 
+class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
+    """Log workflow starts for quick visibility in the worker console."""
+
+    def __init__(self, next: WorkflowInboundInterceptor) -> None:
+        super().__init__(next)
+        self._logger = logging.getLogger("temporal.worker.workflow")
+
+    async def execute_workflow(self, input: object) -> object:  # noqa: A002
+        try:
+            info = workflow.info()
+            self._logger.info(
+                "Workflow run started: type=%s workflow_id=%s run_id=%s task_queue=%s",
+                info.workflow_type,
+                info.workflow_id,
+                info.run_id,
+                info.task_queue,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning("Workflow start logging failed: %s", exc)
+        return await super().execute_workflow(input)
+
+
+class WorkflowLoggingInterceptor(Interceptor):
+    """Provide workflow-level logging hooks."""
+
+    def workflow_interceptor_class(self) -> type[WorkflowInboundInterceptor]:
+        return WorkflowStartLoggingInterceptor
+
+
 def _setup_logging() -> logging.Logger:
     """Configure structured logging to both stdout and a rotating file."""
 
@@ -75,10 +106,10 @@ def _setup_logging() -> logging.Logger:
     fmt = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     handlers = [
         RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=3),
-        logging.StreamHandler(),
+        logging.StreamHandler(sys.stdout),
     ]
 
-    logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers)
+    logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
     return logging.getLogger("temporal.worker")
 
 
@@ -215,6 +246,7 @@ async def main() -> None:
         task_queue=settings.task_queue,
         workflows=WORKFLOW_CLASSES,
         activities=ACTIVITY_FUNCTIONS,
+        interceptors=[WorkflowLoggingInterceptor()],
     )
 
     # Start the monitor loop in the background

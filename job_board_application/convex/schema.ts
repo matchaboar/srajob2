@@ -8,6 +8,11 @@ const applicationTables = {
     company: v.string(),
     description: v.string(),
     location: v.string(),
+    locations: v.optional(v.array(v.string())),
+    countries: v.optional(v.array(v.string())),
+    country: v.optional(v.string()),
+    locationStates: v.optional(v.array(v.string())),
+    locationSearch: v.optional(v.string()),
     city: v.optional(v.string()),
     state: v.optional(v.string()),
     remote: v.boolean(),
@@ -24,15 +29,21 @@ const applicationTables = {
     scrapedCostMilliCents: v.optional(v.number()),
     heuristicAttempts: v.optional(v.number()),
     heuristicLastTried: v.optional(v.number()),
+    heuristicVersion: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
   })
     .index("by_posted_at", ["postedAt"])
     .index("by_company", ["company"])
     .index("by_state_posted", ["state", "postedAt"])
+    .index("by_country_posted", ["country", "postedAt"])
     .index("by_company_posted", ["company", "postedAt"])
     .index("by_title_posted", ["title", "postedAt"])
     .index("by_url", ["url"])
+    .searchIndex("search_locations", {
+      searchField: "locationSearch",
+      filterFields: ["remote", "level", "state"],
+    })
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["remote", "level", "state"],
@@ -71,6 +82,7 @@ const applicationTables = {
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
+    country: v.optional(v.string()),
     useSearch: v.optional(v.boolean()),
     companies: v.optional(v.array(v.string())),
     isSelected: v.boolean(),

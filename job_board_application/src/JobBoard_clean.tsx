@@ -118,10 +118,12 @@ export function JobBoard() {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new Ctx();
       }
-      if (audioCtxRef.current.state === "suspended") {
-        await audioCtxRef.current.resume();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return null;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
       }
-      return audioCtxRef.current;
+      return ctx;
     } catch {
       return null;
     }
