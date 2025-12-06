@@ -28,9 +28,9 @@ const buildJob = (overrides: Partial<any>) => ({
 });
 
 describe("computeJobCountry", () => {
-  it("treats missing country and unknown state as Unknown", () => {
+  it("defaults unknown locations to United States", () => {
     const job = buildJob({ location: "Unknown", locationStates: ["Unknown"] });
-    expect(computeJobCountry(job)).toBe("Unknown");
+    expect(computeJobCountry(job)).toBe("United States");
   });
 
   it("keeps explicit country when provided", () => {
@@ -42,9 +42,24 @@ describe("computeJobCountry", () => {
     const job = buildJob({ location: "Remote", locationStates: ["California"] });
     expect(computeJobCountry(job)).toBe("United States");
   });
+
+  it("infers Canada from province abbreviation", () => {
+    const job = buildJob({ location: "Toronto, ON", locationStates: ["ON"], remote: false });
+    expect(computeJobCountry(job)).toBe("Canada");
+  });
+
+  it("maps remote-only listings to United States", () => {
+    const job = buildJob({ location: "Remote", locationStates: ["Remote"], country: undefined });
+    expect(computeJobCountry(job)).toBe("United States");
+  });
 });
 
 describe("matchesCountryFilter", () => {
+  it("allows everything when no country filter is provided", () => {
+    expect(matchesCountryFilter("Canada", "", false)).toBe(true);
+    expect(matchesCountryFilter("Unknown", "", false)).toBe(true);
+  });
+
   it("allows Unknown when filtering for United States", () => {
     expect(matchesCountryFilter("Unknown", "United States", false)).toBe(true);
   });
@@ -54,10 +69,10 @@ describe("matchesCountryFilter", () => {
   });
 
   it("keeps Unknown when filtering for Other", () => {
-    expect(matchesCountryFilter("Unknown", "United States", true)).toBe(true);
+    expect(matchesCountryFilter("Unknown", "Other", true)).toBe(true);
   });
 
   it("excludes United States when filtering for Other", () => {
-    expect(matchesCountryFilter("United States", "United States", true)).toBe(false);
+    expect(matchesCountryFilter("United States", "Other", true)).toBe(false);
   });
 });

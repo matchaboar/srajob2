@@ -13,7 +13,7 @@ const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
-const HEURISTIC_VERSION = 3;
+const HEURISTIC_VERSION = 4;
 const toSlug = (value: string) =>
   (value || "")
     .toLowerCase()
@@ -136,6 +136,25 @@ const upsertCompanyProfile = async (
 
   return await ctx.db.insert("company_profiles", insertPayload);
 };
+const _collectRows = async (cursorable: any) => {
+  if (!cursorable) return [];
+  if (typeof cursorable.collect === "function") {
+    return await cursorable.collect();
+  }
+  if (typeof cursorable.paginate === "function") {
+    let cursor: any = null;
+    const rows: any[] = [];
+    while (true) {
+      const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: 200 });
+      rows.push(...(page || []));
+      if (isDone || !continueCursor) break;
+      cursor = continueCursor;
+    }
+    return rows;
+  }
+  return [];
+};
+
 const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) => {
   const prev = (oldName || "").trim();
   const next = (nextName || "").trim();
@@ -165,10 +184,9 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    const rows = await ctx.db
-      .query("jobs")
-      .withIndex("by_company", (q: any) => q.eq("company", candidate))
-      .collect();
+    const rows = await _collectRows(
+      ctx.db.query("jobs").withIndex("by_company", (q: any) => q.eq("company", candidate))
+    );
     for (const job of rows as any[]) {
       await patchJob(job);
     }
@@ -176,7 +194,7 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
 
   // Fallback: search index to catch mixed-case / spaced variants
   try {
-    const searchMatches = await ctx.db.search("jobs", "search_company", prev).collect();
+    const searchMatches = await _collectRows(ctx.db.search("jobs", "search_company", prev));
     for (const job of searchMatches as any[]) {
       await patchJob(job);
     }
@@ -605,47 +623,52 @@ export const deleteSchedule = mutation({
   },
 });
 
-export const updateSiteSchedule = mutation({
-  args: {
-    id: v.id("sites"),
-    scheduleId: v.optional(v.id("scrape_schedules")),
-  },
-  handler: async (ctx, args) => {
-    const site = await ctx.db.get(args.id);
-    if (!site) {
-      throw new Error("Site not found");
-    }
+const updateSiteScheduleHandler = async (ctx: any, args: { id: Id<"sites">; scheduleId?: Id<"scrape_schedules"> }) => {
+  const site = await ctx.db.get(args.id);
+  if (!site) {
+    throw new Error("Site not found");
+  }
 
-    const updates: Record<string, any> = { scheduleId: args.scheduleId };
+  const updates: Record<string, any> = { scheduleId: args.scheduleId };
 
-    // If a new schedule is attached and its window for today has already started,
-    // backdate lastRunAt so the site is eligible immediately.
-    if (args.scheduleId && args.scheduleId !== (site as any).scheduleId) {
-      const sched = await ctx.db.get(args.scheduleId);
-      if (sched) {
-        const eligibleAt = latestEligibleTime(
-          {
-            days: (sched as any).days ?? [],
-            startTime: (sched as any).startTime,
-            intervalMinutes: (sched as any).intervalMinutes,
-            timezone: (sched as any).timezone,
-          },
-          Date.now()
-        );
-        if (eligibleAt !== null && eligibleAt <= Date.now()) {
-          const currentLast = (site as any).lastRunAt ?? 0;
-          const desiredLast = Math.max(0, Math.min(currentLast, eligibleAt - 1));
-          if (desiredLast < currentLast) {
-            updates.lastRunAt = desiredLast;
-          }
+  // If a new schedule is attached and its window for today has already started,
+  // backdate lastRunAt so the site is eligible immediately.
+  if (args.scheduleId && args.scheduleId !== (site as any).scheduleId) {
+    const sched = await ctx.db.get(args.scheduleId);
+    if (sched) {
+      const eligibleAt = latestEligibleTime(
+        {
+          days: (sched as any).days ?? [],
+          startTime: (sched as any).startTime,
+          intervalMinutes: (sched as any).intervalMinutes,
+          timezone: (sched as any).timezone,
+        },
+        Date.now()
+      );
+      if (eligibleAt !== null && eligibleAt <= Date.now()) {
+        const currentLast = (site as any).lastRunAt ?? 0;
+        const desiredLast = Math.max(0, Math.min(currentLast, eligibleAt - 1));
+        if (desiredLast < currentLast) {
+          updates.lastRunAt = desiredLast;
         }
       }
     }
+  }
 
-    await ctx.db.patch(args.id, updates);
-    return args.id;
-  },
-});
+  await ctx.db.patch(args.id, updates);
+  return args.id;
+};
+
+export const updateSiteSchedule = Object.assign(
+  mutation({
+    args: {
+      id: v.id("sites"),
+      scheduleId: v.optional(v.id("scrape_schedules")),
+    },
+    handler: updateSiteScheduleHandler,
+  }),
+  { handler: updateSiteScheduleHandler }
+);
 
 export const listSites = query({
   args: { enabledOnly: v.boolean() },

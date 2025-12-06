@@ -186,6 +186,17 @@ def airbnb_markdown() -> str:
     path = Path("tests/fixtures/airbnb-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
 
+@pytest.fixture
+def stubhub_markdown() -> str:
+    path = Path("tests/fixtures/stubhub-commonmark-spidercloud.md")
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def robinhood_markdown() -> str:
+    path = Path("tests/fixtures/robinhood-commonmark-spidercloud.md")
+    return path.read_text(encoding="utf-8")
+
 
 def test_strip_known_nav_blocks(datadog_markdown):
     cleaned = strip_known_nav_blocks(datadog_markdown)
@@ -199,7 +210,17 @@ def test_parse_markdown_hints_ignores_nav_block(datadog_markdown):
     hints = parse_markdown_hints(datadog_markdown)
 
     assert hints.get("locations") == ["Madrid, Spain", "Paris, France"]
-    assert hints.get("remote") is None
+    assert hints.get("remote") is False
+
+
+def test_parse_markdown_hints_stubhub_range_and_hybrid(stubhub_markdown):
+    hints = parse_markdown_hints(stubhub_markdown)
+
+    assert hints.get("location", "").startswith("Los Angeles")
+    assert hints.get("locations", [None])[0].startswith("Los Angeles")
+    assert hints.get("remote") is False
+    assert hints.get("compensation_range") == {"low": 300000, "high": 350000}
+    assert hints.get("compensation") == 325000
 
 
 @pytest.mark.asyncio
@@ -355,4 +376,159 @@ async def test_process_pending_job_details_batch_handles_brazil_location(monkeyp
     assert patch["locations"] == ["Sao Paulo, Brazil"]
     assert patch["countries"] == ["Brazil"]
     assert patch["country"] == "Brazil"
+    assert any(call.get("field") == "location" for call in recorded)
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_handles_stubhub_markdown(monkeypatch, stubhub_markdown):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-stubhub",
+            "title": "Staff Software Engineer - Supply Platform",
+            "description": stubhub_markdown,
+            "url": "https://boards.greenhouse.io/stubhubinc/jobs/123",
+            "location": "Unknown",
+            "locations": [],
+            "remote": True,
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for stubhub fixture"
+    patch = updated[0]
+    assert patch["location"].startswith("Los Angeles")
+    assert patch["locations"][0].startswith("Los Angeles")
+    assert patch["locationStates"] == ["California"]
+    assert patch["countries"] == ["United States"]
+    assert patch["country"] == "United States"
+    assert patch["totalCompensation"] == 325000
+    assert patch["compensationUnknown"] is False
+    assert patch["remote"] is False
+    assert any(call.get("field") == "location" for call in recorded)
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_handles_canadian_location(monkeypatch, robinhood_markdown):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-robinhood",
+            "title": "Senior Software Engineer, Tokenization",
+            "description": robinhood_markdown,
+            "url": "https://boards.greenhouse.io/robinhood/jobs/7318478",
+            "location": "Unknown",
+            "locations": [],
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for robinhood fixture"
+    patch = updated[0]
+    assert patch["location"] == "Toronto, Canada"
+    assert patch["locations"] == ["Toronto, Canada"]
+    assert patch["countries"] == ["Canada"]
+    assert patch["country"] == "Canada"
+    assert any(call.get("field") == "location" for call in recorded)
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_defaults_country_for_remote(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-remote",
+            "title": "Senior Engineer",
+            "description": "Work from anywhere on a fully remote team.",
+            "url": "https://example.com/jobs/remote",
+            "location": "Remote",
+            "locations": [],
+            "remote": True,
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for remote listing"
+    patch = updated[0]
+    assert patch["location"] == "Remote"
+    assert patch["countries"] == ["United States"]
+    assert patch["country"] == "United States"
     assert any(call.get("field") == "location" for call in recorded)

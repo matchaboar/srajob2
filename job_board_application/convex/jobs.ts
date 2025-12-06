@@ -149,8 +149,10 @@ export const parseMarkdownHints = (markdown: string) => {
   const remoteMatch = REMOTE_RE.exec(markdown);
   if (remoteMatch) {
     const token = remoteMatch[1]?.toLowerCase() ?? "";
-    if (token.includes("remote") || token.includes("hybrid")) {
+    if (token.includes("remote")) {
       hints.remote = true;
+    } else if (token.includes("hybrid") || token.includes("on-site") || token.includes("onsite")) {
+      hints.remote = false;
     } else {
       hints.remote = false;
     }
@@ -158,6 +160,7 @@ export const parseMarkdownHints = (markdown: string) => {
 
   const collectSalaryValues = () => {
     const salaryValues: number[] = [];
+    const salaryRanges: Array<{ low?: number; high?: number }> = [];
     const patterns = [
       { regex: SALARY_RE, multiplier: 1 },
       { regex: SALARY_K_RE, multiplier: 1000 },
@@ -170,15 +173,40 @@ export const parseMarkdownHints = (markdown: string) => {
         const groups = match.groups ?? {};
         const period = typeof groups.period === "string" ? groups.period.toLowerCase() : "";
         if (period.includes("hour")) continue;
+        const raw = (match[0] || "").toLowerCase();
+        if (raw.includes("401k")) continue;
 
         const low = toInt(groups.low);
         const high = toInt(groups.high);
-        if (low) salaryValues.push(low * multiplier);
-        if (high) salaryValues.push(high * multiplier);
+        const normalizedLow = typeof low === "number" ? low * multiplier : undefined;
+        const normalizedHigh = typeof high === "number" ? high * multiplier : undefined;
+        if (typeof normalizedLow === "number") salaryValues.push(normalizedLow);
+        if (typeof normalizedHigh === "number") salaryValues.push(normalizedHigh);
+        if (normalizedLow !== undefined || normalizedHigh !== undefined) {
+          salaryRanges.push({ low: normalizedLow, high: normalizedHigh });
+        }
       }
     }
 
-    return salaryValues.filter((value) => value >= 10_000);
+    const filtered = salaryValues.filter((value) => value >= 10_000);
+    const bestRange = salaryRanges
+      .map((entry) => ({
+        low: entry.low,
+        high: entry.high,
+        score: entry.high ?? entry.low ?? 0,
+      }))
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .find((entry) => entry.score && entry.score >= 10_000);
+    if (bestRange && (bestRange.low || bestRange.high)) {
+      const rangePayload: Record<string, number> = {};
+      if (typeof bestRange.low === "number") rangePayload.low = bestRange.low;
+      if (typeof bestRange.high === "number") rangePayload.high = bestRange.high;
+      if (Object.keys(rangePayload).length) {
+        hints.compensationRange = rangePayload;
+      }
+    }
+
+    return filtered;
   };
 
   const salaryValues = collectSalaryValues();
@@ -346,6 +374,7 @@ export const computeJobCountry = (job: DbJob) => {
 };
 
 export const matchesCountryFilter = (jobCountry: string, countryFilter: string, isOtherCountry: boolean) => {
+  if (!countryFilter) return true;
   if (!isOtherCountry) {
     return jobCountry === countryFilter || jobCountry === "Unknown";
   }
@@ -409,8 +438,9 @@ export const listJobs = query({
     }
 
     const rawSearch = (args.search ?? "").trim();
-    const countryFilterRaw = (args.country ?? "United States").trim();
-    const countryFilter = countryFilterRaw || "United States";
+    const countryFilterRaw = (args.country ?? "").trim();
+    const hasCountryFilter = countryFilterRaw.length > 0;
+    const countryFilter = countryFilterRaw;
     const isOtherCountry = countryFilter.toLowerCase() === "other";
     const stateFilter = (args.state ?? "").trim();
     const shouldUseSearch = rawSearch.length > 0;
@@ -528,7 +558,7 @@ export const listJobs = query({
       const locationInfo = deriveLocationFields(job);
       const jobCountry = computeJobCountry(job);
 
-      if (!matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
+      if (hasCountryFilter && !matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
         return false;
       }
       if (stateFilter) {

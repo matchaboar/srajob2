@@ -59,7 +59,7 @@ const buildEmptyFilters = (): Filters => ({
   search: "",
   includeRemote: true,
   state: null,
-  country: "United States",
+  country: "",
   level: null,
   minCompensation: null,
   maxCompensation: null,
@@ -301,7 +301,7 @@ export function JobBoard() {
     {
       search: throttledFilters.search.trim() || undefined,
       state: throttledFilters.state ?? undefined,
-      country: (throttledFilters.country ?? "United States").trim() || "United States",
+      country: throttledFilters.country?.trim() || undefined,
       includeRemote: throttledFilters.includeRemote,
       level: throttledFilters.level ?? undefined,
       minCompensation: throttledFilters.minCompensation ?? undefined,
@@ -324,6 +324,10 @@ export function JobBoard() {
     limit: 8,
   }) as CompanySuggestion[] | undefined;
   const savedFilters = useQuery(api.filters.getSavedFilters);
+  const selectedSavedFilter = useMemo(
+    () => (savedFilters as SavedFilter[] | undefined)?.find((f) => f.isSelected),
+    [savedFilters]
+  );
   const ignoredJobs = useQuery(api.router.listIgnoredJobs, { limit: 200 }) as
     | Array<{
         _id: string;
@@ -371,6 +375,25 @@ export function JobBoard() {
     return `${dateLabel} • ${days}d ago`;
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJob), [selectedJob]);
+  const selectedLocationDetail = useMemo(() => {
+    if (!selectedJob) return "Unknown";
+    const parts: string[] = [];
+    const seen = new Set<string>();
+    const add = (value?: string | null) => {
+      const cleaned = (value || "").trim();
+      if (!cleaned || cleaned.toLowerCase() === "unknown") return;
+      const lowered = cleaned.toLowerCase();
+      if (seen.has(lowered)) return;
+      seen.add(lowered);
+      parts.push(cleaned);
+    };
+    add(selectedJob.city as string | undefined);
+    add(selectedJob.state as string | undefined);
+    add(selectedJob.country as string | undefined);
+    if (parts.length) return parts.join(" • ");
+    const fallback = (selectedJob.location || "").trim();
+    return fallback || "Unknown";
+  }, [selectedJob]);
   const formatLevelLabel = useCallback((level?: string | null) => {
     if (!level || typeof level !== "string") return "Not specified";
     return level.charAt(0).toUpperCase() + level.slice(1);
@@ -535,7 +558,7 @@ export function JobBoard() {
       search: filter.search ?? "",
       includeRemote: filter.includeRemote ?? (filter.remote !== false),
       state: (filter.state as TargetState | null) ?? null,
-      country: filter.country ?? "United States",
+      country: filter.country ?? "",
       level: (filter.level as Level | null) ?? null,
       minCompensation: filter.minCompensation ?? null,
       maxCompensation: filter.maxCompensation ?? null,
@@ -759,6 +782,13 @@ export function JobBoard() {
     setFiltersReady(true);
   }, [applySavedFilterToState, ensureDefaultFilter, pendingSelectionClearRef, savedFilters, selectedSavedFilterId]);
 
+  useEffect(() => {
+    if (filtersReady) return;
+    if (!selectedSavedFilter) return;
+    if (minCompInputFocusedRef.current) return;
+    setMinCompensationInput(formatCompensationDisplay(selectedSavedFilter.minCompensation ?? null));
+  }, [filtersReady, selectedSavedFilter]);
+
   const savedFilterList = useMemo(
     () => (savedFilters as SavedFilter[] | undefined) || [],
     [savedFilters]
@@ -820,7 +850,7 @@ export function JobBoard() {
     );
     prioritized.sort((a, b) => a.localeCompare(b));
 
-    return ["United States", ...prioritized, "Other"];
+    return ["", "United States", ...prioritized, "Other"];
   }, [recentJobs, results]);
 
   const addCompanyFilter = useCallback((name: string) => {
@@ -1240,9 +1270,10 @@ export function JobBoard() {
                   </label>
                   <select
                     id={countrySelectId}
+                    aria-label="Location"
                     value={filters.country}
                     onChange={(e) => {
-                      const next = (e.target.value || "United States").trim() || "United States";
+                      const next = (e.target.value || "").trim();
                       updateFilters(
                         {
                           country: next,
@@ -1256,12 +1287,16 @@ export function JobBoard() {
                   >
                     {countryOptions.map((country) => (
                       <option key={country} style={selectOptionStyle} value={country}>
-                        {country === "Other" ? "Other (non-US)" : country}
+                        {country === ""
+                          ? "Any country"
+                          : country === "Other"
+                            ? "Other (non-US)"
+                            : country}
                       </option>
                     ))}
                   </select>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Choose "Other" to see roles outside the United States.
+                    Choose "Any country" to show everything or "Other" to focus on non-US roles.
                   </p>
                 </div>
 
@@ -1565,7 +1600,12 @@ export function JobBoard() {
                         <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedJob.title}</h2>
                         <div className="text-sm font-medium text-blue-400">{selectedJob.company}</div>
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
-                          <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">{selectedJob.location || "Unknown"}</span>
+                          <span
+                            className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70"
+                            title={selectedJob.location || undefined}
+                          >
+                            {selectedLocationDetail}
+                          </span>
                           {selectedJob.remote && (
                             <span className="px-2 py-1 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
                               Remote

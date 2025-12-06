@@ -247,15 +247,19 @@ def _normalize_locations(locations: List[str]) -> List[str]:
 
 def _is_plausible_location(value: str) -> bool:
     lowered = value.lower()
-    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture")):
+    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture", "salary", "compensation", "pay", "package", "bonus", "range")):
+        return False
+    if "$" in value or "401k" in lowered or "401(k" in lowered:
         return False
     if "," in value:
-        left, right = [p.strip() for p in value.split(",", 1)]
-        if len(left.split()) > 4 or len(right.split()) > 4:
+        segments = [p.strip() for p in value.split(",") if p.strip()]
+        if len(segments) > 3:
             return False
-        if "remote" in right.lower():
+        if any(len(seg.split()) > 3 for seg in segments):
+            return False
+        if any("remote" in seg.lower() for seg in segments[1:]):
             return True
-        return bool(re.match(r"^[A-Z][^,]*,\s*[A-Z][^,]*$", value))
+        return True
     if "remote" in lowered:
         return True
     return len(value.split()) <= 4
@@ -304,6 +308,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             continue
         if len(t.split()) > 8:
             continue
+        if any(keyword in lower for keyword in ("engineer", "developer", "manager", "designer", "product", "software", "data", "security", "analyst")):
+            continue
         if title_lower and title_lower in lower:
             continue
         if "," in t:
@@ -328,30 +334,43 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if "remote" in token:
             remote_hint = True
         elif "hybrid" in token:
-            remote_hint = True
+            remote_hint = False
         else:
             remote_hint = False
-        if not (remote_hint is True and has_physical_location):
-            hints["remote"] = remote_hint
+        if remote_hint is True:
+            if not has_physical_location or any("remote" in loc.lower() for loc in normalized_locations):
+                hints["remote"] = True
+        else:
+            hints["remote"] = False
 
     comp_candidates: List[int] = []
+    comp_ranges: List[tuple[Optional[int], Optional[int]]] = []
     for salary_match in _SALARY_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
+        period = (salary_match.group("period") or "").lower()
+        if "hour" in period:
+            continue
         low_val = _to_int(low) if low else None
         high_val = _to_int(high) if high else None
+        if low_val or high_val:
+            comp_ranges.append((low_val, high_val))
         if low_val and high_val:
             comp_candidates.append(int((low_val + high_val) / 2))
         elif low_val:
             comp_candidates.append(low_val)
     for salary_match in _SALARY_K_RE.finditer(markdown):
+        raw_match = salary_match.group(0) or ""
+        if "401k" in raw_match.lower():
+            continue
         low_val = _to_int(salary_match.group("low")) if salary_match.group("low") else None
         high_val = _to_int(salary_match.group("high")) if salary_match.group("high") else None
-        # Values with a trailing K represent thousands.
         if low_val:
             low_val *= 1000
         if high_val:
             high_val *= 1000
+        if low_val or high_val:
+            comp_ranges.append((low_val, high_val))
         if low_val and high_val:
             comp_candidates.append(int((low_val + high_val) / 2))
         elif low_val:
@@ -359,6 +378,11 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     comp_val = max((c for c in comp_candidates if c >= 1000), default=None)
     if comp_val is not None:
         hints["compensation"] = comp_val
+    if comp_ranges:
+        best_low, best_high = max(comp_ranges, key=lambda pair: ((pair[1] or pair[0] or 0)))
+        range_payload = {k: v for k, v in (("low", best_low), ("high", best_high)) if v is not None}
+        if range_payload:
+            hints["compensation_range"] = range_payload
 
     return hints
 
@@ -704,7 +728,7 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         level = hinted_level
     if hints.get("remote") is True:
         remote = True
-    elif hints.get("remote") is False and row.get("remote") is None:
+    elif hints.get("remote") is False:
         remote = False
     hinted_comp = hints.get("compensation")
     total_comp, used_default_comp = parse_compensation(
@@ -823,7 +847,7 @@ def _jobs_from_scrape_items(
         remote_val = bool(row.get("remote"))
         if hints.get("remote") is True:
             remote_val = True
-        elif hints.get("remote") is False and row.get("remote") is None:
+        elif hints.get("remote") is False:
             remote_val = False
 
         job = {

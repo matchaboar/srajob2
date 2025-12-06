@@ -2071,6 +2071,39 @@ def _looks_like_location_anywhere(value: Optional[str]) -> bool:
     return bool(re.search(r"[A-Za-z].*,\s*[A-Za-z]", text))
 
 
+_CANADIAN_PROVINCE_CODES = {
+    "AB",
+    "BC",
+    "MB",
+    "NB",
+    "NL",
+    "NS",
+    "NT",
+    "NU",
+    "ON",
+    "PE",
+    "QC",
+    "SK",
+    "YT",
+}
+_CANADIAN_PROVINCE_NAMES = {
+    "alberta",
+    "british columbia",
+    "manitoba",
+    "new brunswick",
+    "newfoundland and labrador",
+    "nova scotia",
+    "northwest territories",
+    "nunavut",
+    "ontario",
+    "prince edward island",
+    "quebec",
+    "saskatchewan",
+    "yukon",
+}
+_UNKNOWN_LOCATION_TOKENS = {"unknown", "n/a", "na", "unspecified", "not available"}
+
+
 def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
     """Split and dedupe multiple location hints (e.g., 'Madrid, Spain; Paris, France')."""
 
@@ -2100,15 +2133,19 @@ def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
 
 def _is_plausible_location(value: str) -> bool:
     lowered = value.lower()
-    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture")):
+    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture", "salary", "compensation", "pay", "package", "bonus", "range")):
+        return False
+    if "$" in value or "401k" in lowered or "401(k" in lowered:
         return False
     if "," in value:
-        left, right = [p.strip() for p in value.split(",", 1)]
-        if len(left.split()) > 4 or len(right.split()) > 4:
+        segments = [p.strip() for p in value.split(",") if p.strip()]
+        if len(segments) > 3:
             return False
-        if "remote" in right.lower():
+        if any(len(seg.split()) > 3 for seg in segments):
+            return False
+        if any("remote" in seg.lower() for seg in segments[1:]):
             return True
-        return bool(re.match(r"^[A-Z][^,]*,\s*[A-Z][^,]*$", value))
+        return True
     if "remote" in lowered:
         return True
     return len(value.split()) <= 4
@@ -2119,7 +2156,7 @@ def _derive_location_states(locations: List[str]) -> List[str]:
     for loc in locations:
         parts = [p.strip() for p in str(loc).split(",") if p.strip()]
         if len(parts) >= 2:
-            state_val = parts[-1]
+            state_val = parts[-2] if len(parts) >= 3 else parts[-1]
             if state_val and state_val not in states:
                 states.append(state_val)
     return states
@@ -2133,12 +2170,24 @@ def _derive_countries(locations: List[str]) -> List[str]:
             continue
         country = parts[-1]
         lowered = country.lower()
-        if lowered in {"remote", "locations"}:
+        mapped: Optional[str] = None
+        if "remote" in lowered:
+            mapped = "United States"
+        elif lowered in {"locations"}:
             continue
-        if re.match(r"^[A-Z]{2}$", country):
-            continue
-        if country not in countries:
-            countries.append(country)
+        elif lowered in _UNKNOWN_LOCATION_TOKENS:
+            mapped = "United States"
+        elif re.match(r"^[A-Z]{2}$", country):
+            if country.upper() in _CANADIAN_PROVINCE_CODES:
+                mapped = "Canada"
+            else:
+                continue
+        elif lowered in _CANADIAN_PROVINCE_NAMES:
+            mapped = "Canada"
+        else:
+            mapped = country
+        if mapped and mapped not in countries:
+            countries.append(mapped)
     return countries
 
 
@@ -2152,7 +2201,7 @@ def _build_location_search(locations: List[str]) -> str:
     return " ".join(tokens)
 
 
-HEURISTIC_VERSION = 3
+HEURISTIC_VERSION = 4
 
 
 def _first_match(text: str, regexes: List[str]) -> tuple[Optional[str], Optional[str]]:
@@ -2197,6 +2246,8 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             configs = await convex_query("router:listJobDetailConfigs", {"domain": domain}) or []
             attempts = int(row.get("heuristicAttempts") or 0)
             now_ms = int(time.time() * 1000)
+            recorded_location = False
+            recorded_comp = False
 
             location_defaults = [
                 r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})",
@@ -2215,10 +2266,21 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             comp_regexes = _build_ordered_regexes(configs, "compensation", comp_defaults)
 
             hints = parse_markdown_hints(description)
+            hinted_comp = hints.get("compensation")
+            comp_range_hint = hints.get("compensation_range") or {}
             locations_hint = hints.get("locations") or []
-            location_fallback = row.get("location") or hints.get("location")
+            raw_location_value = (row.get("location") or "").strip()
+            raw_location_lower = raw_location_value.lower()
+            location_fallback = (
+                hints.get("location") if (not raw_location_value or raw_location_lower in _UNKNOWN_LOCATION_TOKENS) else raw_location_value or hints.get("location")
+            )
+            is_remote = hints.get("remote") is True or bool(row.get("remote"))
+            if hints.get("remote") is False:
+                is_remote = False
+            if "remote" in raw_location_lower:
+                is_remote = True
+            location_unknown = raw_location_lower in _UNKNOWN_LOCATION_TOKENS or not raw_location_value
             locations = _normalize_locations(locations_hint or ([location_fallback] if location_fallback else []))
-            countries = _derive_countries(locations)
             comp_reason = row.get("compensationReason")
             total_comp = row.get("totalCompensation") or 0
             compensation_unknown = row.get("compensationUnknown")
@@ -2230,6 +2292,18 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             currency_hint = _detect_currency_code(description)
             if currency_hint and currency_hint != currency_code:
                 currency_code = currency_hint
+            if (not total_comp or total_comp <= 0) and isinstance(hinted_comp, (int, float)):
+                total_comp = int(hinted_comp)
+                compensation_unknown = False
+                comp_reason = "parsed from description"
+            elif (not total_comp or total_comp <= 0) and isinstance(comp_range_hint, dict):
+                low_hint = comp_range_hint.get("low")
+                high_hint = comp_range_hint.get("high")
+                range_values = [v for v in (low_hint, high_hint) if isinstance(v, (int, float)) and v >= 1000]
+                if range_values:
+                    total_comp = int(sum(range_values) / len(range_values))
+                    compensation_unknown = False
+                    comp_reason = "parsed from description"
 
             matched_locations: List[str] = []
             if description:
@@ -2243,6 +2317,7 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                                 "router:recordJobDetailHeuristic",
                                 {"domain": domain or "default", "field": "location", "regex": used_pattern},
                             )
+                            recorded_location = True
             if matched_locations and not locations:
                 locations = _normalize_locations(matched_locations + locations)
             if (not locations) and currency_hint and currency_hint != "USD":
@@ -2252,6 +2327,22 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                     locations = ["United Kingdom"]
                 elif currency_hint == "EUR":
                     locations = ["Europe"]
+            if not locations and is_remote:
+                locations = ["Remote"]
+            if locations:
+                seen_cities: set[str] = set()
+                deduped_locations: List[str] = []
+                for loc in locations:
+                    city_part = loc.split(",")[0].strip().lower()
+                    if city_part in seen_cities:
+                        continue
+                    seen_cities.add(city_part)
+                    deduped_locations.append(loc)
+                locations = deduped_locations
+
+            countries = _derive_countries(locations)
+            if not countries and (is_remote or location_unknown):
+                countries = ["United States"]
 
             if (not total_comp or total_comp <= 0) and description:
                 used_pattern, found_val = _first_match(description, comp_regexes)
@@ -2279,7 +2370,20 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                             "router:recordJobDetailHeuristic",
                             {"domain": domain or "default", "field": "compensation", "regex": used_pattern},
                         )
+                        recorded_comp = True
 
+            if locations and not recorded_location:
+                await convex_mutation(
+                    "router:recordJobDetailHeuristic",
+                    {"domain": domain or "default", "field": "location", "regex": "hint:location"},
+                )
+                recorded_location = True
+            if total_comp and total_comp > 0 and not recorded_comp:
+                await convex_mutation(
+                    "router:recordJobDetailHeuristic",
+                    {"domain": domain or "default", "field": "compensation", "regex": "hint:compensation"},
+                )
+                recorded_comp = True
             if not job_id:
                 continue
 
@@ -2303,9 +2407,10 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                 patch["compensationUnknown"] = compensation_unknown
             if currency_code:
                 patch["currencyCode"] = currency_code
-            if hints.get("remote") is True:
+            remote_hint = hints.get("remote")
+            if remote_hint is True and row.get("remote") is not True:
                 patch["remote"] = True
-            elif hints.get("remote") is False and row.get("remote") is None:
+            elif remote_hint is False and row.get("remote") is not False:
                 patch["remote"] = False
             if description and description != raw_description:
                 patch["description"] = description

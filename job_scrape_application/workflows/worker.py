@@ -3,11 +3,12 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Optional
 
 import httpx
 from temporalio import workflow
 from temporalio.client import Client
-from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor
+from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor, WorkflowInterceptorClassInput
 
 from ..config import settings
 from ..services.convex_client import convex_query
@@ -92,7 +93,9 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
 class WorkflowLoggingInterceptor(Interceptor):
     """Provide workflow-level logging hooks."""
 
-    def workflow_interceptor_class(self) -> type[WorkflowInboundInterceptor]:
+    def workflow_interceptor_class(
+        self, input: WorkflowInterceptorClassInput  # noqa: ARG002
+    ) -> Optional[type[WorkflowInboundInterceptor]]:
         return WorkflowStartLoggingInterceptor
 
 

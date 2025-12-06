@@ -221,6 +221,37 @@ const COUNTRY_ALIASES: Record<string, string> = {
   australia: "Australia",
   singapore: "Singapore",
 };
+const CANADIAN_PROVINCE_CODES = new Set([
+  "AB",
+  "BC",
+  "MB",
+  "NB",
+  "NL",
+  "NS",
+  "NT",
+  "NU",
+  "ON",
+  "PE",
+  "QC",
+  "SK",
+  "YT",
+]);
+const CANADIAN_PROVINCE_NAMES = new Set([
+  "alberta",
+  "british columbia",
+  "manitoba",
+  "new brunswick",
+  "newfoundland and labrador",
+  "nova scotia",
+  "northwest territories",
+  "nunavut",
+  "ontario",
+  "prince edward island",
+  "quebec",
+  "saskatchewan",
+  "yukon",
+]);
+const UNKNOWN_LOCATION_TOKENS = new Set(["unknown", "n/a", "na", "unspecified", "not available"]);
 
 export const normalizeLocations = (value?: string | string[] | null): string[] => {
   const seeds: string[] = [];
@@ -281,12 +312,15 @@ export const inferCountryFromLocation = (location: string | null | undefined): s
   const raw = (location || "").trim();
   if (!raw) return null;
   const lower = raw.toLowerCase();
-  if (lower.includes("remote")) return "Remote";
+  if (lower.includes("remote")) return "United States";
+  if (UNKNOWN_LOCATION_TOKENS.has(lower) || lower.includes("unknown")) return "United States";
 
   const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
   const tail = parts.length > 1 ? parts[parts.length - 1] : raw;
   const tailLower = tail.toLowerCase();
+  const tailUpper = tail.toUpperCase();
 
+  if (CANADIAN_PROVINCE_CODES.has(tailUpper) || CANADIAN_PROVINCE_NAMES.has(tailLower)) return "Canada";
   if (COUNTRY_ALIASES[tailLower]) return COUNTRY_ALIASES[tailLower];
   if (COUNTRY_ALIASES[lower]) return COUNTRY_ALIASES[lower];
   if (normalizeState(tail)) return "United States";
@@ -312,10 +346,13 @@ export const deriveLocationFields = (input: { locations?: string[] | null; locat
   const locations = normalizedLocations.length ? normalizedLocations : [locationLabel];
   const locationStates = deriveLocationStates(locations);
   const countries = deriveCountries(locations);
+  const isUnknownLocation = isUnknownLocationValue(primaryLocationRaw) || isUnknownLocationValue(locationLabel);
+  const defaultCountry =
+    locationLabel.toLowerCase().includes("remote") || isUnknownLocation ? "United States" : "Other";
   const country =
     countries.find((c) => c === "United States") ??
     countries[0] ??
-    (locationStates.length > 0 && locationStates[0] !== "Unknown" ? "United States" : "Other");
+    (locationStates.length > 0 && locationStates[0] !== "Unknown" ? "United States" : defaultCountry);
   const locationSearch = buildLocationSearch(locations);
 
   return {
