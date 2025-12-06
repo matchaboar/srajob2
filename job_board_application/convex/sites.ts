@@ -260,8 +260,31 @@ export const listScrapeActivity = query({
     })
   ),
   handler: async (ctx) => {
-    const sites = await ctx.db.query("sites").collect();
-    const runs = await ctx.db.query("workflow_runs").collect();
+    const collectWithLimit = async (cursorable: any, maxItems: number = 500) => {
+      try {
+        if (!cursorable) return [];
+        if (typeof cursorable.collect === "function") {
+          return await cursorable.collect();
+        }
+        if (typeof cursorable.paginate === "function") {
+          let cursor: any = null;
+          const rows: any[] = [];
+          while (true) {
+            const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: 200 });
+            rows.push(...(page || []));
+            if (rows.length >= maxItems || isDone || !continueCursor) break;
+            cursor = continueCursor;
+          }
+          return rows.slice(0, maxItems);
+        }
+      } catch (err) {
+        console.error("listScrapeActivity: collectWithLimit failed", err);
+      }
+      return [];
+    };
+
+    const sites = await collectWithLimit(ctx.db.query("sites"), 1000);
+    const runs = await collectWithLimit(ctx.db.query("workflow_runs"), 2000);
 
     const countJobs = (items: any): number => {
       if (!items) return 0;
@@ -282,50 +305,61 @@ export const listScrapeActivity = query({
     const rows = [];
 
     for (const site of sites as any[]) {
-      const scrapes = await ctx.db
-        .query("scrapes")
-        .withIndex("by_source", (q) => q.eq("sourceUrl", site.url))
-        .collect();
+      try {
+        const siteUrl = typeof site.url === "string" ? site.url : "";
+        if (!siteUrl) continue;
 
-      const sortedScrapes = scrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
-      const latest = sortedScrapes[0];
+        const scrapes = await collectWithLimit(
+          ctx.db.query("scrapes").withIndex("by_source", (q) => q.eq("sourceUrl", siteUrl)),
+          250
+        );
 
-      const totalJobsScraped = (scrapes as any[]).reduce((sum, s) => sum + countJobs((s as any).items), 0);
-      const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
+        const sortedScrapes = scrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+        const latest = sortedScrapes[0];
 
-      const runsForSite = runs
-        .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
-        .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
-      const latestRun = runsForSite[0];
-      const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
-      const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
-      const latestSuccessTime = latestCompletedRun ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0) : undefined;
+        const totalJobsScraped = (scrapes as any[]).reduce((sum, s) => sum + countJobs((s as any).items), 0);
+        const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
 
-      const updatedAt = Math.max(
-        site._creationTime ?? 0,
-        site.lastRunAt ?? 0,
-        site.lastFailureAt ?? 0,
-        site.lockExpiresAt ?? 0,
-      );
+        const runsForSite = runs
+          .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
+          .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
+        const latestRun = runsForSite[0];
+        const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
+        const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
+        const latestSuccessTime = latestCompletedRun
+          ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0)
+          : undefined;
 
-      rows.push({
-        siteId: site._id,
-        name: site.name,
-        url: site.url,
-        pattern: site.pattern,
-        enabled: site.enabled,
-        createdAt: site._creationTime ?? 0,
-        updatedAt,
-        lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
-        lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
-        lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
-        lastJobsScraped,
-        workerId: site.lockedBy,
-        lastFailureAt: site.lastFailureAt,
-        failed: site.failed,
-        totalScrapes: scrapes.length,
-        totalJobsScraped,
-      });
+        const updatedAt = Math.max(
+          site._creationTime ?? 0,
+          site.lastRunAt ?? 0,
+          site.lastFailureAt ?? 0,
+          site.lockExpiresAt ?? 0
+        );
+        const enabled = site.enabled !== false;
+
+        rows.push({
+          siteId: site._id,
+          name: site.name,
+          url: siteUrl,
+          pattern: site.pattern,
+          enabled,
+          createdAt: site._creationTime ?? 0,
+          updatedAt,
+          lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
+          lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
+          lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
+          lastJobsScraped,
+          workerId: typeof site.lockedBy === "string" ? site.lockedBy : undefined,
+          lastFailureAt: site.lastFailureAt,
+          failed: site.failed,
+          totalScrapes: scrapes.length,
+          totalJobsScraped,
+        });
+      } catch (err) {
+        console.error("listScrapeActivity: failed to process site", site?._id, err);
+        continue;
+      }
     }
 
     return rows.sort((a, b) => {
