@@ -511,7 +511,8 @@ http.route({
   path: "/api/sites/activity",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    const rows = await ctx.runQuery(api.sites.listScrapeActivity, {});
+    // listScrapeActivity may not be present in generated types during CI; cast to any for safety.
+    const rows = await ctx.runQuery((api as any).sites.listScrapeActivity, {});
     return new Response(JSON.stringify(rows), {
       status: 200,
       headers: { "Content-Type": "application/json" },

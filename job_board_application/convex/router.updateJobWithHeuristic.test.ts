@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { updateJobWithHeuristicHandler } from "./router";
+import type { Id } from "./_generated/dataModel";
 
 describe("updateJobWithHeuristic", () => {
   it("allows heuristicVersion in args and patches the job", async () => {
@@ -11,7 +12,7 @@ describe("updateJobWithHeuristic", () => {
     };
 
     const res = await updateJobWithHeuristicHandler(ctx, {
-      id: "job-1",
+      id: "job-1" as Id<"jobs">,
       location: "NYC",
       heuristicAttempts: 2,
       heuristicLastTried: 123,
