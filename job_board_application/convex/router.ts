@@ -1189,36 +1189,46 @@ export const leaseScrapeUrlBatch = mutation({
   },
 });
 
+const heuristicPendingReason = "pending markdown structured extraction";
+
+const needsHeuristicVersionUpgrade = (q: any) =>
+  q.or(q.eq(q.field("heuristicVersion"), null), q.lt(q.field("heuristicVersion"), HEURISTIC_VERSION));
+
+const heuristicAttemptGate = (q: any, retryCutoff: number) =>
+  q.or(
+    q.eq(q.field("heuristicAttempts"), null),
+    q.lt(q.field("heuristicAttempts"), 3),
+    q.lt(q.field("heuristicLastTried"), retryCutoff)
+  );
+
+const heuristicPendingFilter = (q: any, retryCutoff: number) =>
+  q.and(
+    q.or(
+      q.eq(q.field("compensationReason"), heuristicPendingReason),
+      q.and(
+        q.eq(q.field("compensationUnknown"), true),
+        q.or(q.eq(q.field("totalCompensation"), 0), q.eq(q.field("totalCompensation"), null))
+      )
+    ),
+    q.or(heuristicAttemptGate(q, retryCutoff), needsHeuristicVersionUpgrade(q))
+  );
+
+export const countPendingJobDetails = query({
+  args: {},
+  handler: async (ctx) => {
+    const retryCutoff = Date.now() - 10 * 60 * 1000;
+    const pending = await ctx.db.query("jobs").filter((q) => heuristicPendingFilter(q, retryCutoff)).collect();
+    return { pending: pending.length };
+  },
+});
+
 export const listPendingJobDetails = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const lim = Math.max(1, Math.min(args.limit ?? 25, 200));
-    const pendingReason = "pending markdown structured extraction";
     const retryCutoff = Date.now() - 10 * 60 * 1000;
-    const needsVersionUpgrade = (q: any) =>
-      q.or(q.eq(q.field("heuristicVersion"), null), q.lt(q.field("heuristicVersion"), HEURISTIC_VERSION));
-    const attemptGate = (q: any) =>
-      q.or(
-        q.eq(q.field("heuristicAttempts"), null),
-        q.lt(q.field("heuristicAttempts"), 3),
-        q.lt(q.field("heuristicLastTried"), retryCutoff)
-      );
 
-    const rows = await ctx.db
-      .query("jobs")
-      .filter((q) =>
-        q.and(
-          q.or(
-            q.eq(q.field("compensationReason"), pendingReason),
-            q.and(
-              q.eq(q.field("compensationUnknown"), true),
-              q.or(q.eq(q.field("totalCompensation"), 0), q.eq(q.field("totalCompensation"), null))
-            )
-          ),
-          q.or(attemptGate(q), needsVersionUpgrade(q))
-        )
-      )
-      .take(lim);
+    const rows = await ctx.db.query("jobs").filter((q) => heuristicPendingFilter(q, retryCutoff)).take(lim);
 
     return rows.map((row: any) => ({
       _id: row._id,

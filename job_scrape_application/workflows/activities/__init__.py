@@ -2204,6 +2204,19 @@ def _build_location_search(locations: List[str]) -> str:
 HEURISTIC_VERSION = 4
 
 
+def _extract_pending_count(value: Any) -> Optional[int]:
+    """Pull a numeric pending count from a Convex response or bare number."""
+
+    if isinstance(value, dict):
+        for key in ("pending", "remaining", "count", "total"):
+            candidate = value.get(key)
+            if isinstance(candidate, (int, float)):
+                return int(candidate)
+    if isinstance(value, (int, float)):
+        return int(value)
+    return None
+
+
 def _first_match(text: str, regexes: List[str]) -> tuple[Optional[str], Optional[str]]:
     for pattern in regexes:
         try:
@@ -2231,6 +2244,7 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
     processed = 0
     updated: List[str] = []
     total = len(pending)
+    logger.info("heuristic.batch start fetched=%s limit=%s", total, limit)
     for idx, row in enumerate(pending):
         try:
             # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
@@ -2442,7 +2456,22 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
         except Exception:
             continue
 
-    return {"processed": processed, "updated": updated}
+    remaining_after: Optional[int] = None
+    try:
+        remaining_resp = await convex_query("router:countPendingJobDetails", {})
+        remaining_after = _extract_pending_count(remaining_resp)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("heuristic.remaining_count_failed err=%s", exc)
+
+    remaining_label = remaining_after if remaining_after is not None else "unknown"
+    logger.info(
+        "heuristic.batch processed=%s updated=%s remaining=%s",
+        processed,
+        len(updated),
+        remaining_label,
+    )
+
+    return {"processed": processed, "updated": updated, "remaining": remaining_after}
 
 
 def _with_firecrawl_suffix(entry: Dict[str, Any]) -> Dict[str, Any]:

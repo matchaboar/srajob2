@@ -69,6 +69,7 @@ class HeuristicJobDetailsWorkflow:
         iterator = AssignmentAwareIterator(MAX_RUN_DURATION)
         workflow_start = workflow.now()
         iterator.mark_start(workflow_start)
+        logger = workflow.get_logger("workflow.HeuristicJobDetails")
         try:
             while True:
                 now = workflow.now()
@@ -91,7 +92,14 @@ class HeuristicJobDetailsWorkflow:
                 iterator.record_task_duration(task_duration)
 
                 count = res.get("processed") if isinstance(res, dict) else 0
+                remaining = res.get("remaining") if isinstance(res, dict) else None
                 processed_total += count or 0
+                if remaining is not None:
+                    logger.info(
+                        "heuristic.remaining rows=%s processed_total=%s",
+                        remaining,
+                        processed_total,
+                    )
                 if not count:
                     break
         except Exception:

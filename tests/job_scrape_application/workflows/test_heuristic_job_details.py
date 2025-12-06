@@ -84,6 +84,53 @@ async def test_process_pending_job_details_batch_updates_jobs(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_process_pending_job_details_batch_reports_remaining(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-remaining",
+            "title": "Engineer",
+            "description": "Location: Remote\nCompensation: $120,000",
+            "url": "https://example.com/jobs/remaining",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+            "heuristicAttempts": 0,
+        }
+    ]
+
+    state = {"pending": len(jobs)}
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        if name == "router:countPendingJobDetails":
+            return {"pending": state["pending"]}
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            state["pending"] = max(0, state["pending"] - 1)
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert result["remaining"] == 0
+    assert updated, "expected job to be updated"
+
+
+@pytest.mark.asyncio
 async def test_process_pending_job_details_batch_defaults_domain(monkeypatch):
     jobs: list[dict[str, Any]] = [
         {
