@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,9 @@ ACTIVITY_NAME = "process_pending_job_details_batch"
 MAX_RUN_DURATION = timedelta(hours=1)
 DEFAULT_TASK_DURATION = timedelta(seconds=30)
 SAFETY_MARGIN = timedelta(seconds=5)
+BATCH_LIMIT_DEFAULT = 100
+BATCH_LIMIT_MAX = 200
+BATCH_LIMIT_MIN = 25
 
 
 class AssignmentAwareIterator:
@@ -69,7 +73,12 @@ class HeuristicJobDetailsWorkflow:
         iterator = AssignmentAwareIterator(MAX_RUN_DURATION)
         workflow_start = workflow.now()
         iterator.mark_start(workflow_start)
-        logger = workflow.get_logger("workflow.HeuristicJobDetails")
+        batch_limit = BATCH_LIMIT_DEFAULT
+        # workflow.logger is provided by Temporal; fallback to stdlib in tests or if unavailable.
+        try:
+            logger = workflow.logger  # type: ignore[attr-defined]
+        except Exception:
+            logger = logging.getLogger("workflow.HeuristicJobDetails")
         try:
             while True:
                 now = workflow.now()
@@ -93,15 +102,29 @@ class HeuristicJobDetailsWorkflow:
 
                 count = res.get("processed") if isinstance(res, dict) else 0
                 remaining = res.get("remaining") if isinstance(res, dict) else None
+                fetched = res.get("fetched") if isinstance(res, dict) else None
                 processed_total += count or 0
                 if remaining is not None:
                     logger.info(
-                        "heuristic.remaining rows=%s processed_total=%s",
+                        "heuristic.remaining rows=%s processed_total=%s fetched=%s",
                         remaining,
                         processed_total,
+                        fetched,
                     )
-                if not count:
-                    break
+                # Continue pulling batches while we still have time and there appears to be backlog.
+                if iterator.can_start_next(workflow.now()):
+                    if remaining is not None and remaining > 0:
+                        batch_limit = max(BATCH_LIMIT_MIN, min(BATCH_LIMIT_MAX, int(remaining) if isinstance(remaining, int) else BATCH_LIMIT_DEFAULT))
+                        continue
+                    if fetched:
+                        batch_limit = max(BATCH_LIMIT_MIN, min(BATCH_LIMIT_MAX, int(fetched)))
+                        continue
+                    if count:
+                        # No remaining info but we updated rows; try another batch.
+                        batch_limit = max(BATCH_LIMIT_MIN, min(BATCH_LIMIT_MAX, batch_limit))
+                        continue
+                # Nothing left or out of time.
+                break
         except Exception:
             # Best-effort; avoid surfacing heuristic failures as workflow failures.
             pass

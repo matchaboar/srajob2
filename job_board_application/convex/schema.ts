@@ -161,7 +161,9 @@ const applicationTables = {
     request: v.optional(v.any()),
     // Provider-specific request payload (Firecrawl, FetchFox, etc.)
     providerRequest: v.optional(v.any()),
-  }).index("by_source", ["sourceUrl"]),
+  })
+    .index("by_source", ["sourceUrl"])
+    .index("by_site", ["siteId"]),
 
   firecrawl_webhooks: defineTable({
     jobId: v.string(),

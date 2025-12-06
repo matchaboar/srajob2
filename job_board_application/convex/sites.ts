@@ -237,135 +237,165 @@ export const getScrapeHistoryForUrls = query({
   },
 });
 
-export const listScrapeActivity = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      siteId: v.id("sites"),
-      name: v.optional(v.string()),
-      url: v.string(),
-      pattern: v.optional(v.string()),
-      enabled: v.boolean(),
-      createdAt: v.number(),
-      updatedAt: v.number(),
-      lastRunAt: v.optional(v.number()),
-      lastScrapeStart: v.optional(v.number()),
-      lastScrapeEnd: v.optional(v.number()),
-      lastJobsScraped: v.number(),
-      workerId: v.optional(v.string()),
-      lastFailureAt: v.optional(v.number()),
-      failed: v.optional(v.boolean()),
-      totalScrapes: v.number(),
-      totalJobsScraped: v.number(),
-    })
-  ),
-  handler: async (ctx) => {
-    const collectWithLimit = async (cursorable: any, maxItems: number = 500) => {
-      try {
-        if (!cursorable) return [];
-        if (typeof cursorable.collect === "function") {
-          return await cursorable.collect();
-        }
-        if (typeof cursorable.paginate === "function") {
-          let cursor: any = null;
-          const rows: any[] = [];
-          while (true) {
-            const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: 200 });
-            rows.push(...(page || []));
-            if (rows.length >= maxItems || isDone || !continueCursor) break;
-            cursor = continueCursor;
-          }
-          return rows.slice(0, maxItems);
-        }
-      } catch (err) {
-        console.error("listScrapeActivity: collectWithLimit failed", err);
-      }
-      return [];
-    };
+const DEFAULT_PAGE_SIZE = 100;
+const SITE_LIMIT = 300;
+const RUN_LIMIT = 200;
+const RUN_LOOKBACK_MS = 45 * 24 * 60 * 60 * 1000; // 45 days
+const SCRAPE_LIMIT = 80;
+const SCRAPE_PAGE_SIZE = 40;
+const SCRAPE_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-    const sites = await collectWithLimit(ctx.db.query("sites"), 1000);
-    const runs = await collectWithLimit(ctx.db.query("workflow_runs"), 2000);
-
-    const countJobs = (items: any): number => {
-      if (!items) return 0;
-
-      // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
-      if (Array.isArray(items)) return items.length;
-      if (typeof items === "object") {
-        if (Array.isArray((items as any).normalized)) return (items as any).normalized.length;
-        if (Array.isArray((items as any).items)) return (items as any).items.length;
-        if (Array.isArray((items as any).results)) return (items as any).results.length;
-        if (items.results && Array.isArray((items as any).results.items)) {
-          return (items as any).results.items.length;
-        }
-      }
-      return 0;
-    };
-
-    const rows = [];
-
-    for (const site of sites as any[]) {
-      try {
-        const siteUrl = typeof site.url === "string" ? site.url : "";
-        if (!siteUrl) continue;
-
-        const scrapes = await collectWithLimit(
-          ctx.db.query("scrapes").withIndex("by_source", (q) => q.eq("sourceUrl", siteUrl)),
-          250
-        );
-
-        const sortedScrapes = scrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
-        const latest = sortedScrapes[0];
-
-        const totalJobsScraped = (scrapes as any[]).reduce((sum, s) => sum + countJobs((s as any).items), 0);
-        const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
-
-        const runsForSite = runs
-          .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
-          .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
-        const latestRun = runsForSite[0];
-        const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
-        const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
-        const latestSuccessTime = latestCompletedRun
-          ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0)
-          : undefined;
-
-        const updatedAt = Math.max(
-          site._creationTime ?? 0,
-          site.lastRunAt ?? 0,
-          site.lastFailureAt ?? 0,
-          site.lockExpiresAt ?? 0
-        );
-        const enabled = site.enabled !== false;
-
-        rows.push({
-          siteId: site._id,
-          name: site.name,
-          url: siteUrl,
-          pattern: site.pattern,
-          enabled,
-          createdAt: site._creationTime ?? 0,
-          updatedAt,
-          lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
-          lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
-          lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
-          lastJobsScraped,
-          workerId: typeof site.lockedBy === "string" ? site.lockedBy : undefined,
-          lastFailureAt: site.lastFailureAt,
-          failed: site.failed,
-          totalScrapes: scrapes.length,
-          totalJobsScraped,
-        });
-      } catch (err) {
-        console.error("listScrapeActivity: failed to process site", site?._id, err);
-        continue;
-      }
+async function collectWithLimit(cursorable: any, maxItems: number = 500, pageSize: number = DEFAULT_PAGE_SIZE) {
+  try {
+    if (!cursorable) return [];
+    if (typeof cursorable.collect === "function") {
+      return await cursorable.collect();
     }
+    if (typeof cursorable.take === "function") {
+      return await cursorable.take(maxItems);
+    }
+    if (typeof cursorable.paginate === "function") {
+      let cursor: any = null;
+      const rows: any[] = [];
+      while (true) {
+        const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: pageSize });
+        rows.push(...(page || []));
+        if (rows.length >= maxItems || isDone || !continueCursor) break;
+        cursor = continueCursor;
+      }
+      return rows.slice(0, maxItems);
+    }
+  } catch (err) {
+    console.error("listScrapeActivity: collectWithLimit failed", err);
+  }
+  return [];
+}
 
-    return rows.sort((a, b) => {
-      const aLast = Math.max(a.lastRunAt ?? 0, a.lastFailureAt ?? 0, a.lastScrapeEnd ?? 0);
-      const bLast = Math.max(b.lastRunAt ?? 0, b.lastFailureAt ?? 0, b.lastScrapeEnd ?? 0);
-      return bLast - aLast;
-    });
-  },
-});
+function countJobs(items: any): number {
+  if (!items) return 0;
+
+  // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
+  if (Array.isArray(items)) return items.length;
+  if (typeof items === "object") {
+    if (Array.isArray((items as any).normalized)) return (items as any).normalized.length;
+    if (Array.isArray((items as any).items)) return (items as any).items.length;
+    if (Array.isArray((items as any).results)) return (items as any).results.length;
+    if ((items as any).results && Array.isArray((items as any).results.items)) {
+      return (items as any).results.items.length;
+    }
+  }
+  return 0;
+}
+
+const listScrapeActivityHandler = async (ctx: any) => {
+  const now = Date.now();
+  const runCutoff = now - RUN_LOOKBACK_MS;
+  const sites = await collectWithLimit(ctx.db.query("sites").order("desc"), SITE_LIMIT, 50);
+  const runs = await ctx.db
+    .query("workflow_runs")
+    .withIndex("by_started", (q: any) => q.gte("startedAt", runCutoff))
+    .order("desc")
+    .take(RUN_LIMIT);
+
+  const rows = [];
+
+  for (const site of sites as any[]) {
+    try {
+      const siteUrl = typeof site.url === "string" ? site.url : "";
+      if (!siteUrl) continue;
+
+      const scrapes = await collectWithLimit(
+        site._id
+          ? ctx.db.query("scrapes").withIndex("by_site", (q: any) => q.eq("siteId", site._id)).order("desc")
+          : ctx.db.query("scrapes").withIndex("by_source", (q: any) => q.eq("sourceUrl", siteUrl)).order("desc"),
+        SCRAPE_LIMIT,
+        SCRAPE_PAGE_SIZE
+      );
+
+      const filteredScrapes = (scrapes as any[]).filter(
+        (s) => (s as any).completedAt === undefined || (s as any).completedAt >= now - SCRAPE_LOOKBACK_MS
+      );
+      const sortedScrapes = filteredScrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+      const latest = sortedScrapes[0];
+
+      const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + countJobs((s as any).items), 0);
+      const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
+
+      const runsForSite = runs
+        .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
+        .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
+      const latestRun = runsForSite[0];
+      const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
+      const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
+      const latestSuccessTime = latestCompletedRun
+        ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0)
+        : undefined;
+
+      const updatedAt = Math.max(
+        site._creationTime ?? 0,
+        site.lastRunAt ?? 0,
+        site.lastFailureAt ?? 0,
+        site.lockExpiresAt ?? 0
+      );
+      const enabled = site.enabled !== false;
+
+      rows.push({
+        siteId: site._id,
+        name: site.name,
+        url: siteUrl,
+        pattern: site.pattern,
+        enabled,
+        createdAt: site._creationTime ?? 0,
+        updatedAt,
+        lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
+        lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
+        lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
+        lastJobsScraped,
+        workerId: typeof site.lockedBy === "string" ? site.lockedBy : undefined,
+        lastFailureAt: site.lastFailureAt,
+        failed: site.failed,
+        totalScrapes: scrapes.length,
+        totalJobsScraped,
+      });
+    } catch (err) {
+      console.error("listScrapeActivity: failed to process site", site?._id, err);
+      continue;
+    }
+  }
+
+  return rows.sort((a, b) => {
+    const aLast = Math.max(a.lastRunAt ?? 0, a.lastFailureAt ?? 0, a.lastScrapeEnd ?? 0);
+    const bLast = Math.max(b.lastRunAt ?? 0, b.lastFailureAt ?? 0, b.lastScrapeEnd ?? 0);
+    return bLast - aLast;
+  });
+};
+
+export const listScrapeActivity = Object.assign(
+  query({
+    args: {},
+    returns: v.array(
+      v.object({
+        siteId: v.id("sites"),
+        name: v.optional(v.string()),
+        url: v.string(),
+        pattern: v.optional(v.string()),
+        enabled: v.boolean(),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        lastRunAt: v.optional(v.number()),
+        lastScrapeStart: v.optional(v.number()),
+        lastScrapeEnd: v.optional(v.number()),
+        lastJobsScraped: v.number(),
+        workerId: v.optional(v.string()),
+        lastFailureAt: v.optional(v.number()),
+        failed: v.optional(v.boolean()),
+        totalScrapes: v.number(),
+        totalJobsScraped: v.number(),
+      })
+    ),
+    handler: listScrapeActivityHandler,
+  }),
+  { handler: listScrapeActivityHandler }
+);
+
+export const __test = { collectWithLimit, countJobs };

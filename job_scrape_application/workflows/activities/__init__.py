@@ -2204,6 +2204,58 @@ def _build_location_search(locations: List[str]) -> str:
 HEURISTIC_VERSION = 4
 
 
+def _describe_exception(exc: Exception) -> str:
+    """Provide a compact string for unexpected errors."""
+
+    parts: list[str] = [f"{type(exc).__name__}: {exc}"]
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        status = getattr(resp, "status_code", None)
+        request_id = None
+        try:
+            headers = getattr(resp, "headers", {}) or {}
+            request_id = headers.get("x-request-id") or headers.get("request-id")
+        except Exception:
+            request_id = None
+        parts.append(f"status={status}")
+        if request_id:
+            parts.append(f"request_id={request_id}")
+    data = getattr(exc, "data", None)
+    if data:
+        parts.append(f"data={data}")
+    return " ".join(str(p) for p in parts if p)
+
+
+def _extract_request_id(exc: Exception) -> Optional[str]:
+    """Best-effort extraction of Convex request id from exception or message."""
+
+    import re
+
+    msg = ""
+    try:
+        msg = str(exc)
+    except Exception:
+        msg = ""
+
+    # Look for "[Request ID: xyz]" pattern commonly used by Convex errors.
+    match = re.search(r"\[Request ID:\s*([^\]]+)\]", msg)
+    if match:
+        return match.group(1).strip()
+
+    # Some clients may attach response headers.
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        try:
+            headers = getattr(resp, "headers", {}) or {}
+            candidate = headers.get("x-request-id") or headers.get("request-id")
+            if candidate:
+                return str(candidate)
+        except Exception:
+            return None
+
+    return None
+
+
 def _extract_pending_count(value: Any) -> Optional[int]:
     """Pull a numeric pending count from a Convex response or bare number."""
 
@@ -2243,9 +2295,38 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
     pending = await convex_query("router:listPendingJobDetails", {"limit": limit}) or []
     processed = 0
     updated: List[str] = []
+    errors: List[Dict[str, Any]] = []
     total = len(pending)
     logger.info("heuristic.batch start fetched=%s limit=%s", total, limit)
+
+    async def _attempt_mutation(op_name: str, payload: Dict[str, Any], row_id: Any) -> bool:
+        """Run a mutation and capture errors without aborting the batch."""
+
+        try:
+            await convex_mutation(op_name, payload)
+            return True
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "heuristic.error job id=%s op=%s err=%s",
+                row_id,
+                op_name,
+                _describe_exception(exc),
+                exc_info=True,
+            )
+            errors.append(
+                {
+                    "id": row_id,
+                    "op": op_name,
+                    "requestId": _extract_request_id(exc),
+                    "error": _describe_exception(exc),
+                }
+            )
+            return False
+
     for idx, row in enumerate(pending):
+        current_op = "row:init"
         try:
             # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
             _safe_activity_heartbeat({"processed": processed, "index": idx, "total": total})
@@ -2257,6 +2338,7 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
             url = row.get("url") or ""
             domain = _domain_from_url(url)
 
+            current_op = "router:listJobDetailConfigs"
             configs = await convex_query("router:listJobDetailConfigs", {"domain": domain}) or []
             attempts = int(row.get("heuristicAttempts") or 0)
             now_ms = int(time.time() * 1000)
@@ -2327,9 +2409,10 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                     if found_locations:
                         matched_locations = found_locations
                         if used_pattern:
-                            await convex_mutation(
+                            await _attempt_mutation(
                                 "router:recordJobDetailHeuristic",
                                 {"domain": domain or "default", "field": "location", "regex": used_pattern},
+                                job_id,
                             )
                             recorded_location = True
             if matched_locations and not locations:
@@ -2380,22 +2463,25 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                         if currency_hint and currency_hint != "USD":
                             currency_code = currency_hint
                     if used_pattern:
-                        await convex_mutation(
+                        await _attempt_mutation(
                             "router:recordJobDetailHeuristic",
                             {"domain": domain or "default", "field": "compensation", "regex": used_pattern},
+                            job_id,
                         )
                         recorded_comp = True
 
             if locations and not recorded_location:
-                await convex_mutation(
+                await _attempt_mutation(
                     "router:recordJobDetailHeuristic",
                     {"domain": domain or "default", "field": "location", "regex": "hint:location"},
+                    job_id,
                 )
                 recorded_location = True
             if total_comp and total_comp > 0 and not recorded_comp:
-                await convex_mutation(
+                await _attempt_mutation(
                     "router:recordJobDetailHeuristic",
                     {"domain": domain or "default", "field": "compensation", "regex": "hint:compensation"},
+                    job_id,
                 )
                 recorded_comp = True
             if not job_id:
@@ -2430,35 +2516,52 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                 patch["description"] = description
 
             if patch:
-                await convex_mutation("router:updateJobWithHeuristic", {"id": job_id, **patch})
-                update_summary = {
-                    key: value
-                    for key, value in {
-                        "location": patch.get("location"),
-                        "totalCompensation": patch.get("totalCompensation"),
-                        "currencyCode": patch.get("currencyCode"),
-                        "remote": patch.get("remote"),
-                        "compensationUnknown": patch.get("compensationUnknown"),
-                        "compensationReason": patch.get("compensationReason"),
-                    }.items()
-                    if value is not None
-                }
-                logger.info(
-                    "heuristic.updated job id=%s title=%s changes=%s",
-                    job_id or "<missing>",
-                    title,
-                    update_summary or {"note": "heuristic bookkeeping only"},
-                )
-                updated.append(job_id)
-                processed += 1
+                did_update = await _attempt_mutation("router:updateJobWithHeuristic", {"id": job_id, **patch}, job_id)
+                if did_update:
+                    update_summary = {
+                        key: value
+                        for key, value in {
+                            "location": patch.get("location"),
+                            "totalCompensation": patch.get("totalCompensation"),
+                            "currencyCode": patch.get("currencyCode"),
+                            "remote": patch.get("remote"),
+                            "compensationUnknown": patch.get("compensationUnknown"),
+                            "compensationReason": patch.get("compensationReason"),
+                        }.items()
+                        if value is not None
+                    }
+                    logger.info(
+                        "heuristic.updated job id=%s title=%s changes=%s",
+                        job_id or "<missing>",
+                        title,
+                        update_summary or {"note": "heuristic bookkeeping only"},
+                    )
+                    updated.append(job_id)
+                    processed += 1
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "heuristic.error job id=%s op=%s err=%s",
+                row.get("_id"),
+                current_op,
+                _describe_exception(exc),
+                exc_info=True,
+            )
+            errors.append(
+                {
+                    "id": row.get("_id"),
+                    "op": current_op,
+                    "requestId": _extract_request_id(exc),
+                    "error": _describe_exception(exc),
+                }
+            )
             continue
 
     remaining_after: Optional[int] = None
     try:
-        remaining_resp = await convex_query("router:countPendingJobDetails", {})
+        op = "router:countPendingJobDetails"
+        remaining_resp = await convex_query(op, {})
         remaining_after = _extract_pending_count(remaining_resp)
     except Exception as exc:  # noqa: BLE001
         logger.debug("heuristic.remaining_count_failed err=%s", exc)
@@ -2471,7 +2574,13 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
         remaining_label,
     )
 
-    return {"processed": processed, "updated": updated, "remaining": remaining_after}
+    return {
+        "processed": processed,
+        "updated": updated,
+        "remaining": remaining_after,
+        "fetched": total,
+        "errors": errors,
+    }
 
 
 def _with_firecrawl_suffix(entry: Dict[str, Any]) -> Dict[str, Any]:

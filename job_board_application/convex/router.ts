@@ -1039,155 +1039,168 @@ export const enqueueScrapeUrls = mutation({
   },
 });
 
-export const leaseScrapeUrlBatch = mutation({
+const leaseScrapeUrlBatchHandler = async (
+  ctx: any,
   args: {
-    provider: v.optional(v.string()),
-    limit: v.optional(v.number()),
-    maxPerMinuteDefault: v.optional(v.number()),
-    processingExpiryMs: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
-    const now = Date.now();
-    const maxPerMinuteDefault = Math.max(1, Math.min(args.maxPerMinuteDefault ?? 50, 1000));
-    const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000));
+    provider?: string;
+    limit?: number;
+    maxPerMinuteDefault?: number;
+    processingExpiryMs?: number;
+  }
+) => {
+  const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
+  const now = Date.now();
+  const maxPerMinuteDefault = Math.max(1, Math.min(args.maxPerMinuteDefault ?? 50, 1000));
+  const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000));
 
-    const normalizeDomain = (url: string) => {
-      try {
-        const u = new URL(url);
-        return u.hostname.toLowerCase();
-      } catch {
-        return "";
-      }
-    };
-
-    const rateLimits = new Map<string, any>();
-    const rateRows = await ctx.db.query("job_detail_rate_limits").collect();
-    for (const row of rateRows as any[]) {
-      const domain = (row.domain || "").toLowerCase();
-      if (!domain) continue;
-      rateLimits.set(domain, row);
+  const normalizeDomain = (url: string) => {
+    try {
+      const u = new URL(url);
+      return u.hostname.toLowerCase();
+    } catch {
+      return "";
     }
+  };
 
-    const applyRateLimit = async (domain: string) => {
-      const nowTs = Date.now();
-      const existing = rateLimits.get(domain);
-      const maxPerMinute = existing?.maxPerMinute ?? maxPerMinuteDefault;
-      const windowStart = existing?.lastWindowStart ?? nowTs;
-      const sent = existing?.sentInWindow ?? 0;
-      const windowMs = 60_000;
-      let newWindowStart = windowStart;
-      let newSent = sent;
-      if (nowTs - windowStart >= windowMs) {
-        newWindowStart = nowTs;
-        newSent = 0;
-      }
-      if (newSent >= maxPerMinute) {
-        return { allowed: false, maxPerMinute };
-      }
-      newSent += 1;
-      let upsertId = existing?._id;
-      if (existing && existing._id) {
-        await ctx.db.patch(existing._id, {
-          lastWindowStart: newWindowStart,
-          sentInWindow: newSent,
-        });
-      } else {
-        const insertedId = await ctx.db.insert("job_detail_rate_limits", {
-          domain,
-          maxPerMinute,
-          lastWindowStart: newWindowStart,
-          sentInWindow: newSent,
-        });
-        upsertId = insertedId;
-      }
-      rateLimits.set(domain, {
-        _id: upsertId,
+  const rateLimits = new Map<string, any>();
+  const rateRows = await ctx.db.query("job_detail_rate_limits").collect();
+  for (const row of rateRows as any[]) {
+    const domain = (row.domain || "").toLowerCase();
+    if (!domain) continue;
+    rateLimits.set(domain, row);
+  }
+
+  const applyRateLimit = async (domain: string) => {
+    const nowTs = Date.now();
+    const existing = rateLimits.get(domain);
+    const maxPerMinute = existing?.maxPerMinute ?? maxPerMinuteDefault;
+    const windowStart = existing?.lastWindowStart ?? nowTs;
+    const sent = existing?.sentInWindow ?? 0;
+    const windowMs = 60_000;
+    let newWindowStart = windowStart;
+    let newSent = sent;
+    if (nowTs - windowStart >= windowMs) {
+      newWindowStart = nowTs;
+      newSent = 0;
+    }
+    if (newSent >= maxPerMinute) {
+      return { allowed: false, maxPerMinute };
+    }
+    newSent += 1;
+    let upsertId = existing?._id;
+    if (existing && existing._id) {
+      await ctx.db.patch(existing._id, {
+        lastWindowStart: newWindowStart,
+        sentInWindow: newSent,
+      });
+    } else {
+      const insertedId = await ctx.db.insert("job_detail_rate_limits", {
         domain,
         maxPerMinute,
         lastWindowStart: newWindowStart,
         sentInWindow: newSent,
       });
-      return { allowed: true, maxPerMinute };
-    };
-
-    // Release stale processing rows back to pending so they can be retried.
-    try {
-      const cutoff = now - processingExpiryMs;
-      const processingRows = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status", (q) => q.eq("status", "processing"))
-        .take(500);
-      for (const row of processingRows as any[]) {
-        if ((row as any).updatedAt && (row as any).updatedAt >= cutoff) continue;
-        if (args.provider && row.provider !== args.provider) continue;
-        await ctx.db.patch(row._id, {
-          status: "pending",
-          updatedAt: now,
-        });
-      }
-    } catch (err) {
-      console.error("leaseScrapeUrlBatch: failed releasing stale processing", err);
+      upsertId = insertedId;
     }
+    rateLimits.set(domain, {
+      _id: upsertId,
+      domain,
+      maxPerMinute,
+      lastWindowStart: newWindowStart,
+      sentInWindow: newSent,
+    });
+    return { allowed: true, maxPerMinute };
+  };
 
-    const baseQuery = ctx.db.query("scrape_url_queue").withIndex("by_status", (q) => q.eq("status", "pending"));
-    const rows = await baseQuery.order("asc").take(limit * 3);
-    const picked: any[] = [];
-    for (const row of rows as any[]) {
-      if (picked.length >= limit) break;
+  // Release stale processing rows back to pending so they can be retried.
+  try {
+    const cutoff = now - processingExpiryMs;
+    const processingRows = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_status", (q: any) => q.eq("status", "processing"))
+      .take(500);
+    for (const row of processingRows as any[]) {
+      if ((row as any).updatedAt && (row as any).updatedAt >= cutoff) continue;
       if (args.provider && row.provider !== args.provider) continue;
-      const createdAt = (row as any).createdAt ?? 0;
-      if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
-        // Skip stale (>48h) entries; mark ignored
-        await ctx.db.patch(row._id, {
-          status: "failed",
-          lastError: "stale (>48h)",
-          updatedAt: now,
-          completedAt: now,
-        });
-        try {
-          await ctx.db.insert("ignored_jobs", {
-            url: row.url,
-            sourceUrl: row.sourceUrl ?? "",
-            provider: row.provider,
-            workflowName: "leaseScrapeUrlBatch",
-            reason: "stale_scrape_queue_entry",
-            details: { siteId: row.siteId, createdAt },
-            createdAt: now,
-          });
-        } catch {
-          // best-effort
-        }
-        continue;
-      }
-      const domain = normalizeDomain(row.url);
-      const rate = await applyRateLimit(domain || "default");
-      if (!rate.allowed) continue;
-      picked.push(row);
-    }
-
-    if (picked.length === 0) return { urls: [] };
-
-    for (const row of picked) {
       await ctx.db.patch(row._id, {
-        status: "processing",
-        attempts: ((row as any).attempts ?? 0) + 1,
+        status: "pending",
         updatedAt: now,
       });
     }
+  } catch (err) {
+    console.error("leaseScrapeUrlBatch: failed releasing stale processing", err);
+  }
 
-    return {
-      urls: picked.map((r) => ({
-        url: r.url,
-        sourceUrl: r.sourceUrl,
-        provider: r.provider,
-        siteId: r.siteId,
-        pattern: r.pattern,
-        _id: r._id,
-      })),
-    };
-  },
-});
+  const baseQuery = ctx.db.query("scrape_url_queue").withIndex("by_status", (q: any) => q.eq("status", "pending"));
+  const rows = await baseQuery.order("asc").take(limit * 3);
+  const picked: any[] = [];
+  for (const row of rows as any[]) {
+    if (picked.length >= limit) break;
+    if (args.provider && row.provider !== args.provider) continue;
+    const createdAt = (row as any).createdAt ?? 0;
+    if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
+      // Skip stale (>48h) entries; mark ignored
+      await ctx.db.patch(row._id, {
+        status: "failed",
+        lastError: "stale (>48h)",
+        updatedAt: now,
+        completedAt: now,
+      });
+      try {
+        await ctx.db.insert("ignored_jobs", {
+          url: row.url,
+          sourceUrl: row.sourceUrl ?? "",
+          provider: row.provider,
+          workflowName: "leaseScrapeUrlBatch",
+          reason: "stale_scrape_queue_entry",
+          details: { siteId: row.siteId, createdAt },
+          createdAt: now,
+        });
+      } catch {
+        // best-effort
+      }
+      continue;
+    }
+    const domain = normalizeDomain(row.url);
+    const rate = await applyRateLimit(domain || "default");
+    if (!rate.allowed) continue;
+    picked.push(row);
+  }
+
+  if (picked.length === 0) return { urls: [] };
+
+  for (const row of picked) {
+    await ctx.db.patch(row._id, {
+      status: "processing",
+      attempts: ((row as any).attempts ?? 0) + 1,
+      updatedAt: now,
+    });
+  }
+
+  return {
+    urls: picked.map((r) => ({
+      url: r.url,
+      sourceUrl: r.sourceUrl,
+      provider: r.provider,
+      siteId: r.siteId,
+      pattern: r.pattern,
+      _id: r._id,
+    })),
+  };
+};
+
+export const leaseScrapeUrlBatch = Object.assign(
+  mutation({
+    args: {
+      provider: v.optional(v.string()),
+      limit: v.optional(v.number()),
+      maxPerMinuteDefault: v.optional(v.number()),
+      processingExpiryMs: v.optional(v.number()),
+    },
+    handler: leaseScrapeUrlBatchHandler,
+  }),
+  { handler: leaseScrapeUrlBatchHandler }
+);
 
 const heuristicPendingReason = "pending markdown structured extraction";
 
@@ -1252,66 +1265,73 @@ export const listPendingJobDetails = query({
   },
 });
 
-export const completeScrapeUrls = mutation({
-  args: {
-    urls: v.array(v.string()),
-    status: v.union(v.literal("completed"), v.literal("failed")),
-    error: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    for (const rawUrl of args.urls) {
-      const url = (rawUrl || "").trim();
-      if (!url) continue;
+const completeScrapeUrlsHandler = async (
+  ctx: any,
+  args: { urls: string[]; status: "completed" | "failed"; error?: string }
+) => {
+  const now = Date.now();
+  for (const rawUrl of args.urls) {
+    const url = (rawUrl || "").trim();
+    if (!url) continue;
 
-      const existing = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_url", (q) => q.eq("url", url))
-        .first();
-      if (!existing) continue;
+    const existing = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_url", (q: any) => q.eq("url", url))
+      .first();
+    if (!existing) continue;
 
-      const attempts = ((existing as any).attempts ?? 0) + 1;
-      const shouldIgnore =
-        args.status === "failed" &&
-        (attempts >= JOB_DETAIL_MAX_ATTEMPTS ||
-          (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
+    const attempts = ((existing as any).attempts ?? 0) + 1;
+    const shouldIgnore =
+      args.status === "failed" &&
+      (attempts >= JOB_DETAIL_MAX_ATTEMPTS || (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
 
-      if (shouldIgnore) {
-        try {
-          await ctx.db.insert("ignored_jobs", {
-            url,
-            sourceUrl: (existing as any).sourceUrl ?? "",
-            provider: (existing as any).provider,
-            workflowName: "leaseScrapeUrlBatch",
-            reason:
-              typeof args.error === "string" && args.error.toLowerCase().includes("404")
-                ? "http_404"
-                : "max_attempts",
-            details: { attempts, siteId: (existing as any).siteId, lastError: args.error },
-            createdAt: now,
-          });
-        } catch (err) {
-          console.error("completeScrapeUrls: failed to insert ignored_jobs", err);
-        }
-        try {
-          await ctx.db.delete(existing._id);
-        } catch (err) {
-          console.error("completeScrapeUrls: failed to delete queue row", err);
-        }
-        continue;
+    if (shouldIgnore) {
+      try {
+        await ctx.db.insert("ignored_jobs", {
+          url,
+          sourceUrl: (existing as any).sourceUrl ?? "",
+          provider: (existing as any).provider,
+          workflowName: "leaseScrapeUrlBatch",
+          reason:
+            typeof args.error === "string" && args.error.toLowerCase().includes("404")
+              ? "http_404"
+              : "max_attempts",
+          details: { attempts, siteId: (existing as any).siteId, lastError: args.error },
+          createdAt: now,
+        });
+      } catch (err) {
+        console.error("completeScrapeUrls: failed to insert ignored_jobs", err);
       }
-
-      await ctx.db.patch(existing._id, {
-        status: args.status,
-        attempts,
-        lastError: args.error,
-        updatedAt: now,
-        completedAt: args.status === "completed" ? now : undefined,
-      });
+      try {
+        await ctx.db.delete(existing._id);
+      } catch (err) {
+        console.error("completeScrapeUrls: failed to delete queue row", err);
+      }
+      continue;
     }
-    return { updated: args.urls.length };
-  },
-});
+
+    await ctx.db.patch(existing._id, {
+      status: args.status,
+      attempts,
+      lastError: args.error,
+      updatedAt: now,
+      completedAt: args.status === "completed" ? now : undefined,
+    });
+  }
+  return { updated: args.urls.length };
+};
+
+export const completeScrapeUrls = Object.assign(
+  mutation({
+    args: {
+      urls: v.array(v.string()),
+      status: v.union(v.literal("completed"), v.literal("failed")),
+      error: v.optional(v.string()),
+    },
+    handler: completeScrapeUrlsHandler,
+  }),
+  { handler: completeScrapeUrlsHandler }
+);
 
 export const listJobDetailConfigs = query({
   args: { domain: v.optional(v.string()), field: v.optional(v.string()) },
@@ -1730,48 +1750,53 @@ export const updateSiteEnabled = mutation({
   },
 });
 
-export const updateSiteName = mutation({
-  args: {
-    id: v.id("sites"),
-    name: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const name = (args.name || "").trim();
-    if (!name) {
-      throw new Error("Name is required");
-    }
-    const site = await ctx.db.get(args.id);
-    if (!site) {
-      throw new Error("Site not found");
-    }
-    await ctx.db.patch(args.id, { name });
-    await upsertCompanyProfile(ctx, name, (site as any).url, (site as any).name ?? undefined);
+const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: string }) => {
+  const name = (args.name || "").trim();
+  if (!name) {
+    throw new Error("Name is required");
+  }
+  const site = await ctx.db.get(args.id);
+  if (!site) {
+    throw new Error("Site not found");
+  }
+  await ctx.db.patch(args.id, { name });
+  await upsertCompanyProfile(ctx, name, (site as any).url, (site as any).name ?? undefined);
 
-    // Retag jobs even if the visible name was already the desired value by
-    // trying common legacy variants derived from the site URL.
-    const prevName = (site as any).name ?? "";
-    const urlDerived = fallbackCompanyName(undefined, (site as any).url);
-    const prevVariants = Array.from(
-      new Set(
-        [prevName, urlDerived, fallbackCompanyName(prevName, (site as any).url)]
-          .filter((val): val is string => typeof val === "string" && val.trim().length > 0)
-      )
-    );
+  // Retag jobs even if the visible name was already the desired value by
+  // trying common legacy variants derived from the site URL.
+  const prevName = (site as any).name ?? "";
+  const urlDerived = fallbackCompanyName(undefined, (site as any).url);
+  const prevVariants = Array.from(
+    new Set(
+      [prevName, urlDerived, fallbackCompanyName(prevName, (site as any).url)]
+        .filter((val): val is string => typeof val === "string" && val.trim().length > 0)
+    )
+  );
 
-    let updatedJobs = 0;
-    try {
-      for (const prev of prevVariants) {
-        if (prev === name) continue;
-        updatedJobs += await updateJobsCompany(ctx, prev, name);
-      }
-    } catch (err) {
-      console.error("updateSiteName: failed retagging jobs", err);
-      // Continue returning success so the admin UI doesn't block; jobs can be retagged manually later.
+  let updatedJobs = 0;
+  try {
+    for (const prev of prevVariants) {
+      if (prev === name) continue;
+      updatedJobs += await updateJobsCompany(ctx, prev, name);
     }
+  } catch (err) {
+    console.error("updateSiteName: failed retagging jobs", err);
+    // Continue returning success so the admin UI doesn't block; jobs can be retagged manually later.
+  }
 
-    return { id: args.id, updatedJobs };
-  },
-});
+  return { id: args.id, updatedJobs };
+};
+
+export const updateSiteName = Object.assign(
+  mutation({
+    args: {
+      id: v.id("sites"),
+      name: v.string(),
+    },
+    handler: updateSiteNameHandler,
+  }),
+  { handler: updateSiteNameHandler }
+);
 
 export const bulkUpsertSites = mutation({
   args: {
