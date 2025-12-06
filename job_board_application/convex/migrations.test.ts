@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { backfillScrapeRecords, deriveCostMilliCents } from "./migrations";
+import { backfillScrapeRecords, deriveCostMilliCents, deriveProvider } from "./migrations";
 
 describe("backfillScrapeRecords", () => {
   it("normalizes null or missing costMilliCents to 0", async () => {
@@ -45,5 +45,20 @@ describe("deriveCostMilliCents", () => {
   it("returns 0 for null/missing", () => {
     expect(deriveCostMilliCents({ costMilliCents: null })).toBe(0);
     expect(deriveCostMilliCents({})).toBe(0);
+  });
+});
+
+describe("deriveProvider", () => {
+  it("prefers existing provider when valid", () => {
+    expect(deriveProvider({ provider: "firecrawl" })).toBe("firecrawl");
+  });
+
+  it("falls back to items.provider when missing", () => {
+    expect(deriveProvider({ items: { provider: "fetchfox" } })).toBe("fetchfox");
+  });
+
+  it("returns unknown when null or empty", () => {
+    expect(deriveProvider({ provider: null })).toBe("unknown");
+    expect(deriveProvider({})).toBe("unknown");
   });
 });

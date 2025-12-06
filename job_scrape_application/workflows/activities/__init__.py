@@ -23,7 +23,7 @@ from ...components.models import (
     extract_greenhouse_job_urls,
     load_greenhouse_board,
 )
-from ...constants import location_matches_usa, title_matches_required_keywords
+from ...constants import DEFAULT_US_STATE_NAMES, location_matches_usa, title_matches_required_keywords
 from ..helpers.firecrawl import (
     build_firecrawl_webhook as _build_firecrawl_webhook,
     extract_first_json_doc as _extract_first_json_doc,
@@ -2102,6 +2102,7 @@ _CANADIAN_PROVINCE_NAMES = {
     "yukon",
 }
 _UNKNOWN_LOCATION_TOKENS = {"unknown", "n/a", "na", "unspecified", "not available"}
+_US_STATE_NAMES = {name.lower() for name in DEFAULT_US_STATE_NAMES}
 
 
 def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
@@ -2184,6 +2185,8 @@ def _derive_countries(locations: List[str]) -> List[str]:
                 continue
         elif lowered in _CANADIAN_PROVINCE_NAMES:
             mapped = "Canada"
+        elif lowered in _US_STATE_NAMES:
+            mapped = "United States"
         else:
             mapped = country
         if mapped and mapped not in countries:
@@ -2415,7 +2418,7 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
                                 job_id,
                             )
                             recorded_location = True
-            if matched_locations and not locations:
+            if matched_locations and (not locations or location_unknown):
                 locations = _normalize_locations(matched_locations + locations)
             if (not locations) and currency_hint and currency_hint != "USD":
                 if currency_hint == "INR":

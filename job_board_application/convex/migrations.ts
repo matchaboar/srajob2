@@ -66,9 +66,9 @@ export const backfillScrapeRecords = migrations.define({
   table: "scrapes",
   migrateOne: async (ctx, doc) => {
     const update: Record<string, any> = {};
-    if (doc.provider === undefined) {
-      const provider = (doc.items as any)?.provider;
-      update.provider = typeof provider === "string" ? provider : null;
+    const provider = deriveProvider(doc);
+    if (provider !== (doc as any).provider) {
+      update.provider = provider;
     }
     if (doc.workflowName === undefined) {
       update.workflowName = null;
@@ -95,4 +95,12 @@ export const deriveCostMilliCents = (doc: any): number => {
   const fromItems = doc?.items?.costMilliCents;
   if (typeof fromItems === "number") return fromItems;
   return 0;
+};
+
+export const deriveProvider = (doc: any): string => {
+  const val = doc?.provider;
+  if (typeof val === "string" && val.trim()) return val.trim();
+  const fromItems = doc?.items?.provider;
+  if (typeof fromItems === "string" && fromItems.trim()) return fromItems.trim();
+  return "unknown";
 };

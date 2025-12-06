@@ -12,3 +12,4 @@ job_board_application/.env.production
 .env.production
 *.log
 tmp
+logs

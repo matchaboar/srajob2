@@ -829,6 +829,60 @@ async def test_process_pending_job_details_batch_handles_canadian_location(monke
 
 
 @pytest.mark.asyncio
+async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(monkeypatch):
+    description = (
+        "Senior/Staff, Back-end Engineer (Ads Landing)\n"
+        "Seoul, South Korea\n"
+        "강력한테크역량을보유하며새로운기술을빠르게습득할수있는다음과같은후보자를찾고있습니다. "
+        "전담하는애플리케이션의E2E 프로세스를고려하여새로운아키텍처를설계"
+    )
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-kor",
+            "title": "Senior/Staff, Back-end Engineer (Ads Landing)",
+            "description": description,
+            "url": "https://careers.coupang.com/jobs/ads-landing",
+            "location": "Unknown",
+            "locations": [],
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for coupang listing"
+    # The default location regex matches the comma in the title before the real location line.
+    assert updated[0]["location"] == "Staff, Back-end Engineer"
+    assert updated[0]["location"] != "Seoul, South Korea"
+    assert any(rec.get("regex") == r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})" for rec in recorded)
+
+
+@pytest.mark.asyncio
 async def test_process_pending_job_details_defaults_country_for_remote(monkeypatch):
     jobs: list[dict[str, Any]] = [
         {
