@@ -1396,51 +1396,78 @@ export const recordJobDetailHeuristic = mutation({
   },
 });
 
-export const updateJobWithHeuristic = mutation({
+export const updateJobWithHeuristicHandler = async (
+  ctx: any,
   args: {
-    id: v.id("jobs"),
-    location: v.optional(v.string()),
-    locations: v.optional(v.array(v.string())),
-    locationStates: v.optional(v.array(v.string())),
-    locationSearch: v.optional(v.string()),
-    countries: v.optional(v.array(v.string())),
-    country: v.optional(v.string()),
-    description: v.optional(v.string()),
-    totalCompensation: v.optional(v.number()),
-    compensationReason: v.optional(v.string()),
-    compensationUnknown: v.optional(v.boolean()),
-    remote: v.optional(v.boolean()),
-    heuristicAttempts: v.optional(v.number()),
-    heuristicLastTried: v.optional(v.number()),
-    currencyCode: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const patch: any = {};
-    for (const key of [
-      "location",
-      "locations",
-      "locationStates",
-      "locationSearch",
-      "countries",
-      "country",
-      "description",
-      "totalCompensation",
-      "compensationReason",
-      "compensationUnknown",
-      "remote",
-      "heuristicAttempts",
-      "heuristicLastTried",
-      "currencyCode",
-    ] as const) {
-      if (args[key] !== undefined) {
-        patch[key] = args[key] as any;
-      }
+    id: Id<"jobs">;
+    location?: string;
+    locations?: string[];
+    locationStates?: string[];
+    locationSearch?: string;
+    countries?: string[];
+    country?: string;
+    description?: string;
+    totalCompensation?: number;
+    compensationReason?: string;
+    compensationUnknown?: boolean;
+    remote?: boolean;
+    heuristicAttempts?: number;
+    heuristicLastTried?: number;
+    heuristicVersion?: number;
+    currencyCode?: string;
+  }
+) => {
+  const patch: any = {};
+  for (const key of [
+    "location",
+    "locations",
+    "locationStates",
+    "locationSearch",
+    "countries",
+    "country",
+    "description",
+    "totalCompensation",
+    "compensationReason",
+    "compensationUnknown",
+    "remote",
+    "heuristicAttempts",
+    "heuristicLastTried",
+    "heuristicVersion",
+    "currencyCode",
+  ] as const) {
+    if (args[key] !== undefined) {
+      patch[key] = args[key] as any;
     }
-    if (Object.keys(patch).length === 0) return { updated: false };
-    await ctx.db.patch(args.id, patch);
-    return { updated: true };
-  },
-});
+  }
+  if (Object.keys(patch).length === 0) return { updated: false };
+  await ctx.db.patch(args.id, patch);
+  return { updated: true };
+};
+
+export const updateJobWithHeuristic = Object.assign(
+  mutation({
+    args: {
+      id: v.id("jobs"),
+      location: v.optional(v.string()),
+      locations: v.optional(v.array(v.string())),
+      locationStates: v.optional(v.array(v.string())),
+      locationSearch: v.optional(v.string()),
+      countries: v.optional(v.array(v.string())),
+      country: v.optional(v.string()),
+      description: v.optional(v.string()),
+      totalCompensation: v.optional(v.number()),
+      compensationReason: v.optional(v.string()),
+      compensationUnknown: v.optional(v.boolean()),
+      remote: v.optional(v.boolean()),
+      heuristicAttempts: v.optional(v.number()),
+      heuristicLastTried: v.optional(v.number()),
+      heuristicVersion: v.optional(v.number()),
+      currencyCode: v.optional(v.string()),
+    },
+    handler: updateJobWithHeuristicHandler,
+  }),
+  { handler: updateJobWithHeuristicHandler }
+);
 
 export const clearStaleScrapeQueue = internalMutation({
   args: {},

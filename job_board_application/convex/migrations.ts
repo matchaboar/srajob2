@@ -73,9 +73,9 @@ export const backfillScrapeRecords = migrations.define({
     if (doc.workflowName === undefined) {
       update.workflowName = null;
     }
-    if (doc.costMilliCents === undefined) {
-      const maybeCost = (doc.items as any)?.costMilliCents;
-      update.costMilliCents = typeof maybeCost === "number" ? maybeCost : null;
+    const costVal = deriveCostMilliCents(doc);
+    if (costVal !== (doc as any).costMilliCents) {
+      update.costMilliCents = costVal;
     }
     if (Object.keys(update).length > 0) {
       await ctx.db.patch(doc._id, update);
@@ -88,3 +88,11 @@ export const runAll = migrations.runner([
   internal.migrations.backfillScrapeMetadata,
   internal.migrations.backfillScrapeRecords,
 ]);
+
+export const deriveCostMilliCents = (doc: any): number => {
+  const costVal = doc?.costMilliCents;
+  if (typeof costVal === "number") return costVal;
+  const fromItems = doc?.items?.costMilliCents;
+  if (typeof fromItems === "number") return fromItems;
+  return 0;
+};

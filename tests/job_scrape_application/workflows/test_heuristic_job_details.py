@@ -267,6 +267,130 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
 
 
 @pytest.mark.asyncio
+async def test_process_pending_job_details_batch_counts_success_even_if_record_fails(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-record-fail",
+            "title": "Engineer",
+            "description": "Location: Remote",
+            "url": "https://example.com/jobs/record-fail",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        if name == "router:countPendingJobDetails":
+            return {"pending": 0}
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            raise Exception("[Request ID: rec-err] Server Error")
+        if name == "router:updateJobWithHeuristic":
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert any(err["op"] == "router:recordJobDetailHeuristic" for err in result["errors"])
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_includes_heuristic_version(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-version",
+            "title": "Engineer",
+            "description": "Location: Remote",
+            "url": "https://example.com/jobs/version",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+            "heuristicAttempts": 0,
+        }
+    ]
+
+    captured_updates: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        if name == "router:countPendingJobDetails":
+            return {"pending": 0}
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            captured_updates.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await process_pending_job_details_batch()
+
+    assert captured_updates, "expected update mutation to be called"
+    assert captured_updates[0]["heuristicVersion"] == HEURISTIC_VERSION
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_handles_remaining_query_failure(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-remaining-fail",
+            "title": "Engineer",
+            "description": "Location: Remote",
+            "url": "https://example.com/jobs/remain-fail",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        if name == "router:countPendingJobDetails":
+            raise Exception("count failed")
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert result["remaining"] is None
+
+
+@pytest.mark.asyncio
 async def test_process_pending_job_details_batch_query_error_annotates_op(monkeypatch):
     jobs: list[dict[str, Any]] = [
         {
