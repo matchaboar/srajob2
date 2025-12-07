@@ -770,10 +770,10 @@ function Start-WorkerMain {
     }
     Assert-LastExit "Create/update Temporal schedule"
 
-    if ($ForceScrapeAll) {
-        Write-Host "Triggering schedule once for immediate scrape..."
-        uv run python -m job_scrape_application.workflows.trigger_schedule
-        Assert-LastExit "Trigger schedule once"
+    Write-Host "Triggering heuristic schedule to kick off immediately..."
+    uv run python -m job_scrape_application.workflows.trigger_schedule
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Trigger schedule failed (exit $LASTEXITCODE); continuing startup."
     }
 
     # Clear any stale progress bars from uv before showing live worker logs

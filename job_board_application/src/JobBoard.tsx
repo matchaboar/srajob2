@@ -398,6 +398,25 @@ export function JobBoard() {
     if (!level || typeof level !== "string") return "Not specified";
     return level.charAt(0).toUpperCase() + level.slice(1);
   }, []);
+  const formatRelativeTime = useCallback((timestamp?: number | null) => {
+    if (typeof timestamp !== "number") return null;
+    const delta = Math.max(0, Date.now() - timestamp);
+    const minutes = Math.round(delta / (1000 * 60));
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    let relative: string;
+    if (days > 0) {
+      relative = `${days}d ago`;
+    } else if (hours > 0) {
+      relative = `${hours}h ago`;
+    } else if (minutes > 0) {
+      relative = `${minutes}m ago`;
+    } else {
+      relative = "just now";
+    }
+    const absolute = new Date(timestamp).toLocaleString();
+    return `${relative} • ${absolute}`;
+  }, []);
   const renderScrapeCost = useCallback((mc: number) => {
     if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
     if (mc === 0) return "0 ¢";
@@ -466,28 +485,53 @@ export function JobBoard() {
   const parsingSteps = useMemo(() => {
     if (!selectedJob) return [];
     const scrapedWith = selectedJob.scrapedWith || selectedJob.workflowName;
+    const scrapedAt = selectedJob.scrapedAt;
+    const heuristicAttempts = selectedJob.heuristicAttempts ?? 0;
+    const heuristicLastTried = selectedJob.heuristicLastTried;
+    const heuristicVersion = selectedJob.heuristicVersion;
     const heuristicRan =
       (selectedJob.workflowName || "").toLowerCase().includes("heuristic") ||
-      (selectedJob.compensationReason || "").toLowerCase().includes("heuristic");
+      (selectedJob.compensationReason || "").toLowerCase().includes("heuristic") ||
+      heuristicAttempts > 0 ||
+      typeof heuristicLastTried === "number";
+
+    const heuristicParts: string[] = [];
+    if (heuristicVersion !== undefined) {
+      heuristicParts.push(`v${heuristicVersion}`);
+    }
+    if (heuristicAttempts > 0) {
+      heuristicParts.push(`${heuristicAttempts} attempt${heuristicAttempts === 1 ? "" : "s"}`);
+    }
+    if (heuristicLastTried) {
+      heuristicParts.push(`last ${formatRelativeTime(heuristicLastTried) || new Date(heuristicLastTried).toLocaleString()}`);
+    }
 
     return [
       {
         label: "Initial scrape",
         checked: Boolean(scrapedWith),
-        note: scrapedWith ? `via ${scrapedWith}` : "pending",
+        status: scrapedAt ? "Completed" : "Pending",
+        note: scrapedAt
+          ? `${new Date(scrapedAt).toLocaleString()}${scrapedWith ? ` • ${scrapedWith}` : ""}`
+          : "Not scraped yet",
       },
       {
         label: "Heuristic parsing",
         checked: heuristicRan,
-        note: heuristicRan ? selectedJob.workflowName || "HeuristicJobDetails" : "not run",
+        status: heuristicRan ? "Completed" : "Pending",
+        note: heuristicRan
+          ? (heuristicParts.length ? heuristicParts.join(" • ") : selectedJob.workflowName || "HeuristicJobDetails")
+          : `Not run${selectedJob.compensationReason ? ` (reason: ${selectedJob.compensationReason})` : ""}`,
+        subtext: heuristicRan && selectedJob.workflowName ? `Workflow: ${selectedJob.workflowName}` : undefined,
       },
       {
         label: "LLM parsing",
         checked: false,
-        note: "optional (not run)",
+        status: "Pending",
+        note: "Optional enrichment (not requested)",
       },
     ];
-  }, [selectedJob]);
+  }, [formatRelativeTime, selectedJob]);
   const parseNotes = useMemo(() => {
     if (!selectedJob) return "No additional notes.";
     return selectedJob.compensationReason || selectedCompMeta.reason || "No additional notes.";
@@ -1773,16 +1817,28 @@ export function JobBoard() {
                           </div>
                           <div className="flex flex-col gap-1.5">
                             {parsingSteps.map((step) => (
-                              <label key={step.label} className="flex items-center gap-2 text-sm text-slate-100">
+                              <label key={step.label} className="flex items-start gap-2 text-sm text-slate-100">
                                 <input
                                   type="checkbox"
                                   checked={step.checked}
                                   readOnly
-                                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-400 focus:ring-emerald-500"
+                                  className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-400 focus:ring-emerald-500"
                                 />
-                                <span className="flex-1 flex flex-col leading-tight">
-                                  <span className="font-semibold">{step.label}</span>
+                                <span className="flex-1 flex flex-col leading-tight gap-0.5">
+                                  <span className="flex items-center gap-2">
+                                    <span className="font-semibold">{step.label}</span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${
+                                        step.checked
+                                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                                          : "border-amber-500/40 bg-amber-500/10 text-amber-100"
+                                      }`}
+                                    >
+                                      {step.status || (step.checked ? "Completed" : "Pending")}
+                                    </span>
+                                  </span>
                                   <span className="text-[11px] text-slate-400">{step.note}</span>
+                                  {step.subtext && <span className="text-[11px] text-slate-500">{step.subtext}</span>}
                                 </span>
                               </label>
                             ))}

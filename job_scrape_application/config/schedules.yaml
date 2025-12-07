@@ -42,7 +42,7 @@ schedules:
   # Periodic heuristic parsing of pending jobs (markdown extraction fallbacks)
   - id: heuristic-job-details
     workflow: HeuristicJobDetails
-    interval_seconds: 120
+    interval_seconds: 300
     task_queue: scraper-task-queue
     catchup_window_hours: 6
     overlap: skip
