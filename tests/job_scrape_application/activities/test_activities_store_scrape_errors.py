@@ -232,3 +232,57 @@ async def test_store_scrape_payload_matches_router_contract(monkeypatch):
     assert res == "scrape-id"
     assert insert_calls, "insertScrapeRecord was not invoked"
     assert insert_calls[0]["siteId"] == payload["siteId"]
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_applies_heuristics_before_ingest(monkeypatch):
+    payload = {
+        "sourceUrl": "https://example.com",
+        "items": {
+            "normalized": [
+                {
+                    "title": "Heuristic Engineer",
+                    "company": "ExampleCo",
+                    "description": "Location: Austin, TX\n$150k",
+                    "url": "https://example.com/jobs/123",
+                    "compensation_unknown": True,
+                    "total_compensation": 0,
+                }
+            ]
+        },
+    }
+
+    ingest_calls: list[dict[str, Any]] = []
+    recorded: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args)
+            return {"created": True}
+        if name == "router:ingestJobsFromScrape":
+            ingest_calls.append(args)
+            return {"inserted": len(args.get("jobs") or [])}
+        return None
+
+    monkeypatch.setattr(acts, "trim_scrape_for_convex", lambda x, **kwargs: x)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+
+    res = await acts.store_scrape(payload)
+
+    assert res == "scrape-id"
+    assert ingest_calls, "jobs were not ingested"
+    job = ingest_calls[0]["jobs"][0]
+    assert job["totalCompensation"] == 150000
+    assert job.get("compensationUnknown") is False
+    assert "parsed" in (job.get("compensationReason") or "")
+    assert job.get("heuristicVersion") == acts.HEURISTIC_VERSION
+    assert job.get("heuristicAttempts") == 1
+    assert any(rec.get("field") == "compensation" for rec in recorded)

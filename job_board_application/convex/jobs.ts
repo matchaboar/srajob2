@@ -106,6 +106,8 @@ export const parseMarkdownHints = (markdown: string) => {
   const hints: Record<string, any> = {};
   if (!markdown) return hints;
 
+  const locationCandidates: string[] = [];
+
   const titleMatch = TITLE_RE.exec(markdown);
   if (titleMatch?.groups?.title) {
     hints.title = titleMatch.groups.title.trim();
@@ -123,22 +125,29 @@ export const parseMarkdownHints = (markdown: string) => {
     if (t.includes(",")) {
       const candidate = t.split(";")[0].trim();
       if (/^[A-Za-z].*,/.test(candidate)) {
-        hints.location = candidate;
-        break;
+        locationCandidates.push(candidate);
       }
     }
   }
-  if (!hints.location) {
+  if (!locationCandidates.length) {
     const cityHit = findCityInText(markdown);
     if (cityHit?.city && cityHit?.state) {
-      hints.location = `${cityHit.city}, ${cityHit.state}`;
+      locationCandidates.push(`${cityHit.city}, ${cityHit.state}`);
     }
   }
-  if (!hints.location) {
+  if (!locationCandidates.length) {
     const locMatch = LOCATION_RE.exec(markdown) || SIMPLE_LOCATION_LINE_RE.exec(markdown);
     if (locMatch?.groups?.location) {
-      hints.location = locMatch.groups.location.trim();
+      locationCandidates.push(locMatch.groups.location.trim());
     }
+  }
+
+  const normalizedLocations = normalizeLocations(locationCandidates);
+  if (normalizedLocations.length) {
+    hints.locations = normalizedLocations;
+    hints.location = normalizedLocations[0];
+  } else if (locationCandidates.length) {
+    hints.location = locationCandidates[0];
   }
 
   const levelMatch = LEVEL_RE.exec(markdown);

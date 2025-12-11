@@ -3,6 +3,7 @@ import { splitLocation, formatLocationLabel, deriveLocationFields } from "./loca
 import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import { DataModel } from "./_generated/dataModel.js";
+import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
@@ -83,10 +84,118 @@ export const backfillScrapeRecords = migrations.define({
   },
 });
 
+export const dedupeSitesImpl = async (ctx: any) => {
+  const rows = await ctx.db.query("sites").collect();
+  const byKey = new Map<string, any[]>();
+
+  for (const row of rows as any[]) {
+    const normalizedUrl = normalizeSiteUrl(row.url, row.type);
+    const key = siteCanonicalKey(normalizedUrl, row.type);
+    const arr = byKey.get(key) ?? [];
+    arr.push({ ...row, _normalizedUrl: normalizedUrl });
+    byKey.set(key, arr);
+  }
+
+  const score = (site: any) => {
+    return [
+      site.enabled ? 1 : 0,
+      site.failed ? 0 : 1,
+      site.completed ? 0 : 1,
+      typeof site.lastRunAt === "number" ? site.lastRunAt : 0,
+      typeof site._creationTime === "number" ? site._creationTime : 0,
+    ];
+  };
+
+  for (const [, sites] of byKey.entries()) {
+    if (!sites.length) continue;
+    const sorted = sites.slice().sort((a, b) => {
+      const scoreA = score(a);
+      const scoreB = score(b);
+      for (let i = 0; i < scoreA.length; i++) {
+        if (scoreA[i] !== scoreB[i]) return scoreB[i] - scoreA[i];
+      }
+      return 0;
+    });
+
+    const keep = sorted[0];
+    const keepPatch: Record<string, any> = {};
+    if (keep.url !== keep._normalizedUrl) keepPatch.url = keep._normalizedUrl;
+    if (!keep.name) {
+      keepPatch.name = fallbackCompanyNameFromUrl(keep._normalizedUrl);
+    }
+    if (Object.keys(keepPatch).length > 0) {
+      await ctx.db.patch(keep._id, keepPatch);
+    }
+
+    for (const dup of sorted.slice(1)) {
+      const patch: Record<string, any> = {
+        enabled: false,
+        completed: true,
+        failed: true,
+        lockExpiresAt: 0,
+        lockedBy: "",
+        manualTriggerAt: 0,
+        scheduleId: undefined,
+        lastError: `duplicate_of:${keep._id}`,
+        url: keep._normalizedUrl,
+      };
+      await ctx.db.patch(dup._id, patch);
+    }
+  }
+};
+
+export const dedupeSites = migrations.define({
+  table: "sites",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx: any) => {
+      if (ran) return;
+      ran = true;
+      await dedupeSitesImpl(ctx);
+    };
+  })(),
+});
+
+export const retagGreenhouseJobsImpl = async (ctx: any) => {
+  const aliasRows = await ctx.db.query("domain_aliases").collect();
+  const aliasMap = new Map<string, string>();
+  for (const row of aliasRows as any[]) {
+    if (typeof row.domain === "string" && typeof row.alias === "string") {
+      aliasMap.set(row.domain, row.alias);
+    }
+  }
+
+  const jobs = await ctx.db.query("jobs").collect();
+  for (const job of jobs as any[]) {
+    if (!job.url || typeof job.url !== "string") continue;
+    const slug = greenhouseSlugFromUrl(job.url);
+    if (!slug) continue;
+    const domain = `${slug}.greenhouse.io`;
+    const desired = aliasMap.get(domain) ?? fallbackCompanyNameFromUrl(normalizeSiteUrl(job.url, "greenhouse"));
+    if (desired && desired !== job.company) {
+      await ctx.db.patch(job._id, { company: desired });
+    }
+  }
+};
+
+export const retagGreenhouseJobs = migrations.define({
+  table: "jobs",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx: any) => {
+      if (ran) return;
+      ran = true;
+      await retagGreenhouseJobsImpl(ctx);
+    };
+  })(),
+});
+
 export const runAll = migrations.runner([
   internal.migrations.fixJobLocations,
   internal.migrations.backfillScrapeMetadata,
   internal.migrations.backfillScrapeRecords,
+  internal.migrations.dedupeSites,
+  internal.migrations.retagGreenhouseJobs,
 ]);
 
 export const deriveCostMilliCents = (doc: any): number => {

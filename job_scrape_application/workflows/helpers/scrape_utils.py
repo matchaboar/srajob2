@@ -4,6 +4,7 @@ import json
 import re
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
@@ -211,6 +212,173 @@ _SALARY_K_RE = re.compile(
 _REMOTE_RE = re.compile(r"\b(remote(-first)?|hybrid|onsite|on-site)\b", flags=re.IGNORECASE)
 
 
+def _normalize_location_key(value: str) -> str:
+    lowered = value.lower()
+    lowered = re.sub(r"\(.*?\)", " ", lowered)
+    lowered = re.sub(r"[^a-z0-9 ]+", " ", lowered)
+    lowered = re.sub(r"\s+", " ", lowered)
+    return lowered.strip()
+
+
+_STATE_NAME_BY_ABBR: dict[str, str] = {
+    "AL": "Alabama",
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "AR": "Arkansas",
+    "CA": "California",
+    "CO": "Colorado",
+    "CT": "Connecticut",
+    "DC": "District of Columbia",
+    "DE": "Delaware",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "HI": "Hawaii",
+    "IA": "Iowa",
+    "ID": "Idaho",
+    "IL": "Illinois",
+    "IN": "Indiana",
+    "KS": "Kansas",
+    "KY": "Kentucky",
+    "LA": "Louisiana",
+    "MA": "Massachusetts",
+    "MD": "Maryland",
+    "ME": "Maine",
+    "MI": "Michigan",
+    "MN": "Minnesota",
+    "MO": "Missouri",
+    "MS": "Mississippi",
+    "MT": "Montana",
+    "NC": "North Carolina",
+    "ND": "North Dakota",
+    "NE": "Nebraska",
+    "NH": "New Hampshire",
+    "NJ": "New Jersey",
+    "NM": "New Mexico",
+    "NV": "Nevada",
+    "NY": "New York",
+    "OH": "Ohio",
+    "OK": "Oklahoma",
+    "OR": "Oregon",
+    "PA": "Pennsylvania",
+    "RI": "Rhode Island",
+    "SC": "South Carolina",
+    "SD": "South Dakota",
+    "TN": "Tennessee",
+    "TX": "Texas",
+    "UT": "Utah",
+    "VA": "Virginia",
+    "VT": "Vermont",
+    "WA": "Washington",
+    "WI": "Wisconsin",
+    "WV": "West Virginia",
+    "WY": "Wyoming",
+}
+_STATE_ABBR_BY_NAME: dict[str, str] = {name: abbr for abbr, name in _STATE_NAME_BY_ABBR.items()}
+
+
+def _format_location_label(city: str | None, state: str | None, country: str | None = None) -> str:
+    clean_city = (city or "").strip()
+    clean_state = (state or "").strip()
+    clean_country = (country or "").strip()
+
+    country_lower = clean_country.lower()
+    state_label = clean_state
+    if clean_state and country_lower in {"united states", "usa", "us", "united states of america"}:
+        state_label = _STATE_ABBR_BY_NAME.get(clean_state, clean_state)
+
+    if clean_city.lower() == "remote" or clean_state.lower() == "remote":
+        return "Remote"
+
+    if clean_city and state_label and clean_city != "Unknown" and state_label != "Unknown":
+        return f"{clean_city}, {state_label}"
+    if clean_city and clean_country and clean_country != "Unknown":
+        return f"{clean_city}, {clean_country}"
+    if clean_city and clean_city != "Unknown":
+        return clean_city
+    if state_label and state_label != "Unknown":
+        return state_label
+    if clean_country and clean_country != "Unknown":
+        return clean_country
+    return "Unknown"
+
+
+_LOCATION_DICT_PATH = Path(__file__).resolve().parents[3] / "job_board_application" / "convex" / "locationDictionary.json"
+try:
+    _LOCATION_ENTRIES: list[dict[str, Any]] = json.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
+except FileNotFoundError:
+    _LOCATION_ENTRIES = []
+
+_LOCATION_DICTIONARY: dict[str, dict[str, Any]] = {}
+_CITY_KEYWORDS: dict[str, dict[str, Any]] = {}
+
+
+def _register_location_key(value: str, entry: dict[str, Any], track_city: bool = False) -> None:
+    key = _normalize_location_key(value)
+    if not key or key in _LOCATION_DICTIONARY:
+        return
+    _LOCATION_DICTIONARY[key] = entry
+    if track_city and not entry.get("remoteOnly"):
+        _CITY_KEYWORDS[key] = entry
+
+
+for _entry in _LOCATION_ENTRIES:
+    city = (_entry.get("city") or "").strip()
+    state = (_entry.get("state") or "").strip() or "Unknown"
+    country = (_entry.get("country") or "").strip() or None
+    remote_only = bool(_entry.get("remoteOnly"))
+    state_abbr = _STATE_ABBR_BY_NAME.get(state)
+    record = {"city": city, "state": state, "country": country, "remoteOnly": remote_only}
+    aliases = set([city, *(_entry.get("aliases") or [])])
+    for alias in aliases:
+        _register_location_key(alias, record, track_city=True)
+        _register_location_key(f"{alias}, {state}", record)
+        if country:
+            _register_location_key(f"{alias}, {country}", record)
+        if state_abbr:
+            _register_location_key(f"{alias}, {state_abbr}", record)
+
+_LOCATION_DICTIONARY_KEYS: list[tuple[str, dict[str, Any]]] = sorted(
+    _LOCATION_DICTIONARY.items(), key=lambda item: len(item[0]), reverse=True
+)
+_CITY_KEYWORD_KEYS: list[str] = sorted(_CITY_KEYWORDS.keys(), key=len, reverse=True)
+
+
+def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> Optional[dict[str, Any]]:
+    normalized = _normalize_location_key(value)
+    if not normalized:
+        return None
+
+    direct = _LOCATION_DICTIONARY.get(normalized)
+    if direct and (allow_remote or not direct.get("remoteOnly")):
+        return direct
+
+    for key, entry in _LOCATION_DICTIONARY_KEYS:
+        if not allow_remote and entry.get("remoteOnly"):
+            continue
+        if entry.get("remoteOnly"):
+            if normalized == key:
+                return entry
+            continue
+        if key and len(key) >= 3 and re.search(rf"(?:^|\s){re.escape(key)}(?:\s|$)", normalized):
+            return entry
+    return None
+
+
+def _find_city_in_text(text: str) -> Optional[dict[str, Any]]:
+    normalized_text = _normalize_location_key(text)
+    for key in _CITY_KEYWORD_KEYS:
+        idx = normalized_text.find(key)
+        if idx == -1:
+            continue
+        before_ok = idx == 0 or normalized_text[idx - 1] == " "
+        after_ok = idx + len(key) == len(normalized_text) or normalized_text[idx + len(key)] == " "
+        if before_ok and after_ok:
+            entry = _CITY_KEYWORDS.get(key)
+            if entry:
+                return entry
+    return None
+
+
 def _to_int(value: str) -> Optional[int]:
     try:
         digits = value.replace(",", "").replace(".", "")
@@ -232,21 +400,55 @@ def _normalize_locations(locations: List[str]) -> List[str]:
             candidate = re.sub(r"\s+", " ", candidate).strip(" ,;/\t")
             if not candidate:
                 continue
-            lowered = candidate.lower()
-            if lowered in ("unknown", "n/a", "na"):
-                continue
-            if len(candidate) < 3 or len(candidate) > 100:
-                continue
             if not _is_plausible_location(candidate):
                 continue
-            if candidate not in seen:
-                seen.add(candidate)
-                normalized.append(candidate)
+            resolved = _resolve_location_from_dictionary(candidate)
+            if not resolved:
+                continue
+            label = _format_location_label(resolved.get("city"), resolved.get("state"), resolved.get("country"))
+            if label and label not in seen:
+                seen.add(label)
+                normalized.append(label)
+    normalized = _reorder_by_us_preference(normalized)
     return normalized
 
 
+def _reorder_by_us_preference(locations: List[str]) -> List[str]:
+    prioritized = list(locations)
+
+    def find_index(allow_remote: bool) -> int:
+        for idx, loc in enumerate(prioritized):
+            resolved = _resolve_location_from_dictionary(loc)
+            if not resolved:
+                continue
+            country = (resolved.get("country") or "").strip()
+            is_remote = (resolved.get("city") or "").lower() == "remote" or (resolved.get("state") or "").lower() == "remote"
+            if not allow_remote and is_remote:
+                continue
+            if country == "United States":
+                return idx
+        return -1
+
+    non_remote_idx = find_index(False)
+    if non_remote_idx > 0:
+        hit = prioritized.pop(non_remote_idx)
+        prioritized.insert(0, hit)
+        return prioritized
+
+    remote_idx = find_index(True)
+    if remote_idx > 0:
+        hit = prioritized.pop(remote_idx)
+        prioritized.insert(0, hit)
+
+    return prioritized
+
+
 def _is_plausible_location(value: str) -> bool:
-    lowered = value.lower()
+    if not value or len(value) < 2 or len(value) > 100:
+        return False
+    lowered = value.lower().strip()
+    if lowered in ("unknown", "n/a", "na"):
+        return False
     if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture", "salary", "compensation", "pay", "package", "bonus", "range")):
         return False
     if "$" in value or "401k" in lowered or "401(k" in lowered:
@@ -322,6 +524,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if loc_match:
             location_candidates.append(stringify(loc_match.group("location")))
     normalized_locations = _normalize_locations(location_candidates)
+    if not normalized_locations:
+        city_hit = _find_city_in_text(markdown)
+        if city_hit:
+            fallback_label = _format_location_label(city_hit.get("city"), city_hit.get("state"), city_hit.get("country"))
+            if fallback_label and fallback_label != "Unknown":
+                normalized_locations.append(fallback_label)
     if normalized_locations:
         hints["locations"] = normalized_locations
         hints["location"] = normalized_locations[0]

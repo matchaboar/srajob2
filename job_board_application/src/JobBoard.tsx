@@ -25,6 +25,7 @@ type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
+type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
 
 interface Filters {
   search: string;
@@ -375,8 +376,32 @@ export function JobBoard() {
     return `${dateLabel} • ${days}d ago`;
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJob), [selectedJob]);
+  const selectedJobLocations = useMemo(() => {
+    if (!selectedJob) return [];
+    const raw = Array.isArray(selectedJob.locations) ? selectedJob.locations : [];
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const entry of raw) {
+      const cleaned = (entry || "").trim();
+      if (!cleaned || cleaned.toLowerCase() === "unknown") continue;
+      const key = cleaned.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      normalized.push(cleaned);
+    }
+
+    const fallback = (selectedJob.location || "").trim();
+    if (fallback && fallback.toLowerCase() !== "unknown" && !seen.has(fallback.toLowerCase())) {
+      seen.add(fallback.toLowerCase());
+      normalized.push(fallback);
+    }
+
+    return normalized;
+  }, [selectedJob]);
   const selectedLocationDetail = useMemo(() => {
     if (!selectedJob) return "Unknown";
+    if (selectedJobLocations.length > 0) return selectedJobLocations[0];
     const parts: string[] = [];
     const seen = new Set<string>();
     const add = (value?: string | null) => {
@@ -393,7 +418,7 @@ export function JobBoard() {
     if (parts.length) return parts.join(" • ");
     const fallback = (selectedJob.location || "").trim();
     return fallback || "Unknown";
-  }, [selectedJob]);
+  }, [selectedJob, selectedJobLocations]);
   const formatLevelLabel = useCallback((level?: string | null) => {
     if (!level || typeof level !== "string") return "Not specified";
     return level.charAt(0).toUpperCase() + level.slice(1);
@@ -448,15 +473,17 @@ export function JobBoard() {
     }
     return "0 ¢";
   }, []);
-  const selectedJobDetails = useMemo(() => {
+  const selectedJobDetails = useMemo<DetailItem[]>(() => {
     if (!selectedJob) return [];
-    const details: Array<{ label: string; value: string; badge?: string; type?: "link" }> = [];
+    const details: DetailItem[] = [];
+    const locationValues = selectedJobLocations.length ? selectedJobLocations : ["Unknown"];
+    const locationLabel = locationValues.length > 1 ? "Locations" : "Location";
 
     details.push({ label: "Company", value: selectedJob.company });
     details.push({ label: "Level", value: formatLevelLabel(selectedJob.level) });
     details.push({
-      label: "Location",
-      value: selectedJob.location || "Unknown",
+      label: locationLabel,
+      value: locationValues,
       badge: selectedJob.remote ? "Remote" : undefined,
     });
     details.push({
@@ -481,7 +508,14 @@ export function JobBoard() {
     }
 
     return details;
-  }, [selectedJob, selectedCompMeta, formatLevelLabel, formatPostedLabel]);
+  }, [selectedJob, selectedCompMeta, formatLevelLabel, formatPostedLabel, selectedJobLocations]);
+  const jobUrlDetail = useMemo<(DetailItem & { value: string }) | null>(() => {
+    const entry = selectedJobDetails.find((item) => item.label === "Job URL");
+    if (entry && typeof entry.value === "string") {
+      return entry;
+    }
+    return null;
+  }, [selectedJobDetails]);
   const parsingSteps = useMemo(() => {
     if (!selectedJob) return [];
     const scrapedWith = selectedJob.scrapedWith || selectedJob.workflowName;
@@ -1711,19 +1745,19 @@ export function JobBoard() {
                         </button>
                       </div>
 
-                        {selectedJobDetails.find(item => item.label === "Job URL") && (
+                      {jobUrlDetail && (
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                             Job URL
                           </div>
                           <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
                             <a
-                              href={selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                              href={jobUrlDetail.value}
                               target="_blank"
                               rel="noreferrer"
                               className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
                             >
-                              {selectedJobDetails.find(item => item.label === "Job URL")?.value}
+                              {jobUrlDetail.value}
                             </a>
                           </div>
                         </div>
@@ -1738,13 +1772,24 @@ export function JobBoard() {
                               <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                                 {item.label}
                               </div>
-                              <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
+                              <div className="text-sm font-medium text-slate-100 flex flex-wrap items-center gap-2 break-words">
                                 {item.badge && (
                                   <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
                                     {item.badge}
                                   </span>
                                 )}
-                                {item.type === "link" ? (
+                                {Array.isArray(item.value) ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {item.value.map((loc) => (
+                                      <span
+                                        key={loc}
+                                        className="px-2 py-0.5 text-[12px] font-medium rounded bg-slate-800/70 text-slate-100 border border-slate-700"
+                                      >
+                                        {loc}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : item.type === "link" ? (
                                   <a
                                     href={item.value}
                                     target="_blank"

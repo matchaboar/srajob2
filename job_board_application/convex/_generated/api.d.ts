@@ -22,6 +22,7 @@ import type * as migrations from "../migrations.js";
 import type * as router from "../router.js";
 import type * as scratchpad from "../scratchpad.js";
 import type * as seedData from "../seedData.js";
+import type * as siteUtils from "../siteUtils.js";
 import type * as sites from "../sites.js";
 import type * as temporal from "../temporal.js";
 
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   router: typeof router;
   scratchpad: typeof scratchpad;
   seedData: typeof seedData;
+  siteUtils: typeof siteUtils;
   sites: typeof sites;
   temporal: typeof temporal;
 }>;

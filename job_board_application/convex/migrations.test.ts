@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { backfillScrapeRecords, deriveCostMilliCents, deriveProvider } from "./migrations";
+import {
+  backfillScrapeRecords,
+  dedupeSitesImpl,
+  deriveCostMilliCents,
+  deriveProvider,
+  retagGreenhouseJobsImpl,
+} from "./migrations";
 
 describe("backfillScrapeRecords", () => {
   it("normalizes null or missing costMilliCents to 0", async () => {
@@ -60,5 +66,90 @@ describe("deriveProvider", () => {
   it("returns unknown when null or empty", () => {
     expect(deriveProvider({ provider: null })).toBe("unknown");
     expect(deriveProvider({})).toBe("unknown");
+  });
+});
+
+describe("dedupeSites", () => {
+  it("merges greenhouse board variants and disables duplicates", async () => {
+    const sites = [
+      {
+        _id: "a",
+        url: "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs",
+        enabled: true,
+        failed: false,
+        completed: false,
+        type: "greenhouse",
+        _creationTime: 1,
+      },
+      {
+        _id: "b",
+        url: "https://api.greenhouse.io/v1/boards/stubhubinc/jobs",
+        enabled: false,
+        failed: false,
+        completed: false,
+        type: "greenhouse",
+        _creationTime: 2,
+      },
+    ];
+
+    const patches: any[] = [];
+    const ctx: any = {
+      db: {
+        query: (table: string) => {
+          if (table !== "sites") throw new Error("expected sites table");
+          return { collect: async () => sites };
+        },
+        patch: async (id: string, payload: any) => patches.push({ id, payload }),
+      },
+    };
+
+    await dedupeSitesImpl(ctx);
+
+    expect(patches.find((p) => p.id === "a")?.payload.url).toBe("https://api.greenhouse.io/v1/boards/stubhubinc/jobs");
+    const dupPatch = patches.find((p) => p.id === "b");
+    expect(dupPatch?.payload.enabled).toBe(false);
+    expect(dupPatch?.payload.failed).toBe(true);
+    expect(dupPatch?.payload.lastError).toContain("duplicate_of:a");
+  });
+});
+
+describe("retagGreenhouseJobs", () => {
+  it("retags greenhouse jobs using slug-specific alias", async () => {
+    const patches: any[] = [];
+    const ctx: any = {
+      db: {
+        query: (table: string) => {
+          if (table === "domain_aliases") {
+            return {
+              collect: async () => [
+                { domain: "stubhubinc.greenhouse.io", alias: "Stubhub" },
+                { domain: "coupang.greenhouse.io", alias: "Coupang" },
+              ],
+            };
+          }
+          if (table === "jobs") {
+            return {
+              collect: async () => [
+                {
+                  _id: "job-1",
+                  company: "Coupang",
+                  url: "https://job-boards.eu.greenhouse.io/stubhubinc/jobs/4648156101",
+                },
+              ],
+            };
+          }
+          throw new Error(`Unexpected table ${table}`);
+        },
+        patch: async (id: string, payload: any) => patches.push({ id, payload }),
+      },
+    };
+
+    await retagGreenhouseJobsImpl(ctx);
+
+    expect(patches).toHaveLength(1);
+    expect(patches[0]).toEqual({
+      id: "job-1",
+      payload: { company: "Stubhub" },
+    });
   });
 });

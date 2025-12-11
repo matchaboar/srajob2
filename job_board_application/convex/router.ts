@@ -7,6 +7,7 @@ import { splitLocation, formatLocationLabel, deriveLocationFields } from "./loca
 import { FIRECRAWL_SIGNATURE_HEADER, runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
+import { fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -49,17 +50,26 @@ const fallbackCompanyName = (name: string | undefined | null, url: string | unde
     if (parts.length > 1) return parts[0];
     return base;
   }
-  return "Site";
+  return fallbackCompanyNameFromUrl(url ?? "");
 };
 const normalizeDomainInput = (value: string): string => {
   const trimmed = (value || "").trim();
   if (!trimmed) return "";
+
   try {
     const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    return baseDomainFromHost(parsed.hostname.toLowerCase());
+    const host = parsed.hostname.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
+    const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
+    if (greenhouse) return greenhouse;
+    return baseDomainFromHost(host);
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
-    return baseDomainFromHost(hostOnly.toLowerCase());
+    const host = hostOnly.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(host);
+    const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
+    if (greenhouse) return greenhouse;
+    return baseDomainFromHost(host);
   }
 };
 const deriveNameFromDomain = (domain: string): string => {
@@ -763,15 +773,18 @@ export const leaseSite = mutation({
       const scrapeProvider =
         (site as any).scrapeProvider ??
         (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+      const hasSchedule = !!(site as any).scheduleId;
+      const lastRun = (site as any).lastRunAt ?? 0;
+      const manualTriggerAt = (site as any).manualTriggerAt ?? 0;
       if (requestedType && siteType !== requestedType) continue;
       if (requestedProvider && scrapeProvider !== requestedProvider) continue;
-      if (site.completed) continue;
+      if (site.completed && !hasSchedule) continue;
       if (site.failed) continue;
       if (site.lockExpiresAt && site.lockExpiresAt > now) continue;
 
       // Manual trigger: bypass schedule/time gating for a short window
-      if (site.manualTriggerAt && site.manualTriggerAt > now - 15 * 60 * 1000) {
-        eligible.push({ site, eligibleAt: site.manualTriggerAt });
+      if (manualTriggerAt && manualTriggerAt > now - 15 * 60 * 1000 && manualTriggerAt > lastRun) {
+        eligible.push({ site, eligibleAt: manualTriggerAt });
         continue;
       }
 
@@ -787,7 +800,6 @@ export const leaseSite = mutation({
         const eligibleAt = latestEligibleTime(sched, now);
         if (!eligibleAt) continue;
 
-        const lastRun = site.lastRunAt ?? 0;
         if (lastRun >= eligibleAt) continue;
 
         eligible.push({ site, eligibleAt });
@@ -795,7 +807,7 @@ export const leaseSite = mutation({
       }
 
       // No schedule: treat as always eligible
-      eligible.push({ site, eligibleAt: site.lastRunAt ?? 0 });
+      eligible.push({ site, eligibleAt: lastRun });
     }
 
     const pick = eligible
@@ -831,6 +843,9 @@ export const leaseSite = mutation({
       lockedBy: s.lockedBy,
       lockExpiresAt: s.lockExpiresAt,
       completed: s.completed,
+      failed: (s as any).failed,
+      failCount: (s as any).failCount,
+      manualTriggerAt: (s as any).manualTriggerAt,
     };
   },
 });
@@ -893,6 +908,8 @@ export const completeSite = mutation({
       lockedBy: "",
       lockExpiresAt: 0,
       lastRunAt: now,
+      // One-off manual triggers should not keep re-leasing after a successful run.
+      manualTriggerAt: 0,
     });
     return { success: true };
   },
@@ -1616,6 +1633,8 @@ export const failSite = mutation({
       failed: true,
       lockedBy: "",
       lockExpiresAt: 0,
+      // Consume any manual trigger so it doesn't repeatedly lease failures.
+      manualTriggerAt: 0,
     });
     return { success: true };
   },
@@ -1748,16 +1767,33 @@ export const upsertSite = mutation({
     const siteType = args.type ?? "general";
     const scrapeProvider =
       args.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
-    const resolvedName = fallbackCompanyName(args.name, args.url);
+    const normalizedUrl = normalizeSiteUrl(args.url, siteType);
+    const resolvedName = fallbackCompanyName(args.name, normalizedUrl);
+    const key = siteCanonicalKey(normalizedUrl, siteType);
 
-    const id = await ctx.db.insert("sites", {
+    const sites = await ctx.db.query("sites").collect();
+    const existing = (sites as any[]).find(
+      (s: any) => siteCanonicalKey(s.url, (s as any).type) === key
+    );
+
+    const payload = {
       name: args.name ?? resolvedName,
-      url: args.url,
+      url: normalizedUrl,
       type: siteType,
       scrapeProvider,
       pattern: args.pattern,
       scheduleId: args.scheduleId,
       enabled: args.enabled,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, payload);
+      await upsertCompanyProfile(ctx, resolvedName, normalizedUrl, args.name);
+      return existing._id;
+    }
+
+    const id = await ctx.db.insert("sites", {
+      ...payload,
       // New sites should be leased immediately; keep lastRunAt at 0
       lastRunAt: 0,
     });
@@ -1849,20 +1885,39 @@ export const bulkUpsertSites = mutation({
   },
   handler: async (ctx, args) => {
     const ids = [];
+    const existingSites = await ctx.db.query("sites").collect();
     for (const site of args.sites) {
       const siteType = site.type ?? "general";
       const scrapeProvider =
         site.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
-      const resolvedName = fallbackCompanyName(site.name, site.url);
-      const id = await ctx.db.insert("sites", {
+      const normalizedUrl = normalizeSiteUrl(site.url, siteType);
+      const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
+      const key = siteCanonicalKey(normalizedUrl, siteType);
+      const existing = (existingSites as any[]).find(
+        (s: any) => siteCanonicalKey(s.url, (s as any).type) === key
+      );
+
+      const payload = {
         ...site,
         name: site.name ?? resolvedName,
+        url: normalizedUrl,
         type: siteType,
         scrapeProvider,
+      };
+
+      if (existing) {
+        await ctx.db.patch(existing._id, payload);
+        await upsertCompanyProfile(ctx, resolvedName, normalizedUrl, site.name ?? undefined);
+        ids.push(existing._id);
+        continue;
+      }
+
+      const id = await ctx.db.insert("sites", {
+        ...payload,
         // Same behavior as single add: make new sites immediately leaseable
         lastRunAt: 0,
       });
-      await upsertCompanyProfile(ctx, resolvedName, site.url, site.name ?? undefined);
+      await upsertCompanyProfile(ctx, resolvedName, normalizedUrl, site.name ?? undefined);
       ids.push(id);
     }
     return ids;
@@ -2491,6 +2546,325 @@ export const listPendingFirecrawlWebhooks = query({
   },
 });
 
+const normalizeUrlKey = (url: any) => {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return trimmed.replace(/\/+$/, "");
+};
+
+const clampRequestSnapshot = (value: any) => {
+  if (!value || typeof value !== "object") return value;
+  if (!("body" in value) && !("headers" in value) && !("method" in value) && !("url" in value)) {
+    return value;
+  }
+  const snapshot: Record<string, any> = {};
+  if ((value as any).method) snapshot.method = (value as any).method;
+  if ((value as any).url) snapshot.url = (value as any).url;
+  if ((value as any).headers) snapshot.headers = (value as any).headers;
+  if ("body" in value) {
+    try {
+      const bodyStr = JSON.stringify((value as any).body);
+      snapshot.body =
+        bodyStr.length > 900 ? `${bodyStr.slice(0, 900)}… (+${bodyStr.length - 900} chars)` : (value as any).body;
+    } catch {
+      snapshot.body = (value as any).body;
+    }
+  }
+  return snapshot;
+};
+
+const sanitizeForLog = (value: any) => {
+  if (value === null || value === undefined) return undefined;
+  value = clampRequestSnapshot(value);
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized.length <= 1200) return value;
+    return `${serialized.slice(0, 1200)}… (+${serialized.length - 1200} chars)`;
+  } catch {
+    const str = String(value);
+    return str.length > 1200 ? `${str.slice(0, 1200)}… (+${str.length - 1200} chars)` : str;
+  }
+};
+
+const urlFromJob = (job: any) => {
+  if (!job || typeof job !== "object") return null;
+  const candidates = [
+    (job as any).url,
+    (job as any).job_url,
+    (job as any).jobUrl,
+    (job as any)._url,
+    (job as any).link,
+    (job as any).href,
+    (job as any)._rawUrl,
+  ];
+  const url = candidates.find((u) => typeof u === "string" && u.trim());
+  return url ? String(url) : null;
+};
+
+const normalizedFromItems = (items: any): any[] => {
+  if (!items) return [];
+  if (Array.isArray(items.normalized)) return items.normalized;
+  if (Array.isArray(items.results?.items)) return items.results.items;
+  if (Array.isArray(items.items)) return items.items;
+  return [];
+};
+
+const rawJobUrlsFromItems = (items: any): string[] => {
+  if (!items || typeof items !== "object") return [];
+  return Array.isArray(items.raw?.job_urls)
+    ? (items.raw.job_urls as any[]).filter((u) => typeof u === "string" && u.trim())
+    : [];
+};
+
+const batchIdFromScrape = (scrape: any): string | undefined => {
+  const candidates = [
+    scrape?.batchId,
+    scrape?.items?.batchId,
+    scrape?.items?.jobId,
+    scrape?.items?.request?.batchId,
+    scrape?.items?.request?.jobId,
+    scrape?.items?.request?.id,
+    scrape?.items?.request?.idempotencyKey,
+    scrape?.items?.raw?.batchId,
+    scrape?.items?.raw?.batch_id,
+    scrape?.items?.raw?.jobId,
+    scrape?.items?.raw?.job_id,
+    scrape?.items?.raw?.id,
+    scrape?.response?.batchId,
+    scrape?.response?.jobId,
+    scrape?.asyncResponse?.batchId,
+    scrape?.asyncResponse?.jobId,
+  ];
+  const found = candidates.find((id) => typeof id === "string" && id.trim());
+  return found ? String(found).trim() : undefined;
+};
+
+const buildUrlLogEntriesForScrape = (
+  scrape: any,
+  {
+    existingUrls,
+    jobByUrl,
+  }: {
+    existingUrls: Set<string>;
+    jobByUrl: Map<string, any>;
+  }
+) => {
+  const logs: any[] = [];
+  const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
+  const workflow = scrape.workflowName ?? scrape.workflowType;
+  const batchId = batchIdFromScrape(scrape);
+  const timestamp = scrape.completedAt ?? scrape.startedAt ?? scrape._creationTime ?? Date.now();
+  const response = sanitizeForLog(scrape.response);
+  const asyncResponse = sanitizeForLog(scrape.asyncResponse);
+  const normalized = normalizedFromItems(scrape.items);
+  const rawJobUrls = rawJobUrlsFromItems(scrape.items);
+  const seedUrls = Array.isArray(scrape.items?.seedUrls)
+    ? (scrape.items.seedUrls as any[]).filter((u) => typeof u === "string" && u.trim())
+    : [];
+
+  const requestCandidates = [
+    (scrape as any).providerRequest,
+    scrape.request,
+    (scrape as any).requestData,
+    scrape.items?.request,
+    scrape.items?.requestData,
+    scrape.items?.raw?.request,
+    scrape.items?.raw?.request_data,
+    scrape.items?.raw?.requestData,
+    scrape.items?.raw?.requestBody,
+    scrape.items?.raw?.input,
+    scrape.items?.raw?.payload?.request,
+    scrape.items?.raw?.payload?.request_data,
+  ];
+
+  const baseRequest: Record<string, any> = {};
+  if (scrape.sourceUrl) baseRequest.sourceUrl = scrape.sourceUrl;
+  if (scrape.pattern) baseRequest.pattern = scrape.pattern;
+  if (seedUrls.length > 0) baseRequest.seedUrls = seedUrls;
+  const requestId = scrape.items?.raw?.jobId ?? scrape.items?.jobId ?? scrape.jobId;
+  if (requestId) baseRequest.jobId = requestId;
+  if (workflow) baseRequest.workflow = workflow;
+  const requestPayload = requestCandidates.find((candidate) => candidate !== undefined && candidate !== null) ?? baseRequest;
+  const sanitizedRequest = sanitizeForLog(requestPayload);
+
+  const pushEntry = (url: string | null, reason?: string) => {
+    const trimmedUrl = url?.trim() || scrape.sourceUrl;
+    const normalizedUrl = normalizeUrlKey(trimmedUrl);
+    const existing = normalizedUrl ? existingUrls.has(normalizedUrl) : false;
+    const matchedJob = normalizedUrl ? jobByUrl.get(normalizedUrl) : undefined;
+    const skipped = reason === "already_saved" || reason === "listing_only" || reason === "no_items" || existing;
+    logs.push({
+      url: trimmedUrl ?? "unknown",
+      reason: reason ?? (existing ? "already_saved" : undefined),
+      action: skipped ? "skipped" : "scraped",
+      provider,
+      workflow,
+      batchId,
+      requestData: sanitizedRequest,
+      response,
+      asyncResponse,
+      timestamp,
+      jobId: matchedJob?._id,
+      jobTitle: matchedJob?.title,
+      jobCompany: matchedJob?.company,
+    });
+  };
+
+  if (normalized.length > 0) {
+    for (const job of normalized) {
+      const url = urlFromJob(job);
+      pushEntry(url, !url ? "missing_url" : undefined);
+    }
+  } else if (rawJobUrls.length > 0) {
+    for (const url of rawJobUrls) {
+      pushEntry(url, "listing_only");
+    }
+  } else {
+    pushEntry(scrape.sourceUrl, "no_items");
+  }
+
+  return logs;
+};
+
+const collectCandidateUrls = (scrape: any): string[] => {
+  const normalized = normalizedFromItems(scrape.items);
+  const urls: string[] = [];
+  for (const job of normalized) {
+    const url = urlFromJob(job);
+    if (url) urls.push(url);
+  }
+  urls.push(...rawJobUrlsFromItems(scrape.items));
+  if (typeof scrape.sourceUrl === "string" && scrape.sourceUrl.trim()) {
+    urls.push(scrape.sourceUrl.trim());
+  }
+  return urls;
+};
+
+const buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
+  const existingUrls = new Set<string>();
+  const jobByUrl = new Map<string, any>();
+  const seenCandidates = new Set<string>();
+  const candidates = collectCandidateUrls(scrape);
+
+  for (const candidate of candidates) {
+    const trimmed = typeof candidate === "string" ? candidate.trim() : "";
+    if (!trimmed) continue;
+    const normalizedKey = normalizeUrlKey(trimmed);
+    if (normalizedKey && jobByUrl.has(normalizedKey)) {
+      existingUrls.add(normalizedKey);
+      continue;
+    }
+
+    const queryValues = [trimmed];
+    const withoutTrailing = trimmed.replace(/\/+$/, "");
+    if (withoutTrailing && withoutTrailing !== trimmed) {
+      queryValues.push(withoutTrailing);
+    }
+
+    let found: any = null;
+    for (const value of queryValues) {
+      if (seenCandidates.has(value)) continue;
+      seenCandidates.add(value);
+      const match = await ctx.db.query("jobs").withIndex("by_url", (q: any) => q.eq("url", value)).first();
+      if (match) {
+        found = match;
+        break;
+      }
+    }
+
+    if (!found) continue;
+    const key = normalizeUrlKey((found as any).url || trimmed);
+    if (key) {
+      existingUrls.add(key);
+      if (!jobByUrl.has(key)) {
+        jobByUrl.set(key, found);
+      }
+    }
+  }
+
+  return { existingUrls, jobByUrl };
+};
+
+const chunkUrlEntries = (entries: any[], maxChunkChars = 900) => {
+  const chunks: any[][] = [];
+  let current: any[] = [];
+  let currentSize = 0;
+
+  for (const entry of entries) {
+    const entrySize = JSON.stringify(entry).length;
+    if (current.length > 0 && currentSize + entrySize > maxChunkChars) {
+      chunks.push(current);
+      current = [];
+      currentSize = 0;
+    }
+    current.push(entry);
+    currentSize += entrySize;
+  }
+
+  if (current.length) {
+    chunks.push(current);
+  }
+
+  return chunks;
+};
+
+const logScrapeUrlsToScratchpad = async (
+  ctx: any,
+  scrape: any,
+  entries: any[],
+  scrapeId?: Id<"scrapes">
+) => {
+  if (!entries.length) return;
+
+  const total = entries.length;
+  const skipped = entries.filter((entry) => entry.action === "skipped").length;
+  const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
+  const workflowName = scrape.workflowName ?? scrape.workflowType;
+  const base = {
+    runId: scrape.runId,
+    workflowId: scrape.workflowId,
+    workflowName,
+    siteUrl: scrape.sourceUrl,
+    siteId: scrape.siteId,
+    event: "scrape.urls",
+    level: "info" as const,
+  };
+
+  const compactEntries = entries.map((entry) => ({
+    url: entry.url,
+    action: entry.action,
+    reason: entry.reason ?? (entry.action === "skipped" ? "already_saved" : undefined),
+    jobId: entry.jobId,
+    jobTitle: entry.jobTitle,
+    jobCompany: entry.jobCompany,
+  }));
+
+  const chunks = chunkUrlEntries(compactEntries);
+  let idx = 0;
+  for (const chunk of chunks) {
+    idx += 1;
+    try {
+      await ctx.db.insert("scratchpad_entries", {
+        ...base,
+        createdAt: Date.now(),
+        message: `Recorded scrape URLs (${total} total, ${skipped} skipped)${chunks.length > 1 ? ` [${idx}/${chunks.length}]` : ""}`,
+        data: sanitizeForLog({
+          provider,
+          batchId: batchIdFromScrape(scrape),
+          scrapeId,
+          total,
+          skipped,
+          entries: chunk,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to log scrape URLs to scratchpad", error);
+      break;
+    }
+  }
+};
+
 export const insertScrapeRecord = mutation({
   args: {
     sourceUrl: v.string(),
@@ -2515,6 +2889,16 @@ export const insertScrapeRecord = mutation({
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("scrapes", args);
+    try {
+      const scrapeForLogging = { ...args, _id: id };
+      const lookup = await buildExistingJobLookupForScrape(ctx, scrapeForLogging);
+      const entries = buildUrlLogEntriesForScrape(scrapeForLogging, lookup);
+      if (entries.length > 0) {
+        await logScrapeUrlsToScratchpad(ctx, scrapeForLogging, entries, id);
+      }
+    } catch (error) {
+      console.error("insertScrapeRecord: failed to log URL scratchpad entries", error);
+    }
     return id;
   },
 });
@@ -2560,13 +2944,6 @@ export const listUrlScrapeLogs = query({
     const scrapes = await ctx.db.query("scrapes").order("desc").take(limit * 2);
     const jobs = await ctx.db.query("jobs").collect();
 
-    const normalizeUrlKey = (url: any) => {
-      if (typeof url !== "string") return "";
-      const trimmed = url.trim();
-      if (!trimmed) return "";
-      return trimmed.replace(/\/+$/, "");
-    };
-
     const existingUrls = new Set(
       (jobs as any[])
         .map((j: any) => normalizeUrlKey((j as any).url))
@@ -2581,163 +2958,10 @@ export const listUrlScrapeLogs = query({
       }
     }
 
-    const clampRequest = (value: any) => {
-      if (!value || typeof value !== "object") return value;
-      if (!("body" in value) && !("headers" in value) && !("method" in value) && !("url" in value)) {
-        return value;
-      }
-      const snapshot: Record<string, any> = {};
-      if ((value as any).method) snapshot.method = (value as any).method;
-      if ((value as any).url) snapshot.url = (value as any).url;
-      if ((value as any).headers) snapshot.headers = (value as any).headers;
-      if ("body" in value) {
-        try {
-          const bodyStr = JSON.stringify((value as any).body);
-          snapshot.body =
-            bodyStr.length > 900 ? `${bodyStr.slice(0, 900)}… (+${bodyStr.length - 900} chars)` : (value as any).body;
-        } catch {
-          snapshot.body = (value as any).body;
-        }
-      }
-      return snapshot;
-    };
-
-    const sanitize = (value: any) => {
-      if (value === null || value === undefined) return undefined;
-      value = clampRequest(value);
-      try {
-        const serialized = JSON.stringify(value);
-        if (serialized.length <= 1200) return value;
-        return `${serialized.slice(0, 1200)}… (+${serialized.length - 1200} chars)`;
-      } catch {
-        const str = String(value);
-        return str.length > 1200 ? `${str.slice(0, 1200)}… (+${str.length - 1200} chars)` : str;
-      }
-    };
-
-    const urlFromJob = (job: any) => {
-      if (!job || typeof job !== "object") return null;
-      const candidates = [
-        (job as any).url,
-        (job as any).job_url,
-        (job as any).jobUrl,
-        (job as any)._url,
-        (job as any).link,
-        (job as any).href,
-        (job as any)._rawUrl,
-      ];
-      const url = candidates.find((u) => typeof u === "string" && u.trim());
-      return url ? String(url) : null;
-    };
-
-    const normalizedFromItems = (items: any): any[] => {
-      if (!items) return [];
-      if (Array.isArray(items.normalized)) return items.normalized;
-      if (Array.isArray(items.results?.items)) return items.results.items;
-      if (Array.isArray(items.items)) return items.items;
-      return [];
-    };
-
-    const batchIdFromScrape = (scrape: any): string | undefined => {
-      const candidates = [
-        scrape?.batchId,
-        scrape?.items?.batchId,
-        scrape?.items?.jobId,
-        scrape?.items?.request?.batchId,
-        scrape?.items?.request?.jobId,
-        scrape?.items?.request?.id,
-        scrape?.items?.request?.idempotencyKey,
-        scrape?.items?.raw?.batchId,
-        scrape?.items?.raw?.batch_id,
-        scrape?.items?.raw?.jobId,
-        scrape?.items?.raw?.job_id,
-        scrape?.items?.raw?.id,
-        scrape?.response?.batchId,
-        scrape?.response?.jobId,
-        scrape?.asyncResponse?.batchId,
-        scrape?.asyncResponse?.jobId,
-      ];
-      const found = candidates.find((id) => typeof id === "string" && id.trim());
-      return found ? String(found).trim() : undefined;
-    };
-
     const logs: any[] = [];
 
     for (const scrape of scrapes as any[]) {
-      const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
-      const workflow = scrape.workflowName ?? scrape.workflowType;
-      const batchId = batchIdFromScrape(scrape);
-      const timestamp = scrape.completedAt ?? scrape.startedAt ?? scrape._creationTime ?? Date.now();
-      const response = sanitize(scrape.response);
-      const asyncResponse = sanitize(scrape.asyncResponse);
-      const normalized = normalizedFromItems(scrape.items);
-      const rawJobUrls = Array.isArray(scrape.items?.raw?.job_urls)
-        ? (scrape.items.raw.job_urls as any[]).filter((u) => typeof u === "string" && u.trim())
-        : [];
-      const seedUrls = Array.isArray(scrape.items?.seedUrls)
-        ? (scrape.items.seedUrls as any[]).filter((u) => typeof u === "string" && u.trim())
-        : [];
-
-      const requestCandidates = [
-        (scrape as any).providerRequest,
-        scrape.request,
-        (scrape as any).requestData,
-        scrape.items?.request,
-        scrape.items?.requestData,
-        scrape.items?.raw?.request,
-        scrape.items?.raw?.request_data,
-        scrape.items?.raw?.requestData,
-        scrape.items?.raw?.requestBody,
-        scrape.items?.raw?.input,
-        scrape.items?.raw?.payload?.request,
-        scrape.items?.raw?.payload?.request_data,
-      ];
-
-      const baseRequest: Record<string, any> = {};
-      if (scrape.sourceUrl) baseRequest.sourceUrl = scrape.sourceUrl;
-      if (scrape.pattern) baseRequest.pattern = scrape.pattern;
-      if (seedUrls.length > 0) baseRequest.seedUrls = seedUrls;
-      const requestId = scrape.items?.raw?.jobId ?? scrape.items?.jobId ?? scrape.jobId;
-      if (requestId) baseRequest.jobId = requestId;
-      if (workflow) baseRequest.workflow = workflow;
-      const requestPayload = requestCandidates.find((candidate) => candidate !== undefined && candidate !== null) ?? baseRequest;
-      const sanitizedRequest = sanitize(requestPayload);
-
-      const pushEntry = (url: string | null, reason?: string) => {
-        const trimmedUrl = url?.trim() || scrape.sourceUrl;
-        const normalizedUrl = normalizeUrlKey(trimmedUrl);
-        const existing = normalizedUrl ? existingUrls.has(normalizedUrl) : false;
-        const matchedJob = normalizedUrl ? jobByUrl.get(normalizedUrl) : undefined;
-        const skipped = reason === "already_saved" || reason === "listing_only" || reason === "no_items" || existing;
-        logs.push({
-          url: trimmedUrl ?? "unknown",
-          reason: reason ?? (existing ? "already_saved" : undefined),
-          action: skipped ? "skipped" : "scraped",
-          provider,
-          workflow,
-          batchId,
-          requestData: sanitizedRequest,
-          response,
-          asyncResponse,
-          timestamp,
-          jobId: matchedJob?._id,
-          jobTitle: matchedJob?.title,
-          jobCompany: matchedJob?.company,
-        });
-      };
-
-      if (normalized.length > 0) {
-        for (const job of normalized) {
-          const url = urlFromJob(job);
-          pushEntry(url, !url ? "missing_url" : undefined);
-        }
-      } else if (rawJobUrls.length > 0) {
-        for (const url of rawJobUrls) {
-          pushEntry(url, "listing_only");
-        }
-      } else {
-        pushEntry(scrape.sourceUrl, "no_items");
-      }
+      logs.push(...buildUrlLogEntriesForScrape(scrape, { existingUrls, jobByUrl }));
     }
 
     return logs
@@ -2757,6 +2981,10 @@ export const ingestJobsFromScrape = mutation({
         locations: v.optional(v.array(v.string())),
         city: v.optional(v.string()),
         state: v.optional(v.string()),
+        countries: v.optional(v.array(v.string())),
+        country: v.optional(v.string()),
+        locationStates: v.optional(v.array(v.string())),
+        locationSearch: v.optional(v.string()),
         remote: v.boolean(),
         level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
         totalCompensation: v.number(),
@@ -2768,6 +2996,10 @@ export const ingestJobsFromScrape = mutation({
         scrapedCostMilliCents: v.optional(v.number()),
         compensationUnknown: v.optional(v.boolean()),
         compensationReason: v.optional(v.string()),
+        currencyCode: v.optional(v.string()),
+        heuristicAttempts: v.optional(v.number()),
+        heuristicLastTried: v.optional(v.number()),
+        heuristicVersion: v.optional(v.number()),
       })
     ),
     siteId: v.optional(v.id("sites")),

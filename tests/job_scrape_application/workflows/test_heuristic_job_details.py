@@ -769,7 +769,7 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(monkey
     patch = updated[0]
     assert patch["location"].startswith("Los Angeles")
     assert patch["locations"][0].startswith("Los Angeles")
-    assert patch["locationStates"] == ["California"]
+    assert patch["locationStates"] == ["CA"]
     assert patch["countries"] == ["United States"]
     assert patch["country"] == "United States"
     assert patch["totalCompensation"] == 325000
@@ -828,6 +828,14 @@ async def test_process_pending_job_details_batch_handles_canadian_location(monke
     assert any(call.get("field") == "location" for call in recorded)
 
 
+def test_parse_markdown_hints_prefers_us_primary_when_present():
+    markdown = "Engineer\nMadrid, Spain\nBoston, MA\nMore details."
+    hints = parse_markdown_hints(markdown)
+    assert hints.get("location") == "Boston, MA"
+    assert hints.get("locations", [None])[0] == "Boston, MA"
+    assert "Madrid, Spain" in hints.get("locations", [])
+
+
 @pytest.mark.asyncio
 async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(monkeypatch):
     description = (
@@ -876,10 +884,11 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for coupang listing"
-    # The default location regex matches the comma in the title before the real location line.
-    assert updated[0]["location"] == "Staff, Back-end Engineer"
-    assert updated[0]["location"] != "Seoul, South Korea"
-    assert any(rec.get("regex") == r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})" for rec in recorded)
+    assert updated[0]["location"] == "Seoul, South Korea"
+    assert updated[0]["locations"] == ["Seoul, South Korea"]
+    assert updated[0]["countries"] == ["South Korea"]
+    assert updated[0]["country"] == "South Korea"
+    assert any(call.get("field") == "location" for call in recorded)
 
 
 @pytest.mark.asyncio

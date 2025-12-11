@@ -105,12 +105,24 @@ def _setup_logging() -> logging.Logger:
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "temporal_worker.log"
+    scheduling_log_file = log_dir / "scheduling.log"
 
     fmt = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     handlers = [
         RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=3),
         logging.StreamHandler(sys.stdout),
     ]
+    scheduling_handler = RotatingFileHandler(scheduling_log_file, maxBytes=2_000_000, backupCount=2)
+    scheduling_handler.setLevel(logging.INFO)
+
+    class _SchedulingOnly(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:  # noqa: D401
+            """Route only scheduling logs to scheduling.log."""
+
+            return record.name.startswith("temporal.scheduler")
+
+    scheduling_handler.addFilter(_SchedulingOnly())
+    handlers.append(scheduling_handler)
 
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
     return logging.getLogger("temporal.worker")

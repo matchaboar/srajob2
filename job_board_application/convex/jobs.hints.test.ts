@@ -28,7 +28,7 @@ describe("markdown hint parsing", () => {
   it("parses title/location/level/compensation from markdown", () => {
     const hints = parseMarkdownHints(OFFSEC_MARKDOWN);
     expect(hints.title).toBe("Senior Offensive Security Engineer");
-    expect(hints.location).toBe("Menlo Park, CA");
+    expect(hints.location).toBe("Menlo Park, California");
     expect(hints.level).toBe("senior");
     expect(hints.compensation).toBeGreaterThanOrEqual(187000);
   });
@@ -61,7 +61,7 @@ describe("markdown hint parsing", () => {
   it("parses robinhood reliability markdown with links and fills location when re-parsed", () => {
     const hints = parseMarkdownHints(RELIABILITY_MARKDOWN);
 
-    expect(hints.location).toBe("Menlo Park, CA");
+    expect(hints.location).toBe("Menlo Park, California");
     expect(hints.title).toBe("Staff Software Engineer, Reliability");
 
     const job = {
@@ -87,6 +87,19 @@ describe("markdown hint parsing", () => {
   it("falls back to mapped common tech cities when no explicit location line", () => {
     const hints = parseMarkdownHints(CITY_IN_BODY_MARKDOWN);
     expect(hints.location).toBe("Seattle, Washington");
+  });
+
+  it("prefers United States location when mixed with international lines", () => {
+    const markdown = `
+Job Application for Engineer at DemoCo
+# Engineer
+Madrid, Spain
+New York, NY
+`;
+    const hints = parseMarkdownHints(markdown);
+    expect(hints.location).toBe("New York, New York");
+    expect(hints.locations?.[0]).toBe("New York, New York");
+    expect(hints.locations?.[1]).toBe("Madrid, Spain");
   });
 
   it("overrides existing unknown city/state values when re-parsed", () => {
