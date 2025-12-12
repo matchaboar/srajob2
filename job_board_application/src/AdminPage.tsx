@@ -912,17 +912,16 @@ function CompanyNamesSection() {
   }
 
   const rows = domainAliases as any[];
-  const filteredRows = useMemo(() => {
-    const q = domainSearch.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) => {
-      const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
-        .filter((v) => typeof v === "string")
-        .map((v) => (v as string).toLowerCase());
-      return fields.some((v) => v.includes(q));
-    });
-  }, [rows, domainSearch]);
-  const showFilteredCount = domainSearch.trim().length > 0;
+  const domainSearchLower = domainSearch.trim().toLowerCase();
+  const filteredRows = !domainSearchLower
+    ? rows
+    : rows.filter((row) => {
+        const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
+          .filter((v) => typeof v === "string")
+          .map((v) => (v as string).toLowerCase());
+        return fields.some((v) => v.includes(domainSearchLower));
+      });
+  const showFilteredCount = Boolean(domainSearchLower);
 
   return (
     <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
