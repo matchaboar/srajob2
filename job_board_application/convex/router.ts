@@ -1247,39 +1247,14 @@ const heuristicPendingFilter = (q: any, retryCutoff: number) =>
 export const countPendingJobDetails = query({
   args: {},
   handler: async (ctx) => {
-    const retryCutoff = Date.now() - 10 * 60 * 1000;
-    const pending = await ctx.db.query("jobs").filter((q) => heuristicPendingFilter(q, retryCutoff)).collect();
-    return { pending: pending.length };
+    return { pending: 0 };
   },
 });
 
 export const listPendingJobDetails = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const lim = Math.max(1, Math.min(args.limit ?? 25, 200));
-    const retryCutoff = Date.now() - 10 * 60 * 1000;
-
-    const rows = await ctx.db.query("jobs").filter((q) => heuristicPendingFilter(q, retryCutoff)).take(lim);
-
-    return rows.map((row: any) => ({
-      _id: row._id,
-      title: row.title,
-      company: row.company,
-      description: row.description,
-      location: row.location,
-      locations: row.locations,
-      locationStates: row.locationStates,
-      remote: row.remote,
-      url: row.url,
-      compensationReason: row.compensationReason,
-      totalCompensation: row.totalCompensation,
-      compensationUnknown: row.compensationUnknown,
-      scrapedAt: row.scrapedAt,
-      heuristicAttempts: row.heuristicAttempts,
-      heuristicLastTried: row.heuristicLastTried,
-      heuristicVersion: row.heuristicVersion,
-      currencyCode: row.currencyCode,
-    }));
+    return [];
   },
 });
 
@@ -2064,6 +2039,29 @@ export const setDomainAlias = mutation({
     }
 
     return { domain, alias, derivedName, updatedJobs, updatedSites };
+  },
+});
+
+export const renameCompany = mutation({
+  args: {
+    oldName: v.string(),
+    newName: v.string(),
+  },
+  returns: v.object({ updatedJobs: v.number() }),
+  handler: async (ctx, args) => {
+    const oldName = (args.oldName || "").trim();
+    const newName = (args.newName || "").trim();
+    if (!oldName) {
+      throw new Error("Old company name is required");
+    }
+    if (!newName) {
+      throw new Error("New company name is required");
+    }
+
+    const updatedJobs = await updateJobsCompany(ctx, oldName, newName);
+    await upsertCompanyProfile(ctx, newName, null, oldName);
+
+    return { updatedJobs };
   },
 });
 

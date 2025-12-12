@@ -20,7 +20,6 @@ from .scrape_workflow import (
     SpidercloudJobDetailsWorkflow,
     SpidercloudScrapeWorkflow,
 )
-from .heuristic_workflow import HeuristicJobDetailsWorkflow
 from .greenhouse_workflow import GreenhouseScraperWorkflow
 from .webhook_workflow import (
     ProcessWebhookIngestWorkflow,
@@ -34,7 +33,6 @@ WORKFLOW_CLASSES = [
     FetchfoxSpidercloudWorkflow,
     SpidercloudScrapeWorkflow,
     SpidercloudJobDetailsWorkflow,
-    HeuristicJobDetailsWorkflow,
     GreenhouseScraperWorkflow,
     SiteLeaseWorkflow,
     ProcessWebhookIngestWorkflow,
@@ -64,7 +62,6 @@ ACTIVITY_FUNCTIONS = [
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
     activities.complete_scrape_urls,
-    activities.process_pending_job_details_batch,
 ]
 
 

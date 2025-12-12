@@ -17,8 +17,17 @@ sys.modules.setdefault("firecrawl", firecrawl_mod)
 firecrawl_v2 = types.ModuleType("firecrawl.v2")
 firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
 firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
+firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
 sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
 sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
+firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
+firecrawl_v2_utils.PaymentRequiredError = type("PaymentRequiredError", (Exception,), {})
+firecrawl_v2_utils.RequestTimeoutError = type("RequestTimeoutError", (Exception,), {})
+sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
+firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
+firecrawl_v2_utils_error.PaymentRequiredError = firecrawl_v2_utils.PaymentRequiredError
+firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.RequestTimeoutError
+sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
 fetchfox_mod = types.ModuleType("fetchfox_sdk")
 fetchfox_mod.FetchFox = type("FetchFox", (), {})
 sys.modules.setdefault("fetchfox_sdk", fetchfox_mod)
@@ -531,6 +540,11 @@ def airbnb_markdown() -> str:
     return path.read_text(encoding="utf-8")
 
 @pytest.fixture
+def airbnb_china_markdown() -> str:
+    path = Path("tests/fixtures/airbnb-china-cm.md")
+    return path.read_text(encoding="utf-8")
+
+@pytest.fixture
 def stubhub_markdown() -> str:
     path = Path("tests/fixtures/stubhub-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
@@ -565,6 +579,14 @@ def test_parse_markdown_hints_stubhub_range_and_hybrid(stubhub_markdown):
     assert hints.get("remote") is False
     assert hints.get("compensation_range") == {"low": 300000, "high": 350000}
     assert hints.get("compensation") == 325000
+
+
+def test_parse_markdown_hints_prefers_country_over_incidental_city(airbnb_china_markdown):
+    hints = parse_markdown_hints(airbnb_china_markdown)
+
+    assert hints.get("locations") == ["China"]
+    assert hints.get("location") == "China"
+    assert "San Francisco" not in (hints.get("location") or "")
 
 
 @pytest.mark.asyncio
@@ -720,6 +742,57 @@ async def test_process_pending_job_details_batch_handles_brazil_location(monkeyp
     assert patch["locations"] == ["Sao Paulo, Brazil"]
     assert patch["countries"] == ["Brazil"]
     assert patch["country"] == "Brazil"
+    assert any(call.get("field") == "location" for call in recorded)
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_handles_china_country(monkeypatch, airbnb_china_markdown):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-airbnb-china",
+            "title": "Senior Software Engineer, Community Support Engineering",
+            "description": airbnb_china_markdown,
+            "url": "https://careers.airbnb.com/jobs/1234",
+            "location": "Unknown",
+            "locations": [],
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for airbnb china fixture"
+    patch = updated[0]
+    assert patch["location"] == "China"
+    assert patch["locations"] == ["China"]
+    assert patch["countries"] == ["China"]
+    assert patch["country"] == "China"
+    assert "San Francisco" not in patch.get("location", "")
     assert any(call.get("field") == "location" for call in recorded)
 
 

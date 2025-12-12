@@ -17,4 +17,4 @@ def test_schedule_yaml_includes_heuristic_job_details():
     from job_scrape_application.workflows.create_schedule import load_schedule_configs
 
     ids = {cfg.id for cfg in load_schedule_configs()}
-    assert "heuristic-job-details" in ids
+    assert "heuristic-job-details" not in ids

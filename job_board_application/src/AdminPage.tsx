@@ -809,8 +809,26 @@ function SidebarItem({ label, active, onClick }: { label: string; active: boolea
 function CompanyNamesSection() {
   const domainAliases = useQuery(api.router.listDomainAliases);
   const setDomainAlias = useMutation(api.router.setDomainAlias);
+  const renameCompany = useMutation(api.router.renameCompany);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingDomain, setSavingDomain] = useState<string | null>(null);
+  const [renameOldName, setRenameOldName] = useState("");
+  const [renameNewName, setRenameNewName] = useState("");
+  const [renameFocused, setRenameFocused] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [domainSearch, setDomainSearch] = useState("");
+
+  const renameSuggestions = useQuery(api.jobs.searchCompanies, {
+    search: renameOldName.trim(),
+    limit: 10,
+  });
+
+  const filteredRenameSuggestions = useMemo(() => {
+    const suggestions = (renameSuggestions as any[]) ?? [];
+    const q = renameOldName.trim().toLowerCase();
+    if (!q) return suggestions;
+    return suggestions.filter((s) => (s?.name ?? "").toLowerCase().includes(q));
+  }, [renameSuggestions, renameOldName]);
 
   const handleSave = async (domain: string, fallbackAlias: string, siteUrl?: string) => {
     const nextAlias = (drafts[domain] ?? fallbackAlias ?? "").trim();
@@ -846,6 +864,31 @@ function CompanyNamesSection() {
     });
   };
 
+  const handleRenameExisting = async () => {
+    const oldName = renameOldName.trim();
+    const newName = renameNewName.trim();
+    if (!oldName || !newName) {
+      toast.error("Both company names are required");
+      return;
+    }
+    try {
+      setRenaming(true);
+      const res = await renameCompany({ oldName, newName });
+      const updatedJobs = (res as any)?.updatedJobs ?? 0;
+      if (updatedJobs > 0) {
+        toast.success(`Renamed ${updatedJobs} job${updatedJobs === 1 ? "" : "s"}`);
+      } else {
+        toast.success("No matching jobs found");
+      }
+      setRenameOldName("");
+      setRenameNewName("");
+    } catch {
+      toast.error("Failed to rename company");
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   if (domainAliases === undefined) {
     return <div className="text-slate-400 p-4">Loading company names...</div>;
   }
@@ -869,6 +912,17 @@ function CompanyNamesSection() {
   }
 
   const rows = domainAliases as any[];
+  const filteredRows = useMemo(() => {
+    const q = domainSearch.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
+        .filter((v) => typeof v === "string")
+        .map((v) => (v as string).toLowerCase());
+      return fields.some((v) => v.includes(q));
+    });
+  }, [rows, domainSearch]);
+  const showFilteredCount = domainSearch.trim().length > 0;
 
   return (
     <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
@@ -881,8 +935,77 @@ function CompanyNamesSection() {
           </p>
         </div>
         <div className="text-[11px] text-slate-400 px-2 py-1 border border-slate-800 rounded bg-slate-950/50">
-          {rows.length} domain{rows.length === 1 ? "" : "s"}
+          {showFilteredCount ? `${filteredRows.length} of ${rows.length} domains` : `${rows.length} domain${rows.length === 1 ? "" : "s"}`}
         </div>
+      </div>
+
+      <div className="mb-4 bg-slate-950/40 border border-slate-800 rounded p-3">
+        <div className="text-sm font-semibold text-white mb-2">Rename existing company values</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+          <div className="relative">
+            <input
+              type="text"
+              value={renameOldName}
+              onChange={(e) => setRenameOldName(e.target.value)}
+              onFocus={() => setRenameFocused(true)}
+              onBlur={() => setRenameFocused(false)}
+              placeholder="Current company (as shown on jobs)"
+              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            {renameFocused && filteredRenameSuggestions.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-slate-950 border border-slate-800 rounded shadow">
+                {filteredRenameSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.name}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setRenameOldName(suggestion.name);
+                      setRenameFocused(false);
+                    }}
+                    className="w-full flex justify-between items-center px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-900"
+                  >
+                    <span className="truncate">{suggestion.name}</span>
+                    <span className="text-[11px] text-slate-500">{suggestion.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <input
+            type="text"
+            value={renameNewName}
+            onChange={(e) => setRenameNewName(e.target.value)}
+            placeholder="New company name"
+            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => { void handleRenameExisting(); }}
+            disabled={renaming}
+            className={clsx(
+              "px-3 py-1.5 rounded text-sm font-medium transition-colors",
+              renaming
+                ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
+                : "bg-emerald-600 text-white hover:bg-emerald-500"
+            )}
+          >
+            {renaming ? "Renaming..." : "Rename jobs"}
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-2">
+          Use this for one-off bad scraped names (e.g. hostname-like companies). For future scrapes, set a domain alias below.
+        </p>
+      </div>
+
+      <div className="mb-3 flex items-center gap-2">
+        <input
+          type="text"
+          value={domainSearch}
+          onChange={(e) => setDomainSearch(e.target.value)}
+          placeholder="Filter domains or company names..."
+          className="w-full md:w-96 bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
       </div>
 
       <div className="overflow-x-auto">
@@ -896,7 +1019,7 @@ function CompanyNamesSection() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {rows.map((row) => {
+            {filteredRows.map((row) => {
               const draftValue = drafts[row.domain] ?? row.alias ?? row.derivedName ?? "";
               const usesAlias = (row.alias ?? row.derivedName ?? "") !== (row.derivedName ?? "");
               return (

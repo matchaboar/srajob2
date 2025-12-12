@@ -4,6 +4,8 @@ import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import { DataModel } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
+import { internalMutation } from "./_generated/server";
+import { v } from "convex/values";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
@@ -148,7 +150,7 @@ export const dedupeSites = migrations.define({
   table: "sites",
   migrateOne: (() => {
     let ran = false;
-    return async (ctx: any) => {
+    return async (ctx) => {
       if (ran) return;
       ran = true;
       await dedupeSitesImpl(ctx);
@@ -182,7 +184,7 @@ export const retagGreenhouseJobs = migrations.define({
   table: "jobs",
   migrateOne: (() => {
     let ran = false;
-    return async (ctx: any) => {
+    return async (ctx) => {
       if (ran) return;
       ran = true;
       await retagGreenhouseJobsImpl(ctx);
@@ -190,13 +192,18 @@ export const retagGreenhouseJobs = migrations.define({
   })(),
 });
 
-export const runAll = migrations.runner([
-  internal.migrations.fixJobLocations,
-  internal.migrations.backfillScrapeMetadata,
-  internal.migrations.backfillScrapeRecords,
-  internal.migrations.dedupeSites,
-  internal.migrations.retagGreenhouseJobs,
-]);
+export const runAll = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<any> => {
+    return await migrations.runSerially(ctx, [
+      internal.migrations.fixJobLocations,
+      internal.migrations.backfillScrapeMetadata,
+      internal.migrations.backfillScrapeRecords,
+      internal.migrations.dedupeSites,
+      internal.migrations.retagGreenhouseJobs,
+    ]);
+  },
+});
 
 export const deriveCostMilliCents = (doc: any): number => {
   const costVal = doc?.costMilliCents;

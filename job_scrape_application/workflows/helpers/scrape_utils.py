@@ -310,6 +310,7 @@ except FileNotFoundError:
 
 _LOCATION_DICTIONARY: dict[str, dict[str, Any]] = {}
 _CITY_KEYWORDS: dict[str, dict[str, Any]] = {}
+_COUNTRY_KEY_TO_LABEL: dict[str, str] = {}
 
 
 def _register_location_key(value: str, entry: dict[str, Any], track_city: bool = False) -> None:
@@ -328,6 +329,9 @@ for _entry in _LOCATION_ENTRIES:
     remote_only = bool(_entry.get("remoteOnly"))
     state_abbr = _STATE_ABBR_BY_NAME.get(state)
     record = {"city": city, "state": state, "country": country, "remoteOnly": remote_only}
+    country_key = _normalize_location_key(country)
+    if country_key and country_key not in _COUNTRY_KEY_TO_LABEL:
+        _COUNTRY_KEY_TO_LABEL[country_key] = country
     aliases = set([city, *(_entry.get("aliases") or [])])
     for alias in aliases:
         _register_location_key(alias, record, track_city=True)
@@ -379,6 +383,13 @@ def _find_city_in_text(text: str) -> Optional[dict[str, Any]]:
     return None
 
 
+def _normalize_country_label(value: str) -> Optional[str]:
+    key = _normalize_location_key(value)
+    if not key:
+        return None
+    return _COUNTRY_KEY_TO_LABEL.get(key)
+
+
 def _to_int(value: str) -> Optional[int]:
     try:
         digits = value.replace(",", "").replace(".", "")
@@ -404,6 +415,10 @@ def _normalize_locations(locations: List[str]) -> List[str]:
                 continue
             resolved = _resolve_location_from_dictionary(candidate)
             if not resolved:
+                country_label = _normalize_country_label(candidate)
+                if country_label and country_label not in seen:
+                    seen.add(country_label)
+                    normalized.append(country_label)
                 continue
             label = _format_location_label(resolved.get("city"), resolved.get("state"), resolved.get("country"))
             if label and label not in seen:
@@ -513,6 +528,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if any(keyword in lower for keyword in ("engineer", "developer", "manager", "designer", "product", "software", "data", "security", "analyst")):
             continue
         if title_lower and title_lower in lower:
+            continue
+        country_label = _normalize_country_label(
+            re.sub(r"^(?:location|office|offices|based in)\s*[:\-–]\s*", "", t, flags=re.IGNORECASE)
+        )
+        if country_label:
+            location_candidates.append(country_label)
             continue
         if "," in t:
             candidate_line = re.sub(r"^(?:location|office|based in)\s*[:\-–]\s*", "", t, flags=re.IGNORECASE)

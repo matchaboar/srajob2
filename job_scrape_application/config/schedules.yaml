@@ -39,10 +39,4 @@ schedules:
     catchup_window_hours: 12
     overlap: skip
 
-  # Periodic heuristic parsing of pending jobs (markdown extraction fallbacks)
-  - id: heuristic-job-details
-    workflow: HeuristicJobDetails
-    interval_seconds: 300
-    task_queue: scraper-task-queue
-    catchup_window_hours: 6
-    overlap: skip
+  # (Disabled) Heuristic parsing backfill was removed to reduce costly table reads.
