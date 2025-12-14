@@ -60,6 +60,12 @@ class FakeDb {
   query(table: string) {
     const self = this;
     return {
+      collect() {
+        if (table === "jobs") {
+          return Array.from(self.jobs.values());
+        }
+        throw new Error(`Unsupported collect for table ${table}`);
+      },
       withIndex(_name: string, cb: (q: any) => any) {
         const value = cb({ eq: (_field: string, val: any) => val });
         if (table === "jobs") {
@@ -125,5 +131,24 @@ describe("updateSiteName", () => {
     for (const id of ["job-1", "job-2", "job-3", "job-4"]) {
       expect(ctx.db.jobs.get(id)!.company).toBe("Datadog");
     }
+  });
+
+  it("retags jobs from the same domain even if company does not match old name", async () => {
+    const ctx: any = {
+      db: new FakeDb({
+        sites: [{ _id: "site-1", name: "Exampleco", url: "https://careers.example.com/jobs" }],
+        jobs: [
+          { _id: "job-1", company: "WeirdScrapeName", url: "https://jobs.example.com/positions/1" },
+          { _id: "job-2", company: "OtherCo", url: "https://jobs.other.com/positions/2" },
+        ],
+      }),
+    };
+
+    const handler = (updateSiteName as any).handler ?? updateSiteName;
+    const result = await handler(ctx, { id: "site-1", name: "Example" });
+
+    expect(result.updatedJobs).toBe(1);
+    expect(ctx.db.jobs.get("job-1")!.company).toBe("Example");
+    expect(ctx.db.jobs.get("job-2")!.company).toBe("OtherCo");
   });
 });

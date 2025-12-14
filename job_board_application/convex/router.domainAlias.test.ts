@@ -97,6 +97,9 @@ class FakeDb {
 
     if (table === "jobs") {
       return {
+        collect() {
+          return Array.from(self.jobs.values());
+        },
         withIndex(_name: string, cb: (q: any) => any) {
           const company = cb({ eq: (_field: string, val: any) => val });
           const rows = Array.from(self.jobs.values()).filter((j) => j.company === company);
@@ -176,5 +179,34 @@ describe("setDomainAlias", () => {
     expect(ctx.db.sites.get("site-coupang")?.name).toBe("Coupang");
     expect(ctx.db.jobs.get("job-stubhub")?.company).toBe("Stubhub Inc");
     expect(ctx.db.jobs.get("job-coupang")?.company).toBe("Coupang");
+  });
+
+  it("retags jobs by domain even when scraped company differs", async () => {
+    const ctx: any = {
+      db: new FakeDb({
+        jobs: [
+          {
+            _id: "job-pinterest",
+            company: "Pinterestcareers",
+            url: "https://boards.greenhouse.io/pinterestcareers/jobs/123",
+          },
+          {
+            _id: "job-other",
+            company: "OtherCo",
+            url: "https://boards.greenhouse.io/other/jobs/456",
+          },
+        ],
+      }),
+    };
+
+    const handler = (setDomainAlias as any).handler ?? setDomainAlias;
+    const res = await handler(ctx, {
+      domainOrUrl: "https://boards.greenhouse.io/pinterestcareers/jobs",
+      alias: "Pinterest",
+    });
+
+    expect(res.updatedJobs).toBe(1);
+    expect(ctx.db.jobs.get("job-pinterest")?.company).toBe("Pinterest");
+    expect(ctx.db.jobs.get("job-other")?.company).toBe("OtherCo");
   });
 });

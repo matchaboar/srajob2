@@ -806,7 +806,7 @@ function SidebarItem({ label, active, onClick }: { label: string; active: boolea
   );
 }
 
-function CompanyNamesSection() {
+export function CompanyNamesSection() {
   const domainAliases = useQuery(api.router.listDomainAliases);
   const setDomainAlias = useMutation(api.router.setDomainAlias);
   const renameCompany = useMutation(api.router.renameCompany);

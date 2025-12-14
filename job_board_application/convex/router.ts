@@ -214,6 +214,28 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
 
   return patchedIds.size;
 };
+
+const updateJobsCompanyByDomain = async (ctx: any, domain: string, nextName: string) => {
+  const normalizedDomain = (domain || "").trim();
+  const next = (nextName || "").trim();
+  if (!normalizedDomain || !next) return 0;
+  const nextNorm = normalizeCompany(next);
+  if (!nextNorm) return 0;
+
+  const jobs = await _collectRows(ctx.db.query("jobs"));
+  let updated = 0;
+  for (const job of jobs as any[]) {
+    const jobUrl = typeof job?.url === "string" ? job.url : "";
+    if (!jobUrl) continue;
+    const jobDomain = normalizeDomainInput(jobUrl);
+    if (!jobDomain || jobDomain !== normalizedDomain) continue;
+    const currentCompany = typeof job?.company === "string" ? job.company : "";
+    if (normalizeCompany(currentCompany) === nextNorm) continue;
+    await ctx.db.patch(job._id, { company: next });
+    updated += 1;
+  }
+  return updated;
+};
 const scheduleDay = v.union(
   v.literal("mon"),
   v.literal("tue"),
@@ -1818,6 +1840,10 @@ const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: st
       if (prev === name) continue;
       updatedJobs += await updateJobsCompany(ctx, prev, name);
     }
+    const domain = normalizeDomainInput((site as any).url);
+    if (domain) {
+      updatedJobs += await updateJobsCompanyByDomain(ctx, domain, name);
+    }
   } catch (err) {
     console.error("updateSiteName: failed retagging jobs", err);
     // Continue returning success so the admin UI doesn't block; jobs can be retagged manually later.
@@ -2029,6 +2055,10 @@ export const setDomainAlias = mutation({
         updatedJobs += await updateJobsCompany(ctx, prev, alias);
       }
     }
+
+    // Also retag any jobs from this domain, even if their scraped company
+    // doesn't match the derived/previous names (fixes hostname-like company values).
+    updatedJobs += await updateJobsCompanyByDomain(ctx, domain, alias);
 
     let updatedSites = 0;
     for (const site of matchingSites) {
