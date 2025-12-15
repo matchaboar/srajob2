@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+import html
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
@@ -173,6 +174,23 @@ class SpiderCloudScraper(BaseScraper):
                 return line.strip()
         return None
 
+    def _title_with_required_keyword(self, markdown: str) -> Optional[str]:
+        """Find the first markdown line that satisfies required title keywords."""
+
+        if not markdown:
+            return None
+
+        for raw_line in markdown.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            # Strip heading markers before evaluating keywords so `# Title` works.
+            line = re.sub(r"^#{1,6}\s*", "", line)
+            if title_matches_required_keywords(line):
+                return line.strip()
+
+        return None
+
     def _title_from_url(self, url: str) -> str:
         slug = url.split("/")[-1] if "/" in url else url
         slug = slug or url
@@ -208,21 +226,58 @@ class SpiderCloudScraper(BaseScraper):
                 urls.append(url)
         return urls
 
+    def _is_greenhouse_api_url(self, url: str) -> bool:
+        return "boards-api.greenhouse.io" in url and "/jobs/" in url
+
+    def _extract_greenhouse_json_markdown(self, markdown_text: str) -> Tuple[str, Optional[str]]:
+        """
+        Parse SpiderCloud commonmark that wraps Greenhouse job JSON in a ``` block.
+        Returns plain-text description and title when possible.
+        """
+        if not markdown_text:
+            return "", None
+
+        content = markdown_text.strip()
+        if content.startswith("```") and content.endswith("```"):
+            content = content.strip("`\n ")
+            try:
+                data = json.loads(content)
+                title = data.get("title")
+                html_body = data.get("content") or ""
+                # lightweight HTML → text
+                html_body = re.sub(r"<(script|style)[^>]*>.*?</\\1>", " ", html_body, flags=re.DOTALL | re.IGNORECASE)
+                html_body = re.sub(r"<[^>]+>", " ", html_body)
+                html_body = re.sub(r"\s+", " ", html_body).strip()
+                desc = html.unescape(html_body)
+                if title and desc:
+                    return f"{title}\n\n{desc}".strip(), title
+                if title:
+                    return title, title
+            except Exception:
+                return markdown_text, None
+        return markdown_text, None
+
     def _normalize_job(
         self, url: str, markdown: str, events: List[Any], started_at: int
     ) -> Dict[str, Any] | None:
+        cleaned_markdown = strip_known_nav_blocks(markdown or "")
+
         payload_title = self._title_from_events(events)
         from_content = False
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
         if not payload_title:
-            payload_title = self._title_from_markdown(markdown)
+            payload_title = self._title_from_markdown(cleaned_markdown)
             from_content = bool(payload_title)
         else:
             from_content = True
 
         title = payload_title or self._title_from_url(url)
-        cleaned_markdown = strip_known_nav_blocks(markdown or "")
+
+        if from_content and not title_matches_required_keywords(title):
+            keyword_title = self._title_with_required_keyword(cleaned_markdown)
+            if keyword_title:
+                title = keyword_title
         if from_content and not title_matches_required_keywords(title):
             logger.info(
                 "SpiderCloud dropping job due to missing required keyword url=%s title=%s",
@@ -304,10 +359,25 @@ class SpiderCloudScraper(BaseScraper):
             "SpiderCloud scrape started url=%s params=%s", url, params
         )
 
+        # Prefer SpiderCloud /scrape endpoint when available, fall back to /crawl.
+        scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
+        local_params = dict(params)
+        if self._is_greenhouse_api_url(url):
+            local_params.update(
+                {
+                    "request": "chrome",
+                    "return_format": ["commonmark", "html"],
+                    "follow_redirects": True,
+                    "redirect_policy": "Loose",
+                    "external_domains": ["*"],
+                    "preserve_host": False,
+                }
+            )
+
         try:
-            async for chunk in client.crawl_url(
+            async for chunk in scrape_fn(  # type: ignore[call-arg]
                 url,
-                params=params,
+                params=local_params,
                 stream=True,
                 content_type="application/jsonl",
             ):
@@ -344,9 +414,9 @@ class SpiderCloudScraper(BaseScraper):
 
             if not markdown_parts:
                 logger.info("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
-                async for resp in client.crawl_url(
+                async for resp in scrape_fn(  # type: ignore[call-arg]
                     url,
-                    params=params,
+                    params=local_params,
                     stream=False,
                     content_type="application/json",
                 ):
@@ -376,6 +446,10 @@ class SpiderCloudScraper(BaseScraper):
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
         ).strip()
+        if self._is_greenhouse_api_url(url):
+            markdown_text, gh_title = self._extract_greenhouse_json_markdown(markdown_text)
+            if gh_title:
+                raw_events.append({"title": gh_title, "gh_api_title": True})
         credits_used = max(credit_candidates) if credit_candidates else None
         cost_milli_cents = (
             int(max(cost_candidates_usd) * 100000) if cost_candidates_usd else None
@@ -444,6 +518,10 @@ class SpiderCloudScraper(BaseScraper):
             "return_format": ["commonmark"],
             "metadata": True,
             "request": "smart",
+            "follow_redirects": True,
+            "redirect_policy": "Loose",
+            "external_domains": ["*"],
+            "preserve_host": True,
             "limit": 1,
         }
         started_at = int(time.time() * 1000)

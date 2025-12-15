@@ -920,6 +920,30 @@ export const listIgnoredJobs = query({
   },
 });
 
+export const clearIgnoredJobsForSource = mutation({
+  args: {
+    sourceUrl: v.string(),
+    reason: v.optional(v.string()),
+    provider: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("ignored_jobs")
+      .withIndex("by_source", (q) => q.eq("sourceUrl", args.sourceUrl))
+      .collect();
+
+    let deleted = 0;
+    for (const row of rows as any[]) {
+      if (args.reason && row.reason !== args.reason) continue;
+      if (args.provider && row.provider !== args.provider) continue;
+      await ctx.db.delete(row._id);
+      deleted += 1;
+    }
+
+    return { deleted };
+  },
+});
+
 // Mark a leased site as completed and clear its lock.
 export const completeSite = mutation({
   args: { id: v.id("sites") },
@@ -3010,7 +3034,7 @@ export const listUrlScrapeLogs = query({
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
-    const scrapes = await ctx.db.query("scrapes").withIndex("_creationTime").order("desc").take(limit * 2);
+    const scrapes = await ctx.db.query("scrapes").order("desc").take(limit * 2);
     const { existingUrls, jobByUrl } = await buildExistingJobLookupForScrapes(ctx, scrapes);
 
     const logs: any[] = [];

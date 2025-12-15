@@ -728,6 +728,42 @@ def test_spidercloud_filters_when_title_missing_keyword():
     assert normalized is None
 
 
+def test_spidercloud_recovers_keyword_from_markdown():
+    scraper = _make_spidercloud_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url="https://example.com/careers/4554201006",
+        markdown="""
+        CoreWeave Logo
+        Back to jobs
+        Senior Software Engineer, Observability
+        Livingston, NJ
+        """,
+        events=[{"title": "Explore Our Open Positions | CoreWeave"}],
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert normalized["title"].lower().startswith("senior software engineer")
+
+
+def test_spidercloud_coreweave_fixture_not_skipped():
+    fixture_path = Path(__file__).parent / "fixtures" / "coreweave_spidercloud_commonmark.json"
+    payload = json.loads(fixture_path.read_text())[0]
+    markdown = payload["content"]["commonmark"]
+    events = [{"title": payload["content"].get("title")}]
+
+    scraper = _make_spidercloud_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=payload["url"],
+        markdown=markdown,
+        events=events,
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert "engineer" in normalized["title"].lower()
+
+
 def test_spidercloud_allows_when_title_unknown():
     scraper = _make_spidercloud_scraper()
     normalized = scraper._normalize_job(  # noqa: SLF001

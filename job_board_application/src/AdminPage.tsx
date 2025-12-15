@@ -1113,6 +1113,7 @@ function ScraperConfigSection() {
   const updateSiteEnabled = useMutation(api.router.updateSiteEnabled);
   const updateSiteName = useMutation(api.router.updateSiteName);
   const updateSiteSchedule = useMutation(api.router.updateSiteSchedule);
+  const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
   const upsertSchedule = useMutation(api.router.upsertSchedule);
   const deleteSchedule = useMutation(api.router.deleteSchedule);
 
@@ -2417,42 +2418,63 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
                       {row.failCount ?? (row.status === "failed" ? 1 : 0)}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {row.status === "failed" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              void (async () => {
-                                try {
-                                  await retrySite({ id: row._id, clearError: true });
-                                  toast.success("Failures cleared; site requeued");
-                                } catch {
-                                  toast.error("Failed to clear site errors");
-                                }
-                              })();
-                            }}
-                            className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
-                          >
-                            Clear failures
-                          </button>
-                          <button
-                            onClick={() => {
-                              void (async () => {
-                                try {
-                                  const res = await retryProcessing({ id: row._id });
-                                  toast.success(
-                                    `Replayed ${res.jobsAttempted ?? 0} jobs from ${res.scrapesProcessed ?? 0} scrapes`
-                                  );
-                                } catch (err: any) {
-                                  toast.error(`Retry processing failed: ${err?.message ?? "unknown error"}`);
-                                }
-                              })();
-                            }}
-                            className="text-[11px] px-2 py-1 rounded border border-blue-700 bg-blue-900/30 text-blue-200 hover:bg-blue-800/40 transition-colors"
-                          >
-                            Retry processing
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                const res = await clearIgnoredJobsForSource({
+                                  sourceUrl: row.url,
+                                  provider: row.scrapeProvider,
+                                  reason: "missing_required_keyword",
+                                });
+                                toast.success(`Cleared ${res.deleted ?? 0} skipped jobs`);
+                              } catch (err: any) {
+                                toast.error(err?.message ?? "Failed to clear skipped jobs");
+                              }
+                            })();
+                          }}
+                          className="text-[11px] px-2 py-1 rounded border border-purple-700 bg-purple-900/30 text-purple-200 hover:bg-purple-800/40 transition-colors"
+                        >
+                          Clear skipped
+                        </button>
+                        {row.status === "failed" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                void (async () => {
+                                  try {
+                                    await retrySite({ id: row._id, clearError: true });
+                                    toast.success("Failures cleared; site requeued");
+                                  } catch {
+                                    toast.error("Failed to clear site errors");
+                                  }
+                                })();
+                              }}
+                              className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
+                            >
+                              Clear failures
+                            </button>
+                            <button
+                              onClick={() => {
+                                void (async () => {
+                                  try {
+                                    const res = await retryProcessing({ id: row._id });
+                                    toast.success(
+                                      `Replayed ${res.jobsAttempted ?? 0} jobs from ${res.scrapesProcessed ?? 0} scrapes`
+                                    );
+                                  } catch (err: any) {
+                                    toast.error(`Retry processing failed: ${err?.message ?? "unknown error"}`);
+                                  }
+                                })();
+                              }}
+                              className="text-[11px] px-2 py-1 rounded border border-blue-700 bg-blue-900/30 text-blue-200 hover:bg-blue-800/40 transition-colors"
+                            >
+                              Retry processing
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

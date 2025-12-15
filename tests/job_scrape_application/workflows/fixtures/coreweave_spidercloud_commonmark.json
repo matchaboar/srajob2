@@ -1,0 +1,9 @@
+[
+  {
+    "content": {
+      "commonmark": "```\n{\"absolute_url\":\"https://coreweave.com/careers/job?4554201006\\u0026board=coreweave\\u0026gh_jid=4554201006\",\"location\":{\"name\":\"Livingston, NJ / New York, NY / Sunnyvale, CA / Bellevue, WA\"},\"id\":4554201006,\"title\":\"Senior Software Engineer, Observability\",\"content\":\"<p>We are seeking senior engineers who specialize in all pillars of Observability to play a pivotal role.</p>\"}\n```"
+    },
+    "url": "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4554201006",
+    "status": 200
+  }
+]
