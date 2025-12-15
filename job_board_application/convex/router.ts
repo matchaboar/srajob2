@@ -2769,6 +2769,47 @@ const collectCandidateUrls = (scrape: any): string[] => {
   return urls;
 };
 
+const buildExistingJobLookupForScrapes = async (ctx: any, scrapes: any[]) => {
+  const existingUrls = new Set<string>();
+  const jobByUrl = new Map<string, any>();
+  const seenCandidates = new Set<string>();
+
+  for (const scrape of scrapes) {
+    const candidates = collectCandidateUrls(scrape);
+    for (const candidate of candidates) {
+      const trimmed = typeof candidate === "string" ? candidate.trim() : "";
+      if (!trimmed) continue;
+      const queryValues = [trimmed];
+      const withoutTrailing = trimmed.replace(/\/+$/, "");
+      if (withoutTrailing && withoutTrailing !== trimmed) {
+        queryValues.push(withoutTrailing);
+      }
+
+      let found: any = null;
+      for (const value of queryValues) {
+        if (seenCandidates.has(value)) continue;
+        seenCandidates.add(value);
+        const match = await ctx.db.query("jobs").withIndex("by_url", (q: any) => q.eq("url", value)).first();
+        if (match) {
+          found = match;
+          break;
+        }
+      }
+
+      if (!found) continue;
+      const key = normalizeUrlKey((found as any).url || trimmed);
+      if (key) {
+        existingUrls.add(key);
+        if (!jobByUrl.has(key)) {
+          jobByUrl.set(key, found);
+        }
+      }
+    }
+  }
+
+  return { existingUrls, jobByUrl };
+};
+
 const buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
   const existingUrls = new Set<string>();
   const jobByUrl = new Map<string, any>();
@@ -2969,22 +3010,8 @@ export const listUrlScrapeLogs = query({
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
-    const scrapes = await ctx.db.query("scrapes").order("desc").take(limit * 2);
-    const jobs = await ctx.db.query("jobs").collect();
-
-    const existingUrls = new Set(
-      (jobs as any[])
-        .map((j: any) => normalizeUrlKey((j as any).url))
-        .filter((u: string) => !!u)
-    );
-
-    const jobByUrl = new Map<string, any>();
-    for (const job of jobs as any[]) {
-      const key = normalizeUrlKey((job as any).url);
-      if (key && !jobByUrl.has(key)) {
-        jobByUrl.set(key, job);
-      }
-    }
+    const scrapes = await ctx.db.query("scrapes").withIndex("_creationTime").order("desc").take(limit * 2);
+    const { existingUrls, jobByUrl } = await buildExistingJobLookupForScrapes(ctx, scrapes);
 
     const logs: any[] = [];
 

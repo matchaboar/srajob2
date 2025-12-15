@@ -2,7 +2,7 @@
 - Powershell is safely aliased to `pwsh` and is on PowerShell 7.
 - If you want to run python command on a module not from this repo, just use `uvx modulename`
 - If you make any edits to a python file, you must  lint it and fix any linting errors `uvx ruff check`.
-- Any infinite time running command should have a 10 second timeout.
+- Any infinite time running command should have a 30 second timeout.
 - Long-running commands like `npm run test` should have a 30 second timeout.
 - Do not use `docker`, use `podman` instead.
 - Do not use `docker-compose`, use `podman-compose` instead.
