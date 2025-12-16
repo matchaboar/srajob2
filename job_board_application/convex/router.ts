@@ -1585,6 +1585,128 @@ export const resetScrapeUrlsByStatus = mutation({
   },
 });
 
+export const resetTodayAndRunAllScheduled = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const startOfDay = start.getTime();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+    const deleteJobsScrapedToday = async () => {
+      let deleted = 0;
+      let cursor: any = null;
+      while (true) {
+        const { page, isDone, continueCursor } = await ctx.db
+          .query("jobs")
+          .filter((q: any) =>
+            q.and(q.gte(q.field("scrapedAt"), startOfDay), q.lt(q.field("scrapedAt"), endOfDay))
+          )
+          .paginate({ cursor, numItems: 200 });
+
+        for (const job of page as any[]) {
+          await ctx.db.delete(job._id);
+          deleted += 1;
+        }
+
+        if (isDone) break;
+        cursor = continueCursor;
+      }
+      return deleted;
+    };
+
+    const deleteQueuedScrapeUrls = async () => {
+      let deleted = 0;
+      while (true) {
+        const rows = await ctx.db.query("scrape_url_queue").take(200);
+        if (!rows.length) break;
+        for (const row of rows as any[]) {
+          await ctx.db.delete(row._id);
+          deleted += 1;
+        }
+        if (rows.length < 200) break;
+      }
+      return deleted;
+    };
+
+    const deleteSkippedJobsToday = async () => {
+      let deleted = 0;
+      let cursor: any = null;
+      while (true) {
+        const { page, isDone, continueCursor } = await ctx.db
+          .query("ignored_jobs")
+          .filter((q: any) =>
+            q.and(q.gte(q.field("createdAt"), startOfDay), q.lt(q.field("createdAt"), endOfDay))
+          )
+          .paginate({ cursor, numItems: 200 });
+
+        for (const row of page as any[]) {
+          await ctx.db.delete(row._id);
+          deleted += 1;
+        }
+
+        if (isDone) break;
+        cursor = continueCursor;
+      }
+      return deleted;
+    };
+
+    const triggerScheduledSites = async () => {
+      const enabledSites = await ctx.db
+        .query("sites")
+        .withIndex("by_enabled", (q: any) => q.eq("enabled", true))
+        .collect();
+
+      let triggered = 0;
+      for (const site of enabledSites as any[]) {
+        if (!site.scheduleId) continue;
+        const siteId = site._id as Id<"sites">;
+        await ctx.db.patch(siteId, {
+          completed: false,
+          failed: false,
+          lockedBy: "",
+          lockExpiresAt: 0,
+          lastRunAt: 0,
+          lastFailureAt: undefined,
+          lastError: undefined,
+          manualTriggerAt: now,
+        } as any);
+
+        try {
+          await ctx.db.insert("run_requests", {
+            siteId,
+            siteUrl: site.url ?? "",
+            status: "pending",
+            createdAt: now,
+            expectedEta: now + 15_000,
+            completedAt: undefined,
+          });
+        } catch (err) {
+          console.error("resetTodayAndRunAllScheduled: failed to record run_request", err);
+        }
+
+        triggered += 1;
+      }
+      return triggered;
+    };
+
+    const jobsDeleted = await deleteJobsScrapedToday();
+    const queueDeleted = await deleteQueuedScrapeUrls();
+    const skippedDeleted = await deleteSkippedJobsToday();
+    const sitesTriggered = await triggerScheduledSites();
+
+    return {
+      jobsDeleted,
+      queueDeleted,
+      skippedDeleted,
+      sitesTriggered,
+      windowStart: startOfDay,
+      windowEnd: endOfDay,
+    };
+  },
+});
+
 export const listJobDetailRateLimits = query({
   args: {},
   handler: async (ctx) => {

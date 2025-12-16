@@ -2808,10 +2808,12 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 
       function DatabaseSection() {
   const insertFakeJobs = useMutation(api.seedData.insertFakeJobs);
-      const normalizeDevTestJobs = useMutation(api.jobs.normalizeDevTestJobs);
-      const reparseAllJobs = useMutation(api.jobs.reparseAllJobs);
-      const deleteJob = useMutation(api.jobs.deleteJob);
-      const recentJobs = useQuery(api.jobs.getRecentJobs);
+  const normalizeDevTestJobs = useMutation(api.jobs.normalizeDevTestJobs);
+  const reparseAllJobs = useMutation(api.jobs.reparseAllJobs);
+  const deleteJob = useMutation(api.jobs.deleteJob);
+  const resetTodayAndRunAll = useMutation(api.router.resetTodayAndRunAllScheduled);
+  const recentJobs = useQuery(api.jobs.getRecentJobs);
+  const [resettingToday, setResettingToday] = useState(false);
 
   const handleInsertFakeJobs = async () => {
     try {
@@ -2819,6 +2821,25 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
       toast.success(result.message);
     } catch {
         toast.error("Failed to insert fake jobs");
+    }
+  };
+
+  const handleResetTodayAndRunAll = async () => {
+    const confirmed = window.confirm(
+      "This will delete all jobs scraped today, clear every queued scrape URL, remove today's skipped jobs, and trigger every enabled scheduled site to run now. Continue?"
+    );
+    if (!confirmed) return;
+
+    try {
+      setResettingToday(true);
+      const res = await resetTodayAndRunAll({});
+      toast.success(
+        `Deleted ${res.jobsDeleted ?? 0} jobs, cleared ${res.queueDeleted ?? 0} queued URLs, removed ${res.skippedDeleted ?? 0} skipped, triggered ${res.sitesTriggered ?? 0} sites`
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to reset and run all scheduled sites");
+    } finally {
+      setResettingToday(false);
     }
   };
 
@@ -2863,7 +2884,23 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
             >
               Re-parse All Jobs
             </button>
+            <button
+              onClick={() => { void handleResetTodayAndRunAll(); }}
+              disabled={resettingToday}
+              className={clsx(
+                "px-3 py-1.5 text-white text-sm font-medium rounded transition-colors",
+                resettingToday
+                  ? "bg-red-900/60 cursor-not-allowed"
+                  : "bg-red-700 hover:bg-red-600"
+              )}
+              title="Deletes today's scraped and skipped records, clears the scrape queue, and manually triggers all enabled scheduled sites"
+            >
+              {resettingToday ? "Running..." : "Purge today + Run all scheduled"}
+            </button>
           </div>
+          <p className="text-[11px] text-slate-500 mt-2">
+            Uses the current server day (midnight to midnight) for the delete window and triggers every enabled site with a schedule.
+          </p>
         </div>
 
         <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
