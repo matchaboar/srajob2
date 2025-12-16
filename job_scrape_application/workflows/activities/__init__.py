@@ -986,6 +986,52 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
 async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]:
     """Process a batch of job URLs via SpiderCloud."""
 
+    def _to_greenhouse_api_url(url: str) -> str:
+        """
+        Convert Greenhouse-hosted career URLs that contain gh_jid / board params
+        into the canonical boards-api.greenhouse.io detail URL. This ensures the
+        SpiderCloud scraper hits the JSON API instead of the marketing site.
+        """
+
+        try:
+            if "gh_jid" not in url:
+                return url
+            jid_match = re.search(r"[?&]gh_jid=(\d+)", url)
+            if not jid_match:
+                return url
+            job_id = jid_match.group(1)
+            slug = None
+            board_match = re.search(r"[?&]board=([^&]+)", url)
+            if board_match:
+                slug = board_match.group(1)
+            # Fallback: try to infer slug from path segment before query string
+            if not slug:
+                path_parts = url.split("/")
+                if path_parts:
+                    maybe_slug = path_parts[-1].split("?")[0]
+                    if maybe_slug:
+                        slug = maybe_slug
+            if not slug:
+                return url
+            return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+        except Exception:
+            return url
+
+    def _shrink_for_activity(scrape: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Trim scrape payloads before returning them to the workflow to avoid blowing
+        Temporal's activity result size limits. We keep enough data for downstream
+        storage/ingestion while aggressively truncating large fields.
+        """
+
+        return trim_scrape_for_convex(
+            scrape,
+            max_items=50,  # we only ever keep one normalized row per scrape here
+            max_description=4000,
+            raw_preview_chars=2000,
+            request_max_chars=1500,
+        )
+
     urls: list[str] = []
     source_url = ""
     pattern = None
@@ -993,7 +1039,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         if isinstance(row, dict):
             url_val = row.get("url")
             if isinstance(url_val, str) and url_val.strip():
-                urls.append(url_val)
+                urls.append(_to_greenhouse_api_url(url_val))
             if not source_url and isinstance(row.get("sourceUrl"), str):
                 source_url = row["sourceUrl"]
             if pattern is None and isinstance(row.get("pattern"), str):
@@ -1048,9 +1094,9 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
             if per_url_cost is not None:
                 per_url_payload["costMilliCents"] = per_url_cost
                 per_url_payload["items"]["costMilliCents"] = per_url_cost
-            scrapes.append(per_url_payload)
+            scrapes.append(_shrink_for_activity(per_url_payload))
     else:
-        scrapes.append(base_payload)
+        scrapes.append(_shrink_for_activity(base_payload))
 
     return {"scrapes": scrapes, "sourceUrl": source_url}
 

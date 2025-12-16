@@ -153,6 +153,13 @@ body {
   background-color: #0f172a;
 }
 
+@media (max-width: 1023px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
 /* Status Tracker Arrow Shapes */
 .status-tracker-arrow {
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%);

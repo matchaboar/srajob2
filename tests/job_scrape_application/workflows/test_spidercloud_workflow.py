@@ -777,6 +777,24 @@ def test_spidercloud_allows_when_title_unknown():
     assert normalized["title"] == "Listing 123"
 
 
+def test_extract_greenhouse_json_markdown_preserves_content():
+    scraper = _make_spidercloud_scraper()
+    fixture_path = Path("tests/fixtures/greenhouse_api_job.json")
+    raw = fixture_path.read_text(encoding="utf-8")
+
+    text, title = scraper._extract_greenhouse_json_markdown(raw)  # noqa: SLF001
+
+    assert title == "Senior Software Engineer"
+    # Should unescape HTML, keep structure, and not leak tags/escapes
+    assert "Job Title: Senior Software Engineer" in text
+    assert "Salary: $212,202 - $274,700 / year" in text
+    assert "Equal Opportunity Employer" in text
+    assert "<" not in text
+    assert "\\u" not in text
+    # Should preserve paragraph breaks for Markdown rendering
+    assert text.count("\n") >= 5
+
+
 @pytest.mark.asyncio
 async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
     seen_url = "https://example.com/jobs/skip-me"
@@ -1139,6 +1157,52 @@ async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
     await scraper.fetch_greenhouse_listing(site)
 
     assert recorded.get("timeout") == runtime_config.spidercloud_http_timeout_seconds
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeypatch):
+    payload = {
+        "jobs": [
+            {
+                "id": 4554201006,
+                "absolute_url": "https://coreweave.com/careers/job?4554201006&board=coreweave&gh_jid=4554201006",
+                "title": "Senior Software Engineer",
+            }
+        ]
+    }
+
+    class FakeResponse:
+        text = json.dumps(payload)
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, url: str):
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
+        FakeClient,
+    )
+
+    scraper = _make_spidercloud_scraper()
+    site: Site = {"_id": "s-coreweave", "url": "https://api.greenhouse.io/v1/boards/coreweave/jobs"}
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+
+    assert listing["job_urls"] == [
+        "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4554201006",
+    ]
 
 
 @pytest.mark.asyncio

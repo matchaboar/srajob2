@@ -38,53 +38,87 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
             onClick={onSelect}
             data-job-id={job._id}
             className={`
-        relative group flex items-center gap-3 px-4 pr-36 py-2 border-b border-slate-800 cursor-pointer transition-colors
+        relative group flex items-start sm:items-center gap-3 px-3 sm:px-4 pr-4 sm:pr-36 py-3 sm:py-2 border-b border-slate-800 cursor-pointer transition-colors
         ${isSelected ? "bg-slate-800" : "hover:bg-slate-900"}
         ${keyboardBlur ? "blur-[1px] opacity-70" : ""}
       `}
         >
             {/* Selection Indicator */}
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
-
-            <div className="flex-1 min-w-0 grid grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-center">
+            <div className="flex-1 min-w-0 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-start sm:items-center">
                 <CompanyIcon company={job.company ?? ""} size={32} />
-                {/* Title & Company */}
-                <div className="min-w-0">
-                    <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
+                {/* Title & meta */}
+                <div className="min-w-0 space-y-1">
+                    <h3 className={`text-sm font-semibold leading-snug ${isSelected ? "text-white" : "text-slate-200"} line-clamp-2`}>
                         {job.title}
                     </h3>
-                    <p className="text-xs text-slate-500 truncate">{job.company}</p>
-                </div>
-
-                {/* Location & Badges */}
-                <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-slate-400 truncate max-w-[110px]">{job.location}</span>
-                    {job.remote && (
-                        <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-medium rounded border border-emerald-500/20">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <span className="truncate max-w-[12rem]">{job.company}</span>
+                        {job.remote && (
+                        <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold rounded border border-emerald-500/20">
                             Remote
                         </span>
                     )}
+                        <span className="px-2 py-0.5 text-[10px] font-semibold rounded-md border border-slate-800 bg-slate-900/70 text-slate-200">
+                            {levelLabel}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Level */}
-                <div className="text-center">
+                {/* Salary (kept on mobile) */}
+                <div className="text-right">
+                    <span
+                        className={`text-sm sm:text-xs font-semibold ${compensationMeta.isUnknown ? "text-slate-400" : "text-emerald-400"}`}
+                        title={compensationMeta.reason}
+                    >
+                        {compensationMeta.display}
+                    </span>
+                    <div className="hidden sm:flex flex-col items-end gap-0.5 mt-1 text-[10px] text-slate-500">
+                        {postedAt ? (
+                            <>
+                                <span className="font-medium">
+                                    {new Date(postedAt).toLocaleString(undefined, {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "numeric",
+                                        minute: "2-digit"
+                                    })}
+                                </span>
+                                {(Date.now() - postedAt) < 5 * 24 * 60 * 60 * 1000 ? (
+                                    <LiveTimer
+                                        className={timerClass}
+                                        startTime={postedAt}
+                                        colorize={isSelected}
+                                        warnAfterMs={24 * 60 * 60 * 1000}
+                                        dangerAfterMs={3 * 24 * 60 * 60 * 1000}
+                                        showAgo
+                                        showSeconds={isSelected}
+                                        dataTestId="posted-timer"
+                                    />
+                                ) : (
+                                    <div className="h-4" />
+                                )}
+                            </>
+                        ) : (
+                            <span className="text-[11px] text-slate-600">Unknown</span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Level column (desktop) */}
+                <div className="hidden sm:flex justify-center">
                     <span className="px-2 py-0.5 text-[11px] font-semibold rounded-md border border-slate-800 bg-slate-900/70 text-slate-200">
                         {levelLabel}
                     </span>
                 </div>
 
-                {/* Salary */}
-                <div className="text-right">
-                    <span
-                        className={`text-xs font-medium ${compensationMeta.isUnknown ? "text-slate-400" : "text-emerald-400"}`}
-                        title={compensationMeta.reason}
-                    >
-                        {compensationMeta.display}
-                    </span>
+                {/* Location (desktop only) */}
+                <div className="hidden sm:flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-slate-400 truncate max-w-[120px]">{job.location || "—"}</span>
                 </div>
 
-                {/* Posted Date */}
-                <div className="text-right">
+                {/* Posted (desktop) */}
+                <div className="hidden sm:block text-right">
                     <div className="flex flex-col items-end gap-0.5">
                         {postedAt ? (
                             <>
@@ -117,8 +151,8 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                     </div>
                 </div>
 
-                {/* Scraped */}
-                <div className="text-right">
+                {/* Scraped (desktop) */}
+                <div className="hidden sm:block text-right">
                     {scrapedAt ? (
                         <div className="flex flex-col items-end gap-0.5">
                             <span className="text-[10px] text-slate-500 font-medium">
@@ -148,10 +182,30 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                 </div>
             </div>
 
-            {/* Actions - Anchored on right, full-height for apply/reject when selected */}
+            {/* Mobile inline actions */}
+            {isSelected && (
+                <div className="sm:hidden mt-3 ml-10 flex gap-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onApply("ai"); }}
+                        disabled
+                        className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 rounded shadow-sm cursor-not-allowed"
+                        title="AI Apply (a)"
+                    >
+                        Apply
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onReject(); }}
+                        className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-200 border border-red-500/70 hover:border-red-400 hover:bg-red-500/10 rounded shadow-sm transition-colors"
+                        title="Reject (r)"
+                    >
+                        Reject
+                    </button>
+                </div>
+            )}
+
+            {/* Desktop action rail */}
             <div
-                className={`absolute right-0 top-0 bottom-0 flex items-center gap-0 w-36 pl-2 transition-opacity ${isSelected ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-                    }`}
+                className={`hidden sm:flex absolute right-0 top-0 bottom-0 items-center gap-0 w-36 pl-2 transition-opacity ${isSelected ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
             >
                 <button
                     onClick={(e) => { e.stopPropagation(); onApply("ai"); }}

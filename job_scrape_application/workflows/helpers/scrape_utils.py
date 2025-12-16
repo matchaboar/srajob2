@@ -695,7 +695,7 @@ def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[in
 
 
 def extract_description(row: Dict[str, Any]) -> str:
-    for key in ("description", "job_description", "desc", "body", "summary"):
+    for key in ("description", "job_description", "desc", "body", "summary", "content"):
         val = row.get(key)
         if isinstance(val, str) and val.strip():
             return val.strip()
@@ -924,18 +924,30 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     raw_title_value = row.get("job_title") or row.get("title")
     raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
     title = raw_title or stringify(row.get("job_title") or row.get("title") or "Untitled")
-    url = stringify(row.get("url") or row.get("link") or row.get("href") or row.get("_url") or "")
+    url = stringify(
+        row.get("url")
+        or row.get("link")
+        or row.get("href")
+        or row.get("_url")
+        or row.get("absolute_url")
+        or row.get("absoluteUrl")
+        or row.get("job_url")
+        or row.get("apply_url")
+    )
     if not url:
         return None
     if not title_matches_required_keywords(raw_title or None):
         return None
 
     company_raw = stringify(
-        row.get("company") or row.get("employer") or row.get("organization") or ""
+        row.get("company") or row.get("company_name") or row.get("employer") or row.get("organization") or ""
     )
     company = company_raw or derive_company_from_url(url) or "Unknown"
 
-    location = stringify(row.get("location") or row.get("city") or row.get("region") or "")
+    raw_location = row.get("location") or row.get("city") or row.get("region") or ""
+    if isinstance(raw_location, dict):
+        raw_location = raw_location.get("name") or raw_location.get("location") or ""
+    location = stringify(raw_location)
     remote = coerce_remote(row.get("remote"), location, title)
     if not location:
         location = "Remote" if remote else "Unknown"

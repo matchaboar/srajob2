@@ -89,7 +89,7 @@ class SpiderCloudScraper(BaseScraper):
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return the first markdown/text-like payload found in a response fragment."""
 
-        keys = {"markdown", "commonmark", "content", "text", "body", "result"}
+        keys = {"markdown", "commonmark", "content", "text", "body", "result", "html", "raw_html"}
 
         def _walk(value: Any) -> Optional[str]:
             if isinstance(value, str):
@@ -238,31 +238,53 @@ class SpiderCloudScraper(BaseScraper):
             return "", None
 
         content = markdown_text.strip()
+        # Strip code fences if present
         if content.startswith("```") and content.endswith("```"):
             content = content.strip("`\n ")
-            try:
-                data = json.loads(content)
-                title = data.get("title")
-                html_body = data.get("content") or ""
-                # lightweight HTML → text
-                html_body = re.sub(r"<(script|style)[^>]*>.*?</\\1>", " ", html_body, flags=re.DOTALL | re.IGNORECASE)
-                html_body = re.sub(r"<[^>]+>", " ", html_body)
-                html_body = re.sub(r"\s+", " ", html_body).strip()
-                desc = html.unescape(html_body)
-                if title and desc:
-                    return f"{title}\n\n{desc}".strip(), title
-                if title:
-                    return title, title
-            except Exception:
-                return markdown_text, None
+
+        def _html_to_text(html_body: str) -> str:
+            html_body = html.unescape(html_body or "")
+            html_body = re.sub(r"<br\s*/?>", "\n", html_body, flags=re.IGNORECASE)
+            html_body = re.sub(r"</p\s*>", "\n\n", html_body, flags=re.IGNORECASE)
+            html_body = re.sub(r"<p[^>]*>", "", html_body, flags=re.IGNORECASE)
+            html_body = re.sub(r"<li[^>]*>", "- ", html_body, flags=re.IGNORECASE)
+            html_body = re.sub(
+                r"<(script|style)[^>]*>.*?</\1>",
+                " ",
+                html_body,
+                flags=re.DOTALL | re.IGNORECASE,
+            )
+            html_body = re.sub(r"<[^>]+>", " ", html_body)
+            html_body = re.sub(r"[ \t]+", " ", html_body)
+            html_body = re.sub(r"\s*\n\s*", "\n", html_body)
+            html_body = re.sub(r"\n{3,}", "\n\n", html_body)
+            return html_body.strip()
+
+        # Try to parse JSON whether or not code fences were present.
+        try:
+            data = json.loads(content)
+            title = data.get("title")
+            desc = _html_to_text(data.get("content") or "")
+            if title and desc:
+                return f"{title}\n\n{desc}".strip(), title
+            if title:
+                return title, title
+        except Exception:
+            return markdown_text, None
+
         return markdown_text, None
 
     def _normalize_job(
         self, url: str, markdown: str, events: List[Any], started_at: int
     ) -> Dict[str, Any] | None:
-        cleaned_markdown = strip_known_nav_blocks(markdown or "")
+        parsed_title = None
+        parsed_markdown = markdown or ""
+        if parsed_markdown.lstrip().startswith(("{", "[")):
+            parsed_markdown, parsed_title = self._extract_greenhouse_json_markdown(parsed_markdown)
 
-        payload_title = self._title_from_events(events)
+        cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
+
+        payload_title = self._title_from_events(events) or parsed_title
         from_content = False
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
@@ -366,7 +388,7 @@ class SpiderCloudScraper(BaseScraper):
             local_params.update(
                 {
                     "request": "chrome",
-                    "return_format": ["commonmark", "html"],
+                    "return_format": ["raw_html", "html"],
                     "follow_redirects": True,
                     "redirect_policy": "Loose",
                     "external_domains": ["*"],
@@ -514,14 +536,15 @@ class SpiderCloudScraper(BaseScraper):
             }
 
         api_key = self._api_key()
+        api_mode = any(self._is_greenhouse_api_url(u) for u in urls)
         params: Dict[str, Any] = {
-            "return_format": ["commonmark"],
+            "return_format": ["raw_html", "html"] if api_mode else ["commonmark"],
             "metadata": True,
-            "request": "smart",
+            "request": "chrome" if api_mode else "smart",
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
-            "preserve_host": True,
+            "preserve_host": not api_mode,
             "limit": 1,
         }
         started_at = int(time.time() * 1000)
@@ -718,7 +741,36 @@ class SpiderCloudScraper(BaseScraper):
 
         try:
             board = load_greenhouse_board(raw_text)
+            # Structured extraction first.
             job_urls = extract_greenhouse_job_urls(board)
+
+            # Prefer API detail URLs when we know the board slug and job IDs.
+            if slug and job_urls:
+                api_urls: list[str] = []
+                seen_api: set[str] = set()
+                for job in board.jobs:
+                    if not job.absolute_url or not title_matches_required_keywords(job.title):
+                        continue
+                    # Only build API URLs when the original link clearly points to a Greenhouse flow
+                    # (either greenhouse domain or gh_jid markers).
+                    if (
+                        "greenhouse.io" not in job.absolute_url
+                        and "gh_jid" not in job.absolute_url
+                        and "gh_jid=" not in job.absolute_url
+                    ):
+                        continue
+                    job_id = getattr(job, "id", None)
+                    if job_id is None:
+                        continue
+                    api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                    if api_url not in seen_api:
+                        seen_api.add(api_url)
+                        api_urls.append(api_url)
+                if api_urls:
+                    job_urls = api_urls
+
+            # If structured extraction yields nothing (or a single item), fall back to regex
+            # parsing so we still return a useful list for downstream workflows.
             if len(job_urls) <= 1:
                 regex_urls = self._regex_extract_job_urls(raw_text)
                 if regex_urls:

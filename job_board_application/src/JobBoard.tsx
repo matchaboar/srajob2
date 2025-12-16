@@ -213,6 +213,7 @@ export function JobBoard() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [keyboardNavActive, setKeyboardNavActive] = useState(false);
   const [keyboardTopIndex, setKeyboardTopIndex] = useState<number | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const jobListRef = useRef<HTMLDivElement | null>(null);
   const companyBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markdownComponents = useMemo<Components>(() => {
@@ -296,6 +297,42 @@ export function JobBoard() {
     }, 200);
     return () => clearTimeout(handle);
   }, [companyInput]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setFiltersOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "jobs") {
+      setFiltersOpen(false);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setFiltersOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "jobs") {
+      setFiltersOpen(false);
+    }
+  }, [activeTab]);
 
   const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
     api.jobs.listJobs,
@@ -1155,13 +1192,13 @@ export function JobBoard() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200 overflow-hidden">
       {/* Top Bar / Tabs */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-900/50">
-        <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-800 bg-slate-900/50 gap-3">
+        <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
           {(["jobs", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab
+              className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
                 ? "bg-slate-800 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                 }`}
@@ -1180,7 +1217,20 @@ export function JobBoard() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400">
+          {activeTab === "jobs" && (
+            <button
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              className="sm:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-500 hover:text-white transition-colors text-xs font-medium"
+              aria-expanded={filtersOpen}
+              aria-label="Toggle filters"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16M4 12h10M4 18h7" />
+              </svg>
+              Filters
+            </button>
+          )}
           <button
             onClick={() => setShowShortcuts((prev) => !prev)}
             className="flex items-center gap-2 px-2.5 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500 hover:text-white transition-colors text-[11px]"
@@ -1246,7 +1296,23 @@ export function JobBoard() {
           filtersReady ? (
             <>
               {/* Sidebar Filters */}
-              <div className="w-64 bg-slate-900/30 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto">
+              <div
+                className={`w-full sm:w-64 bg-slate-900/30 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200 sm:transform-none sm:relative sm:z-10 ${filtersOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} fixed sm:static inset-y-[64px] left-0 right-0 sm:right-auto z-30 sm:z-auto shadow-2xl sm:shadow-none backdrop-blur-sm sm:backdrop-blur-0`}
+                role="complementary"
+                aria-label="Job filters"
+              >
+                <div className="sm:hidden flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h3 className="text-sm font-semibold text-white">Filters</h3>
+                  <button
+                    onClick={() => setFiltersOpen(false)}
+                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    aria-label="Close filters"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <label className="block text-xs font-semibold text-slate-500 uppercase">Search</label>
@@ -1618,19 +1684,19 @@ export function JobBoard() {
 
                     {/* Header Row (sticky for alignment with scrollbar) */}
                     <div className="sticky top-0 z-20 relative">
-                      <div className="flex items-center gap-3 px-4 pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 pr-4 sm:pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         <div className="w-1" /> {/* Spacer for alignment with selection indicator */}
-                        <div className="flex-1 grid grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-center">
+                        <div className="flex-1 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-2 sm:gap-3 items-center">
                           <div className="w-8 h-8" />
                           <div>Job</div>
-                          <div>Location</div>
-                          <div className="text-center">Level</div>
                           <div className="text-right">Salary</div>
-                          <div className="text-right">Posted</div>
-                          <div className="text-right">Scraped</div>
+                          <div className="hidden sm:block text-center">Level</div>
+                          <div className="hidden sm:block">Location</div>
+                          <div className="text-right hidden sm:block">Posted</div>
+                          <div className="text-right hidden sm:block">Scraped</div>
                         </div>
                       </div>
-                      <div className="absolute inset-y-0 right-0 flex items-center justify-end gap-0 w-36 pl-2 pr-0 pointer-events-none" aria-hidden="true">
+                      <div className="hidden sm:flex absolute inset-y-0 right-0 items-center justify-end gap-0 w-36 pl-2 pr-0 pointer-events-none" aria-hidden="true">
                         <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Action</span>
                       </div>
                     </div>
@@ -1672,7 +1738,7 @@ export function JobBoard() {
                 </div>
 
                 {showJobDetails && selectedJob && (
-                  <div className="w-[32rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl">
+                  <div className="w-full sm:w-[32rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
                     <div className="flex items-start justify-between px-6 py-4 border-b border-slate-800/50 bg-slate-900/20">
                       <div className="min-w-0 pr-4">
                         <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedJob.title}</h2>
@@ -1727,41 +1793,41 @@ export function JobBoard() {
                               Direct Apply
                             </button>
                           )}
-                        <button
-                          onClick={() => { }}
-                          disabled
-                          className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
-                        >
-                          Apply with AI
-                        </button>
-                      </div>
-
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => { if (selectedJob) void handleReparseJob(selectedJob._id); }}
-                          className="text-[11px] px-3 py-1.5 rounded-md border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
-                        >
-                          Re-run parsing
-                        </button>
-                      </div>
-
-                      {jobUrlDetail && (
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Job URL
-                          </div>
-                          <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
-                            <a
-                              href={jobUrlDetail.value}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
-                            >
-                              {jobUrlDetail.value}
-                            </a>
-                          </div>
+                          <button
+                            onClick={() => { }}
+                            disabled
+                            className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
+                          >
+                            Apply with AI
+                          </button>
                         </div>
-                      )}
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => { if (selectedJob) void handleReparseJob(selectedJob._id); }}
+                            className="text-[11px] px-3 py-1.5 rounded-md border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
+                          >
+                            Re-run parsing
+                          </button>
+                        </div>
+
+                        {jobUrlDetail && (
+                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
+                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                              Job URL
+                            </div>
+                            <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
+                              <a
+                                href={jobUrlDetail.value}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
+                              >
+                                {jobUrlDetail.value}
+                              </a>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-2">
                           {selectedJobDetails.filter(item => item.label !== "Job URL").map((item) => (
