@@ -3144,8 +3144,57 @@ export const ingestJobsFromScrape = mutation({
   },
 });
 
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+
+const stripHtml = (value: string) =>
+  decodeHtmlEntities(
+    value
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+  );
+
+const cleanScrapedText = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  const asString = typeof value === "string" ? value : String(value);
+  return stripHtml(asString).replace(/\s+/g, " ").trim();
+};
+
+const extractJsonField = (blob: string, field: string): string | null => {
+  const preMatch = blob.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+  const candidate = preMatch ? preMatch[1] : blob;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    const value = (parsed as any)?.[field];
+    if (typeof value === "string") return value;
+  } catch {
+    // ignore JSON parse failures; we will try regex next
+  }
+
+  const regex = new RegExp(`"${field}"\\s*:\\s*"([^"\\\\]{1,400})"`);
+  const match = candidate.match(regex);
+  return match ? match[1] : null;
+};
+
+const normalizeTitle = (raw: unknown): string => {
+  const rawString = typeof raw === "string" ? raw : String(raw ?? "");
+  const fromJson = extractJsonField(rawString, "title");
+  const cleaned = cleanScrapedText(fromJson ?? rawString);
+  if (!cleaned) return "Untitled";
+  const MAX_LEN = 140;
+  return cleaned.length > MAX_LEN ? `${cleaned.slice(0, MAX_LEN - 3)}...` : cleaned;
+};
+
 // Normalize a scrape payload into a list of job-like objects
-function extractJobs(items: any): {
+export function extractJobs(items: any): {
   title: string;
   company: string;
   description: string;
@@ -3236,18 +3285,51 @@ function extractJobs(items: any): {
 
   return rawList
     .map((row: any) => {
-      const title = String(row.job_title || row.title || "Untitled").trim();
-      const rawCompany = String(row.company || row.employer || "Unknown").trim();
-      const url = String(row.url || row.link || row.href || "").trim();
-      const location = String(row.location || row.city || "Unknown").trim();
+      const rawTitle =
+        (row && typeof row === "object"
+          ? row.job_title ?? row.title ?? row.heading ?? row.position
+          : undefined) ?? row;
+      const title = normalizeTitle(rawTitle);
+
+      const rawCompanyFromJson =
+        typeof rawTitle === "string"
+          ? extractJsonField(rawTitle, "company_name") ?? extractJsonField(rawTitle, "company")
+          : null;
+
+      const rawCompany =
+        typeof row?.company === "string"
+          ? row.company
+          : typeof row?.company_name === "string"
+            ? row.company_name
+            : typeof row?.employer === "string"
+              ? row.employer
+              : typeof row?.organization === "string"
+                ? row.organization
+                : rawCompanyFromJson ?? "Unknown";
+
+      const url = String(row?.url || row?.link || row?.href || "").trim();
+
+      const rawLocation =
+        typeof row?.location === "string"
+          ? row.location
+          : typeof row?.location?.name === "string"
+            ? row.location.name
+            : typeof row?.city === "string"
+              ? row.city
+              : "Unknown";
+      const location = cleanScrapedText(rawLocation) || "Unknown";
       const { city, state } = splitLocation(location);
       const company = rawCompany || fallbackCompanyName(rawCompany, url);
       const locationLabel = formatLocationLabel(city, state, location);
       const remote = coerceBool(row.remote, locationLabel, title);
       const description =
-        typeof row.description === "string"
-          ? row.description
-          : JSON.stringify(row, null, 2).slice(0, 4000);
+        typeof row?.description === "string"
+          ? cleanScrapedText(row.description)
+          : typeof row?.content === "string"
+            ? cleanScrapedText(row.content)
+            : typeof row === "string"
+              ? cleanScrapedText(row)
+              : JSON.stringify(row, null, 2).slice(0, 4000);
       const { value: totalCompensation, unknown: compensationUnknown } = parseComp(
         (row as any).totalCompensation ??
           (row as any).total_compensation ??

@@ -40,6 +40,31 @@ _NAV_MENU_SEQUENCE = [
 ]
 _NAV_MENU_TERMS = set(_NAV_MENU_SEQUENCE + ["Careers"])
 
+# Phrases that typically appear on error/expired job landing pages. We only
+# evaluate the first few hundred characters of title+body to avoid false
+# positives from legitimate descriptions that happen to contain similar
+# language deeper in the text.
+_ERROR_LANDING_PHRASES = (
+    "page not found",
+    "job not found",
+    "posting not found",
+    "we can't find what you're looking for",
+    "we can’t find what you're looking for",
+    "could not find what you're looking for",
+    "couldn't find what you're looking for",
+    "no longer available",
+    "no longer accepting applications",
+    "no longer taking applications",
+    "position has been filled",
+    "position filled",
+    "job has been filled",
+    "job posting has expired",
+    "posting has expired",
+    "job has expired",
+    "job is closed",
+    "posting is closed",
+)
+
 _NAV_BLOCK_REGEX = re.compile(
     r"(?:"
     + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
@@ -185,6 +210,28 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def looks_like_error_landing(title: str | None, description: str) -> bool:
+    """Heuristically detect generic error/expired landing pages.
+
+    Many career sites return a branded 404/"job closed" page that still contains
+    navigation text. These pages shouldn't be stored as jobs. We look for strong
+    error phrases and the presence of "404" near the top of the combined
+    title+body.
+    """
+
+    haystack = f"{title or ''} {description or ''}".lower()
+    sample = re.sub(r"\s+", " ", haystack)[:700]
+
+    if re.search(r"\b404\b", sample):
+        return True
+
+    for phrase in _ERROR_LANDING_PHRASES:
+        if phrase in sample:
+            return True
+
+    return False
 
 
 _TITLE_RE = re.compile(r"^[ \t]*#{1,6}\s+(?P<title>.+)$", flags=re.IGNORECASE | re.MULTILINE)
@@ -954,6 +1001,8 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     level = coerce_level(row.get("level"), title)
     description = strip_known_nav_blocks(extract_description(row))
+    if looks_like_error_landing(raw_title or title, description):
+        return None
     if len(description) > MAX_DESCRIPTION_CHARS:
         description = description[:MAX_DESCRIPTION_CHARS]
     # Use markdown hints to fill missing data.

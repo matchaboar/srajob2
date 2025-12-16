@@ -1,18 +1,8 @@
 from __future__ import annotations
 
-import json
-import sys
-from pathlib import Path
-from typing import Any, Dict, List
-
-# Ensure repository root on sys.path so job_scrape_application is importable when this
-# test is run in isolation (matches full-suite behavior).
-ROOT = Path(__file__).resolve().parents[3]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from typing import Any, Dict
 
 import pytest
-
 from job_scrape_application.workflows.activities import process_spidercloud_job_batch
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (
     SpiderCloudScraper,

@@ -21,6 +21,7 @@ from ..helpers.scrape_utils import (
     coerce_level,
     coerce_remote,
     derive_company_from_url,
+    looks_like_error_landing,
     strip_known_nav_blocks,
 )
 from .base import BaseScraper
@@ -86,6 +87,30 @@ class SpiderCloudScraper(BaseScraper):
         except Exception:
             return None
 
+    def _html_to_markdown(self, raw_html: str) -> str:
+        """Convert HTML to markdown (or plain text fallback)."""
+
+        if not raw_html:
+            return ""
+
+        # Prefer markdownify if available (no hard dependency).
+        try:  # noqa: SIM105
+            from markdownify import markdownify as md
+
+            return md(raw_html, strip=["style", "script"], heading_style="ATX").strip()
+        except Exception:
+            pass
+
+        # Lightweight fallback: strip tags and preserve basic breaks.
+        text = re.sub(r"(?i)<br\\s*/?>", "\n", raw_html)
+        text = re.sub(r"(?i)</p>", "\n\n", text)
+        text = re.sub(r"(?is)<script[^>]*>.*?</script>", "", text)
+        text = re.sub(r"(?is)<style[^>]*>.*?</style>", "", text)
+        text = re.sub(r"<[^>]+>", "", text)
+        text = html.unescape(text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return the first markdown/text-like payload found in a response fragment."""
 
@@ -93,13 +118,16 @@ class SpiderCloudScraper(BaseScraper):
 
         def _walk(value: Any) -> Optional[str]:
             if isinstance(value, str):
-                if value.strip():
-                    return value
-                return None
+                if not value.strip():
+                    return None
+                # Detect obvious HTML and convert to markdown before returning.
+                looks_like_html = "<" in value and ">" in value and ("<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower())
+                return self._html_to_markdown(value) if looks_like_html else value
             if isinstance(value, dict):
                 for key, val in value.items():
                     if key.lower() in keys and isinstance(val, str) and val.strip():
-                        return val
+                        looks_like_html = key.lower() in {"html", "raw_html"} or ("<" in val and ">" in val)
+                        return self._html_to_markdown(val) if looks_like_html else val
                     found = _walk(val)
                     if found:
                         return found
@@ -294,6 +322,16 @@ class SpiderCloudScraper(BaseScraper):
         else:
             from_content = True
 
+        candidate_title = payload_title or parsed_title
+        if looks_like_error_landing(candidate_title, cleaned_markdown):
+            self._last_ignored_job = {
+                "url": url,
+                "reason": "error_landing",
+                "title": candidate_title,
+                "description": cleaned_markdown,
+            }
+            return None
+
         title = payload_title or self._title_from_url(url)
 
         if from_content and not title_matches_required_keywords(title):
@@ -388,7 +426,7 @@ class SpiderCloudScraper(BaseScraper):
             local_params.update(
                 {
                     "request": "chrome",
-                    "return_format": ["raw_html", "html"],
+                    "return_format": ["raw_html"],
                     "follow_redirects": True,
                     "redirect_policy": "Loose",
                     "external_domains": ["*"],
@@ -537,8 +575,9 @@ class SpiderCloudScraper(BaseScraper):
 
         api_key = self._api_key()
         api_mode = any(self._is_greenhouse_api_url(u) for u in urls)
+        requested_format = "raw_html" if api_mode else "commonmark"
         params: Dict[str, Any] = {
-            "return_format": ["raw_html", "html"] if api_mode else ["commonmark"],
+            "return_format": ["raw_html"] if api_mode else ["commonmark"],
             "metadata": True,
             "request": "chrome" if api_mode else "smart",
             "follow_redirects": True,
@@ -586,6 +625,7 @@ class SpiderCloudScraper(BaseScraper):
             "urls": urls,
             "params": params,
             "contentType": "application/jsonl",
+            "requestedFormat": requested_format,
         }
         request_snapshot = self.deps.build_request_snapshot(
             provider_request,
@@ -604,6 +644,7 @@ class SpiderCloudScraper(BaseScraper):
             "provider": self.provider,
             "seedUrls": urls,
             "request": request_snapshot,
+            "requestedFormat": requested_format,
         }
         if ignored_items:
             items_block["ignored"] = ignored_items
@@ -620,6 +661,7 @@ class SpiderCloudScraper(BaseScraper):
             "subUrls": urls,
             "request": request_snapshot,
             "providerRequest": provider_request,
+            "requestedFormat": requested_format,
         }
         if cost_milli_cents is not None:
             scrape_payload["costMilliCents"] = cost_milli_cents

@@ -79,6 +79,26 @@ def test_normalize_single_row_strips_job_application_prefix():
     assert normalized["total_compensation"] >= 187000
 
 
+def test_normalize_single_row_skips_error_landing_page():
+    row = {
+        "title": "Engineering",
+        "url": "https://careers.datadoghq.com/detail/7319730/?gh_jid=7319730",
+        "description": """
+        404 - Page not found | Datadog Careers
+        Careers
+        Welcome
+        Culture
+        Workplace Benefits
+        Candidate Experience
+        Arf. It seems we can't find what you're looking for.
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
 def test_normalize_firecrawl_items_handles_greenhouse_job_json():
     raw_json = """
     {"absolute_url":"https://www.pinterestcareers.com/jobs/?gh_jid=5572858","data_compliance":[{"type":"gdpr","requires_consent":false,"requires_processing_consent":false,"requires_retention_consent":false,"retention_period":null,"demographic_data_consent_applies":false}],"internal_job_id":2745516,"location":{"name":"Toronto, ON, CA"},"metadata":[{"id":5955,"name":"Employment Type","value":"Regular","value_type":"single_select"},{"id":16373425,"name":"Career Track","value":null,"value_type":"single_select"},{"id":2110283,"name":"Careers Page Department","value":"Engineering","value_type":"single_select"}],"id":5572858,"updated_at":"2025-11-19T19:53:17-05:00","requisition_id":"Evergreen - Backend Engineer, IC15, Monetization, CAN","title":"Sr. Software Engineer, Backend","company_name":"Pinterest","first_published":"2023-12-15T14:26:24-05:00","language":"en","content":"<div class=\\"content-intro\\"><p><strong>About Pinterest:</strong></p><p>Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime.</p></div>","departments":[{"id":7789,"name":"Engineering and Product (L2)","child_ids":[71474,77118,84986,71470,71472,71473,77096,84413,71468,523,91068,285130,285128,285129],"parent_id":null}],"offices":[{"id":58564,"name":"Toronto","location":"Toronto, ON, CA","child_ids":[],"parent_id":78375}]}

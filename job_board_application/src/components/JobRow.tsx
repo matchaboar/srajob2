@@ -73,8 +73,29 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                     >
                         {compensationMeta.display}
                     </span>
-                    <div className="hidden sm:flex flex-col items-end gap-0.5 mt-1 text-[10px] text-slate-500">
-                        {postedAt ? (
+                    <div className="flex sm:hidden flex-col items-end gap-0.5 mt-1 text-[10px] text-slate-500">
+                        {scrapedAt ? (
+                            <>
+                                <span className="font-medium">
+                                    {new Date(scrapedAt).toLocaleString(undefined, {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "numeric",
+                                        minute: "2-digit"
+                                    })}
+                                </span>
+                                <LiveTimer
+                                    className={timerClass}
+                                    startTime={scrapedAt}
+                                    colorize={isSelected}
+                                    warnAfterMs={12 * 60 * 60 * 1000}
+                                    dangerAfterMs={48 * 60 * 60 * 1000}
+                                    showAgo
+                                    showSeconds={isSelected}
+                                    dataTestId="scraped-timer-mobile"
+                                />
+                            </>
+                        ) : postedAt ? (
                             <>
                                 <span className="font-medium">
                                     {new Date(postedAt).toLocaleString(undefined, {
@@ -93,7 +114,7 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
                                         dangerAfterMs={3 * 24 * 60 * 60 * 1000}
                                         showAgo
                                         showSeconds={isSelected}
-                                        dataTestId="posted-timer"
+                                        dataTestId="posted-timer-mobile"
                                     />
                                 ) : (
                                     <div className="h-4" />
