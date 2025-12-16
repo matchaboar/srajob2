@@ -121,7 +121,7 @@ def test_extract_markdown_handles_raw_html_key():
     scraper = _make_scraper()
     html_payload = {"raw_html": "<p>Hi</p>"}
     text = scraper._extract_markdown(html_payload)
-    assert text == "<p>Hi</p>"
+    assert text == "Hi"
 
 
 def test_normalize_job_handles_api_json_string():

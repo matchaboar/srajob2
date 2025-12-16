@@ -38,6 +38,77 @@ _NAV_MENU_SEQUENCE = [
     "Remote",
     "All Jobs",
 ]
+
+
+def _score_apply_url(url: str) -> int:
+    """Prefer company-hosted URLs over Greenhouse API endpoints.
+
+    Higher scores are better. We want to avoid sending applicants to
+    boards-api/api.greenhouse.io when a marketing/careers link exists.
+    """
+
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        host = ""
+
+    if "boards-api.greenhouse.io" in host or host.startswith("api.greenhouse.io"):
+        return 0  # least preferred: raw API endpoints
+    if host.endswith("greenhouse.io"):
+        return 1  # fallback: hosted Greenhouse job page
+    if host:
+        return 2  # best: company-owned domain
+    return -1
+
+
+def _apply_url_candidates(row: Dict[str, Any]) -> List[str]:
+    """Collect plausible apply URLs from a normalized/raw row."""
+
+    fields = (
+        "apply_url",
+        "applyUrl",
+        "absolute_apply_url",
+        "absoluteApplyUrl",
+        "absolute_applyUrl",
+        "absolute_apply_url",
+        "absolute_url",
+        "absoluteUrl",
+        "job_url",
+        "jobUrl",
+        "url",
+        "link",
+        "href",
+        "_url",
+    )
+
+    candidates: List[str] = []
+    for key in fields:
+        val = row.get(key)
+        if isinstance(val, str) and val.strip():
+            candidates.append(val.strip())
+    return candidates
+
+
+def prefer_apply_url(row: Dict[str, Any]) -> Optional[str]:
+    """Return the preferred apply URL with a bias toward company domains."""
+
+    candidates = _apply_url_candidates(row)
+    if not candidates:
+        return None
+
+    best = None
+    best_score = -2
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        score = _score_apply_url(candidate)
+        if score > best_score:
+            best = candidate
+            best_score = score
+
+    return best
 _NAV_MENU_TERMS = set(_NAV_MENU_SEQUENCE + ["Careers"])
 
 # Phrases that typically appear on error/expired job landing pages. We only
@@ -971,16 +1042,8 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     raw_title_value = row.get("job_title") or row.get("title")
     raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
     title = raw_title or stringify(row.get("job_title") or row.get("title") or "Untitled")
-    url = stringify(
-        row.get("url")
-        or row.get("link")
-        or row.get("href")
-        or row.get("_url")
-        or row.get("absolute_url")
-        or row.get("absoluteUrl")
-        or row.get("job_url")
-        or row.get("apply_url")
-    )
+    preferred_url = prefer_apply_url(row)
+    url = stringify(preferred_url) if preferred_url is not None else ""
     if not url:
         return None
     if not title_matches_required_keywords(raw_title or None):
@@ -1140,6 +1203,9 @@ def _jobs_from_scrape_items(
         elif hints.get("remote") is False:
             remote_val = False
 
+        preferred_url = prefer_apply_url(row)
+        apply_url = stringify(preferred_url) if preferred_url is not None else ""
+
         job = {
             "title": title_val,
             "company": row.get("company") or "Unknown",
@@ -1148,7 +1214,7 @@ def _jobs_from_scrape_items(
             "remote": remote_val,
             "level": level_val,
             "totalCompensation": int(total_comp_val or 0),
-            "url": row.get("url") or "",
+            "url": apply_url or row.get("url") or "",
             "postedAt": int(row.get("posted_at") or default_posted_at),
         }
         if not job["url"]:
@@ -1193,6 +1259,7 @@ __all__ = [
     "normalize_single_row",
     "parse_compensation",
     "parse_posted_at",
+    "prefer_apply_url",
     "stringify",
     "trim_scrape_for_convex",
     "_jobs_from_scrape_items",

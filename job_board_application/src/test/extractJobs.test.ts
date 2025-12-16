@@ -44,4 +44,24 @@ describe("extractJobs sanitization", () => {
     expect(jobs[0].description).toBe("Secure our protocols.");
     expect(jobs[0].remote).toBe(true);
   });
+
+  it("parses greenhouse JSON with salary range, location, and full description", () => {
+    const payload = require("./fixtures/datadog_greenhouse.json");
+    const jobs = extractJobs([payload]);
+    expect(jobs).toHaveLength(1);
+    const job = jobs[0];
+
+    expect(job.title).toBe("Premier Support Engineer 2");
+    expect(job.company).toBe("Datadog");
+    expect(job.totalCompensation).toBe(118000); // uses max of range
+    expect(job.compensationUnknown).toBe(false);
+    expect(job.compensationReason).toMatch(/metadata/i);
+
+    expect(job.location).toContain("San Francisco");
+    expect(job.state).toBe("California");
+    expect(job.city).toBe("San Francisco");
+
+    expect(job.description).toContain("Technical Solutions team enables Datadog");
+    expect(job.description).toContain("customers’ entire technology stacks");
+  });
 });

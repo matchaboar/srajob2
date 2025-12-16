@@ -71,6 +71,11 @@ async def test_process_batch_rewrites_greenhouse_detail_urls(monkeypatch):
         "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4607747006"
     ]
 
+    # And the normalized payload should expose a marketing apply link when present
+    normalized = scrapes[0].get("items", {}).get("normalized") or []
+    assert normalized
+    assert normalized[0].get("apply_url") == "https://boards.greenhouse.io/coreweave/jobs/4607747006"
+
 
 @pytest.mark.asyncio
 async def test_process_batch_leaves_non_greenhouse_urls(monkeypatch):

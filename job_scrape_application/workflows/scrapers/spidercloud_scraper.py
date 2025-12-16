@@ -6,6 +6,7 @@ import os
 import re
 import time
 import html
+from urllib.parse import urlparse
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
@@ -256,6 +257,31 @@ class SpiderCloudScraper(BaseScraper):
 
     def _is_greenhouse_api_url(self, url: str) -> bool:
         return "boards-api.greenhouse.io" in url and "/jobs/" in url
+
+    def _to_marketing_greenhouse_url(self, url: str) -> Optional[str]:
+        """Convert Greenhouse API detail URLs to the public marketing page.
+
+        Example: https://boards-api.greenhouse.io/v1/boards/acme/jobs/123 ->
+        https://boards.greenhouse.io/acme/jobs/123
+        """
+
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return None
+
+        host = (parsed.hostname or "").lower()
+        if "greenhouse.io" not in host:
+            return None
+
+        parts = [p for p in parsed.path.split("/") if p]
+        # Expect v1/boards/{slug}/jobs/{id}
+        if len(parts) >= 5 and parts[0] == "v1" and parts[1] == "boards" and parts[3] == "jobs":
+            slug = parts[2]
+            job_id = parts[4]
+            return f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"
+
+        return None
 
     def _extract_greenhouse_json_markdown(self, markdown_text: str) -> Tuple[str, Optional[str]]:
         """
@@ -595,7 +621,17 @@ class SpiderCloudScraper(BaseScraper):
 
         async with AsyncSpider(api_key=api_key) as client:
             for url in urls:
+                # When we receive an API detail URL, try to also capture a
+                # marketing-friendly apply URL for downstream preference.
+                marketing_url = self._to_marketing_greenhouse_url(url)
+
                 result = await self._scrape_single_url(client, url, params)
+
+                if marketing_url and isinstance(result, dict):
+                    normalized_block = result.get("normalized")
+                    if isinstance(normalized_block, dict) and not normalized_block.get("apply_url"):
+                        normalized_block["apply_url"] = marketing_url
+
                 if result.get("normalized"):
                     normalized_items.append(result["normalized"])
                 if result.get("ignored"):

@@ -1,0 +1,35 @@
+{
+  "absolute_url": "https://careers.datadoghq.com/detail/7449072/?gh_jid=7449072",
+  "data_compliance": [
+    {
+      "type": "gdpr",
+      "requires_consent": false,
+      "requires_processing_consent": false,
+      "requires_retention_consent": false,
+      "retention_period": null,
+      "demographic_data_consent_applies": false
+    }
+  ],
+  "internal_job_id": 3311346,
+  "location": { "name": "San Francisco, California, USA" },
+  "metadata": [
+    { "id": 33310, "name": "Time Type", "value": "Full time", "value_type": "single_select" },
+    { "id": 516515, "name": "Geography", "value": "North America", "value_type": "single_select" },
+    {
+      "id": 29446322,
+      "name": "Pay Transparency Range",
+      "value": { "unit": "USD", "max_value": "118000.0", "min_value": "81000.0" },
+      "value_type": "currency_range"
+    }
+  ],
+  "id": 7449072,
+  "updated_at": "2025-12-10T16:14:38-05:00",
+  "requisition_id": "R16894",
+  "title": "Premier Support Engineer 2",
+  "company_name": "Datadog",
+  "first_published": "2025-12-10T16:14:38-05:00",
+  "language": "en",
+  "content": "\u003cp\u003eWe are Datadog\u0027s in-house product experts. The Technical Solutions team enables Datadog\u0027s worldwide growth by educating potential clients and ensuring that existing customers are happy and successful. Premier Support Engineers (PSEs) are primarily focused on assisting prospects and customers with any technical questions about Datadog. PSEs engage with Datadog’s Premier Customers via standard technical support channels, but are also involved with cadence calls, demos/presentations, conferences, and various side projects. You will work directly with Datadog’s Premier Customer base, and will be immersed in a fast-paced environment where you will be challenged, but will also immediately witness your contributions to Datadog and to our customers.\u003c/p\u003e\n\u003cp\u003e\u003cem\u003eAt Datadog, we place value in our office culture - the relationships and collaboration it builds and the creativity it brings to the table. We operate as a hybrid workplace to ensure our Datadogs can create a work-life harmony that best fits them.\u003c/em\u003e\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eWhat You’ll Do:\u003c/strong\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eRespond to client requests (phone / chat / tickets) on our fast paced team while continuing to educate our clients on the use of the platform\u003c/li\u003e\n\u003cli\u003eDevelop relationships with our Premier Customers, working hand-in-hand to truly know their distinct environment\u003c/li\u003e\n\u003cli\u003eReproduce issues and dive into the 600+ integrations that Datadog works with\u003c/li\u003e\n\u003cli\u003eBuild out documentation and knowledge based articles for a variety of technology\u003c/li\u003e\n\u003cli\u003eDrive product conversations based on needs and problems learned during client interactions\u003c/li\u003e\n\u003cli\u003eParticipate in routine health check meetings with Premier Customers\u003c/li\u003e\n\u003cli\u003eWork from a Datadog office 3 - 5 days per week\u00a0\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That\u0027s okay. If you’re passionate about technology and want to grow your skills, we encourage you to apply.\u003c/em\u003e\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eBenefits and Growth:\u003c/strong\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eBest-in-breed onboarding\u003c/li\u003e\n\u003cli\u003eGenerous global benefits\u003c/li\u003e\n\u003cli\u003eIntra-departmental mentor and buddy program for in-house networking\u003c/li\u003e\n\u003cli\u003eNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\u003c/li\u003e\n\u003cli\u003eContinuous professional development, product training, and career pathing\u003c/li\u003e\n\u003cli\u003eAn inclusive company culture, able to join our Community Guilds and Inclusion Talks\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\u003c/em\u003e\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eAbout Datadog:\u00a0\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries.\u003c/p\u003e\n\u003cp\u003eDatadog offers a competitive salary and equity package, and may include variable compensation. Actual compensation is based on factors such as the candidate\u0027s skills, qualifications, and experience.\u003c/p\u003e\n\u003cdiv class=\"content-pay-transparency\"\u003e\u003cdiv class=\"pay-input\"\u003e\u003cdiv class=\"title\"\u003eThe reasonably estimated yearly salary for this role at Datadog is:\u003c/div\u003e\u003cdiv class=\"pay-range\"\u003e\u003cspan\u003e$81,000\u003c/span\u003e\u003cspan class=\"divider\"\u003e—\u003c/span\u003e\u003cspan\u003e$118,000 USD\u003c/span\u003e\u003c/div\u003e\u003c/div\u003e\u003c/div\u003e\n\u003c/div\u003e",
+  "departments": [{ "id": 72284, "name": "Support Engineering", "child_ids": [], "parent_id": 9023 }],
+  "offices": [{ "id": 57627, "name": "San Francisco", "location": "San Francisco, CA, United States", "child_ids": [], "parent_id": 78108 }]
+}

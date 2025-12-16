@@ -6,6 +6,7 @@ import json
 import logging
 import time
 import re
+from urllib.parse import urlparse
 from html.parser import HTMLParser
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -152,6 +153,28 @@ def _make_spidercloud_scraper() -> SpiderCloudScraper:
         log_sync_response=_log_sync_response,
         trim_scrape_for_convex=_trim_scrape_for_convex,
     )
+
+
+def _to_greenhouse_marketing_url(url: str) -> Optional[str]:
+    """Convert Greenhouse API detail URL to the public marketing page."""
+
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+
+    host = (parsed.hostname or "").lower()
+    if "greenhouse.io" not in host:
+        return None
+
+    parts = [p for p in parsed.path.split("/") if p]
+    # Expected API shape: /v1/boards/{slug}/jobs/{id}
+    if len(parts) >= 5 and parts[0] == "v1" and parts[1] == "boards" and parts[3] == "jobs":
+        slug = parts[2]
+        job_id = parts[4]
+        return f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"
+
+    return None
 
 
 async def select_scraper_for_site(site: Site) -> tuple[BaseScraper, Optional[List[str]]]:
@@ -994,6 +1017,16 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         """
 
         try:
+            parsed = urlparse(url)
+        except Exception:
+            return url
+
+        # Only rewrite when the URL clearly refers to a Greenhouse flow.
+        host = (parsed.hostname or "").lower()
+        if "greenhouse.io" not in host and "gh_jid" not in url:
+            return url
+
+        try:
             if "gh_jid" not in url:
                 return url
             jid_match = re.search(r"[?&]gh_jid=(\d+)", url)
@@ -1004,13 +1037,17 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
             board_match = re.search(r"[?&]board=([^&]+)", url)
             if board_match:
                 slug = board_match.group(1)
-            # Fallback: try to infer slug from path segment before query string
+            # Fallback: try to infer slug from hostname/path
             if not slug:
-                path_parts = url.split("/")
+                # hostname like board.greenhouse.io/{slug}
+                host_parts = host.split(".")
+                if len(host_parts) >= 3 and host_parts[-2] != "greenhouse":
+                    slug = host_parts[-2]
+            if not slug:
+                path_parts = [p for p in parsed.path.split("/") if p]
                 if path_parts:
-                    maybe_slug = path_parts[-1].split("?")[0]
-                    if maybe_slug:
-                        slug = maybe_slug
+                    # /{slug}/jobs/{id}
+                    slug = path_parts[0]
             if not slug:
                 return url
             return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
@@ -1084,6 +1121,12 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         for idx, row in enumerate(normalized):
             if not isinstance(row, dict):
                 continue
+            marketing_url = _to_greenhouse_marketing_url(
+                row.get("url") or row.get("job_url") or row.get("absolute_url") or ""
+            )
+            if marketing_url and not row.get("apply_url"):
+                row["apply_url"] = marketing_url
+
             single_items: Dict[str, Any] = {"normalized": [row]}
             if isinstance(raw_items, list) and idx < len(raw_items):
                 single_items["raw"] = raw_items[idx]

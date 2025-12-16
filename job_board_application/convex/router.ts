@@ -3256,8 +3256,29 @@ export function extractJobs(items: any): {
     if (merged.includes("jr") || merged.includes("junior") || merged.includes("intern")) return "junior";
     return "mid";
   };
-  const parseComp = (val: any): { value: number; unknown: boolean } => {
+const parseComp = (val: any): { value: number; unknown: boolean } => {
+    const parseRangeObj = (obj: any): number | null => {
+      if (!obj || typeof obj !== "object") return null;
+      const minRaw = (obj as any).min_value ?? (obj as any).min;
+      const maxRaw = (obj as any).max_value ?? (obj as any).max;
+      const toNum = (v: any) => {
+        if (typeof v === "number" && Number.isFinite(v)) return v;
+        if (typeof v === "string") {
+          const parsed = Number(v.replace(/,/g, ""));
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return null;
+      };
+      const max = toNum(maxRaw);
+      const min = toNum(minRaw);
+      if (max !== null && max > 0) return max;
+      if (min !== null && min > 0) return min;
+      return null;
+    };
+
     if (typeof val === "number" && Number.isFinite(val) && val > 0) return { value: val, unknown: false };
+    const rangeValue = parseRangeObj(val);
+    if (rangeValue !== null) return { value: rangeValue, unknown: false };
     if (typeof val === "string") {
       const matches = val.replace(/\u00a0/g, " ").match(/[0-9][0-9,.]+/g);
       if (matches && matches.length) {
@@ -3307,7 +3328,7 @@ export function extractJobs(items: any): {
                 ? row.organization
                 : rawCompanyFromJson ?? "Unknown";
 
-      const url = String(row?.url || row?.link || row?.href || "").trim();
+      const url = String(row?.url || row?.link || row?.href || row?.absolute_url || "").trim();
 
       const rawLocation =
         typeof row?.location === "string"
@@ -3330,8 +3351,15 @@ export function extractJobs(items: any): {
             : typeof row === "string"
               ? cleanScrapedText(row)
               : JSON.stringify(row, null, 2).slice(0, 4000);
+      // Prefer structured pay range from Greenhouse metadata when present
+      let compensationSource: any =
+        (Array.isArray((row as any).metadata)
+          ? (row as any).metadata.find?.((m: any) => m?.value_type === "currency_range" && m?.value) ?? null
+          : null)?.value;
+
       const { value: totalCompensation, unknown: compensationUnknown } = parseComp(
-        (row as any).totalCompensation ??
+        compensationSource ??
+          (row as any).totalCompensation ??
           (row as any).total_compensation ??
           (row as any).salary ??
           (row as any).compensation
@@ -3342,7 +3370,9 @@ export function extractJobs(items: any): {
           ? (row as any).compensationReason.trim()
           : typeof (row as any).compensation_reason === "string" && (row as any).compensation_reason.trim()
             ? (row as any).compensation_reason.trim()
-            : compensationUnknown
+            : compensationSource
+              ? "pay range provided in metadata"
+              : compensationUnknown
               ? UNKNOWN_COMPENSATION_REASON
               : "compensation provided in scrape payload";
 

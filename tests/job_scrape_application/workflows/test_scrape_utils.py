@@ -14,6 +14,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     normalize_firecrawl_items,
     normalize_single_row,
     parse_markdown_hints,
+    prefer_apply_url,
 )
 
 
@@ -135,3 +136,40 @@ def test_jobs_from_scrape_items_uses_normalized_row():
     assert job["url"] == payload["absolute_url"]
     assert job["scrapedAt"] == 123
     assert "{" not in job["title"]
+
+
+def test_prefer_apply_url_prefers_company_over_greenhouse_api():
+    row = {
+        "apply_url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+        "absolute_url": "https://boards.greenhouse.io/acme/jobs/123",
+        "company_url": "https://careers.acme.com/jobs/123",
+    }
+
+    # Ordering alone should not force us onto the API URL
+    chosen = prefer_apply_url(row)
+
+    assert chosen == "https://careers.acme.com/jobs/123"
+
+
+def test_jobs_from_scrape_items_prefers_marketing_apply_url():
+    items = {
+        "normalized": [
+            {
+                "apply_url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+                "absolute_url": "https://boards.greenhouse.io/acme/jobs/123",
+                "url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+                "title": "Engineer",
+                "company": "Acme",
+                "description": "desc",
+                "location": "Remote",
+                "remote": True,
+                "level": "senior",
+                "total_compensation": 0,
+                "posted_at": 0,
+            }
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+    assert len(jobs) == 1
+    assert jobs[0]["url"] == "https://boards.greenhouse.io/acme/jobs/123"
