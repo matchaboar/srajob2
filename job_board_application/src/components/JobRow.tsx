@@ -4,21 +4,23 @@ import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
 
 interface JobRowProps {
-    job: any;
-    isSelected: boolean;
-    onSelect: () => void;
-    onApply: (type: "ai" | "manual") => void;
-    onReject: () => void;
-    isExiting?: "apply" | "reject";
-    keyboardBlur?: boolean;
+  job: any;
+  groupedLabel?: string;
+  isSelected: boolean;
+  onSelect: () => void;
+  onApply: (type: "ai" | "manual") => void;
+  onReject: () => void;
+  isExiting?: "apply" | "reject";
+  keyboardBlur?: boolean;
 }
 
-export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting, keyboardBlur }: JobRowProps) {
-    const compensationMeta = buildCompensationMeta(job);
-    const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
-    const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
-    const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
-    const timerClass = "text-xs font-medium text-slate-400 font-mono";
+export function JobRow({ job, groupedLabel, isSelected, onSelect, onApply, onReject, isExiting, keyboardBlur }: JobRowProps) {
+  const compensationMeta = buildCompensationMeta(job);
+  const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
+  const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
+  const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
+  const timerClass = "text-xs font-medium text-slate-400 font-mono";
+  const displayLocation = groupedLabel ?? job.location;
 
     return (
         <motion.div
@@ -135,7 +137,9 @@ export function JobRow({ job, isSelected, onSelect, onApply, onReject, isExiting
 
                 {/* Location (desktop only) */}
                 <div className="hidden sm:flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-slate-400 truncate max-w-[120px]">{job.location || "—"}</span>
+                    <span className="text-xs text-slate-400 truncate max-w-[160px]" title={job.location || displayLocation}>
+                        {displayLocation || "—"}
+                    </span>
                 </div>
 
                 {/* Posted (desktop) */}

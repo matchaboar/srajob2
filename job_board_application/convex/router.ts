@@ -692,16 +692,14 @@ const updateSiteScheduleHandler = async (ctx: any, args: { id: Id<"sites">; sche
   return args.id;
 };
 
-export const updateSiteSchedule = Object.assign(
-  mutation({
-    args: {
-      id: v.id("sites"),
-      scheduleId: v.optional(v.id("scrape_schedules")),
-    },
-    handler: updateSiteScheduleHandler,
-  }),
-  { handler: updateSiteScheduleHandler }
-);
+export const updateSiteSchedule = mutation({
+  args: {
+    id: v.id("sites"),
+    scheduleId: v.optional(v.id("scrape_schedules")),
+  },
+  handler: updateSiteScheduleHandler,
+});
+(updateSiteSchedule as any).handler = updateSiteScheduleHandler;
 
 export const listSites = query({
   args: { enabledOnly: v.boolean() },
@@ -1998,16 +1996,14 @@ const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: st
   return { id: args.id, updatedJobs };
 };
 
-export const updateSiteName = Object.assign(
-  mutation({
-    args: {
-      id: v.id("sites"),
-      name: v.string(),
-    },
-    handler: updateSiteNameHandler,
-  }),
-  { handler: updateSiteNameHandler }
-);
+export const updateSiteName = mutation({
+  args: {
+    id: v.id("sites"),
+    name: v.string(),
+  },
+  handler: updateSiteNameHandler,
+});
+(updateSiteName as any).handler = updateSiteNameHandler;
 
 export const bulkUpsertSites = mutation({
   args: {

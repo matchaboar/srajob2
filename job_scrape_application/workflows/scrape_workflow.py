@@ -124,7 +124,7 @@ async def _run_scrape_workflow(
                         "createdAt": _workflow_now_ms(),
                     }
                 ],
-                schedule_to_close_timeout=timedelta(seconds=20),
+                schedule_to_close_timeout=timedelta(seconds=60),
             )
         except Exception:
             # Best-effort logging only
@@ -204,7 +204,9 @@ async def _run_scrape_workflow(
                 scrape_id = await workflow.execute_activity(
                     store_scrape,
                     args=[res],
-                    schedule_to_close_timeout=timedelta(seconds=30),
+                    schedule_to_close_timeout=timedelta(minutes=3),
+                    start_to_close_timeout=timedelta(minutes=3),
+                    heartbeat_timeout=timedelta(seconds=30),
                 )
                 scrape_ids.append(scrape_id)
 
@@ -361,7 +363,7 @@ class SpidercloudJobDetailsWorkflow:
                             "createdAt": _workflow_now_ms(),
                         }
                     ],
-                    schedule_to_close_timeout=timedelta(seconds=20),
+                    schedule_to_close_timeout=timedelta(seconds=60),
                 )
             except Exception:
                 pass
@@ -422,7 +424,8 @@ class SpidercloudJobDetailsWorkflow:
                                 workflow.start_activity(
                                     store_scrape,
                                     args=[scrape],
-                                    start_to_close_timeout=timedelta(seconds=45),
+                                    start_to_close_timeout=timedelta(minutes=3),
+                                    heartbeat_timeout=timedelta(seconds=30),
                                 ),
                             )
                         )

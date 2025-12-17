@@ -114,7 +114,7 @@ class SiteLeaseWorkflow:
                             "createdAt": int(workflow.now().timestamp() * 1000),
                         }
                     ],
-                    schedule_to_close_timeout=timedelta(seconds=20),
+                    schedule_to_close_timeout=timedelta(seconds=60),
                 )
             except Exception:
                 pass
@@ -201,7 +201,9 @@ class SiteLeaseWorkflow:
                                 await workflow.execute_activity(
                                     store_scrape,
                                     args=[queued_scrape],
-                                    schedule_to_close_timeout=timedelta(seconds=30),
+                                    schedule_to_close_timeout=timedelta(minutes=3),
+                                    start_to_close_timeout=timedelta(minutes=3),
+                                    heartbeat_timeout=timedelta(seconds=30),
                                 )
                             except Exception as store_err:  # noqa: BLE001
                                 await _log(
@@ -444,7 +446,9 @@ async def _ingest_firecrawl_result(
                 await workflow.execute_activity(
                     store_scrape,
                     args=[scrape_payload],
-                    schedule_to_close_timeout=timedelta(seconds=30),
+                    schedule_to_close_timeout=timedelta(minutes=3),
+                    start_to_close_timeout=timedelta(minutes=3),
+                    heartbeat_timeout=timedelta(seconds=30),
                 )
                 stored += 1
         else:
@@ -468,7 +472,9 @@ async def _ingest_firecrawl_result(
             await workflow.execute_activity(
                 store_scrape,
                 args=[listing_scrape],
-                schedule_to_close_timeout=timedelta(seconds=30),
+                schedule_to_close_timeout=timedelta(minutes=3),
+                start_to_close_timeout=timedelta(minutes=3),
+                heartbeat_timeout=timedelta(seconds=30),
             )
             await log(
                 "webhook.listing.stored",
@@ -504,7 +510,9 @@ async def _ingest_firecrawl_result(
         await workflow.execute_activity(
             store_scrape,
             args=[scrape_payload],
-            schedule_to_close_timeout=timedelta(seconds=30),
+            schedule_to_close_timeout=timedelta(minutes=3),
+            start_to_close_timeout=timedelta(minutes=3),
+            heartbeat_timeout=timedelta(seconds=30),
         )
         stored += 1
 
@@ -593,7 +601,7 @@ class ProcessWebhookIngestWorkflow:
                             "createdAt": int(workflow.now().timestamp() * 1000),
                         }
                     ],
-                    schedule_to_close_timeout=timedelta(seconds=20),
+                    schedule_to_close_timeout=timedelta(seconds=60),
                 )
             except Exception:
                 pass
@@ -888,7 +896,7 @@ class RecoverMissingFirecrawlWebhookWorkflow:
                             "createdAt": int(workflow.now().timestamp() * 1000),
                         }
                     ],
-                    schedule_to_close_timeout=timedelta(seconds=20),
+                    schedule_to_close_timeout=timedelta(seconds=60),
                 )
             except Exception:
                 pass

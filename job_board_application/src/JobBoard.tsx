@@ -413,6 +413,12 @@ export function JobBoard() {
     return `${dateLabel} • ${days}d ago`;
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJob), [selectedJob]);
+  const groupedLocationsLabel = useCallback((job: ListedJob) => {
+    const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
+    if (locs.length === 0) return job.location || "Unknown";
+    if (locs.length === 1) return locs[0];
+    return `${locs[0]} +${locs.length - 1} more`;
+  }, []);
   const selectedJobLocations = useMemo(() => {
     if (!selectedJob) return [];
     const raw = Array.isArray(selectedJob.locations) ? selectedJob.locations : [];
@@ -549,7 +555,7 @@ export function JobBoard() {
   const jobUrlDetail = useMemo<(DetailItem & { value: string }) | null>(() => {
     const entry = selectedJobDetails.find((item) => item.label === "Job URL");
     if (entry && typeof entry.value === "string") {
-      return entry;
+      return entry as DetailItem & { value: string };
     }
     return null;
   }, [selectedJobDetails]);
@@ -1691,7 +1697,7 @@ export function JobBoard() {
                           <div>Job</div>
                           <div className="text-right">Salary</div>
                           <div className="hidden sm:block text-center">Level</div>
-                          <div className="hidden sm:block">Location</div>
+            <div className="hidden sm:block">Location(s)</div>
                           <div className="text-right hidden sm:block">Posted</div>
                           <div className="text-right hidden sm:block">Scraped</div>
                         </div>
@@ -1703,12 +1709,13 @@ export function JobBoard() {
 
                     <div className="min-h-full">
                       <AnimatePresence initial={false}>
-                        {filteredResults.map((job, idx) => (
-                          <JobRow
-                            key={job._id}
-                            job={job}
-                            isSelected={selectedJobId === job._id}
-                            onSelect={() => handleSelectJob(job._id)}
+        {filteredResults.map((job, idx) => (
+          <JobRow
+            key={job._id}
+            job={job}
+            groupedLabel={groupedLocationsLabel(job)}
+            isSelected={selectedJobId === job._id}
+            onSelect={() => handleSelectJob(job._id)}
                             onApply={(type) => { void handleApply(job._id, type, job.url); }}
                             onReject={() => { void handleReject(job._id); }}
                             isExiting={exitingJobs[job._id]}
@@ -1811,11 +1818,11 @@ export function JobBoard() {
                           </button>
                         </div>
 
-                        {jobUrlDetail && (
-                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
-                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                              Job URL
-                            </div>
+                      {jobUrlDetail && (
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Job URL
+                          </div>
                             <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
                               <a
                                 href={jobUrlDetail.value}
@@ -1824,10 +1831,30 @@ export function JobBoard() {
                                 className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
                               >
                                 {jobUrlDetail.value}
-                              </a>
-                            </div>
+                            </a>
                           </div>
-                        )}
+                        </div>
+                      )}
+                      {selectedJob?.alternateUrls && Array.isArray(selectedJob.alternateUrls) && selectedJob.alternateUrls.length > 1 && (
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Other locations / links
+                          </div>
+                          <div className="flex flex-col gap-1 text-sm text-slate-100">
+                            {selectedJob.alternateUrls.map((link: string) => (
+                              <a
+                                key={link}
+                                href={link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
+                              >
+                                {link}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                         <div className="grid grid-cols-2 gap-2">
                           {selectedJobDetails.filter(item => item.label !== "Job URL").map((item) => (

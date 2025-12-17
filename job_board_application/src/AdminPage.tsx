@@ -2317,6 +2317,7 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
       const retryProcessing = useMutation(api.sites.retryProcessing);
       const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
       const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
+      const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
       const rateLimits = useQuery(api.router.listJobDetailRateLimits, { });
       const upsertRateLimit = useMutation(api.router.upsertJobDetailRateLimit);
       const deleteRateLimit = useMutation(api.router.deleteJobDetailRateLimit);

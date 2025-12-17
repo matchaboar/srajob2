@@ -75,6 +75,7 @@ from .firecrawl import (
     start_firecrawl_batch as _start_firecrawl_batch,
 )
 from .types import FirecrawlWebhookEvent, Site
+from ...services import telemetry
 _log_provider_dispatch = log_provider_dispatch
 _log_sync_response = log_sync_response
 _build_request_snapshot = build_request_snapshot
@@ -1604,6 +1605,12 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
 async def store_scrape(scrape: Dict[str, Any]) -> str:
     from ...services.convex_client import convex_mutation
 
+    # Keep the activity alive during longer Convex/ingestion calls.
+    try:
+        activity.heartbeat({"stage": "start"})
+    except Exception:
+        pass
+
     async def _log_scratchpad(event: str, message: str | None = None, data: Dict[str, Any] | None = None):
         site_url = scrape.get("sourceUrl")
         if not isinstance(site_url, str):
@@ -1620,7 +1627,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             }
         )
         try:
-            await convex_mutation("scratchpad:append", payload)
+            telemetry.emit_posthog_log(payload)
         except Exception:
             # best-effort; ignore logging errors
             pass
@@ -1799,6 +1806,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             "router:insertScrapeRecord",
             _base_payload(payload),
         )
+        try:
+            activity.heartbeat({"stage": "persisted", "scrapeId": scrape_id})
+        except Exception:
+            pass
     except Exception as exc:
         logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
         # Fallback: aggressively trim and retry once so we still record the run
@@ -1815,6 +1826,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 "router:insertScrapeRecord",
                 _base_payload(fallback),
             )
+            try:
+                activity.heartbeat({"stage": "persisted_fallback", "scrapeId": scrape_id})
+            except Exception:
+                pass
         except Exception as fallback_exc:
             logger.error(
                 "Failed to persist scrape after fallback: %s",
@@ -1847,6 +1862,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             if payload.get("siteId") is not None:
                 ingest_payload["siteId"] = payload.get("siteId")
             await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
+            try:
+                activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
+            except Exception:
+                pass
     except Exception:
         # Non-fatal: ingestion failures shouldn't block scrape recording
         pass
@@ -1927,6 +1946,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 message="No URLs extracted from scrape payload",
                 data={"sourceUrl": payload.get("sourceUrl")},
             )
+        try:
+            activity.heartbeat({"stage": "urls_processed", "urls": len(urls or [])})
+        except Exception:
+            pass
     except Exception as exc:
         await _log_scratchpad(
             "scrape.url_extraction.error",
@@ -2794,8 +2817,6 @@ def _shrink_for_scratchpad(data: Any, max_len: int = 900) -> Any:
 async def record_scratchpad(entry: Dict[str, Any]) -> None:
     """Write a lightweight scratchpad entry to Convex."""
 
-    from ...services.convex_client import convex_mutation
-
     payload = _with_firecrawl_suffix({k: v for k, v in entry.items() if v is not None})
     if payload.get("siteUrl") is None:
         payload["siteUrl"] = ""
@@ -2803,7 +2824,7 @@ async def record_scratchpad(entry: Dict[str, Any]) -> None:
         payload["data"] = _shrink_for_scratchpad(payload.get("data"))
 
     try:
-        await convex_mutation("scratchpad:append", payload)
+        telemetry.emit_posthog_log(payload)
     except asyncio.CancelledError:
         return None
     except Exception as e:  # noqa: BLE001

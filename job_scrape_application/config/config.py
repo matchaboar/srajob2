@@ -38,5 +38,11 @@ class Settings:
     # API key for SpiderCloud (streaming markdown scraping)
     spider_api_key: str | None = os.getenv("SPIDER_API_KEY") or os.getenv("SPIDER_KEY")
 
+    # PostHog logging (OTLP) configuration
+    posthog_project_api_key: str | None = os.getenv("POSTHOG_PROJECT_API_KEY")
+    posthog_logs_endpoint: str | None = os.getenv("POSTHOG_LOGS_ENDPOINT")
+    posthog_region: str | None = os.getenv("POSTHOG_REGION")
+    posthog_project_id: str | None = os.getenv("POSTHOG_PROJECT_ID")
+
 
 settings = Settings()

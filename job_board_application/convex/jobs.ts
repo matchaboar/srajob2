@@ -382,6 +382,55 @@ export const computeJobCountry = (job: DbJob) => {
   return "Unknown";
 };
 
+const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+const buildJobGroupKey = (job: DbJob) => {
+  // Group primarily by title + company, then level and remote flag to avoid over-merging unrelated roles
+  const normalizedTitle = normalizeKeyPart(job.title).replace(/\s+/g, " ");
+  const normalizedCompany = normalizeKeyPart(job.company).replace(/\s+/g, " ");
+  const normalizedLevel = normalizeKeyPart(job.level as string | undefined);
+  const remoteToken = job.remote ? "remote" : "onsite";
+  return `${normalizedTitle}|${normalizedCompany}|${normalizedLevel}|${remoteToken}`;
+};
+
+const mergeStrings = (...candidates: Array<string | string[] | null | undefined>) => {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const entry of candidates.flat()) {
+    if (Array.isArray(entry)) {
+      for (const inner of entry) {
+        const cleaned = (inner ?? "").trim();
+        if (!cleaned || cleaned.toLowerCase() === "unknown") continue;
+        const key = cleaned.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(cleaned);
+      }
+      continue;
+    }
+
+    const cleaned = (entry ?? "").trim();
+    if (!cleaned || cleaned.toLowerCase() === "unknown") continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(cleaned);
+  }
+
+  return merged;
+};
+
+const pickBestCompJob = (jobs: DbJob[]) => {
+  const withKnownComp = jobs.filter(
+    (job) => job.compensationUnknown !== true && typeof job.totalCompensation === "number" && job.totalCompensation > 0
+  );
+
+  if (withKnownComp.length === 0) return null;
+
+  return withKnownComp.sort((a, b) => (b.totalCompensation ?? 0) - (a.totalCompensation ?? 0))[0];
+};
+
 export const matchesCountryFilter = (jobCountry: string, countryFilter: string, isOtherCountry: boolean) => {
   if (!countryFilter) return true;
   if (!isOtherCountry) {
@@ -558,7 +607,7 @@ export const listJobs = query({
     );
 
     // Filter out applied/rejected jobs and apply compensation filters
-    let filteredJobs = orderedPage.filter((job: any) => {
+    const filteredJobs = orderedPage.filter((job: any) => {
       // Remove jobs user has already applied to or rejected
       if (appliedJobIds.has(job._id)) {
         return false;
@@ -599,21 +648,74 @@ export const listJobs = query({
       return true;
     });
 
-    // Get application counts for remaining jobs
+    // Group jobs with same title/company/level/remote into one row, merging locations and URLs
+    const grouped = new Map<string, { base: any; members: any[] }>();
+
+    for (const job of filteredJobs) {
+      const key = buildJobGroupKey(job as any);
+      const bucket = grouped.get(key);
+      if (bucket) {
+        bucket.members.push(job);
+      } else {
+        grouped.set(key, { base: job, members: [job] });
+      }
+    }
+
     const jobsWithData = await Promise.all(
-      filteredJobs.map(async (job: any) => {
-        const normalizedJob = await ensureLocationFields(ctx, job);
+      Array.from(grouped.values()).map(async ({ base, members }) => {
+        // Pick a representative job for compensation display
+        const compJob = pickBestCompJob(members as any) || base;
+        const normalizedBase = await ensureLocationFields(ctx, base);
+
+        const allLocations = mergeStrings(
+          normalizedBase.locations,
+          members.flatMap((m) => (Array.isArray((m as any).locations) ? (m as any).locations : [])),
+          members.map((m) => (m as any).location),
+        );
+
+        const locationStatesMerged = Array.from(
+          new Set(
+            members.flatMap((m) => {
+              const info = deriveLocationFields(m as any);
+              return info.locationStates.length ? info.locationStates : [info.state];
+            }).filter(Boolean)
+          )
+        );
+
+        const urls = Array.from(new Set(members.map((m) => (m as any).url).filter(Boolean)));
         const applicationCount = await ctx.db
           .query("applications")
-          .withIndex("by_job", (q) => q.eq("jobId", job._id))
+          .withIndex("by_job", (q) => q.eq("jobId", base._id))
           .filter((q) => q.eq(q.field("status"), "applied"))
           .collect();
 
+        // Sum applications across grouped job ids (fallback to base when access limited)
+        let totalApplications = applicationCount.length;
+        if ((members as any[]).length > 1) {
+          for (const member of members) {
+            if ((member as any)._id === base._id) continue;
+            const extra = await ctx.db
+              .query("applications")
+              .withIndex("by_job", (q) => q.eq("jobId", (member as any)._id))
+              .filter((q) => q.eq(q.field("status"), "applied"))
+              .collect();
+            totalApplications += extra.length;
+          }
+        }
+
         return {
-          ...normalizedJob,
-          applicationCount: applicationCount.length,
+          ...normalizedBase,
+          totalCompensation: compJob.totalCompensation,
+          compensationUnknown: compJob.compensationUnknown,
+          compensationReason: compJob.compensationReason,
+          locations: allLocations,
+          locationStates: locationStatesMerged,
+          url: urls[0],
+          alternateUrls: urls,
+          groupedJobIds: members.map((m) => (m as any)._id),
+          applicationCount: totalApplications,
           userStatus: null, // These jobs don't have user applications by definition
-        };
+        } as any;
       })
     );
 

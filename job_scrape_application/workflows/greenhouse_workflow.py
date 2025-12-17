@@ -68,7 +68,7 @@ class GreenhouseScraperWorkflow:
                             "createdAt": int(workflow.now().timestamp() * 1000),
                         }
                     ],
-                    schedule_to_close_timeout=timedelta(seconds=20),
+                    schedule_to_close_timeout=timedelta(seconds=60),
                 )
             except Exception:
                 pass
@@ -142,7 +142,9 @@ class GreenhouseScraperWorkflow:
                             scrape_id = await workflow.execute_activity(
                                 store_scrape,
                                 args=[scrape_payload],
-                                schedule_to_close_timeout=timedelta(seconds=30),
+                                schedule_to_close_timeout=timedelta(minutes=3),
+                                start_to_close_timeout=timedelta(minutes=3),
+                                heartbeat_timeout=timedelta(seconds=30),
                             )
                             scrape_ids.append(scrape_id)
 

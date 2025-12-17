@@ -9,25 +9,22 @@ import pytest
 sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
-from job_scrape_application.services import convex_client  # noqa: E402
+from job_scrape_application.services import convex_client, telemetry  # noqa: E402
 
 
 @pytest.mark.asyncio
 async def test_record_scratchpad_sanitizes_required_strings(monkeypatch):
     """Guard against sending invalid types to Convex mutations (e.g., None for required strings)."""
 
-    captured: Dict[str, Any] = {}
+    captured: Dict[str, Any] = {"payload": {}}
 
-    async def fake_convex_mutation(name: str, payload: Dict[str, Any] | None = None):
-        captured["name"] = name
+    def fake_emit(payload: Dict[str, Any]) -> None:
         captured["payload"] = payload or {}
-        # Assert required string fields are real strings (Convex validators require v.string()).
         for key in ("siteUrl",):
             if key in captured["payload"]:
                 assert isinstance(captured["payload"][key], str)
-        return {"ok": True}
 
-    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(telemetry, "emit_posthog_log", fake_emit)
 
     entry = {
         "runId": "run-1",
@@ -40,7 +37,6 @@ async def test_record_scratchpad_sanitizes_required_strings(monkeypatch):
 
     await acts.record_scratchpad(entry)
 
-    assert captured["name"] == "scratchpad:append"
     assert captured["payload"].get("siteUrl") == ""
 
 

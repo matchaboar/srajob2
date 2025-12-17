@@ -49,7 +49,7 @@ describe("extractJobs sanitization", () => {
     const payload = require("./fixtures/datadog_greenhouse.json");
     const jobs = extractJobs([payload]);
     expect(jobs).toHaveLength(1);
-    const job = jobs[0];
+    const job = jobs[0] as any;
 
     expect(job.title).toBe("Premier Support Engineer 2");
     expect(job.company).toBe("Datadog");

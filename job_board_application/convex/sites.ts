@@ -370,32 +370,30 @@ const listScrapeActivityHandler = async (ctx: any) => {
   });
 };
 
-export const listScrapeActivity = Object.assign(
-  query({
-    args: {},
-    returns: v.array(
-      v.object({
-        siteId: v.id("sites"),
-        name: v.optional(v.string()),
-        url: v.string(),
-        pattern: v.optional(v.string()),
-        enabled: v.boolean(),
-        createdAt: v.number(),
-        updatedAt: v.number(),
-        lastRunAt: v.optional(v.number()),
-        lastScrapeStart: v.optional(v.number()),
-        lastScrapeEnd: v.optional(v.number()),
-        lastJobsScraped: v.number(),
-        workerId: v.optional(v.string()),
-        lastFailureAt: v.optional(v.number()),
-        failed: v.optional(v.boolean()),
-        totalScrapes: v.number(),
-        totalJobsScraped: v.number(),
-      })
-    ),
-    handler: listScrapeActivityHandler,
-  }),
-  { handler: listScrapeActivityHandler }
-);
+export const listScrapeActivity = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      siteId: v.id("sites"),
+      name: v.optional(v.string()),
+      url: v.string(),
+      pattern: v.optional(v.string()),
+      enabled: v.boolean(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      lastRunAt: v.optional(v.number()),
+      lastScrapeStart: v.optional(v.number()),
+      lastScrapeEnd: v.optional(v.number()),
+      lastJobsScraped: v.number(),
+      workerId: v.optional(v.string()),
+      lastFailureAt: v.optional(v.number()),
+      failed: v.optional(v.boolean()),
+      totalScrapes: v.number(),
+      totalJobsScraped: v.number(),
+    })
+  ),
+  handler: listScrapeActivityHandler,
+});
+(listScrapeActivity as any).handler = listScrapeActivityHandler;
 
 export const __test = { collectWithLimit, countJobs };

@@ -67,6 +67,8 @@ def _apply_url_candidates(row: Dict[str, Any]) -> List[str]:
     fields = (
         "apply_url",
         "applyUrl",
+        "company_url",
+        "companyUrl",
         "absolute_apply_url",
         "absoluteApplyUrl",
         "absolute_applyUrl",
