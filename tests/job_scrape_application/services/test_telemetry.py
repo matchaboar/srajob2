@@ -2,11 +2,69 @@ from __future__ import annotations
 
 import os
 import sys
+import types
 from typing import Any, Dict, List
 
 import pytest
 
 sys.path.insert(0, os.path.abspath("."))
+
+if "convex" not in sys.modules:
+    class _FakeConvexClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def query(self, *_args, **_kwargs):
+            return None
+
+        def mutation(self, *_args, **_kwargs):
+            return None
+
+    sys.modules["convex"] = types.SimpleNamespace(ConvexClient=_FakeConvexClient)
+if "yaml" not in sys.modules:
+    sys.modules["yaml"] = types.SimpleNamespace(safe_load=lambda *_args, **_kwargs: {})
+if "opentelemetry" not in sys.modules:
+    otel_mod = types.ModuleType("opentelemetry")
+    otel_logs = types.SimpleNamespace(set_logger_provider=lambda *_args, **_kwargs: None)
+    otel_mod._logs = otel_logs
+
+    class _FakeLoggerProvider:
+        def __init__(self, *_args, **_kwargs):
+            self.processors = []
+
+        def add_log_record_processor(self, proc):
+            self.processors.append(proc)
+
+        def force_flush(self, timeout_ms: int):
+            return True
+
+    class _FakeLoggingHandler:
+        def __init__(self, level=None, logger_provider=None):
+            self.logger_provider = logger_provider
+
+    class _FakeBatchLogRecordProcessor:
+        def __init__(self, exporter):
+            self.exporter = exporter
+
+        def force_flush(self, timeout_millis: int | None = None):
+            return True
+
+    class _FakeOTLPExporter:
+        def __init__(self, endpoint: str | None = None, headers: Dict[str, str] | None = None):
+            self.endpoint = endpoint
+            self.headers = headers or {}
+
+    sys.modules["opentelemetry"] = otel_mod
+    sys.modules["opentelemetry._logs"] = types.SimpleNamespace(set_logger_provider=lambda *_a, **_k: None)
+    sys.modules["opentelemetry.exporter.otlp.proto.http._log_exporter"] = types.SimpleNamespace(
+        OTLPLogExporter=_FakeOTLPExporter
+    )
+    sys.modules["opentelemetry.sdk._logs"] = types.SimpleNamespace(
+        LoggerProvider=_FakeLoggerProvider, LoggingHandler=_FakeLoggingHandler
+    )
+    sys.modules["opentelemetry.sdk._logs.export"] = types.SimpleNamespace(
+        BatchLogRecordProcessor=_FakeBatchLogRecordProcessor
+    )
 
 from job_scrape_application.services import telemetry  # noqa: E402
 
@@ -92,10 +150,11 @@ def test_emit_posthog_log_formats_message_and_attributes(monkeypatch):
     records: List[Dict[str, Any]] = []
 
     class FakeLogger:
-        def info(self, msg: str, extra: Dict[str, Any] | None = None):
+        def info(self, msg: str, extra: Dict[str, Any] | None = None, **kwargs):
             records.append({"msg": msg, "extra": extra or {}})
 
     monkeypatch.setattr(telemetry, "_ensure_logger", lambda: FakeLogger())
+    monkeypatch.setattr(telemetry, "_infer_workflow_id", lambda: None)
 
     payload = {"message": "hello", "event": "job.scraped", "count": 1}
     telemetry.emit_posthog_log(payload)
@@ -105,6 +164,63 @@ def test_emit_posthog_log_formats_message_and_attributes(monkeypatch):
     assert records[0]["extra"]["event"] == "job.scraped"
     assert records[0]["extra"]["count"] == 1
     assert records[0]["extra"]["scratchpad_message"] == "hello"
+
+
+def test_emit_posthog_log_appends_workflow_id(monkeypatch):
+    records: List[Dict[str, Any]] = []
+
+    class FakeLogger:
+        def info(self, msg: str, extra: Dict[str, Any] | None = None, **kwargs):
+            records.append({"msg": msg, "extra": extra or {}})
+
+    monkeypatch.setattr(telemetry, "_ensure_logger", lambda: FakeLogger())
+
+    payload = {"event": "job.scraped", "workflowId": "wf-789"}
+    telemetry.emit_posthog_log(payload)
+
+    assert "workflow_id=wf-789" in records[0]["msg"]
+    assert records[0]["extra"]["workflowId"] == "wf-789"
+
+
+def test_emit_posthog_log_infers_workflow_id(monkeypatch):
+    records: List[Dict[str, Any]] = []
+
+    class FakeLogger:
+        def info(self, msg: str, extra: Dict[str, Any] | None = None, **kwargs):
+            records.append({"msg": msg, "extra": extra or {}})
+
+    monkeypatch.setattr(telemetry, "_ensure_logger", lambda: FakeLogger())
+    monkeypatch.setattr(telemetry, "_infer_workflow_id", lambda: "wf-auto")
+
+    telemetry.emit_posthog_log({"event": "job.scraped"})
+
+    assert "workflow_id=wf-auto" in records[0]["msg"]
+    assert records[0]["extra"]["workflowId"] == "wf-auto"
+
+
+def test_emit_posthog_log_preserves_caller_location(monkeypatch):
+    import logging
+    records: List[Any] = []
+
+    class ListHandler(logging.Handler):
+        def emit(self, record):  # type: ignore[override]
+            records.append(record)
+
+    logger = logging.getLogger("telemetry-location-test")
+    logger.handlers = []
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    logger.addHandler(ListHandler())
+
+    monkeypatch.setattr(telemetry, "_ensure_logger", lambda: logger)
+
+    telemetry.emit_posthog_log({"event": "unit.test.location"})
+
+    assert records, "expected a log record"
+    record = records[0]
+    assert record.pathname.endswith("test_telemetry.py")
+    assert record.funcName == "test_emit_posthog_log_preserves_caller_location"
+    assert record.lineno > 0
 
 
 def test_force_flush_uses_provider(monkeypatch):

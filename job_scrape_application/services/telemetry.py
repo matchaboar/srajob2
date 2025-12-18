@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import importlib
 from typing import Any, Dict
 
 from opentelemetry import _logs as logs
@@ -29,6 +30,28 @@ def _resolve_endpoint() -> str:
 
 def _build_otlp_exporter(endpoint: str, token: str) -> OTLPLogExporter:
     return OTLPLogExporter(endpoint=endpoint, headers={"Authorization": f"Bearer {token}"})
+
+
+def _infer_workflow_id() -> str | None:
+    """Best-effort: pull workflow_id from Temporal workflow/activity context if present."""
+
+    candidates = [
+        ("temporalio.workflow", "info", "workflow_id"),
+        ("temporalio.activity", "info", "workflow_id"),
+    ]
+    for module_name, func_name, attr in candidates:
+        try:
+            mod = importlib.import_module(module_name)
+            info_fn = getattr(mod, func_name, None)
+            if not callable(info_fn):
+                continue
+            run_info = info_fn()
+            wf_id = getattr(run_info, attr, None) or getattr(run_info, "workflowId", None)
+            if isinstance(wf_id, str) and wf_id.strip():
+                return wf_id
+        except Exception:
+            continue
+    return None
 
 
 def _ensure_logger() -> logging.Logger:
@@ -68,16 +91,30 @@ def emit_posthog_log(payload: Dict[str, Any]) -> None:
 
     logger = _ensure_logger()
 
+    workflow_id = (
+        payload.get("workflowId")
+        or payload.get("workflow_id")
+        or (payload.get("data") or {}).get("workflowId")
+        or (payload.get("data") or {}).get("workflow_id")
+        or _infer_workflow_id()
+    )
+
     message = payload.get("message") or payload.get("event") or "scratchpad"
+    if workflow_id and f"workflow_id={workflow_id}" not in str(message):
+        message = f"{message} | workflow_id={workflow_id}"
+
     attributes = {k: v for k, v in payload.items() if k != "message"}
+    if workflow_id and "workflowId" not in attributes:
+        attributes["workflowId"] = workflow_id
     if "message" in payload:
         attributes["scratchpad_message"] = payload["message"]
 
-    logger.info(message, extra=attributes)
+    # Use stacklevel so OTLP location fields point to the caller of emit_posthog_log,
+    # not this helper module.
+    logger.info(message, extra=attributes, stacklevel=2)
 
 
 def force_flush_posthog_logs(timeout_ms: int = 30000) -> bool:
     if _logger_provider:
         return _logger_provider.force_flush(timeout_ms)
     return True
-

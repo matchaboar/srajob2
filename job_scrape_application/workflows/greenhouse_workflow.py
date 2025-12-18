@@ -139,6 +139,8 @@ class GreenhouseScraperWorkflow:
                             )
 
                         if scrape_payload:
+                            scrape_payload.setdefault("workflowId", run_info.workflow_id)
+                            scrape_payload.setdefault("runId", run_info.run_id)
                             scrape_id = await workflow.execute_activity(
                                 store_scrape,
                                 args=[scrape_payload],

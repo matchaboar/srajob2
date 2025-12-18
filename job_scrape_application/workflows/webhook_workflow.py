@@ -187,6 +187,8 @@ class SiteLeaseWorkflow:
                                     },
                                     "provider": "firecrawl",
                                     "workflowName": "SiteLease",
+                                    "workflowId": run_info.workflow_id,
+                                    "runId": run_info.run_id,
                                     "asyncState": "queued",
                                     "asyncResponse": {
                                         "jobId": job_id_str,
@@ -305,6 +307,7 @@ async def _ingest_firecrawl_result(
 ) -> tuple[int, int, List[str]]:
     """Process a Firecrawl result payload and persist Convex mutations."""
 
+    run_info = workflow.info()
     stored = 0
     jobs_scraped = 0
     site_urls: List[str] = []
@@ -359,6 +362,8 @@ async def _ingest_firecrawl_result(
             },
             "provider": "firecrawl",
             "workflowName": workflow_name,
+            "workflowId": run_info.workflow_id,
+            "runId": run_info.run_id,
             "kind": "firecrawl_expired",
         }
         await workflow.execute_activity(
@@ -432,6 +437,8 @@ async def _ingest_firecrawl_result(
             scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None
             if scrape_payload:
                 scrape_payload.setdefault("workflowName", workflow_name)
+                scrape_payload.setdefault("workflowId", run_info.workflow_id)
+                scrape_payload.setdefault("runId", run_info.run_id)
                 await log(
                     "webhook.listing.scrape",
                     site_url=site_url,
@@ -467,6 +474,8 @@ async def _ingest_firecrawl_result(
                 "request": request_snapshot,
                 "provider": "firecrawl",
                 "workflowName": workflow_name,
+                "workflowId": run_info.workflow_id,
+                "runId": run_info.run_id,
                 "kind": "greenhouse_listing",
             }
             await workflow.execute_activity(
@@ -506,6 +515,8 @@ async def _ingest_firecrawl_result(
     scrape_payload = result.get("scrape")
     if scrape_payload:
         scrape_payload.setdefault("workflowName", workflow_name)
+        scrape_payload.setdefault("workflowId", run_info.workflow_id)
+        scrape_payload.setdefault("runId", run_info.run_id)
         scrape_summary = _summarize_scrape_payload(scrape_payload)
         await workflow.execute_activity(
             store_scrape,

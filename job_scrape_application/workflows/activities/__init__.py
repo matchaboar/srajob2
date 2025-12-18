@@ -1615,6 +1615,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         site_url = scrape.get("sourceUrl")
         if not isinstance(site_url, str):
             site_url = ""
+        workflow_id = scrape.get("workflowId") or scrape.get("workflow_id")
         payload = _strip_none_values(
             {
                 "event": event,
@@ -1622,10 +1623,13 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 "data": data,
                 "createdAt": int(time.time() * 1000),
                 "workflowName": scrape.get("workflowName"),
+                "workflowId": workflow_id or "unknown",
+                "runId": scrape.get("runId") or scrape.get("run_id"),
                 "siteUrl": site_url or "",
                 "level": "info",
             }
         )
+        payload["message"] = _build_scratchpad_message(payload)
         try:
             telemetry.emit_posthog_log(payload)
         except Exception:
@@ -1664,6 +1668,17 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
     payload = trim_scrape_for_convex(scrape)
     now = int(time.time() * 1000)
+    normalized_count = 0
+    if isinstance(payload.get("items"), dict):
+        normalized_items = payload["items"].get("normalized")
+        if isinstance(normalized_items, list):
+            normalized_count = len(normalized_items)
+    ignored_count = 0
+    if isinstance(payload.get("items"), dict):
+        ignored_items = payload["items"].get("ignored")
+        if isinstance(ignored_items, list):
+            ignored_count = len(ignored_items)
+
     scraped_with = None
     if isinstance(payload.get("items"), dict):
         scraped_with = payload["items"].get("provider")
@@ -1686,6 +1701,21 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
     if isinstance(payload.get("items"), dict):
         items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
     provider_for_log = scraped_with or payload.get("provider") or items_provider
+
+    await _log_scratchpad(
+        "scrape.received",
+        message=(
+            f"Scrape payload received for {payload.get('sourceUrl') or 'unknown site'} "
+            f"via {provider_for_log or 'unknown provider'}"
+        ),
+        data={
+            "workflowId": payload.get("workflowId"),
+            "provider": provider_for_log,
+            "normalizedCount": normalized_count,
+            "ignoredCount": ignored_count or None,
+            "siteId": payload.get("siteId"),
+        },
+    )
 
     # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
     try:
@@ -1806,6 +1836,20 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             "router:insertScrapeRecord",
             _base_payload(payload),
         )
+        await _log_scratchpad(
+            "scrape.persisted",
+            message=(
+                f"Persisted scrape with {normalized_count} normalized jobs "
+                f"({provider_for_log or 'unknown provider'})"
+            ),
+            data={
+                "scrapeId": scrape_id,
+                "workflowId": payload.get("workflowId"),
+                "normalizedCount": normalized_count,
+                "provider": provider_for_log,
+                "siteId": payload.get("siteId"),
+            },
+        )
         try:
             activity.heartbeat({"stage": "persisted", "scrapeId": scrape_id})
         except Exception:
@@ -1825,6 +1869,17 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             scrape_id = await convex_mutation(
                 "router:insertScrapeRecord",
                 _base_payload(fallback),
+            )
+            await _log_scratchpad(
+                "scrape.persisted.fallback",
+                message=f"Persisted fallback scrape after initial failure ({provider_for_log or 'unknown provider'})",
+                data={
+                    "scrapeId": scrape_id,
+                    "workflowId": payload.get("workflowId"),
+                    "normalizedCount": normalized_count,
+                    "provider": provider_for_log,
+                    "siteId": payload.get("siteId"),
+                },
             )
             try:
                 activity.heartbeat({"stage": "persisted_fallback", "scrapeId": scrape_id})
@@ -1862,6 +1917,19 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             if payload.get("siteId") is not None:
                 ingest_payload["siteId"] = payload.get("siteId")
             await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
+            await _log_scratchpad(
+                "ingest.jobs",
+                message=(
+                    f"Ingested {len(jobs)} jobs into Convex "
+                    f"from {payload.get('sourceUrl') or 'unknown site'}"
+                ),
+                data={
+                    "count": len(jobs),
+                    "workflowId": payload.get("workflowId"),
+                    "siteId": payload.get("siteId"),
+                    "provider": provider_for_log,
+                },
+            )
             try:
                 activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
             except Exception:
@@ -1873,6 +1941,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
     # Record ignored entries (e.g., filtered by keyword) so future crawls can skip quickly.
     try:
         ignored_entries = []
+        ignored_recorded = 0
         if isinstance(payload.get("items"), dict):
             ignored_entries = payload["items"].get("ignored") or []
         if isinstance(ignored_entries, list):
@@ -1897,10 +1966,22 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         "provider": scraped_with or payload.get("provider"),
                         "workflowName": payload.get("workflowName"),
                         "details": _shrink_payload(entry, 4000),
-                        "title": title_val,
-                        "description": desc_val,
-                    },
-                )
+                    "title": title_val,
+                    "description": desc_val,
+                },
+            )
+                ignored_recorded += 1
+        if ignored_recorded:
+            await _log_scratchpad(
+                "scrape.ignored_jobs",
+                message=f"Recorded {ignored_recorded} ignored jobs for {payload.get('sourceUrl') or 'unknown'}",
+                data={
+                    "count": ignored_recorded,
+                    "workflowId": payload.get("workflowId"),
+                    "siteId": payload.get("siteId"),
+                    "provider": provider_for_log,
+                },
+            )
     except Exception:
         # Best-effort; ignore failures
         pass
@@ -2796,6 +2877,104 @@ async def record_workflow_run(run: Dict[str, Any]) -> None:
         raise RuntimeError(f"Failed to record workflow run: {e}") from e
 
 
+def _coerce_workflow_id(entry: Dict[str, Any]) -> str:
+    """Best-effort extraction of a workflow id for logging/filtering."""
+
+    candidates = [
+        entry.get("workflowId"),
+        entry.get("workflow_id"),
+        (entry.get("data") or {}).get("workflowId") if isinstance(entry.get("data"), dict) else None,
+        (entry.get("data") or {}).get("workflow_id") if isinstance(entry.get("data"), dict) else None,
+    ]
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+    return "unknown"
+
+
+def _short_preview(value: Any) -> str:
+    """Return a concise preview for message strings."""
+
+    if value is None:
+        return "none"
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    if isinstance(value, str):
+        return value[:120]
+    if isinstance(value, list):
+        return f"len={len(value)}"
+    if isinstance(value, dict):
+        return ", ".join(
+            f"{k}={_short_preview(v)}"
+            for k, v in list(value.items())[:4]
+            if v is not None
+        )
+    return str(value)[:120]
+
+
+def _build_scratchpad_message(payload: Dict[str, Any]) -> str:
+    """Compose a descriptive message that always includes workflow id."""
+
+    event = payload.get("event")
+    site_url = payload.get("siteUrl") or payload.get("sourceUrl")
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    workflow_id = _coerce_workflow_id(payload)
+
+    base = payload.get("message")
+    parts: list[str] = []
+    if base:
+        parts.append(str(base))
+    elif event:
+        parts.append(event.replace("_", " "))
+
+    if site_url:
+        parts.append(f"site={site_url}")
+
+    interesting_keys = (
+        "jobId",
+        "jobsScraped",
+        "jobUrls",
+        "itemsCount",
+        "normalizedCount",
+        "urls",
+        "count",
+        "sitesProcessed",
+        "stored",
+        "failed",
+        "remaining",
+        "toScrape",
+        "status",
+        "provider",
+        "pattern",
+    )
+    details: list[str] = []
+    for key in interesting_keys:
+        if key in data and data[key] is not None:
+            details.append(f"{key}={_short_preview(data[key])}")
+
+    if data.get("sample"):
+        sample_title = None
+        if isinstance(data["sample"], list):
+            for entry in data["sample"]:
+                if isinstance(entry, dict):
+                    sample_title = entry.get("title") or entry.get("job_title")
+                    if sample_title:
+                        break
+        if sample_title:
+            details.append(f"sample_title={_short_preview(sample_title)}")
+
+    if details:
+        parts.append(", ".join(details))
+
+    if workflow_id:
+        parts.append(f"workflow_id={workflow_id}")
+
+    if not parts:
+        return f"{event or 'scratchpad'} | workflow_id={workflow_id}"
+
+    return " | ".join(parts)
+
+
 def _shrink_for_scratchpad(data: Any, max_len: int = 900) -> Any:
     """Keep scratchpad payloads small to fit Convex doc limits."""
 
@@ -2822,6 +3001,9 @@ async def record_scratchpad(entry: Dict[str, Any]) -> None:
         payload["siteUrl"] = ""
     if "data" in payload:
         payload["data"] = _shrink_for_scratchpad(payload.get("data"))
+    workflow_id = _coerce_workflow_id(payload)
+    payload["workflowId"] = workflow_id
+    payload["message"] = _build_scratchpad_message(payload)
 
     try:
         telemetry.emit_posthog_log(payload)

@@ -4,6 +4,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
+import os
 
 import httpx
 from temporalio import workflow
@@ -26,6 +27,7 @@ from .webhook_workflow import (
     RecoverMissingFirecrawlWebhookWorkflow,
     SiteLeaseWorkflow,
 )
+from .schedule_audit import schedule_audit_logger
 
 WORKFLOW_CLASSES = [
     ScrapeWorkflow,
@@ -125,7 +127,7 @@ def _setup_logging() -> logging.Logger:
     return logging.getLogger("temporal.worker")
 
 
-async def monitor_loop(client: Client) -> None:
+async def monitor_loop(client: Client, worker_id: str) -> None:
     """Periodically pushes Temporal workflow status to Convex."""
     logger = logging.getLogger("temporal.worker.monitor")
 
@@ -133,11 +135,8 @@ async def monitor_loop(client: Client) -> None:
         logger.warning("CONVEX_HTTP_URL not set. Monitor disabled.")
         return
 
-    # Generate unique worker ID (hostname + PID)
     import socket
-    import os
     hostname = socket.gethostname()
-    worker_id = f"{hostname}-{os.getpid()}"
 
     logger.info("Monitor loop started (worker_id=%s host=%s)", worker_id, hostname)
 
@@ -253,6 +252,12 @@ async def main() -> None:
 
     logger.info("Connected to Temporal!")
 
+    # Generate unique worker ID (hostname + PID) shared across monitors
+    import socket
+
+    hostname = socket.gethostname()
+    worker_id = f"{hostname}-{os.getpid()}"
+
     worker = Worker(
         client,
         task_queue=settings.task_queue,
@@ -262,8 +267,9 @@ async def main() -> None:
     )
 
     # Start the monitor loop in the background
-    monitor_task = asyncio.create_task(monitor_loop(client))
+    monitor_task = asyncio.create_task(monitor_loop(client, worker_id))
     webhook_log_task = asyncio.create_task(webhook_wait_logger())
+    schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
 
     logger.info(
         "Worker started. Namespace=%s Address=%s TaskQueue=%s",
@@ -287,6 +293,11 @@ async def main() -> None:
         webhook_log_task.cancel()
         try:
             await webhook_log_task
+        except asyncio.CancelledError:
+            pass
+        schedule_audit_task.cancel()
+        try:
+            await schedule_audit_task
         except asyncio.CancelledError:
             pass
 

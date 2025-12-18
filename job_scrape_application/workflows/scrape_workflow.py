@@ -164,6 +164,8 @@ async def _run_scrape_workflow(
                     res_dict: Dict[str, Any] = res
                     res_dict.setdefault("workflowName", workflow_name)
                     res_dict.setdefault("siteId", site.get("_id"))
+                    res_dict.setdefault("workflowId", run_info.workflow_id)
+                    res_dict.setdefault("runId", run_info.run_id)
                     items_raw = res_dict.get("items")
                     items: Dict[str, Any] = items_raw if isinstance(items_raw, dict) else {}
                     job_id = res_dict.get("jobId") or items.get("jobId")
@@ -413,6 +415,8 @@ class SpidercloudJobDetailsWorkflow:
                     for scrape in scrapes:
                         if not isinstance(scrape, dict):
                             continue
+                        scrape.setdefault("workflowId", run_info.workflow_id)
+                        scrape.setdefault("runId", run_info.run_id)
                         urls_for_scrape = []
                         sub_urls = scrape.get("subUrls")
                         if isinstance(sub_urls, list) and sub_urls:
