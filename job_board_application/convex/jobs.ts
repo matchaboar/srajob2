@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
+import { greenhouseSlugFromUrl } from "./siteUtils";
 import {
   splitLocation,
   formatLocationLabel,
@@ -383,6 +384,54 @@ export const computeJobCountry = (job: DbJob) => {
 };
 
 const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
+const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+const baseDomainFromHost = (host: string): string => {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 1) return host;
+  const last = parts[parts.length - 1];
+  const secondLast = parts[parts.length - 2];
+  const shouldUseThree = secondLast.length === 2 || last.length === 2;
+  if (shouldUseThree && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+};
+
+const normalizeDomainInput = (value: string): string => {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    const host = parsed.hostname.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
+    if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    return baseDomainFromHost(host);
+  } catch {
+    const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
+    const host = hostOnly.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(host);
+    if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    return baseDomainFromHost(host);
+  }
+};
+
+export const matchesCompanyFilters = (
+  job: { company?: string | null; url?: string | null },
+  normalizedCompanyFilters: Set<string>,
+  domainAliasByDomain?: Map<string, string> | null
+) => {
+  if (!normalizedCompanyFilters.size) return true;
+  const companyKey = normalizeCompanyKey(job.company);
+  if (companyKey && normalizedCompanyFilters.has(companyKey)) return true;
+  if (!domainAliasByDomain || domainAliasByDomain.size === 0) return false;
+  const domain = normalizeDomainInput(job.url ?? "");
+  if (!domain) return false;
+  const aliasKey = normalizeCompanyKey(domainAliasByDomain.get(domain) ?? "");
+  if (!aliasKey) return false;
+  return normalizedCompanyFilters.has(aliasKey);
+};
 
 const buildJobGroupKey = (job: DbJob) => {
   // Group primarily by title + company, then level and remote flag to avoid over-merging unrelated roles
@@ -504,7 +553,7 @@ export const listJobs = query({
     const shouldUseSearch = rawSearch.length > 0;
 
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
-    const normalizedCompanyFilters = new Set(companyFilters.map((c) => c.toLowerCase()));
+    const normalizedCompanyFilters = new Set(companyFilters.map((c) => normalizeCompanyKey(c)));
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
 
     // Get user's applied/rejected jobs first
@@ -514,6 +563,19 @@ export const listJobs = query({
       .collect();
 
     const appliedJobIds = new Set(userApplications.map(app => app.jobId));
+
+    let domainAliasLookup: Map<string, string> | null = null;
+    if (hasCompanyFilter) {
+      const aliasRows = await ctx.db.query("domain_aliases").collect();
+      domainAliasLookup = new Map();
+      for (const row of aliasRows as any[]) {
+        const domain = (row as any)?.domain?.trim?.() ?? "";
+        const alias = normalizeCompanyKey((row as any)?.alias ?? "");
+        if (domain && alias) {
+          domainAliasLookup.set(domain, alias);
+        }
+      }
+    }
 
     // Apply search and filters
     let jobs;
@@ -627,8 +689,7 @@ export const listJobs = query({
         return false;
       }
       if (hasCompanyFilter) {
-        const companyName = typeof job.company === "string" ? job.company.trim().toLowerCase() : "";
-        if (!normalizedCompanyFilters.has(companyName)) {
+        if (!matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasLookup)) {
           return false;
         }
       }

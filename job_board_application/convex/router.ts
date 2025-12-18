@@ -712,7 +712,7 @@ export const listSites = query({
   },
 });
 
-// Gather every job URL we've already stored for a site so the scraper can avoid re-visiting them
+// Gather previously seen job URLs for a site (from scrapes + ignored) so scrapers can skip them
 export const listSeenJobUrlsForSite = query({
   args: {
     sourceUrl: v.string(),
@@ -734,13 +734,6 @@ export const listSeenJobUrlsForSite = query({
     }
 
     const matcher = buildUrlMatcher(args.pattern ?? args.sourceUrl);
-    const jobs = await ctx.db.query("jobs").collect();
-    for (const job of jobs as any[]) {
-      const url = (job as any).url;
-      if (typeof url === "string" && matcher(url)) {
-        seen.add(url);
-      }
-    }
 
     const ignored = await ctx.db
       .query("ignored_jobs")
@@ -984,11 +977,36 @@ export const listQueuedScrapeUrls = query({
     const limit = Math.max(1, Math.min(args.limit ?? 200, 500));
     const baseQuery = ctx.db.query("scrape_url_queue");
     const status = args.status;
-    const query =
-      status === undefined
-        ? baseQuery
-        : baseQuery.withIndex("by_status", (qi) => qi.eq("status", status));
-    const rows = await query.order("asc").take(limit);
+    const siteId = args.siteId;
+    let rows: any[] = [];
+
+    if (siteId && status) {
+      rows = await baseQuery
+        .withIndex("by_site_status", (qi) => qi.eq("siteId", siteId).eq("status", status))
+        .order("asc")
+        .take(limit);
+    } else if (status) {
+      rows = await baseQuery.withIndex("by_status", (qi) => qi.eq("status", status)).order("asc").take(limit);
+    } else if (siteId) {
+      const statuses: Array<"pending" | "processing" | "completed" | "failed"> = [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+      ];
+      let remaining = limit;
+      for (const statusValue of statuses) {
+        if (remaining <= 0) break;
+        const batch = await baseQuery
+          .withIndex("by_site_status", (qi) => qi.eq("siteId", siteId).eq("status", statusValue))
+          .order("asc")
+          .take(remaining);
+        rows.push(...batch);
+        remaining = limit - rows.length;
+      }
+    } else {
+      rows = await baseQuery.order("asc").take(limit);
+    }
 
     return rows
       .filter((row: any) => {
@@ -2997,85 +3015,6 @@ const buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
   return { existingUrls, jobByUrl };
 };
 
-const chunkUrlEntries = (entries: any[], maxChunkChars = 900) => {
-  const chunks: any[][] = [];
-  let current: any[] = [];
-  let currentSize = 0;
-
-  for (const entry of entries) {
-    const entrySize = JSON.stringify(entry).length;
-    if (current.length > 0 && currentSize + entrySize > maxChunkChars) {
-      chunks.push(current);
-      current = [];
-      currentSize = 0;
-    }
-    current.push(entry);
-    currentSize += entrySize;
-  }
-
-  if (current.length) {
-    chunks.push(current);
-  }
-
-  return chunks;
-};
-
-const logScrapeUrlsToScratchpad = async (
-  ctx: any,
-  scrape: any,
-  entries: any[],
-  scrapeId?: Id<"scrapes">
-) => {
-  if (!entries.length) return;
-
-  const total = entries.length;
-  const skipped = entries.filter((entry) => entry.action === "skipped").length;
-  const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
-  const workflowName = scrape.workflowName ?? scrape.workflowType;
-  const base = {
-    runId: scrape.runId,
-    workflowId: scrape.workflowId,
-    workflowName,
-    siteUrl: scrape.sourceUrl,
-    siteId: scrape.siteId,
-    event: "scrape.urls",
-    level: "info" as const,
-  };
-
-  const compactEntries = entries.map((entry) => ({
-    url: entry.url,
-    action: entry.action,
-    reason: entry.reason ?? (entry.action === "skipped" ? "already_saved" : undefined),
-    jobId: entry.jobId,
-    jobTitle: entry.jobTitle,
-    jobCompany: entry.jobCompany,
-  }));
-
-  const chunks = chunkUrlEntries(compactEntries);
-  let idx = 0;
-  for (const chunk of chunks) {
-    idx += 1;
-    try {
-      await ctx.db.insert("scratchpad_entries", {
-        ...base,
-        createdAt: Date.now(),
-        message: `Recorded scrape URLs (${total} total, ${skipped} skipped)${chunks.length > 1 ? ` [${idx}/${chunks.length}]` : ""}`,
-        data: sanitizeForLog({
-          provider,
-          batchId: batchIdFromScrape(scrape),
-          scrapeId,
-          total,
-          skipped,
-          entries: chunk,
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to log scrape URLs to scratchpad", error);
-      break;
-    }
-  }
-};
-
 export const insertScrapeRecord = mutation({
   args: {
     sourceUrl: v.string(),
@@ -3100,16 +3039,6 @@ export const insertScrapeRecord = mutation({
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("scrapes", args);
-    try {
-      const scrapeForLogging = { ...args, _id: id };
-      const lookup = await buildExistingJobLookupForScrape(ctx, scrapeForLogging);
-      const entries = buildUrlLogEntriesForScrape(scrapeForLogging, lookup);
-      if (entries.length > 0) {
-        await logScrapeUrlsToScratchpad(ctx, scrapeForLogging, entries, id);
-      }
-    } catch (error) {
-      console.error("insertScrapeRecord: failed to log URL scratchpad entries", error);
-    }
     return id;
   },
 });
@@ -3149,11 +3078,19 @@ export const listScrapes = query({
 export const listUrlScrapeLogs = query({
   args: {
     limit: v.optional(v.number()),
+    includeJobLookup: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
     const scrapes = await ctx.db.query("scrapes").order("desc").take(limit * 2);
-    const { existingUrls, jobByUrl } = await buildExistingJobLookupForScrapes(ctx, scrapes);
+    const includeJobLookup = args.includeJobLookup ?? false;
+    let existingUrls = new Set<string>();
+    let jobByUrl = new Map<string, any>();
+    if (includeJobLookup) {
+      const lookup = await buildExistingJobLookupForScrapes(ctx, scrapes);
+      existingUrls = lookup.existingUrls;
+      jobByUrl = lookup.jobByUrl;
+    }
 
     const logs: any[] = [];
 
@@ -3215,7 +3152,7 @@ export const ingestJobsFromScrape = mutation({
     for (const job of args.jobs) {
       const dup = await ctx.db
         .query("jobs")
-        .filter((q) => q.eq(q.field("url"), job.url))
+        .withIndex("by_url", (q) => q.eq("url", job.url))
         .first();
       if (dup) continue;
 

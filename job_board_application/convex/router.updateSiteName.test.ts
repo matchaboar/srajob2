@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { updateSiteName } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type Job = { _id: string; company: string; url?: string };
 type Site = { _id: string; name?: string; url: string };
@@ -122,7 +123,7 @@ describe("updateSiteName", () => {
       }),
     };
 
-    const handler = (updateSiteName as any).handler ?? updateSiteName;
+    const handler = getHandler(updateSiteName) as any;
     const result = await handler(ctx, { id: "site-1", name: "Datadog" });
 
     expect(result.updatedJobs).toBe(4);
@@ -144,7 +145,7 @@ describe("updateSiteName", () => {
       }),
     };
 
-    const handler = (updateSiteName as any).handler ?? updateSiteName;
+    const handler = getHandler(updateSiteName) as any;
     const result = await handler(ctx, { id: "site-1", name: "Example" });
 
     expect(result.updatedJobs).toBe(1);

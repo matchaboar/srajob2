@@ -225,12 +225,10 @@ export const getScrapeHistoryForUrls = query({
     for (const url of args.urls) {
       const list = await ctx.db
         .query("scrapes")
-        .withIndex("by_source", (q) => q.eq("sourceUrl", url))
-        .collect();
-      const entries = (list as any[])
-        .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
-        .slice(0, lim)
-        .map((s) => ({ _id: s._id, startedAt: s.startedAt, completedAt: s.completedAt }));
+        .withIndex("by_source_completed", (q) => q.eq("sourceUrl", url))
+        .order("desc")
+        .take(lim);
+      const entries = (list as any[]).map((s) => ({ _id: s._id, startedAt: s.startedAt, completedAt: s.completedAt }));
       out.push({ sourceUrl: url, entries });
     }
     return out;

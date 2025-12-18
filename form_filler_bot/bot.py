@@ -9,7 +9,14 @@ class FormFillerBot:
     """Handles resume data and job application queueing."""
 
     def __init__(self, convex_url: str) -> None:
-        self.convex_url = convex_url.rstrip("/")
+        self.convex_url = self._normalize_convex_base(convex_url)
+
+    @staticmethod
+    def _normalize_convex_base(convex_url: str) -> str:
+        base = convex_url.rstrip("/")
+        if base.endswith(".convex.cloud"):
+            base = base.replace(".convex.cloud", ".convex.site")
+        return base
 
     def load_resume(self, path: Path) -> Dict[str, Any]:
         """Load resume information from a YAML file."""

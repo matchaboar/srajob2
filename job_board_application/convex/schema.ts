@@ -163,6 +163,7 @@ const applicationTables = {
     providerRequest: v.optional(v.any()),
   })
     .index("by_source", ["sourceUrl"])
+    .index("by_source_completed", ["sourceUrl", "completedAt"])
     .index("by_site", ["siteId"]),
 
   firecrawl_webhooks: defineTable({
@@ -235,6 +236,20 @@ const applicationTables = {
   })
     .index("by_run", ["runId"])
     .index("by_started", ["startedAt"]),
+
+  workflow_run_sites: defineTable({
+    runId: v.string(),
+    workflowId: v.string(),
+    workflowName: v.optional(v.string()),
+    status: v.string(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    siteUrl: v.string(),
+    workerId: v.optional(v.string()),
+    taskQueue: v.optional(v.string()),
+  })
+    .index("by_run", ["runId"])
+    .index("by_site", ["siteUrl", "startedAt"]),
 
   // Queue of individual job URLs discovered from site listings (e.g., Greenhouse boards)
   scrape_url_queue: defineTable({

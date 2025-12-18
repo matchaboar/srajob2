@@ -31,9 +31,21 @@ if TYPE_CHECKING:
     from ..activities import Site
 
 SPIDERCLOUD_BATCH_SIZE = 50
+CAPTCHA_RETRY_LIMIT = 2
+CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
 
 
 logger = logging.getLogger("temporal.worker.activities")
+
+
+class CaptchaDetectedError(Exception):
+    """Raised when a SpiderCloud response looks like a captcha wall."""
+
+    def __init__(self, marker: str, markdown: str | None = None, events: Optional[List[Any]] = None):
+        super().__init__(marker)
+        self.marker = marker
+        self.markdown = markdown or ""
+        self.events = events or []
 
 
 @dataclass
@@ -182,6 +194,37 @@ class SpiderCloudScraper(BaseScraper):
             return None
         return max(costs)
 
+    def _detect_captcha(self, markdown_text: str, events: List[Any]) -> Optional[str]:
+        """Return a matched captcha marker when the payload looks like a bot check."""
+
+        haystack_parts: List[str] = []
+        if isinstance(markdown_text, str) and markdown_text.strip():
+            haystack_parts.append(markdown_text)
+
+        for evt in events:
+            if not isinstance(evt, dict):
+                continue
+            for key in ("title", "reason", "description", "body", "message"):
+                val = evt.get(key)
+                if isinstance(val, str) and val.strip():
+                    haystack_parts.append(val)
+
+        haystack = " ".join(haystack_parts).lower()
+        markers = (
+            "vercel security checkpoint",
+            "checking your browser",
+            "are you human",
+            "captcha",
+            "security check",
+            "robot check",
+            "access denied",
+        )
+
+        for marker in markers:
+            if marker in haystack:
+                return marker
+        return None
+
     def _title_from_events(self, events: List[Any]) -> Optional[str]:
         for evt in events:
             if not isinstance(evt, dict):
@@ -329,7 +372,13 @@ class SpiderCloudScraper(BaseScraper):
         return markdown_text, None
 
     def _normalize_job(
-        self, url: str, markdown: str, events: List[Any], started_at: int
+        self,
+        url: str,
+        markdown: str,
+        events: List[Any],
+        started_at: int,
+        *,
+        require_keywords: bool = True,
     ) -> Dict[str, Any] | None:
         parsed_title = None
         parsed_markdown = markdown or ""
@@ -370,13 +419,14 @@ class SpiderCloudScraper(BaseScraper):
                 url,
                 title,
             )
-            self._last_ignored_job = {
-                "url": url,
-                "reason": "missing_required_keyword",
-                "title": title,
-                "description": cleaned_markdown,
-            }
-            return None
+            if require_keywords:
+                self._last_ignored_job = {
+                    "url": url,
+                    "reason": "missing_required_keyword",
+                    "title": title,
+                    "description": cleaned_markdown,
+                }
+                return None
         company = derive_company_from_url(url) or "Unknown"
         remote = coerce_remote(None, "", f"{title}\n{cleaned_markdown}")
         level = coerce_level(None, title)
@@ -429,11 +479,36 @@ class SpiderCloudScraper(BaseScraper):
             )
         return buffer, events
 
+    async def _iterate_scrape_response(self, response: Any):
+        """Normalize SpiderCloud responses to an async iterable.
+
+        Some test doubles return a coroutine instead of an async generator.  We
+        accept either shape so that captcha errors raised before the first
+        yield still propagate cleanly.
+        """
+
+        if hasattr(response, "__aiter__"):
+            async for item in response:
+                yield item
+            return
+
+        if hasattr(response, "__await__"):
+            result = await response
+            if result is not None:
+                yield result
+            return
+
+        # Fallback for unexpected synchronous return values in tests/mocks.
+        if response is not None:
+            yield response
+
     async def _scrape_single_url(
         self,
         client: AsyncSpider,
         url: str,
         params: Dict[str, Any],
+        *,
+        attempt: int = 0,
     ) -> Dict[str, Any]:
         buffer = ""
         raw_events: List[Any] = []
@@ -461,11 +536,13 @@ class SpiderCloudScraper(BaseScraper):
             )
 
         try:
-            async for chunk in scrape_fn(  # type: ignore[call-arg]
-                url,
-                params=local_params,
-                stream=True,
-                content_type="application/jsonl",
+            async for chunk in self._iterate_scrape_response(
+                scrape_fn(  # type: ignore[call-arg]
+                    url,
+                    params=local_params,
+                    stream=True,
+                    content_type="application/jsonl",
+                )
             ):
                 buffer, events = self._consume_chunk(chunk, buffer)
                 for evt in events:
@@ -500,11 +577,13 @@ class SpiderCloudScraper(BaseScraper):
 
             if not markdown_parts:
                 logger.info("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
-                async for resp in scrape_fn(  # type: ignore[call-arg]
-                    url,
-                    params=local_params,
-                    stream=False,
-                    content_type="application/json",
+                async for resp in self._iterate_scrape_response(
+                    scrape_fn(  # type: ignore[call-arg]
+                        url,
+                        params=local_params,
+                        stream=False,
+                        content_type="application/json",
+                    )
                 ):
                     raw_events.append(resp)
                     if isinstance(resp, dict):
@@ -517,6 +596,9 @@ class SpiderCloudScraper(BaseScraper):
                         text = self._extract_markdown(resp)
                         if text:
                             markdown_parts.append(text)
+        except CaptchaDetectedError:
+            # Surface captcha markers to the batch loop so it can retry with proxies.
+            raise
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud scrape failed url=%s error=%s", url, exc)
             raise ApplicationError(f"SpiderCloud scrape failed for {url}: {exc}") from exc
@@ -528,6 +610,17 @@ class SpiderCloudScraper(BaseScraper):
             len(markdown_parts),
             len(credit_candidates),
         )
+
+        # Detect captcha walls early so the caller can decide whether to retry with a proxy.
+        marker = self._detect_captcha("\n\n".join(markdown_parts), raw_events)
+        if marker:
+            logger.warning(
+                "SpiderCloud captcha detected url=%s attempt=%s marker=%s",
+                url,
+                attempt,
+                marker,
+            )
+            raise CaptchaDetectedError(marker, "\n\n".join(markdown_parts), raw_events)
 
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
@@ -543,7 +636,14 @@ class SpiderCloudScraper(BaseScraper):
         if cost_milli_cents is None and credits_used is not None:
             cost_milli_cents = int(float(credits_used) * 10)
         cost_usd = (cost_milli_cents / 100000) if isinstance(cost_milli_cents, (int, float)) else None
-        normalized = self._normalize_job(url, markdown_text, raw_events, started_at)
+        require_keywords = attempt <= 1
+        normalized = self._normalize_job(
+            url,
+            markdown_text,
+            raw_events,
+            started_at,
+            require_keywords=require_keywords,
+        )
         ignored_entry = getattr(self, "_last_ignored_job", None)
 
         logger.info(
@@ -625,7 +725,48 @@ class SpiderCloudScraper(BaseScraper):
                 # marketing-friendly apply URL for downstream preference.
                 marketing_url = self._to_marketing_greenhouse_url(url)
 
-                result = await self._scrape_single_url(client, url, params)
+                attempt = 0
+                result: Dict[str, Any] | None = None
+                proxy: Optional[str] = None
+                while attempt <= CAPTCHA_RETRY_LIMIT:
+                    attempt += 1
+                    local_params = dict(params)
+                    if proxy:
+                        local_params["proxy"] = proxy
+                    try:
+                        result = await self._scrape_single_url(
+                            client,
+                            url,
+                            local_params,
+                            attempt=attempt,
+                        )
+                        break
+                    except CaptchaDetectedError as err:
+                        proxy = CAPTCHA_PROXY_SEQUENCE[min(attempt - 1, len(CAPTCHA_PROXY_SEQUENCE) - 1)]
+                        logger.warning(
+                            "SpiderCloud captcha retry url=%s attempt=%s/%s proxy=%s marker=%s",
+                            url,
+                            attempt,
+                            CAPTCHA_RETRY_LIMIT + 1,
+                            proxy,
+                            err.marker,
+                        )
+                        if attempt > CAPTCHA_RETRY_LIMIT:
+                            self.deps.log_sync_response(
+                                self.provider,
+                                action="scrape",
+                                url=url,
+                                summary=f"captcha_failed marker={err.marker}",
+                                metadata={"attempts": attempt, "proxy": proxy},
+                            )
+                            break
+                    except Exception:
+                        # Bubble up unexpected errors
+                        raise
+
+                if not result:
+                    logger.warning("SpiderCloud giving up after captcha retries url=%s", url)
+                    continue
 
                 if marketing_url and isinstance(result, dict):
                     normalized_block = result.get("normalized")

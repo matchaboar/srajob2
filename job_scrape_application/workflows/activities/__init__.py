@@ -306,9 +306,15 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
 
     # Pull queued URLs for this site/provider (pending or processing)
     queued_urls: list[Dict[str, Any]] = []
-    list_args = _strip_none_values({"siteId": site_id, "provider": scraper.provider, "limit": 500})
     try:
-        queued_urls = await convex_query("router:listQueuedScrapeUrls", list_args) or []
+        per_status_limit = 250
+        for status_value in ("pending", "processing"):
+            list_args = _strip_none_values(
+                {"siteId": site_id, "provider": scraper.provider, "status": status_value, "limit": per_status_limit}
+            )
+            batch = await convex_query("router:listQueuedScrapeUrls", list_args) or []
+            if isinstance(batch, list):
+                queued_urls.extend(batch)
     except Exception:
         queued_urls = []
 
@@ -723,19 +729,20 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
 
     queued_urls: list[str] = []
     try:
-        queued_rows = await convex_query(
-            "router:listQueuedScrapeUrls",
-            _strip_none_values({"siteId": site_id, "provider": "spidercloud", "limit": 500}),
-        )
-        if isinstance(queued_rows, list):
-            for row in queued_rows:
-                if isinstance(row, dict):
-                    status_val = str(row.get("status") or "").lower()
-                    if status_val and status_val not in {"pending", "processing"}:
-                        continue
-                    url_val = row.get("url")
-                    if isinstance(url_val, str) and url_val.strip():
-                        queued_urls.append(url_val.strip())
+        per_status_limit = 250
+        for status_value in ("pending", "processing"):
+            queued_rows = await convex_query(
+                "router:listQueuedScrapeUrls",
+                _strip_none_values(
+                    {"siteId": site_id, "provider": "spidercloud", "status": status_value, "limit": per_status_limit}
+                ),
+            )
+            if isinstance(queued_rows, list):
+                for row in queued_rows:
+                    if isinstance(row, dict):
+                        url_val = row.get("url")
+                        if isinstance(url_val, str) and url_val.strip():
+                            queued_urls.append(url_val.strip())
     except Exception:
         queued_urls = []
 
@@ -1895,8 +1902,19 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
     # Best-effort job ingestion (mimics router.ts behavior)
     try:
+        # Ingest jobs from the original (untrimmed) scrape items so long descriptions are preserved.
+        # Still cap the number of jobs we attempt to ingest to avoid unbounded payloads.
+        MAX_JOBS_TO_INGEST = 400
+        items_for_jobs = scrape.get("items") if isinstance(scrape, dict) else None
+        if isinstance(items_for_jobs, dict):
+            normalized = items_for_jobs.get("normalized")
+            if isinstance(normalized, list):
+                items_for_jobs = {**items_for_jobs, "normalized": normalized[:MAX_JOBS_TO_INGEST]}
+        else:
+            items_for_jobs = payload.get("items")
+
         jobs = _jobs_from_scrape_items(
-            payload.get("items"),
+            items_for_jobs,
             default_posted_at=now,
             scraped_at=payload.get("completedAt", now),
             scraped_with=scraped_with,
@@ -2976,7 +2994,7 @@ def _build_scratchpad_message(payload: Dict[str, Any]) -> str:
 
 
 def _shrink_for_scratchpad(data: Any, max_len: int = 900) -> Any:
-    """Keep scratchpad payloads small to fit Convex doc limits."""
+    """Keep scratchpad payloads small so log events stay lightweight."""
 
     if data is None:
         return None
@@ -2994,7 +3012,7 @@ def _shrink_for_scratchpad(data: Any, max_len: int = 900) -> Any:
 
 @activity.defn
 async def record_scratchpad(entry: Dict[str, Any]) -> None:
-    """Write a lightweight scratchpad entry to Convex."""
+    """Emit a lightweight scratchpad entry to OTLP/PostHog."""
 
     payload = _with_firecrawl_suffix({k: v for k, v in entry.items() if v is not None})
     if payload.get("siteUrl") is None:

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { setDomainAlias } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type Site = { _id: string; name?: string; url: string };
 type Job = { _id: string; company: string; url?: string };
@@ -167,7 +168,7 @@ describe("setDomainAlias", () => {
       }),
     };
 
-    const handler = (setDomainAlias as any).handler ?? setDomainAlias;
+    const handler = getHandler(setDomainAlias) as any;
     const res = await handler(ctx, {
       domainOrUrl: "https://api.greenhouse.io/v1/boards/stubhubinc/jobs",
       alias: "Stubhub Inc",
@@ -199,7 +200,7 @@ describe("setDomainAlias", () => {
       }),
     };
 
-    const handler = (setDomainAlias as any).handler ?? setDomainAlias;
+    const handler = getHandler(setDomainAlias) as any;
     const res = await handler(ctx, {
       domainOrUrl: "https://boards.greenhouse.io/pinterestcareers/jobs",
       alias: "Pinterest",

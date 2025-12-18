@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { listUrlScrapeLogs } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type Scrape = {
   _id: string;
@@ -76,7 +77,7 @@ describe("listUrlScrapeLogs", () => {
     ];
 
     const ctx = buildCtx(scrapes);
-    const handler = (listUrlScrapeLogs as any).handler ?? listUrlScrapeLogs;
+    const handler = getHandler(listUrlScrapeLogs) as any;
 
     const logs = await handler(ctx, { limit: 5 });
 

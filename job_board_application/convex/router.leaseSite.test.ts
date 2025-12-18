@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { completeSite, leaseSite } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 class FakeSitesQuery {
   constructor(private readonly rows: any[]) {}
@@ -66,7 +67,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const handler = (leaseSite as any).handler ?? leaseSite;
+    const handler = getHandler(leaseSite) as any;
     const leased = await handler(ctx, { workerId: "worker-1", lockSeconds: 60 });
 
     expect(leased?._id).toBe(site._id);
@@ -103,7 +104,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const handler = (leaseSite as any).handler ?? leaseSite;
+    const handler = getHandler(leaseSite) as any;
     const leased = await handler(ctx, { workerId: "worker-2", lockSeconds: 60 });
 
     expect(leased).toBeNull();
@@ -157,8 +158,8 @@ describe("leaseSite", () => {
       },
     };
 
-    const leaseHandler = (leaseSite as any).handler ?? leaseSite;
-    const completeHandler = (completeSite as any).handler ?? completeSite;
+    const leaseHandler = getHandler(leaseSite) as any;
+    const completeHandler = getHandler(completeSite) as any;
 
     const leased = await leaseHandler(ctx, { workerId: "worker-1", lockSeconds: 60, scrapeProvider: "spidercloud" });
     expect(leased?._id).toBe(site._id);
@@ -221,7 +222,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const leaseHandler = (leaseSite as any).handler ?? leaseSite;
+    const leaseHandler = getHandler(leaseSite) as any;
     const leased = await leaseHandler(ctx, { workerId: "worker-3", lockSeconds: 60, scrapeProvider: "spidercloud" });
 
     expect(leased).toBeNull();

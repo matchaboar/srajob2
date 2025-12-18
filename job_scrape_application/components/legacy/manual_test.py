@@ -13,9 +13,11 @@ CONVEX = os.environ.get("CONVEX_HTTP_URL")
 
 async def main() -> None:
     if not CONVEX:
-        raise SystemExit("Set CONVEX_HTTP_URL to your Convex HTTP base URL (e.g., https://<deployment>.convex.cloud)")
+        raise SystemExit("Set CONVEX_HTTP_URL to your Convex HTTP base URL (e.g., https://<deployment>.convex.site)")
 
     base = CONVEX.rstrip("/")
+    if base.endswith(".convex.cloud"):
+        base = base.replace(".convex.cloud", ".convex.site")
 
     async with httpx.AsyncClient(timeout=30) as client:
         # Ensure backend is reachable

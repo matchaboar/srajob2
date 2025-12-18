@@ -75,8 +75,10 @@ export const getActiveWorkers = query({
         const now = Date.now();
         const staleThreshold = now - 90 * 1000; // 90 seconds (3x update interval)
 
-        const allWorkers = await ctx.db.query("temporal_status").collect();
-        return allWorkers.filter(w => w.lastHeartbeat >= staleThreshold);
+        return await ctx.db
+            .query("temporal_status")
+            .withIndex("by_heartbeat", (q) => q.gte("lastHeartbeat", staleThreshold))
+            .collect();
     },
 });
 
@@ -87,8 +89,10 @@ export const getStaleWorkers = query({
         const now = Date.now();
         const staleThreshold = now - 90 * 1000; // 90 seconds (3x update interval)
 
-        const allWorkers = await ctx.db.query("temporal_status").collect();
-        return allWorkers.filter(w => w.lastHeartbeat < staleThreshold);
+        return await ctx.db
+            .query("temporal_status")
+            .withIndex("by_heartbeat", (q) => q.lt("lastHeartbeat", staleThreshold))
+            .collect();
     },
 });
 
@@ -136,19 +140,6 @@ export const clearAllWorkers = mutation({
   },
 });
 
-const sanitizeScratchpadData = (value: any) => {
-    if (value === null || value === undefined) return undefined;
-
-    try {
-        const serialized = JSON.stringify(value);
-        if (serialized.length <= 1200) return value;
-        return `${serialized.slice(0, 1200)}... (+${serialized.length - 1200} chars)`;
-    } catch {
-        const str = String(value);
-        return str.length > 1200 ? `${str.slice(0, 1200)}... (+${str.length - 1200} chars)` : str;
-    }
-};
-
 export const recordWorkflowRun = mutation({
     args: {
         runId: v.string(),
@@ -184,38 +175,35 @@ export const recordWorkflowRun = mutation({
             runDocId = await ctx.db.insert("workflow_runs", insertArgs);
         }
 
-        if (args.error) {
-            const existingErrorEntry = await ctx.db
-                .query("scratchpad_entries")
-                .withIndex("by_run", (q) => q.eq("runId", args.runId))
-                .filter((q) => q.eq(q.field("event"), "workflow.run.error"))
-                .first();
+        const existingSites = await ctx.db
+            .query("workflow_run_sites")
+            .withIndex("by_run", (q) => q.eq("runId", args.runId))
+            .collect();
+        for (const row of existingSites) {
+            await ctx.db.delete(row._id);
+        }
 
-            const scratchData = sanitizeScratchpadData({
-                workflowId: args.workflowId,
-                workflowName: args.workflowName,
-                siteUrls: (args.siteUrls || []).slice(0, 10),
-                status: args.status,
-                workerId: args.workerId,
-                taskQueue: args.taskQueue,
-            });
-
-            const scratchpadPayload = {
-                runId: args.runId,
-                workflowId: args.workflowId,
-                workflowName: args.workflowName,
-                siteUrl: args.siteUrls?.[0],
-                event: "workflow.run.error",
-                message: args.error,
-                data: scratchData,
-                level: "error" as const,
-                createdAt: args.completedAt ?? Date.now(),
-            };
-
-            if (existingErrorEntry) {
-                await ctx.db.patch(existingErrorEntry._id as Id<"scratchpad_entries">, scratchpadPayload);
-            } else {
-                await ctx.db.insert("scratchpad_entries", scratchpadPayload);
+        const uniqueUrls = Array.from(
+            new Set(
+                (args.siteUrls || [])
+                    .filter((url) => typeof url === "string")
+                    .map((url) => url.trim())
+                    .filter(Boolean)
+            )
+        );
+        if (uniqueUrls.length > 0) {
+            for (const siteUrl of uniqueUrls) {
+                await ctx.db.insert("workflow_run_sites", {
+                    runId: args.runId,
+                    workflowId: args.workflowId,
+                    workflowName: args.workflowName,
+                    status: args.status,
+                    startedAt: args.startedAt,
+                    completedAt: args.completedAt,
+                    siteUrl,
+                    workerId: args.workerId,
+                    taskQueue: args.taskQueue,
+                });
             }
         }
 
@@ -231,12 +219,24 @@ export const listWorkflowRunsByUrl = query({
     handler: async (ctx, args) => {
         const lim = args.limit ?? 20;
         if (!args.url) return [];
+        const siteRuns = await ctx.db
+            .query("workflow_run_sites")
+            .withIndex("by_site", (q) => q.eq("siteUrl", args.url))
+            .order("desc")
+            .take(lim);
 
-        const runs = await ctx.db.query("workflow_runs").collect();
-        return runs
-            .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(args.url))
-            .sort((a: any, b: any) => (b.startedAt ?? 0) - (a.startedAt ?? 0))
-            .slice(0, lim);
+        const results: any[] = [];
+        for (const row of siteRuns) {
+            const run = await ctx.db
+                .query("workflow_runs")
+                .withIndex("by_run", (q) => q.eq("runId", row.runId))
+                .first();
+            if (run) {
+                results.push(run);
+            }
+        }
+
+        return results;
     },
 });
 

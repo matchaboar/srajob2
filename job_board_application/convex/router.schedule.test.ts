@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { updateSiteSchedule } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type FakeCtx = {
   db: {
@@ -54,7 +55,8 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    await (updateSiteSchedule as any).handler(ctx as any, { id: site._id, scheduleId: schedule._id });
+    const handler = getHandler(updateSiteSchedule) as any;
+    await handler(ctx as any, { id: site._id, scheduleId: schedule._id });
 
     expect(patches).toHaveLength(1);
     const patch = patches[0].updates;
@@ -88,7 +90,8 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    await (updateSiteSchedule as any).handler(ctx as any, { id: site._id, scheduleId: schedule._id });
+    const handler = getHandler(updateSiteSchedule) as any;
+    await handler(ctx as any, { id: site._id, scheduleId: schedule._id });
 
     expect(patches).toHaveLength(1);
     const patch = patches[0].updates;
@@ -112,7 +115,8 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    await (updateSiteSchedule as any).handler(ctx as any, { id: site._id, scheduleId });
+    const handler = getHandler(updateSiteSchedule) as any;
+    await handler(ctx as any, { id: site._id, scheduleId });
 
     expect(patches).toHaveLength(1);
     const patch = patches[0].updates;

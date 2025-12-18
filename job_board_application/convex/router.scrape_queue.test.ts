@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { leaseScrapeUrlBatch } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type QueueRow = {
   _id: string;
@@ -76,7 +77,7 @@ describe("leaseScrapeUrlBatch", () => {
       },
     };
 
-    const handler = (leaseScrapeUrlBatch as any).handler ?? leaseScrapeUrlBatch;
+    const handler = getHandler(leaseScrapeUrlBatch) as any;
     const res = await handler(ctx, {
       provider: "spidercloud",
       limit: 2,

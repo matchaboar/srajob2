@@ -12,7 +12,12 @@ from ...constants import title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_TOTAL_COMPENSATION = 0
-MAX_DESCRIPTION_CHARS = 8000  # allow longer descriptions while fitting Convex document limits
+# Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
+MAX_SCRAPE_DESCRIPTION_CHARS = 8000
+# Higher ceiling for the actual job documents so the UI can render full descriptions.
+MAX_JOB_DESCRIPTION_CHARS = 200_000
+# Backward compat alias (used only inside this module previously).
+MAX_DESCRIPTION_CHARS = MAX_SCRAPE_DESCRIPTION_CHARS
 UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
 _NAV_MENU_SEQUENCE = [
     "Welcome",
@@ -904,7 +909,7 @@ def trim_scrape_for_convex(
     scrape: Dict[str, Any],
     *,
     max_items: int = 400,
-    max_description: int = MAX_DESCRIPTION_CHARS,
+    max_description: int = MAX_SCRAPE_DESCRIPTION_CHARS,
     raw_preview_chars: int = 8000,
     request_max_chars: int = 4000,
 ) -> Dict[str, Any]:
@@ -1068,8 +1073,8 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     description = strip_known_nav_blocks(extract_description(row))
     if looks_like_error_landing(raw_title or title, description):
         return None
-    if len(description) > MAX_DESCRIPTION_CHARS:
-        description = description[:MAX_DESCRIPTION_CHARS]
+    if len(description) > MAX_JOB_DESCRIPTION_CHARS:
+        description = description[:MAX_JOB_DESCRIPTION_CHARS]
     # Use markdown hints to fill missing data.
     hints = parse_markdown_hints(description)
     hinted_title = hints.get("title")
@@ -1177,6 +1182,8 @@ def _jobs_from_scrape_items(
         if not isinstance(row, dict):
             continue
         description = stringify(row.get("description") or "")
+        if len(description) > MAX_JOB_DESCRIPTION_CHARS:
+            description = description[:MAX_JOB_DESCRIPTION_CHARS]
         hints = parse_markdown_hints(description)
         compensation_unknown = bool(row.get("compensation_unknown"))
         raw_comp_reason = row.get("compensation_reason")
@@ -1246,6 +1253,7 @@ def _jobs_from_scrape_items(
 
 __all__ = [
     "DEFAULT_TOTAL_COMPENSATION",
+    "MAX_JOB_DESCRIPTION_CHARS",
     "MAX_DESCRIPTION_CHARS",
     "UNKNOWN_COMPENSATION_REASON",
     "build_firecrawl_schema",

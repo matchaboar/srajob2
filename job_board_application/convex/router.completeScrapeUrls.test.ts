@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { completeScrapeUrls } from "./router";
+import { getHandler } from "./__tests__/getHandler";
 
 type QueueRow = {
   _id: string;
@@ -43,7 +44,7 @@ describe("completeScrapeUrls", () => {
     };
 
     vi.setSystemTime(now);
-    const handler = (completeScrapeUrls as any).handler ?? completeScrapeUrls;
+    const handler = getHandler(completeScrapeUrls) as any;
     await handler(ctx, { urls: [queue.url], status: "failed", error: "timeout" });
     vi.useRealTimers();
 
@@ -84,7 +85,7 @@ describe("completeScrapeUrls", () => {
     };
 
     vi.setSystemTime(now);
-    const handler = (completeScrapeUrls as any).handler ?? completeScrapeUrls;
+    const handler = getHandler(completeScrapeUrls) as any;
     await handler(ctx, { urls: [queue.url], status: "failed", error: "404 not found" });
     vi.useRealTimers();
 

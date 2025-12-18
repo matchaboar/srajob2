@@ -404,7 +404,7 @@ function ScrapeHistorySection() {
 }
 
 function UrlScrapeListSection() {
-  const logs = useQuery(api.router.listUrlScrapeLogs, { limit: 200 });
+  const logs = useQuery(api.router.listUrlScrapeLogs, { limit: 200, includeJobLookup: true });
 
   const formatJson = (value: any) => {
     if (value === undefined) return "—";
@@ -817,6 +817,7 @@ export function CompanyNamesSection() {
   const [renameFocused, setRenameFocused] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [domainSearch, setDomainSearch] = useState("");
+  const [showAllDomains, setShowAllDomains] = useState(false);
 
   const renameSuggestions = useQuery(api.jobs.searchCompanies, {
     search: renameOldName.trim(),
@@ -913,7 +914,8 @@ export function CompanyNamesSection() {
 
   const rows = domainAliases as any[];
   const domainSearchLower = domainSearch.trim().toLowerCase();
-  const filteredRows = !domainSearchLower
+  const hasAlias = (row: any) => typeof row?.alias === "string" && row.alias.trim().length > 0;
+  const searchFilteredRows = !domainSearchLower
     ? rows
     : rows.filter((row) => {
         const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
@@ -921,7 +923,13 @@ export function CompanyNamesSection() {
           .map((v) => (v as string).toLowerCase());
         return fields.some((v) => v.includes(domainSearchLower));
       });
-  const showFilteredCount = Boolean(domainSearchLower);
+  const filteredRows = showAllDomains || domainSearchLower
+    ? searchFilteredRows
+    : searchFilteredRows.filter(hasAlias);
+  const hiddenCount = showAllDomains || domainSearchLower ? 0 : rows.length - filteredRows.length;
+  const countLabel = showAllDomains || domainSearchLower
+    ? `${filteredRows.length} of ${rows.length} domains`
+    : `${filteredRows.length} aliased domain${filteredRows.length === 1 ? "" : "s"}${hiddenCount ? ` • ${hiddenCount} hidden` : ""}`;
 
   return (
     <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
@@ -934,166 +942,190 @@ export function CompanyNamesSection() {
           </p>
         </div>
         <div className="text-[11px] text-slate-400 px-2 py-1 border border-slate-800 rounded bg-slate-950/50">
-          {showFilteredCount ? `${filteredRows.length} of ${rows.length} domains` : `${rows.length} domain${rows.length === 1 ? "" : "s"}`}
+          {countLabel}
         </div>
       </div>
 
-      <div className="mb-4 bg-slate-950/40 border border-slate-800 rounded p-3">
-        <div className="text-sm font-semibold text-white mb-2">Rename existing company values</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-          <div className="relative">
+      <details className="mb-4 bg-slate-950/40 border border-slate-800 rounded p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-white">
+          Rename existing company values
+        </summary>
+        <div className="mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+            <div className="relative">
+              <input
+                type="text"
+                value={renameOldName}
+                onChange={(e) => setRenameOldName(e.target.value)}
+                onFocus={() => setRenameFocused(true)}
+                onBlur={() => setRenameFocused(false)}
+                placeholder="Current company (as shown on jobs)"
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {renameFocused && filteredRenameSuggestions.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-slate-950 border border-slate-800 rounded shadow">
+                  {filteredRenameSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.name}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setRenameOldName(suggestion.name);
+                        setRenameFocused(false);
+                      }}
+                      className="w-full flex justify-between items-center px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-900"
+                    >
+                      <span className="truncate">{suggestion.name}</span>
+                      <span className="text-[11px] text-slate-500">{suggestion.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               type="text"
-              value={renameOldName}
-              onChange={(e) => setRenameOldName(e.target.value)}
-              onFocus={() => setRenameFocused(true)}
-              onBlur={() => setRenameFocused(false)}
-              placeholder="Current company (as shown on jobs)"
+              value={renameNewName}
+              onChange={(e) => setRenameNewName(e.target.value)}
+              placeholder="New company name"
               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
-            {renameFocused && filteredRenameSuggestions.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-slate-950 border border-slate-800 rounded shadow">
-                {filteredRenameSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.name}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setRenameOldName(suggestion.name);
-                      setRenameFocused(false);
-                    }}
-                    className="w-full flex justify-between items-center px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-900"
-                  >
-                    <span className="truncate">{suggestion.name}</span>
-                    <span className="text-[11px] text-slate-500">{suggestion.count}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => { void handleRenameExisting(); }}
+              disabled={renaming}
+              className={clsx(
+                "px-3 py-1.5 rounded text-sm font-medium transition-colors",
+                renaming
+                  ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
+                  : "bg-emerald-600 text-white hover:bg-emerald-500"
+              )}
+            >
+              {renaming ? "Renaming..." : "Rename jobs"}
+            </button>
           </div>
-          <input
-            type="text"
-            value={renameNewName}
-            onChange={(e) => setRenameNewName(e.target.value)}
-            placeholder="New company name"
-            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={() => { void handleRenameExisting(); }}
-            disabled={renaming}
-            className={clsx(
-              "px-3 py-1.5 rounded text-sm font-medium transition-colors",
-              renaming
-                ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
-                : "bg-emerald-600 text-white hover:bg-emerald-500"
-            )}
-          >
-            {renaming ? "Renaming..." : "Rename jobs"}
-          </button>
+          <p className="text-[11px] text-slate-500 mt-2">
+            Use this for one-off bad scraped names (e.g. hostname-like companies). For future scrapes, set a domain alias below.
+          </p>
         </div>
-        <p className="text-[11px] text-slate-500 mt-2">
-          Use this for one-off bad scraped names (e.g. hostname-like companies). For future scrapes, set a domain alias below.
-        </p>
-      </div>
+      </details>
 
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <input
           type="text"
           value={domainSearch}
           onChange={(e) => setDomainSearch(e.target.value)}
           placeholder="Filter domains or company names..."
-          className="w-full md:w-96 bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 min-w-[220px] md:max-w-sm bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
+        <label className="flex items-center gap-2 text-xs text-slate-400">
+          <input
+            type="checkbox"
+            checked={showAllDomains}
+            onChange={(e) => setShowAllDomains(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+          />
+          Show domains without aliases
+        </label>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-200">
           <thead className="text-[11px] uppercase tracking-wide bg-slate-950 text-slate-400 border border-slate-800">
             <tr>
-              <th className="px-3 py-2 border-r border-slate-800">Domain</th>
-              <th className="px-3 py-2 border-r border-slate-800">Derived from URL</th>
-              <th className="px-3 py-2 border-r border-slate-800">Aliased name</th>
-              <th className="px-3 py-2">Actions</th>
+              <th className="px-3 py-2 border-r border-slate-800 w-1/2">Domain</th>
+              <th className="px-3 py-2">Company name</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {filteredRows.map((row) => {
-              const draftValue = drafts[row.domain] ?? row.alias ?? row.derivedName ?? "";
-              const usesAlias = (row.alias ?? row.derivedName ?? "") !== (row.derivedName ?? "");
-              return (
-                <tr key={row.domain} className="bg-slate-950/50 hover:bg-slate-900/60">
-                  <td className="px-3 py-3 align-top">
-                    <div className="font-mono text-xs text-white">{row.domain}</div>
-                    {row.siteUrl && (
-                      <div className="text-[11px] text-slate-500 truncate" title={row.siteUrl}>
-                        {row.siteUrl}
-                      </div>
-                    )}
-                    {row.siteName && (
-                      <div className="inline-flex mt-1 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 border border-slate-700">
-                        {row.siteName}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 align-top">
-                    <div className="text-sm font-medium text-white">{row.derivedName}</div>
-                    <p className="text-[11px] text-slate-500">Derived from the scrape URL</p>
-                  </td>
-                  <td className="px-3 py-3 align-top">
-                    <div className="flex flex-col gap-2">
-                      <input
-                        type="text"
-                        value={draftValue}
-                        onChange={(e) => setDrafts((prev) => ({ ...prev, [row.domain]: e.target.value }))}
-                        placeholder={row.derivedName}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                        {usesAlias ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-200 border border-emerald-800">
-                            Alias applied
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                            Using derived name
-                          </span>
-                        )}
-                        {row.updatedAt && (
-                          <span className="text-[10px] text-slate-500">
-                            Updated {new Date(row.updatedAt).toLocaleString()}
-                          </span>
+            {filteredRows.length === 0 ? (
+              <tr className="bg-slate-950/50">
+                <td colSpan={2} className="px-3 py-6 text-center text-sm text-slate-500">
+                  {domainSearchLower
+                    ? "No domains match your search."
+                    : showAllDomains
+                      ? "No domains found."
+                      : "No domains with aliases yet."}
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row) => {
+                const draftValue = drafts[row.domain] ?? row.alias ?? row.derivedName ?? "";
+                const usesAlias = (row.alias ?? row.derivedName ?? "") !== (row.derivedName ?? "");
+                return (
+                  <tr key={row.domain} className="bg-slate-950/50 hover:bg-slate-900/60">
+                    <td className="px-3 py-3 align-top">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-mono text-xs text-white">{row.domain}</div>
+                          {row.siteUrl && (
+                            <div className="text-[11px] text-slate-500 truncate" title={row.siteUrl}>
+                              {row.siteUrl}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            Derived: {row.derivedName}
+                          </div>
+                        </div>
+                        {row.siteName && (
+                          <div className="shrink-0 inline-flex mt-0.5 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 border border-slate-700">
+                            {row.siteName}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 align-top">
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { void handleSave(row.domain, draftValue || row.derivedName, row.siteUrl); }}
-                        disabled={savingDomain === row.domain}
-                        className={clsx(
-                          "px-3 py-1.5 rounded text-sm font-medium transition-colors",
-                          savingDomain === row.domain
-                            ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
-                            : "bg-emerald-600 text-white hover:bg-emerald-500"
-                        )}
-                      >
-                        {savingDomain === row.domain ? "Saving..." : "Save alias"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResetDraft(row.domain, row.derivedName)}
-                        className="px-3 py-1.5 rounded text-sm font-medium bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors"
-                      >
-                        Reset to derived
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            value={draftValue}
+                            onChange={(e) => setDrafts((prev) => ({ ...prev, [row.domain]: e.target.value }))}
+                            placeholder={row.derivedName}
+                            className="flex-1 min-w-[12rem] bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => { void handleSave(row.domain, draftValue || row.derivedName, row.siteUrl); }}
+                            disabled={savingDomain === row.domain}
+                            className={clsx(
+                              "px-3 py-1.5 rounded text-sm font-medium transition-colors",
+                              savingDomain === row.domain
+                                ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
+                                : "bg-emerald-600 text-white hover:bg-emerald-500"
+                            )}
+                          >
+                            {savingDomain === row.domain ? "Saving..." : "Save alias"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetDraft(row.domain, row.derivedName)}
+                            className="px-3 py-1.5 rounded text-sm font-medium bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          {usesAlias ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-200 border border-emerald-800">
+                              Alias applied
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                              Using derived name
+                            </span>
+                          )}
+                          {row.updatedAt && (
+                            <span className="text-[10px] text-slate-500">
+                              Updated {new Date(row.updatedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

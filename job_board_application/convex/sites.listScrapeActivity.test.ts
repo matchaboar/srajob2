@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { listScrapeActivity } from "./sites";
+import { getHandler } from "./__tests__/getHandler";
 
 type Scrape = { _id: string; siteId?: string; sourceUrl: string; completedAt?: number; items?: any };
 type Run = { _id: string; siteUrls: string[]; startedAt: number; completedAt?: number; status?: string };
@@ -83,7 +84,7 @@ describe("listScrapeActivity", () => {
       },
     };
 
-    const handler = (listScrapeActivity as any).handler ?? listScrapeActivity;
+    const handler = getHandler(listScrapeActivity) as any;
     const rows = await handler(ctx, {});
     vi.useRealTimers();
 

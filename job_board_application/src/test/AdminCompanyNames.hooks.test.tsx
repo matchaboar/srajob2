@@ -60,6 +60,6 @@ describe("Admin CompanyNamesSection hook order", () => {
       { domain: "example.com", derivedName: "Example Co", alias: undefined, siteName: undefined, siteUrl: undefined },
     ]);
     expect(() => rerender(<CompanyNamesSection />)).not.toThrow();
-    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getByText(/No domains with aliases yet/i)).toBeInTheDocument();
   });
 });

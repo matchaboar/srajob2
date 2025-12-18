@@ -192,11 +192,15 @@ async def webhook_wait_logger() -> None:
     if not (settings.convex_http_url or settings.convex_url):
         logger.info("Convex URL not set. Webhook wait logger disabled.")
         return
+    interval = int(getattr(settings, "webhook_wait_logger_interval_seconds", 60))
+    if interval <= 0:
+        logger.info("Webhook wait logger disabled (interval=%s).", interval)
+        return
 
     try:
         while True:
             try:
-                pending = await convex_query("router:listPendingFirecrawlWebhooks", {"limit": 15})
+                pending = await convex_query("router:listPendingFirecrawlWebhooks", {"limit": 10})
                 summary_parts = []
                 if isinstance(pending, list):
                     for event in pending:
@@ -224,7 +228,7 @@ async def webhook_wait_logger() -> None:
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Pending webhook check failed: %s", exc)
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(interval)
     except asyncio.CancelledError:
         logger.info("Webhook wait logger stopped.")
 
