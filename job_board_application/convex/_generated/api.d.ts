@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as __tests___getHandler from "../__tests__/getHandler.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as filters from "../filters.js";
@@ -33,6 +34,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "__tests__/getHandler": typeof __tests___getHandler;
   auth: typeof auth;
   crons: typeof crons;
   filters: typeof filters;
