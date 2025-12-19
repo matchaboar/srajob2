@@ -138,6 +138,28 @@ def test_jobs_from_scrape_items_uses_normalized_row():
     assert "{" not in job["title"]
 
 
+def test_jobs_from_scrape_items_coerces_level_values():
+    items = {
+        "normalized": [
+            {
+                "title": "Lead Platform Engineer",
+                "level": "lead",
+                "url": "https://example.com/jobs/lead",
+            },
+            {
+                "title": "Engineering Manager",
+                "level": "manager",
+                "url": "https://example.com/jobs/manager",
+            },
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+
+    assert jobs[0]["level"] == "senior"
+    assert jobs[1]["level"] == "senior"
+
+
 def test_prefer_apply_url_prefers_company_over_greenhouse_api():
     row = {
         "apply_url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",

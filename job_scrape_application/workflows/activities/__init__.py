@@ -2901,7 +2901,7 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
         try:
             # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
             _safe_activity_heartbeat({"processed": processed, "index": idx, "total": total})
-            job_id = row.get("_id")
+            job_id = row.get("jobId") or row.get("_id")
             title = (str(row.get("title") or row.get("jobTitle") or "")).strip() or "<untitled>"
             logger.info("heuristic.view job id=%s title=%s", job_id or "<missing>", title)
             url = row.get("url") or ""

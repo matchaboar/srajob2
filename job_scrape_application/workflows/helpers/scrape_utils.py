@@ -1210,9 +1210,8 @@ def _jobs_from_scrape_items(
         location_val = row.get("location") or ""
         if not location_val and hints.get("location"):
             location_val = hints["location"]
-        level_val = row.get("level") or "mid"
-        if hints.get("level"):
-            level_val = hints["level"]
+        level_val = hints.get("level") or row.get("level") or "mid"
+        level_val = coerce_level(level_val, str(title_val))
         total_comp_val = row.get("total_compensation") or 0
         if (not total_comp_val or total_comp_val <= 0) and hints.get("compensation"):
             total_comp_val = hints["compensation"]
