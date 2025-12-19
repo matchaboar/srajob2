@@ -28,4 +28,10 @@ describe("siteUtils", () => {
     const generalKey = siteCanonicalKey("https://robinhood.com/jobs", "general");
     expect(generalKey).not.toBe(keyA);
   });
+
+  it("preserves query strings for general site URLs", () => {
+    const url =
+      "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100";
+    expect(normalizeSiteUrl(url, "general")).toBe(url);
+  });
 });

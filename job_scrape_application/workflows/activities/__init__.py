@@ -2227,11 +2227,39 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return (left.strip() or None, right.strip() or None)
         return val, None
 
-    def _extract_location_from_context(lines: list[str]) -> Optional[str]:
-        for line in lines:
-            match = location_line_re.search(line)
+    def _line_has_job_link(line: str) -> bool:
+        for match in md_link_re.finditer(line):
+            title_text = match.group(1).strip()
+            if not title_text:
+                continue
+            title, _ = _split_title_and_location(title_text)
+            if title_matches_required_keywords(title or title_text):
+                return True
+        return False
+
+    def _extract_location_from_context(lines: list[str], anchor_idx: int) -> Optional[str]:
+        max_offset = 5
+
+        for offset in range(1, max_offset + 1):
+            idx = anchor_idx + offset
+            if idx >= len(lines):
+                break
+            if _line_has_job_link(lines[idx]):
+                break
+            match = location_line_re.search(lines[idx])
             if match:
                 return match.group("location").strip()
+
+        for offset in range(1, max_offset + 1):
+            idx = anchor_idx - offset
+            if idx < 0:
+                break
+            if _line_has_job_link(lines[idx]):
+                break
+            match = location_line_re.search(lines[idx])
+            if match:
+                return match.group("location").strip()
+
         return None
 
     def _looks_like_job_detail_url(url: str) -> bool:
@@ -2267,10 +2295,17 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 url = match.group(2).strip()
                 start = max(0, idx - 4)
                 end = min(len(lines), idx + 5)
-                context_lines = [ln.strip() for ln in lines[start:end] if ln.strip()]
+                context_lines: list[str] = []
+                for j in range(start, end):
+                    raw = lines[j]
+                    if not raw.strip():
+                        continue
+                    if j != idx and md_link_re.search(raw):
+                        continue
+                    context_lines.append(raw.strip())
                 context_text = " ".join(context_lines)
                 title, loc = _split_title_and_location(title_text)
-                context_location = _extract_location_from_context(context_lines)
+                context_location = _extract_location_from_context(lines, idx)
                 links.append((url, title or title_text, loc, context_text, context_location))
         return links
 

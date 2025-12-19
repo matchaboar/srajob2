@@ -39,10 +39,10 @@ export const normalizeSiteUrl = (rawUrl: string, type?: string): string => {
 
   try {
     const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    parsed.search = "";
     parsed.hash = "";
     const pathname = cleanPathname(parsed.pathname);
-    return `${parsed.protocol}//${parsed.host.toLowerCase()}${pathname}`;
+    const search = parsed.search || "";
+    return `${parsed.protocol}//${parsed.host.toLowerCase()}${pathname}${search}`;
   } catch {
     return trimmed.toLowerCase();
   }

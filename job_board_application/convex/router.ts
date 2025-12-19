@@ -1627,14 +1627,13 @@ export const resetTodayAndRunAllScheduled = mutation({
 
     const deleteJobsScrapedToday = async () => {
       let deleted = 0;
-      let cursor: any = null;
       while (true) {
-        const { page, isDone, continueCursor } = await ctx.db
+        const page = await ctx.db
           .query("jobs")
           .filter((q: any) =>
             q.and(q.gte(q.field("scrapedAt"), startOfDay), q.lt(q.field("scrapedAt"), endOfDay))
           )
-          .paginate({ cursor, numItems: 200 });
+          .take(200);
 
         for (const job of page as any[]) {
           const detail = await ctx.db
@@ -1648,17 +1647,15 @@ export const resetTodayAndRunAllScheduled = mutation({
           deleted += 1;
         }
 
-        if (isDone) break;
-        cursor = continueCursor;
+        if (page.length < 200) break;
       }
       return deleted;
     };
 
     const deleteScrapesToday = async () => {
       let deleted = 0;
-      let cursor: any = null;
       while (true) {
-        const { page, isDone, continueCursor } = await ctx.db
+        const page = await ctx.db
           .query("scrapes")
           .filter((q: any) =>
             q.or(
@@ -1666,15 +1663,14 @@ export const resetTodayAndRunAllScheduled = mutation({
               q.and(q.gte(q.field("startedAt"), startOfDay), q.lt(q.field("startedAt"), endOfDay))
             )
           )
-          .paginate({ cursor, numItems: 200 });
+          .take(200);
 
         for (const row of page as any[]) {
           await ctx.db.delete(row._id);
           deleted += 1;
         }
 
-        if (isDone) break;
-        cursor = continueCursor;
+        if (page.length < 200) break;
       }
       return deleted;
     };
@@ -1695,22 +1691,20 @@ export const resetTodayAndRunAllScheduled = mutation({
 
     const deleteSkippedJobsToday = async () => {
       let deleted = 0;
-      let cursor: any = null;
       while (true) {
-        const { page, isDone, continueCursor } = await ctx.db
+        const page = await ctx.db
           .query("ignored_jobs")
           .filter((q: any) =>
             q.and(q.gte(q.field("createdAt"), startOfDay), q.lt(q.field("createdAt"), endOfDay))
           )
-          .paginate({ cursor, numItems: 200 });
+          .take(200);
 
         for (const row of page as any[]) {
           await ctx.db.delete(row._id);
           deleted += 1;
         }
 
-        if (isDone) break;
-        cursor = continueCursor;
+        if (page.length < 200) break;
       }
       return deleted;
     };

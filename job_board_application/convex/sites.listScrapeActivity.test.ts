@@ -37,6 +37,10 @@ class FakeQuery<T extends { [key: string]: any }> {
   collect() {
     return this.rows;
   }
+
+  paginate() {
+    throw new Error("paginate should not be used in listScrapeActivity");
+  }
 }
 
 describe("listScrapeActivity", () => {
@@ -93,5 +97,39 @@ describe("listScrapeActivity", () => {
     expect(row.totalScrapes).toBe(2); // both fetched
     expect(row.totalJobsScraped).toBe(2); // only recent counted
     expect(row.lastScrapeEnd).toBe(recentScrape.completedAt);
+  });
+
+  it("avoids paginate helpers when collect/take are available", async () => {
+    const now = Date.now();
+    vi.setSystemTime(now);
+
+    const ctx: any = {
+      db: {
+        query: (table: string) => {
+          if (table === "sites") {
+            return new FakeQuery<any>("sites", [
+              { _id: "site-1", url: "https://example.com", name: "Site", enabled: true, _creationTime: now },
+            ]);
+          }
+          if (table === "scrapes") {
+            return new FakeQuery<Scrape>("scrapes", [
+              { _id: "scrape-1", siteId: "site-1", sourceUrl: "https://example.com", completedAt: now, items: [] },
+            ]);
+          }
+          if (table === "workflow_runs") {
+            return new FakeQuery<Run>("workflow_runs", [
+              { _id: "run-1", siteUrls: ["https://example.com"], startedAt: now, status: "completed" },
+            ]);
+          }
+          throw new Error(`Unexpected table ${table}`);
+        },
+      },
+    };
+
+    const handler = getHandler(listScrapeActivity) as any;
+    const rows = await handler(ctx, {});
+    vi.useRealTimers();
+
+    expect(rows).toHaveLength(1);
   });
 });

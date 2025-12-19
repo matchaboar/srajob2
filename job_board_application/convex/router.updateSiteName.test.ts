@@ -12,20 +12,30 @@ class FakeDb {
   sites: Map<string, Site>;
   jobs: Map<string, Job>;
   companyProfiles: Map<string, CompanyProfile>;
+  private throwOnPaginate: boolean;
   private seq = 1;
 
   constructor({
     sites = [],
     jobs = [],
     companyProfiles = [],
+    throwOnPaginate = false,
   }: {
     sites?: Site[];
     jobs?: Job[];
     companyProfiles?: CompanyProfile[];
+    throwOnPaginate?: boolean;
   }) {
     this.sites = new Map(sites.map((s) => [s._id, { ...s }]));
     this.jobs = new Map(jobs.map((j) => [j._id, { ...j }]));
     this.companyProfiles = new Map(companyProfiles.map((p) => [p._id, { ...p }]));
+    this.throwOnPaginate = throwOnPaginate;
+  }
+
+  private ensurePaginateAllowed() {
+    if (this.throwOnPaginate) {
+      throw new Error("paginate should not be used in updateSiteName");
+    }
   }
 
   get(id: string) {
@@ -72,7 +82,11 @@ class FakeDb {
         if (table === "jobs") {
           const rows = Array.from(self.jobs.values()).filter((j) => j.company === value);
           return {
+            collect() {
+              return rows;
+            },
             paginate({ cursor, numItems }: { cursor: string | null; numItems: number }) {
+              self.ensurePaginateAllowed();
               const start = cursor ? Number(cursor) : 0;
               const page = rows.slice(start, start + numItems);
               const nextCursor = start + numItems >= rows.length ? null : String(start + numItems);
@@ -95,10 +109,15 @@ class FakeDb {
 
   search(table: string, _index: string, term: string) {
     if (table !== "jobs") throw new Error(`Unsupported search table ${table}`);
+    const self = this;
     const target = normalize(term);
     const rows = Array.from(this.jobs.values()).filter((j) => normalize(j.company).includes(target));
     return {
+      collect() {
+        return rows;
+      },
       paginate({ cursor, numItems }: { cursor: string | null; numItems: number }) {
+        self.ensurePaginateAllowed();
         const start = cursor ? Number(cursor) : 0;
         const page = rows.slice(start, start + numItems);
         const nextCursor = start + numItems >= rows.length ? null : String(start + numItems);
@@ -151,5 +170,21 @@ describe("updateSiteName", () => {
     expect(result.updatedJobs).toBe(1);
     expect(ctx.db.jobs.get("job-1")!.company).toBe("Example");
     expect(ctx.db.jobs.get("job-2")!.company).toBe("OtherCo");
+  });
+
+  it("avoids paginate helpers when collecting jobs", async () => {
+    const ctx: any = {
+      db: new FakeDb({
+        sites: [{ _id: "site-1", name: "Datadoghq", url: "https://careers.datadoghq.com" }],
+        jobs: [{ _id: "job-1", company: "Datadoghq" }],
+        throwOnPaginate: true,
+      }),
+    };
+
+    const handler = getHandler(updateSiteName) as any;
+    const result = await handler(ctx, { id: "site-1", name: "Datadog" });
+
+    expect(result.updatedJobs).toBe(1);
+    expect(ctx.db.jobs.get("job-1")!.company).toBe("Datadog");
   });
 });

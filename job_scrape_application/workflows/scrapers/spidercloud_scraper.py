@@ -111,6 +111,17 @@ class SpiderCloudScraper(BaseScraper):
         )
         return key
 
+    def _trim_scrape_payload(self, scrape_payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return self.deps.trim_scrape_for_convex(
+                scrape_payload,
+                max_description=MAX_JOB_DESCRIPTION_CHARS,
+            )
+        except TypeError as exc:
+            if "max_description" not in str(exc):
+                raise
+            return self.deps.trim_scrape_for_convex(scrape_payload)
+
     def _try_parse_json(self, raw: str) -> Any | None:
         try:
             return json.loads(raw)
@@ -399,10 +410,7 @@ class SpiderCloudScraper(BaseScraper):
             "requestedFormat": "json",
         }
 
-        trimmed = self.deps.trim_scrape_for_convex(
-            scrape_payload,
-            max_description=MAX_JOB_DESCRIPTION_CHARS,
-        )
+        trimmed = self._trim_scrape_payload(scrape_payload)
         logger.info(
             "Site API fetch succeeded handler=%s url=%s jobs=%s job_urls=%s",
             handler.name,
@@ -904,10 +912,7 @@ class SpiderCloudScraper(BaseScraper):
         if cost_milli_cents is not None:
             scrape_payload["costMilliCents"] = cost_milli_cents
 
-        trimmed = self.deps.trim_scrape_for_convex(
-            scrape_payload,
-            max_description=MAX_JOB_DESCRIPTION_CHARS,
-        )
+        trimmed = self._trim_scrape_payload(scrape_payload)
         trimmed_items = trimmed.get("items")
         if isinstance(trimmed_items, dict):
             trimmed_items.setdefault("seedUrls", urls)
