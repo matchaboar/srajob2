@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
+import httpx
 import pytest
 import types
 
@@ -57,6 +58,7 @@ from job_scrape_application.workflows.scrapers import (  # noqa: E402
 )
 from job_scrape_application.workflows.activities import _extract_job_urls_from_scrape  # type: ignore  # noqa: E402
 from job_scrape_application.config import runtime_config  # noqa: E402
+from job_scrape_application.workflows.site_handlers import GreenhouseHandler  # noqa: E402
 
 
 def test_spidercloud_workflow_has_schedule():
@@ -636,6 +638,132 @@ def test_extract_job_urls_from_spidercloud_scrape_raw():
     assert any("boards.greenhouse.io/robinhood/jobs" in u for u in urls)
 
 
+def test_extract_job_urls_from_spidercloud_ashby_html():
+    html_fixture = Path("tests/fixtures/lambda-ashbyhq-src.html").read_text(encoding="utf-8")
+    scrape_payload = {
+        "sourceUrl": "https://jobs.ashbyhq.com/lambda",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {
+            "provider": "spidercloud",
+            "raw": [
+                {
+                    "url": "https://jobs.ashbyhq.com/lambda",
+                    "events": [{"content": {"raw_html": html_fixture}}],
+                    "markdown": "Lambda Jobs",
+                }
+            ],
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape_payload)
+
+    assert "https://jobs.ashbyhq.com/lambda/senior-software-engineer" in urls
+    assert "https://jobs.ashbyhq.com/lambda/security-engineer" in urls
+    assert "https://jobs.ashbyhq.com/lambda/product-manager" not in urls
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    payload = {
+        "jobs": [
+            {"jobUrl": "https://jobs.ashbyhq.com/lambda/senior-software-engineer"},
+            {"applyUrl": "https://jobs.ashbyhq.com/lambda/security-engineer"},
+        ]
+    }
+
+    class _FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> Dict[str, Any]:
+            return payload
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            self.calls: list[Dict[str, Any]] = []
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return False
+
+        async def get(self, url: str, params: Dict[str, Any] | None = None):
+            self.calls.append({"url": url, "params": params})
+            return _FakeResponse()
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
+        _FakeClient,
+    )
+
+    called: dict[str, Any] = {"batch": False}
+
+    async def fake_batch(*_args, **_kwargs):
+        called["batch"] = True
+        return {"items": {"normalized": [], "provider": "spidercloud", "seedUrls": []}}
+
+    monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
+
+    site = {"_id": "s-ashby", "url": "https://jobs.ashbyhq.com/lambda", "pattern": None}
+    result = await scraper.scrape_site(site)
+
+    assert called["batch"] is False
+    assert result["items"]["job_urls"] == [
+        "https://jobs.ashbyhq.com/lambda/senior-software-engineer",
+        "https://jobs.ashbyhq.com/lambda/security-engineer",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+
+    class _FailClient:
+        def __init__(self, *args, **kwargs) -> None:
+            return None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return False
+
+        async def get(self, *_args, **_kwargs):
+            raise httpx.HTTPError("boom")
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
+        _FailClient,
+    )
+
+    called: dict[str, Any] = {"batch": False}
+
+    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+        called["batch"] = True
+        return {
+            "sourceUrl": source_url,
+            "pattern": pattern,
+            "provider": scraper.provider,
+            "items": {"normalized": [], "provider": scraper.provider, "seedUrls": urls},
+        }
+
+    monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
+
+    site = {
+        "_id": "s-ashby",
+        "url": "https://jobs.ashbyhq.com/lambda",
+        "pattern": "https://jobs.ashbyhq.com/lambda/*",
+    }
+    result = await scraper.scrape_site(site)
+
+    assert called["batch"] is True
+    assert result["items"]["seedUrls"] == ["https://jobs.ashbyhq.com/lambda"]
+
+
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
@@ -669,6 +797,39 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
     enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue job URLs from raw payload"
     assert len(enqueue_calls[0]["args"]["urls"]) >= 20
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(monkeypatch):
+    scrape_fixture = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
+    raw_payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))
+    scrape_payload = {
+        "sourceUrl": "https://www.github.careers/careers-home/jobs",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {"provider": "spidercloud", "raw": raw_payload},
+    }
+
+    calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": 0}
+        return None
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await acts.store_scrape(scrape_payload)
+
+    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
+    assert enqueue_calls, "store_scrape should enqueue job URLs from GitHub fixture"
+    enqueued_urls = enqueue_calls[0]["args"]["urls"]
+    assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in enqueued_urls
+    assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in enqueued_urls
 
 
 @pytest.mark.asyncio
@@ -778,11 +939,11 @@ def test_spidercloud_allows_when_title_unknown():
 
 
 def test_extract_greenhouse_json_markdown_preserves_content():
-    scraper = _make_spidercloud_scraper()
     fixture_path = Path("tests/fixtures/greenhouse_api_job.json")
     raw = fixture_path.read_text(encoding="utf-8")
 
-    text, title = scraper._extract_greenhouse_json_markdown(raw)  # noqa: SLF001
+    handler = GreenhouseHandler()
+    text, title = handler.normalize_markdown(raw)
 
     assert title == "Senior Software Engineer"
     # Should unescape HTML, keep structure, and not leak tags/escapes
@@ -831,6 +992,49 @@ async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
 
     assert captured.get("urls") == []
     assert result["items"]["seedUrls"] == []
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_scrape_site_keeps_seed_when_pattern_present(monkeypatch):
+    seen_url = "https://jobs.ashbyhq.com/lambda"
+    captured: dict[str, Any] = {}
+
+    async def fake_seen(url: str, pattern: str | None):
+        return [seen_url]
+
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=lambda payload: payload,
+        settings=types.SimpleNamespace(spider_api_key="key"),
+        fetch_seen_urls_for_site=fake_seen,
+    )
+    scraper = SpiderCloudScraper(deps)
+
+    async def _no_ashby_api(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(scraper, "_fetch_site_api", _no_ashby_api)
+
+    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+        captured["urls"] = urls
+        return {
+            "sourceUrl": source_url,
+            "pattern": pattern,
+            "provider": scraper.provider,
+            "items": {"normalized": [], "provider": scraper.provider, "seedUrls": urls},
+        }
+
+    monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
+
+    site = {"_id": "s-seed", "url": seen_url, "pattern": "https://jobs.ashbyhq.com/lambda/*"}
+    result = await scraper.scrape_site(site)
+
+    assert captured.get("urls") == [seen_url]
+    assert result["items"]["seedUrls"] == [seen_url]
 
 
 @pytest.mark.asyncio
@@ -952,6 +1156,7 @@ def test_spidercloud_robinhood_scrape_fixture_matches_request():
 
     assert request["url"] == "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     assert request["params"]["return_format"] == ["commonmark"]
+    assert request["params"]["request"] == "chrome"
     assert request["contentType"] == "application/jsonl"
 
     assert isinstance(response, list) and len(response) == 1
@@ -967,6 +1172,36 @@ def test_spidercloud_robinhood_scrape_fixture_matches_request():
     board = load_greenhouse_board(content)
     assert len(board.jobs) == 102
     assert any(job.absolute_url for job in board.jobs)
+
+
+def test_spidercloud_github_careers_scrape_fixture_matches_request():
+    request_path = Path("tests/fixtures/spidercloud_github_careers_request.json")
+    response_path = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
+
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+
+    expected_url = (
+        "https://www.github.careers/careers-home/jobs?"
+        "keywords=engineer&sortBy=posted_date&descending=true&limit=100&page=1"
+    )
+    assert request["url"] == expected_url
+    assert request["params"]["return_format"] == "markdown"
+    assert request["params"]["request"] == "chrome"
+
+    assert isinstance(response, list) and len(response) == 1
+    first = response[0]
+    assert first.get("url") == expected_url
+    assert first.get("status") == 200
+    content = first.get("content")
+    assert isinstance(content, str) and len(content) > 1000
+
+    scrape = {"items": {"raw": response, "provider": "spidercloud"}}
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in urls
+    assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in urls
+    assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
 
 
 def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():

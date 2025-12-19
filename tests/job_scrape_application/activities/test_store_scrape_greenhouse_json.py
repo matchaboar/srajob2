@@ -6,31 +6,14 @@ from typing import Any, Dict, List
 import pytest
 
 from job_scrape_application.workflows import activities as acts
-from job_scrape_application.workflows.scrapers.spidercloud_scraper import (
-    SpiderCloudScraper,
-    SpidercloudDependencies,
-)
-
-
-def _make_spidercloud_scraper() -> SpiderCloudScraper:
-    deps = SpidercloudDependencies(
-        mask_secret=lambda v: v,
-        sanitize_headers=lambda h: h,
-        build_request_snapshot=lambda *args, **kwargs: {},
-        log_dispatch=lambda *args, **kwargs: None,
-        log_sync_response=lambda *args, **kwargs: None,
-        trim_scrape_for_convex=lambda payload: payload,
-        settings=type("cfg", (), {"spider_api_key": "key"}),
-        fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
-    )
-    return SpiderCloudScraper(deps)
+from job_scrape_application.workflows.site_handlers import GreenhouseHandler
 
 
 @pytest.mark.asyncio
 async def test_store_scrape_ingests_greenhouse_json_as_markdown(monkeypatch):
-    scraper = _make_spidercloud_scraper()
     raw_json = Path("tests/fixtures/greenhouse_api_job.json").read_text(encoding="utf-8")
-    desc, title = scraper._extract_greenhouse_json_markdown(raw_json)  # noqa: SLF001
+    handler = GreenhouseHandler()
+    desc, title = handler.normalize_markdown(raw_json)
 
     normalized = {
         "url": "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5001698007",

@@ -97,7 +97,7 @@ async def test_batch_params_use_raw_for_greenhouse_api(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_batch_params_use_commonmark_for_non_api(monkeypatch):
+async def test_batch_params_use_commonmark_with_chrome_for_non_api(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([{"commonmark": "### hi"}])
     monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
@@ -106,8 +106,21 @@ async def test_batch_params_use_commonmark_for_non_api(monkeypatch):
 
     call = fake_client.calls[0]
     assert call["params"]["return_format"] == ["commonmark"]
-    assert call["params"]["request"] == "smart"
+    assert call["params"]["request"] == "chrome"
     assert call["params"]["preserve_host"] is True
+
+
+@pytest.mark.asyncio
+async def test_batch_params_use_raw_for_ashby_board(monkeypatch):
+    scraper = _make_scraper()
+    fake_client = _FakeClient([{"raw_html": "<h1>Lambda Jobs</h1>"}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    await scraper._scrape_urls_batch(["https://jobs.ashbyhq.com/lambda"], source_url="https://jobs.ashbyhq.com/lambda")
+
+    call = fake_client.calls[0]
+    assert "raw_html" in call["params"]["return_format"]
+    assert call["params"]["request"] == "chrome"
 
 
 @pytest.mark.asyncio

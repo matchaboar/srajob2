@@ -14,15 +14,14 @@ Outputs:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Tuple
-from urllib import request
 
 from dotenv import load_dotenv
-
-BASE_URL = "https://api.spider.cloud"
+from spider import AsyncSpider
 
 GH_JOB_URL = "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/5572858"
 PINTEREST_MARKETING_URL = "https://www.pinterestcareers.com/jobs/?gh_jid=5572858"
@@ -48,27 +47,18 @@ FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 
 
-def _post_json(endpoint: str, payload: Dict[str, Any], api_key: str) -> Dict[str, Any]:
-    url = BASE_URL + endpoint
-    data = json.dumps(payload).encode("utf-8")
-    req = request.Request(
-        url,
-        data=data,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    with request.urlopen(req, timeout=30) as resp:
-        text = resp.read().decode("utf-8", errors="replace")
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            return {"raw": text}
+async def _collect_response(response: Any) -> Any:
+    if hasattr(response, "__aiter__"):
+        items = []
+        async for item in response:
+            items.append(item)
+        return items
+    if hasattr(response, "__await__"):
+        return await response
+    return response
 
 
-def main() -> None:
+async def main() -> None:
     load_dotenv()
     api_key = os.getenv("SPIDER_API_KEY") or os.getenv("SPIDER_KEY")
     if not api_key:
@@ -76,16 +66,29 @@ def main() -> None:
 
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
 
-    for filename, endpoint, payload in FIXTURES:
-        path = FIXTURE_DIR / filename
-        try:
-            print(f"Fetching {payload['url']} -> {filename} via {endpoint}")
-            res = _post_json(endpoint, payload, api_key)
-            path.write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
-            print(f"  wrote {path} ({len(json.dumps(res))} bytes)")
-        except Exception as exc:  # noqa: BLE001
-            print(f"  failed to fetch {filename}: {exc}")
+    async with AsyncSpider(api_key=api_key) as client:
+        for filename, endpoint, payload in FIXTURES:
+            path = FIXTURE_DIR / filename
+            try:
+                url = payload.get("url")
+                params = {k: v for k, v in payload.items() if k != "url"}
+                return_format = params.get("return_format")
+                if isinstance(return_format, str):
+                    params["return_format"] = [return_format]
+                print(f"Fetching {url} -> {filename} via {endpoint}")
+                response = await _collect_response(
+                    client.scrape_url(
+                        url,
+                        params=params,
+                        stream=False,
+                        content_type="application/json",
+                    )
+                )
+                path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
+                print(f"  wrote {path} ({len(json.dumps(response))} bytes)")
+            except Exception as exc:  # noqa: BLE001
+                print(f"  failed to fetch {filename}: {exc}")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

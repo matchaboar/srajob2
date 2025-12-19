@@ -3,7 +3,7 @@
   "params": {
     "limit": 1,
     "metadata": true,
-    "request": "smart",
+    "request": "chrome",
     "return_format": [
       "commonmark"
     ]

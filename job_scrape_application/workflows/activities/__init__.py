@@ -54,6 +54,7 @@ from ..helpers.scrape_utils import (
     trim_scrape_for_convex,
 )
 from ..scrapers import BaseScraper, FetchfoxScraper, FirecrawlScraper, SpiderCloudScraper
+from ..site_handlers import get_site_handler
 from .constants import (
     FIRECRAWL_CACHE_MAX_AGE_MS,
     FIRECRAWL_STATUS_EXPIRATION_MS,
@@ -93,6 +94,45 @@ __all__ = [
     "process_spidercloud_job_batch",
     "complete_scrape_urls",
 ]
+
+MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\((https?://[^\s)]+)\)"
+GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
+TITLE_LOCATION_PAREN_PATTERN = r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$"
+LOCATION_ANYWHERE_PATTERN = r"[A-Za-z].*,\s*[A-Za-z]"
+LOCATION_SPLIT_PATTERN = r"[;|/]"
+LOCATION_TOKEN_SPLIT_PATTERN = r"[,\s]+"
+MULTI_SPACE_PATTERN = r"\s+"
+COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
+REQUEST_ID_PATTERN = r"\[Request ID:\s*([^\]]+)\]"
+NON_NUMERIC_DOT_PATTERN = r"[^0-9.]"
+NON_NUMERIC_PATTERN = r"[^0-9]"
+
+INR_CURRENCY_PATTERNS = [
+    r"₹",
+    r"\brupees?\b",
+    r"\brupee\b",
+    r"\bINR\b",
+    r"\blakh\b",
+    r"\blpa\b",
+]
+GBP_CURRENCY_PATTERNS = [r"£", r"\bGBP\b"]
+EUR_CURRENCY_PATTERNS = [r"€", r"\bEUR\b"]
+AUD_CURRENCY_PATTERNS = [r"\bAUD\b", r"\bA\\$"]
+CAD_CURRENCY_PATTERNS = [r"\bCAD\b", r"\bC\\$"]
+
+LOCATION_FULL_PATTERN = r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})"
+LOCATION_LABEL_PATTERN = r"location[:\-\s]+(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})"
+LOCATION_CITY_STATE_PATTERN = r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})"
+LOCATION_PAREN_PATTERN = r"\((?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\)"
+
+COMP_USD_RANGE_PATTERN = (
+    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?))?"
+)
+COMP_INR_RANGE_PATTERN = (
+    r"[₹]\s*(?P<low>\d{1,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*[₹]?\s*(?P<high>\d{1,3}(?:[.,]\d{3})?))?"
+)
+COMP_K_PATTERN = r"(?P<value>\d{2,3})k"
+COMP_LPA_PATTERN = r"(?P<value>\d{1,3})\s*(lpa|lakh)"
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
@@ -1022,44 +1062,11 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         into the canonical boards-api.greenhouse.io detail URL. This ensures the
         SpiderCloud scraper hits the JSON API instead of the marketing site.
         """
-
-        try:
-            parsed = urlparse(url)
-        except Exception:
+        handler = get_site_handler(url, "greenhouse")
+        if not handler:
             return url
-
-        # Only rewrite when the URL clearly refers to a Greenhouse flow.
-        host = (parsed.hostname or "").lower()
-        if "greenhouse.io" not in host and "gh_jid" not in url:
-            return url
-
-        try:
-            if "gh_jid" not in url:
-                return url
-            jid_match = re.search(r"[?&]gh_jid=(\d+)", url)
-            if not jid_match:
-                return url
-            job_id = jid_match.group(1)
-            slug = None
-            board_match = re.search(r"[?&]board=([^&]+)", url)
-            if board_match:
-                slug = board_match.group(1)
-            # Fallback: try to infer slug from hostname/path
-            if not slug:
-                # hostname like board.greenhouse.io/{slug}
-                host_parts = host.split(".")
-                if len(host_parts) >= 3 and host_parts[-2] != "greenhouse":
-                    slug = host_parts[-2]
-            if not slug:
-                path_parts = [p for p in parsed.path.split("/") if p]
-                if path_parts:
-                    # /{slug}/jobs/{id}
-                    slug = path_parts[0]
-            if not slug:
-                return url
-            return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
-        except Exception:
-            return url
+        api_url = handler.get_api_uri(url)
+        return api_url or url
 
     def _shrink_for_activity(scrape: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -2021,6 +2028,23 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             )
 
         urls = urls_from_raw or urls_from_trimmed or []
+        source_url = payload.get("sourceUrl")
+        if urls:
+            logger.info(
+                "Scrape URL extraction source=%s count=%s",
+                source_url,
+                len(urls),
+            )
+            for idx, url in enumerate(urls, start=1):
+                logger.info(
+                    "Scrape URL %s/%s source=%s url=%s",
+                    idx,
+                    len(urls),
+                    source_url,
+                    url,
+                )
+        else:
+            logger.info("Scrape URL extraction source=%s count=0", source_url)
         if urls:
             site_id = _convex_site_id(payload.get("siteId"))
             await convex_mutation(
@@ -2139,8 +2163,8 @@ def _is_firecrawl_related(entry: Dict[str, Any]) -> bool:
 def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     """Heuristic extraction of job URLs (Greenhouse or plain HTML) from a scrape payload."""
 
-    md_link_re = re.compile(r"(?<!!)\[([^\]]+)\]\((https?://[^\s)]+)\)")
-    greenhouse_re = re.compile(r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+", re.IGNORECASE)
+    md_link_re = re.compile(MARKDOWN_LINK_PATTERN)
+    greenhouse_re = re.compile(GREENHOUSE_URL_PATTERN, re.IGNORECASE)
     dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
 
     class _AnchorParser(HTMLParser):  # noqa: N801
@@ -2191,7 +2215,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if not text:
             return None, None
         val = text.strip()
-        paren_match = re.match(r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$", val)
+        paren_match = re.match(TITLE_LOCATION_PAREN_PATTERN, val)
         if paren_match:
             return paren_match.group(1).strip() or None, paren_match.group(2).strip() or None
         for sep in dash_separators:
@@ -2305,11 +2329,11 @@ def _detect_currency_code(text: str) -> Optional[str]:
 
     lowered = text.lower()
     currency_hints = [
-        ("INR", [r"₹", r"\brupees?\b", r"\brupee\b", r"\bINR\b", r"\blakh\b", r"\blpa\b"]),
-        ("GBP", [r"£", r"\bGBP\b"]),
-        ("EUR", [r"€", r"\bEUR\b"]),
-        ("AUD", [r"\bAUD\b", r"\bA\\$"]),
-        ("CAD", [r"\bCAD\b", r"\bC\\$"]),
+        ("INR", INR_CURRENCY_PATTERNS),
+        ("GBP", GBP_CURRENCY_PATTERNS),
+        ("EUR", EUR_CURRENCY_PATTERNS),
+        ("AUD", AUD_CURRENCY_PATTERNS),
+        ("CAD", CAD_CURRENCY_PATTERNS),
     ]
     for code, patterns in currency_hints:
         for pat in patterns:
@@ -2330,7 +2354,7 @@ def _looks_like_location_anywhere(value: Optional[str]) -> bool:
     text = value.strip()
     if len(text) < 3 or len(text) > 80:
         return False
-    return bool(re.search(r"[A-Za-z].*,\s*[A-Za-z]", text))
+    return bool(re.search(LOCATION_ANYWHERE_PATTERN, text))
 
 
 _CANADIAN_PROVINCE_CODES = {
@@ -2376,11 +2400,11 @@ def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
     for raw in raw_locations:
         if not raw:
             continue
-        for part in re.split(r"[;|/]", str(raw)):
+        for part in re.split(LOCATION_SPLIT_PATTERN, str(raw)):
             candidate = (part or "").strip(" ;|/\t")
             if not candidate:
                 continue
-            candidate = re.sub(r"\s+", " ", candidate)
+            candidate = re.sub(MULTI_SPACE_PATTERN, " ", candidate)
             lowered = candidate.lower()
             if lowered in ("unknown", "n/a", "na"):
                 continue
@@ -2444,7 +2468,7 @@ def _derive_countries(locations: List[str]) -> List[str]:
             mapped = "United States"
         elif country_upper in _US_STATE_CODES:
             mapped = "United States"
-        elif re.match(r"^[A-Z]{2}$", country):
+        elif re.match(COUNTRY_CODE_PATTERN, country):
             if country_upper in _CANADIAN_PROVINCE_CODES:
                 mapped = "Canada"
             else:
@@ -2463,7 +2487,7 @@ def _derive_countries(locations: List[str]) -> List[str]:
 def _build_location_search(locations: List[str]) -> str:
     tokens: set[str] = set()
     for loc in locations:
-        for token in re.split(r"[,\s]+", loc):
+        for token in re.split(LOCATION_TOKEN_SPLIT_PATTERN, loc):
             cleaned = token.strip()
             if cleaned:
                 tokens.add(cleaned)
@@ -2498,8 +2522,6 @@ def _describe_exception(exc: Exception) -> str:
 def _extract_request_id(exc: Exception) -> Optional[str]:
     """Best-effort extraction of Convex request id from exception or message."""
 
-    import re
-
     msg = ""
     try:
         msg = str(exc)
@@ -2507,7 +2529,7 @@ def _extract_request_id(exc: Exception) -> Optional[str]:
         msg = ""
 
     # Look for "[Request ID: xyz]" pattern commonly used by Convex errors.
-    match = re.search(r"\[Request ID:\s*([^\]]+)\]", msg)
+    match = re.search(REQUEST_ID_PATTERN, msg)
     if match:
         return match.group(1).strip()
 
@@ -2572,16 +2594,16 @@ def _build_job_detail_heuristic_patch(
     records: List[Dict[str, str]] = []
 
     location_defaults = [
-        r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})",
-        r"location[:\-\s]+(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})",
-        r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})",
-        r"\((?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\)",
+        LOCATION_FULL_PATTERN,
+        LOCATION_LABEL_PATTERN,
+        LOCATION_CITY_STATE_PATTERN,
+        LOCATION_PAREN_PATTERN,
     ]
     comp_defaults = [
-        r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?))?",
-        r"[₹]\s*(?P<low>\d{1,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*[₹]?\s*(?P<high>\d{1,3}(?:[.,]\d{3})?))?",
-        r"(?P<value>\d{2,3})k",
-        r"(?P<value>\d{1,3})\s*(lpa|lakh)",
+        COMP_USD_RANGE_PATTERN,
+        COMP_INR_RANGE_PATTERN,
+        COMP_K_PATTERN,
+        COMP_LPA_PATTERN,
     ]
 
     location_regexes = _build_ordered_regexes(configs, "location", location_defaults)
@@ -2672,12 +2694,12 @@ def _build_job_detail_heuristic_patch(
             cleaned = found_val.replace(",", "").lower()
             try:
                 if "lpa" in cleaned or "lakh" in cleaned:
-                    base_val = re.sub(r"[^0-9.]", "", cleaned)
+                    base_val = re.sub(NON_NUMERIC_DOT_PATTERN, "", cleaned)
                     comp_val = int(float(base_val) * 100_000) if base_val else None
                 elif cleaned.endswith("k"):
                     comp_val = int(float(cleaned[:-1]) * 1000)
                 else:
-                    comp_val = int(float(re.sub(r"[^0-9]", "", cleaned)))
+                    comp_val = int(float(re.sub(NON_NUMERIC_PATTERN, "", cleaned)))
             except Exception:
                 comp_val = None
             if comp_val and comp_val > 0:

@@ -9,6 +9,8 @@ from typing import Any, Dict
 
 import pytest
 
+ROUTER_ARG_NAME_PATTERN = r"\s*(\w+):"
+
 firecrawl_mod = types.ModuleType("firecrawl")
 firecrawl_mod.Firecrawl = type("Firecrawl", (), {})  # dummy class
 sys.modules.setdefault("firecrawl", firecrawl_mod)
@@ -75,7 +77,7 @@ def _router_insert_scrape_arg_names() -> set[str]:
             depth += line.count("{") - line.count("}")
             continue
         depth += line.count("{") - line.count("}")
-        match = re.match(r"\s*(\w+):", line)
+        match = re.match(ROUTER_ARG_NAME_PATTERN, line)
         if match:
             names.add(match.group(1))
         if depth <= 0:

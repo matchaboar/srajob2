@@ -13,6 +13,8 @@ sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 
+INVALID_JSON_ESCAPE_PATTERN = r"\\(?![\"\\/bfnrtu])"
+
 
 @pytest.mark.asyncio
 async def test_store_scrape_accepts_spidercloud_batch_fixture(monkeypatch):
@@ -28,7 +30,7 @@ async def test_store_scrape_accepts_spidercloud_batch_fixture(monkeypatch):
         except json.JSONDecodeError:
             pass
         try:
-            cleaned = re.sub(r"\\(?![\"\\/bfnrtu])", "", text)
+            cleaned = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", text)
             cleaned = cleaned.replace("\r", " ").replace("\n", " ")
             return json.loads(cleaned, strict=False)
         except Exception:

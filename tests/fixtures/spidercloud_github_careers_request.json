@@ -1,0 +1,8 @@
+{
+  "url": "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=posted_date&descending=true&limit=100&page=1",
+  "params": {
+    "return_format": "markdown",
+    "request": "chrome"
+  },
+  "contentType": "application/json"
+}

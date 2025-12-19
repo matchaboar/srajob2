@@ -12,8 +12,12 @@ import yaml
 
 FILTERS_YAML_PATH = Path(__file__).resolve().parent / "scraper_filters.yaml"
 
+ZIP_CODE_PATTERN = r"\b\d{5}(?:-\d{4})?\b"
+US_ABBREVIATION_PATTERN = r"\bU\.?S\.?A?\b"
+US_STATE_CODE_PATTERN_TEMPLATE = r"\b{code}\b"
+
 # Simple US ZIP code heuristic to catch addresses in the listing.
-ZIP_CODE_RE = re.compile(r"\b\d{5}(?:-\d{4})?\b")
+ZIP_CODE_RE = re.compile(ZIP_CODE_PATTERN)
 
 DEFAULT_REQUIRED_KEYWORDS: Tuple[str, ...] = ("engineer", "developer", "software", "development")
 DEFAULT_ALLOW_UNKNOWN_TITLE = True
@@ -392,10 +396,13 @@ def location_matches_usa(location: str | None, settings: FilterSettings | None =
     if any(term in lower for term in cfg.us_terms):
         return True
 
+    if re.search(US_ABBREVIATION_PATTERN, upper):
+        return True
+
     if ZIP_CODE_RE.search(lower):
         return True
 
-    if any(re.search(rf"\\b{code}\\b", upper) for code in cfg.us_state_codes):
+    if any(re.search(US_STATE_CODE_PATTERN_TEMPLATE.format(code=code), upper) for code in cfg.us_state_codes):
         return True
 
     if any(name in lower for name in cfg.us_state_names):

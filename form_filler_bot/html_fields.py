@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+INPUT_TAG_PATTERN = r"<(input|textarea|select)([^>]*)>"
+ATTRIBUTE_PATTERN = r"""(\w+)="([^"]*)"|
+                (\w+)='([^']*)'|
+                (\w+)=([^\s>]+)"""
+
 
 @dataclass
 class FormField:
@@ -110,13 +115,8 @@ def extract_forms(html: str) -> List[Form]:
         # Minimal fallback parser using regex; not robust but avoids extra deps.
         import re
 
-        input_re = re.compile(r"<(input|textarea|select)([^>]*)>", re.IGNORECASE | re.MULTILINE)
-        attr_re = re.compile(
-            r"""(\w+)="([^"]*)"|
-                (\w+)='([^']*)'|
-                (\w+)=([^\s>]+)""",
-            re.IGNORECASE | re.VERBOSE,
-        )
+        input_re = re.compile(INPUT_TAG_PATTERN, re.IGNORECASE | re.MULTILINE)
+        attr_re = re.compile(ATTRIBUTE_PATTERN, re.IGNORECASE | re.VERBOSE)
 
         def parse_attrs(s: str) -> Dict[str, str]:
             out: Dict[str, str] = {}

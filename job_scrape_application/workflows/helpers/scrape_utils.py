@@ -11,6 +11,29 @@ from urllib.parse import urlparse
 from ...constants import title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
+WHITESPACE_PATTERN = r"\s+"
+ERROR_404_PATTERN = r"\b404\b"
+TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
+LEVEL_PATTERN = r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b"
+LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)"
+SIMPLE_LOCATION_LINE_PATTERN = r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$"
+SALARY_PATTERN = (
+    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})*))?"
+    r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
+)
+SALARY_K_PATTERN = (
+    r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?P<high>\d{2,3})\s*[kK])?"
+    r"\s*(?P<code>USD|EUR|GBP)?"
+)
+REMOTE_PATTERN = r"\b(remote(-first)?|hybrid|onsite|on-site)\b"
+PARENTHETICAL_PATTERN = r"\(.*?\)"
+NON_ALNUM_SPACE_PATTERN = r"[^a-z0-9 ]+"
+LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE = r"(?:^|\s){key}(?:\s|$)"
+LOCATION_SPLIT_PATTERN = r"[;|/]"
+LOCATION_PREFIX_PATTERN = r"^(?:location|office|offices|based in)\s*[:\-–]\s*"
+NON_ALNUM_PATTERN = r"[^a-z0-9]+"
+NUMBER_TOKEN_PATTERN = r"[0-9][0-9,\.]+"
+
 DEFAULT_TOTAL_COMPENSATION = 0
 # Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
 MAX_SCRAPE_DESCRIPTION_CHARS = 8000
@@ -43,6 +66,13 @@ _NAV_MENU_SEQUENCE = [
     "Remote",
     "All Jobs",
 ]
+NAV_BLOCK_PATTERN = (
+    r"(?:"
+    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
+    + r")(?:\s+###\s*Careers)?(?:\s+"
+    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
+    + r")?"
+)
 
 
 def _score_apply_url(url: str) -> int:
@@ -143,14 +173,7 @@ _ERROR_LANDING_PHRASES = (
     "posting is closed",
 )
 
-_NAV_BLOCK_REGEX = re.compile(
-    r"(?:"
-    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
-    + r")(?:\s+###\s*Careers)?(?:\s+"
-    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
-    + r")?",
-    flags=re.IGNORECASE,
-)
+_NAV_BLOCK_REGEX = re.compile(NAV_BLOCK_PATTERN, flags=re.IGNORECASE)
 
 
 def build_job_template() -> Dict[str, str]:
@@ -300,9 +323,9 @@ def looks_like_error_landing(title: str | None, description: str) -> bool:
     """
 
     haystack = f"{title or ''} {description or ''}".lower()
-    sample = re.sub(r"\s+", " ", haystack)[:700]
+    sample = re.sub(WHITESPACE_PATTERN, " ", haystack)[:700]
 
-    if re.search(r"\b404\b", sample):
+    if re.search(ERROR_404_PATTERN, sample):
         return True
 
     for phrase in _ERROR_LANDING_PHRASES:
@@ -312,36 +335,20 @@ def looks_like_error_landing(title: str | None, description: str) -> bool:
     return False
 
 
-_TITLE_RE = re.compile(r"^[ \t]*#{1,6}\s+(?P<title>.+)$", flags=re.IGNORECASE | re.MULTILINE)
-_LEVEL_RE = re.compile(
-    r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b",
-    flags=re.IGNORECASE,
-)
-_LOCATION_RE = re.compile(
-    r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)",
-    flags=re.IGNORECASE,
-)
-_SIMPLE_LOCATION_LINE_RE = re.compile(
-    r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$", flags=re.MULTILINE
-)
-_SALARY_RE = re.compile(
-    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})*))?"
-    r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?",
-    flags=re.IGNORECASE,
-)
-_SALARY_K_RE = re.compile(
-    r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?P<high>\d{2,3})\s*[kK])?"
-    r"\s*(?P<code>USD|EUR|GBP)?",
-    flags=re.IGNORECASE,
-)
-_REMOTE_RE = re.compile(r"\b(remote(-first)?|hybrid|onsite|on-site)\b", flags=re.IGNORECASE)
+_TITLE_RE = re.compile(TITLE_PATTERN, flags=re.IGNORECASE | re.MULTILINE)
+_LEVEL_RE = re.compile(LEVEL_PATTERN, flags=re.IGNORECASE)
+_LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
+_SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)
+_SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
+_SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
+_REMOTE_RE = re.compile(REMOTE_PATTERN, flags=re.IGNORECASE)
 
 
 def _normalize_location_key(value: str) -> str:
     lowered = value.lower()
-    lowered = re.sub(r"\(.*?\)", " ", lowered)
-    lowered = re.sub(r"[^a-z0-9 ]+", " ", lowered)
-    lowered = re.sub(r"\s+", " ", lowered)
+    lowered = re.sub(PARENTHETICAL_PATTERN, " ", lowered)
+    lowered = re.sub(NON_ALNUM_SPACE_PATTERN, " ", lowered)
+    lowered = re.sub(WHITESPACE_PATTERN, " ", lowered)
     return lowered.strip()
 
 
@@ -488,7 +495,10 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
             if normalized == key:
                 return entry
             continue
-        if key and len(key) >= 3 and re.search(rf"(?:^|\s){re.escape(key)}(?:\s|$)", normalized):
+        if key and len(key) >= 3 and re.search(
+            LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE.format(key=re.escape(key)),
+            normalized,
+        ):
             return entry
     return None
 
@@ -529,11 +539,11 @@ def _normalize_locations(locations: List[str]) -> List[str]:
     for raw in locations:
         if not raw:
             continue
-        for part in re.split(r"[;|/]", raw):
+        for part in re.split(LOCATION_SPLIT_PATTERN, raw):
             candidate = stringify(part)
             if not candidate:
                 continue
-            candidate = re.sub(r"\s+", " ", candidate).strip(" ,;/\t")
+            candidate = re.sub(WHITESPACE_PATTERN, " ", candidate).strip(" ,;/\t")
             if not candidate:
                 continue
             if not _is_plausible_location(candidate):
@@ -655,16 +665,18 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if title_lower and title_lower in lower:
             continue
         country_label = _normalize_country_label(
-            re.sub(r"^(?:location|office|offices|based in)\s*[:\-–]\s*", "", t, flags=re.IGNORECASE)
+            re.sub(LOCATION_PREFIX_PATTERN, "", t, flags=re.IGNORECASE)
         )
         if country_label:
             location_candidates.append(country_label)
             continue
         if "," in t:
-            candidate_line = re.sub(r"^(?:location|office|based in)\s*[:\-–]\s*", "", t, flags=re.IGNORECASE)
+            candidate_line = re.sub(LOCATION_PREFIX_PATTERN, "", t, flags=re.IGNORECASE)
             candidate = stringify(candidate_line)
             if candidate:
-                location_candidates.extend([p.strip() for p in re.split(r"[;|/]", candidate) if p.strip()])
+                location_candidates.extend(
+                    [p.strip() for p in re.split(LOCATION_SPLIT_PATTERN, candidate) if p.strip()]
+                )
     if not location_candidates:
         loc_match = _LOCATION_RE.search(markdown) or _SIMPLE_LOCATION_LINE_RE.search(markdown)
         if loc_match:
@@ -754,7 +766,7 @@ def derive_company_from_url(url: str) -> str:
         parts = [p for p in parsed.path.split("/") if p]
         if parts:
             slug = parts[0]
-            cleaned_slug = re.sub(r"[^a-z0-9]+", " ", slug).strip()
+            cleaned_slug = re.sub(NON_ALNUM_PATTERN, " ", slug).strip()
             if cleaned_slug:
                 return cleaned_slug.title()
 
@@ -771,7 +783,7 @@ def derive_company_from_url(url: str) -> str:
     else:
         return ""
 
-    cleaned = re.sub(r"[^a-z0-9]+", " ", name).strip()
+    cleaned = re.sub(NON_ALNUM_PATTERN, " ", name).strip()
     return cleaned.title() if cleaned else ""
 
 
@@ -808,7 +820,7 @@ def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[in
     if isinstance(value, (int, float)) and value > 0:
         return (int(value), False) if with_meta else int(value)
     if isinstance(value, str):
-        numbers = re.findall(r"[0-9][0-9,\.]+", value.replace("\u00a0", " "))
+        numbers = re.findall(NUMBER_TOKEN_PATTERN, value.replace("\u00a0", " "))
         if numbers:
             try:
                 parsed = max(float(num.replace(",", "")) for num in numbers)

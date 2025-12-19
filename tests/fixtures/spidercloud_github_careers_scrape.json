@@ -1,0 +1,17 @@
+[
+  {
+    "content": "GitHub Careers\n## Let's build from here, together\n# GitHub Careers Home Job Search\n# Job Search Page\nJob Search\n## 34 results\nPosted\nSort by\nmail_outline\nGet future jobs matching this search\nLogin or Register\n[Product Designer III](https://www.github.careers/careers-home/jobs/4797?lang=en-us)\nReq ID: 4797\nLocation United States\nhomeRemote\nCategories Design\n[Apply Now](https://careers-githubinc.icims.com/jobs/4797/login)\n[ Read More ](https://www.github.careers/careers-home/jobs/4797?lang=en-us)\n[Senior Software Engineer, Migration Tools](https://www.github.careers/careers-home/jobs/4732?lang=en-us)\nReq ID: 4732\nLocation United States\nhomeRemote\nCategories Engineering\n[Apply Now](https://careers-githubinc.icims.com/jobs/4732/login)\n[ Read More ](https://www.github.careers/careers-home/jobs/4732?lang=en-us)\n[Staff Software Engineer](https://www.github.careers/careers-home/jobs/4853?lang=en-us)\nReq ID: 4853\nLocation United States\nhomeRemote\nCategories Engineering\n[Apply Now](https://careers-githubinc.icims.com/jobs/4853/login)\n[ Read More ](https://www.github.careers/careers-home/jobs/4853?lang=en-us)\n[Support Engineer III](https://www.github.careers/careers-home/jobs/4843?lang=en-us)\nReq ID: 4843\nLocation Canada\nhomeRemote\nCategories Customer Success\n[Apply Now](https://globalcareers-githubinc.icims.com/jobs/4843/login)\n[ Read More ](https://www.github.careers/careers-home/jobs/4843?lang=en-us)\nItems per page\n100\n1 - 34 of 34",
+    "costs": {
+      "ai_cost": 0,
+      "bytes_transferred_cost": 0.0023762655,
+      "compute_cost": 0.000007711666666666668,
+      "file_cost": 0.0013354905000000001,
+      "total_cost": 0.003729467666666667,
+      "transform_cost": 0.00001
+    },
+    "duration_elasped_ms": 4705,
+    "error": null,
+    "status": 200,
+    "url": "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=posted_date&descending=true&limit=100&page=1"
+  }
+]

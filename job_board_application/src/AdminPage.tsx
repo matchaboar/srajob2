@@ -118,7 +118,7 @@ const cleanCompanyName = (name: string, url: string): string => {
 };
 
 const resolvePipeline = (provider: ScrapeProvider, siteType?: string) => {
-  const normalized = provider || (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+  const normalized = provider || (siteType === "greenhouse" ? "spidercloud" : "spidercloud");
   if (normalized === "fetchfox_spidercloud") {
     return { crawler: "FetchFox", scraper: "SpiderCloud", extractor: "Regex/Heuristic parser" };
   }
@@ -1181,14 +1181,14 @@ function ScraperConfigSection() {
   // Single add state
   const [url, setUrl] = useState("");
   const [siteType, setSiteType] = useState<"general" | "greenhouse">("general");
-  const [scrapeProvider, setScrapeProvider] = useState<ScrapeProvider>("fetchfox_spidercloud");
+  const [scrapeProvider, setScrapeProvider] = useState<ScrapeProvider>("spidercloud");
   const [pattern, setPattern] = useState("");
   const [enabled, setEnabled] = useState(true);
 
   // Bulk add state
   const [bulkText, setBulkText] = useState("");
   const [bulkSiteType, setBulkSiteType] = useState<"general" | "greenhouse">("general");
-  const [bulkScrapeProvider, setBulkScrapeProvider] = useState<ScrapeProvider>("fetchfox_spidercloud");
+  const [bulkScrapeProvider, setBulkScrapeProvider] = useState<ScrapeProvider>("spidercloud");
 
   const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
   const generatedName = useMemo(() => deriveSiteName(url), [url]);
@@ -1439,7 +1439,7 @@ function ScraperConfigSection() {
       setUrl("");
       setPattern("");
       setSiteType("general");
-      setScrapeProvider("fetchfox_spidercloud");
+      setScrapeProvider("spidercloud");
       setEnabled(true);
     } catch {
       toast.error("Failed to add site");
@@ -1483,7 +1483,7 @@ function ScraperConfigSection() {
         : parsedType ?? bulkSiteType ?? "general";
       const normalizedProvider: ScrapeProvider = greenhouseSubmission
         ? "spidercloud"
-        : parsedProvider ?? bulkScrapeProvider ?? "fetchfox";
+        : parsedProvider ?? bulkScrapeProvider ?? "spidercloud";
       const patternValue = normalizedType === "greenhouse" ? undefined : parsedPattern;
       const generatedName = deriveSiteName(u);
 
@@ -1769,8 +1769,6 @@ function ScraperConfigSection() {
                   if (next === "greenhouse") {
                     setPattern("");
                     setScrapeProvider("spidercloud");
-                  } else if (!isGreenhouseUrl && scrapeProvider === "spidercloud") {
-                    setScrapeProvider("fetchfox_spidercloud");
                   }
                 }}
                 disabled={isGreenhouseUrl}
@@ -1793,7 +1791,7 @@ function ScraperConfigSection() {
                 <option value="firecrawl">Firecrawl (webhook)</option>
                 <option value="spidercloud">SpiderCloud (streaming markdown)</option>
               </select>
-              <p className="text-[11px] text-slate-500 mt-1">SpiderCloud defaults for Greenhouse sites; FetchFox defaults for general sites.</p>
+              <p className="text-[11px] text-slate-500 mt-1">SpiderCloud is the default for new sites.</p>
             </div>
             <div className="md:col-span-2">
               <label className="text-xs text-slate-400 block mb-1">Pattern (optional)</label>
@@ -1804,8 +1802,9 @@ function ScraperConfigSection() {
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
                 disabled={isGreenhouseUrl || siteType === "greenhouse"}
-                title={isGreenhouseUrl || siteType === "greenhouse" ? "Greenhouse sites don't need a pattern" : "Optional pattern for detail pages"}
+                title={isGreenhouseUrl || siteType === "greenhouse" ? "Greenhouse sites don't need a pattern" : "Optional pattern for detail pages; blank = treat as job listing page"}
               />
+              <p className="text-[11px] text-slate-500 mt-1">Leave blank to treat the URL as a listing page and discover job links automatically.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
@@ -1855,7 +1854,7 @@ function ScraperConfigSection() {
             <div className="text-xs text-slate-400 sm:col-span-2 lg:col-span-2">
               Paste sites (one per line): <code className="bg-slate-900 px-1 rounded text-slate-300">url, pattern (optional), type/provider (optional)</code>
               <div className="text-[11px] text-slate-500 mt-1">
-                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; providers accept <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox</code>, <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox_spidercloud</code> (crawl + SpiderCloud detail), <code className="bg-slate-900 px-1 rounded text-slate-300">firecrawl</code>, or <code className="bg-slate-900 px-1 rounded text-slate-300">spidercloud</code>. Greenhouse entries default to SpiderCloud.
+                Names are auto-generated from the URL. Type can be <code className="bg-slate-900 px-1 rounded text-slate-300">general</code> or <code className="bg-slate-900 px-1 rounded text-slate-300">greenhouse</code>; providers accept <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox</code>, <code className="bg-slate-900 px-1 rounded text-slate-300">fetchfox_spidercloud</code> (crawl + SpiderCloud detail), <code className="bg-slate-900 px-1 rounded text-slate-300">firecrawl</code>, or <code className="bg-slate-900 px-1 rounded text-slate-300">spidercloud</code>. Leaving the pattern blank treats the URL as a listing page and discovers job links automatically.
               </div>
             </div>
             <div>
@@ -1957,7 +1956,7 @@ function ScraperConfigSection() {
             const scheduleLabel = schedule ? formatScheduleSummary(schedule) : "No schedule";
             const siteType = (s as any).type ?? "general";
             const siteTypeLabel = siteType === "greenhouse" ? "Greenhouse" : "General";
-            const scrapeProvider: ScrapeProvider = (s as any).scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox_spidercloud");
+            const scrapeProvider: ScrapeProvider = (s as any).scrapeProvider ?? "spidercloud";
             const scrapeProviderLabel =
               scrapeProvider === "firecrawl"
                 ? "Firecrawl"

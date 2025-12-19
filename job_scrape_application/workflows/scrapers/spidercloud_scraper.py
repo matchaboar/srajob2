@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import json
+import html
 import logging
 import os
 import re
 import time
-import html
-from urllib.parse import urlparse
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
@@ -25,10 +24,24 @@ from ..helpers.scrape_utils import (
     looks_like_error_landing,
     strip_known_nav_blocks,
 )
+from ..site_handlers import BaseSiteHandler, get_site_handler
 from .base import BaseScraper
 
 if TYPE_CHECKING:
     from ..activities import Site
+
+HTML_BR_TAG_PATTERN = r"(?i)<br\\s*/?>"
+HTML_PARAGRAPH_CLOSE_PATTERN = r"(?i)</p>"
+HTML_SCRIPT_BLOCK_PATTERN = r"(?is)<script[^>]*>.*?</script>"
+HTML_STYLE_BLOCK_PATTERN = r"(?is)<style[^>]*>.*?</style>"
+HTML_TAG_PATTERN = r"<[^>]+>"
+MULTI_NEWLINE_PATTERN = r"\n{3,}"
+MARKDOWN_HEADING_PATTERN = r"^#{1,6}\s*(.+)$"
+MARKDOWN_HEADING_PREFIX_PATTERN = r"^#{1,6}\s*"
+SLUG_SEPARATOR_PATTERN = r"[-_]+"
+QUERY_STRING_PATTERN = r"\?.*$"
+GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
+GREENHOUSE_BOARDS_PATH_PATTERN = r"/boards/([^/]+)/jobs"
 
 SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
@@ -65,6 +78,9 @@ class SpiderCloudScraper(BaseScraper):
 
     def __init__(self, deps: SpidercloudDependencies):
         self.deps = deps
+
+    def _get_site_handler(self, url: str, site_type: str | None = None) -> BaseSiteHandler | None:
+        return get_site_handler(url, site_type)
 
     def supports_greenhouse(self) -> bool:  # type: ignore[override]
         return True
@@ -115,13 +131,13 @@ class SpiderCloudScraper(BaseScraper):
             pass
 
         # Lightweight fallback: strip tags and preserve basic breaks.
-        text = re.sub(r"(?i)<br\\s*/?>", "\n", raw_html)
-        text = re.sub(r"(?i)</p>", "\n\n", text)
-        text = re.sub(r"(?is)<script[^>]*>.*?</script>", "", text)
-        text = re.sub(r"(?is)<style[^>]*>.*?</style>", "", text)
-        text = re.sub(r"<[^>]+>", "", text)
+        text = re.sub(HTML_BR_TAG_PATTERN, "\n", raw_html)
+        text = re.sub(HTML_PARAGRAPH_CLOSE_PATTERN, "\n\n", text)
+        text = re.sub(HTML_SCRIPT_BLOCK_PATTERN, "", text)
+        text = re.sub(HTML_STYLE_BLOCK_PATTERN, "", text)
+        text = re.sub(HTML_TAG_PATTERN, "", text)
         text = html.unescape(text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = re.sub(MULTI_NEWLINE_PATTERN, "\n\n", text)
         return text.strip()
 
     def _extract_markdown(self, obj: Any) -> Optional[str]:
@@ -239,7 +255,7 @@ class SpiderCloudScraper(BaseScraper):
         for line in markdown.splitlines():
             if not line.strip():
                 continue
-            heading_match = re.match(r"^#{1,6}\s*(.+)$", line.strip())
+            heading_match = re.match(MARKDOWN_HEADING_PATTERN, line.strip())
             if heading_match:
                 return heading_match.group(1).strip()
             if len(line.strip()) > 6:
@@ -257,7 +273,7 @@ class SpiderCloudScraper(BaseScraper):
             if not line:
                 continue
             # Strip heading markers before evaluating keywords so `# Title` works.
-            line = re.sub(r"^#{1,6}\s*", "", line)
+            line = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", line)
             if title_matches_required_keywords(line):
                 return line.strip()
 
@@ -266,8 +282,8 @@ class SpiderCloudScraper(BaseScraper):
     def _title_from_url(self, url: str) -> str:
         slug = url.split("/")[-1] if "/" in url else url
         slug = slug or url
-        cleaned = re.sub(r"[-_]+", " ", slug).strip()
-        cleaned = re.sub(r"\?.*$", "", cleaned)
+        cleaned = re.sub(SLUG_SEPARATOR_PATTERN, " ", slug).strip()
+        cleaned = re.sub(QUERY_STRING_PATTERN, "", cleaned)
         if not cleaned:
             return "Untitled"
         return cleaned.title()
@@ -286,7 +302,7 @@ class SpiderCloudScraper(BaseScraper):
         if not text:
             return []
         # Capture both boards.greenhouse.io and api.greenhouse.io absolute URLs
-        pattern = re.compile(r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+")
+        pattern = re.compile(GREENHOUSE_URL_PATTERN)
         seen: set[str] = set()
         urls: list[str] = []
         for match in pattern.findall(text):
@@ -298,78 +314,107 @@ class SpiderCloudScraper(BaseScraper):
                 urls.append(url)
         return urls
 
-    def _is_greenhouse_api_url(self, url: str) -> bool:
-        return "boards-api.greenhouse.io" in url and "/jobs/" in url
+    async def _fetch_site_api(
+        self,
+        handler: BaseSiteHandler,
+        source_url: str,
+        *,
+        pattern: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        api_url = handler.get_listing_api_uri(source_url) or handler.get_api_uri(source_url)
+        if not api_url:
+            return None
 
-    def _to_marketing_greenhouse_url(self, url: str) -> Optional[str]:
-        """Convert Greenhouse API detail URLs to the public marketing page.
-
-        Example: https://boards-api.greenhouse.io/v1/boards/acme/jobs/123 ->
-        https://boards.greenhouse.io/acme/jobs/123
-        """
-
+        params = {"includeCompensation": "false"}
+        started_at = int(time.time() * 1000)
         try:
-            parsed = urlparse(url)
-        except Exception:
-            return None
-
-        host = (parsed.hostname or "").lower()
-        if "greenhouse.io" not in host:
-            return None
-
-        parts = [p for p in parsed.path.split("/") if p]
-        # Expect v1/boards/{slug}/jobs/{id}
-        if len(parts) >= 5 and parts[0] == "v1" and parts[1] == "boards" and parts[3] == "jobs":
-            slug = parts[2]
-            job_id = parts[4]
-            return f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"
-
-        return None
-
-    def _extract_greenhouse_json_markdown(self, markdown_text: str) -> Tuple[str, Optional[str]]:
-        """
-        Parse SpiderCloud commonmark that wraps Greenhouse job JSON in a ``` block.
-        Returns plain-text description and title when possible.
-        """
-        if not markdown_text:
-            return "", None
-
-        content = markdown_text.strip()
-        # Strip code fences if present
-        if content.startswith("```") and content.endswith("```"):
-            content = content.strip("`\n ")
-
-        def _html_to_text(html_body: str) -> str:
-            html_body = html.unescape(html_body or "")
-            html_body = re.sub(r"<br\s*/?>", "\n", html_body, flags=re.IGNORECASE)
-            html_body = re.sub(r"</p\s*>", "\n\n", html_body, flags=re.IGNORECASE)
-            html_body = re.sub(r"<p[^>]*>", "", html_body, flags=re.IGNORECASE)
-            html_body = re.sub(r"<li[^>]*>", "- ", html_body, flags=re.IGNORECASE)
-            html_body = re.sub(
-                r"<(script|style)[^>]*>.*?</\1>",
-                " ",
-                html_body,
-                flags=re.DOTALL | re.IGNORECASE,
+            async with httpx.AsyncClient(timeout=runtime_config.spidercloud_http_timeout_seconds) as client:
+                resp = await client.get(api_url, params=params)
+                resp.raise_for_status()
+                payload = resp.json()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Site API fetch failed handler=%s url=%s error=%s",
+                handler.name,
+                api_url,
+                exc,
             )
-            html_body = re.sub(r"<[^>]+>", " ", html_body)
-            html_body = re.sub(r"[ \t]+", " ", html_body)
-            html_body = re.sub(r"\s*\n\s*", "\n", html_body)
-            html_body = re.sub(r"\n{3,}", "\n\n", html_body)
-            return html_body.strip()
+            return None
 
-        # Try to parse JSON whether or not code fences were present.
-        try:
-            data = json.loads(content)
-            title = data.get("title")
-            desc = _html_to_text(data.get("content") or "")
-            if title and desc:
-                return f"{title}\n\n{desc}".strip(), title
-            if title:
-                return title, title
-        except Exception:
-            return markdown_text, None
+        if not isinstance(payload, dict):
+            logger.warning(
+                "Site API fetch returned non-dict handler=%s url=%s payload_type=%s",
+                handler.name,
+                api_url,
+                type(payload).__name__,
+            )
+            return None
 
-        return markdown_text, None
+        job_urls = handler.get_links_from_json(payload)
+        jobs = payload.get("jobs") if isinstance(payload, dict) else None
+        job_count = len(jobs) if isinstance(jobs, list) else 0
+        if job_count and not job_urls:
+            logger.warning(
+                "Site API fetch missing job URLs handler=%s url=%s jobs=%s; falling back to rendered scrape",
+                handler.name,
+                api_url,
+                job_count,
+            )
+            return None
+
+        provider_request: Dict[str, Any] = {
+            "url": api_url,
+            "params": params,
+            "method": "GET",
+        }
+        request_snapshot = self.deps.build_request_snapshot(
+            provider_request,
+            provider=self.provider,
+            method="GET",
+            url=api_url,
+        )
+        completed_at = int(time.time() * 1000)
+
+        items_block: Dict[str, Any] = {
+            "normalized": [],
+            "provider": self.provider,
+            "seedUrls": [source_url],
+            "job_urls": job_urls,
+            "raw": payload,
+            "request": request_snapshot,
+            "requestedFormat": "json",
+        }
+
+        scrape_payload: Dict[str, Any] = {
+            "sourceUrl": source_url,
+            "pattern": pattern,
+            "startedAt": started_at,
+            "completedAt": completed_at,
+            "items": items_block,
+            "provider": self.provider,
+            "subUrls": [api_url],
+            "request": request_snapshot,
+            "providerRequest": provider_request,
+            "requestedFormat": "json",
+        }
+
+        trimmed = self.deps.trim_scrape_for_convex(scrape_payload)
+        logger.info(
+            "Site API fetch succeeded handler=%s url=%s jobs=%s job_urls=%s",
+            handler.name,
+            api_url,
+            job_count,
+            len(job_urls),
+        )
+        self.deps.log_sync_response(
+            self.provider,
+            action="scrape",
+            url=source_url,
+            summary=f"{handler.name}_api jobs={job_count} urls={len(job_urls)}",
+            metadata={"pattern": pattern, "seed": 1, "api": True},
+            response=trimmed,
+        )
+        return trimmed
 
     def _normalize_job(
         self,
@@ -383,7 +428,9 @@ class SpiderCloudScraper(BaseScraper):
         parsed_title = None
         parsed_markdown = markdown or ""
         if parsed_markdown.lstrip().startswith(("{", "[")):
-            parsed_markdown, parsed_title = self._extract_greenhouse_json_markdown(parsed_markdown)
+            handler = self._get_site_handler(url)
+            if handler:
+                parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
 
@@ -523,17 +570,9 @@ class SpiderCloudScraper(BaseScraper):
         # Prefer SpiderCloud /scrape endpoint when available, fall back to /crawl.
         scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
         local_params = dict(params)
-        if self._is_greenhouse_api_url(url):
-            local_params.update(
-                {
-                    "request": "chrome",
-                    "return_format": ["raw_html"],
-                    "follow_redirects": True,
-                    "redirect_policy": "Loose",
-                    "external_domains": ["*"],
-                    "preserve_host": False,
-                }
-            )
+        handler = self._get_site_handler(url)
+        if handler:
+            local_params.update(handler.get_spidercloud_config(url))
 
         try:
             async for chunk in self._iterate_scrape_response(
@@ -625,8 +664,8 @@ class SpiderCloudScraper(BaseScraper):
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
         ).strip()
-        if self._is_greenhouse_api_url(url):
-            markdown_text, gh_title = self._extract_greenhouse_json_markdown(markdown_text)
+        if handler and handler.is_api_detail_url(url):
+            markdown_text, gh_title = handler.normalize_markdown(markdown_text)
             if gh_title:
                 raw_events.append({"title": gh_title, "gh_api_title": True})
         credits_used = max(credit_candidates) if credit_candidates else None
@@ -700,16 +739,31 @@ class SpiderCloudScraper(BaseScraper):
             }
 
         api_key = self._api_key()
-        api_mode = any(self._is_greenhouse_api_url(u) for u in urls)
-        requested_format = "raw_html" if api_mode else "commonmark"
+        handler_configs: List[Dict[str, Any]] = []
+        for url in urls:
+            handler = self._get_site_handler(url)
+            if handler:
+                handler_configs.append(handler.get_spidercloud_config(url))
+
+        def _wants_raw_html(config: Dict[str, Any]) -> bool:
+            value = config.get("return_format")
+            if isinstance(value, list):
+                return "raw_html" in value
+            if isinstance(value, str):
+                return "raw_html" in value
+            return False
+
+        use_raw_html = any(_wants_raw_html(cfg) for cfg in handler_configs)
+        preserve_host = all(cfg.get("preserve_host", True) for cfg in handler_configs)
+        requested_format = "raw_html" if use_raw_html else "commonmark"
         params: Dict[str, Any] = {
-            "return_format": ["raw_html"] if api_mode else ["commonmark"],
+            "return_format": ["raw_html"] if use_raw_html else ["commonmark"],
             "metadata": True,
-            "request": "chrome" if api_mode else "smart",
+            "request": "chrome",
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
-            "preserve_host": not api_mode,
+            "preserve_host": preserve_host,
             "limit": 1,
         }
         started_at = int(time.time() * 1000)
@@ -723,7 +777,10 @@ class SpiderCloudScraper(BaseScraper):
             for url in urls:
                 # When we receive an API detail URL, try to also capture a
                 # marketing-friendly apply URL for downstream preference.
-                marketing_url = self._to_marketing_greenhouse_url(url)
+                handler = self._get_site_handler(url)
+                marketing_url = (
+                    handler.get_company_uri(url) if handler and handler.name == "greenhouse" else None
+                )
 
                 attempt = 0
                 result: Dict[str, Any] | None = None
@@ -887,6 +944,17 @@ class SpiderCloudScraper(BaseScraper):
         skip_urls: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         source_url = site.get("url") or ""
+
+        handler = self._get_site_handler(source_url, site.get("type"))
+        if handler and handler.supports_listing_api:
+            api_payload = await self._fetch_site_api(
+                handler,
+                source_url,
+                pattern=site.get("pattern"),
+            )
+            if api_payload is not None:
+                return api_payload
+
         urls = [u for u in [source_url] if isinstance(u, str) and u.strip()]
 
         resolved_skip: Optional[List[str]] = skip_urls
@@ -898,6 +966,8 @@ class SpiderCloudScraper(BaseScraper):
 
         skip_set = set(resolved_skip or [])
         urls = [u for u in urls if u not in skip_set]
+        if site.get("pattern") and source_url and source_url in skip_set:
+            urls = [source_url]
         logger.info(
             "SpiderCloud scrape_site source=%s pattern=%s skip=%s final_urls=%s",
             source_url,
@@ -923,23 +993,13 @@ class SpiderCloudScraper(BaseScraper):
         """Fetch a Greenhouse board JSON feed directly."""
 
         url = site.get("url") or ""
+        handler = self._get_site_handler(url, site.get("type"))
+        api_url = handler.get_listing_api_uri(url) if handler else None
+        api_url = api_url or url
         slug = ""
-        try:
-            parts = url.split("/")
-            # Prefer a slug that appears between /boards/{slug}/jobs so api.greenhouse.io
-            # links still resolve correctly.
-            match = re.search(r"/boards/([^/]+)/jobs", url)
-            if match:
-                slug = match.group(1)
-            elif "boards" in parts:
-                idx = parts.index("boards")
-                if idx + 1 < len(parts):
-                    slug = parts[idx + 1]
-            if not slug and "greenhouse" in url and parts:
-                slug = parts[-1]
-        except Exception:
-            slug = ""
-        api_url = f"https://boards.greenhouse.io/v1/boards/{slug}/jobs" if slug else url
+        match = re.search(GREENHOUSE_BOARDS_PATH_PATTERN, api_url)
+        if match:
+            slug = match.group(1)
 
         logger.info(
             "SpiderCloud greenhouse listing fetch url=%s slug=%s api_url=%s",
@@ -981,7 +1041,12 @@ class SpiderCloudScraper(BaseScraper):
                     job_id = getattr(job, "id", None)
                     if job_id is None:
                         continue
-                    api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                    api_url = (
+                        handler.get_api_uri(f"https://boards.greenhouse.io/{slug}/jobs/{job_id}")
+                        if handler
+                        else None
+                    )
+                    api_url = api_url or f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
                     if api_url not in seen_api:
                         seen_api.add(api_url)
                         api_urls.append(api_url)
