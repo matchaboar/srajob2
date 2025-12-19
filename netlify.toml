@@ -1,6 +1,6 @@
 [build]
 base = "job_board_application"
-command = "npx convex deploy --cmd 'npm run build'"
+command = "npx convex deploy --cmd 'npm run build' && npx convex run convex/migrations.ts:runAll --prod"
 publish = "dist"
 
 [build.environment]
