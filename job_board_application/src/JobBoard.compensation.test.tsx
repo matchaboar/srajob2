@@ -22,7 +22,7 @@ vi.mock("convex/react", () => {
 
   const usePaginatedQuery = vi.fn(defaultUsePaginatedQueryImpl);
 
-  const useQuery = vi.fn((queryFn: any) => {
+  const useQuery = vi.fn((_queryFn: any) => {
     const callIndex = useQueryCallCount++;
     if (callIndex === 1) return savedFiltersFixture;
     return [];

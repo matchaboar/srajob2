@@ -24,7 +24,7 @@ export const parseCompensationInput = (value: string, opts?: { max?: number }) =
   const normalized = value.trim().toLowerCase();
   if (!normalized) return null;
 
-  const cleaned = normalized.replace(/[\$,]/g, "");
+  const cleaned = normalized.replace(/[$,]/g, "");
   const hasK = cleaned.endsWith("k");
   const numericPart = hasK ? cleaned.slice(0, -1) : cleaned;
   const parsed = parseFloat(numericPart);

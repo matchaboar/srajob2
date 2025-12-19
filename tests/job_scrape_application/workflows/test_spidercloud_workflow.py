@@ -1255,6 +1255,28 @@ def test_extract_job_urls_from_scrape_markdown_read_more_context():
     assert "https://example.com/careers/jobs/789/apply" not in urls
 
 
+def test_extract_job_urls_from_scrape_filters_confluent_location_urls():
+    location_urls = [
+        "https://careers.confluent.io/jobs/united_states-missouri",
+        "https://careers.confluent.io/jobs/united_states-masovian",
+        "https://careers.confluent.io/jobs/united_states-london,_city_of",
+        "https://careers.confluent.io/jobs/united_states-bavaria",
+        "https://careers.confluent.io/jobs/united_states-barcelona",
+    ]
+    scrape = {
+        "items": {
+            "provider": "spidercloud",
+            "job_urls": location_urls + ["https://careers.confluent.io/jobs/12345"],
+        }
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://careers.confluent.io/jobs/12345" in urls
+    for url in location_urls:
+        assert url not in urls
+
+
 @pytest.mark.asyncio
 async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
     """Regression: leased URLs must be released on batch failure to avoid stuck processing."""

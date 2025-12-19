@@ -23,7 +23,6 @@ type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
 type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
-type JobDetails = FunctionReturnType<typeof api.jobs.getJobDetails>;
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
@@ -335,9 +334,16 @@ export function JobBoard() {
     }
   }, [activeTab]);
 
+  const isJobsTab = activeTab === "jobs";
+  const isAppliedTab = activeTab === "applied";
+  const isRejectedTab = activeTab === "rejected";
+  const isLiveTab = activeTab === "live";
+  const isIgnoredTab = activeTab === "ignored";
+  const shouldFetchCompanySuggestions = isJobsTab && companyInputFocused && !!debouncedCompanyInput.trim();
+
   const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
     api.jobs.listJobs,
-    {
+    isJobsTab ? {
       search: throttledFilters.search.trim() || undefined,
       state: throttledFilters.state ?? undefined,
       country: throttledFilters.country?.trim() || undefined,
@@ -347,7 +353,7 @@ export function JobBoard() {
       maxCompensation: throttledFilters.maxCompensation ?? undefined,
       hideUnknownCompensation: throttledFilters.hideUnknownCompensation,
       companies: throttledFilters.companies.length > 0 ? throttledFilters.companies : undefined,
-    },
+    } : "skip",
     { initialNumItems: 50 } // Load more items for the dense list
   );
 
@@ -358,16 +364,25 @@ export function JobBoard() {
     setDisplayedResults(results);
   }, [results, status]);
 
-  const companySuggestions = useQuery(api.jobs.searchCompanies, {
-    search: debouncedCompanyInput || undefined,
-    limit: 8,
-  }) as CompanySuggestion[] | undefined;
-  const savedFilters = useQuery(api.filters.getSavedFilters);
+  const companySuggestions = useQuery(
+    api.jobs.searchCompanies,
+    shouldFetchCompanySuggestions
+      ? {
+          search: debouncedCompanyInput.trim(),
+          limit: 8,
+        }
+      : "skip"
+  ) as CompanySuggestion[] | undefined;
+  const savedFilters = useQuery(api.filters.getSavedFilters, isJobsTab ? {} : "skip");
   const selectedSavedFilter = useMemo(
     () => (savedFilters as SavedFilter[] | undefined)?.find((f) => f.isSelected),
     [savedFilters]
   );
-  const ignoredJobs = useQuery(api.router.listIgnoredJobs, { limit: 200 }) as
+  const shouldFetchIgnored = isIgnoredTab;
+  const ignoredJobs = useQuery(
+    api.router.listIgnoredJobs,
+    shouldFetchIgnored ? { limit: 200 } : "skip"
+  ) as
     | Array<{
         _id: string;
         url: string;
@@ -376,14 +391,15 @@ export function JobBoard() {
         provider?: string;
         workflowName?: string;
         createdAt: number;
-        details?: any;
+        details?: Record<string, unknown>;
         title?: string;
         description?: string;
       }>
     | undefined;
-  const recentJobs = useQuery(api.jobs.getRecentJobs) as ListedJob[] | undefined;
-  const appliedJobs = useQuery(api.jobs.getAppliedJobs) as AppliedJobsResult | undefined;
-  const rejectedJobs = useQuery(api.jobs.getRejectedJobs) as RejectedJobsResult | undefined;
+  const shouldFetchRecentJobs = isJobsTab || isLiveTab;
+  const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
+  const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
+  const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
   const reparseJob = useMutation(api.jobs.reparseJobFromDescription);
@@ -396,10 +412,10 @@ export function JobBoard() {
   // Filter out locally applied/rejected jobs
   const filteredResults: ListedJob[] = displayedResults.filter((job) => !locallyAppliedJobs.has(job._id));
   const appliedList: AppliedJob[] = (appliedJobs ?? []).filter(
-    (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job as AppliedJob)._id)
+    (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job)._id)
   );
-  const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean) as RejectedJob[];
-  const selectedJob: ListedJob | null =
+  const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean);
+  const selectedJob =
     filteredResults.find((job) => job._id === selectedJobId) ??
     displayedResults.find((job) => job._id === selectedJobId) ??
     null;
@@ -408,12 +424,14 @@ export function JobBoard() {
     if (!selectedJobId) return appliedList[0];
     return appliedList.find((job) => job._id === selectedJobId) ?? appliedList[0];
   }, [appliedList, selectedJobId]);
-  const selectedJobDetails = useQuery(api.jobs.getJobDetails, {
-    jobId: selectedJob?._id ?? undefined,
-  }) as JobDetails | null | undefined;
-  const selectedAppliedJobDetails = useQuery(api.jobs.getJobDetails, {
-    jobId: selectedAppliedJob?._id ?? undefined,
-  }) as JobDetails | null | undefined;
+  const selectedJobDetails = useQuery(
+    api.jobs.getJobDetails,
+    isJobsTab && selectedJob?._id ? { jobId: selectedJob._id } : "skip"
+  );
+  const selectedAppliedJobDetails = useQuery(
+    api.jobs.getJobDetails,
+    isAppliedTab && selectedAppliedJob?._id ? { jobId: selectedAppliedJob._id } : "skip"
+  );
   const selectedJobFull = useMemo(
     () => (selectedJob ? { ...selectedJob, ...(selectedJobDetails ?? {}) } : null),
     [selectedJob, selectedJobDetails]
@@ -868,7 +886,7 @@ export function JobBoard() {
         companies: filters.companies.length > 0 ? filters.companies : undefined,
       });
       toast.success("Filter saved");
-    } catch (_error) {
+    } catch {
       toast.error("Failed to save filter");
     }
   }, [filters, generatedFilterName, saveFilter]);
@@ -885,7 +903,7 @@ export function JobBoard() {
         resetFilters(false);
         setSelectedSavedFilterId(null);
       }
-    } catch (_error) {
+    } catch {
       toast.error("Failed to select filter");
     }
   }, [applySavedFilterToState, resetFilters, savedFilters, selectSavedFilter]);
@@ -942,7 +960,7 @@ export function JobBoard() {
         resetFilters();
       }
       toast.success("Filter deleted");
-    } catch (_error) {
+    } catch {
       toast.error("Failed to delete filter");
     }
   }, [deleteSavedFilter, resetFilters, savedFilterList, selectedSavedFilterId]);
@@ -971,11 +989,11 @@ export function JobBoard() {
 
     results.forEach((job) => {
       (job.countries ?? []).forEach(addCountry);
-      addCountry((job as any).country);
+      addCountry((job).country);
     });
     (recentJobs ?? []).forEach((job) => {
       (job.countries ?? []).forEach(addCountry);
-      addCountry((job as any).country);
+      addCountry((job).country);
     });
 
     uniqueCountries.add("United States");
@@ -1061,7 +1079,7 @@ export function JobBoard() {
       if (type === "manual" && url) {
         window.open(url, "_blank");
       }
-    } catch (_error) {
+    } catch {
       // Revert
       setExitingJobs(prev => {
         const copy = { ...prev };
@@ -1100,7 +1118,7 @@ export function JobBoard() {
     try {
       await rejectJob({ jobId });
       toast.success("Job rejected");
-    } catch (_error) {
+    } catch {
       setExitingJobs(prev => {
         const copy = { ...prev };
         delete copy[jobId];

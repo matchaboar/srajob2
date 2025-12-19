@@ -23,7 +23,15 @@ export type JobSeed = Omit<JobInsert, "location" | "city" | "state" | "postedAt"
 };
 
 export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
-  const { location, locations: seedLocations, city: seedCity, state: seedState, postedAt, details, ...rest } = seed;
+  const {
+    location,
+    locations: seedLocations,
+    city: seedCity,
+    state: seedState,
+    postedAt,
+    details: _details,
+    ...rest
+  } = seed;
   const locationInfo = deriveLocationFields({ locations: seedLocations ?? [location], location });
   const city = seedCity ?? locationInfo.city;
   const state = seedState ?? locationInfo.state;

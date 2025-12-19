@@ -16,11 +16,11 @@ class FakeDb {
   }
 
   query(table: string) {
-    const self = this;
+    const { sites, companyProfiles } = this;
     if (table === "sites") {
       return {
         collect() {
-          return Array.from(self.sites.values());
+          return Array.from(sites.values());
         },
       };
     }
@@ -28,7 +28,7 @@ class FakeDb {
       return {
         withIndex(_name: string, cb: (q: any) => any) {
           const slug = cb({ eq: (_field: string, value: string) => value });
-          const match = Array.from(self.companyProfiles.values()).find((p) => p.slug === slug) ?? null;
+          const match = Array.from(companyProfiles.values()).find((p) => p.slug === slug) ?? null;
           return {
             first() {
               return match;
@@ -73,7 +73,7 @@ describe("upsertSite", () => {
       db: new FakeDb(),
     };
 
-    const handler = getHandler(upsertSite) as any;
+    const handler = getHandler(upsertSite);
     const url =
       "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100";
 
@@ -90,7 +90,7 @@ describe("bulkUpsertSites", () => {
       db: new FakeDb(),
     };
 
-    const handler = getHandler(bulkUpsertSites) as any;
+    const handler = getHandler(bulkUpsertSites);
     const url =
       "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100";
 

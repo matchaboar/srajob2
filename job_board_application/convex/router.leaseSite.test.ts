@@ -67,7 +67,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const handler = getHandler(leaseSite) as any;
+    const handler = getHandler(leaseSite);
     const leased = await handler(ctx, { workerId: "worker-1", lockSeconds: 60 });
 
     expect(leased?._id).toBe(site._id);
@@ -104,7 +104,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const handler = getHandler(leaseSite) as any;
+    const handler = getHandler(leaseSite);
     const leased = await handler(ctx, { workerId: "worker-2", lockSeconds: 60 });
 
     expect(leased).toBeNull();
@@ -158,8 +158,8 @@ describe("leaseSite", () => {
       },
     };
 
-    const leaseHandler = getHandler(leaseSite) as any;
-    const completeHandler = getHandler(completeSite) as any;
+    const leaseHandler = getHandler(leaseSite);
+    const completeHandler = getHandler(completeSite);
 
     const leased = await leaseHandler(ctx, { workerId: "worker-1", lockSeconds: 60, scrapeProvider: "spidercloud" });
     expect(leased?._id).toBe(site._id);
@@ -222,7 +222,7 @@ describe("leaseSite", () => {
       },
     };
 
-    const leaseHandler = getHandler(leaseSite) as any;
+    const leaseHandler = getHandler(leaseSite);
     const leased = await leaseHandler(ctx, { workerId: "worker-3", lockSeconds: 60, scrapeProvider: "spidercloud" });
 
     expect(leased).toBeNull();

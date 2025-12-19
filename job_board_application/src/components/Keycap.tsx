@@ -6,6 +6,7 @@ interface KeycapProps {
 }
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       "k-cap": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;

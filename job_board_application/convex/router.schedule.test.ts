@@ -55,7 +55,7 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    const handler = getHandler(updateSiteSchedule) as any;
+    const handler = getHandler(updateSiteSchedule);
     await handler(ctx as any, { id: site._id, scheduleId: schedule._id });
 
     expect(patches).toHaveLength(1);
@@ -66,7 +66,7 @@ describe("updateSiteSchedule", () => {
     const startMinutes = 9 * 60 + 30;
     const expectedEligibleAt = dayStart + startMinutes * 60 * 1000;
     expect(patch.lastRunAt).toBe(expectedEligibleAt - 1);
-    expect(patch.lastRunAt).toBeLessThan(site.lastRunAt as number);
+    expect(patch.lastRunAt).toBeLessThan(site.lastRunAt);
   });
 
   it("does not change lastRunAt if schedule window has not started yet", async () => {
@@ -90,7 +90,7 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    const handler = getHandler(updateSiteSchedule) as any;
+    const handler = getHandler(updateSiteSchedule);
     await handler(ctx as any, { id: site._id, scheduleId: schedule._id });
 
     expect(patches).toHaveLength(1);
@@ -115,7 +115,7 @@ describe("updateSiteSchedule", () => {
       },
     };
 
-    const handler = getHandler(updateSiteSchedule) as any;
+    const handler = getHandler(updateSiteSchedule);
     await handler(ctx as any, { id: site._id, scheduleId });
 
     expect(patches).toHaveLength(1);

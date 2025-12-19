@@ -1,14 +1,29 @@
 import { internal } from "./_generated/api";
-import { splitLocation, formatLocationLabel, deriveLocationFields } from "./location";
+import { formatLocationLabel, deriveLocationFields } from "./location";
 import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
-import { DataModel } from "./_generated/dataModel.js";
+import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 import { internalMutation } from "./_generated/server";
-import { v } from "convex/values";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
+
+type JobId = Id<"jobs">;
+
+const isJobRow = (row: any): row is { _id: JobId; title: string; company: string } =>
+  row && typeof row.title === "string" && typeof row.company === "string";
+
+const resolveJobId = async (ctx: any, candidate: string): Promise<JobId | null> => {
+  if (!candidate) return null;
+  const direct = await ctx.db.get(candidate as JobId);
+  if (isJobRow(direct)) return candidate as JobId;
+  if (direct && typeof (direct).jobId === "string") {
+    const nested = await ctx.db.get((direct).jobId as JobId);
+    if (isJobRow(nested)) return (direct).jobId as JobId;
+  }
+  return null;
+};
 
 export const fixJobLocations = migrations.define({
   table: "jobs",
@@ -110,6 +125,76 @@ export const backfillScrapeRecords = migrations.define({
     }
   },
 });
+
+export const repairJobDetailJobIds = migrations.define({
+  table: "job_details",
+  migrateOne: async (ctx, doc) => {
+    const resolved = await resolveJobId(ctx, (doc as any).jobId);
+    if (!resolved) {
+      await ctx.db.delete(doc._id);
+      return;
+    }
+    if (resolved !== (doc as any).jobId) {
+      await ctx.db.patch(doc._id, { jobId: resolved });
+    }
+  },
+});
+
+export const repairApplicationJobIds = migrations.define({
+  table: "applications",
+  migrateOne: async (ctx, doc) => {
+    const resolved = await resolveJobId(ctx, (doc as any).jobId);
+    if (!resolved) {
+      await ctx.db.delete(doc._id);
+      return;
+    }
+    if (resolved !== (doc as any).jobId) {
+      await ctx.db.patch(doc._id, { jobId: resolved });
+    }
+  },
+});
+
+export const repairJobIdReferencesImpl = async (ctx: any) => {
+  const jobDetails = await ctx.db.query("job_details").collect();
+  const applications = await ctx.db.query("applications").collect();
+  let jobDetailsFixed = 0;
+  let jobDetailsDeleted = 0;
+  let applicationsFixed = 0;
+  let applicationsDeleted = 0;
+
+  for (const row of jobDetails as any[]) {
+    const resolved = await resolveJobId(ctx, row.jobId);
+    if (!resolved) {
+      await ctx.db.delete(row._id);
+      jobDetailsDeleted += 1;
+      continue;
+    }
+    if (resolved !== row.jobId) {
+      await ctx.db.patch(row._id, { jobId: resolved });
+      jobDetailsFixed += 1;
+    }
+  }
+
+  for (const row of applications as any[]) {
+    const resolved = await resolveJobId(ctx, row.jobId);
+    if (!resolved) {
+      await ctx.db.delete(row._id);
+      applicationsDeleted += 1;
+      continue;
+    }
+    if (resolved !== row.jobId) {
+      await ctx.db.patch(row._id, { jobId: resolved });
+      applicationsFixed += 1;
+    }
+  }
+
+  return {
+    jobDetailsFixed,
+    jobDetailsDeleted,
+    applicationsFixed,
+    applicationsDeleted,
+  };
+};
 
 export const dedupeSitesImpl = async (ctx: any) => {
   const rows = await ctx.db.query("sites").collect();
@@ -225,6 +310,8 @@ export const runAll = internalMutation({
       internal.migrations.backfillScrapeMetadata,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
+      internal.migrations.repairJobDetailJobIds,
+      internal.migrations.repairApplicationJobIds,
       internal.migrations.dedupeSites,
       internal.migrations.retagGreenhouseJobs,
     ]);
@@ -250,14 +337,14 @@ export const deriveProvider = (doc: any): string => {
 export const buildScrapeRecordPatch = (doc: any): Record<string, any> => {
   const update: Record<string, any> = {};
   const provider = deriveProvider(doc);
-  if (provider !== (doc as any).provider) {
+  if (provider !== (doc).provider) {
     update.provider = provider;
   }
   if (doc.workflowName === null) {
     update.workflowName = undefined;
   }
   const costVal = deriveCostMilliCents(doc);
-  if (costVal !== (doc as any).costMilliCents) {
+  if (costVal !== (doc).costMilliCents) {
     update.costMilliCents = costVal;
   }
   return update;

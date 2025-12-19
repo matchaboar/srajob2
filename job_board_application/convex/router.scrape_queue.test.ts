@@ -77,7 +77,7 @@ describe("leaseScrapeUrlBatch", () => {
       },
     };
 
-    const handler = getHandler(leaseScrapeUrlBatch) as any;
+    const handler = getHandler(leaseScrapeUrlBatch);
     const res = await handler(ctx, {
       provider: "spidercloud",
       limit: 2,

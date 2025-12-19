@@ -20,8 +20,10 @@ export function SignInForm({ mode = "compact" }: { mode?: "compact" | "spacious"
           const formData = new FormData(e.target as HTMLFormElement);
           formData.set("flow", flow);
 
-          const email = String(formData.get("email") ?? "").trim();
-          const password = String(formData.get("password") ?? "");
+          const emailValue = formData.get("email");
+          const passwordValue = formData.get("password");
+          const email = (typeof emailValue === "string" ? emailValue : "").trim();
+          const password = typeof passwordValue === "string" ? passwordValue : "";
 
           if (!email || !password) {
             setError("Email and password are required.");

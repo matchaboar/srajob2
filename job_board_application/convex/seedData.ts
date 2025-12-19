@@ -1,5 +1,4 @@
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
 import { buildJobInsert, makeFakeJobSeeds } from "./jobRecords";
 
 export const insertFakeJobs = mutation({

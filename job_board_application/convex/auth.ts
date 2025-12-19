@@ -7,11 +7,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       profile: (params) => {
-        const email = String(params.email ?? "").trim().toLowerCase();
+        const email = (typeof params.email === "string" ? params.email : "").trim().toLowerCase();
         if (!email) {
           throw new Error("Email is required");
         }
-        const password = String(params.password ?? "");
+        const password = typeof params.password === "string" ? params.password : "";
         if (password.length < 8) {
           throw new Error("Password must be at least 8 characters long");
         }

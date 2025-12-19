@@ -472,13 +472,13 @@ function UrlScrapeListSection() {
       >
         <pre
           className="bg-slate-950/60 border border-slate-800 rounded p-1 max-h-7 min-h-[14px] leading-tight overflow-hidden whitespace-pre-wrap break-words font-mono text-[11px] cursor-pointer transition-colors hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          onClick={handleCopy}
+          onClick={() => { void handleCopy(); }}
           role="button"
           tabIndex={0}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              handleCopy();
+              void handleCopy();
             }
           }}
           title={copied ? "Copied" : "Click to copy"}
@@ -490,7 +490,7 @@ function UrlScrapeListSection() {
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              handleCopy();
+              void handleCopy();
             }}
             className="inline-flex h-7 w-7 items-center justify-center rounded border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500"
             title={copied ? "Copied" : "Copy JSON"}
@@ -864,7 +864,7 @@ export function CompanyNamesSection() {
     : rows.filter((row) => {
         const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
           .filter((v) => typeof v === "string")
-          .map((v) => (v as string).toLowerCase());
+          .map((v) => (v).toLowerCase());
         return fields.some((v) => v.includes(domainSearchLower));
       });
   const filteredRows = showAllDomains || domainSearchLower
@@ -1026,7 +1026,6 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
   const runSiteNow = useMutation(api.router.runSiteNow);
   const updateSiteEnabled = useMutation(api.router.updateSiteEnabled);
   const updateSiteSchedule = useMutation(api.router.updateSiteSchedule);
-  const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
   const upsertSchedule = useMutation(api.router.upsertSchedule);
   const deleteSchedule = useMutation(api.router.deleteSchedule);
 
@@ -1192,7 +1191,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
       const savedId = (await upsertSchedule({
         id: editingScheduleId ?? undefined,
         name: scheduleName.trim() || "Untitled schedule",
-        days: Array.from(scheduleDays) as ScheduleDay[],
+        days: Array.from(scheduleDays),
         startTime: scheduleStartTime,
         intervalMinutes: totalMinutes,
         timezone: scheduleTimezone || defaultTimezone,
@@ -1315,7 +1314,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
       for (const segment of rest) {
         const lowered = segment.toLowerCase();
         if (!parsedType && (lowered === "general" || lowered === "greenhouse")) {
-          parsedType = lowered as "general" | "greenhouse";
+          parsedType = lowered;
           continue;
         }
         if (!parsedProvider && (lowered === "fetchfox" || lowered === "fetchfox_spidercloud" || lowered === "firecrawl" || lowered === "spidercloud")) {

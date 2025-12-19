@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  backfillScrapeRecords,
   buildScrapeRecordPatch,
   dedupeSitesImpl,
   deriveCostMilliCents,
   deriveProvider,
   retagGreenhouseJobsImpl,
+  repairJobIdReferencesImpl,
 } from "./migrations";
 
 describe("backfillScrapeRecords", () => {
@@ -162,6 +162,72 @@ describe("dedupeSites", () => {
     await dedupeSitesImpl(ctx);
 
     expect(patches).toHaveLength(0);
+  });
+});
+
+describe("repairJobIdReferences", () => {
+  it("repairs job_details/applications that point at job_details ids", async () => {
+    const jobs = [{ _id: "job-1", title: "Engineer", company: "Example" }];
+    const jobDetails = [
+      { _id: "detail-1", jobId: "job-1", description: "ok" },
+      { _id: "detail-2", jobId: "detail-1", description: "bad" },
+    ];
+    const applications = [{ _id: "app-1", jobId: "detail-1", userId: "user-1", status: "applied", appliedAt: 0 }];
+
+    const patches: any[] = [];
+    const deletes: any[] = [];
+    const ctx: any = {
+      db: {
+        get: async (id: string) => {
+          return jobs.find((row) => row._id === id)
+            ?? jobDetails.find((row) => row._id === id)
+            ?? applications.find((row) => row._id === id)
+            ?? null;
+        },
+        query: (table: string) => {
+          if (table === "job_details") return { collect: async () => jobDetails };
+          if (table === "applications") return { collect: async () => applications };
+          throw new Error(`unexpected table ${table}`);
+        },
+        patch: async (id: string, payload: any) => patches.push({ id, payload }),
+        delete: async (id: string) => deletes.push(id),
+      },
+    };
+
+    const result = await repairJobIdReferencesImpl(ctx);
+
+    expect(result.jobDetailsFixed).toBe(1);
+    expect(result.applicationsFixed).toBe(1);
+    expect(patches).toEqual([
+      { id: "detail-2", payload: { jobId: "job-1" } },
+      { id: "app-1", payload: { jobId: "job-1" } },
+    ]);
+    expect(deletes).toHaveLength(0);
+  });
+
+  it("deletes rows that cannot be resolved to a job", async () => {
+    const jobDetails = [{ _id: "detail-1", jobId: "missing-job", description: "bad" }];
+    const applications = [{ _id: "app-1", jobId: "missing-job", userId: "user-1", status: "applied", appliedAt: 0 }];
+
+    const deletes: any[] = [];
+    const ctx: any = {
+      db: {
+        get: async (_id: string) => null,
+        query: (table: string) => {
+          if (table === "job_details") return { collect: async () => jobDetails };
+          if (table === "applications") return { collect: async () => applications };
+          throw new Error(`unexpected table ${table}`);
+        },
+        patch: async () => {},
+        delete: async (id: string) => deletes.push(id),
+      },
+    };
+
+    const result = await repairJobIdReferencesImpl(ctx);
+
+    expect(result.jobDetailsDeleted).toBe(1);
+    expect(result.applicationsDeleted).toBe(1);
+    expect(deletes).toEqual(["detail-1", "app-1"]);
   });
 });
 

@@ -27,7 +27,6 @@ export function StatusTracker({ status, updatedAt }: StatusTrackerProps) {
         {steps.map((step, index) => {
           const isCompleted = index < activeIndex;
           const isCurrent = index === activeIndex;
-          const isPending = index > activeIndex;
 
           // Determine colors based on state
           let bgGradient = "from-slate-800 to-slate-700";

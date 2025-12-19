@@ -44,7 +44,7 @@ describe("completeScrapeUrls", () => {
     };
 
     vi.setSystemTime(now);
-    const handler = getHandler(completeScrapeUrls) as any;
+    const handler = getHandler(completeScrapeUrls);
     await handler(ctx, { urls: [queue.url], status: "failed", error: "timeout" });
     vi.useRealTimers();
 
@@ -85,7 +85,7 @@ describe("completeScrapeUrls", () => {
     };
 
     vi.setSystemTime(now);
-    const handler = getHandler(completeScrapeUrls) as any;
+    const handler = getHandler(completeScrapeUrls);
     await handler(ctx, { urls: [queue.url], status: "failed", error: "404 not found" });
     vi.useRealTimers();
 

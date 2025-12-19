@@ -187,7 +187,7 @@ describe("resetTodayAndRunAllScheduled", () => {
       ],
     });
 
-    const handler = getHandler(resetTodayAndRunAllScheduled) as any;
+    const handler = getHandler(resetTodayAndRunAllScheduled);
     const result = await handler({ db } as any, {});
 
     expect(result.jobsDeleted).toBe(1);

@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { StatusTracker } from "../components/StatusTracker";
 
 /**
  * Screenshot tests for StatusTracker component

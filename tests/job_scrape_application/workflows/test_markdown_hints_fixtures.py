@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
-from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints
+sys.path.insert(0, os.path.abspath("."))
+
+from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints  # noqa: E402
 
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -37,3 +41,11 @@ def test_markdown_hints_offsec_fixture():
     assert hints["location"] == "Menlo Park, CA"
     assert hints["level"] == "senior"
     assert hints.get("compensation") and hints["compensation"] >= 187000
+
+
+def test_markdown_hints_github_locations_fixture():
+    markdown = (FIXTURES / "markdown_github_locations.md").read_text(encoding="utf-8")
+    hints = parse_markdown_hints(markdown)
+
+    assert hints["title"].startswith("Senior Solutions Engineer")
+    assert hints["location"] == "France"

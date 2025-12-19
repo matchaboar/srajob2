@@ -2,9 +2,9 @@ import { httpRouter } from "convex/server";
 import { httpAction, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import type { Id, Doc } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { splitLocation, formatLocationLabel, deriveLocationFields } from "./location";
-import { FIRECRAWL_SIGNATURE_HEADER, runFirecrawlCors } from "./middleware/firecrawlCors";
+import { runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
 import { fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
@@ -186,7 +186,7 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
   const patchJob = async (job: any) => {
     const id = String(job?._id ?? "");
     if (!id || patchedIds.has(id)) return;
-    const company = (job as any).company ?? "";
+    const company = (job).company ?? "";
     if (normalizeCompany(company) !== prevNorm) return;
     await ctx.db.patch(job._id, { company: next });
     patchedIds.add(id);
@@ -245,16 +245,8 @@ const scheduleDay = v.union(
   v.literal("sat"),
   v.literal("sun")
 );
-const scheduleDayOrder: ("sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat")[] = [
-  "sun",
-  "mon",
-  "tue",
-  "wed",
-  "thu",
-  "fri",
-  "sat",
-];
-const weekdayFromShort: Record<string, (typeof scheduleDayOrder)[number]> = {
+type ScheduleDay = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+const weekdayFromShort: Record<string, ScheduleDay> = {
   Sun: "sun",
   Mon: "mon",
   Tue: "tue",
@@ -429,7 +421,7 @@ http.route({
         JSON.stringify({ success: true, jobId }),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -478,7 +470,7 @@ http.route({
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -530,7 +522,7 @@ http.route({
         status: 201,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -573,7 +565,7 @@ export const listSchedules = query({
     const sites = await ctx.db.query("sites").collect();
 
     for (const site of sites as any[]) {
-      const sid = (site as any).scheduleId as string | undefined;
+      const sid = (site).scheduleId as string | undefined;
       if (sid) {
         siteCounts.set(sid, (siteCounts.get(sid) ?? 0) + 1);
       }
@@ -589,7 +581,7 @@ export const listSchedules = query({
         timezone: s.timezone ?? DEFAULT_TIMEZONE,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
-        siteCount: siteCounts.get((s as any)._id as any) ?? 0,
+        siteCount: siteCounts.get((s)._id) ?? 0,
       }))
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   },
@@ -666,20 +658,20 @@ const updateSiteScheduleHandler = async (ctx: any, args: { id: Id<"sites">; sche
 
   // If a new schedule is attached and its window for today has already started,
   // backdate lastRunAt so the site is eligible immediately.
-  if (args.scheduleId && args.scheduleId !== (site as any).scheduleId) {
+  if (args.scheduleId && args.scheduleId !== (site).scheduleId) {
     const sched = await ctx.db.get(args.scheduleId);
     if (sched) {
       const eligibleAt = latestEligibleTime(
         {
-          days: (sched as any).days ?? [],
-          startTime: (sched as any).startTime,
-          intervalMinutes: (sched as any).intervalMinutes,
-          timezone: (sched as any).timezone,
+          days: (sched).days ?? [],
+          startTime: (sched).startTime,
+          intervalMinutes: (sched).intervalMinutes,
+          timezone: (sched).timezone,
         },
         Date.now()
       );
       if (eligibleAt !== null && eligibleAt <= Date.now()) {
-        const currentLast = (site as any).lastRunAt ?? 0;
+        const currentLast = (site).lastRunAt ?? 0;
         const desiredLast = Math.max(0, Math.min(currentLast, eligibleAt - 1));
         if (desiredLast < currentLast) {
           updates.lastRunAt = desiredLast;
@@ -727,7 +719,7 @@ export const listSeenJobUrlsForSite = query({
       .collect();
 
     for (const scrape of scrapes as any[]) {
-      const jobs = extractJobs((scrape as any).items);
+      const jobs = extractJobs((scrape).items);
       for (const job of jobs) {
         if (job.url) seen.add(job.url);
       }
@@ -740,7 +732,7 @@ export const listSeenJobUrlsForSite = query({
       .withIndex("by_source", (q) => q.eq("sourceUrl", args.sourceUrl))
       .collect();
     for (const row of ignored as any[]) {
-      const url = (row as any).url;
+      const url = (row).url;
       if (typeof url === "string" && matcher(url)) {
         seen.add(url);
       }
@@ -782,13 +774,13 @@ export const leaseSite = mutation({
     const scheduleCache = new Map<string, any>();
 
     for (const site of candidates as any[]) {
-      const siteType = (site as any).type ?? "general";
+      const siteType = (site).type ?? "general";
       const scrapeProvider =
-        (site as any).scrapeProvider ??
+        (site).scrapeProvider ??
         (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
-      const hasSchedule = !!(site as any).scheduleId;
-      const lastRun = (site as any).lastRunAt ?? 0;
-      const manualTriggerAt = (site as any).manualTriggerAt ?? 0;
+      const hasSchedule = !!(site).scheduleId;
+      const lastRun = (site).lastRunAt ?? 0;
+      const manualTriggerAt = (site).manualTriggerAt ?? 0;
       if (requestedType && siteType !== requestedType) continue;
       if (requestedProvider && scrapeProvider !== requestedProvider) continue;
       if (site.completed && !hasSchedule) continue;
@@ -839,7 +831,7 @@ export const leaseSite = mutation({
     // Return minimal fields for the worker
     const fresh = await ctx.db.get(pick._id as Id<"sites">);
     if (!fresh) return null;
-    const s = fresh as Doc<"sites">;
+    const s = fresh;
     const resolvedProvider =
       (s as any).scrapeProvider ??
       ((s as any).type === "greenhouse" ? "spidercloud" : "fetchfox");
@@ -1200,7 +1192,7 @@ const leaseScrapeUrlBatchHandler = async (
       .withIndex("by_status", (q: any) => q.eq("status", "processing"))
       .take(500);
     for (const row of processingRows as any[]) {
-      if ((row as any).updatedAt && (row as any).updatedAt >= cutoff) continue;
+      if ((row).updatedAt && (row).updatedAt >= cutoff) continue;
       if (args.provider && row.provider !== args.provider) continue;
       await ctx.db.patch(row._id, {
         status: "pending",
@@ -1217,7 +1209,7 @@ const leaseScrapeUrlBatchHandler = async (
   for (const row of rows as any[]) {
     if (picked.length >= limit) break;
     if (args.provider && row.provider !== args.provider) continue;
-    const createdAt = (row as any).createdAt ?? 0;
+    const createdAt = (row).createdAt ?? 0;
     if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
       // Skip stale (>48h) entries; mark ignored
       await ctx.db.patch(row._id, {
@@ -1252,7 +1244,7 @@ const leaseScrapeUrlBatchHandler = async (
   for (const row of picked) {
     await ctx.db.patch(row._id, {
       status: "processing",
-      attempts: ((row as any).attempts ?? 0) + 1,
+      attempts: ((row).attempts ?? 0) + 1,
       updatedAt: now,
     });
   }
@@ -1294,7 +1286,7 @@ const heuristicAttemptGate = (q: any, retryCutoff: number) =>
     q.lt(q.field("heuristicLastTried"), retryCutoff)
   );
 
-const heuristicPendingFilter = (q: any, retryCutoff: number) =>
+const _heuristicPendingFilter = (q: any, retryCutoff: number) =>
   q.and(
     q.or(
       q.eq(q.field("compensationReason"), heuristicPendingReason),
@@ -1308,14 +1300,14 @@ const heuristicPendingFilter = (q: any, retryCutoff: number) =>
 
 export const countPendingJobDetails = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (_ctx) => {
     return { pending: 0 };
   },
 });
 
 export const listPendingJobDetails = query({
   args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, _args) => {
     return [];
   },
 });
@@ -1335,7 +1327,7 @@ const completeScrapeUrlsHandler = async (
       .first();
     if (!existing) continue;
 
-    const attempts = ((existing as any).attempts ?? 0) + 1;
+    const attempts = ((existing).attempts ?? 0) + 1;
     const shouldIgnore =
       args.status === "failed" &&
       (attempts >= JOB_DETAIL_MAX_ATTEMPTS || (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
@@ -1344,14 +1336,14 @@ const completeScrapeUrlsHandler = async (
       try {
         await ctx.db.insert("ignored_jobs", {
           url,
-          sourceUrl: (existing as any).sourceUrl ?? "",
-          provider: (existing as any).provider,
+          sourceUrl: (existing).sourceUrl ?? "",
+          provider: (existing).provider,
           workflowName: "leaseScrapeUrlBatch",
           reason:
             typeof args.error === "string" && args.error.toLowerCase().includes("404")
               ? "http_404"
               : "max_attempts",
-          details: { attempts, siteId: (existing as any).siteId, lastError: args.error },
+          details: { attempts, siteId: (existing).siteId, lastError: args.error },
           createdAt: now,
         });
       } catch (err) {
@@ -1975,7 +1967,7 @@ export const upsertSite = mutation({
 
     const sites = await ctx.db.query("sites").collect();
     const existing = (sites as any[]).find(
-      (s: any) => siteCanonicalKey(s.url, (s as any).type) === key
+      (s: any) => siteCanonicalKey(s.url, (s).type) === key
     );
 
     const payload = {
@@ -2026,15 +2018,15 @@ const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: st
     throw new Error("Site not found");
   }
   await ctx.db.patch(args.id, { name });
-  await upsertCompanyProfile(ctx, name, (site as any).url, (site as any).name ?? undefined);
+  await upsertCompanyProfile(ctx, name, (site).url, (site).name ?? undefined);
 
   // Retag jobs even if the visible name was already the desired value by
   // trying common legacy variants derived from the site URL.
-  const prevName = (site as any).name ?? "";
-  const urlDerived = fallbackCompanyName(undefined, (site as any).url);
+  const prevName = (site).name ?? "";
+  const urlDerived = fallbackCompanyName(undefined, (site).url);
   const prevVariants = Array.from(
     new Set(
-      [prevName, urlDerived, fallbackCompanyName(prevName, (site as any).url)]
+      [prevName, urlDerived, fallbackCompanyName(prevName, (site).url)]
         .filter((val): val is string => typeof val === "string" && val.trim().length > 0)
     )
   );
@@ -2045,7 +2037,7 @@ const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: st
       if (prev === name) continue;
       updatedJobs += await updateJobsCompany(ctx, prev, name);
     }
-    const domain = normalizeDomainInput((site as any).url);
+    const domain = normalizeDomainInput((site).url);
     if (domain) {
       updatedJobs += await updateJobsCompanyByDomain(ctx, domain, name);
     }
@@ -2098,7 +2090,7 @@ export const bulkUpsertSites = mutation({
       const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
       const key = siteCanonicalKey(normalizedUrl, siteType);
       const existing = (existingSites as any[]).find(
-        (s: any) => siteCanonicalKey(s.url, (s as any).type) === key
+        (s: any) => siteCanonicalKey(s.url, (s).type) === key
       );
 
       const payload = {
@@ -2445,7 +2437,7 @@ http.route({
         JSON.stringify({ success: true, scrapeId }),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -2570,10 +2562,10 @@ http.route({
     const metadataCandidate = body?.metadata;
     const metadata =
       metadataCandidate && typeof metadataCandidate === "object" && !Array.isArray(metadataCandidate)
-        ? (metadataCandidate as Record<string, any>)
+        ? (metadataCandidate)
         : {};
-    const dataArray = Array.isArray(body?.data) ? (body.data as any[]) : [];
-    const firstData = dataArray.find((item) => item && typeof item === "object") as any;
+    const dataArray = Array.isArray(body?.data) ? (body.data) : [];
+    const firstData = dataArray.find((item) => item && typeof item === "object");
     const dataMetadata =
       firstData && typeof firstData.metadata === "object" && !Array.isArray(firstData.metadata)
         ? (firstData.metadata as Record<string, any>)
@@ -2795,16 +2787,16 @@ const clampRequestSnapshot = (value: any) => {
     return value;
   }
   const snapshot: Record<string, any> = {};
-  if ((value as any).method) snapshot.method = (value as any).method;
-  if ((value as any).url) snapshot.url = (value as any).url;
-  if ((value as any).headers) snapshot.headers = (value as any).headers;
+  if ((value).method) snapshot.method = (value).method;
+  if ((value).url) snapshot.url = (value).url;
+  if ((value).headers) snapshot.headers = (value).headers;
   if ("body" in value) {
     try {
-      const bodyStr = JSON.stringify((value as any).body);
+      const bodyStr = JSON.stringify((value).body);
       snapshot.body =
-        bodyStr.length > 900 ? `${bodyStr.slice(0, 900)}… (+${bodyStr.length - 900} chars)` : (value as any).body;
+        bodyStr.length > 900 ? `${bodyStr.slice(0, 900)}… (+${bodyStr.length - 900} chars)` : (value).body;
     } catch {
-      snapshot.body = (value as any).body;
+      snapshot.body = (value).body;
     }
   }
   return snapshot;
@@ -2826,13 +2818,13 @@ const sanitizeForLog = (value: any) => {
 const urlFromJob = (job: any) => {
   if (!job || typeof job !== "object") return null;
   const candidates = [
-    (job as any).url,
-    (job as any).job_url,
-    (job as any).jobUrl,
-    (job as any)._url,
-    (job as any).link,
-    (job as any).href,
-    (job as any)._rawUrl,
+    (job).url,
+    (job).job_url,
+    (job).jobUrl,
+    (job)._url,
+    (job).link,
+    (job).href,
+    (job)._rawUrl,
   ];
   const url = candidates.find((u) => typeof u === "string" && u.trim());
   return url ? String(url) : null;
@@ -2900,9 +2892,9 @@ const buildUrlLogEntriesForScrape = (
     : [];
 
   const requestCandidates = [
-    (scrape as any).providerRequest,
+    (scrape).providerRequest,
     scrape.request,
-    (scrape as any).requestData,
+    (scrape).requestData,
     scrape.items?.request,
     scrape.items?.requestData,
     scrape.items?.raw?.request,
@@ -3005,7 +2997,7 @@ const buildExistingJobLookupForScrapes = async (ctx: any, scrapes: any[]) => {
       }
 
       if (!found) continue;
-      const key = normalizeUrlKey((found as any).url || trimmed);
+      const key = normalizeUrlKey((found).url || trimmed);
       if (key) {
         existingUrls.add(key);
         if (!jobByUrl.has(key)) {
@@ -3018,7 +3010,7 @@ const buildExistingJobLookupForScrapes = async (ctx: any, scrapes: any[]) => {
   return { existingUrls, jobByUrl };
 };
 
-const buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
+const _buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
   const existingUrls = new Set<string>();
   const jobByUrl = new Map<string, any>();
   const seenCandidates = new Set<string>();
@@ -3051,7 +3043,7 @@ const buildExistingJobLookupForScrape = async (ctx: any, scrape: any) => {
     }
 
     if (!found) continue;
-    const key = normalizeUrlKey((found as any).url || trimmed);
+    const key = normalizeUrlKey((found).url || trimmed);
     if (key) {
       existingUrls.add(key);
       if (!jobByUrl.has(key)) {
@@ -3280,9 +3272,22 @@ const stripHtml = (value: string) =>
       .replace(/<[^>]+>/g, " ")
   );
 
+const toSafeString = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value && typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+  return "";
+};
+
 const cleanScrapedText = (value: unknown): string => {
   if (value === null || value === undefined) return "";
-  const asString = typeof value === "string" ? value : String(value);
+  const asString = toSafeString(value);
   return stripHtml(asString).replace(/\s+/g, " ").trim();
 };
 
@@ -3292,7 +3297,7 @@ const extractJsonField = (blob: string, field: string): string | null => {
 
   try {
     const parsed = JSON.parse(candidate);
-    const value = (parsed as any)?.[field];
+    const value = (parsed)?.[field];
     if (typeof value === "string") return value;
   } catch {
     // ignore JSON parse failures; we will try regex next
@@ -3304,7 +3309,7 @@ const extractJsonField = (blob: string, field: string): string | null => {
 };
 
 const normalizeTitle = (raw: unknown): string => {
-  const rawString = typeof raw === "string" ? raw : String(raw ?? "");
+  const rawString = toSafeString(raw);
   const fromJson = extractJsonField(rawString, "title");
   const cleaned = cleanScrapedText(fromJson ?? rawString);
   if (!cleaned) return "Untitled";
@@ -3329,19 +3334,18 @@ export function extractJobs(items: any): {
   const rawList: any[] = [];
 
   const DEFAULT_TOTAL_COMPENSATION = 0;
-  const maybeArray = (val: any) => (Array.isArray(val) ? val : []);
 
   if (Array.isArray(items)) {
     rawList.push(...items);
   } else if (items && typeof items === "object") {
-    if (Array.isArray((items as any).normalized)) rawList.push(...(items as any).normalized);
-    if (Array.isArray((items as any).items)) rawList.push(...(items as any).items);
-    if (Array.isArray((items as any).results)) rawList.push(...(items as any).results);
-    if ((items as any).results && Array.isArray((items as any).results.items)) {
-      rawList.push(...(items as any).results.items);
+    if (Array.isArray((items).normalized)) rawList.push(...(items).normalized);
+    if (Array.isArray((items).items)) rawList.push(...(items).items);
+    if (Array.isArray((items).results)) rawList.push(...(items).results);
+    if ((items).results && Array.isArray((items).results.items)) {
+      rawList.push(...(items).results.items);
     }
-    if ((items as any).raw && Array.isArray((items as any).raw.items)) {
-      rawList.push(...(items as any).raw.items);
+    if ((items).raw && Array.isArray((items).raw.items)) {
+      rawList.push(...(items).raw.items);
     }
   }
 
@@ -3378,8 +3382,8 @@ export function extractJobs(items: any): {
 const parseComp = (val: any): { value: number; unknown: boolean } => {
     const parseRangeObj = (obj: any): number | null => {
       if (!obj || typeof obj !== "object") return null;
-      const minRaw = (obj as any).min_value ?? (obj as any).min;
-      const maxRaw = (obj as any).max_value ?? (obj as any).max;
+      const minRaw = (obj).min_value ?? (obj).min;
+      const maxRaw = (obj).max_value ?? (obj).max;
       const toNum = (v: any) => {
         if (typeof v === "number" && Number.isFinite(v)) return v;
         if (typeof v === "string") {
@@ -3471,24 +3475,24 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
               ? cleanScrapedText(row)
               : JSON.stringify(row, null, 2).slice(0, 4000);
       // Prefer structured pay range from Greenhouse metadata when present
-      let compensationSource: any =
-        (Array.isArray((row as any).metadata)
-          ? (row as any).metadata.find?.((m: any) => m?.value_type === "currency_range" && m?.value) ?? null
+      const compensationSource: any =
+        (Array.isArray((row).metadata)
+          ? (row).metadata.find?.((m: any) => m?.value_type === "currency_range" && m?.value) ?? null
           : null)?.value;
 
       const { value: totalCompensation, unknown: compensationUnknown } = parseComp(
         compensationSource ??
-          (row as any).totalCompensation ??
-          (row as any).total_compensation ??
-          (row as any).salary ??
-          (row as any).compensation
+          (row).totalCompensation ??
+          (row).total_compensation ??
+          (row).salary ??
+          (row).compensation
       );
-      const postedAt = parsePostedAt((row as any).postedAt ?? (row as any).posted_at, Date.now());
+      const postedAt = parsePostedAt((row).postedAt ?? (row).posted_at, Date.now());
       const compensationReason =
-        typeof (row as any).compensationReason === "string" && (row as any).compensationReason.trim()
-          ? (row as any).compensationReason.trim()
-          : typeof (row as any).compensation_reason === "string" && (row as any).compensation_reason.trim()
-            ? (row as any).compensation_reason.trim()
+        typeof (row).compensationReason === "string" && (row).compensationReason.trim()
+          ? (row).compensationReason.trim()
+          : typeof (row).compensation_reason === "string" && (row).compensation_reason.trim()
+            ? (row).compensation_reason.trim()
             : compensationSource
               ? "pay range provided in metadata"
               : compensationUnknown
@@ -3503,7 +3507,7 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
         city,
         state,
         remote,
-        level: coerceLevel((row as any).level, title),
+        level: coerceLevel((row).level, title),
         totalCompensation,
         compensationUnknown,
         compensationReason,
@@ -3547,7 +3551,7 @@ http.route({
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -3579,7 +3583,7 @@ http.route({
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
+    } catch {
       return new Response(
         JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }

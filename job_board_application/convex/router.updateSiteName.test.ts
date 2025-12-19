@@ -69,24 +69,25 @@ class FakeDb {
   }
 
   query(table: string) {
-    const self = this;
+    const { jobs, companyProfiles } = this;
+    const ensurePaginateAllowed = this.ensurePaginateAllowed.bind(this);
     return {
       collect() {
         if (table === "jobs") {
-          return Array.from(self.jobs.values());
+          return Array.from(jobs.values());
         }
         throw new Error(`Unsupported collect for table ${table}`);
       },
       withIndex(_name: string, cb: (q: any) => any) {
         const value = cb({ eq: (_field: string, val: any) => val });
         if (table === "jobs") {
-          const rows = Array.from(self.jobs.values()).filter((j) => j.company === value);
+          const rows = Array.from(jobs.values()).filter((j) => j.company === value);
           return {
             collect() {
               return rows;
             },
             paginate({ cursor, numItems }: { cursor: string | null; numItems: number }) {
-              self.ensurePaginateAllowed();
+              ensurePaginateAllowed();
               const start = cursor ? Number(cursor) : 0;
               const page = rows.slice(start, start + numItems);
               const nextCursor = start + numItems >= rows.length ? null : String(start + numItems);
@@ -95,7 +96,7 @@ class FakeDb {
           };
         }
         if (table === "company_profiles") {
-          const rows = Array.from(self.companyProfiles.values()).filter((p) => p.slug === value);
+          const rows = Array.from(companyProfiles.values()).filter((p) => p.slug === value);
           return {
             first() {
               return rows[0] ?? null;
@@ -109,15 +110,16 @@ class FakeDb {
 
   search(table: string, _index: string, term: string) {
     if (table !== "jobs") throw new Error(`Unsupported search table ${table}`);
-    const self = this;
+    const { jobs } = this;
+    const ensurePaginateAllowed = this.ensurePaginateAllowed.bind(this);
     const target = normalize(term);
-    const rows = Array.from(this.jobs.values()).filter((j) => normalize(j.company).includes(target));
+    const rows = Array.from(jobs.values()).filter((j) => normalize(j.company).includes(target));
     return {
       collect() {
         return rows;
       },
       paginate({ cursor, numItems }: { cursor: string | null; numItems: number }) {
-        self.ensurePaginateAllowed();
+        ensurePaginateAllowed();
         const start = cursor ? Number(cursor) : 0;
         const page = rows.slice(start, start + numItems);
         const nextCursor = start + numItems >= rows.length ? null : String(start + numItems);
@@ -142,7 +144,7 @@ describe("updateSiteName", () => {
       }),
     };
 
-    const handler = getHandler(updateSiteName) as any;
+    const handler = getHandler(updateSiteName);
     const result = await handler(ctx, { id: "site-1", name: "Datadog" });
 
     expect(result.updatedJobs).toBe(4);
@@ -164,7 +166,7 @@ describe("updateSiteName", () => {
       }),
     };
 
-    const handler = getHandler(updateSiteName) as any;
+    const handler = getHandler(updateSiteName);
     const result = await handler(ctx, { id: "site-1", name: "Example" });
 
     expect(result.updatedJobs).toBe(1);
@@ -181,7 +183,7 @@ describe("updateSiteName", () => {
       }),
     };
 
-    const handler = getHandler(updateSiteName) as any;
+    const handler = getHandler(updateSiteName);
     const result = await handler(ctx, { id: "site-1", name: "Datadog" });
 
     expect(result.updatedJobs).toBe(1);

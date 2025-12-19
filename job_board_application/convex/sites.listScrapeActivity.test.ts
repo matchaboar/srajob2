@@ -88,7 +88,7 @@ describe("listScrapeActivity", () => {
       },
     };
 
-    const handler = getHandler(listScrapeActivity) as any;
+    const handler = getHandler(listScrapeActivity);
     const rows = await handler(ctx, {});
     vi.useRealTimers();
 
@@ -126,7 +126,7 @@ describe("listScrapeActivity", () => {
       },
     };
 
-    const handler = getHandler(listScrapeActivity) as any;
+    const handler = getHandler(listScrapeActivity);
     const rows = await handler(ctx, {});
     vi.useRealTimers();
 

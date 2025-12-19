@@ -17,6 +17,7 @@ TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
 LEVEL_PATTERN = r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b"
 LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)"
 SIMPLE_LOCATION_LINE_PATTERN = r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$"
+WORK_FROM_PATTERN = r"\bwork(?:ing)?\s+from\s+(?P<location>.+)$"
 SALARY_PATTERN = (
     r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})*))?"
     r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
@@ -339,6 +340,7 @@ _TITLE_RE = re.compile(TITLE_PATTERN, flags=re.IGNORECASE | re.MULTILINE)
 _LEVEL_RE = re.compile(LEVEL_PATTERN, flags=re.IGNORECASE)
 _LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
 _SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)
+_WORK_FROM_RE = re.compile(WORK_FROM_PATTERN, flags=re.IGNORECASE)
 _SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
 _SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
 _REMOTE_RE = re.compile(REMOTE_PATTERN, flags=re.IGNORECASE)
@@ -647,11 +649,36 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     # Prefer a lightweight line-based location guess (line under heading, short, with comma).
     location_candidates: List[str] = []
+    location_section = False
+
+    def _add_location_candidate(raw: str) -> None:
+        candidate = stringify(raw)
+        if not candidate:
+            return
+        lower_candidate = candidate.lower()
+        if "remote" in lower_candidate and "," in candidate:
+            for part in candidate.split(","):
+                part_clean = part.strip()
+                if part_clean:
+                    location_candidates.append(part_clean)
+            return
+        location_candidates.append(candidate)
+
     for line in markdown.splitlines():
         t = line.strip()
         if not t or t.startswith("#"):
             continue
         lower = t.lower()
+        if lower == "locations":
+            location_section = True
+            continue
+        if location_section:
+            location_section = False
+            _add_location_candidate(t)
+            continue
+        if work_match := _WORK_FROM_RE.search(t):
+            _add_location_candidate(work_match.group("location"))
+            continue
         if lower.startswith("job application for"):
             continue
         if "|" in t or "career" in lower:
@@ -674,9 +701,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             candidate_line = re.sub(LOCATION_PREFIX_PATTERN, "", t, flags=re.IGNORECASE)
             candidate = stringify(candidate_line)
             if candidate:
-                location_candidates.extend(
-                    [p.strip() for p in re.split(LOCATION_SPLIT_PATTERN, candidate) if p.strip()]
-                )
+                for part in [p.strip() for p in re.split(LOCATION_SPLIT_PATTERN, candidate) if p.strip()]:
+                    _add_location_candidate(part)
     if not location_candidates:
         loc_match = _LOCATION_RE.search(markdown) or _SIMPLE_LOCATION_LINE_RE.search(markdown)
         if loc_match:

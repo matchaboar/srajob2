@@ -122,7 +122,7 @@ describe("listJobs pagination", () => {
     ]);
     const tracker = { totalPaginateCalls: 0 };
     const ctx = buildCtx(pagesByCursor, tracker);
-    const handler = getHandler(listJobs) as any;
+    const handler = getHandler(listJobs);
 
     const result = await handler(ctx, {
       paginationOpts: { cursor: null, numItems: 2 },

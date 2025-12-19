@@ -1,7 +1,7 @@
 
 export type FirecrawlRequest = Request & {
   headers: Headers & {
-    get(name: "X-Firecrawl-Signature" | string): string | null;
+    get(name: string): string | null;
   };
 };
 

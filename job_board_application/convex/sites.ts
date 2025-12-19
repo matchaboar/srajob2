@@ -132,8 +132,8 @@ export const retryProcessing = mutation({
       const remote = Boolean(row.remote);
 
       const rawLevel = typeof row.level === "string" ? row.level.toLowerCase() : "";
-      const level: "junior" | "mid" | "senior" | "staff" = (["junior", "mid", "senior", "staff"] as const).includes(rawLevel as any)
-        ? (rawLevel as any)
+      const level: "junior" | "mid" | "senior" | "staff" = (["junior", "mid", "senior", "staff"] as const).includes(rawLevel)
+        ? (rawLevel)
         : "mid";
 
       const totalComp = typeof row.total_compensation === "number" ? row.total_compensation : 0;
@@ -275,11 +275,11 @@ function countJobs(items: any): number {
   // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
   if (Array.isArray(items)) return items.length;
   if (typeof items === "object") {
-    if (Array.isArray((items as any).normalized)) return (items as any).normalized.length;
-    if (Array.isArray((items as any).items)) return (items as any).items.length;
-    if (Array.isArray((items as any).results)) return (items as any).results.length;
-    if ((items as any).results && Array.isArray((items as any).results.items)) {
-      return (items as any).results.items.length;
+    if (Array.isArray((items).normalized)) return (items).normalized.length;
+    if (Array.isArray((items).items)) return (items).items.length;
+    if (Array.isArray((items).results)) return (items).results.length;
+    if ((items).results && Array.isArray((items).results.items)) {
+      return (items).results.items.length;
     }
   }
   return 0;
@@ -311,13 +311,13 @@ const listScrapeActivityHandler = async (ctx: any) => {
       );
 
       const filteredScrapes = (scrapes as any[]).filter(
-        (s) => (s as any).completedAt === undefined || (s as any).completedAt >= now - SCRAPE_LOOKBACK_MS
+        (s) => (s).completedAt === undefined || (s).completedAt >= now - SCRAPE_LOOKBACK_MS
       );
       const sortedScrapes = filteredScrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
       const latest = sortedScrapes[0];
 
-      const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + countJobs((s as any).items), 0);
-      const lastJobsScraped = latest ? countJobs((latest as any).items) : 0;
+      const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + countJobs((s).items), 0);
+      const lastJobsScraped = latest ? countJobs((latest).items) : 0;
 
       const runsForSite = runs
         .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))

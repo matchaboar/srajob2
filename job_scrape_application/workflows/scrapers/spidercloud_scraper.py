@@ -980,6 +980,7 @@ class SpiderCloudScraper(BaseScraper):
         urls = [u for u in urls if u not in skip_set]
         if site.get("pattern") and source_url and source_url in skip_set:
             urls = [source_url]
+        skip_source = "precomputed" if skip_urls is not None else "fetched"
         logger.info(
             "SpiderCloud scrape_site source=%s pattern=%s skip=%s final_urls=%s",
             source_url,
@@ -987,13 +988,19 @@ class SpiderCloudScraper(BaseScraper):
             len(skip_set),
             len(urls),
         )
+        logger.info(
+            "SpiderCloud skip list source=%s source_url=%s size=%s",
+            skip_source,
+            source_url,
+            len(skip_set),
+        )
 
         self.deps.log_dispatch(
             self.provider,
             source_url,
             pattern=site.get("pattern"),
             siteId=site.get("_id"),
-            skip=len(skip_urls or []),
+            skip=len(skip_set),
         )
         return await self._scrape_urls_batch(
             urls,

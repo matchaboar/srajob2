@@ -12,6 +12,12 @@ const formatDateTime = (value?: number) => {
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });
   const compensationMeta = useMemo(() => buildCompensationMeta(job), [job]);
+  const toOptionalNumber = (value: unknown) => (typeof value === "number" ? value : undefined);
+  const toOptionalString = (value: unknown) => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    return undefined;
+  };
   const formatRelativeTime = useMemo(
     () =>
       (timestamp?: number | null) => {
@@ -42,14 +48,16 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
   }, [job]);
 
   const parsingSteps = useMemo(() => {
-    const scrapedWith = job?.scrapedWith || job?.workflowName;
-    const scrapedAt = job?.scrapedAt;
-    const heuristicAttempts = job?.heuristicAttempts ?? 0;
-    const heuristicLastTried = job?.heuristicLastTried;
-    const heuristicVersion = job?.heuristicVersion;
+    const workflowName = toOptionalString(job?.workflowName);
+    const scrapedWith = toOptionalString(job?.scrapedWith) || workflowName;
+    const scrapedAt = toOptionalNumber(job?.scrapedAt);
+    const heuristicAttempts = toOptionalNumber(job?.heuristicAttempts) ?? 0;
+    const heuristicLastTried = toOptionalNumber(job?.heuristicLastTried);
+    const heuristicVersion = toOptionalNumber(job?.heuristicVersion);
+    const compensationReason = toOptionalString(job?.compensationReason);
     const heuristicRan =
-      (job?.workflowName || "").toLowerCase() === "heuristicjobdetails" ||
-      (job?.compensationReason || "").toLowerCase().includes("heuristic") ||
+      (workflowName || "").toLowerCase() === "heuristicjobdetails" ||
+      (compensationReason || "").toLowerCase().includes("heuristic") ||
       heuristicAttempts > 0 ||
       typeof heuristicLastTried === "number";
 
@@ -77,9 +85,9 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
         checked: heuristicRan,
         status: heuristicRan ? "Completed" : "Pending",
         note: heuristicRan
-          ? heuristicParts.join(" • ") || job?.workflowName || "HeuristicJobDetails"
-          : `Not run${job?.compensationReason ? ` (reason: ${job.compensationReason})` : ""}`,
-        subtext: heuristicRan && job?.workflowName ? `Workflow: ${job.workflowName}` : undefined,
+          ? heuristicParts.join(" • ") || workflowName || "HeuristicJobDetails"
+          : `Not run${compensationReason ? ` (reason: ${compensationReason})` : ""}`,
+        subtext: heuristicRan && workflowName ? `Workflow: ${workflowName}` : undefined,
       },
       {
         label: "LLM parsing",

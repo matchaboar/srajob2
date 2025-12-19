@@ -308,6 +308,13 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
     skip_set = set(skip_urls or [])
     skip_set.update(seen_for_site)
     site_id = _convex_site_id(site)
+    logger.info(
+        "SpiderCloud greenhouse skip list source_url=%s precomputed=%s seen=%s total=%s",
+        site.get("url"),
+        len(skip_urls or []),
+        len(seen_for_site),
+        len(skip_set),
+    )
 
     if not urls:
         return {
@@ -327,6 +334,13 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
     existing = await filter_existing_job_urls(pending_urls)
     existing_set = set(existing) | skip_set
     urls_to_scrape = [u for u in urls if u not in existing_set]
+    logger.info(
+        "SpiderCloud greenhouse urls total=%s pending=%s existing=%s to_scrape=%s",
+        len(urls),
+        len(pending_urls),
+        len(existing_set),
+        len(urls_to_scrape),
+    )
 
     # Persist URLs so they can be retried later even if the worker dies mid-scrape.
     try:
@@ -2276,6 +2290,26 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return idx + 1 < len(segments)
         return False
 
+    def _looks_like_location_filter_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        if not host.endswith("confluent.io"):
+            return False
+        segments = [seg for seg in (parsed.path or "").split("/") if seg]
+        for idx, seg in enumerate(segments[:-1]):
+            if seg not in {"job", "jobs"}:
+                continue
+            slug = segments[idx + 1].lower()
+            if slug.startswith(("united_states", "united-states")) and not re.search(r"\d", slug):
+                return True
+        return False
+
+    def _should_ignore_url(url: str) -> bool:
+        return _looks_like_location_filter_url(url)
+
     def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
         if title_text and apply_text_re.search(title_text):
             return True
@@ -2349,6 +2383,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 for url_val in url_list:
                     if isinstance(url_val, str) and url_val.strip():
                         url = url_val.strip()
+                        if _should_ignore_url(url):
+                            continue
                         if url not in seen:
                             seen.add(url)
                             urls.append(url)
@@ -2364,6 +2400,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             continue
         for url, title, location, context_text, context_location in _extract_markdown_links_with_context(text):
             if not url or not url.startswith("http"):
+                continue
+            if _should_ignore_url(url):
                 continue
             title_match = title_matches_required_keywords(title)
             context_match = False
@@ -2386,6 +2424,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
         for url, title, location in _extract_from_text(text):
             if not url or not url.startswith("http"):
+                continue
+            if _should_ignore_url(url):
                 continue
             if not title_matches_required_keywords(title):
                 continue

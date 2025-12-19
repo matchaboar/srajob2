@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { extractJobs } from "../../convex/router";
+
+const fixturesDir = dirname(fileURLToPath(new URL(".", import.meta.url)));
 
 describe("extractJobs sanitization", () => {
   it("strips raw HTML/JSON blobs from title and description", () => {
@@ -46,7 +51,8 @@ describe("extractJobs sanitization", () => {
   });
 
   it("parses greenhouse JSON with salary range, location, and full description", () => {
-    const payload = require("./fixtures/datadog_greenhouse.json");
+    const payloadPath = resolve(fixturesDir, "fixtures/datadog_greenhouse.json");
+    const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
     const jobs = extractJobs([payload]);
     expect(jobs).toHaveLength(1);
     const job = jobs[0] as any;

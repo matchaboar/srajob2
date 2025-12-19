@@ -9,8 +9,6 @@ import {
   findCityInText,
   isUnknownLocationValue,
   normalizeLocations,
-  deriveLocationStates,
-  buildLocationSearch,
   deriveLocationFields,
 } from "./location";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -81,7 +79,7 @@ export const deriveCompanyFromUrl = (url: string): string => {
 const toInt = (value: string | undefined | null) => {
   if (!value) return undefined;
   try {
-    const digits = value.replace(/[,\.]/g, "");
+    const digits = value.replace(/[,.]/g, "");
     return Number.isFinite(Number(digits)) ? parseInt(digits, 10) : undefined;
   } catch {
     return undefined;
@@ -363,9 +361,9 @@ const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">) => {
     .first();
 };
 
-const mergeJobDetails = (job: any, details: any | null) => {
+const mergeJobDetails = (job: Record<string, unknown>, details: Record<string, unknown> | null) => {
   if (!details) return job;
-  const { jobId: _jobId, ...detailFields } = details;
+  const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
   return { ...job, ...detailFields };
 };
 
@@ -612,8 +610,8 @@ export const listJobs = query({
       const aliasRows = await ctx.db.query("domain_aliases").collect();
       domainAliasLookup = new Map();
       for (const row of aliasRows as any[]) {
-        const domain = (row as any)?.domain?.trim?.() ?? "";
-        const alias = normalizeCompanyKey((row as any)?.alias ?? "");
+        const domain = (row)?.domain?.trim?.() ?? "";
+        const alias = normalizeCompanyKey((row)?.alias ?? "");
         if (domain && alias) {
           domainAliasLookup.set(domain, alias);
         }
@@ -821,7 +819,7 @@ export const listJobs = query({
     const grouped = new Map<string, { base: any; members: any[] }>();
 
     for (const job of filteredJobs) {
-      const key = buildJobGroupKey(job as any);
+      const key = buildJobGroupKey(job);
       const bucket = grouped.get(key);
       if (bucket) {
         bucket.members.push(job);
@@ -838,20 +836,20 @@ export const listJobs = query({
 
         const allLocations = mergeStrings(
           normalizedBase.locations,
-          members.flatMap((m) => (Array.isArray((m as any).locations) ? (m as any).locations : [])),
-          members.map((m) => (m as any).location),
+          members.flatMap((m) => (Array.isArray((m).locations) ? (m).locations : [])),
+          members.map((m) => (m).location),
         );
 
         const locationStatesMerged = Array.from(
           new Set(
             members.flatMap((m) => {
-              const info = deriveLocationFields(m as any);
+              const info = deriveLocationFields(m);
               return info.locationStates.length ? info.locationStates : [info.state];
             }).filter(Boolean)
           )
         );
 
-        const urls = Array.from(new Set(members.map((m) => (m as any).url).filter(Boolean)));
+        const urls = Array.from(new Set(members.map((m) => (m).url).filter(Boolean)));
         const applicationCount = await ctx.db
           .query("applications")
           .withIndex("by_job", (q) => q.eq("jobId", base._id))
@@ -860,12 +858,12 @@ export const listJobs = query({
 
         // Sum applications across grouped job ids (fallback to base when access limited)
         let totalApplications = applicationCount.length;
-        if ((members as any[]).length > 1) {
+        if ((members).length > 1) {
           for (const member of members) {
-            if ((member as any)._id === base._id) continue;
+            if ((member)._id === base._id) continue;
             const extra = await ctx.db
               .query("applications")
-              .withIndex("by_job", (q) => q.eq("jobId", (member as any)._id))
+              .withIndex("by_job", (q) => q.eq("jobId", (member)._id))
               .filter((q) => q.eq(q.field("status"), "applied"))
               .collect();
             totalApplications += extra.length;
@@ -881,7 +879,7 @@ export const listJobs = query({
           locationStates: locationStatesMerged,
           url: urls[0],
           alternateUrls: urls,
-          groupedJobIds: members.map((m) => (m as any)._id),
+          groupedJobIds: members.map((m) => (m)._id),
           applicationCount: totalApplications,
           userStatus: null, // These jobs don't have user applications by definition
         } as any;
@@ -1180,7 +1178,7 @@ export const getJobDetails = query({
     if (!args.jobId) return null;
     const details = await getJobDetailsByJobId(ctx, args.jobId);
     if (!details) return null;
-    const { jobId: _jobId, ...detailFields } = details as any;
+    const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
     return detailFields;
   },
 });

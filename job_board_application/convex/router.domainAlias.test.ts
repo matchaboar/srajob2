@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { setDomainAlias } from "./router";
 import { getHandler } from "./__tests__/getHandler";
 
@@ -73,11 +73,11 @@ class FakeDb {
   }
 
   query(table: string) {
-    const self = this;
+    const { sites, domainAliases, jobs, companyProfiles } = this;
     if (table === "sites") {
       return {
         collect() {
-          return Array.from(self.sites.values());
+          return Array.from(sites.values());
         },
       };
     }
@@ -86,7 +86,7 @@ class FakeDb {
       return {
         withIndex(_name: string, cb: (q: any) => any) {
           const domain = cb({ eq: (_field: string, val: any) => val });
-          const rows = Array.from(self.domainAliases.values()).filter((d) => d.domain === domain);
+          const rows = Array.from(domainAliases.values()).filter((d) => d.domain === domain);
           return {
             first() {
               return rows[0] ?? null;
@@ -99,11 +99,11 @@ class FakeDb {
     if (table === "jobs") {
       return {
         collect() {
-          return Array.from(self.jobs.values());
+          return Array.from(jobs.values());
         },
         withIndex(_name: string, cb: (q: any) => any) {
           const company = cb({ eq: (_field: string, val: any) => val });
-          const rows = Array.from(self.jobs.values()).filter((j) => j.company === company);
+          const rows = Array.from(jobs.values()).filter((j) => j.company === company);
           return {
             collect() {
               return rows;
@@ -117,7 +117,7 @@ class FakeDb {
       return {
         withIndex(_name: string, cb: (q: any) => any) {
           const slug = cb({ eq: (_field: string, val: any) => val });
-          const rows = Array.from(self.companyProfiles.values()).filter((p) => p.slug === slug);
+          const rows = Array.from(companyProfiles.values()).filter((p) => p.slug === slug);
           return {
             first() {
               return rows[0] ?? null;
@@ -168,7 +168,7 @@ describe("setDomainAlias", () => {
       }),
     };
 
-    const handler = getHandler(setDomainAlias) as any;
+    const handler = getHandler(setDomainAlias);
     const res = await handler(ctx, {
       domainOrUrl: "https://api.greenhouse.io/v1/boards/stubhubinc/jobs",
       alias: "Stubhub Inc",
@@ -200,7 +200,7 @@ describe("setDomainAlias", () => {
       }),
     };
 
-    const handler = getHandler(setDomainAlias) as any;
+    const handler = getHandler(setDomainAlias);
     const res = await handler(ctx, {
       domainOrUrl: "https://boards.greenhouse.io/pinterestcareers/jobs",
       alias: "Pinterest",

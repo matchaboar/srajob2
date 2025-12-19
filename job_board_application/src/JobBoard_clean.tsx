@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { toast } from "sonner";
@@ -81,7 +81,7 @@ export function JobBoard() {
         // AI Apply placeholder - would integrate with AI application system
         toast.info("AI application feature coming soon!");
       }
-    } catch (error) {
+    } catch {
       // Revert local state if the mutation failed
       setLocallyAppliedJobs(prev => {
         const newSet = new Set(prev);
@@ -99,7 +99,7 @@ export function JobBoard() {
       
       await rejectJob({ jobId: jobId as any });
       toast.success("Job rejected");
-    } catch (error) {
+    } catch {
       // Revert local state if the mutation failed
       setLocallyAppliedJobs(prev => {
         const newSet = new Set(prev);
@@ -111,7 +111,7 @@ export function JobBoard() {
   };
 
   // Web Audio helpers for a subtle "ding"
-  const ensureAudioContext = async (): Promise<AudioContext | null> => {
+  const ensureAudioContext = useCallback(async (): Promise<AudioContext | null> => {
     try {
       const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!Ctx) return null;
@@ -127,9 +127,9 @@ export function JobBoard() {
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const playDing = async (delayMs = 0) => {
+  const playDing = useCallback(async (delayMs = 0) => {
     if (liveMuted) return;
     const ctx = await ensureAudioContext();
     if (!ctx || ctx.state !== "running") return;
@@ -151,14 +151,16 @@ export function JobBoard() {
 
     osc.start(startAt);
     osc.stop(startAt + 0.3);
-  };
+  }, [ensureAudioContext, liveMuted]);
 
   const toggleLiveSound = async () => {
     const next = !liveMuted;
     setLiveMuted(next);
     try {
       localStorage.setItem("liveFeedMuted", next ? "true" : "false");
-    } catch {}
+    } catch {
+      // ignore localStorage failures
+    }
     if (!next) {
       await ensureAudioContext();
     }
@@ -210,10 +212,10 @@ export function JobBoard() {
 
     if (activeTab === "live" && !liveMuted) {
       newIds.forEach((_, i) => {
-        playDing(i * 100);
+        void playDing(i * 100);
       });
     }
-  }, [recentJobs, activeTab, liveMuted]);
+  }, [recentJobs, activeTab, liveMuted, playDing]);
 
   const renderJobCard = (job: any, showApplyButtons = true) => (
     <div key={job._id} className="bg-white p-3 shadow-sm border-b border-gray-200 first:rounded-t-lg last:rounded-b-lg last:border-b-0">
@@ -257,19 +259,19 @@ export function JobBoard() {
           ) : (
             <>
               <button
-                onClick={() => handleApply(job._id, "ai", job.url)}
+                onClick={() => { void handleApply(job._id, "ai", job.url); }}
                 className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
               >
                 AI Apply
               </button>
               <button
-                onClick={() => handleApply(job._id, "manual", job.url)}
+                onClick={() => { void handleApply(job._id, "manual", job.url); }}
                 className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium"
               >
                 Manual Apply
               </button>
               <button
-                onClick={() => handleReject(job._id)}
+                onClick={() => { void handleReject(job._id); }}
                 className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-xs font-medium"
               >
                 Reject
@@ -490,7 +492,7 @@ export function JobBoard() {
               <p className="text-gray-600 mt-1">Real-time feed of newly posted jobs</p>
             </div>
             <button
-              onClick={toggleLiveSound}
+              onClick={() => { void toggleLiveSound(); }}
               className="px-3 py-1.5 text-xs rounded-md border border-gray-300 hover:bg-gray-50"
               title={liveMuted ? "Unmute notifications" : "Mute notifications"}
             >

@@ -77,7 +77,7 @@ describe("listUrlScrapeLogs", () => {
     ];
 
     const ctx = buildCtx(scrapes);
-    const handler = getHandler(listUrlScrapeLogs) as any;
+    const handler = getHandler(listUrlScrapeLogs);
 
     const logs = await handler(ctx, { limit: 5 });
 
