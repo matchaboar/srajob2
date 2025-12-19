@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   backfillScrapeRecords,
+  buildScrapeRecordPatch,
   dedupeSitesImpl,
   deriveCostMilliCents,
   deriveProvider,
@@ -36,6 +37,27 @@ describe("backfillScrapeRecords", () => {
     expect(patches).toHaveLength(2);
     expect(patches[0].payload.costMilliCents).toBe(0);
     expect(patches[1].payload.costMilliCents).toBe(0);
+  });
+
+  it("does not set workflowName to null when missing", () => {
+    const patch = buildScrapeRecordPatch({
+      provider: "firecrawl",
+      costMilliCents: 0,
+      items: {},
+    });
+
+    expect(patch).toEqual({});
+  });
+
+  it("clears null workflowName instead of writing null", () => {
+    const patch = buildScrapeRecordPatch({
+      workflowName: null,
+      provider: "firecrawl",
+      costMilliCents: 0,
+      items: {},
+    });
+
+    expect(patch).toHaveProperty("workflowName", undefined);
   });
 });
 

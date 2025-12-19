@@ -104,18 +104,7 @@ export const moveJobDetails = migrations.define({
 export const backfillScrapeRecords = migrations.define({
   table: "scrapes",
   migrateOne: async (ctx, doc) => {
-    const update: Record<string, any> = {};
-    const provider = deriveProvider(doc);
-    if (provider !== (doc as any).provider) {
-      update.provider = provider;
-    }
-    if (doc.workflowName === undefined) {
-      update.workflowName = null;
-    }
-    const costVal = deriveCostMilliCents(doc);
-    if (costVal !== (doc as any).costMilliCents) {
-      update.costMilliCents = costVal;
-    }
+    const update = buildScrapeRecordPatch(doc);
     if (Object.keys(update).length > 0) {
       await ctx.db.patch(doc._id, update);
     }
@@ -256,4 +245,20 @@ export const deriveProvider = (doc: any): string => {
   const fromItems = doc?.items?.provider;
   if (typeof fromItems === "string" && fromItems.trim()) return fromItems.trim();
   return "unknown";
+};
+
+export const buildScrapeRecordPatch = (doc: any): Record<string, any> => {
+  const update: Record<string, any> = {};
+  const provider = deriveProvider(doc);
+  if (provider !== (doc as any).provider) {
+    update.provider = provider;
+  }
+  if (doc.workflowName === null) {
+    update.workflowName = undefined;
+  }
+  const costVal = deriveCostMilliCents(doc);
+  if (costVal !== (doc as any).costMilliCents) {
+    update.costMilliCents = costVal;
+  }
+  return update;
 };

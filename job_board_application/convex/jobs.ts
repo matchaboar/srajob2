@@ -723,26 +723,30 @@ export const listJobs = query({
         isDone: true,
         continueCursor: null,
       };
-  } else {
-    let baseQuery: any = ctx.db.query("jobs");
-
-    if (stateFilter) {
-      baseQuery = baseQuery.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
     } else {
-      baseQuery = baseQuery.withIndex("by_posted_at");
-    }
+      const buildBaseQuery = () => {
+        let query: any = ctx.db.query("jobs");
 
-    baseQuery = baseQuery.order("desc");
+        if (stateFilter) {
+          query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+        } else {
+          query = query.withIndex("by_posted_at");
+        }
 
-      if (args.includeRemote === false) {
-        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("remote"), false));
-      }
-      if (args.level) {
-        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("level"), args.level));
-      }
-      if (rawSearch && args.state) {
-        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("state"), args.state));
-      }
+        query = query.order("desc");
+
+        if (args.includeRemote === false) {
+          query = query.filter((q: any) => q.eq(q.field("remote"), false));
+        }
+        if (args.level) {
+          query = query.filter((q: any) => q.eq(q.field("level"), args.level));
+        }
+        if (rawSearch && args.state) {
+          query = query.filter((q: any) => q.eq(q.field("state"), args.state));
+        }
+
+        return query;
+      };
 
       const needsFilteredPagination =
         appliedJobIds.size > 0 ||
@@ -753,7 +757,7 @@ export const listJobs = query({
         args.maxCompensation !== undefined;
 
       if (!needsFilteredPagination) {
-        jobs = await baseQuery.paginate(args.paginationOpts);
+        jobs = await buildBaseQuery().paginate(args.paginationOpts);
       } else {
         const pageSize = args.paginationOpts.numItems ?? 50;
         const { rawCursor: initialRawCursor, carryIds, rawIsDone: initialRawIsDone } = parseFilterCursor(
@@ -773,7 +777,7 @@ export const listJobs = query({
         }
 
         while (filteredBuffer.length < pageSize && !rawIsDone) {
-          const page = await baseQuery.paginate({
+          const page = await buildBaseQuery().paginate({
             ...args.paginationOpts,
             cursor: rawCursor,
             numItems: pageSize,
