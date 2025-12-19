@@ -23,6 +23,7 @@ from ..helpers.scrape_utils import (
     coerce_remote,
     derive_company_from_url,
     looks_like_error_landing,
+    looks_like_job_listing_page,
     strip_known_nav_blocks,
 )
 from ..site_handlers import BaseSiteHandler, get_site_handler
@@ -457,6 +458,14 @@ class SpiderCloudScraper(BaseScraper):
             from_content = True
 
         candidate_title = payload_title or parsed_title
+        if looks_like_job_listing_page(candidate_title, cleaned_markdown, url):
+            self._last_ignored_job = {
+                "url": url,
+                "reason": "listing_page",
+                "title": candidate_title or self._title_from_url(url),
+                "description": cleaned_markdown,
+            }
+            return None
         if looks_like_error_landing(candidate_title, cleaned_markdown):
             self._last_ignored_job = {
                 "url": url,

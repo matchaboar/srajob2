@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath("."))
 
 import json
+import pytest
 
 from job_scrape_application.workflows.helpers.scrape_utils import (
     _jobs_from_scrape_items,
@@ -92,6 +93,34 @@ def test_normalize_single_row_skips_error_landing_page():
         Workplace Benefits
         Candidate Experience
         Arf. It seems we can't find what you're looking for.
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://careers.confluent.io/jobs/united_states-united_arab_emirates",
+        "https://careers.confluent.io/jobs/united_states-thailand",
+        "https://careers.confluent.io/jobs/united_states-finance_&_operations",
+    ],
+)
+def test_normalize_single_row_skips_listing_pages(url: str):
+    row = {
+        "title": "Senior Solutions Engineer",
+        "url": url,
+        "description": """
+        Open Positions
+        Search for Opportunities
+        Select Department
+        Select Country
+        United States
+        Available in Multiple Locations
+        Senior Solutions Engineer
         """,
     }
 

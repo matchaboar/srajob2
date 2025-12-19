@@ -173,6 +173,43 @@ _ERROR_LANDING_PHRASES = (
     "job is closed",
     "posting is closed",
 )
+_LISTING_FILTER_TERMS = (
+    "open positions",
+    "open position",
+    "search for opportunities",
+    "search for jobs",
+    "search jobs",
+    "select department",
+    "select country",
+    "select location",
+    "select city",
+    "select state",
+    "select category",
+    "search category",
+    "available in multiple locations",
+    "job fairs",
+    "work programs",
+    "view all jobs",
+    "filter by",
+)
+_LISTING_SELECT_RE = re.compile(
+    r"\bselect\s+(department|country|location|city|state|category|team)\b",
+    flags=re.IGNORECASE,
+)
+_JOB_DETAIL_MARKERS = (
+    "responsibilities",
+    "requirements",
+    "qualifications",
+    "what you'll do",
+    "what you will do",
+    "about the role",
+    "about the position",
+    "who you are",
+    "benefits",
+    "compensation",
+    "salary",
+    "equal opportunity",
+)
 
 _NAV_BLOCK_REGEX = re.compile(NAV_BLOCK_PATTERN, flags=re.IGNORECASE)
 
@@ -332,6 +369,60 @@ def looks_like_error_landing(title: str | None, description: str) -> bool:
     for phrase in _ERROR_LANDING_PHRASES:
         if phrase in sample:
             return True
+
+    return False
+
+
+def _url_suggests_listing(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    segments = [seg for seg in (parsed.path or "").split("/") if seg]
+    for idx, seg in enumerate(segments[:-1]):
+        if seg not in {"job", "jobs", "career", "careers"}:
+            continue
+        slug = segments[idx + 1]
+        if not slug or re.search(r"\d", slug):
+            return False
+        normalized = _normalize_location_key(slug.replace("-", " ").replace("_", " "))
+        if not normalized:
+            return False
+        if normalized in _COUNTRY_KEY_TO_LABEL:
+            return True
+        for state_name in _STATE_ABBR_BY_NAME:
+            if _normalize_location_key(state_name) in normalized:
+                return True
+        if "remote" in normalized:
+            return True
+    return False
+
+
+def looks_like_job_listing_page(title: str | None, description: str, url: str | None = None) -> bool:
+    """Heuristically detect job board listing/filter pages rather than a single job."""
+
+    if not description:
+        return False
+    haystack = f"{title or ''} {description or ''}".lower()
+    sample = re.sub(WHITESPACE_PATTERN, " ", haystack)[:2000]
+    marker_hits = sum(1 for marker in _LISTING_FILTER_TERMS if marker in sample)
+    select_hits = len(_LISTING_SELECT_RE.findall(sample))
+    detail_hits = sum(1 for marker in _JOB_DETAIL_MARKERS if marker in sample)
+
+    if "open positions" in sample and ("search for opportunities" in sample or select_hits >= 1):
+        return True
+    if marker_hits >= 4:
+        return True
+    if marker_hits >= 3 and select_hits >= 1:
+        return True
+    if select_hits >= 3 and marker_hits >= 1:
+        return True
+    if marker_hits >= 2 and _url_suggests_listing(url):
+        return True
+    if detail_hits >= 2 and marker_hits <= 2 and select_hits < 2:
+        return False
 
     return False
 
@@ -1109,6 +1200,8 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     level = coerce_level(row.get("level"), title)
     description = strip_known_nav_blocks(extract_description(row))
+    if looks_like_job_listing_page(raw_title or title, description, url):
+        return None
     if looks_like_error_landing(raw_title or title, description):
         return None
     if len(description) > MAX_JOB_DESCRIPTION_CHARS:
@@ -1301,6 +1394,7 @@ __all__ = [
     "extract_description",
     "extract_raw_body_from_fetchfox_result",
     "fetch_seen_urls_for_site",
+    "looks_like_job_listing_page",
     "normalize_fetchfox_items",
     "normalize_firecrawl_items",
     "normalize_single_row",

@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { extractJobs } from "../../convex/router";
 
-const fixturesDir = dirname(fileURLToPath(new URL(".", import.meta.url)));
+const fixturesDir = resolve(process.cwd(), "src/test/fixtures");
 
 describe("extractJobs sanitization", () => {
   it("strips raw HTML/JSON blobs from title and description", () => {
@@ -51,7 +50,7 @@ describe("extractJobs sanitization", () => {
   });
 
   it("parses greenhouse JSON with salary range, location, and full description", () => {
-    const payloadPath = resolve(fixturesDir, "fixtures/datadog_greenhouse.json");
+    const payloadPath = resolve(fixturesDir, "datadog_greenhouse.json");
     const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
     const jobs = extractJobs([payload]);
     expect(jobs).toHaveLength(1);
@@ -69,5 +68,28 @@ describe("extractJobs sanitization", () => {
 
     expect(job.description).toContain("Technical Solutions team enables Datadog");
     expect(job.description).toContain("customers’ entire technology stacks");
+  });
+
+  it("drops seed URLs from normalized scrape payloads", () => {
+    const jobs = extractJobs({
+      normalized: [
+        {
+          title: "Jobs - Snap Inc",
+          company: "snapchat",
+          location: "Remote",
+          url: "https://careers.snap.com/jobs",
+        },
+        {
+          title: "Staff Software Engineer",
+          company: "snapchat",
+          location: "Remote",
+          url: "https://careers.snap.com/jobs/12345",
+        },
+      ],
+      seedUrls: ["https://careers.snap.com/jobs"],
+    });
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].url).toBe("https://careers.snap.com/jobs/12345");
   });
 });

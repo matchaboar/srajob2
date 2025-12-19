@@ -3,15 +3,18 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as convexReact from "convex/react";
+import { getFunctionName } from "convex/server";
 import { api } from "../convex/_generated/api";
 import { JobBoard } from "./JobBoard";
 
+const defaultPaginatedResponse = {
+  results: [] as any[],
+  status: "Complete",
+  loadMore: vi.fn(),
+};
+
 vi.mock("convex/react", () => {
-  const usePaginatedQuery = vi.fn(() => ({
-    results: [],
-    status: "Complete",
-    loadMore: vi.fn(),
-  }));
+  const usePaginatedQuery = vi.fn(() => defaultPaginatedResponse);
 
   const useQuery = vi.fn((queryFn: any, args?: any) => {
     if (args === "skip") return undefined;
@@ -62,11 +65,23 @@ vi.mock("./components/RejectedJobRow", () => ({
   RejectedJobRow: () => <div data-testid="rejected-job-row" />,
 }));
 
-const findQueryCall = (queryFn: any) =>
-  (convexReact as any).useQuery.mock.calls.find((call: any[]) => call[0] === queryFn);
+const getQueryName = (queryFn: any) => {
+  try {
+    return getFunctionName(queryFn);
+  } catch {
+    return null;
+  }
+};
 
-const findQueryCalls = (queryFn: any) =>
-  (convexReact as any).useQuery.mock.calls.filter((call: any[]) => call[0] === queryFn);
+const findQueryCall = (queryFn: any) => {
+  const targetName = getQueryName(queryFn);
+  return (convexReact as any).useQuery.mock.calls.find((call: any[]) => getQueryName(call[0]) === targetName);
+};
+
+const findQueryCalls = (queryFn: any) => {
+  const targetName = getQueryName(queryFn);
+  return (convexReact as any).useQuery.mock.calls.filter((call: any[]) => getQueryName(call[0]) === targetName);
+};
 
 afterEach(() => {
   cleanup();

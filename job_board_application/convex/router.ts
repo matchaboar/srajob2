@@ -3317,8 +3317,83 @@ const normalizeTitle = (raw: unknown): string => {
   return cleaned.length > MAX_LEN ? `${cleaned.slice(0, MAX_LEN - 3)}...` : cleaned;
 };
 
+const collectSeedUrlKeys = (items: any) => {
+  const keys = new Set<string>();
+  if (!items || typeof items !== "object" || Array.isArray(items)) return keys;
+  const seedUrls = (items).seedUrls ?? (items).seed_urls;
+  if (Array.isArray(seedUrls)) {
+    for (const seed of seedUrls) {
+      const normalized = normalizeUrlKey(seed);
+      if (normalized) keys.add(normalized);
+    }
+  }
+  return keys;
+};
+
+const LISTING_URL_PATTERNS = [
+  /\/jobs\/?$/i,
+  /\/careers\/?$/i,
+  /\/openings\/?$/i,
+  /\/job-openings\/?$/i,
+  /\/all-jobs\/?$/i,
+  /\/positions\/?$/i,
+  /\/opportunities\/?$/i,
+];
+
+const looksLikeListingUrl = (url: string) => {
+  const trimmed = (url ?? "").trim();
+  if (!trimmed) return false;
+  const withoutQuery = trimmed.split("?")[0];
+  return LISTING_URL_PATTERNS.some((pattern) => pattern.test(withoutQuery));
+};
+
+const LISTING_TEXT_PATTERNS = [
+  /job openings/i,
+  /jobs at/i,
+  /careers at/i,
+  /all locations/i,
+  /all teams/i,
+  /view openings/i,
+  /open positions/i,
+  /open roles/i,
+];
+
+const looksLikeListingText = (title: string, description: string) => {
+  const sample = `${title ?? ""} ${description ?? ""}`;
+  return LISTING_TEXT_PATTERNS.some((pattern) => pattern.test(sample));
+};
+
+const filterSeedListingJobs = (
+  jobs: {
+    title: string;
+    description: string;
+    url: string;
+  }[],
+  seedUrlKeys: Set<string>
+) => {
+  if (!seedUrlKeys.size) return { jobs, dropped: [] as { url: string; title: string }[] };
+  const kept: typeof jobs = [];
+  const dropped: { url: string; title: string }[] = [];
+  for (const job of jobs) {
+    const key = normalizeUrlKey(job.url);
+    const isSeed = key && seedUrlKeys.has(key);
+    const isListing = isSeed && (looksLikeListingUrl(job.url) || looksLikeListingText(job.title, job.description));
+    if (isListing) {
+      dropped.push({ url: job.url, title: job.title });
+      continue;
+    }
+    kept.push(job);
+  }
+  return { jobs: kept, dropped };
+};
+
 // Normalize a scrape payload into a list of job-like objects
-export function extractJobs(items: any): {
+export function extractJobs(
+  items: any,
+  options?: {
+    includeSeedListings?: boolean;
+  }
+): {
   title: string;
   company: string;
   description: string;
@@ -3332,6 +3407,7 @@ export function extractJobs(items: any): {
   postedAt?: number;
 }[] {
   const rawList: any[] = [];
+  const seedUrlKeys = collectSeedUrlKeys(items);
 
   const DEFAULT_TOTAL_COMPENSATION = 0;
 
@@ -3427,7 +3503,7 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
     return fallback;
   };
 
-  return rawList
+  const jobs = rawList
     .map((row: any) => {
       const rawTitle =
         (row && typeof row === "object"
@@ -3516,6 +3592,11 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
       };
     })
     .filter((j) => j.url); // require a URL to keep signal
+
+  if (options?.includeSeedListings) return jobs;
+  if (!seedUrlKeys.size) return jobs;
+
+  return filterSeedListingJobs(jobs, seedUrlKeys).jobs;
 }
 
 /**

@@ -938,6 +938,39 @@ def test_spidercloud_allows_when_title_unknown():
     assert normalized["title"] == "Listing 123"
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://careers.confluent.io/jobs/united_states-united_arab_emirates",
+        "https://careers.confluent.io/jobs/united_states-poland",
+        "https://careers.confluent.io/jobs/united_states-finance_&_operations",
+    ],
+)
+def test_spidercloud_listing_pages_are_ignored(url: str):
+    scraper = _make_spidercloud_scraper()
+    markdown = """
+    Open Positions
+    Search for Opportunities
+    Select Department
+    Select Country
+    United States
+    Available in Multiple Locations
+    Senior Solutions Engineer
+    """
+
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=url,
+        markdown=markdown,
+        events=[{"title": "Open Positions | Confluent Careers"}],
+        started_at=0,
+    )
+
+    assert normalized is None
+    assert scraper._last_ignored_job is not None  # noqa: SLF001
+    assert scraper._last_ignored_job["url"] == url  # noqa: SLF001
+    assert scraper._last_ignored_job["reason"] == "listing_page"  # noqa: SLF001
+
+
 def test_extract_greenhouse_json_markdown_preserves_content():
     fixture_path = Path("tests/fixtures/greenhouse_api_job.json")
     raw = fixture_path.read_text(encoding="utf-8")
