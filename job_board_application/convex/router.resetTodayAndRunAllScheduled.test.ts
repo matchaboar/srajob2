@@ -11,7 +11,7 @@ type TableName =
   | "sites"
   | "run_requests";
 
-type Predicate<T> = (row: T) => boolean;
+type Predicate<T extends Record<string, any>> = (row: T) => boolean;
 
 const predicateBuilder = {
   field: (name: string) => (row: Record<string, any>) => row[name],
@@ -31,7 +31,7 @@ const predicateBuilder = {
       predicates.some((predicate) => predicate(row)),
 };
 
-class FakeQuery<T extends { _id: string }> {
+class FakeQuery<T extends { _id: string } & Record<string, any>> {
   private predicate: Predicate<T> | null = null;
 
   constructor(

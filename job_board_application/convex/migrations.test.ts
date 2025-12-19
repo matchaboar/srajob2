@@ -133,6 +133,36 @@ describe("dedupeSites", () => {
     expect(dupPatch?.payload.failed).toBe(true);
     expect(dupPatch?.payload.lastError).toContain("duplicate_of:a");
   });
+
+  it("does not strip query strings when normalizing general sites", async () => {
+    const sites = [
+      {
+        _id: "a",
+        name: "GitHub",
+        url: "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100",
+        enabled: true,
+        failed: false,
+        completed: false,
+        type: "general",
+        _creationTime: 1,
+      },
+    ];
+
+    const patches: any[] = [];
+    const ctx: any = {
+      db: {
+        query: (table: string) => {
+          if (table !== "sites") throw new Error("expected sites table");
+          return { collect: async () => sites };
+        },
+        patch: async (id: string, payload: any) => patches.push({ id, payload }),
+      },
+    };
+
+    await dedupeSitesImpl(ctx);
+
+    expect(patches).toHaveLength(0);
+  });
 });
 
 describe("retagGreenhouseJobs", () => {
