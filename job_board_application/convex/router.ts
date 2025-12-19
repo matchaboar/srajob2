@@ -1473,6 +1473,7 @@ export const updateJobWithHeuristicHandler = async (
   }
 ) => {
   const patch: any = {};
+  const detailPatch: any = {};
   for (const key of [
     "location",
     "locations",
@@ -1480,22 +1481,36 @@ export const updateJobWithHeuristicHandler = async (
     "locationSearch",
     "countries",
     "country",
-    "description",
     "totalCompensation",
     "compensationReason",
     "compensationUnknown",
     "remote",
-    "heuristicAttempts",
-    "heuristicLastTried",
-    "heuristicVersion",
     "currencyCode",
   ] as const) {
     if (args[key] !== undefined) {
       patch[key] = args[key] as any;
     }
   }
-  if (Object.keys(patch).length === 0) return { updated: false };
-  await ctx.db.patch(args.id, patch);
+  for (const key of ["description", "heuristicAttempts", "heuristicLastTried", "heuristicVersion"] as const) {
+    if (args[key] !== undefined) {
+      detailPatch[key] = args[key] as any;
+    }
+  }
+  if (Object.keys(patch).length === 0 && Object.keys(detailPatch).length === 0) return { updated: false };
+  if (Object.keys(patch).length > 0) {
+    await ctx.db.patch(args.id, patch);
+  }
+  if (Object.keys(detailPatch).length > 0) {
+    const existing = await ctx.db
+      .query("job_details")
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.id))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, detailPatch);
+    } else {
+      await ctx.db.insert("job_details", { jobId: args.id, ...detailPatch });
+    }
+  }
   return { updated: true };
 };
 
@@ -2288,16 +2303,21 @@ export const insertJobRecord = mutation({
   },
   handler: async (ctx, args) => {
     const resolvedCompany = await resolveCompanyForUrl(ctx, args.url, args.company);
+    const { description, ...jobArgs } = args;
     const jobId = await ctx.db.insert(
       "jobs",
       buildJobInsert({
-        ...args,
+        ...jobArgs,
         company: resolvedCompany,
         compensationUnknown: args.compensationUnknown ?? false,
         compensationReason: args.compensationReason,
         postedAt: Date.now(),
       })
     );
+    await ctx.db.insert("job_details", {
+      jobId,
+      description,
+    });
     return jobId;
   },
 });
@@ -3175,8 +3195,18 @@ export const ingestJobsFromScrape = mutation({
         companyOverride,
         aliasCache
       );
-      await ctx.db.insert("jobs", {
-        ...job,
+      const {
+        description,
+        scrapedWith,
+        workflowName,
+        scrapedCostMilliCents,
+        heuristicAttempts,
+        heuristicLastTried,
+        heuristicVersion,
+        ...jobFields
+      } = job;
+      const jobId = await ctx.db.insert("jobs", {
+        ...jobFields,
         company: resolvedCompany,
         city: job.city ?? city,
         state: job.state ?? state,
@@ -3187,12 +3217,18 @@ export const ingestJobsFromScrape = mutation({
         locationStates: locationInfo.locationStates,
         locationSearch: locationInfo.locationSearch,
         scrapedAt: job.scrapedAt ?? Date.now(),
-        scrapedWith: job.scrapedWith,
-        workflowName: job.workflowName,
-        scrapedCostMilliCents: job.scrapedCostMilliCents,
         compensationUnknown,
         compensationReason,
       });
+      const detailRow: any = { jobId };
+      if (description !== undefined) detailRow.description = description;
+      if (scrapedWith !== undefined) detailRow.scrapedWith = scrapedWith;
+      if (workflowName !== undefined) detailRow.workflowName = workflowName;
+      if (scrapedCostMilliCents !== undefined) detailRow.scrapedCostMilliCents = scrapedCostMilliCents;
+      if (heuristicAttempts !== undefined) detailRow.heuristicAttempts = heuristicAttempts;
+      if (heuristicLastTried !== undefined) detailRow.heuristicLastTried = heuristicLastTried;
+      if (heuristicVersion !== undefined) detailRow.heuristicVersion = heuristicVersion;
+      await ctx.db.insert("job_details", detailRow);
       inserted += 1;
     }
     return { inserted };

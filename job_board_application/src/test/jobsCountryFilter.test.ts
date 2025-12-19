@@ -6,7 +6,6 @@ const buildJob = (overrides: Partial<any>) => ({
   _creationTime: Date.now(),
   title: "Engineer",
   company: "Example",
-  description: "desc",
   location: overrides.location ?? "Remote",
   locations: overrides.locations,
   countries: overrides.countries,
@@ -22,8 +21,6 @@ const buildJob = (overrides: Partial<any>) => ({
   url: "https://example.com",
   compensationReason: "",
   compensationUnknown: false,
-  heuristicAttempts: 0,
-  heuristicVersion: 0,
   ...overrides,
 });
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any, Mapping
 
 from convex import ConvexClient
 
 from ..config import settings
 
-_client: Optional[ConvexClient] = None
+_client: ConvexClient | None = None
 
 
 def _normalize_deployment_url() -> str:
@@ -35,12 +35,12 @@ def get_client() -> ConvexClient:
     return _client
 
 
-async def convex_query(name: str, args: Any | None = None) -> Any:
+async def convex_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
     client = get_client()
     return await asyncio.to_thread(client.query, name, args)
 
 
-async def convex_mutation(name: str, args: Any | None = None) -> Any:
+async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
     client = get_client()
     return await asyncio.to_thread(client.mutation, name, args)
 

@@ -34,13 +34,15 @@ describe("job record generators stay aligned with schema", () => {
       {
         title: "Sample Role",
         company: "Example Co",
-        description: "Example description",
         location: "Seattle, WA",
         remote: false,
         level: "mid",
         totalCompensation: 123000,
         url: "https://example.com/jobs/sample",
-        scrapedWith: "test",
+        details: {
+          description: "Example description",
+          scrapedWith: "test",
+        },
       },
       fixedNow
     );

@@ -23,6 +23,7 @@ type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
 type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
+type JobDetails = FunctionReturnType<typeof api.jobs.getJobDetails>;
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
@@ -407,12 +408,26 @@ export function JobBoard() {
     if (!selectedJobId) return appliedList[0];
     return appliedList.find((job) => job._id === selectedJobId) ?? appliedList[0];
   }, [appliedList, selectedJobId]);
+  const selectedJobDetails = useQuery(api.jobs.getJobDetails, {
+    jobId: selectedJob?._id ?? undefined,
+  }) as JobDetails | null | undefined;
+  const selectedAppliedJobDetails = useQuery(api.jobs.getJobDetails, {
+    jobId: selectedAppliedJob?._id ?? undefined,
+  }) as JobDetails | null | undefined;
+  const selectedJobFull = useMemo(
+    () => (selectedJob ? { ...selectedJob, ...(selectedJobDetails ?? {}) } : null),
+    [selectedJob, selectedJobDetails]
+  );
+  const selectedAppliedJobFull = useMemo(
+    () => (selectedAppliedJob ? { ...selectedAppliedJob, ...(selectedAppliedJobDetails ?? {}) } : null),
+    [selectedAppliedJob, selectedAppliedJobDetails]
+  );
   const formatPostedLabel = useCallback((timestamp: number) => {
     const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
     const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return `${dateLabel} • ${days}d ago`;
   }, []);
-  const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJob), [selectedJob]);
+  const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
   const groupedLocationsLabel = useCallback((job: ListedJob) => {
     const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
     if (locs.length === 0) return job.location || "Unknown";
@@ -420,8 +435,8 @@ export function JobBoard() {
     return `${locs[0]} +${locs.length - 1} more`;
   }, []);
   const selectedJobLocations = useMemo(() => {
-    if (!selectedJob) return [];
-    const raw = Array.isArray(selectedJob.locations) ? selectedJob.locations : [];
+    if (!selectedJobFull) return [];
+    const raw = Array.isArray(selectedJobFull.locations) ? selectedJobFull.locations : [];
     const seen = new Set<string>();
     const normalized: string[] = [];
 
@@ -434,16 +449,16 @@ export function JobBoard() {
       normalized.push(cleaned);
     }
 
-    const fallback = (selectedJob.location || "").trim();
+    const fallback = (selectedJobFull.location || "").trim();
     if (fallback && fallback.toLowerCase() !== "unknown" && !seen.has(fallback.toLowerCase())) {
       seen.add(fallback.toLowerCase());
       normalized.push(fallback);
     }
 
     return normalized;
-  }, [selectedJob]);
+  }, [selectedJobFull]);
   const selectedLocationDetail = useMemo(() => {
-    if (!selectedJob) return "Unknown";
+    if (!selectedJobFull) return "Unknown";
     if (selectedJobLocations.length > 0) return selectedJobLocations[0];
     const parts: string[] = [];
     const seen = new Set<string>();
@@ -455,13 +470,13 @@ export function JobBoard() {
       seen.add(lowered);
       parts.push(cleaned);
     };
-    add(selectedJob.city as string | undefined);
-    add(selectedJob.state as string | undefined);
-    add(selectedJob.country as string | undefined);
+    add(selectedJobFull.city as string | undefined);
+    add(selectedJobFull.state as string | undefined);
+    add(selectedJobFull.country as string | undefined);
     if (parts.length) return parts.join(" • ");
-    const fallback = (selectedJob.location || "").trim();
+    const fallback = (selectedJobFull.location || "").trim();
     return fallback || "Unknown";
-  }, [selectedJob, selectedJobLocations]);
+  }, [selectedJobFull, selectedJobLocations]);
   const formatLevelLabel = useCallback((level?: string | null) => {
     if (!level || typeof level !== "string") return "Not specified";
     return level.charAt(0).toUpperCase() + level.slice(1);
@@ -516,18 +531,18 @@ export function JobBoard() {
     }
     return "0 ¢";
   }, []);
-  const selectedJobDetails = useMemo<DetailItem[]>(() => {
-    if (!selectedJob) return [];
+  const selectedJobDetailItems = useMemo<DetailItem[]>(() => {
+    if (!selectedJobFull) return [];
     const details: DetailItem[] = [];
     const locationValues = selectedJobLocations.length ? selectedJobLocations : ["Unknown"];
     const locationLabel = locationValues.length > 1 ? "Locations" : "Location";
 
-    details.push({ label: "Company", value: selectedJob.company });
-    details.push({ label: "Level", value: formatLevelLabel(selectedJob.level) });
+    details.push({ label: "Company", value: selectedJobFull.company });
+    details.push({ label: "Level", value: formatLevelLabel(selectedJobFull.level) });
     details.push({
       label: locationLabel,
       value: locationValues,
-      badge: selectedJob.remote ? "Remote" : undefined,
+      badge: selectedJobFull.remote ? "Remote" : undefined,
     });
     details.push({
       label: "Compensation",
@@ -535,40 +550,40 @@ export function JobBoard() {
     });
     details.push({
       label: "Posted",
-      value: typeof selectedJob.postedAt === "number" ? formatPostedLabel(selectedJob.postedAt) : "Not provided",
+      value: typeof selectedJobFull.postedAt === "number" ? formatPostedLabel(selectedJobFull.postedAt) : "Not provided",
     });
     // Scrape metadata rendered below description; omit here.
     details.push({
       label: "Applications",
-      value: String(selectedJob.applicationCount ?? 0),
+      value: String(selectedJobFull.applicationCount ?? 0),
     });
-    if (selectedJob.url) {
+    if (selectedJobFull.url) {
       details.push({
         label: "Job URL",
-        value: selectedJob.url,
+        value: selectedJobFull.url,
         type: "link",
       });
     }
 
     return details;
-  }, [selectedJob, selectedCompMeta, formatLevelLabel, formatPostedLabel, selectedJobLocations]);
+  }, [selectedJobFull, selectedCompMeta, formatLevelLabel, formatPostedLabel, selectedJobLocations]);
   const jobUrlDetail = useMemo<(DetailItem & { value: string }) | null>(() => {
-    const entry = selectedJobDetails.find((item) => item.label === "Job URL");
+    const entry = selectedJobDetailItems.find((item) => item.label === "Job URL");
     if (entry && typeof entry.value === "string") {
       return entry as DetailItem & { value: string };
     }
     return null;
-  }, [selectedJobDetails]);
+  }, [selectedJobDetailItems]);
   const parsingSteps = useMemo(() => {
-    if (!selectedJob) return [];
-    const scrapedWith = selectedJob.scrapedWith || selectedJob.workflowName;
-    const scrapedAt = selectedJob.scrapedAt;
-    const heuristicAttempts = selectedJob.heuristicAttempts ?? 0;
-    const heuristicLastTried = selectedJob.heuristicLastTried;
-    const heuristicVersion = selectedJob.heuristicVersion;
+    if (!selectedJobFull) return [];
+    const scrapedWith = selectedJobFull.scrapedWith || selectedJobFull.workflowName;
+    const scrapedAt = selectedJobFull.scrapedAt;
+    const heuristicAttempts = selectedJobFull.heuristicAttempts ?? 0;
+    const heuristicLastTried = selectedJobFull.heuristicLastTried;
+    const heuristicVersion = selectedJobFull.heuristicVersion;
     const heuristicRan =
-      (selectedJob.workflowName || "").toLowerCase().includes("heuristic") ||
-      (selectedJob.compensationReason || "").toLowerCase().includes("heuristic") ||
+      (selectedJobFull.workflowName || "").toLowerCase().includes("heuristic") ||
+      (selectedJobFull.compensationReason || "").toLowerCase().includes("heuristic") ||
       heuristicAttempts > 0 ||
       typeof heuristicLastTried === "number";
 
@@ -597,9 +612,9 @@ export function JobBoard() {
         checked: heuristicRan,
         status: heuristicRan ? "Completed" : "Pending",
         note: heuristicRan
-          ? (heuristicParts.length ? heuristicParts.join(" • ") : selectedJob.workflowName || "HeuristicJobDetails")
-          : `Not run${selectedJob.compensationReason ? ` (reason: ${selectedJob.compensationReason})` : ""}`,
-        subtext: heuristicRan && selectedJob.workflowName ? `Workflow: ${selectedJob.workflowName}` : undefined,
+          ? (heuristicParts.length ? heuristicParts.join(" • ") : selectedJobFull.workflowName || "HeuristicJobDetails")
+          : `Not run${selectedJobFull.compensationReason ? ` (reason: ${selectedJobFull.compensationReason})` : ""}`,
+        subtext: heuristicRan && selectedJobFull.workflowName ? `Workflow: ${selectedJobFull.workflowName}` : undefined,
       },
       {
         label: "LLM parsing",
@@ -608,28 +623,28 @@ export function JobBoard() {
         note: "Optional enrichment (not requested)",
       },
     ];
-  }, [formatRelativeTime, selectedJob]);
+  }, [formatRelativeTime, selectedJobFull]);
   const parseNotes = useMemo(() => {
-    if (!selectedJob) return "No additional notes.";
-    return selectedJob.compensationReason || selectedCompMeta.reason || "No additional notes.";
-  }, [selectedJob, selectedCompMeta]);
+    if (!selectedJobFull) return "No additional notes.";
+    return selectedJobFull.compensationReason || selectedCompMeta.reason || "No additional notes.";
+  }, [selectedJobFull, selectedCompMeta]);
   const descriptionText = useMemo(() => {
-    const raw = selectedJob?.description || selectedJob?.job_description || "";
+    const raw = selectedJobFull?.description || selectedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
     return normalizeMarkdown(trimmed);
-  }, [selectedJob]);
+  }, [selectedJobFull]);
   const descriptionWordCount = useMemo(() => {
     if (!descriptionText) return null;
     return descriptionText.split(/\s+/).filter(Boolean).length;
   }, [descriptionText]);
-  const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJob), [selectedAppliedJob]);
+  const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedDescriptionText = useMemo(() => {
-    const raw = selectedAppliedJob?.description || selectedAppliedJob?.job_description || "";
+    const raw = selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
     return normalizeMarkdown(trimmed);
-  }, [selectedAppliedJob]);
+  }, [selectedAppliedJobFull]);
   const appliedDescriptionWordCount = useMemo(() => {
     if (!appliedDescriptionText) return null;
     return appliedDescriptionText.split(/\s+/).filter(Boolean).length;
@@ -1744,26 +1759,26 @@ export function JobBoard() {
                   </div>
                 </div>
 
-                {showJobDetails && selectedJob && (
+                {showJobDetails && selectedJobFull && (
                   <div className="w-full sm:w-[32rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
                     <div className="flex items-start justify-between px-6 py-4 border-b border-slate-800/50 bg-slate-900/20">
                       <div className="min-w-0 pr-4">
-                        <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedJob.title}</h2>
-                        <div className="text-sm font-medium text-blue-400">{selectedJob.company}</div>
+                        <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedJobFull.title}</h2>
+                        <div className="text-sm font-medium text-blue-400">{selectedJobFull.company}</div>
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
                           <span
                             className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70"
-                            title={selectedJob.location || undefined}
+                            title={selectedJobFull.location || undefined}
                           >
                             {selectedLocationDetail}
                           </span>
-                          {selectedJob.remote && (
+                          {selectedJobFull.remote && (
                             <span className="px-2 py-1 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
                               Remote
                             </span>
                           )}
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            {formatLevelLabel(selectedJob.level)}
+                            {formatLevelLabel(selectedJobFull.level)}
                           </span>
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
                             <span
@@ -1774,7 +1789,9 @@ export function JobBoard() {
                             </span>
                           </span>
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            {typeof selectedJob.postedAt === "number" ? formatPostedLabel(selectedJob.postedAt) : "Not provided"}
+                            {typeof selectedJobFull.postedAt === "number"
+                              ? formatPostedLabel(selectedJobFull.postedAt)
+                              : "Not provided"}
                           </span>
                         </div>
                       </div>
@@ -1792,9 +1809,9 @@ export function JobBoard() {
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                       <div className="p-5 space-y-4">
                         <div className="flex gap-2">
-                          {selectedJob.url && (
+                          {selectedJobFull.url && (
                             <button
-                              onClick={() => { void handleApply(selectedJob._id, "manual", selectedJob.url); }}
+                              onClick={() => { void handleApply(selectedJobFull._id, "manual", selectedJobFull.url); }}
                               className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
                             >
                               Direct Apply
@@ -1811,7 +1828,7 @@ export function JobBoard() {
 
                         <div className="flex justify-end">
                           <button
-                            onClick={() => { if (selectedJob) void handleReparseJob(selectedJob._id); }}
+                            onClick={() => { if (selectedJobFull) void handleReparseJob(selectedJobFull._id); }}
                             className="text-[11px] px-3 py-1.5 rounded-md border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
                           >
                             Re-run parsing
@@ -1835,13 +1852,13 @@ export function JobBoard() {
                           </div>
                         </div>
                       )}
-                      {selectedJob?.alternateUrls && Array.isArray(selectedJob.alternateUrls) && selectedJob.alternateUrls.length > 1 && (
+                      {selectedJobFull?.alternateUrls && Array.isArray(selectedJobFull.alternateUrls) && selectedJobFull.alternateUrls.length > 1 && (
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                             Other locations / links
                           </div>
                           <div className="flex flex-col gap-1 text-sm text-slate-100">
-                            {selectedJob.alternateUrls.map((link: string) => (
+                            {selectedJobFull.alternateUrls.map((link: string) => (
                               <a
                                 key={link}
                                 href={link}
@@ -1857,7 +1874,7 @@ export function JobBoard() {
                       )}
 
                         <div className="grid grid-cols-2 gap-2">
-                          {selectedJobDetails.filter(item => item.label !== "Job URL").map((item) => (
+                          {selectedJobDetailItems.filter(item => item.label !== "Job URL").map((item) => (
                             <div
                               key={item.label}
                               className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1"
@@ -1920,29 +1937,29 @@ export function JobBoard() {
                           <div className="flex items-start gap-2 text-sm text-slate-200">
                             <span className="w-28 text-slate-500">Scraped</span>
                             <span className="font-semibold text-slate-100 break-words">
-                              {typeof selectedJob?.scrapedAt === "number"
-                                ? new Date(selectedJob.scrapedAt).toLocaleString(undefined, {
+                              {typeof selectedJobFull?.scrapedAt === "number"
+                                ? new Date(selectedJobFull.scrapedAt).toLocaleString(undefined, {
                                     month: "short",
                                     day: "numeric",
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })
                                 : "None"}
-                              {selectedJob?.scrapedWith ? ` • ${selectedJob.scrapedWith}` : ""}
+                              {selectedJobFull?.scrapedWith ? ` • ${selectedJobFull.scrapedWith}` : ""}
                             </span>
                           </div>
                           <div className="flex items-start gap-2 text-sm text-slate-200">
                             <span className="w-28 text-slate-500">Workflow</span>
                             <span className="font-semibold text-slate-100 break-words">
-                              {selectedJob?.workflowName || "None"}
+                              {selectedJobFull?.workflowName || "None"}
                             </span>
                           </div>
                           <div className="flex items-start gap-2 text-sm text-slate-200">
                             <span className="w-28 text-slate-500">Scrape Cost</span>
                             <span className="font-semibold text-slate-100 break-words">
-                              {typeof selectedJob?.scrapedCostMilliCents === "number"
+                              {typeof selectedJobFull?.scrapedCostMilliCents === "number"
                                 ? (() => {
-                                    return renderScrapeCost(selectedJob.scrapedCostMilliCents as number);
+                                    return renderScrapeCost(selectedJobFull.scrapedCostMilliCents as number);
                                   })()
                                 : "None"}
                             </span>
@@ -2086,41 +2103,41 @@ export function JobBoard() {
             </div>
 
             <div className="flex-1 flex flex-col overflow-hidden">
-              {selectedAppliedJob ? (
+              {selectedAppliedJobFull ? (
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <h2 className="text-2xl font-bold text-white leading-tight mb-1">{selectedAppliedJob.title}</h2>
-                      <div className="text-base font-semibold text-blue-300">{selectedAppliedJob.company}</div>
+                      <h2 className="text-2xl font-bold text-white leading-tight mb-1">{selectedAppliedJobFull.title}</h2>
+                      <div className="text-base font-semibold text-blue-300">{selectedAppliedJobFull.company}</div>
                       <div className="mt-3 flex flex-wrap gap-2 text-[12px] text-slate-200">
                         <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                          {selectedAppliedJob.location || "Unknown"}
+                          {selectedAppliedJobFull.location || "Unknown"}
                         </span>
-                        {selectedAppliedJob.remote && (
+                        {selectedAppliedJobFull.remote && (
                           <span className="px-2 py-1 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
                             Remote
                           </span>
                         )}
                         <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                          {formatLevelLabel(selectedAppliedJob.level)}
+                          {formatLevelLabel(selectedAppliedJobFull.level)}
                         </span>
                         <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
                           {appliedCompMeta.display}
                         </span>
-                        {typeof selectedAppliedJob.postedAt === "number" && (
+                        {typeof selectedAppliedJobFull.postedAt === "number" && (
                           <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70 text-slate-300">
-                            {formatPostedLabel(selectedAppliedJob.postedAt)}
+                            {formatPostedLabel(selectedAppliedJobFull.postedAt)}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="text-right text-sm text-slate-400">
                       <div className="font-semibold text-slate-200">
-                        {selectedAppliedJob.userStatus ? selectedAppliedJob.userStatus.toUpperCase() : "APPLIED"}
+                        {selectedAppliedJobFull.userStatus ? selectedAppliedJobFull.userStatus.toUpperCase() : "APPLIED"}
                       </div>
-                      {selectedAppliedJob.appliedAt && (
+                      {selectedAppliedJobFull.appliedAt && (
                         <div className="mt-1 text-slate-500">
-                          {new Date(selectedAppliedJob.appliedAt).toLocaleDateString(undefined, {
+                          {new Date(selectedAppliedJobFull.appliedAt).toLocaleDateString(undefined, {
                             month: "short",
                             day: "numeric",
                             hour: "2-digit",
@@ -2128,18 +2145,18 @@ export function JobBoard() {
                           })}
                         </div>
                       )}
-                      {selectedAppliedJob.workerStatus && (
+                      {selectedAppliedJobFull.workerStatus && (
                         <div className="mt-2 text-xs text-amber-300">
-                          Worker: {selectedAppliedJob.workerStatus}
+                          Worker: {selectedAppliedJobFull.workerStatus}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {selectedAppliedJob.url && (
+                  {selectedAppliedJobFull.url && (
                     <div className="flex gap-2">
                       <button
-                        onClick={() => window.open(selectedAppliedJob.url as string, "_blank")}
+                        onClick={() => window.open(selectedAppliedJobFull.url as string, "_blank")}
                         className="w-full px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
                       >
                         Direct Apply
@@ -2164,9 +2181,9 @@ export function JobBoard() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-4 space-y-2">
                       <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Links</div>
-                      {selectedAppliedJob.url ? (
+                      {selectedAppliedJobFull.url ? (
                         <a
-                          href={selectedAppliedJob.url}
+                          href={selectedAppliedJobFull.url}
                           target="_blank"
                           rel="noreferrer"
                           className="text-sm text-blue-300 hover:text-blue-200 underline break-all"
@@ -2180,18 +2197,18 @@ export function JobBoard() {
                     <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-4 space-y-2">
                       <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Scrape Info</div>
                       <div className="text-sm text-slate-200">
-                        {typeof selectedAppliedJob.scrapedAt === "number"
-                          ? new Date(selectedAppliedJob.scrapedAt).toLocaleString()
+                        {typeof selectedAppliedJobFull.scrapedAt === "number"
+                          ? new Date(selectedAppliedJobFull.scrapedAt).toLocaleString()
                           : "No scrape metadata"}
                       </div>
-                      {selectedAppliedJob.scrapedWith && (
-                        <div className="text-sm text-slate-200">With: {selectedAppliedJob.scrapedWith}</div>
+                      {selectedAppliedJobFull.scrapedWith && (
+                        <div className="text-sm text-slate-200">With: {selectedAppliedJobFull.scrapedWith}</div>
                       )}
-                      {selectedAppliedJob.workflowName && (
-                        <div className="text-sm text-slate-200">Workflow: {selectedAppliedJob.workflowName}</div>
+                      {selectedAppliedJobFull.workflowName && (
+                        <div className="text-sm text-slate-200">Workflow: {selectedAppliedJobFull.workflowName}</div>
                       )}
-                      {typeof selectedAppliedJob.scrapedCostMilliCents === "number" && (
-                        <div className="text-sm text-slate-200">Cost: {renderScrapeCost(selectedAppliedJob.scrapedCostMilliCents)}</div>
+                      {typeof selectedAppliedJobFull.scrapedCostMilliCents === "number" && (
+                        <div className="text-sm text-slate-200">Cost: {renderScrapeCost(selectedAppliedJobFull.scrapedCostMilliCents)}</div>
                       )}
                     </div>
                   </div>

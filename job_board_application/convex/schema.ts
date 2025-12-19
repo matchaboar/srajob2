@@ -6,7 +6,6 @@ const applicationTables = {
   jobs: defineTable({
     title: v.string(),
     company: v.string(),
-    description: v.string(),
     location: v.string(),
     locations: v.optional(v.array(v.string())),
     countries: v.optional(v.array(v.string())),
@@ -24,12 +23,6 @@ const applicationTables = {
     url: v.string(),
     postedAt: v.number(),
     scrapedAt: v.optional(v.number()),
-    scrapedWith: v.optional(v.string()),
-    workflowName: v.optional(v.string()),
-    scrapedCostMilliCents: v.optional(v.number()),
-    heuristicAttempts: v.optional(v.number()),
-    heuristicLastTried: v.optional(v.number()),
-    heuristicVersion: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
   })
@@ -51,6 +44,17 @@ const applicationTables = {
     .searchIndex("search_company", {
       searchField: "company",
     }),
+
+  job_details: defineTable({
+    jobId: v.id("jobs"),
+    description: v.optional(v.string()),
+    scrapedWith: v.optional(v.string()),
+    workflowName: v.optional(v.string()),
+    scrapedCostMilliCents: v.optional(v.number()),
+    heuristicAttempts: v.optional(v.number()),
+    heuristicLastTried: v.optional(v.number()),
+    heuristicVersion: v.optional(v.number()),
+  }).index("by_job", ["jobId"]),
 
   company_profiles: defineTable({
     slug: v.string(),

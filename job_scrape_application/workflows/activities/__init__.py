@@ -96,6 +96,7 @@ __all__ = [
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
+SCRAPE_URL_QUEUE_LIST_LIMIT = 500
 
 logger = logging.getLogger("temporal.worker.activities")
 scheduling_logger = logging.getLogger("temporal.scheduler")
@@ -307,14 +308,12 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
     # Pull queued URLs for this site/provider (pending or processing)
     queued_urls: list[Dict[str, Any]] = []
     try:
-        per_status_limit = 250
-        for status_value in ("pending", "processing"):
-            list_args = _strip_none_values(
-                {"siteId": site_id, "provider": scraper.provider, "status": status_value, "limit": per_status_limit}
-            )
-            batch = await convex_query("router:listQueuedScrapeUrls", list_args) or []
-            if isinstance(batch, list):
-                queued_urls.extend(batch)
+        list_args = _strip_none_values(
+            {"siteId": site_id, "provider": scraper.provider, "limit": SCRAPE_URL_QUEUE_LIST_LIMIT}
+        )
+        batch = await convex_query("router:listQueuedScrapeUrls", list_args) or []
+        if isinstance(batch, list):
+            queued_urls.extend(batch)
     except Exception:
         queued_urls = []
 

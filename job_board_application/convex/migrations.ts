@@ -50,17 +50,53 @@ export const backfillScrapeMetadata = migrations.define({
     if (doc.scrapedAt === undefined) {
       update.scrapedAt = doc.postedAt ?? Date.now();
     }
-    if (doc.scrapedWith === undefined) {
-      update.scrapedWith = null;
-    }
-    if (doc.workflowName === undefined) {
-      update.workflowName = null;
-    }
-    if (doc.scrapedCostMilliCents === undefined) {
-      update.scrapedCostMilliCents = null;
-    }
     if (Object.keys(update).length > 0) {
       await ctx.db.patch(doc._id, update);
+    }
+  },
+});
+
+export const moveJobDetails = migrations.define({
+  table: "jobs",
+  migrateOne: async (ctx, doc) => {
+    const raw: any = doc as any;
+    const detailPayload: Record<string, any> = {};
+    if (raw.description !== undefined) detailPayload.description = raw.description;
+    if (raw.scrapedWith !== undefined) detailPayload.scrapedWith = raw.scrapedWith;
+    if (raw.workflowName !== undefined) detailPayload.workflowName = raw.workflowName;
+    if (raw.scrapedCostMilliCents !== undefined) detailPayload.scrapedCostMilliCents = raw.scrapedCostMilliCents;
+    if (raw.heuristicAttempts !== undefined) detailPayload.heuristicAttempts = raw.heuristicAttempts;
+    if (raw.heuristicLastTried !== undefined) detailPayload.heuristicLastTried = raw.heuristicLastTried;
+    if (raw.heuristicVersion !== undefined) detailPayload.heuristicVersion = raw.heuristicVersion;
+
+    if (Object.keys(detailPayload).length > 0) {
+      const existing = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", doc._id))
+        .first();
+      if (existing) {
+        await ctx.db.patch(existing._id, detailPayload);
+      } else {
+        await ctx.db.insert("job_details", { jobId: doc._id, ...detailPayload });
+      }
+    }
+
+    const cleanup: Record<string, any> = {};
+    for (const field of [
+      "description",
+      "scrapedWith",
+      "workflowName",
+      "scrapedCostMilliCents",
+      "heuristicAttempts",
+      "heuristicLastTried",
+      "heuristicVersion",
+    ]) {
+      if (raw[field] !== undefined) {
+        cleanup[field] = undefined;
+      }
+    }
+    if (Object.keys(cleanup).length > 0) {
+      await ctx.db.patch(doc._id, cleanup);
     }
   },
 });
@@ -198,6 +234,7 @@ export const runAll = internalMutation({
     return await migrations.runSerially(ctx, [
       internal.migrations.fixJobLocations,
       internal.migrations.backfillScrapeMetadata,
+      internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
       internal.migrations.dedupeSites,
       internal.migrations.retagGreenhouseJobs,

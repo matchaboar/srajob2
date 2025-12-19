@@ -13,7 +13,7 @@ import {
   buildLocationSearch,
   deriveLocationFields,
 } from "./location";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 
 const TITLE_RE = /^[ \t]*#{1,6}\s+(?<title>.+)$/im;
 const LEVEL_RE =
@@ -356,6 +356,19 @@ const ensureLocationFields = async (ctx: any, job: DbJob) => {
   } as DbJob;
 };
 
+const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">) => {
+  return await ctx.db
+    .query("job_details")
+    .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+    .first();
+};
+
+const mergeJobDetails = (job: any, details: any | null) => {
+  if (!details) return job;
+  const { jobId: _jobId, ...detailFields } = details;
+  return { ...job, ...detailFields };
+};
+
 export const computeJobCountry = (job: DbJob) => {
   const locationInfo = deriveLocationFields(job);
   const locationCountries = locationInfo.countries ?? [];
@@ -385,6 +398,36 @@ export const computeJobCountry = (job: DbJob) => {
 
 const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
 const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+type FilterCursorPayload = {
+  raw: string | null;
+  carry: string[];
+  done: boolean;
+};
+
+const parseFilterCursor = (cursor?: string | null) => {
+  if (!cursor) {
+    return { rawCursor: null, carryIds: [] as string[], rawIsDone: false };
+  }
+
+  try {
+    const parsed = JSON.parse(cursor) as Partial<FilterCursorPayload> | null;
+    if (parsed && typeof parsed === "object" && ("raw" in parsed || "carry" in parsed || "done" in parsed)) {
+      return {
+        rawCursor: typeof parsed.raw === "string" ? parsed.raw : null,
+        carryIds: Array.isArray(parsed.carry) ? parsed.carry.filter((id): id is string => typeof id === "string") : [],
+        rawIsDone: typeof parsed.done === "boolean" ? parsed.done : false,
+      };
+    }
+  } catch {
+    // Not our cursor format.
+  }
+
+  return { rawCursor: cursor, carryIds: [] as string[], rawIsDone: false };
+};
+
+const buildFilterCursor = (rawCursor: string | null, carryIds: string[], rawIsDone: boolean) =>
+  JSON.stringify({ raw: rawCursor ?? null, carry: carryIds, done: rawIsDone } satisfies FilterCursorPayload);
 
 const baseDomainFromHost = (host: string): string => {
   const parts = host.split(".").filter(Boolean);
@@ -577,8 +620,49 @@ export const listJobs = query({
       }
     }
 
+    const jobPassesFilters = (job: any) => {
+      // Remove jobs user has already applied to or rejected
+      if (appliedJobIds.has(job._id)) {
+        return false;
+      }
+
+      const locationInfo = deriveLocationFields(job);
+      const jobCountry = computeJobCountry(job);
+
+      if (hasCountryFilter && !matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
+        return false;
+      }
+      if (stateFilter) {
+        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        if (!statesForFilter.includes(stateFilter)) return false;
+      }
+      if (args.includeRemote === false && job.remote) {
+        return false;
+      }
+      if (hasCompanyFilter) {
+        if (!matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasLookup)) {
+          return false;
+        }
+      }
+
+      // Apply compensation filters
+      const compensationUnknown = job.compensationUnknown === true;
+      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : 0;
+      if (args.hideUnknownCompensation && compensationUnknown) {
+        return false;
+      }
+      if (args.minCompensation !== undefined && !compensationUnknown && compValue < args.minCompensation) {
+        return false;
+      }
+      if (args.maxCompensation !== undefined && !compensationUnknown && compValue > args.maxCompensation) {
+        return false;
+      }
+      return true;
+    };
+
     // Apply search and filters
     let jobs;
+    let jobsAlreadyFiltered = false;
     if (shouldUseSearch) {
       const SEARCH_LIMIT = 100;
       const matches = await ctx.db
@@ -660,7 +744,63 @@ export const listJobs = query({
         baseQuery = baseQuery.filter((q: any) => q.eq(q.field("state"), args.state));
       }
 
-      jobs = await baseQuery.paginate(args.paginationOpts);
+      const needsFilteredPagination =
+        appliedJobIds.size > 0 ||
+        hasCompanyFilter ||
+        hasCountryFilter ||
+        args.hideUnknownCompensation === true ||
+        args.minCompensation !== undefined ||
+        args.maxCompensation !== undefined;
+
+      if (!needsFilteredPagination) {
+        jobs = await baseQuery.paginate(args.paginationOpts);
+      } else {
+        const pageSize = args.paginationOpts.numItems ?? 50;
+        const { rawCursor: initialRawCursor, carryIds, rawIsDone: initialRawIsDone } = parseFilterCursor(
+          args.paginationOpts.cursor
+        );
+        let rawCursor = initialRawCursor;
+        let rawIsDone = initialRawIsDone;
+        const filteredBuffer: any[] = [];
+
+        if (carryIds.length > 0) {
+          const carryJobs = await Promise.all(carryIds.map((id) => ctx.db.get(id as Id<"jobs">)));
+          for (const job of carryJobs) {
+            if (job && jobPassesFilters(job)) {
+              filteredBuffer.push(job);
+            }
+          }
+        }
+
+        while (filteredBuffer.length < pageSize && !rawIsDone) {
+          const page = await baseQuery.paginate({
+            ...args.paginationOpts,
+            cursor: rawCursor,
+            numItems: pageSize,
+          });
+          rawCursor = page.continueCursor;
+          rawIsDone = page.isDone;
+          if (!page.page.length) break;
+          const orderedPage = [...page.page].sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
+          for (const job of orderedPage) {
+            if (jobPassesFilters(job)) {
+              filteredBuffer.push(job);
+            }
+          }
+        }
+
+        const pageJobs = filteredBuffer.slice(0, pageSize);
+        const carryOverIds = filteredBuffer.slice(pageSize).map((job: any) => String(job._id));
+        const isDone = rawIsDone && carryOverIds.length === 0;
+        const continueCursor = isDone ? null : buildFilterCursor(rawCursor, carryOverIds, rawIsDone);
+
+        jobs = {
+          page: pageJobs,
+          isDone,
+          continueCursor,
+        };
+        jobsAlreadyFiltered = true;
+      }
     }
 
     // Ensure descending order by postedAt for all paths
@@ -669,45 +809,7 @@ export const listJobs = query({
     );
 
     // Filter out applied/rejected jobs and apply compensation filters
-    const filteredJobs = orderedPage.filter((job: any) => {
-      // Remove jobs user has already applied to or rejected
-      if (appliedJobIds.has(job._id)) {
-        return false;
-      }
-
-      const locationInfo = deriveLocationFields(job);
-      const jobCountry = computeJobCountry(job);
-
-      if (hasCountryFilter && !matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
-        return false;
-      }
-      if (stateFilter) {
-        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
-        if (!statesForFilter.includes(stateFilter)) return false;
-      }
-      if (args.includeRemote === false && job.remote) {
-        return false;
-      }
-      if (hasCompanyFilter) {
-        if (!matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasLookup)) {
-          return false;
-        }
-      }
-
-      // Apply compensation filters
-      const compensationUnknown = job.compensationUnknown === true;
-      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : 0;
-      if (args.hideUnknownCompensation && compensationUnknown) {
-        return false;
-      }
-      if (args.minCompensation !== undefined && !compensationUnknown && compValue < args.minCompensation) {
-        return false;
-      }
-      if (args.maxCompensation !== undefined && !compensationUnknown && compValue > args.maxCompensation) {
-        return false;
-      }
-      return true;
-    });
+    const filteredJobs = jobsAlreadyFiltered ? orderedPage : orderedPage.filter(jobPassesFilters);
 
     // Group jobs with same title/company/level/remote into one row, merging locations and URLs
     const grouped = new Map<string, { base: any; members: any[] }>();
@@ -902,7 +1004,13 @@ export const reparseJobFromDescription = mutation({
     const job = await ctx.db.get(args.jobId);
     if (!job) throw new Error("Job not found");
 
-    const description = typeof job.description === "string" ? job.description : "";
+    const details = await getJobDetailsByJobId(ctx, args.jobId);
+    const description =
+      typeof details?.description === "string"
+        ? details.description
+        : typeof (job as any).description === "string"
+          ? (job as any).description
+          : "";
     const hints = parseMarkdownHints(description);
     const updates = buildUpdatesFromHints(job, hints);
     const derivedCompany = deriveCompanyFromUrl(job.url || "");
@@ -929,7 +1037,13 @@ export const reparseAllJobs = mutation({
     let updated = 0;
 
     for (const job of jobs) {
-      const description = typeof (job as any).description === "string" ? (job as any).description : "";
+      const details = await getJobDetailsByJobId(ctx, job._id);
+      const description =
+        typeof details?.description === "string"
+          ? details.description
+          : typeof (job as any).description === "string"
+            ? (job as any).description
+            : "";
       const hints = parseMarkdownHints(description);
       const updates = buildUpdatesFromHints(job as any, hints);
       const derivedCompany = deriveCompanyFromUrl((job as any).url || "");
@@ -1047,7 +1161,21 @@ export const getJobById = query({
     if (!job) return null;
 
     const normalized = await ensureLocationFields(ctx, job as any);
-    return normalized;
+    const details = await getJobDetailsByJobId(ctx, args.id);
+    return mergeJobDetails(normalized, details);
+  },
+});
+
+export const getJobDetails = query({
+  args: {
+    jobId: v.optional(v.id("jobs")),
+  },
+  handler: async (ctx, args) => {
+    if (!args.jobId) return null;
+    const details = await getJobDetailsByJobId(ctx, args.jobId);
+    if (!details) return null;
+    const { jobId: _jobId, ...detailFields } = details as any;
+    return detailFields;
   },
 });
 
@@ -1090,13 +1218,22 @@ export const normalizeDevTestJobs = mutation({
   args: {},
   handler: async (ctx) => {
     const jobs = await ctx.db.query("jobs").collect();
+    const detailRows = await ctx.db.query("job_details").collect();
+    const detailByJobId = new Map(detailRows.map((row: any) => [String(row.jobId), row]));
     const needsFix = jobs.filter((j: any) => {
       const tooShort = (s: any) => typeof s === "string" && s.trim().length <= 2;
+      const details = detailByJobId.get(String(j._id));
+      const description =
+        typeof details?.description === "string"
+          ? details.description
+          : typeof j.description === "string"
+            ? j.description
+            : "";
       return (
         (j.title && (j.title.startsWith("HC-") || tooShort(j.title))) ||
         tooShort(j.company) ||
         tooShort(j.location) ||
-        tooShort(j.description) ||
+        tooShort(description) ||
         (typeof j.totalCompensation === "number" && j.totalCompensation <= 10) ||
         j.company === "Health Co"
       );
@@ -1118,17 +1255,25 @@ export const normalizeDevTestJobs = mutation({
       const comp = 100000 + Math.floor(Math.random() * 90000);
       const loc = pick(locations);
       const { city, state } = splitLocation(loc);
+      const detailPatch = {
+        description:
+          "This is a realistic sample listing used for development. Replace with real scraped data in production.",
+      };
       await ctx.db.patch(j._id, {
         title: pick(titles),
         company: pick(companies),
         location: formatLocationLabel(city, state, loc),
         city,
         state,
-        description:
-          "This is a realistic sample listing used for development. Replace with real scraped data in production.",
         totalCompensation: comp,
         remote: loc.toLowerCase().includes("remote") ?? true,
       });
+      const existingDetails = detailByJobId.get(String(j._id));
+      if (existingDetails) {
+        await ctx.db.patch(existingDetails._id, detailPatch);
+      } else {
+        await ctx.db.insert("job_details", { jobId: j._id, ...detailPatch });
+      }
       updates++;
     }
     return { success: true, updated: updates };

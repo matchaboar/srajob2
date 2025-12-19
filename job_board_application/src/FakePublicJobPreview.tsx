@@ -125,7 +125,9 @@ export function FakePublicJobPreview() {
                         </div>
                         <p className="text-sm font-medium text-slate-300 mb-1">{job.company}</p>
                         <p className="text-xs text-slate-500 mb-2">{job.location}</p>
-                        <p className="text-sm text-slate-400 mb-3 line-clamp-2 leading-relaxed">{job.description}</p>
+                        <p className="text-sm text-slate-500 mb-3 line-clamp-2 leading-relaxed italic">
+                          Sign in to read the full description.
+                        </p>
                         <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800/50 pt-3">
                           <span
                             className={`font-mono ${meta.isUnknown ? "text-amber-300 border-amber-500/20 bg-amber-500/5" : "text-emerald-400 border-emerald-500/10 bg-emerald-500/5"} px-1.5 py-0.5 rounded border`}

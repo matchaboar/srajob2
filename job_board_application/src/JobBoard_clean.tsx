@@ -232,7 +232,7 @@ export function JobBoard() {
           </div>
           <p className="text-base font-medium text-gray-700 mb-0.5">{job.company}</p>
           <p className="text-sm text-gray-600 mb-1">{job.location}</p>
-          <p className="text-sm text-gray-700 mb-2 line-clamp-2">{job.description}</p>
+          <p className="text-sm text-gray-700 mb-2 line-clamp-2">Open the job to view the full description.</p>
           <div className="flex items-center gap-4 text-xs text-gray-600">
             <span className="font-medium text-green-600">
               {formatSalary(job.totalCompensation)}
