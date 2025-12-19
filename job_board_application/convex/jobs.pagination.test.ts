@@ -27,8 +27,6 @@ type Page = {
 };
 
 class FakeJobsQuery {
-  private paginated = false;
-
   constructor(
     private readonly pagesByCursor: Map<string | null, Page>,
     private readonly tracker: { totalPaginateCalls: number }
@@ -53,11 +51,10 @@ class FakeJobsQuery {
   }
 
   paginate(opts: { cursor?: string | null }) {
-    if (this.paginated) {
-      throw new Error("paginate called twice on the same query instance");
-    }
-    this.paginated = true;
     this.tracker.totalPaginateCalls += 1;
+    if (this.tracker.totalPaginateCalls > 1) {
+      throw new Error("paginate called more than once in a single handler");
+    }
     const cursor = opts?.cursor ?? null;
     return (
       this.pagesByCursor.get(cursor) ?? {
@@ -120,15 +117,8 @@ describe("listJobs pagination", () => {
       isDone: false,
       continueCursor: "cursor-1",
     };
-    const page2: Page = {
-      page: [buildJob("job-2", 90)],
-      isDone: true,
-      continueCursor: null,
-    };
-
     const pagesByCursor = new Map<string | null, Page>([
       [null, page1],
-      ["cursor-1", page2],
     ]);
     const tracker = { totalPaginateCalls: 0 };
     const ctx = buildCtx(pagesByCursor, tracker);
@@ -140,6 +130,7 @@ describe("listJobs pagination", () => {
     });
 
     expect(result.page.length).toBeGreaterThan(0);
-    expect(tracker.totalPaginateCalls).toBe(2);
+    expect(result.continueCursor).not.toBeNull();
+    expect(tracker.totalPaginateCalls).toBe(1);
   });
 });

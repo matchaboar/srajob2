@@ -776,19 +776,21 @@ export const listJobs = query({
           }
         }
 
-        while (filteredBuffer.length < pageSize && !rawIsDone) {
+        if (!rawIsDone && filteredBuffer.length < pageSize) {
+          const expandedSize = Math.min(pageSize * 4, 200);
           const page = await buildBaseQuery().paginate({
             ...args.paginationOpts,
             cursor: rawCursor,
-            numItems: pageSize,
+            numItems: expandedSize,
           });
           rawCursor = page.continueCursor;
           rawIsDone = page.isDone;
-          if (!page.page.length) break;
-          const orderedPage = [...page.page].sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
-          for (const job of orderedPage) {
-            if (jobPassesFilters(job)) {
-              filteredBuffer.push(job);
+          if (page.page.length) {
+            const orderedPage = [...page.page].sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
+            for (const job of orderedPage) {
+              if (jobPassesFilters(job)) {
+                filteredBuffer.push(job);
+              }
             }
           }
         }
