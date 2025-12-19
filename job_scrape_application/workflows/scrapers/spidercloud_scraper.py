@@ -17,6 +17,7 @@ from ...components.models import extract_greenhouse_job_urls, load_greenhouse_bo
 from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
+    MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
     coerce_level,
     coerce_remote,
@@ -398,7 +399,10 @@ class SpiderCloudScraper(BaseScraper):
             "requestedFormat": "json",
         }
 
-        trimmed = self.deps.trim_scrape_for_convex(scrape_payload)
+        trimmed = self.deps.trim_scrape_for_convex(
+            scrape_payload,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
+        )
         logger.info(
             "Site API fetch succeeded handler=%s url=%s jobs=%s job_urls=%s",
             handler.name,
@@ -900,7 +904,10 @@ class SpiderCloudScraper(BaseScraper):
         if cost_milli_cents is not None:
             scrape_payload["costMilliCents"] = cost_milli_cents
 
-        trimmed = self.deps.trim_scrape_for_convex(scrape_payload)
+        trimmed = self.deps.trim_scrape_for_convex(
+            scrape_payload,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
+        )
         trimmed_items = trimmed.get("items")
         if isinstance(trimmed_items, dict):
             trimmed_items.setdefault("seedUrls", urls)

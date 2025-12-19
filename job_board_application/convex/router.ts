@@ -1637,7 +1637,39 @@ export const resetTodayAndRunAllScheduled = mutation({
           .paginate({ cursor, numItems: 200 });
 
         for (const job of page as any[]) {
+          const detail = await ctx.db
+            .query("job_details")
+            .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+            .first();
+          if (detail) {
+            await ctx.db.delete(detail._id);
+          }
           await ctx.db.delete(job._id);
+          deleted += 1;
+        }
+
+        if (isDone) break;
+        cursor = continueCursor;
+      }
+      return deleted;
+    };
+
+    const deleteScrapesToday = async () => {
+      let deleted = 0;
+      let cursor: any = null;
+      while (true) {
+        const { page, isDone, continueCursor } = await ctx.db
+          .query("scrapes")
+          .filter((q: any) =>
+            q.or(
+              q.and(q.gte(q.field("completedAt"), startOfDay), q.lt(q.field("completedAt"), endOfDay)),
+              q.and(q.gte(q.field("startedAt"), startOfDay), q.lt(q.field("startedAt"), endOfDay))
+            )
+          )
+          .paginate({ cursor, numItems: 200 });
+
+        for (const row of page as any[]) {
+          await ctx.db.delete(row._id);
           deleted += 1;
         }
 
@@ -1723,12 +1755,14 @@ export const resetTodayAndRunAllScheduled = mutation({
     };
 
     const jobsDeleted = await deleteJobsScrapedToday();
+    const scrapesDeleted = await deleteScrapesToday();
     const queueDeleted = await deleteQueuedScrapeUrls();
     const skippedDeleted = await deleteSkippedJobsToday();
     const sitesTriggered = await triggerScheduledSites();
 
     return {
       jobsDeleted,
+      scrapesDeleted,
       queueDeleted,
       skippedDeleted,
       sitesTriggered,

@@ -1202,6 +1202,7 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
     assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in urls
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in urls
     assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
+    assert "https://www.github.careers/careers-home/jobs/4843?lang=en-us" not in urls
 
 
 def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():
@@ -1220,6 +1221,38 @@ def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():
     assert "https://example.com/jobs/1" in urls
     assert "https://example.com/jobs/3" in urls  # Remote allowed when location omitted/remote.
     assert "https://example.com/jobs/2" not in urls  # filtered: title keyword + non-US location.
+
+
+def test_extract_job_urls_from_scrape_markdown_location_context_filters():
+    markdown = """
+    [Senior Software Engineer](https://example.com/careers/jobs/123)
+    Location United States
+    [Support Engineer](https://example.com/careers/jobs/456)
+    Location Canada
+    """
+
+    scrape = {"items": {"raw": [{"content": markdown}], "provider": "spidercloud"}}
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://example.com/careers/jobs/123" in urls
+    assert "https://example.com/careers/jobs/456" not in urls
+
+
+def test_extract_job_urls_from_scrape_markdown_read_more_context():
+    markdown = """
+    Senior Software Engineer
+    Location United States
+    [Read More](https://example.com/careers/jobs/789)
+    [Apply Now](https://example.com/careers/jobs/789/apply)
+    """
+
+    scrape = {"items": {"raw": [{"content": markdown}], "provider": "spidercloud"}}
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://example.com/careers/jobs/789" in urls
+    assert "https://example.com/careers/jobs/789/apply" not in urls
 
 
 @pytest.mark.asyncio

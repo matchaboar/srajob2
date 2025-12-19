@@ -7,13 +7,8 @@ import { CompanyNamesSection } from "../AdminPage";
 
 vi.mock("convex/react", () => {
   let domainAliasesFixture: any = undefined;
-  let searchCompaniesFixture: any = [];
-  let useQueryCallCount = 0;
 
-  const useQuery = vi.fn((_queryFn: any, _args?: any) => {
-    const callIndex = useQueryCallCount++;
-    return callIndex % 2 === 0 ? domainAliasesFixture : searchCompaniesFixture;
-  });
+  const useQuery = vi.fn((_queryFn: any, _args?: any) => domainAliasesFixture);
 
   const useMutation = vi.fn(() => vi.fn(async () => ({})));
 
@@ -23,11 +18,8 @@ vi.mock("convex/react", () => {
     __setDomainAliases: (value: any) => {
       domainAliasesFixture = value;
     },
-    __setSearchCompanies: (value: any) => {
-      searchCompaniesFixture = value;
-    },
     __resetUseQueryCounter: () => {
-      useQueryCallCount = 0;
+      // No-op for backward compatibility with existing tests.
     },
   };
 });
@@ -48,7 +40,6 @@ afterEach(() => {
 describe("Admin CompanyNamesSection hook order", () => {
   it("rerenders safely across listDomainAliases transitions", () => {
     (convexReact as any).__setDomainAliases(undefined);
-    (convexReact as any).__setSearchCompanies([]);
     const { rerender } = render(<CompanyNamesSection />);
     expect(screen.getByText(/Loading company names/i)).toBeInTheDocument();
 

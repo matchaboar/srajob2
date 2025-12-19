@@ -43,6 +43,7 @@ from ..helpers.provider import (
     sanitize_headers,
 )
 from ..helpers.scrape_utils import (
+    MAX_JOB_DESCRIPTION_CHARS,
     _jobs_from_scrape_items,
     _shrink_payload,
     build_firecrawl_schema,
@@ -1078,7 +1079,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         return trim_scrape_for_convex(
             scrape,
             max_items=50,  # we only ever keep one normalized row per scrape here
-            max_description=4000,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
             raw_preview_chars=2000,
             request_max_chars=1500,
         )
@@ -2165,6 +2166,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     md_link_re = re.compile(MARKDOWN_LINK_PATTERN)
     greenhouse_re = re.compile(GREENHOUSE_URL_PATTERN, re.IGNORECASE)
+    location_line_re = re.compile(r"^\s*location\b\s*[:\-–]?\s*(?P<location>.+)$", re.IGNORECASE)
+    apply_text_re = re.compile(r"\bapply\b", re.IGNORECASE)
     dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
 
     class _AnchorParser(HTMLParser):  # noqa: N801
@@ -2224,13 +2227,55 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return (left.strip() or None, right.strip() or None)
         return val, None
 
+    def _extract_location_from_context(lines: list[str]) -> Optional[str]:
+        for line in lines:
+            match = location_line_re.search(line)
+            if match:
+                return match.group("location").strip()
+        return None
+
+    def _looks_like_job_detail_url(url: str) -> bool:
+        try:
+            path = urlparse(url).path
+        except Exception:
+            return False
+        lower = (path or "").lower()
+        if not any(token in lower for token in ("/job", "/jobs", "/career", "/careers", "/position", "/positions")):
+            return False
+        segments = [seg for seg in lower.split("/") if seg]
+        for idx, seg in enumerate(segments):
+            if seg in {"job", "jobs", "career", "careers", "position", "positions"}:
+                return idx + 1 < len(segments)
+        return False
+
+    def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
+        if title_text and apply_text_re.search(title_text):
+            return True
+        lower = url.lower()
+        return any(token in lower for token in ("/apply", "/login", "/register", "/signup"))
+
+    def _extract_markdown_links_with_context(
+        text: str,
+    ) -> list[tuple[str, Optional[str], Optional[str], str, Optional[str]]]:
+        links: list[tuple[str, Optional[str], Optional[str], str, Optional[str]]] = []
+        lines = text.splitlines()
+        for idx, line in enumerate(lines):
+            if "[" not in line or "](" not in line:
+                continue
+            for match in md_link_re.finditer(line):
+                title_text = match.group(1).strip()
+                url = match.group(2).strip()
+                start = max(0, idx - 4)
+                end = min(len(lines), idx + 5)
+                context_lines = [ln.strip() for ln in lines[start:end] if ln.strip()]
+                context_text = " ".join(context_lines)
+                title, loc = _split_title_and_location(title_text)
+                context_location = _extract_location_from_context(context_lines)
+                links.append((url, title or title_text, loc, context_text, context_location))
+        return links
+
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
         links: list[tuple[str, Optional[str], Optional[str]]] = []
-        for match in md_link_re.finditer(text):
-            title_text = match.group(1).strip()
-            url = match.group(2).strip()
-            title, loc = _split_title_and_location(title_text)
-            links.append((url, title or title_text, loc))
 
         parser = _AnchorParser()
         try:
@@ -2282,6 +2327,28 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 pass
         if not isinstance(text, str):
             continue
+        for url, title, location, context_text, context_location in _extract_markdown_links_with_context(text):
+            if not url or not url.startswith("http"):
+                continue
+            title_match = title_matches_required_keywords(title)
+            context_match = False
+            if not title_match and context_text:
+                context_match = title_matches_required_keywords(context_text)
+            if not title_match and not context_match:
+                continue
+            location_value = location or context_location
+            if location_value and not location_matches_usa(location_value):
+                continue
+            if not title_match:
+                if _looks_like_apply_link(title, url):
+                    continue
+                if not _looks_like_job_detail_url(url):
+                    continue
+            if url in seen:
+                continue
+            seen.add(url)
+            urls.append(url)
+
         for url, title, location in _extract_from_text(text):
             if not url or not url.startswith("http"):
                 continue

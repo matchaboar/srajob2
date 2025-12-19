@@ -10,7 +10,7 @@ from fetchfox_sdk import FetchFox
 from temporalio.exceptions import ApplicationError
 
 from ...components.models import FetchFoxPriority, FetchFoxScrapeRequest, GreenhouseBoardResponse, MAX_FETCHFOX_VISITS
-from ..helpers.scrape_utils import _shrink_payload
+from ..helpers.scrape_utils import MAX_JOB_DESCRIPTION_CHARS, _shrink_payload
 from .base import BaseScraper
 
 if TYPE_CHECKING:
@@ -129,7 +129,10 @@ class FetchfoxScraper(BaseScraper):
             response=_shrink_payload(result_obj, 20000),
         )
 
-        return self.deps.trim_scrape_for_convex(scrape_payload)
+        return self.deps.trim_scrape_for_convex(
+            scrape_payload,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
+        )
 
     async def fetch_greenhouse_listing(self, site: Site) -> Dict[str, Any]:  # type: ignore[override]
         settings = self.deps.settings
@@ -252,7 +255,10 @@ class FetchfoxScraper(BaseScraper):
             },
         }
 
-        trimmed = self.deps.trim_scrape_for_convex(scrape_payload)
+        trimmed = self.deps.trim_scrape_for_convex(
+            scrape_payload,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
+        )
         items = trimmed.get("items", {})
         if isinstance(items, dict):
             items.setdefault("seedUrls", urls)

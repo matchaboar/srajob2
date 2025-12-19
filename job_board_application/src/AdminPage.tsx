@@ -101,22 +101,6 @@ const deriveSiteName = (rawUrl: string): string => {
   return "Site";
 };
 
-const cleanCompanyName = (name: string, url: string): string => {
-  const base = (name || "").trim() || deriveSiteName(url);
-  const withoutSuffix = base
-    .replace(/\binc(?:orporated)?\.?$/i, "")
-    .replace(/\b(llc|ltd|corp|co|company|inc)\.?$/gi, "")
-    .trim();
-  const normalized = withoutSuffix || base;
-  const slugged = normalized
-    .split(/[\s._-]+/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join(" ");
-  const titleCased = toTitleCaseSlug(slugged || normalized);
-  return titleCased || normalized || "Site";
-};
-
 const resolvePipeline = (provider: ScrapeProvider, siteType?: string) => {
   const normalized = provider || (siteType === "greenhouse" ? "spidercloud" : "spidercloud");
   if (normalized === "fetchfox_spidercloud") {
@@ -774,7 +758,9 @@ export function AdminPage() {
             section === "activity" || section === "urlScrapes" ? "max-w-none" : "max-w-5xl mx-auto"
           )}
         >
-          {section === "scraper" && <ScraperConfigSection />}
+          {section === "scraper" && (
+            <ScraperConfigSection onOpenCompanyNames={() => setNavState({ section: "companyNames", runsUrl: null })} />
+          )}
           {section === "companyNames" && <CompanyNamesSection />}
           {section === "activity" && <ScrapeActivitySection onOpenRuns={(url) => setNavState({ section: "activityRuns", runsUrl: url })} />}
           {section === "activityRuns" && <WorkflowRunsSection url={runsUrl} onBack={() => setNavState({ section: "activity", runsUrl: null })} />}
@@ -809,27 +795,10 @@ function SidebarItem({ label, active, onClick }: { label: string; active: boolea
 export function CompanyNamesSection() {
   const domainAliases = useQuery(api.router.listDomainAliases);
   const setDomainAlias = useMutation(api.router.setDomainAlias);
-  const renameCompany = useMutation(api.router.renameCompany);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingDomain, setSavingDomain] = useState<string | null>(null);
-  const [renameOldName, setRenameOldName] = useState("");
-  const [renameNewName, setRenameNewName] = useState("");
-  const [renameFocused, setRenameFocused] = useState(false);
-  const [renaming, setRenaming] = useState(false);
   const [domainSearch, setDomainSearch] = useState("");
   const [showAllDomains, setShowAllDomains] = useState(false);
-
-  const renameSuggestions = useQuery(api.jobs.searchCompanies, {
-    search: renameOldName.trim(),
-    limit: 10,
-  });
-
-  const filteredRenameSuggestions = useMemo(() => {
-    const suggestions = (renameSuggestions as any[]) ?? [];
-    const q = renameOldName.trim().toLowerCase();
-    if (!q) return suggestions;
-    return suggestions.filter((s) => (s?.name ?? "").toLowerCase().includes(q));
-  }, [renameSuggestions, renameOldName]);
 
   const handleSave = async (domain: string, fallbackAlias: string, siteUrl?: string) => {
     const nextAlias = (drafts[domain] ?? fallbackAlias ?? "").trim();
@@ -863,31 +832,6 @@ export function CompanyNamesSection() {
       }
       return next;
     });
-  };
-
-  const handleRenameExisting = async () => {
-    const oldName = renameOldName.trim();
-    const newName = renameNewName.trim();
-    if (!oldName || !newName) {
-      toast.error("Both company names are required");
-      return;
-    }
-    try {
-      setRenaming(true);
-      const res = await renameCompany({ oldName, newName });
-      const updatedJobs = (res as any)?.updatedJobs ?? 0;
-      if (updatedJobs > 0) {
-        toast.success(`Renamed ${updatedJobs} job${updatedJobs === 1 ? "" : "s"}`);
-      } else {
-        toast.success("No matching jobs found");
-      }
-      setRenameOldName("");
-      setRenameNewName("");
-    } catch {
-      toast.error("Failed to rename company");
-    } finally {
-      setRenaming(false);
-    }
   };
 
   if (domainAliases === undefined) {
@@ -938,7 +882,7 @@ export function CompanyNamesSection() {
           <h2 className="text-lg font-semibold text-white">Company Names</h2>
           <p className="text-xs text-slate-400 max-w-2xl">
             Give each scrape domain a clean, human-friendly company name. Aliases are applied to historical jobs
-            and to all future scrapes for that domain.
+            and to all future scrapes for that domain. This is the single place to manage company display names.
           </p>
         </div>
         <div className="text-[11px] text-slate-400 px-2 py-1 border border-slate-800 rounded bg-slate-950/50">
@@ -946,75 +890,12 @@ export function CompanyNamesSection() {
         </div>
       </div>
 
-      <details className="mb-4 bg-slate-950/40 border border-slate-800 rounded p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-white">
-          Rename existing company values
-        </summary>
-        <div className="mt-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-            <div className="relative">
-              <input
-                type="text"
-                value={renameOldName}
-                onChange={(e) => setRenameOldName(e.target.value)}
-                onFocus={() => setRenameFocused(true)}
-                onBlur={() => setRenameFocused(false)}
-                placeholder="Current company (as shown on jobs)"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {renameFocused && filteredRenameSuggestions.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-slate-950 border border-slate-800 rounded shadow">
-                  {filteredRenameSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.name}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setRenameOldName(suggestion.name);
-                        setRenameFocused(false);
-                      }}
-                      className="w-full flex justify-between items-center px-2 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-900"
-                    >
-                      <span className="truncate">{suggestion.name}</span>
-                      <span className="text-[11px] text-slate-500">{suggestion.count}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <input
-              type="text"
-              value={renameNewName}
-              onChange={(e) => setRenameNewName(e.target.value)}
-              placeholder="New company name"
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => { void handleRenameExisting(); }}
-              disabled={renaming}
-              className={clsx(
-                "px-3 py-1.5 rounded text-sm font-medium transition-colors",
-                renaming
-                  ? "bg-emerald-800/60 text-emerald-100 cursor-not-allowed"
-                  : "bg-emerald-600 text-white hover:bg-emerald-500"
-              )}
-            >
-              {renaming ? "Renaming..." : "Rename jobs"}
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-2">
-            Use this for one-off bad scraped names (e.g. hostname-like companies). For future scrapes, set a domain alias below.
-          </p>
-        </div>
-      </details>
-
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <input
           type="text"
           value={domainSearch}
           onChange={(e) => setDomainSearch(e.target.value)}
-          placeholder="Filter domains or company names..."
+          placeholder="Search domains or aliases..."
           className="flex-1 min-w-[220px] md:max-w-sm bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <label className="flex items-center gap-2 text-xs text-slate-400">
@@ -1027,6 +908,7 @@ export function CompanyNamesSection() {
           Show domains without aliases
         </label>
       </div>
+      <p className="text-[11px] text-slate-500 mb-3">Search filters the list; edit aliases in the table below.</p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-200">
@@ -1133,7 +1015,7 @@ export function CompanyNamesSection() {
   );
 }
 
-function ScraperConfigSection() {
+function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () => void }) {
   const [showDisabled, setShowDisabled] = useState(false);
   const sites = useQuery(api.router.listSites, { enabledOnly: !showDisabled });
   const allSites = useQuery(api.router.listSites, { enabledOnly: false });
@@ -1143,7 +1025,6 @@ function ScraperConfigSection() {
   const bulkUpsertSites = useMutation(api.router.bulkUpsertSites);
   const runSiteNow = useMutation(api.router.runSiteNow);
   const updateSiteEnabled = useMutation(api.router.updateSiteEnabled);
-  const updateSiteName = useMutation(api.router.updateSiteName);
   const updateSiteSchedule = useMutation(api.router.updateSiteSchedule);
   const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
   const upsertSchedule = useMutation(api.router.upsertSchedule);
@@ -1173,8 +1054,6 @@ function ScraperConfigSection() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [deletingScheduleId, setDeletingScheduleId] = useState<ScheduleId | null>(null);
   const [updatingSiteScheduleId, setUpdatingSiteScheduleId] = useState<string | null>(null);
-  const [nameEdits, setNameEdits] = useState<Record<string, string>>({});
-  const [savingSiteNameId, setSavingSiteNameId] = useState<string | null>(null);
   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
   const siteRowColumns = "grid grid-cols-[minmax(0,1.7fr)_minmax(0,1.05fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)]";
 
@@ -1369,35 +1248,6 @@ function ScraperConfigSection() {
       }
       return next;
     });
-  };
-
-  const handleSaveSiteName = async (siteId: string, nextName: string) => {
-    const trimmed = nextName.trim();
-    if (!trimmed) {
-      toast.error("Name cannot be empty");
-      return;
-    }
-    try {
-      setSavingSiteNameId(siteId);
-      const res = await updateSiteName({ id: siteId as any, name: trimmed });
-      setNameEdits((prev) => ({ ...prev, [siteId]: trimmed }));
-      const updatedJobs = (res as any)?.updatedJobs ?? 0;
-      if (updatedJobs > 0) {
-        toast.success(`Name updated; ${updatedJobs} job${updatedJobs === 1 ? "" : "s"} retagged`);
-      } else {
-        toast.success("Name updated");
-      }
-    } catch {
-      toast.error("Failed to update name");
-    } finally {
-      setSavingSiteNameId((prev) => (prev === siteId ? null : prev));
-    }
-  };
-
-  const handleAutoFixSiteName = async (siteId: string, url: string, currentName: string | undefined) => {
-    const suggestion = cleanCompanyName(currentName ?? "", url);
-    setNameEdits((prev) => ({ ...prev, [siteId]: suggestion }));
-    await handleSaveSiteName(siteId, suggestion);
   };
 
   const toggleSiteExpanded = (siteId: string) => {
@@ -2058,32 +1908,21 @@ function ScraperConfigSection() {
 
                 {isExpanded && (
                   <div className="pt-3 border-t border-slate-800 space-y-3 mt-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <input
-                        value={nameEdits[siteId] ?? s.name ?? ""}
-                        onChange={(e) => setNameEdits((prev) => ({ ...prev, [siteId]: e.target.value }))}
-                        className="w-48 sm:w-64 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                        placeholder="Site name"
-                      />
-                      <button
-                        onClick={() => { void handleSaveSiteName(siteId, nameEdits[siteId] ?? s.name ?? ""); }}
-                        disabled={savingSiteNameId === siteId || !(nameEdits[siteId] ?? s.name ?? "").trim()}
-                        className={clsx(
-                          "text-[11px] px-2 py-1 rounded border transition-colors",
-                          savingSiteNameId === siteId
-                            ? "border-slate-800 text-slate-500 cursor-not-allowed"
-                            : "border-emerald-800 text-emerald-200 hover:bg-emerald-900/20"
-                        )}
-                      >
-                        {savingSiteNameId === siteId ? "Saving..." : "Save name"}
-                      </button>
-                      <button
-                        onClick={() => { void handleAutoFixSiteName(siteId, s.url, nameEdits[siteId] ?? s.name ?? ""); }}
-                        disabled={savingSiteNameId === siteId}
-                        className="text-[11px] px-2 py-1 rounded border border-sky-800 text-sky-100 hover:bg-sky-900/30 transition-colors"
-                      >
-                        Auto-fix
-                      </button>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      <span className="text-slate-400">
+                        Company name:
+                        <span className="text-slate-100 font-semibold ml-1">{s.name || "Untitled"}</span>
+                      </span>
+                      <span className="text-slate-500">Manage aliases in Company Names to retag jobs.</span>
+                      {onOpenCompanyNames && (
+                        <button
+                          type="button"
+                          onClick={onOpenCompanyNames}
+                          className="text-[11px] px-2 py-1 rounded border border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors"
+                        >
+                          Open Company Names
+                        </button>
+                      )}
                     </div>
 
                     <div className="text-[11px] text-slate-300 space-y-1">
@@ -2858,7 +2697,7 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 
   const handleResetTodayAndRunAll = async () => {
     const confirmed = window.confirm(
-      "This will delete all jobs scraped today, clear every queued scrape URL, remove today's skipped jobs, and trigger every enabled scheduled site to run now. Continue?"
+      "This will delete all scrapes and jobs from today, clear every queued scrape URL, remove today's skipped jobs, and trigger every enabled scheduled site to run now. Continue?"
     );
     if (!confirmed) return;
 
@@ -2866,7 +2705,7 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
       setResettingToday(true);
       const res = await resetTodayAndRunAll({});
       toast.success(
-        `Deleted ${res.jobsDeleted ?? 0} jobs, cleared ${res.queueDeleted ?? 0} queued URLs, removed ${res.skippedDeleted ?? 0} skipped, triggered ${res.sitesTriggered ?? 0} sites`
+        `Deleted ${res.jobsDeleted ?? 0} jobs, removed ${res.scrapesDeleted ?? 0} scrapes, cleared ${res.queueDeleted ?? 0} queued URLs, removed ${res.skippedDeleted ?? 0} skipped, triggered ${res.sitesTriggered ?? 0} sites`
       );
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to reset and run all scheduled sites");
@@ -2925,7 +2764,7 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
                   ? "bg-red-900/60 cursor-not-allowed"
                   : "bg-red-700 hover:bg-red-600"
               )}
-              title="Deletes today's scraped and skipped records, clears the scrape queue, and manually triggers all enabled scheduled sites"
+              title="Deletes today's scrapes/jobs/skipped records, clears the scrape queue, and manually triggers all enabled scheduled sites"
             >
               {resettingToday ? "Running..." : "Purge today + Run all scheduled"}
             </button>

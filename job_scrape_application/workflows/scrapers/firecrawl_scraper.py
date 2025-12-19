@@ -11,6 +11,7 @@ from firecrawl.v2.utils.error_handler import PaymentRequiredError, RequestTimeou
 from temporalio.exceptions import ApplicationError
 
 from ...components.models import GreenhouseBoardResponse
+from ..helpers.scrape_utils import MAX_JOB_DESCRIPTION_CHARS
 from ..exceptions import (
     NonRetryableWorkflowError,
     PaymentRequiredWorkflowError,
@@ -331,7 +332,10 @@ class FirecrawlScraper(BaseScraper):
             },
         }
 
-        trimmed = self.deps.trim_scrape_for_convex(scrape_payload)
+        trimmed = self.deps.trim_scrape_for_convex(
+            scrape_payload,
+            max_description=MAX_JOB_DESCRIPTION_CHARS,
+        )
         items = trimmed.get("items", {})
         if isinstance(items, dict):
             items.setdefault("seedUrls", urls)
