@@ -14,6 +14,7 @@ $script:TemporalCmd = ""
 $script:TemporalUsingPodman = $false
 $script:CancelRequested = $false
 $script:WorkerProcess = $null
+$script:WorkerProcesses = @()
 $script:ShutdownStopwatch = $null
 $script:ShutdownHandled = $false
 $script:ErrorWatcher = $null
@@ -439,7 +440,7 @@ function Stop-TemporalContainer {
 
 function Stop-WorkerAndContainer {
     param(
-        $WorkerProcess,
+        $WorkerProcesses,
         [switch]$SkipContainer = $false,
         [System.Diagnostics.Stopwatch]$Timer = $null,
         [string]$Reason = "shutdown"
@@ -465,14 +466,16 @@ function Stop-WorkerAndContainer {
         Stop-ErrorWatcher
     }
 
-    if ($WorkerProcess -and -not $WorkerProcess.HasExited) {
-        Write-Host "[shutdown] Killing worker process pid=$($WorkerProcess.Id)" -ForegroundColor Yellow
-        try { Stop-Process -Id $WorkerProcess.Id -Force -ErrorAction SilentlyContinue } catch {}
-        try {
-            Wait-Process -Id $WorkerProcess.Id -Timeout 5 -ErrorAction SilentlyContinue
-        } catch {}
-        if (-not $WorkerProcess.HasExited) {
-            Write-Warning "[shutdown] Worker still running after kill attempt; stopping any detected worker children."
+    if ($WorkerProcesses -and $WorkerProcesses.Count -gt 0) {
+        foreach ($worker in $WorkerProcesses) {
+            $proc = $worker.Process
+            if ($proc -and -not $proc.HasExited) {
+                Write-Host "[shutdown] Killing worker process pid=$($proc.Id) role=$($worker.Role)" -ForegroundColor Yellow
+                try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+                try {
+                    Wait-Process -Id $proc.Id -Timeout 5 -ErrorAction SilentlyContinue
+                } catch {}
+            }
         }
         Stop-ExistingWorkers
     }
@@ -497,19 +500,36 @@ function Start-WorkerProcess {
     param(
         [string]$ErrorLogPath,
         [string]$TemporalAddress,
-        [string]$TemporalNamespace
+        [string]$TemporalNamespace,
+        [string]$Role = "all",
+        [string]$TaskQueue = "scraper-task-queue",
+        [string]$JobDetailsQueue = ""
     )
 
-    $env:TEMPORAL_ADDRESS = $TemporalAddress
-    $env:TEMPORAL_NAMESPACE = $TemporalNamespace
+    $envBlock = @{}
+    foreach ($entry in Get-ChildItem Env:) {
+        $envBlock[$entry.Name] = $entry.Value
+    }
+    $envBlock["TEMPORAL_ADDRESS"] = $TemporalAddress
+    $envBlock["TEMPORAL_NAMESPACE"] = $TemporalNamespace
+    $envBlock["TEMPORAL_TASK_QUEUE"] = $TaskQueue
+    $envBlock["TEMPORAL_WORKER_ROLE"] = $Role
+    if ($JobDetailsQueue) {
+        $envBlock["TEMPORAL_JOB_DETAILS_TASK_QUEUE"] = $JobDetailsQueue
+    }
 
     $workerArgs = @("run", "python", "-u", "-m", "job_scrape_application.workflows.worker")
-    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath
+    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath -Environment $envBlock
     if (-not $proc) {
         throw "Failed to start worker process."
     }
     $script:WorkerProcId = $proc.Id
-    return $proc
+    return @{
+        Process = $proc
+        Role = $Role
+        TaskQueue = $TaskQueue
+        JobDetailsQueue = $JobDetailsQueue
+    }
 }
 
 function Stop-ExistingWorkers {
@@ -756,6 +776,9 @@ function Start-WorkerMain {
         }
     }
 
+    $JobDetailsQueue = "spidercloud-job-details-queue"
+    $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE = $JobDetailsQueue
+
     Write-Host "Ensuring scrape schedule exists (every 5 minutes)..."
     $maxScheduleAttempts = 5
     for ($i = 1; $i -le $maxScheduleAttempts; $i++) {
@@ -782,17 +805,26 @@ function Start-WorkerMain {
         Write-Host ("Temporal UI available at {0}" -f $TemporalUiUrl) -ForegroundColor Cyan
     }
 
-    Write-Host "Starting Worker..."
+    Write-Host "Starting Workers (4 general + 2 job-details)..."
     if ($ConvexUrl) {
         Write-Host "Using CONVEX_HTTP_URL=$ConvexUrl" -ForegroundColor Green
     } else {
         Write-Warning "CONVEX_HTTP_URL is not set. Worker will fail to reach Convex."
     }
 
-    # Spawn worker as a child process so Ctrl+C can force-kill it immediately.
+    $TemporalTaskQueue = if ($env:TEMPORAL_TASK_QUEUE) { $env:TEMPORAL_TASK_QUEUE } else { "scraper-task-queue" }
+    # Spawn multiple worker processes for higher throughput.
     $script:WorkerProcId = $null
-    $workerProcess = Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace
-    $script:WorkerProcess = $workerProcess
+    $script:WorkerProcesses = @()
+    $generalWorkerCount = 4
+    $jobDetailsWorkerCount = 2
+    for ($i = 1; $i -le $generalWorkerCount; $i++) {
+        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+    }
+    for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
+        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+    }
+    $script:WorkerProcess = $script:WorkerProcesses[0].Process
     $cancelSub = Register-EngineEvent -SourceIdentifier ConsoleCancelEvent -Action {
         Write-Host "[signal] Ctrl+C received; beginning shutdown..." -ForegroundColor Red
         $script:CancelRequested = $true
@@ -802,7 +834,7 @@ function Start-WorkerMain {
             $script:ShutdownStopwatch.Restart()
         }
         $timer = $script:ShutdownStopwatch
-        Stop-WorkerAndContainer -WorkerProcess $script:WorkerProcess -Timer $timer -Reason "Ctrl+C"
+        Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses -Timer $timer -Reason "Ctrl+C"
         if ($timer -and $timer.IsRunning) {
             $timer.Stop()
         }
@@ -817,8 +849,9 @@ function Start-WorkerMain {
         while ($true) {
             if ($script:CancelRequested) { break }
             Invoke-ErrorWatcherTick
-            if ($workerProcess.HasExited) {
-                $exitCode = $workerProcess.ExitCode
+            $exited = $script:WorkerProcesses | Where-Object { $_.Process -and $_.Process.HasExited }
+            if ($exited) {
+                $exitCode = $exited[0].Process.ExitCode
                 break
             }
             if ([Console]::KeyAvailable) {
@@ -826,11 +859,21 @@ function Start-WorkerMain {
                 if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq "R") {
                     Write-Host "Ctrl+R detected: restarting worker..." -ForegroundColor Yellow
                     try {
-                        Stop-Process -Id $workerProcess.Id -Force -ErrorAction SilentlyContinue
-                        Wait-Process -Id $workerProcess.Id -ErrorAction SilentlyContinue
+                        foreach ($worker in $script:WorkerProcesses) {
+                            if ($worker.Process -and -not $worker.Process.HasExited) {
+                                Stop-Process -Id $worker.Process.Id -Force -ErrorAction SilentlyContinue
+                                Wait-Process -Id $worker.Process.Id -ErrorAction SilentlyContinue
+                            }
+                        }
                     } catch {}
-                    $workerProcess = Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace
-                    $script:WorkerProcess = $workerProcess
+                    $script:WorkerProcesses = @()
+                    for ($i = 1; $i -le $generalWorkerCount; $i++) {
+                        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+                    }
+                    for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
+                        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+                    }
+                    $script:WorkerProcess = $script:WorkerProcesses[0].Process
                     continue
                 }
             }
@@ -840,12 +883,12 @@ function Start-WorkerMain {
         if ($cancelSub) {
             Unregister-Event -SubscriptionId $cancelSub.Id -ErrorAction SilentlyContinue
         }
-        Stop-WorkerAndContainer -WorkerProcess $workerProcess
+        Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses
     }
 
     if (-not $script:CancelRequested) {
-        if ($exitCode -eq $null -and $workerProcess) {
-            $exitCode = $workerProcess.ExitCode
+        if ($exitCode -eq $null -and $script:WorkerProcesses.Count -gt 0) {
+            $exitCode = $script:WorkerProcesses[0].Process.ExitCode
         }
         if ($exitCode -ne 0) {
             throw "Worker exited unexpectedly (exit $exitCode). See $errorLogPath for details."

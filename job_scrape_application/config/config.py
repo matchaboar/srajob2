@@ -20,6 +20,8 @@ class Settings:
     temporal_address: str = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     temporal_namespace: str = os.getenv("TEMPORAL_NAMESPACE", "default")
     task_queue: str = os.getenv("TEMPORAL_TASK_QUEUE", "scraper-task-queue")
+    job_details_task_queue: str | None = os.getenv("TEMPORAL_JOB_DETAILS_TASK_QUEUE")
+    worker_role: str = os.getenv("TEMPORAL_WORKER_ROLE", "all")
     firecrawl_webhook_recheck_hours: int = int(os.getenv("FIRECRAWL_WEBHOOK_RECHECK_HOURS", "23"))
     firecrawl_webhook_timeout_hours: int = int(os.getenv("FIRECRAWL_WEBHOOK_TIMEOUT_HOURS", "24"))
     webhook_wait_logger_interval_seconds: int = int(

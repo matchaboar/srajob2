@@ -62,6 +62,68 @@ const isGreenhouseUrlString = (rawUrl: string): boolean => {
   }
 };
 
+const safeParseUrl = (rawUrl: string): URL | null => {
+  if (!rawUrl) return null;
+  try {
+    return new URL(rawUrl.includes("://") ? rawUrl : `https://${rawUrl}`);
+  } catch {
+    return null;
+  }
+};
+
+const greenhouseSlugFromUrl = (rawUrl: string): string | null => {
+  const parsed = safeParseUrl(rawUrl);
+  if (!parsed) return null;
+  const query = new URLSearchParams(parsed.search);
+  const boardParam = query.get("board");
+  if (boardParam) return boardParam.toLowerCase();
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  const boardsIdx = parts.findIndex((p) => p.toLowerCase() === "boards");
+  if (boardsIdx >= 0 && boardsIdx + 1 < parts.length) {
+    return parts[boardsIdx + 1].toLowerCase();
+  }
+  if (parts.length >= 3 && parts[0].toLowerCase() === "v1" && parts[1].toLowerCase() === "boards") {
+    return parts[2].toLowerCase();
+  }
+  const hostParts = (parsed.hostname || "").toLowerCase().split(".").filter(Boolean);
+  if (hostParts.length >= 3 && hostParts[hostParts.length - 2] !== "greenhouse") {
+    return hostParts[hostParts.length - 2];
+  }
+  return null;
+};
+
+const resolveScrapeUrl = (rawUrl: string, siteType?: string): string => {
+  const parsed = safeParseUrl(rawUrl);
+  if (!parsed) return (rawUrl || "").trim();
+  parsed.hash = "";
+  const host = (parsed.hostname || "").toLowerCase();
+  const isGreenhouse = siteType === "greenhouse" || host.includes("greenhouse");
+
+  if (isGreenhouse) {
+    const slug = greenhouseSlugFromUrl(parsed.toString());
+    if (slug) return `https://boards.greenhouse.io/v1/boards/${slug}/jobs`;
+  }
+
+  if (host.endsWith("github.careers")) {
+    const cleanPath = parsed.pathname.replace(/\/+$/, "");
+    if (cleanPath === "/api/jobs") {
+      return parsed.toString();
+    }
+    const params = new URLSearchParams(parsed.search);
+    params.delete("page");
+    const base = `${parsed.protocol}//${parsed.hostname}/api/jobs`;
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+  }
+
+  if (host.endsWith("ashbyhq.com")) {
+    const slug = parsed.pathname.split("/").filter(Boolean)[0];
+    if (slug) return `https://api.ashbyhq.com/posting-api/job-board/${slug}`;
+  }
+
+  return parsed.toString();
+};
+
 const deriveSiteName = (rawUrl: string): string => {
   if (!rawUrl) return "Site";
   try {
@@ -1116,6 +1178,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
   const updateSiteSchedule = useMutation(api.router.updateSiteSchedule);
   const upsertSchedule = useMutation(api.router.upsertSchedule);
   const deleteSchedule = useMutation(api.router.deleteSchedule);
+  const deleteSite = useMutation(api.router.deleteSite);
 
   const [mode, setMode] = useState<"single" | "bulk">("single");
   const [selectedScheduleId, setSelectedScheduleId] = useState<ScheduleId | "">("");
@@ -1141,6 +1204,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [deletingScheduleId, setDeletingScheduleId] = useState<ScheduleId | null>(null);
   const [updatingSiteScheduleId, setUpdatingSiteScheduleId] = useState<string | null>(null);
+  const [deletingSiteId, setDeletingSiteId] = useState<string | null>(null);
   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
   const siteRowColumns = "grid grid-cols-[minmax(0,1.7fr)_minmax(0,1.05fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)]";
 
@@ -1158,6 +1222,11 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
 
   const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
   const generatedName = useMemo(() => deriveSiteName(url), [url]);
+  const previewScrapeUrl = useMemo(() => {
+    if (!url.trim()) return "";
+    const normalizedType = isGreenhouseUrl ? "greenhouse" : siteType;
+    return resolveScrapeUrl(url, normalizedType);
+  }, [url, siteType, isGreenhouseUrl]);
 
   const setDefaultSchedule = (id: ScheduleId | "") => {
     setDefaultScheduleId(id);
@@ -1694,6 +1763,11 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
                     Will save as <span className="text-slate-200">{generatedName}</span>
                   </p>
                 )}
+                {!!url.trim() && !!previewScrapeUrl && (
+                  <p className="text-[11px] text-slate-500 leading-snug truncate" title={previewScrapeUrl}>
+                    Scrape URL: <span className="text-slate-200 font-mono">{previewScrapeUrl}</span>
+                  </p>
+                )}
               </div>
             </div>
             <div className="md:col-span-2">
@@ -1907,6 +1981,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
             const intervalLabel = formatIntervalLabel(schedule?.intervalMinutes ?? 0);
             const isExpanded = expandedSites.has(siteId);
             const pipeline = resolvePipeline(scrapeProvider, siteType);
+            const scrapeUrl = resolveScrapeUrl(s.url, siteType);
 
             return (
               <div key={siteId} className={clsx("p-3 bg-slate-950/20", !s.enabled && "opacity-50")}>
@@ -1947,6 +2022,11 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 truncate font-mono">{s.url}</div>
+                      {scrapeUrl && scrapeUrl !== s.url && (
+                        <div className="text-[11px] text-slate-600 truncate font-mono" title={scrapeUrl}>
+                          scrape: {scrapeUrl}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -1970,6 +2050,7 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
                     <button
                       onClick={() => { void toggleEnabled(siteId, !s.enabled); }}
                       className="px-2 py-1 text-[11px] font-medium rounded border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors whitespace-nowrap"
+                      disabled={deletingSiteId === siteId}
                     >
                       {s.enabled ? "Disable" : "Enable"}
                     </button>
@@ -1985,10 +2066,38 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
                         })();
                       }}
                       className="px-2 py-1 text-[11px] font-medium rounded border border-blue-700 bg-blue-900/40 text-blue-200 hover:bg-blue-800/60 transition-colors whitespace-nowrap"
-                      disabled={!s.enabled}
+                      disabled={!s.enabled || deletingSiteId === siteId}
                       title={s.enabled ? "Trigger on next workflow cycle" : "Enable site to run"}
                     >
                       Run now
+                    </button>
+                    <button
+                      onClick={() => {
+                        void (async () => {
+                          const label = s.name || s.url;
+                          if (!window.confirm(`Delete ${label}? This removes the site and clears queued URLs.`)) {
+                            return;
+                          }
+                          try {
+                            setDeletingSiteId(siteId);
+                            await deleteSite({ id: siteId as any });
+                            toast.success("Site deleted");
+                          } catch {
+                            toast.error("Failed to delete site");
+                          } finally {
+                            setDeletingSiteId(null);
+                          }
+                        })();
+                      }}
+                      className={clsx(
+                        "px-2 py-1 text-[11px] font-medium rounded border transition-colors whitespace-nowrap",
+                        deletingSiteId === siteId
+                          ? "border-slate-800 text-slate-600 cursor-not-allowed"
+                          : "border-red-900/60 text-red-300 hover:bg-red-900/30"
+                      )}
+                      disabled={deletingSiteId === siteId}
+                    >
+                      {deletingSiteId === siteId ? "Deleting..." : "Delete"}
                     </button>
                   </div>
                 </div>
@@ -2016,6 +2125,9 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
                       <div className="flex flex-wrap gap-2">
                         <span className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200">
                           URL: <span className="font-mono text-slate-100">{s.url}</span>
+                        </span>
+                        <span className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200" title={scrapeUrl}>
+                          Scrape URL: <span className="font-mono text-slate-100">{scrapeUrl}</span>
                         </span>
                         {s.pattern && (
                           <span className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-200">

@@ -2005,6 +2005,30 @@ export const updateSiteEnabled = mutation({
   },
 });
 
+export const deleteSite = mutation({
+  args: {
+    id: v.id("sites"),
+  },
+  handler: async (ctx, args) => {
+    const site = await ctx.db.get(args.id);
+    if (!site) {
+      throw new Error("Site not found");
+    }
+
+    const queuedUrls = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_site_status", (q) => q.eq("siteId", args.id))
+      .collect();
+
+    for (const row of queuedUrls as any[]) {
+      await ctx.db.delete(row._id);
+    }
+
+    await ctx.db.delete(args.id);
+    return { id: args.id, queuedDeleted: queuedUrls.length };
+  },
+});
+
 const updateSiteNameHandler = async (ctx: any, args: { id: Id<"sites">; name: string }) => {
   const name = (args.name || "").trim();
   if (!name) {

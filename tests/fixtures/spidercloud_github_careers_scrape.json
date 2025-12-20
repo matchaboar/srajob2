@@ -12,6 +12,6 @@
     "duration_elasped_ms": 4705,
     "error": null,
     "status": 200,
-    "url": "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=posted_date&descending=true&limit=100&page=1"
+    "url": "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=posted_date&descending=true&limit=100"
   }
 ]

@@ -1216,7 +1216,7 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
 
     expected_url = (
         "https://www.github.careers/careers-home/jobs?"
-        "keywords=engineer&sortBy=posted_date&descending=true&limit=100&page=1"
+        "keywords=engineer&sortBy=posted_date&descending=true&limit=100"
     )
     assert request["url"] == expected_url
     assert request["params"]["return_format"] == "markdown"
@@ -1236,6 +1236,18 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in urls
     assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
     assert "https://www.github.careers/careers-home/jobs/4843?lang=en-us" not in urls
+
+
+def test_extract_job_urls_from_snapchat_scrape_fixture():
+    response_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+
+    scrape = {"items": {"raw": response, "provider": "spidercloud"}}
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://careers.snap.com/job?id=R0043314" in urls
+    assert "https://careers.snap.com/job?id=R0042985" in urls
+    assert "https://careers.snap.com/jobs" not in urls
 
 
 def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():

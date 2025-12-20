@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from job_scrape_application.workflows.site_handlers import (
     AshbyHqHandler,
+    GithubCareersHandler,
     GreenhouseHandler,
     get_site_handler,
 )
@@ -43,3 +44,23 @@ def test_greenhouse_handler_rewrites_and_formats():
     assert config.get("return_format") == ["raw_html"]
     assert config.get("preserve_host") is False
 
+
+def test_github_careers_handler_builds_api_and_links():
+    handler = GithubCareersHandler()
+    url = "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100"
+    assert handler.matches_url(url)
+    api_url = handler.get_listing_api_uri(url)
+    assert api_url is not None
+    assert api_url.startswith("https://www.github.careers/api/jobs?")
+    assert "keywords=engineer" in api_url
+    assert "page=" not in api_url
+    payload = {
+        "jobs": [
+            {"data": {"slug": "4822", "language": "en-us"}},
+            {"data": {"slug": "4867", "languages": ["en-us", "fr"]}},
+        ]
+    }
+    assert handler.get_links_from_json(payload) == [
+        "https://www.github.careers/careers-home/jobs/4822?lang=en-us",
+        "https://www.github.careers/careers-home/jobs/4867?lang=en-us",
+    ]

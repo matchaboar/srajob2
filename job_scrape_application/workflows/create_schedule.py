@@ -73,10 +73,14 @@ def build_schedule(cfg: ScheduleConfig) -> Schedule:
         intervals=[ScheduleIntervalSpec(every=timedelta(seconds=cfg.interval_seconds))]
     )
 
+    task_queue = cfg.task_queue or settings.task_queue
+    if cfg.workflow == "SpidercloudJobDetails" and settings.job_details_task_queue:
+        task_queue = settings.job_details_task_queue
+
     action = ScheduleActionStartWorkflow(
         cfg.workflow,
         id=f"wf-{cfg.id}",
-        task_queue=cfg.task_queue or settings.task_queue,
+        task_queue=task_queue,
     )
 
     policy = SchedulePolicy(

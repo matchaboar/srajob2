@@ -12,6 +12,7 @@ import pytest
 
 from job_scrape_application.workflows.helpers.scrape_utils import (
     _jobs_from_scrape_items,
+    looks_like_job_listing_page,
     normalize_firecrawl_items,
     normalize_single_row,
     parse_markdown_hints,
@@ -127,6 +128,15 @@ def test_normalize_single_row_skips_listing_pages(url: str):
     normalized = normalize_single_row(row)
 
     assert normalized is None
+
+
+def test_looks_like_job_listing_page_detects_snapchat_table():
+    fixture_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
+    response = json.loads(fixture_path.read_text(encoding="utf-8"))
+    content = response[0][0]["content"]["commonmark"]
+    title = content.splitlines()[0] if content else "Jobs"
+
+    assert looks_like_job_listing_page(title, content, "https://careers.snap.com/jobs")
 
 
 def test_normalize_firecrawl_items_handles_greenhouse_job_json():

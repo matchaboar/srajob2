@@ -186,6 +186,11 @@ _LISTING_FILTER_TERMS = (
     "select state",
     "select category",
     "search category",
+    "all locations",
+    "all teams",
+    "all roles",
+    "all types",
+    "view openings",
     "available in multiple locations",
     "job fairs",
     "work programs",
@@ -194,6 +199,10 @@ _LISTING_FILTER_TERMS = (
 )
 _LISTING_SELECT_RE = re.compile(
     r"\bselect\s+(department|country|location|city|state|category|team)\b",
+    flags=re.IGNORECASE,
+)
+_LISTING_TABLE_HEADER_RE = re.compile(
+    r"\|\s*\*\*\s*role\s*\*\*.*\|\s*\*\*\s*(team|department)\s*\*\*.*\|\s*\*\*\s*type\s*\*\*.*\|\s*\*\*\s*location\s*\*\*",
     flags=re.IGNORECASE,
 )
 _JOB_DETAIL_MARKERS = (
@@ -407,17 +416,23 @@ def looks_like_job_listing_page(title: str | None, description: str, url: str | 
         return False
     haystack = f"{title or ''} {description or ''}".lower()
     sample = re.sub(WHITESPACE_PATTERN, " ", haystack)[:2000]
+    link_hits = description.count("](")
     marker_hits = sum(1 for marker in _LISTING_FILTER_TERMS if marker in sample)
     select_hits = len(_LISTING_SELECT_RE.findall(sample))
+    table_hits = bool(_LISTING_TABLE_HEADER_RE.search(sample))
     detail_hits = sum(1 for marker in _JOB_DETAIL_MARKERS if marker in sample)
 
     if "open positions" in sample and ("search for opportunities" in sample or select_hits >= 1):
+        return True
+    if table_hits and link_hits >= 5:
         return True
     if marker_hits >= 4:
         return True
     if marker_hits >= 3 and select_hits >= 1:
         return True
     if select_hits >= 3 and marker_hits >= 1:
+        return True
+    if link_hits >= 8 and marker_hits >= 2:
         return True
     if marker_hits >= 2 and _url_suggests_listing(url):
         return True

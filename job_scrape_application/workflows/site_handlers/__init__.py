@@ -4,9 +4,10 @@ from typing import Iterable, List
 
 from .ashby import AshbyHqHandler
 from .base import BaseSiteHandler
+from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
 
-_HANDLER_CLASSES = (AshbyHqHandler, GreenhouseHandler)
+_HANDLER_CLASSES = (AshbyHqHandler, GithubCareersHandler, GreenhouseHandler)
 
 
 def get_site_handler(url: str | None = None, site_type: str | None = None) -> BaseSiteHandler | None:
@@ -35,6 +36,7 @@ def get_site_handlers_for_urls(
 __all__ = [
     "AshbyHqHandler",
     "BaseSiteHandler",
+    "GithubCareersHandler",
     "GreenhouseHandler",
     "get_site_handler",
     "get_site_handlers_for_urls",

@@ -66,6 +66,24 @@ ACTIVITY_FUNCTIONS = [
     activities.complete_scrape_urls,
 ]
 
+JOB_DETAILS_WORKFLOWS = [SpidercloudJobDetailsWorkflow]
+JOB_DETAILS_ACTIVITIES = [
+    activities.record_scratchpad,
+    activities.record_workflow_run,
+    activities.lease_scrape_url_batch,
+    activities.process_spidercloud_job_batch,
+    activities.store_scrape,
+    activities.complete_scrape_urls,
+]
+
+
+def _select_worker_config() -> tuple[str, list[type], list]:
+    role = (settings.worker_role or "all").strip().lower()
+    if role in {"job-details", "spidercloud-job-details"}:
+        queue = settings.job_details_task_queue or settings.task_queue
+        return queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES
+    return settings.task_queue, WORKFLOW_CLASSES, ACTIVITY_FUNCTIONS
+
 
 class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
     """Log workflow starts for quick visibility in the worker console."""
@@ -262,11 +280,13 @@ async def main() -> None:
     hostname = socket.gethostname()
     worker_id = f"{hostname}-{os.getpid()}"
 
+    task_queue, workflows, activities_list = _select_worker_config()
+
     worker = Worker(
         client,
-        task_queue=settings.task_queue,
-        workflows=WORKFLOW_CLASSES,
-        activities=ACTIVITY_FUNCTIONS,
+        task_queue=task_queue,
+        workflows=workflows,
+        activities=activities_list,
         interceptors=[WorkflowLoggingInterceptor()],
     )
 
@@ -276,10 +296,11 @@ async def main() -> None:
     schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
 
     logger.info(
-        "Worker started. Namespace=%s Address=%s TaskQueue=%s",
+        "Worker started. Namespace=%s Address=%s TaskQueue=%s Role=%s",
         settings.temporal_namespace,
         settings.temporal_address,
-        settings.task_queue,
+        task_queue,
+        settings.worker_role or "all",
     )
     try:
         await worker.run()
