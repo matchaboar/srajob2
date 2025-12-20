@@ -24,6 +24,7 @@ from ..helpers.scrape_utils import (
     derive_company_from_url,
     looks_like_error_landing,
     looks_like_job_listing_page,
+    parse_markdown_hints,
     strip_known_nav_blocks,
 )
 from ..site_handlers import BaseSiteHandler, get_site_handler
@@ -253,6 +254,114 @@ class SpiderCloudScraper(BaseScraper):
         for marker in markers:
             if marker in haystack:
                 return marker
+        return None
+
+    def _extract_structured_job_posting(self, events: List[Any]) -> Optional[Dict[str, Any]]:
+        """Best-effort extraction of JSON-LD JobPosting data from raw HTML events."""
+
+        def _gather_strings(node: Any) -> List[str]:
+            results: List[str] = []
+            if isinstance(node, str):
+                if node.strip():
+                    results.append(node)
+                return results
+            if isinstance(node, dict):
+                for child in node.values():
+                    results.extend(_gather_strings(child))
+            elif isinstance(node, list):
+                for child in node:
+                    results.extend(_gather_strings(child))
+            return results
+
+        def _is_job_posting(candidate: Dict[str, Any]) -> bool:
+            raw_type = candidate.get("@type") or candidate.get("type")
+            if isinstance(raw_type, list):
+                if any("jobposting" in str(item).lower() for item in raw_type):
+                    return True
+            if isinstance(raw_type, str) and "jobposting" in raw_type.lower():
+                return True
+            if "title" in candidate and "description" in candidate:
+                if any(key in candidate for key in ("datePosted", "hiringOrganization", "jobLocation")):
+                    return True
+            return False
+
+        def _find_job_posting(node: Any) -> Optional[Dict[str, Any]]:
+            if isinstance(node, dict):
+                if _is_job_posting(node):
+                    return node
+                for val in node.values():
+                    found = _find_job_posting(val)
+                    if found:
+                        return found
+            elif isinstance(node, list):
+                for child in node:
+                    found = _find_job_posting(child)
+                    if found:
+                        return found
+            return None
+
+        script_pattern = re.compile(
+            r"<script[^>]*type=[\"']application/ld\\+json[\"'][^>]*>(?P<payload>.*?)</script>",
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        for text in _gather_strings(events):
+            if "<script" not in text.lower():
+                continue
+            for match in script_pattern.finditer(text):
+                payload_raw = html.unescape(match.group("payload").strip())
+                parsed = self._try_parse_json(payload_raw)
+                if parsed is None:
+                    continue
+                found = _find_job_posting(parsed)
+                if found:
+                    return found
+
+        return None
+
+    def _location_from_job_posting(self, payload: Dict[str, Any]) -> Optional[str]:
+        def _normalize_part(value: Any) -> Optional[str]:
+            if isinstance(value, dict):
+                value = value.get("name") or value.get("value") or value.get("label")
+            if not isinstance(value, str):
+                return None
+            cleaned = value.strip()
+            if not cleaned or cleaned.upper() == "UNAVAILABLE":
+                return None
+            return cleaned
+
+        def _format_address(address: Any) -> Optional[str]:
+            if not isinstance(address, dict):
+                return _normalize_part(address)
+            parts = []
+            for key in ("addressLocality", "addressRegion", "addressCountry"):
+                part = _normalize_part(address.get(key))
+                if part and part not in parts:
+                    parts.append(part)
+            if not parts:
+                return None
+            return ", ".join(parts)
+
+        locations: List[str] = []
+        raw_locations = payload.get("jobLocation")
+        if isinstance(raw_locations, list):
+            candidates = raw_locations
+        elif raw_locations is not None:
+            candidates = [raw_locations]
+        else:
+            candidates = []
+
+        for entry in candidates:
+            if isinstance(entry, dict):
+                address = entry.get("address")
+                formatted = _format_address(address or entry)
+            else:
+                formatted = _normalize_part(entry)
+            if formatted and formatted not in locations:
+                locations.append(formatted)
+
+        if locations:
+            return locations[0]
         return None
 
     def _title_from_events(self, events: List[Any]) -> Optional[str]:
@@ -594,14 +703,32 @@ class SpiderCloudScraper(BaseScraper):
             if handler:
                 parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
 
-        cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
+        structured_payload = self._extract_structured_job_posting(events)
+        structured_title = None
+        structured_location = None
+        structured_description = None
+        if structured_payload:
+            raw_title = structured_payload.get("title")
+            if isinstance(raw_title, str) and raw_title.strip():
+                structured_title = raw_title.strip()
+            raw_description = structured_payload.get("description")
+            if isinstance(raw_description, str) and raw_description.strip():
+                structured_description = raw_description.strip()
+            structured_location = self._location_from_job_posting(structured_payload)
 
-        payload_title = self._title_from_events(events) or parsed_title
+        if structured_description and len(parsed_markdown.strip()) < 50:
+            parsed_markdown = self._html_to_markdown(structured_description)
+
+        cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
+        hints = parse_markdown_hints(cleaned_markdown)
+        hint_title = hints.get("title") if isinstance(hints, dict) else None
+
+        payload_title = parsed_title or structured_title or self._title_from_events(events)
         from_content = False
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
         if not payload_title:
-            payload_title = self._title_from_markdown(cleaned_markdown)
+            payload_title = hint_title or self._title_from_markdown(cleaned_markdown)
             from_content = bool(payload_title)
         else:
             from_content = True
@@ -652,8 +779,10 @@ class SpiderCloudScraper(BaseScraper):
                 }
                 return None
         company = derive_company_from_url(url) or "Unknown"
-        remote = coerce_remote(None, "", f"{title}\n{cleaned_markdown}")
-        level = coerce_level(None, title)
+        location_hint = hints.get("location") if isinstance(hints, dict) else None
+        location = structured_location or location_hint
+        remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", f"{title}\n{cleaned_markdown}")
+        level = coerce_level(hints.get("level") if isinstance(hints, dict) else None, title)
         description = cleaned_markdown or ""
 
         self._last_ignored_job = None
@@ -661,7 +790,7 @@ class SpiderCloudScraper(BaseScraper):
             "job_title": title,
             "title": title,
             "company": company,
-            "location": "Unknown" if not remote else "Remote",
+            "location": location or ("Remote" if remote else "Unknown"),
             "remote": remote,
             "level": level,
             "description": description,

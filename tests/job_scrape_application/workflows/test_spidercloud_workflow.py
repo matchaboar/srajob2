@@ -524,6 +524,65 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_empty(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    job_url = "https://boards.greenhouse.io/example/jobs/123"
+    payload = {
+        "jobs": [
+            {
+                "absolute_url": job_url,
+                "title": "Software Engineer",
+                "id": 123,
+                "location": {"name": "Remote"},
+            }
+        ]
+    }
+
+    async def fake_fetch(_api_url: str, _handler):
+        return "", [{"content": json.dumps(payload)}]
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+
+    site: Site = {
+        "_id": "01hzconvexsiteid123456789abz",
+        "url": "https://api.greenhouse.io/v1/boards/example/jobs",
+        "type": "greenhouse",
+    }
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+
+    assert listing["job_urls"] == [job_url]
+    raw_payload = json.loads(listing["raw"])
+    assert raw_payload["jobs"][0]["absolute_url"] == job_url
+
+
+def test_spidercloud_extract_json_payload_from_pre_html():
+    scraper = _make_spidercloud_scraper()
+    job_url = "https://boards.greenhouse.io/example/jobs/456"
+    html_payload = (
+        "<html><body><pre>"
+        + json.dumps(
+            {
+                "jobs": [
+                    {
+                        "absolute_url": job_url,
+                        "title": "Software Engineer",
+                        "id": 456,
+                        "location": {"name": "Remote"},
+                    }
+                ]
+            }
+        )
+        + "</pre></body></html>"
+    )
+
+    extracted = scraper._extract_json_payload([{"content": html_payload}])
+
+    assert extracted is not None
+    assert extracted["jobs"][0]["absolute_url"] == job_url
+
+
+@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path("tests/fixtures/robinhood_greenhouse_board.json")
@@ -911,6 +970,24 @@ def test_spidercloud_coreweave_fixture_not_skipped():
 
     assert normalized is not None
     assert "engineer" in normalized["title"].lower()
+
+
+def test_spidercloud_github_job_detail_uses_structured_data():
+    fixture_path = Path("tests/job_scrape_application/workflows/fixtures/spidercloud_github_careers_job_4554_raw.json")
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    event = payload[0]
+
+    scraper = _make_spidercloud_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=event["url"],
+        markdown="",
+        events=payload,
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Senior Product Marketing Manager"
+    assert normalized["location"] == "United States"
 
 
 def test_spidercloud_allows_when_title_unknown():
