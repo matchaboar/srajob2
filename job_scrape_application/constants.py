@@ -11,6 +11,30 @@ from typing import Any, Tuple
 import yaml
 
 FILTERS_YAML_PATH = Path(__file__).resolve().parent / "scraper_filters.yaml"
+REMOTE_COMPANIES_YAML_PATH = Path(__file__).resolve().parent / "config" / "remote_companies.yaml"
+
+_COMPANY_SUFFIXES = {
+    "inc",
+    "incorporated",
+    "llc",
+    "ltd",
+    "limited",
+    "corp",
+    "corporation",
+    "company",
+    "co",
+    "plc",
+    "gmbh",
+    "sarl",
+    "ag",
+    "bv",
+    "sa",
+    "pte",
+    "pty",
+    "holdings",
+    "group",
+}
+_COMPANY_NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
 
 ZIP_CODE_PATTERN = r"\b\d{5}(?:-\d{4})?\b"
 US_ABBREVIATION_PATTERN = r"\bU\.?S\.?A?\b"
@@ -287,6 +311,18 @@ def _normalize_list(raw: Any, *, lower: bool = False, upper: bool = False) -> Tu
     return _dedupe_preserve_order(normalized)
 
 
+def _normalize_company_name(value: str | None) -> str:
+    if not value:
+        return ""
+    cleaned = _COMPANY_NORMALIZE_RE.sub(" ", value.lower()).strip()
+    if not cleaned:
+        return ""
+    tokens = cleaned.split()
+    while tokens and tokens[-1] in _COMPANY_SUFFIXES:
+        tokens.pop()
+    return " ".join(tokens)
+
+
 def _merge_list(defaults: Tuple[str, ...], extra: Any, *, lower: bool = False, upper: bool = False) -> Tuple[str, ...]:
     merged = list(defaults)
     merged.extend(_normalize_list(extra, lower=lower, upper=upper))
@@ -307,6 +343,49 @@ def _load_yaml_filters() -> dict[str, Any]:
         return {}
 
     return loaded if isinstance(loaded, dict) else {}
+
+
+def _load_remote_companies_yaml() -> Tuple[str, ...]:
+    if not REMOTE_COMPANIES_YAML_PATH.exists():
+        return ()
+    try:
+        raw = REMOTE_COMPANIES_YAML_PATH.read_text()
+    except Exception:
+        return ()
+
+    try:
+        loaded = yaml.safe_load(raw)
+    except Exception:
+        return ()
+
+    if isinstance(loaded, dict):
+        values = loaded.get("companies") or []
+    elif isinstance(loaded, list):
+        values = loaded
+    else:
+        values = []
+
+    normalized: list[str] = []
+    for item in values:
+        if not isinstance(item, str):
+            continue
+        normalized_name = _normalize_company_name(item)
+        if normalized_name:
+            normalized.append(normalized_name)
+
+    return _dedupe_preserve_order(normalized)
+
+
+@lru_cache(maxsize=1)
+def get_remote_companies() -> Tuple[str, ...]:
+    return _load_remote_companies_yaml()
+
+
+def is_remote_company(company: str | None) -> bool:
+    normalized = _normalize_company_name(company)
+    if not normalized:
+        return False
+    return normalized in get_remote_companies()
 
 
 @lru_cache(maxsize=1)

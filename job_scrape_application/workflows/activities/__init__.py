@@ -24,7 +24,13 @@ from ...components.models import (
     extract_greenhouse_job_urls,
     load_greenhouse_board,
 )
-from ...constants import DEFAULT_US_STATE_CODES, DEFAULT_US_STATE_NAMES, location_matches_usa, title_matches_required_keywords
+from ...constants import (
+    DEFAULT_US_STATE_CODES,
+    DEFAULT_US_STATE_NAMES,
+    is_remote_company,
+    location_matches_usa,
+    title_matches_required_keywords,
+)
 from ..helpers.firecrawl import (
     build_firecrawl_webhook as _build_firecrawl_webhook,
     extract_first_json_doc as _extract_first_json_doc,
@@ -2755,6 +2761,9 @@ def _build_job_detail_heuristic_patch(
     hinted_comp = hints.get("compensation")
     comp_range_hint = hints.get("compensation_range") or {}
     locations_hint = hints.get("locations") or []
+    raw_company = row.get("company")
+    company_name = raw_company if isinstance(raw_company, str) else str(raw_company or "")
+    company_remote = is_remote_company(company_name)
     raw_location_value = (row.get("location") or "").strip()
     raw_location_lower = raw_location_value.lower()
     location_fallback = (
@@ -2762,8 +2771,8 @@ def _build_job_detail_heuristic_patch(
         if (not raw_location_value or raw_location_lower in _UNKNOWN_LOCATION_TOKENS)
         else raw_location_value or hints.get("location")
     )
-    is_remote = hints.get("remote") is True or bool(row.get("remote"))
-    if hints.get("remote") is False:
+    is_remote = company_remote or hints.get("remote") is True or bool(row.get("remote"))
+    if hints.get("remote") is False and not company_remote:
         is_remote = False
     if "remote" in raw_location_lower:
         is_remote = True
@@ -2887,6 +2896,8 @@ def _build_job_detail_heuristic_patch(
     if currency_code:
         patch["currencyCode"] = currency_code
     remote_hint = hints.get("remote")
+    if company_remote:
+        remote_hint = True
     if remote_hint is True and row.get("remote") is not True:
         patch["remote"] = True
     elif remote_hint is False and row.get("remote") is not False:

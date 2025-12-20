@@ -845,6 +845,18 @@ async def test_select_scraper_defaults_greenhouse_to_spidercloud(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_select_scraper_defaults_to_spidercloud_when_key_present(monkeypatch):
+    monkeypatch.setattr(acts.settings, "spider_api_key", "spider-key")
+    monkeypatch.setattr(acts.settings, "firecrawl_api_key", None)
+    monkeypatch.setattr(acts.settings, "fetchfox_api_key", "ff-key")
+
+    scraper, skip_urls = await acts.select_scraper_for_site({"_id": "s1", "url": "https://example.com"})
+
+    assert isinstance(scraper, SpiderCloudScraper)
+    assert skip_urls is None
+
+
+@pytest.mark.asyncio
 async def test_select_scraper_falls_back_to_firecrawl(monkeypatch):
     monkeypatch.setattr(acts.settings, "spider_api_key", None)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-key")

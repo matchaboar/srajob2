@@ -114,6 +114,13 @@ async def select_scraper_for_site(
     preferred = (site.get("scrapeProvider") or "").lower()
     if site_type == "greenhouse" and not preferred:
         preferred = "spidercloud"
+    if not preferred:
+        if settings.spider_api_key:
+            preferred = "spidercloud"
+        elif settings.firecrawl_api_key:
+            preferred = "firecrawl"
+        else:
+            preferred = "fetchfox"
 
     factories: Dict[str, Callable[[], BaseScraper]] = {
         "fetchfox": make_fetchfox,

@@ -21,6 +21,19 @@ type IconModule = typeof import("simple-icons");
 let iconsModulePromise: Promise<IconModule> | null = null;
 const iconCache = new Map<string, SimpleIcon | null>();
 
+type CustomLogoDefinition = {
+    src: string;
+};
+
+const logoUrls = import.meta.glob("../assets/company-logos/*.svg", { eager: true, as: "url" }) as Record<string, string>;
+const customLogos: Record<string, CustomLogoDefinition> = Object.fromEntries(
+    Object.entries(logoUrls).map(([path, src]) => {
+        const filename = path.split("/").pop() ?? "";
+        const slug = filename.replace(/\.svg$/i, "").toLowerCase();
+        return [slug, { src }];
+    }),
+);
+
 const getIconsModule = () => {
     if (!iconsModulePromise) {
         iconsModulePromise = import("simple-icons") as Promise<IconModule>;
@@ -89,11 +102,12 @@ interface CompanyIconProps {
 
 export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
     const slug = useMemo(() => toSlug(company), [company]);
+    const customLogo = useMemo(() => (slug ? customLogos[slug] ?? null : null), [slug]);
     const [icon, setIcon] = useState<SimpleIcon | null>(null);
 
     useEffect(() => {
         let cancelled = false;
-        if (!slug) {
+        if (!slug || customLogo) {
             setIcon(null);
             return () => { cancelled = true; };
         }
@@ -110,7 +124,7 @@ export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
         return () => {
             cancelled = true;
         };
-    }, [slug]);
+    }, [slug, customLogo]);
 
     const dimension = `${size}px`;
     const color = ensureReadableColor(icon?.hex ?? "#E2E8F0");
@@ -121,7 +135,14 @@ export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
             style={{ width: dimension, height: dimension }}
             aria-label={company ? `${company} logo` : "Company logo"}
         >
-            {icon ? (
+            {customLogo ? (
+                <img
+                    src={customLogo.src}
+                    alt={`${company} logo`}
+                    className="w-6 h-6 object-contain"
+                    draggable={false}
+                />
+            ) : icon ? (
                 <svg
                     viewBox="0 0 24 24"
                     role="img"

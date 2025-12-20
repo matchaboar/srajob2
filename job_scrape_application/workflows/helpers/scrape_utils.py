@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from ...constants import title_matches_required_keywords
+from ...constants import is_remote_company, title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
 WHITESPACE_PATTERN = r"\s+"
@@ -1236,6 +1236,10 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         remote = True
     elif hints.get("remote") is False:
         remote = False
+    if is_remote_company(company):
+        remote = True
+        if not location or location == "Unknown":
+            location = "Remote"
     hinted_comp = hints.get("compensation")
     total_comp, used_default_comp = parse_compensation(
         row.get("total_compensation") or row.get("salary") or row.get("compensation"),
@@ -1351,18 +1355,23 @@ def _jobs_from_scrape_items(
             total_comp_val = hints["compensation"]
             compensation_unknown = False
             reason = "parsed from description"
+        company_val = row.get("company") or "Unknown"
         remote_val = bool(row.get("remote"))
         if hints.get("remote") is True:
             remote_val = True
         elif hints.get("remote") is False:
             remote_val = False
+        if is_remote_company(company_val):
+            remote_val = True
+            if not location_val:
+                location_val = "Remote"
 
         preferred_url = prefer_apply_url(row)
         apply_url = stringify(preferred_url) if preferred_url is not None else ""
 
         job = {
             "title": title_val,
-            "company": row.get("company") or "Unknown",
+            "company": company_val,
             "description": description,
             "location": location_val,
             "remote": remote_val,
