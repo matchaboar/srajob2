@@ -5,6 +5,34 @@ import { extractJobs } from "../../convex/router";
 
 const fixturesDir = resolve(process.cwd(), "src/test/fixtures");
 
+const loadSpidercloudFixture = () => {
+  const fixturePath = resolve(
+    process.cwd(),
+    "../tests/fixtures/spidercloud_store_scrape_input.json"
+  );
+  let raw = readFileSync(fixturePath, "utf-8");
+  const rawIndex = raw.indexOf('"raw":');
+  if (rawIndex !== -1) {
+    const markers = ['\n      "request"', '\n      "seedUrls"', '\n      "requestedFormat"'];
+    let end = -1;
+    for (const marker of markers) {
+      const idx = raw.indexOf(marker, rawIndex);
+      if (idx !== -1 && (end === -1 || idx < end)) end = idx;
+    }
+    if (end !== -1) {
+      raw = raw.slice(0, rawIndex) + raw.slice(end + 1);
+    }
+  }
+  let cleaned = raw.replace(/\r/g, " ").replace(/\n/g, " ");
+  const invalidEscape = /\\(?!["\\/bfnrtu])/g;
+  for (let i = 0; i < 5; i += 1) {
+    const next = cleaned.replace(invalidEscape, "");
+    if (next === cleaned) break;
+    cleaned = next;
+  }
+  return JSON.parse(cleaned);
+};
+
 describe("extractJobs sanitization", () => {
   it("strips raw HTML/JSON blobs from title and description", () => {
     const greenhouseBlob = `
@@ -91,5 +119,17 @@ describe("extractJobs sanitization", () => {
 
     expect(jobs).toHaveLength(1);
     expect(jobs[0].url).toBe("https://careers.snap.com/jobs/12345");
+  });
+
+  it("keeps spidercloud job URLs even when they are seed URLs", () => {
+    const payload = loadSpidercloudFixture();
+    const items = payload.scrape?.items ?? payload.items ?? payload;
+    const seedUrls = items.seedUrls ?? [];
+    const jobs = extractJobs(items);
+
+    expect(Array.isArray(seedUrls)).toBe(true);
+    expect(seedUrls.length).toBeGreaterThan(0);
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(jobs.some((job) => job.url === seedUrls[0])).toBe(true);
   });
 });

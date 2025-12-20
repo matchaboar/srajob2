@@ -1609,96 +1609,90 @@ export const resetScrapeUrlsByStatus = mutation({
 });
 
 export const resetTodayAndRunAllScheduled = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    batchSize: v.optional(v.number()),
+    windowStart: v.optional(v.number()),
+    windowEnd: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const now = Date.now();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    const startOfDay = start.getTime();
-    const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+    const dayMs = 24 * 60 * 60 * 1000;
+    const defaultStartOfDay = start.getTime();
+    const startOfDay = args.windowStart ?? defaultStartOfDay;
+    const endOfDay = args.windowEnd ?? startOfDay + dayMs;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 25, 200));
 
     const deleteJobsScrapedToday = async () => {
+      const page = await ctx.db
+        .query("jobs")
+        .withIndex("by_scraped_at", (q: any) => q.gte("scrapedAt", startOfDay).lt("scrapedAt", endOfDay))
+        .take(batchSize);
+
       let deleted = 0;
-      while (true) {
-        const page = await ctx.db
-          .query("jobs")
-          .filter((q: any) =>
-            q.and(q.gte(q.field("scrapedAt"), startOfDay), q.lt(q.field("scrapedAt"), endOfDay))
-          )
-          .take(200);
-
-        for (const job of page as any[]) {
-          const detail = await ctx.db
-            .query("job_details")
-            .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
-            .first();
-          if (detail) {
-            await ctx.db.delete(detail._id);
-          }
-          await ctx.db.delete(job._id);
-          deleted += 1;
+      for (const job of page as any[]) {
+        const detail = await ctx.db
+          .query("job_details")
+          .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+          .first();
+        if (detail) {
+          await ctx.db.delete(detail._id);
         }
-
-        if (page.length < 200) break;
+        await ctx.db.delete(job._id);
+        deleted += 1;
       }
-      return deleted;
+
+      return { deleted, hasMore: page.length === batchSize };
+    };
+
+    const deleteScrapesByRange = async (indexName: "by_completedAt" | "by_startedAt", field: "completedAt" | "startedAt") => {
+      const page = await ctx.db
+        .query("scrapes")
+        .withIndex(indexName, (q: any) => q.gte(field, startOfDay).lt(field, endOfDay))
+        .take(batchSize);
+
+      let deleted = 0;
+      for (const row of page as any[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+
+      return { deleted, hasMore: page.length === batchSize };
     };
 
     const deleteScrapesToday = async () => {
-      let deleted = 0;
-      while (true) {
-        const page = await ctx.db
-          .query("scrapes")
-          .filter((q: any) =>
-            q.or(
-              q.and(q.gte(q.field("completedAt"), startOfDay), q.lt(q.field("completedAt"), endOfDay)),
-              q.and(q.gte(q.field("startedAt"), startOfDay), q.lt(q.field("startedAt"), endOfDay))
-            )
-          )
-          .take(200);
-
-        for (const row of page as any[]) {
-          await ctx.db.delete(row._id);
-          deleted += 1;
-        }
-
-        if (page.length < 200) break;
-      }
-      return deleted;
+      const completed = await deleteScrapesByRange("by_completedAt", "completedAt");
+      const started = await deleteScrapesByRange("by_startedAt", "startedAt");
+      return {
+        deleted: completed.deleted + started.deleted,
+        hasMore: completed.hasMore || started.hasMore,
+      };
     };
 
     const deleteQueuedScrapeUrls = async () => {
+      const rows = await ctx.db.query("scrape_url_queue").take(batchSize);
       let deleted = 0;
-      while (true) {
-        const rows = await ctx.db.query("scrape_url_queue").take(200);
-        if (!rows.length) break;
-        for (const row of rows as any[]) {
-          await ctx.db.delete(row._id);
-          deleted += 1;
-        }
-        if (rows.length < 200) break;
+      for (const row of rows as any[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
       }
-      return deleted;
+      return { deleted, hasMore: rows.length === batchSize };
     };
 
     const deleteSkippedJobsToday = async () => {
+      const page = await ctx.db
+        .query("ignored_jobs")
+        .withIndex("by_created_at", (q: any) => q.gte("createdAt", startOfDay).lt("createdAt", endOfDay))
+        .take(batchSize);
+
       let deleted = 0;
-      while (true) {
-        const page = await ctx.db
-          .query("ignored_jobs")
-          .filter((q: any) =>
-            q.and(q.gte(q.field("createdAt"), startOfDay), q.lt(q.field("createdAt"), endOfDay))
-          )
-          .take(200);
-
-        for (const row of page as any[]) {
-          await ctx.db.delete(row._id);
-          deleted += 1;
-        }
-
-        if (page.length < 200) break;
+      for (const row of page as any[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
       }
-      return deleted;
+
+      return { deleted, hasMore: page.length === batchSize };
     };
 
     const triggerScheduledSites = async () => {
@@ -1740,18 +1734,21 @@ export const resetTodayAndRunAllScheduled = mutation({
       return triggered;
     };
 
-    const jobsDeleted = await deleteJobsScrapedToday();
-    const scrapesDeleted = await deleteScrapesToday();
-    const queueDeleted = await deleteQueuedScrapeUrls();
-    const skippedDeleted = await deleteSkippedJobsToday();
-    const sitesTriggered = await triggerScheduledSites();
+    const jobsResult = await deleteJobsScrapedToday();
+    const scrapesResult = await deleteScrapesToday();
+    const queueResult = await deleteQueuedScrapeUrls();
+    const skippedResult = await deleteSkippedJobsToday();
+    const hasMore = jobsResult.hasMore || scrapesResult.hasMore || queueResult.hasMore || skippedResult.hasMore;
+    const sitesTriggered = hasMore ? 0 : await triggerScheduledSites();
 
     return {
-      jobsDeleted,
-      scrapesDeleted,
-      queueDeleted,
-      skippedDeleted,
+      jobsDeleted: jobsResult.deleted,
+      scrapesDeleted: scrapesResult.deleted,
+      queueDeleted: queueResult.deleted,
+      skippedDeleted: skippedResult.deleted,
       sitesTriggered,
+      hasMore,
+      batchSize,
       windowStart: startOfDay,
       windowEnd: endOfDay,
     };
@@ -2413,7 +2410,13 @@ http.route({
 
       // Opportunistically ingest jobs into jobs table for UI
       try {
-        const jobs = extractJobs(body.items);
+        const jobs = extractJobs(body.items, {
+          seedListingLogContext: {
+            sourceUrl: body.sourceUrl,
+            provider: body.provider ?? body.items?.provider,
+            workflowName: body.workflowName,
+          },
+        });
         if (jobs.length > 0) {
           await ctx.runMutation(api.router.ingestJobsFromScrape, {
             jobs: jobs.map((j) => ({
@@ -2868,6 +2871,18 @@ const batchIdFromScrape = (scrape: any): string | undefined => {
   return found ? String(found).trim() : undefined;
 };
 
+const firstDefined = (...values: any[]) => values.find((value) => value !== undefined && value !== null);
+
+const stripUndefined = (value: Record<string, any>) => {
+  const next: Record<string, any> = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (val === undefined || val === null) continue;
+    if (Array.isArray(val) && val.length === 0) continue;
+    next[key] = val;
+  }
+  return next;
+};
+
 const buildUrlLogEntriesForScrape = (
   scrape: any,
   {
@@ -2881,20 +2896,26 @@ const buildUrlLogEntriesForScrape = (
   const logs: any[] = [];
   const provider = scrape.provider ?? scrape.items?.provider ?? "unknown";
   const workflow = scrape.workflowName ?? scrape.workflowType;
+  const workflowId = firstDefined(
+    scrape.workflowId,
+    scrape.items?.workflowId,
+    scrape.items?.raw?.workflowId,
+    scrape.items?.request?.workflowId,
+    scrape.items?.request?.workflow_id,
+    scrape.items?.raw?.workflow_id
+  ) as string | undefined;
   const batchId = batchIdFromScrape(scrape);
   const timestamp = scrape.completedAt ?? scrape.startedAt ?? scrape._creationTime ?? Date.now();
-  const response = sanitizeForLog(scrape.response);
-  const asyncResponse = sanitizeForLog(scrape.asyncResponse);
   const normalized = normalizedFromItems(scrape.items);
   const rawJobUrls = rawJobUrlsFromItems(scrape.items);
+  const normalizedCount = normalized.length;
+  const rawUrlCount = rawJobUrls.length;
   const seedUrls = Array.isArray(scrape.items?.seedUrls)
     ? (scrape.items.seedUrls as any[]).filter((u) => typeof u === "string" && u.trim())
     : [];
 
-  const requestCandidates = [
-    (scrape).providerRequest,
+  const requestSnapshot = firstDefined(
     scrape.request,
-    (scrape).requestData,
     scrape.items?.request,
     scrape.items?.requestData,
     scrape.items?.raw?.request,
@@ -2903,8 +2924,15 @@ const buildUrlLogEntriesForScrape = (
     scrape.items?.raw?.requestBody,
     scrape.items?.raw?.input,
     scrape.items?.raw?.payload?.request,
-    scrape.items?.raw?.payload?.request_data,
-  ];
+    scrape.items?.raw?.payload?.request_data
+  );
+
+  const providerRequest = firstDefined(
+    (scrape).providerRequest,
+    scrape.items?.providerRequest,
+    scrape.items?.raw?.providerRequest,
+    scrape.items?.raw?.provider_request
+  );
 
   const baseRequest: Record<string, any> = {};
   if (scrape.sourceUrl) baseRequest.sourceUrl = scrape.sourceUrl;
@@ -2913,22 +2941,68 @@ const buildUrlLogEntriesForScrape = (
   const requestId = scrape.items?.raw?.jobId ?? scrape.items?.jobId ?? scrape.jobId;
   if (requestId) baseRequest.jobId = requestId;
   if (workflow) baseRequest.workflow = workflow;
-  const requestPayload = requestCandidates.find((candidate) => candidate !== undefined && candidate !== null) ?? baseRequest;
-  const sanitizedRequest = sanitizeForLog(requestPayload);
+  const statusValue = firstDefined(scrape.items?.status, scrape.status);
+  const statusUrl = firstDefined(scrape.items?.statusUrl, scrape.statusUrl, scrape.items?.raw?.statusUrl);
+  const webhookId = firstDefined(scrape.items?.webhookId, scrape.webhookId);
+  const requestedFormat = firstDefined(scrape.requestedFormat, scrape.items?.requestedFormat);
+  const asyncState = firstDefined(scrape.asyncState, scrape.items?.asyncState);
+
+  const requestPayload = stripUndefined({
+    ...baseRequest,
+    provider,
+    workflowId,
+    batchId,
+    status: statusValue,
+    statusUrl,
+    webhookId,
+    asyncState,
+    requestedFormat,
+    request: requestSnapshot ?? undefined,
+    providerRequest: providerRequest ?? undefined,
+  });
+
+  const sanitizedRequest = sanitizeForLog(Object.keys(requestPayload).length > 0 ? requestPayload : requestSnapshot ?? baseRequest);
+
+  const responseCandidate = firstDefined(
+    scrape.response,
+    scrape.items?.response,
+    scrape.items?.raw?.response,
+    scrape.items?.raw?.result,
+    scrape.items?.raw,
+    scrape.items?.rawPreview
+  );
+
+  const responseFallback =
+    responseCandidate === undefined && normalizedCount > 0 ? { normalizedCount } : responseCandidate;
+  const response = sanitizeForLog(responseFallback);
+
+  const asyncCandidate = firstDefined(
+    scrape.asyncResponse,
+    scrape.items?.asyncResponse,
+    scrape.items?.raw?.asyncResponse,
+    scrape.items?.raw?.payload?.asyncResponse
+  );
+
+  const asyncFallback = asyncCandidate ?? (Object.keys(stripUndefined({ asyncState, status: statusValue, statusUrl, webhookId, batchId })).length > 0
+    ? stripUndefined({ asyncState, status: statusValue, statusUrl, webhookId, batchId })
+    : undefined);
+  const asyncResponse = sanitizeForLog(asyncFallback);
 
   const pushEntry = (url: string | null, reason?: string) => {
     const trimmedUrl = url?.trim() || scrape.sourceUrl;
     const normalizedUrl = normalizeUrlKey(trimmedUrl);
     const existing = normalizedUrl ? existingUrls.has(normalizedUrl) : false;
     const matchedJob = normalizedUrl ? jobByUrl.get(normalizedUrl) : undefined;
-    const skipped = reason === "already_saved" || reason === "listing_only" || reason === "no_items" || existing;
+    const resolvedReason = reason === "no_items" && existing ? "no_items_existing_job" : reason ?? (existing ? "already_saved" : undefined);
+    const skipped = resolvedReason === "already_saved" || resolvedReason === "listing_only" || resolvedReason === "no_items" || resolvedReason === "no_items_existing_job" || existing;
     logs.push({
       url: trimmedUrl ?? "unknown",
-      reason: reason ?? (existing ? "already_saved" : undefined),
+      reason: resolvedReason,
       action: skipped ? "skipped" : "scraped",
       provider,
       workflow,
       batchId,
+      workflowId,
       requestData: sanitizedRequest,
       response,
       asyncResponse,
@@ -2936,6 +3010,9 @@ const buildUrlLogEntriesForScrape = (
       jobId: matchedJob?._id,
       jobTitle: matchedJob?.title,
       jobCompany: matchedJob?.company,
+      jobUrl: matchedJob?.url,
+      normalizedCount,
+      rawUrlCount,
     });
   };
 
@@ -3363,16 +3440,12 @@ const looksLikeListingText = (title: string, description: string) => {
   return LISTING_TEXT_PATTERNS.some((pattern) => pattern.test(sample));
 };
 
-const filterSeedListingJobs = (
-  jobs: {
-    title: string;
-    description: string;
-    url: string;
-  }[],
+const filterSeedListingJobs = <T extends { title: string; description: string; url: string }>(
+  jobs: T[],
   seedUrlKeys: Set<string>
 ) => {
   if (!seedUrlKeys.size) return { jobs, dropped: [] as { url: string; title: string }[] };
-  const kept: typeof jobs = [];
+  const kept: T[] = [];
   const dropped: { url: string; title: string }[] = [];
   for (const job of jobs) {
     const key = normalizeUrlKey(job.url);
@@ -3392,6 +3465,11 @@ export function extractJobs(
   items: any,
   options?: {
     includeSeedListings?: boolean;
+    seedListingLogContext?: {
+      sourceUrl?: string;
+      provider?: string;
+      workflowName?: string;
+    };
   }
 ): {
   title: string;
@@ -3596,7 +3674,17 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
   if (options?.includeSeedListings) return jobs;
   if (!seedUrlKeys.size) return jobs;
 
-  return filterSeedListingJobs(jobs, seedUrlKeys).jobs;
+  const filtered = filterSeedListingJobs(jobs, seedUrlKeys);
+  if (filtered.dropped.length && options?.seedListingLogContext) {
+    const sample = filtered.dropped.slice(0, 5);
+    console.warn("Skipping seed listing URLs in scrape ingest", {
+      reason: "seed_listing_url",
+      count: filtered.dropped.length,
+      sample,
+      ...options.seedListingLogContext,
+    });
+  }
+  return filtered.jobs;
 }
 
 /**

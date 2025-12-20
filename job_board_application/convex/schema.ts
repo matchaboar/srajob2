@@ -34,6 +34,7 @@ const applicationTables = {
     test: v.optional(v.boolean()),
   })
     .index("by_posted_at", ["postedAt"])
+    .index("by_scraped_at", ["scrapedAt"])
     .index("by_company", ["company"])
     .index("by_state_posted", ["state", "postedAt"])
     .index("by_country_posted", ["country", "postedAt"])
@@ -175,6 +176,8 @@ const applicationTables = {
   })
     .index("by_source", ["sourceUrl"])
     .index("by_source_completed", ["sourceUrl", "completedAt"])
+    .index("by_completedAt", ["completedAt"])
+    .index("by_startedAt", ["startedAt"])
     .index("by_site", ["siteId"]),
 
   firecrawl_webhooks: defineTable({
@@ -310,7 +313,8 @@ const applicationTables = {
     createdAt: v.number(),
   })
     .index("by_url", ["url"])
-    .index("by_source", ["sourceUrl", "createdAt"]),
+    .index("by_source", ["sourceUrl", "createdAt"])
+    .index("by_created_at", ["createdAt"]),
 
   schedule_config: defineTable({
     key: v.string(),

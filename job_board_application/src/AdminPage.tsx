@@ -26,6 +26,9 @@ const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
 const ALL_SCHEDULE_DAYS: ScheduleDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const COMMON_SUBDOMAIN_PREFIXES = ["www", "jobs", "careers", "boards", "app", "apply"];
 const DEFAULT_SCHEDULE_STORAGE_KEY = "admin-default-schedule-id";
+const temporalUiBase = (import.meta as any).env?.VITE_TEMPORAL_UI as string | undefined;
+const temporalNamespace = ((import.meta as any).env?.VITE_TEMPORAL_NAMESPACE as string | undefined) ?? "default";
+const resolvedTemporalUiBase = (temporalUiBase || "http://localhost:8233").replace(/\/+$/, "");
 
 const toTitleCaseSlug = (slug: string): string => {
   return slug
@@ -531,6 +534,66 @@ function UrlScrapeListSection() {
     );
   };
 
+  const describeReason = (row: any) => {
+    const reason = row.reason as string | undefined;
+    const normalizedCount = typeof row.normalizedCount === "number" ? row.normalizedCount : 0;
+    const rawUrlCount = typeof row.rawUrlCount === "number" ? row.rawUrlCount : 0;
+    const hasExistingJob = Boolean(row.jobId);
+    const fallbackDetail = hasExistingJob ? "Matched an existing job in Job Board." : undefined;
+
+    switch (reason) {
+      case "already_saved":
+        return {
+          label: "Already in Job Board",
+          detail: "URL matches an existing job; skipped ingestion.",
+          tone: "bg-amber-900/30 text-amber-200 border-amber-800",
+        };
+      case "listing_only":
+        return {
+          label: "Listing URLs only",
+          detail: rawUrlCount > 0
+            ? `Extracted ${rawUrlCount} URL${rawUrlCount === 1 ? "" : "s"} without job payloads.`
+            : "Response had URLs but no job payloads.",
+          tone: "bg-slate-900/60 text-slate-200 border-slate-700",
+        };
+      case "no_items_existing_job":
+        return {
+          label: "No items returned",
+          detail: "Provider returned no items; URL already exists in Job Board.",
+          tone: "bg-amber-900/30 text-amber-200 border-amber-800",
+        };
+      case "no_items":
+        return {
+          label: "No items returned",
+          detail: normalizedCount > 0
+            ? `Normalized ${normalizedCount} item${normalizedCount === 1 ? "" : "s"} but none had URLs.`
+            : fallbackDetail ?? "Provider returned zero items for this URL.",
+          tone: "bg-amber-900/30 text-amber-200 border-amber-800",
+        };
+      case "missing_url":
+        return {
+          label: "Missing job URL",
+          detail: "Normalized item missing a URL field.",
+          tone: "bg-amber-900/30 text-amber-200 border-amber-800",
+        };
+      default:
+        if (!reason) {
+          return {
+            label: row.action === "scraped" ? "Scraped" : "Skipped",
+            detail: fallbackDetail,
+            tone: row.action === "scraped"
+              ? "bg-emerald-900/30 text-emerald-200 border-emerald-800"
+              : "bg-slate-900/60 text-slate-200 border-slate-700",
+          };
+        }
+        return {
+          label: reason,
+          detail: fallbackDetail,
+          tone: "bg-slate-900/60 text-slate-200 border-slate-700",
+        };
+    }
+  };
+
   const TimestampCell = ({ timestamp }: { timestamp?: number | string }) => {
     const parsed = typeof timestamp === "string" ? Date.parse(timestamp) : timestamp;
     if (!parsed || Number.isNaN(parsed)) return <span className="text-slate-600">—</span>;
@@ -566,15 +629,15 @@ function UrlScrapeListSection() {
               <tr>
                 <th className="px-3 py-2 w-56 font-bold">URL</th>
                 <th className="px-3 py-2 w-40 font-bold">Timestamp</th>
-                <th className="px-3 py-2 w-48 font-bold">JobBoard</th>
-                <th className="px-3 py-2 w-28 font-bold">Reason</th>
+                <th className="px-3 py-2 w-56 font-bold">Description URI</th>
+                <th className="px-3 py-2 w-48 font-bold">Reason</th>
                 <th className="px-3 py-2 w-20 font-bold">Action</th>
                 <th className="px-3 py-2 w-24 font-bold">Provider</th>
                 <th className="px-3 py-2 w-32 font-bold">Workflow</th>
-                <th className="px-3 py-2 w-28 font-bold">Batch</th>
-                <th className="px-3 py-2 w-64 font-bold">Request Data</th>
-                <th className="px-3 py-2 w-64 font-bold">Response</th>
-                <th className="px-3 py-2 w-64 font-bold">Async Response</th>
+                <th className="px-3 py-2 w-44 font-bold">Workflow ID</th>
+                <th className="px-3 py-2 w-72 font-bold">Request</th>
+                <th className="px-3 py-2 w-72 font-bold">Response</th>
+                <th className="px-3 py-2 w-72 font-bold">Async Response</th>
               </tr>
             </thead>
             <tbody className="bg-slate-950 divide-y divide-slate-800">
@@ -593,15 +656,18 @@ function UrlScrapeListSection() {
                     <TimestampCell timestamp={row.timestamp} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    {row.jobId ? (
+                    {row.jobUrl ? (
                       <div className="flex flex-col gap-1">
                         <a
-                          href={`/#job-details-${row.jobId}`}
+                          href={row.jobUrl}
                           className="text-emerald-300 hover:text-emerald-200 font-semibold underline underline-offset-2 break-all"
-                          title="Open job details in JobBoard"
+                          title="Open job description URL"
                         >
-                          {row.jobTitle || "Open in JobBoard"}
+                          {row.jobUrl}
                         </a>
+                        {row.jobTitle && (
+                          <span className="text-[11px] text-slate-300 truncate">{row.jobTitle}</span>
+                        )}
                         {row.jobCompany && (
                           <span className="text-[11px] text-slate-400 truncate">{row.jobCompany}</span>
                         )}
@@ -611,11 +677,17 @@ function UrlScrapeListSection() {
                     )}
                   </td>
                   <td className="px-3 py-2 align-top">
-                    {row.reason ? (
-                      <span className="px-2 py-1 rounded bg-slate-800 text-slate-100 border border-slate-700">{row.reason}</span>
-                    ) : (
-                      "—"
-                    )}
+                    {(() => {
+                      const info = describeReason(row);
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className={clsx("px-2 py-1 rounded text-[10px] font-semibold border w-fit", info.tone)}>
+                            {info.label}
+                          </span>
+                          {info.detail && <span className="text-[10px] text-slate-400">{info.detail}</span>}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-2 align-top">
                     <span
@@ -631,7 +703,23 @@ function UrlScrapeListSection() {
                   </td>
                   <td className="px-3 py-2 align-top">{row.provider || "—"}</td>
                   <td className="px-3 py-2 align-top break-words">{row.workflow || "—"}</td>
-                  <td className="px-3 py-2 align-top break-all">{row.batchId || "—"}</td>
+                  <td className="px-3 py-2 align-top break-all">
+                    {row.workflowId ? (
+                      <a
+                        href={`${resolvedTemporalUiBase}/namespaces/${encodeURIComponent(
+                          temporalNamespace
+                        )}/workflows/${encodeURIComponent(row.workflowId)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-300 hover:text-blue-100 underline break-all"
+                        title="Open workflow in Temporal UI"
+                      >
+                        {row.workflowId}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-3 py-2 align-top">
                     <ExpandableJsonCell value={row.requestData} />
                   </td>
@@ -2684,6 +2772,8 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
   const resetTodayAndRunAll = useMutation(api.router.resetTodayAndRunAllScheduled);
   const recentJobs = useQuery(api.jobs.getRecentJobs);
   const [resettingToday, setResettingToday] = useState(false);
+  const resetBatchSize = 25;
+  const resetMaxPasses = 500;
 
   const handleInsertFakeJobs = async () => {
     try {
@@ -2702,9 +2792,37 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 
     try {
       setResettingToday(true);
-      const res = await resetTodayAndRunAll({});
+      const totals = {
+        jobsDeleted: 0,
+        scrapesDeleted: 0,
+        queueDeleted: 0,
+        skippedDeleted: 0,
+        sitesTriggered: 0,
+      };
+      let hasMore = true;
+      let passes = 0;
+      let windowStart: number | undefined;
+      let windowEnd: number | undefined;
+
+      while (hasMore) {
+        const res = await resetTodayAndRunAll({ batchSize: resetBatchSize, windowStart, windowEnd });
+        if (windowStart === undefined) {
+          windowStart = res.windowStart;
+          windowEnd = res.windowEnd;
+        }
+        totals.jobsDeleted += res.jobsDeleted ?? 0;
+        totals.scrapesDeleted += res.scrapesDeleted ?? 0;
+        totals.queueDeleted += res.queueDeleted ?? 0;
+        totals.skippedDeleted += res.skippedDeleted ?? 0;
+        totals.sitesTriggered += res.sitesTriggered ?? 0;
+        hasMore = Boolean(res.hasMore);
+        passes += 1;
+        if (passes >= resetMaxPasses && hasMore) {
+          throw new Error("Reset exceeded the maximum number of passes. Try again or reduce the batch size.");
+        }
+      }
       toast.success(
-        `Deleted ${res.jobsDeleted ?? 0} jobs, removed ${res.scrapesDeleted ?? 0} scrapes, cleared ${res.queueDeleted ?? 0} queued URLs, removed ${res.skippedDeleted ?? 0} skipped, triggered ${res.sitesTriggered ?? 0} sites`
+        `Deleted ${totals.jobsDeleted} jobs, removed ${totals.scrapesDeleted} scrapes, cleared ${totals.queueDeleted} queued URLs, removed ${totals.skippedDeleted} skipped, triggered ${totals.sitesTriggered} sites`
       );
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to reset and run all scheduled sites");

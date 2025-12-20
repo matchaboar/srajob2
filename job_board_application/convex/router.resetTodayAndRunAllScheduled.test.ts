@@ -54,6 +54,38 @@ class FakeQuery<T extends { _id: string } & Record<string, any>> {
       const enabled = cb({ eq: (_field: string, value: boolean) => value });
       return new FakeQuery(this.db, this.table, (row) => row.enabled === enabled);
     }
+    if (this.table === "jobs" && name === "by_scraped_at") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.scrapedAt === "number" && row.scrapedAt >= range.lower && row.scrapedAt < range.upper
+      );
+    }
+    if (this.table === "scrapes" && name === "by_completedAt") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.completedAt === "number" && row.completedAt >= range.lower && row.completedAt < range.upper
+      );
+    }
+    if (this.table === "scrapes" && name === "by_startedAt") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.startedAt === "number" && row.startedAt >= range.lower && row.startedAt < range.upper
+      );
+    }
+    if (this.table === "ignored_jobs" && name === "by_created_at") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.createdAt === "number" && row.createdAt >= range.lower && row.createdAt < range.upper
+      );
+    }
     throw new Error(`Unexpected index ${name} for table ${this.table}`);
   }
 
@@ -83,6 +115,29 @@ class FakeQuery<T extends { _id: string } & Record<string, any>> {
     }
     return rows;
   }
+}
+
+function buildRange(cb: (q: any) => any) {
+  const range = { lower: -Infinity, upper: Infinity };
+  const chain = {
+    lt: (_field: string, value: number) => {
+      range.upper = value;
+      return chain;
+    },
+  };
+  const q = {
+    gte: (_field: string, value: number) => {
+      range.lower = value;
+      return chain;
+    },
+    lt: (_field: string, value: number) => {
+      range.upper = value;
+      return chain;
+    },
+    eq: (_field: string, value: any) => value,
+  };
+  cb(q);
+  return range;
 }
 
 class FakeDb {
@@ -158,9 +213,9 @@ describe("resetTodayAndRunAllScheduled", () => {
         { _id: "detail-2", jobId: "job-2" },
       ],
       scrapes: [
-        { _id: "scrape-1", completedAt: startOfDay + 2_000 },
-        { _id: "scrape-2", startedAt: startOfDay + 3_000 },
-        { _id: "scrape-3", completedAt: endOfDay + 500 },
+        { _id: "scrape-1", startedAt: startOfDay + 1_000, completedAt: startOfDay + 2_000 },
+        { _id: "scrape-2", startedAt: startOfDay + 3_000, completedAt: endOfDay + 5_000 },
+        { _id: "scrape-3", startedAt: endOfDay + 100, completedAt: endOfDay + 500 },
       ],
       scrape_url_queue: [{ _id: "queue-1" }, { _id: "queue-2" }, { _id: "queue-3" }],
       ignored_jobs: [
@@ -195,6 +250,7 @@ describe("resetTodayAndRunAllScheduled", () => {
     expect(result.queueDeleted).toBe(3);
     expect(result.skippedDeleted).toBe(1);
     expect(result.sitesTriggered).toBe(1);
+    expect(result.hasMore).toBe(false);
 
     expect(db.getRows("jobs").some((row) => row._id === "job-1")).toBe(false);
     expect(db.getRows("job_details").some((row) => row._id === "detail-1")).toBe(false);
@@ -217,5 +273,67 @@ describe("resetTodayAndRunAllScheduled", () => {
     expect(site.manualTriggerAt).toBe(now.getTime());
 
     expect(db.getRows("run_requests")).toHaveLength(1);
+  });
+
+  it("batches deletions and only triggers sites on the final pass", async () => {
+    const now = new Date(2024, 4, 3, 12, 0, 0, 0);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const startOfDay = new Date(2024, 4, 3, 0, 0, 0, 0).getTime();
+
+    const db = new FakeDb({
+      jobs: [
+        { _id: "job-1", scrapedAt: startOfDay + 1_000 },
+        { _id: "job-2", scrapedAt: startOfDay + 2_000 },
+        { _id: "job-3", scrapedAt: startOfDay + 3_000 },
+      ],
+      job_details: [
+        { _id: "detail-1", jobId: "job-1" },
+        { _id: "detail-2", jobId: "job-2" },
+        { _id: "detail-3", jobId: "job-3" },
+      ],
+      sites: [
+        {
+          _id: "site-1",
+          enabled: true,
+          scheduleId: "sched-1",
+          completed: true,
+          failed: true,
+          lockedBy: "tester",
+          lockExpiresAt: 123,
+          lastRunAt: 456,
+          lastFailureAt: 789,
+          lastError: "boom",
+          manualTriggerAt: 0,
+          url: "https://example.com",
+        },
+      ],
+    });
+
+    const handler = getHandler(resetTodayAndRunAllScheduled);
+    const first = await handler({ db } as any, { batchSize: 2 });
+
+    expect(first.jobsDeleted).toBe(2);
+    expect(first.hasMore).toBe(true);
+    expect(first.sitesTriggered).toBe(0);
+    expect(db.getRows("run_requests")).toHaveLength(0);
+
+    const siteAfterFirst = db.getRows("sites").find((row) => row._id === "site-1");
+    expect(siteAfterFirst.completed).toBe(true);
+    expect(siteAfterFirst.failed).toBe(true);
+
+    const second = await handler({ db } as any, { batchSize: 2 });
+
+    expect(second.jobsDeleted).toBe(1);
+    expect(second.hasMore).toBe(false);
+    expect(second.sitesTriggered).toBe(1);
+    expect(db.getRows("jobs")).toHaveLength(0);
+    expect(db.getRows("job_details")).toHaveLength(0);
+    expect(db.getRows("run_requests")).toHaveLength(1);
+
+    const siteAfterSecond = db.getRows("sites").find((row) => row._id === "site-1");
+    expect(siteAfterSecond.completed).toBe(false);
+    expect(siteAfterSecond.failed).toBe(false);
   });
 });
