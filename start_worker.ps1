@@ -30,6 +30,10 @@ $env:PATH = "$HOME/.cargo/bin;$env:PATH"
 if (-not $env:UV_PYTHON) {
     $env:UV_PYTHON = "3.13"
 }
+$temporalMaxBytes = 10 * 1024 * 1024
+if (-not $env:TEMPORAL_MAX_INCOMING_GRPC_BYTES) {
+    $env:TEMPORAL_MAX_INCOMING_GRPC_BYTES = $temporalMaxBytes.ToString()
+}
 $ProgressPreference = "SilentlyContinue"
 if ($PSStyle.PSObject.Properties.Name -contains "Progress" -and $PSStyle.Progress.PSObject.Properties.Name -contains "View") {
     # PowerShell 7.4+ only supports Minimal/Classic; fall back to Minimal if None is unavailable
@@ -59,6 +63,35 @@ function Reset-StaleVenv {
             Write-Warning "Failed to remove .venv: $($_.Exception.Message)"
         }
     }
+}
+
+function Get-RuntimeConfigInt {
+    param(
+        [string]$Path,
+        [string]$Key,
+        [int]$DefaultValue
+    )
+
+    if (-not $Path -or -not (Test-Path $Path)) {
+        return $DefaultValue
+    }
+
+    try {
+        $pattern = "^\s*{0}\s*:\s*([0-9]+)" -f [regex]::Escape($Key)
+        foreach ($line in Get-Content -LiteralPath $Path -ErrorAction Stop) {
+            if ($null -eq $line) { continue }
+            $trimmed = $line.Trim()
+            if (-not $trimmed -or $trimmed.StartsWith("#")) { continue }
+            $match = [regex]::Match($line, $pattern)
+            if ($match.Success) {
+                return [int]$match.Groups[1].Value
+            }
+        }
+    } catch {
+        Write-Warning "Failed to read $Key from runtime config at ${Path}: $($_.Exception.Message)"
+    }
+
+    return $DefaultValue
 }
 
 function Invoke-LoggedCommand {
@@ -275,7 +308,7 @@ function Run-PreflightChecks {
 
     $steps = @(
         @{ Name = "ruff"; Timeout = 10; Block = { uvx ruff check job_scrape_application } },
-        @{ Name = "pytest"; Timeout = 30; Block = { uv run pytest } }
+        @{ Name = "pytest"; Timeout = 30; Block = { uv run --extra dev pytest } }
     )
 
     Write-Host "[preflight] Pending checks:" -ForegroundColor DarkGray
@@ -805,7 +838,21 @@ function Start-WorkerMain {
         Write-Host ("Temporal UI available at {0}" -f $TemporalUiUrl) -ForegroundColor Cyan
     }
 
-    Write-Host "Starting Workers (4 general + 2 job-details)..."
+    $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
+    $defaultGeneralWorkerCount = 4
+    $defaultJobDetailsWorkerCount = 4
+    $generalWorkerCount = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_general_worker_count" -DefaultValue $defaultGeneralWorkerCount
+    $jobDetailsWorkerCount = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultJobDetailsWorkerCount
+    if ($generalWorkerCount -lt 1) {
+        Write-Warning "Invalid temporal_general_worker_count=$generalWorkerCount in $runtimeConfigPath; using $defaultGeneralWorkerCount."
+        $generalWorkerCount = $defaultGeneralWorkerCount
+    }
+    if ($jobDetailsWorkerCount -lt 1) {
+        Write-Warning "Invalid temporal_job_details_worker_count=$jobDetailsWorkerCount in $runtimeConfigPath; using $defaultJobDetailsWorkerCount."
+        $jobDetailsWorkerCount = $defaultJobDetailsWorkerCount
+    }
+
+    Write-Host ("Starting Workers ({0} general + {1} job-details)..." -f $generalWorkerCount, $jobDetailsWorkerCount)
     if ($ConvexUrl) {
         Write-Host "Using CONVEX_HTTP_URL=$ConvexUrl" -ForegroundColor Green
     } else {
@@ -816,8 +863,6 @@ function Start-WorkerMain {
     # Spawn multiple worker processes for higher throughput.
     $script:WorkerProcId = $null
     $script:WorkerProcesses = @()
-    $generalWorkerCount = 4
-    $jobDetailsWorkerCount = 2
     for ($i = 1; $i -le $generalWorkerCount; $i++) {
         $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
     }

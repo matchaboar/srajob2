@@ -108,6 +108,15 @@ def test_load_schedule_configs_defaults_overlap_skip(tmp_path: Path):
     assert cfgs and cfgs[0].overlap == "skip"
 
 
+def test_default_schedule_includes_spidercloud_job_details():
+    cfgs = cs.load_schedule_configs()
+    match = next((cfg for cfg in cfgs if cfg.id == "spidercloud-job-details"), None)
+    assert match is not None
+    assert match.workflow == "SpidercloudJobDetails"
+    assert match.interval_seconds == 15
+    assert match.overlap == "skip"
+
+
 @dataclass
 class FakeScheduleEntry:
     id: str

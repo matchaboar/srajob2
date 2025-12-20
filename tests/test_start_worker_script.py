@@ -9,10 +9,15 @@ def _read_start_worker() -> str:
 
 
 def _extract_count(script: str, name: str) -> int:
-    pattern = rf"\${name}\s*=\s*(\d+)"
-    match = re.search(pattern, script)
-    assert match, f"Missing {name} assignment in start_worker.ps1"
-    return int(match.group(1))
+    patterns = [
+        rf"\${name}\s*=\s*(\d+)",
+        rf"\$default{name[0].upper()}{name[1:]}\s*=\s*(\d+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, script)
+        if match:
+            return int(match.group(1))
+    assert False, f"Missing {name} assignment in start_worker.ps1"
 
 
 def test_start_worker_defaults_to_multiple_workers():
@@ -21,4 +26,4 @@ def test_start_worker_defaults_to_multiple_workers():
     job_details = _extract_count(script, "jobDetailsWorkerCount")
 
     assert general == 4
-    assert job_details == 2
+    assert job_details == 4

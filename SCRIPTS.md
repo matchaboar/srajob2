@@ -5,6 +5,7 @@
   ./start_worker.ps1
   ```
   Runs Temporalite (via Podman/Docker fallback), ensures schedules exist, then launches the Python worker against the configured Convex deployment.
+  Note: the worker defaults `TEMPORAL_MAX_INCOMING_GRPC_BYTES` to 10MB, and the dev Temporal container sets the server-side gRPC inbound limit to 10MB.
 
 - **Deploy the web app to Netlify**
   ```pwsh

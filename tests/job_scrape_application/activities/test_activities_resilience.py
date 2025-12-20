@@ -35,11 +35,18 @@ async def test_record_workflow_run_raises_on_other_errors(monkeypatch):
 
 def test_trim_scrape_for_convex_truncates_and_strips_raw():
     long_description = "x" * 2000
+    long_title = "t" * 1000
     scrape = {
         "sourceUrl": "https://example.com",
         "items": {
             "normalized": [
-                {"url": "https://example.com/1", "description": long_description},
+                {
+                    "url": "https://example.com/1",
+                    "description": long_description,
+                    "job_description": long_description,
+                    "title": long_title,
+                    "job_title": long_title,
+                },
                 {"url": "https://example.com/2", "description": "short"},
             ],
             "raw": {"huge": "y" * 10_000},
@@ -47,12 +54,15 @@ def test_trim_scrape_for_convex_truncates_and_strips_raw():
     }
 
     trimmed = acts.trim_scrape_for_convex(
-        scrape, max_items=1, max_description=100, raw_preview_chars=50
+        scrape, max_items=1, max_description=100, max_title_chars=50, raw_preview_chars=50
     )
 
     items = trimmed["items"]
     assert len(items["normalized"]) == 1  # limited by max_items
     assert len(items["normalized"][0]["description"]) == 100  # truncated description
+    assert len(items["normalized"][0]["job_description"]) == 100
+    assert len(items["normalized"][0]["title"]) == 50
+    assert len(items["normalized"][0]["job_title"]) == 50
     assert "raw" not in items
     assert "rawPreview" in items  # preview retained instead of raw blob
 

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import html
 import logging
 import os
 import re
 import time
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
-
-import httpx
 from spider import AsyncSpider
 from temporalio.exceptions import ApplicationError
 
@@ -48,6 +48,7 @@ GREENHOUSE_BOARDS_PATH_PATTERN = r"/boards/([^/]+)/jobs"
 SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
 CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
+MAX_TITLE_CHARS = 500
 
 
 logger = logging.getLogger("temporal.worker.activities")
@@ -265,14 +266,33 @@ class SpiderCloudScraper(BaseScraper):
         return None
 
     def _title_from_markdown(self, markdown: str) -> Optional[str]:
+        if "```" in markdown:
+            fenced_match = re.search(
+                r"```(?:json)?\s*(\{.*?\})\s*```",
+                markdown,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if fenced_match:
+                try:
+                    parsed = json.loads(fenced_match.group(1))
+                except Exception:
+                    parsed = None
+                if isinstance(parsed, dict):
+                    for key in ("title", "job_title", "heading"):
+                        val = parsed.get(key)
+                        if isinstance(val, str) and val.strip():
+                            return val.strip()
         for line in markdown.splitlines():
             if not line.strip():
                 continue
             heading_match = re.match(MARKDOWN_HEADING_PATTERN, line.strip())
             if heading_match:
                 return heading_match.group(1).strip()
-            if len(line.strip()) > 6:
-                return line.strip()
+            stripped = line.strip()
+            if stripped.startswith(("{", "[")):
+                continue
+            if len(stripped) > 6:
+                return stripped
         return None
 
     def _title_with_required_keyword(self, markdown: str) -> Optional[str]:
@@ -303,7 +323,11 @@ class SpiderCloudScraper(BaseScraper):
 
     def _is_placeholder_title(self, title: str) -> bool:
         placeholders = {"page_title", "title", "job_title", "untitled", "unknown"}
-        return title.strip().lower() in placeholders
+        stripped = title.strip().lower()
+        if stripped in placeholders:
+            return True
+        # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
+        return bool(re.fullmatch(r"\d{3,}", stripped))
 
     def _regex_extract_job_urls(self, text: str) -> List[str]:
         """
@@ -339,17 +363,38 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         params = {"includeCompensation": "false"}
+        request_url = self._merge_query_params(api_url, params)
         started_at = int(time.time() * 1000)
+        api_key = self._api_key()
+        spider_params: Dict[str, Any] = {
+            "return_format": ["raw_html"],
+            "metadata": True,
+            "request": "chrome",
+            "follow_redirects": True,
+            "redirect_policy": "Loose",
+            "external_domains": ["*"],
+            "preserve_host": True,
+            "limit": 1,
+        }
+        spider_params.update(handler.get_spidercloud_config(request_url))
         try:
-            async with httpx.AsyncClient(timeout=runtime_config.spidercloud_http_timeout_seconds) as client:
-                resp = await client.get(api_url, params=params)
-                resp.raise_for_status()
-                payload = resp.json()
+            async with AsyncSpider(api_key=api_key) as client:
+                scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
+                response = scrape_fn(  # type: ignore[call-arg]
+                    request_url,
+                    params=spider_params,
+                    stream=False,
+                    content_type="application/json",
+                )
+                raw_events: list[Any] = []
+                async for chunk in self._iterate_scrape_response(response):
+                    raw_events.append(chunk)
+                payload = self._extract_json_payload(raw_events)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Site API fetch failed handler=%s url=%s error=%s",
                 handler.name,
-                api_url,
+                request_url,
                 exc,
             )
             return None
@@ -358,8 +403,8 @@ class SpiderCloudScraper(BaseScraper):
             logger.warning(
                 "Site API fetch returned non-dict handler=%s url=%s payload_type=%s",
                 handler.name,
-                api_url,
-                type(payload).__name__,
+                request_url,
+                type(payload).__name__ if payload is not None else "none",
             )
             return None
 
@@ -376,15 +421,19 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         provider_request: Dict[str, Any] = {
-            "url": api_url,
-            "params": params,
+            "url": request_url,
+            "params": spider_params,
             "method": "GET",
+            "contentType": "application/json",
         }
         request_snapshot = self.deps.build_request_snapshot(
             provider_request,
             provider=self.provider,
-            method="GET",
-            url=api_url,
+            method="POST",
+            url="https://api.spider.cloud/v1/crawl",
+            headers={
+                "authorization": f"Bearer {self.deps.mask_secret(api_key)}",
+            },
         )
         completed_at = int(time.time() * 1000)
 
@@ -415,7 +464,7 @@ class SpiderCloudScraper(BaseScraper):
         logger.info(
             "Site API fetch succeeded handler=%s url=%s jobs=%s job_urls=%s",
             handler.name,
-            api_url,
+            request_url,
             job_count,
             len(job_urls),
         )
@@ -428,6 +477,106 @@ class SpiderCloudScraper(BaseScraper):
             response=trimmed,
         )
         return trimmed
+
+    def _merge_query_params(self, url: str, params: Dict[str, Any]) -> str:
+        if not params:
+            return url
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return url
+        query_items = parse_qsl(parsed.query, keep_blank_values=True)
+        if params:
+            filtered = [(key, val) for key, val in query_items if key not in params]
+            merged = filtered + [(key, str(val)) for key, val in params.items()]
+        else:
+            merged = query_items
+        new_query = urlencode(merged, doseq=True)
+        return urlunparse(parsed._replace(query=new_query))
+
+    def _extract_json_payload(self, value: Any) -> Optional[Dict[str, Any]]:
+        def _find_jobs_payload(node: Any) -> Optional[Dict[str, Any]]:
+            if isinstance(node, dict):
+                jobs = node.get("jobs")
+                if isinstance(jobs, list):
+                    return node
+                for child in node.values():
+                    found = _find_jobs_payload(child)
+                    if found:
+                        return found
+            elif isinstance(node, list):
+                for child in node:
+                    found = _find_jobs_payload(child)
+                    if found:
+                        return found
+            return None
+
+        def _gather_strings(node: Any) -> list[str]:
+            results: list[str] = []
+            if isinstance(node, str):
+                if node.strip():
+                    results.append(node)
+                return results
+            if isinstance(node, dict):
+                for child in node.values():
+                    results.extend(_gather_strings(child))
+            elif isinstance(node, list):
+                for child in node:
+                    results.extend(_gather_strings(child))
+            return results
+
+        def _parse_json_text(text: str) -> Any | None:
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                return None
+            if isinstance(parsed, str):
+                try:
+                    parsed = json.loads(parsed)
+                except Exception:
+                    return parsed
+            return parsed
+
+        def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
+            if "<pre" not in text.lower():
+                return None
+            match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", text, flags=re.IGNORECASE | re.DOTALL)
+            content = match.group("content") if match else text
+            if not content:
+                return None
+            content = html.unescape(content).strip()
+            if not content:
+                return None
+            candidate = content
+            if not candidate.lstrip().startswith("{"):
+                brace_match = re.search(r"{.*}", candidate, flags=re.DOTALL)
+                if brace_match:
+                    candidate = brace_match.group(0)
+            parsed = _parse_json_text(candidate)
+            if parsed is None and candidate:
+                try:
+                    unescaped = candidate.encode("utf-8", errors="ignore").decode("unicode_escape")
+                except Exception:
+                    unescaped = ""
+                if unescaped:
+                    parsed = _parse_json_text(unescaped)
+            return _find_jobs_payload(parsed) if parsed is not None else None
+
+        found = _find_jobs_payload(value)
+        if found:
+            return found
+
+        for text in _gather_strings(value):
+            parsed = _parse_json_text(text)
+            if parsed is not None:
+                found = _find_jobs_payload(parsed)
+                if found:
+                    return found
+            html_found = _extract_json_from_html(text)
+            if html_found:
+                return html_found
+
+        return None
 
     def _normalize_job(
         self,
@@ -476,6 +625,13 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         title = payload_title or self._title_from_url(url)
+        if isinstance(title, str) and len(title) > MAX_TITLE_CHARS:
+            logger.info(
+                "SpiderCloud title too long; falling back to URL title url=%s title_len=%s",
+                url,
+                len(title),
+            )
+            title = self._title_from_url(url)
 
         if from_content and not title_matches_required_keywords(title):
             keyword_title = self._title_with_required_keyword(cleaned_markdown)
@@ -584,9 +740,7 @@ class SpiderCloudScraper(BaseScraper):
         credit_candidates: List[float] = []
         cost_candidates_usd: List[float] = []
         started_at = int(time.time() * 1000)
-        logger.info(
-            "SpiderCloud scrape started url=%s params=%s", url, params
-        )
+        logger.debug("SpiderCloud scrape started url=%s", url)
 
         # Prefer SpiderCloud /scrape endpoint when available, fall back to /crawl.
         scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
@@ -636,7 +790,7 @@ class SpiderCloudScraper(BaseScraper):
                     markdown_parts.append(parsed)
 
             if not markdown_parts:
-                logger.info("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
+                logger.debug("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
                 async for resp in self._iterate_scrape_response(
                     scrape_fn(  # type: ignore[call-arg]
                         url,
@@ -663,8 +817,8 @@ class SpiderCloudScraper(BaseScraper):
             logger.error("SpiderCloud scrape failed url=%s error=%s", url, exc)
             raise ApplicationError(f"SpiderCloud scrape failed for {url}: {exc}") from exc
 
-        logger.info(
-            "SpiderCloud stream finished url=%s events=%s markdown_fragments=%s credit_candidates=%s",
+        logger.debug(
+            "SpiderCloud stream parsed url=%s events=%s markdown_fragments=%s credit_candidates=%s",
             url,
             len(raw_events),
             len(markdown_parts),
@@ -706,13 +860,12 @@ class SpiderCloudScraper(BaseScraper):
         )
         ignored_entry = getattr(self, "_last_ignored_job", None)
 
-        logger.info(
-            "SpiderCloud stream finished url=%s events=%s markdown_fragments=%s credits=%s cost_mc=%s cost_usd=%s",
+        logger.debug(
+            "SpiderCloud stream complete url=%s events=%s markdown_fragments=%s credits=%s cost_usd=%s",
             url,
             len(raw_events),
             len(markdown_parts),
             credits_used,
-            cost_milli_cents,
             cost_usd,
         )
 
@@ -729,7 +882,7 @@ class SpiderCloudScraper(BaseScraper):
             "startedAt": started_at,
             "ignored": ignored_entry,
         }
-        logger.info(
+        logger.debug(
             "SpiderCloud normalized url=%s title=%s credits=%s description_len=%s",
             url,
             normalized.get("title"),
@@ -746,7 +899,10 @@ class SpiderCloudScraper(BaseScraper):
     ) -> Dict[str, Any]:
         urls = urls[:SPIDERCLOUD_BATCH_SIZE]
         logger.info(
-            "SpiderCloud batch start urls=%s pattern=%s", len(urls), pattern
+            "SpiderCloud batch start source=%s urls=%s pattern=%s",
+            source_url,
+            len(urls),
+            pattern,
         )
         if not urls:
             logger.info("SpiderCloud batch empty; returning no-op payload")
@@ -864,7 +1020,7 @@ class SpiderCloudScraper(BaseScraper):
                     saw_cost_field = True
                 elif isinstance(credits, (int, float)):
                     total_cost_milli_cents += float(credits) * 10
-                logger.info(
+                logger.debug(
                     "SpiderCloud batch item url=%s normalized=%s credits=%s cost_mc=%s markdown_len=%s",
                     url,
                     bool(result.get("normalized")),
@@ -933,8 +1089,9 @@ class SpiderCloudScraper(BaseScraper):
         cost_cents_display = f"{float(cost_cents):.3f}" if cost_cents is not None else "n/a"
         cost_usd_display = f"{float(cost_usd):.5f}" if cost_usd is not None else "n/a"
         logger.info(
-            "SpiderCloud batch complete source=%s items=%s cost_mc=%s cost_usd=%s",
+            "SpiderCloud batch complete source=%s urls=%s items=%s cost_mc=%s cost_usd=%s",
             source_url,
+            len(urls),
             len(trimmed_items.get("normalized") if isinstance(trimmed_items, dict) else []),
             cost_milli_cents,
             cost_usd,
@@ -1017,6 +1174,92 @@ class SpiderCloudScraper(BaseScraper):
             pattern=site.get("pattern"),
         )
 
+    async def _fetch_greenhouse_listing_payload(
+        self,
+        api_url: str,
+        handler: BaseSiteHandler | None,
+    ) -> tuple[str, list[Any]]:
+        api_key = self._api_key()
+        spider_params: Dict[str, Any] = {
+            "return_format": ["raw_html"],
+            "metadata": True,
+            "request": "chrome",
+            "follow_redirects": True,
+            "redirect_policy": "Loose",
+            "external_domains": ["*"],
+            "preserve_host": True,
+            "limit": 1,
+        }
+        if handler:
+            spider_params.update(handler.get_spidercloud_config(api_url))
+
+        async def _do_fetch() -> list[Any]:
+            async with AsyncSpider(api_key=api_key) as client:
+                scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
+                response = scrape_fn(  # type: ignore[call-arg]
+                    api_url,
+                    params=spider_params,
+                    stream=False,
+                    content_type="application/json",
+                )
+                raw_events: list[Any] = []
+                async for chunk in self._iterate_scrape_response(response):
+                    raw_events.append(chunk)
+                return raw_events
+
+        timeout_seconds = runtime_config.spidercloud_http_timeout_seconds
+        try:
+            if timeout_seconds and timeout_seconds > 0:
+                raw_events = await asyncio.wait_for(_do_fetch(), timeout=timeout_seconds)
+            else:
+                raw_events = await _do_fetch()
+        except asyncio.TimeoutError as exc:
+            logger.error(
+                "SpiderCloud greenhouse listing timed out url=%s timeout=%s",
+                api_url,
+                timeout_seconds,
+            )
+            raise ApplicationError(
+                f"Failed to fetch Greenhouse board via SpiderCloud (timeout {timeout_seconds}s)."
+            ) from exc
+        except Exception as exc:  # noqa: BLE001
+            logger.error("SpiderCloud greenhouse listing fetch failed url=%s error=%s", api_url, exc)
+            raise ApplicationError(f"Failed to fetch Greenhouse board via SpiderCloud: {exc}") from exc
+
+        def _extract_text(value: Any) -> str:
+            if isinstance(value, dict):
+                for key in ("content", "raw_html", "html", "text", "body", "result"):
+                    candidate = value.get(key)
+                    if isinstance(candidate, (bytes, bytearray)):
+                        candidate = candidate.decode("utf-8", errors="replace")
+                    if isinstance(candidate, str) and candidate.strip():
+                        return candidate
+                for child in value.values():
+                    found = _extract_text(child)
+                    if found:
+                        return found
+                return ""
+            if isinstance(value, list):
+                for child in value:
+                    found = _extract_text(child)
+                    if found:
+                        return found
+                return ""
+            if isinstance(value, (bytes, bytearray)):
+                return value.decode("utf-8", errors="replace")
+            if isinstance(value, str):
+                return value
+            return ""
+
+        raw_text = ""
+        for event in raw_events:
+            candidate = _extract_text(event)
+            if isinstance(candidate, str) and candidate.strip():
+                raw_text = candidate
+                break
+
+        return raw_text, raw_events
+
     async def fetch_greenhouse_listing(self, site: Site) -> Dict[str, Any]:  # type: ignore[override]
         """Fetch a Greenhouse board JSON feed directly."""
 
@@ -1037,17 +1280,16 @@ class SpiderCloudScraper(BaseScraper):
         )
         self.deps.log_dispatch(self.provider, url, kind="greenhouse_board", siteId=site.get("_id"))
         started_at = int(time.time() * 1000)
-        try:
-            async with httpx.AsyncClient(timeout=runtime_config.spidercloud_http_timeout_seconds) as client:
-                resp = await client.get(api_url)
-                resp.raise_for_status()
-                raw_text = resp.text
-        except Exception as exc:  # noqa: BLE001
-            logger.error("SpiderCloud greenhouse listing http error url=%s error=%s", api_url, exc)
-            raise ApplicationError(f"Failed to fetch Greenhouse board via SpiderCloud: {exc}") from exc
+        raw_text, raw_events = await self._fetch_greenhouse_listing_payload(api_url, handler)
+        payload = self._extract_json_payload(raw_events)
+        if not raw_text and payload is not None:
+            try:
+                raw_text = json.dumps(payload, ensure_ascii=False)
+            except Exception:
+                raw_text = str(payload)
 
         try:
-            board = load_greenhouse_board(raw_text)
+            board = load_greenhouse_board(raw_text or payload or {})
             # Structured extraction first.
             job_urls = extract_greenhouse_job_urls(board)
 
@@ -1142,7 +1384,7 @@ class SpiderCloudScraper(BaseScraper):
             logger.info("SpiderCloud greenhouse_jobs received empty url list; returning noop")
             return {"scrape": None, "jobsScraped": 0}
         logger.info(
-            "SpiderCloud greenhouse_jobs start urls=%s deduped=%s source=%s",
+            "SpiderCloud greenhouse_jobs start urls_total=%s urls_deduped=%s source=%s",
             len(payload.get("urls", [])),
             len(urls),
             source_url,

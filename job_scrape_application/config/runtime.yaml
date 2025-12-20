@@ -8,5 +8,11 @@ spidercloud_job_details_batch_size: 50
 # back to "pending" so the workflow can re-lease it. This prevents stuck rows from blocking future batches.
 spidercloud_job_details_processing_expire_minutes: 20
 
-# Timeout (seconds) for outbound Spidercloud HTTP requests (httpx client). Set to 15 minutes so slow streams don't prematurely fail.
+# Timeout (seconds) for outbound Spidercloud requests. Set to 15 minutes so slow streams don't prematurely fail.
 spidercloud_http_timeout_seconds: 900
+
+# Number of Temporal worker processes for general scraping tasks.
+temporal_general_worker_count: 4
+
+# Number of Temporal worker processes dedicated to Spidercloud job-details.
+temporal_job_details_worker_count: 4

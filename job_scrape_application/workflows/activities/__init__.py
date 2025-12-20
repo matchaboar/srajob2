@@ -49,7 +49,6 @@ from ..helpers.provider import (
     sanitize_headers,
 )
 from ..helpers.scrape_utils import (
-    MAX_JOB_DESCRIPTION_CHARS,
     _jobs_from_scrape_items,
     _shrink_payload,
     build_firecrawl_schema,
@@ -144,6 +143,7 @@ COMP_LPA_PATTERN = r"(?P<value>\d{1,3})\s*(lpa|lakh)"
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
 SCRAPE_URL_QUEUE_LIST_LIMIT = 500
+TEMPORAL_PAYLOAD_MAX_CHARS = 10 * 1024 * 1024
 
 logger = logging.getLogger("temporal.worker.activities")
 scheduling_logger = logging.getLogger("temporal.scheduler")
@@ -1099,9 +1099,9 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         return trim_scrape_for_convex(
             scrape,
             max_items=50,  # we only ever keep one normalized row per scrape here
-            max_description=MAX_JOB_DESCRIPTION_CHARS,
-            raw_preview_chars=2000,
-            request_max_chars=1500,
+            max_description=TEMPORAL_PAYLOAD_MAX_CHARS,
+            raw_preview_chars=TEMPORAL_PAYLOAD_MAX_CHARS,
+            request_max_chars=TEMPORAL_PAYLOAD_MAX_CHARS,
         )
 
     urls: list[str] = []
@@ -2369,8 +2369,119 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
         return links
 
+    def _extract_ashby_job_urls(text: str) -> list[str]:
+        if "ashbyhq.com" not in text or "window.__appData" not in text:
+            return []
+
+        def _find_slug(raw_text: str, payload: Dict[str, Any]) -> Optional[str]:
+            org = payload.get("organization") if isinstance(payload, dict) else None
+            if isinstance(org, dict):
+                slug_val = org.get("hostedJobsPageSlug")
+                if isinstance(slug_val, str) and slug_val.strip():
+                    return slug_val.strip()
+            match = re.search(r"https?://jobs\\.ashbyhq\\.com/([^/\"'\\s]+)", raw_text, re.IGNORECASE)
+            return match.group(1).strip() if match else None
+
+        def _load_app_data(raw_text: str) -> Optional[Dict[str, Any]]:
+            marker = "window.__appData"
+            start = raw_text.find(marker)
+            if start == -1:
+                return None
+            brace_start = raw_text.find("{", start)
+            if brace_start == -1:
+                return None
+            try:
+                decoder = json.JSONDecoder()
+                parsed, _ = decoder.raw_decode(raw_text, brace_start)
+                return parsed if isinstance(parsed, dict) else None
+            except Exception:
+                return None
+
+        payload = _load_app_data(text)
+        if not payload:
+            return []
+
+        slug = _find_slug(text, payload)
+        if not slug:
+            return []
+        slug = slug.strip().lower()
+
+        job_ids: set[str] = set()
+
+        def _walk(node: Any) -> None:
+            if isinstance(node, dict):
+                job_id = node.get("jobId")
+                title = node.get("title")
+                is_listed = node.get("isListed")
+                if (
+                    isinstance(job_id, str)
+                    and isinstance(title, str)
+                    and title.strip()
+                    and (is_listed is None or is_listed is True)
+                ):
+                    if title_matches_required_keywords(title):
+                        job_ids.add(job_id.strip())
+                for child in node.values():
+                    _walk(child)
+            elif isinstance(node, list):
+                for child in node:
+                    _walk(child)
+
+        _walk(payload)
+
+        return [f"https://jobs.ashbyhq.com/{slug}/{job_id}" for job_id in sorted(job_ids)]
+
+    def _extract_job_urls_from_json_payload(value: Any) -> list[str]:
+        if value is None:
+            return []
+
+        def _extract_from_jobs_payload(payload: Dict[str, Any]) -> list[str]:
+            jobs = payload.get("jobs") if isinstance(payload, dict) else None
+            if not isinstance(jobs, list):
+                return []
+            url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
+            urls: list[str] = []
+            seen_local: set[str] = set()
+            for job in jobs:
+                if not isinstance(job, dict):
+                    continue
+                for key in url_keys:
+                    val = job.get(key)
+                    if isinstance(val, str) and val.strip():
+                        url = val.strip()
+                        if url not in seen_local:
+                            seen_local.add(url)
+                            urls.append(url)
+            return urls
+
+        def _walk(node: Any) -> list[str]:
+            urls: list[str] = []
+            if isinstance(node, dict):
+                urls = _extract_from_jobs_payload(node)
+                if urls:
+                    return urls
+                for child in node.values():
+                    urls.extend(_walk(child))
+            elif isinstance(node, list):
+                for child in node:
+                    urls.extend(_walk(child))
+            return urls
+
+        return _walk(value)
+
     candidates: list[str] = []
     items = scrape.get("items") if isinstance(scrape, dict) else {}
+    source_url = scrape.get("sourceUrl") if isinstance(scrape, dict) else ""
+    handler = get_site_handler(source_url) if source_url else None
+
+    if isinstance(items, dict):
+        raw_val = items.get("raw")
+        json_urls = _extract_job_urls_from_json_payload(raw_val)
+        if json_urls:
+            if handler:
+                json_urls = handler.filter_job_urls(json_urls)
+            return json_urls
+
     if isinstance(items, dict):
         raw_val = items.get("raw")
         candidates.extend(_gather_strings(raw_val))
@@ -2397,6 +2508,22 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     for text in list(candidates):
         if isinstance(text, str):
+            try:
+                parsed_json = json.loads(text)
+            except Exception:
+                parsed_json = None
+            if parsed_json is not None:
+                json_urls = _extract_job_urls_from_json_payload(parsed_json)
+                if json_urls:
+                    if handler:
+                        json_urls = handler.filter_job_urls(json_urls)
+                    return json_urls
+            for url in _extract_ashby_job_urls(text):
+                if _should_ignore_url(url):
+                    continue
+                if url not in seen:
+                    seen.add(url)
+                    urls.append(url)
             try:
                 parsed = json.loads(text)
                 candidates.extend(_gather_strings(parsed))

@@ -9,5 +9,4 @@ COPY --from=builder /home/curl_user/.temporalio/bin/temporal /bin/temporal
 EXPOSE 7233
 EXPOSE 8233
 
-ENTRYPOINT ["temporal", "server", "start-dev", "--ip" , "0.0.0.0"]
-
+ENTRYPOINT ["temporal", "server", "start-dev", "--ip", "0.0.0.0", "--dynamic-config-value", "frontend.grpcMaxInboundMessageSize=10485760"]

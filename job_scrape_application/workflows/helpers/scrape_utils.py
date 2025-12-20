@@ -40,6 +40,8 @@ DEFAULT_TOTAL_COMPENSATION = 0
 MAX_SCRAPE_DESCRIPTION_CHARS = 8000
 # Higher ceiling for the actual job documents so the UI can render full descriptions.
 MAX_JOB_DESCRIPTION_CHARS = 200_000
+# Titles should be short; cap aggressively to prevent oversized payloads.
+MAX_TITLE_CHARS = 500
 # Backward compat alias (used only inside this module previously).
 MAX_DESCRIPTION_CHARS = MAX_SCRAPE_DESCRIPTION_CHARS
 UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
@@ -1054,6 +1056,7 @@ def trim_scrape_for_convex(
     *,
     max_items: int = 400,
     max_description: int = MAX_SCRAPE_DESCRIPTION_CHARS,
+    max_title_chars: int = MAX_TITLE_CHARS,
     raw_preview_chars: int = 8000,
     request_max_chars: int = 4000,
 ) -> Dict[str, Any]:
@@ -1072,6 +1075,17 @@ def trim_scrape_for_convex(
                 desc = stringify(new_row.get("description", ""))
                 if len(desc) > max_description:
                     new_row["description"] = desc[:max_description]
+                job_desc = stringify(
+                    new_row.get("job_description")
+                    or new_row.get("jobDescription")
+                    or ""
+                )
+                if job_desc and len(job_desc) > max_description:
+                    new_row["job_description"] = job_desc[:max_description]
+                for title_key in ("title", "job_title", "jobTitle"):
+                    title_val = new_row.get(title_key)
+                    if isinstance(title_val, str) and len(title_val) > max_title_chars:
+                        new_row[title_key] = title_val[:max_title_chars]
                 normalized.append(new_row)
         else:
             truncated = False

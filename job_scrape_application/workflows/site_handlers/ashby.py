@@ -31,7 +31,12 @@ class AshbyHqHandler(BaseSiteHandler):
         path = parsed.path.strip("/")
         if not path:
             return None
-        return path.split("/", 1)[0]
+        segments = [seg for seg in path.split("/") if seg]
+        if not segments:
+            return None
+        if len(segments) >= 3 and segments[0] == "posting-api" and segments[1] == "job-board":
+            return segments[2]
+        return segments[0]
 
     def get_listing_api_uri(self, uri: str) -> Optional[str]:
         slug = self._job_board_slug(uri)

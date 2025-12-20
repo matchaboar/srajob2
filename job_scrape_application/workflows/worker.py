@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
@@ -142,6 +143,8 @@ def _setup_logging() -> logging.Logger:
     handlers.append(scheduling_handler)
 
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
+    # HTTPX logs every heartbeat request at INFO; keep them quiet unless debugging.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     return logging.getLogger("temporal.worker")
 
 
@@ -157,6 +160,10 @@ async def monitor_loop(client: Client, worker_id: str) -> None:
     hostname = socket.gethostname()
 
     logger.info("Monitor loop started (worker_id=%s host=%s)", worker_id, hostname)
+
+    last_log_time = 0.0
+    last_workflow_count: int | None = None
+    last_no_workflows_reason: str | None = None
 
     while True:
         try:
@@ -196,7 +203,19 @@ async def monitor_loop(client: Client, worker_id: str) -> None:
                 if resp.status_code != 200:
                     logger.error("Monitor post failed status=%s body=%s", resp.status_code, resp.text)
                 else:
-                    logger.info("Monitor heartbeat sent (workflows=%d)", len(workflows))
+                    now_monotonic = time.monotonic()
+                    should_log = False
+                    if last_workflow_count is None or last_workflow_count != len(workflows):
+                        should_log = True
+                    if no_workflows_reason != last_no_workflows_reason:
+                        should_log = True
+                    if now_monotonic - last_log_time >= 300:
+                        should_log = True
+                    if should_log:
+                        logger.info("Monitor heartbeat sent (workflows=%d)", len(workflows))
+                        last_log_time = now_monotonic
+                        last_workflow_count = len(workflows)
+                        last_no_workflows_reason = no_workflows_reason
         except Exception as e:
             logger.exception("Monitor loop error: %s", e)
 
@@ -215,6 +234,8 @@ async def webhook_wait_logger() -> None:
         logger.info("Webhook wait logger disabled (interval=%s).", interval)
         return
 
+    last_log_time = 0.0
+    last_count: int | None = None
     try:
         while True:
             try:
@@ -235,14 +256,25 @@ async def webhook_wait_logger() -> None:
                             f"{job_id or 'unknown'} waiting for webhook url={site_url} status={status_url or 'unknown'}"
                         )
 
-                if summary_parts:
-                    logger.info(
-                        "Waiting for Firecrawl webhooks (%d): %s",
-                        len(summary_parts),
-                        "; ".join(summary_parts),
-                    )
-                else:
-                    logger.info("Waiting for Firecrawl webhooks: none pending")
+                count = len(summary_parts)
+                now_monotonic = time.monotonic()
+                should_log = False
+                if last_count is None or last_count != count:
+                    should_log = True
+                if now_monotonic - last_log_time >= 300:
+                    should_log = True
+
+                if should_log:
+                    if summary_parts:
+                        logger.info(
+                            "Waiting for Firecrawl webhooks (%d): %s",
+                            count,
+                            "; ".join(summary_parts),
+                        )
+                    else:
+                        logger.info("Waiting for Firecrawl webhooks: none pending")
+                    last_log_time = now_monotonic
+                    last_count = count
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Pending webhook check failed: %s", exc)
 
@@ -256,6 +288,7 @@ async def main() -> None:
     logger.info("Worker main() started.")
     logger.info("Settings: Temporal=%s, Convex=%s", settings.temporal_address, settings.convex_http_url)
     logger.info("Connecting to Temporal at %s...", settings.temporal_address)
+    os.environ.setdefault("TEMPORAL_MAX_INCOMING_GRPC_BYTES", str(10 * 1024 * 1024))
     try:
         client = await asyncio.wait_for(
             Client.connect(

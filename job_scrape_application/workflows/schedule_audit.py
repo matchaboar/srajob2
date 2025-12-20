@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from ..services import telemetry
+from ..config import settings
 from ..services.convex_client import convex_query
 
 
@@ -167,9 +168,20 @@ async def schedule_audit_logger(worker_id: str) -> None:
         while True:
             try:
                 payloads = await _gather_schedule_audit(worker_id)
-                for payload in payloads:
-                    telemetry.emit_posthog_log(payload)
-                    logger.info(payload["message"])
+                if not payloads:
+                    await asyncio.sleep(60 * 30)
+                    continue
+
+                summary = payloads[0]
+                detail_payloads = payloads[1:]
+
+                telemetry.emit_posthog_log(summary)
+                logger.info(summary["message"])
+
+                if settings.schedule_audit_verbose:
+                    for payload in detail_payloads:
+                        telemetry.emit_posthog_log(payload)
+                        logger.info(payload["message"])
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Schedule audit failed: %s", exc)
             await asyncio.sleep(60 * 30)

@@ -7,8 +7,6 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
-
-import httpx
 import pytest
 import types
 
@@ -59,6 +57,8 @@ from job_scrape_application.workflows.scrapers import (  # noqa: E402
 from job_scrape_application.workflows.activities import _extract_job_urls_from_scrape  # type: ignore  # noqa: E402
 from job_scrape_application.config import runtime_config  # noqa: E402
 from job_scrape_application.workflows.site_handlers import GreenhouseHandler  # noqa: E402
+from job_scrape_application.workflows.site_handlers import GithubCareersHandler  # noqa: E402
+from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_scraper  # noqa: E402
 
 
 def test_spidercloud_workflow_has_schedule():
@@ -456,41 +456,21 @@ async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
     scraper = _make_spidercloud_scraper()
     requested: dict[str, str] = {}
 
-    class FakeResponse:
-        def __init__(self, text: str):
-            self.text = text
+    async def fake_fetch(api_url: str, _handler):
+        requested["url"] = api_url
+        payload = {
+            "jobs": [
+                {
+                    "absolute_url": "https://example.com/job/123",
+                    "title": "Software Engineer",
+                    "id": 123,
+                    "location": {"name": "Remote"},
+                },
+            ]
+        }
+        return json.dumps(payload), []
 
-        def raise_for_status(self) -> None:
-            return None
-
-    class FakeClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        async def get(self, url: str):
-            requested["url"] = url
-            payload = {
-                "jobs": [
-                    {
-                        "absolute_url": "https://example.com/job/123",
-                        "title": "Software Engineer",
-                        "id": 123,
-                        "location": {"name": "Remote"},
-                    },
-                ]
-            }
-            return FakeResponse(json.dumps(payload))
-
-    monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        FakeClient,
-    )
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
 
     site: Site = {
         "_id": "01hzconvexsiteid123456789abf",
@@ -514,27 +494,6 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
     payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))
     content_str = payload[0]["content"]
 
-    class FakeResponse:
-        def __init__(self, text: str):
-            self.text = text
-
-        def raise_for_status(self) -> None:
-            return None
-
-    class FakeClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        async def get(self, url: str):
-            requested["url"] = url
-            return FakeResponse(content_str)
-
     # Force structured parser to yield no URLs so regex is used.
     monkeypatch.setattr(
         "job_scrape_application.workflows.scrapers.spidercloud_scraper.load_greenhouse_board",
@@ -544,10 +503,12 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
         "job_scrape_application.workflows.scrapers.spidercloud_scraper.extract_greenhouse_job_urls",
         lambda *_args, **_kwargs: [],
     )
-    monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        FakeClient,
-    )
+
+    async def fake_fetch(api_url: str, _handler):
+        requested["url"] = api_url
+        return content_str, []
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
 
     site: Site = {
         "_id": "01hzconvexsiteid123456789abg",
@@ -634,7 +595,7 @@ def test_extract_job_urls_from_spidercloud_scrape_raw():
 
     urls = _extract_job_urls_from_scrape(scrape_payload)
 
-    assert len(urls) >= 20
+    assert len(urls) == 102
     assert any("boards.greenhouse.io/robinhood/jobs" in u for u in urls)
 
 
@@ -667,38 +628,6 @@ def test_extract_job_urls_from_spidercloud_ashby_html():
 @pytest.mark.asyncio
 async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
     scraper = _make_spidercloud_scraper()
-    payload = {
-        "jobs": [
-            {"jobUrl": "https://jobs.ashbyhq.com/lambda/senior-software-engineer"},
-            {"applyUrl": "https://jobs.ashbyhq.com/lambda/security-engineer"},
-        ]
-    }
-
-    class _FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> Dict[str, Any]:
-            return payload
-
-    class _FakeClient:
-        def __init__(self, *args, **kwargs) -> None:
-            self.calls: list[Dict[str, Any]] = []
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            return False
-
-        async def get(self, url: str, params: Dict[str, Any] | None = None):
-            self.calls.append({"url": url, "params": params})
-            return _FakeResponse()
-
-    monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        _FakeClient,
-    )
 
     called: dict[str, Any] = {"batch": False}
 
@@ -707,6 +636,14 @@ async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
         return {"items": {"normalized": [], "provider": "spidercloud", "seedUrls": []}}
 
     monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
+
+    async def fake_fetch_site_api(handler, url, *, pattern):
+        return {"items": {"job_urls": [
+            "https://jobs.ashbyhq.com/lambda/senior-software-engineer",
+            "https://jobs.ashbyhq.com/lambda/security-engineer",
+        ]}}
+
+    monkeypatch.setattr(scraper, "_fetch_site_api", fake_fetch_site_api)
 
     site = {"_id": "s-ashby", "url": "https://jobs.ashbyhq.com/lambda", "pattern": None}
     result = await scraper.scrape_site(site)
@@ -722,23 +659,10 @@ async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
 async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
     scraper = _make_spidercloud_scraper()
 
-    class _FailClient:
-        def __init__(self, *args, **kwargs) -> None:
-            return None
+    async def fake_fetch_site_api(*_args, **_kwargs):
+        return None
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            return False
-
-        async def get(self, *_args, **_kwargs):
-            raise httpx.HTTPError("boom")
-
-    monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        _FailClient,
-    )
+    monkeypatch.setattr(scraper, "_fetch_site_api", fake_fetch_site_api)
 
     called: dict[str, Any] = {"batch": False}
 
@@ -917,6 +841,58 @@ def test_spidercloud_recovers_keyword_from_markdown():
 
     assert normalized is not None
     assert normalized["title"].lower().startswith("senior software engineer")
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_github_listing_preserves_query_params(monkeypatch):
+    fixture_path = Path("tests/fixtures/github_careers_api_jobs_12.json")
+    payload_full = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload_default = {"jobs": payload_full["jobs"][:10], "count": 10, "totalCount": 10}
+    captured: dict[str, Any] = {}
+
+    class FakeAsyncSpider:
+        def __init__(self, api_key: str):  # noqa: D401
+            captured["api_key"] = api_key
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def scrape_url(self, url: str, params: Dict[str, Any] | None = None, stream: bool = False, content_type: str | None = None):
+            captured["url"] = url
+            captured["params"] = params
+            if "keywords=engineer" in url and "limit=100" in url:
+                return {"content": json.dumps(payload_full)}
+            return {"content": json.dumps(payload_default)}
+
+    monkeypatch.setattr(sc_scraper, "AsyncSpider", FakeAsyncSpider)
+
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=lambda payload: payload,
+        settings=types.SimpleNamespace(spider_api_key="key"),
+        fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
+    )
+    scraper = SpiderCloudScraper(deps)
+
+    handler = GithubCareersHandler()
+    source_url = (
+        "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100"
+    )
+
+    result = await scraper._fetch_site_api(handler, source_url)
+
+    assert result is not None
+    job_urls = result["items"]["job_urls"]
+    assert len(job_urls) == len(payload_full["jobs"])
+    assert "keywords=engineer" in captured.get("url", "")
+    assert "limit=100" in captured.get("url", "")
 
 
 def test_spidercloud_coreweave_fixture_not_skipped():
@@ -1189,7 +1165,7 @@ def test_robinhood_greenhouse_fixture_parses_urls():
     assert len(board.jobs) == 102
     assert any(job.absolute_url == "https://boards.greenhouse.io/robinhood/jobs/7379020?t=gh_src=&gh_jid=7379020" for job in board.jobs)
     # Title filter trims to roles matching required keywords; ensure we still retain many URLs.
-    assert len(urls) >= 30
+    assert len(urls) == 40
 
 
 def test_spidercloud_robinhood_scrape_fixture_matches_request():
@@ -1473,15 +1449,13 @@ async def test_spidercloud_job_details_logs_skipped_urls(monkeypatch):
 async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
     recorded: Dict[str, Any] = {}
 
-    class FakeResponse:
-        text = '{"jobs":[]}'
+    async def fake_wait_for(coro, timeout=None):
+        recorded["timeout"] = timeout
+        return await coro
 
-        def raise_for_status(self) -> None:
+    class FakeSpider:
+        def __init__(self, *args, **kwargs) -> None:
             return None
-
-    class FakeClient:
-        def __init__(self, timeout: Any, *args, **kwargs):
-            recorded["timeout"] = timeout
 
         async def __aenter__(self):
             return self
@@ -1489,13 +1463,21 @@ async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        async def get(self, url: str):
+        def scrape_url(self, url: str, *args, **kwargs):
             recorded["url"] = url
-            return FakeResponse()
+
+            async def _gen():
+                yield {"content": '{"jobs":[]}'}
+
+            return _gen()
 
     monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        FakeClient,
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.asyncio.wait_for",
+        fake_wait_for,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
+        FakeSpider,
     )
 
     scraper = _make_spidercloud_scraper()
@@ -1518,31 +1500,12 @@ async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeyp
         ]
     }
 
-    class FakeResponse:
-        text = json.dumps(payload)
-
-        def raise_for_status(self) -> None:
-            return None
-
-    class FakeClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        async def get(self, url: str):
-            return FakeResponse()
-
-    monkeypatch.setattr(
-        "job_scrape_application.workflows.scrapers.spidercloud_scraper.httpx.AsyncClient",
-        FakeClient,
-    )
-
     scraper = _make_spidercloud_scraper()
+
+    async def fake_fetch(api_url: str, _handler):
+        return json.dumps(payload), []
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
     site: Site = {"_id": "s-coreweave", "url": "https://api.greenhouse.io/v1/boards/coreweave/jobs"}
 
     listing = await scraper.fetch_greenhouse_listing(site)

@@ -15,6 +15,11 @@ except ImportError:
 load_dotenv()
 
 
+def _env_flag(name: str, default: str = "false") -> bool:
+    value = os.getenv(name, default)
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass
 class Settings:
     temporal_address: str = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
@@ -27,6 +32,7 @@ class Settings:
     webhook_wait_logger_interval_seconds: int = int(
         os.getenv("WEBHOOK_WAIT_LOG_INTERVAL_SECONDS", "60")
     )
+    schedule_audit_verbose: bool = _env_flag("SCHEDULE_AUDIT_VERBOSE", "false")
 
     # Convex deployment URL for the ConvexClient (e.g., https://your-app.convex.cloud)
     convex_url: str | None = os.getenv("CONVEX_URL")
