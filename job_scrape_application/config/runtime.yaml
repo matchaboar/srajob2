@@ -4,6 +4,9 @@ spidercloud_job_details_timeout_minutes: 15
 # Number of Spidercloud job-detail URLs to lease and process per batch; larger batches increase throughput but also per-activity time.
 spidercloud_job_details_batch_size: 50
 
+# Max concurrent Spidercloud requests per job-detail batch. Set to 1 for sequential processing.
+spidercloud_job_details_concurrency: 4
+
 # Minutes after which a leased Spidercloud job-detail URL is considered stale and automatically released from "processing"
 # back to "pending" so the workflow can re-lease it. This prevents stuck rows from blocking future batches.
 spidercloud_job_details_processing_expire_minutes: 20

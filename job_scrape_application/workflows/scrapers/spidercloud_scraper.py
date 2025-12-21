@@ -301,7 +301,7 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         script_pattern = re.compile(
-            r"<script[^>]*type=[\"']application/ld\\+json[\"'][^>]*>(?P<payload>.*?)</script>",
+            r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(?P<payload>.*?)</script>",
             flags=re.IGNORECASE | re.DOTALL,
         )
 
@@ -334,10 +334,16 @@ class SpiderCloudScraper(BaseScraper):
             if not isinstance(address, dict):
                 return _normalize_part(address)
             parts = []
+            seen_tokens: set[str] = set()
             for key in ("addressLocality", "addressRegion", "addressCountry"):
                 part = _normalize_part(address.get(key))
-                if part and part not in parts:
-                    parts.append(part)
+                if not part:
+                    continue
+                tokens = [token.strip().lower() for token in part.split(",") if token.strip()]
+                if tokens and all(token in seen_tokens for token in tokens):
+                    continue
+                parts.append(part)
+                seen_tokens.update(tokens)
             if not parts:
                 return None
             return ", ".join(parts)
@@ -687,6 +693,34 @@ class SpiderCloudScraper(BaseScraper):
 
         return None
 
+    def _payload_has_job_urls(self, payload: Dict[str, Any]) -> bool:
+        jobs = payload.get("jobs")
+        if not isinstance(jobs, list):
+            return False
+        url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            for key in url_keys:
+                value = job.get(key)
+                if isinstance(value, str) and value.strip():
+                    return True
+        return False
+
+    def _extract_listing_job_urls(
+        self,
+        handler: BaseSiteHandler,
+        raw_events: List[Any],
+        markdown_text: str,
+    ) -> List[str]:
+        payload = self._extract_json_payload(raw_events)
+        if payload is None and markdown_text:
+            payload = self._extract_json_payload(markdown_text)
+        if not isinstance(payload, dict):
+            return []
+        urls = handler.get_links_from_json(payload)
+        return [u for u in urls if isinstance(u, str) and u.strip()]
+
     def _normalize_job(
         self,
         url: str,
@@ -702,6 +736,16 @@ class SpiderCloudScraper(BaseScraper):
             handler = self._get_site_handler(url)
             if handler:
                 parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
+
+        listing_payload = self._extract_json_payload(events) or self._extract_json_payload(parsed_markdown)
+        if isinstance(listing_payload, dict) and self._payload_has_job_urls(listing_payload):
+            self._last_ignored_job = {
+                "url": url,
+                "reason": "listing_payload",
+                "title": self._title_from_url(url),
+                "description": "listing_payload",
+            }
+            return None
 
         structured_payload = self._extract_structured_job_posting(events)
         structured_title = None
@@ -972,6 +1016,12 @@ class SpiderCloudScraper(BaseScraper):
             markdown_text, gh_title = handler.normalize_markdown(markdown_text)
             if gh_title:
                 raw_events.append({"title": gh_title, "gh_api_title": True})
+        listing_job_urls: List[str] = []
+        if handler and handler.supports_listing_api:
+            try:
+                listing_job_urls = self._extract_listing_job_urls(handler, raw_events, markdown_text)
+            except Exception:
+                listing_job_urls = []
         credits_used = max(credit_candidates) if credit_candidates else None
         cost_milli_cents = (
             int(max(cost_candidates_usd) * 100000) if cost_candidates_usd else None
@@ -988,6 +1038,15 @@ class SpiderCloudScraper(BaseScraper):
             require_keywords=require_keywords,
         )
         ignored_entry = getattr(self, "_last_ignored_job", None)
+        if listing_job_urls and normalized:
+            normalized = None
+            ignored_entry = {
+                "url": url,
+                "reason": "listing_payload",
+                "title": self._title_from_url(url),
+                "description": "listing_payload",
+            }
+            self._last_ignored_job = ignored_entry
 
         logger.debug(
             "SpiderCloud stream complete url=%s events=%s markdown_fragments=%s credits=%s cost_usd=%s",
@@ -1005,7 +1064,9 @@ class SpiderCloudScraper(BaseScraper):
                 "events": raw_events,
                 "markdown": markdown_text,
                 "creditsUsed": credits_used,
+                "job_urls": listing_job_urls,
             },
+            "job_urls": listing_job_urls,
             "creditsUsed": credits_used,
             "costMilliCents": cost_milli_cents,
             "startedAt": started_at,
@@ -1045,11 +1106,31 @@ class SpiderCloudScraper(BaseScraper):
             }
 
         api_key = self._api_key()
+        def _infer_spidercloud_config(url: str) -> Dict[str, Any]:
+            try:
+                parsed = urlparse(url)
+            except Exception:
+                return {}
+            host = (parsed.hostname or "").lower()
+            path = (parsed.path or "").lower()
+            if not host or not path:
+                return {}
+            if path.startswith("/jobs") and "careers." in host:
+                return {"return_format": ["raw_html"], "preserve_host": True}
+            if "careers" in path and "/jobs" in path and "careers." in host:
+                return {"return_format": ["raw_html"], "preserve_host": True}
+            return {}
+
         handler_configs: List[Dict[str, Any]] = []
         for url in urls:
             handler = self._get_site_handler(url)
             if handler:
-                handler_configs.append(handler.get_spidercloud_config(url))
+                config = handler.get_spidercloud_config(url)
+                if not config:
+                    config = _infer_spidercloud_config(url)
+                handler_configs.append(config)
+            else:
+                handler_configs.append(_infer_spidercloud_config(url))
 
         def _wants_raw_html(config: Dict[str, Any]) -> bool:
             value = config.get("return_format")
@@ -1076,72 +1157,107 @@ class SpiderCloudScraper(BaseScraper):
         normalized_items: List[Dict[str, Any]] = []
         raw_items: List[Dict[str, Any]] = []
         ignored_items: List[Dict[str, Any]] = []
+        listing_job_urls: List[str] = []
         total_cost_milli_cents = 0.0
         saw_cost_field = False
 
-        async with AsyncSpider(api_key=api_key) as client:
-            for url in urls:
-                # When we receive an API detail URL, try to also capture a
-                # marketing-friendly apply URL for downstream preference.
-                handler = self._get_site_handler(url)
-                marketing_url = (
-                    handler.get_company_uri(url) if handler and handler.name == "greenhouse" else None
-                )
+        timeout_seconds = runtime_config.spidercloud_http_timeout_seconds
+        max_concurrency = max(1, int(runtime_config.spidercloud_job_details_concurrency))
+        max_concurrency = min(max_concurrency, len(urls))
+        semaphore = asyncio.Semaphore(max_concurrency)
 
-                attempt = 0
-                result: Dict[str, Any] | None = None
-                proxy: Optional[str] = None
-                while attempt <= CAPTCHA_RETRY_LIMIT:
-                    attempt += 1
-                    local_params = dict(params)
-                    if proxy:
-                        local_params["proxy"] = proxy
-                    try:
-                        result = await self._scrape_single_url(
-                            client,
-                            url,
-                            local_params,
-                            attempt=attempt,
-                        )
-                        break
-                    except CaptchaDetectedError as err:
-                        proxy = CAPTCHA_PROXY_SEQUENCE[min(attempt - 1, len(CAPTCHA_PROXY_SEQUENCE) - 1)]
-                        logger.warning(
-                            "SpiderCloud captcha retry url=%s attempt=%s/%s proxy=%s marker=%s",
-                            url,
-                            attempt,
-                            CAPTCHA_RETRY_LIMIT + 1,
-                            proxy,
-                            err.marker,
-                        )
-                        if attempt > CAPTCHA_RETRY_LIMIT:
-                            self.deps.log_sync_response(
-                                self.provider,
-                                action="scrape",
-                                url=url,
-                                summary=f"captcha_failed marker={err.marker}",
-                                metadata={"attempts": attempt, "proxy": proxy},
+        async with AsyncSpider(api_key=api_key) as client:
+            async def _scrape_one(idx: int, url: str) -> tuple[int, str, Dict[str, Any] | None]:
+                async with semaphore:
+                    # When we receive an API detail URL, try to also capture a
+                    # marketing-friendly apply URL for downstream preference.
+                    handler = self._get_site_handler(url)
+                    marketing_url = (
+                        handler.get_company_uri(url) if handler and handler.name == "greenhouse" else None
+                    )
+
+                    attempt = 0
+                    result: Dict[str, Any] | None = None
+                    proxy: Optional[str] = None
+                    while attempt <= CAPTCHA_RETRY_LIMIT:
+                        attempt += 1
+                        local_params = dict(params)
+                        if proxy:
+                            local_params["proxy"] = proxy
+                        try:
+                            scrape_coro = self._scrape_single_url(
+                                client,
+                                url,
+                                local_params,
+                                attempt=attempt,
+                            )
+                            if timeout_seconds and timeout_seconds > 0:
+                                result = await asyncio.wait_for(scrape_coro, timeout=timeout_seconds)
+                            else:
+                                result = await scrape_coro
+                            break
+                        except CaptchaDetectedError as err:
+                            proxy = CAPTCHA_PROXY_SEQUENCE[min(attempt - 1, len(CAPTCHA_PROXY_SEQUENCE) - 1)]
+                            logger.warning(
+                                "SpiderCloud captcha retry url=%s attempt=%s/%s proxy=%s marker=%s",
+                                url,
+                                attempt,
+                                CAPTCHA_RETRY_LIMIT + 1,
+                                proxy,
+                                err.marker,
+                            )
+                            if attempt > CAPTCHA_RETRY_LIMIT:
+                                self.deps.log_sync_response(
+                                    self.provider,
+                                    action="scrape",
+                                    url=url,
+                                    summary=f"captcha_failed marker={err.marker}",
+                                    metadata={"attempts": attempt, "proxy": proxy},
+                                )
+                                break
+                        except asyncio.TimeoutError:
+                            logger.warning(
+                                "SpiderCloud scrape timed out url=%s timeout=%s",
+                                url,
+                                timeout_seconds,
                             )
                             break
-                    except Exception:
-                        # Bubble up unexpected errors
-                        raise
+                        except Exception:
+                            # Bubble up unexpected errors
+                            raise
 
+                    if not result:
+                        logger.warning("SpiderCloud skipping url after retries url=%s", url)
+                        return idx, url, None
+
+                    if marketing_url and isinstance(result, dict):
+                        normalized_block = result.get("normalized")
+                        if isinstance(normalized_block, dict) and not normalized_block.get("apply_url"):
+                            normalized_block["apply_url"] = marketing_url
+
+                    return idx, url, result
+
+            tasks = [asyncio.create_task(_scrape_one(idx, url)) for idx, url in enumerate(urls)]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                if isinstance(res, BaseException):
+                    raise res
+            results.sort(key=lambda item: item[0])
+
+            for _, url, result in results:
                 if not result:
-                    logger.warning("SpiderCloud giving up after captcha retries url=%s", url)
                     continue
-
-                if marketing_url and isinstance(result, dict):
-                    normalized_block = result.get("normalized")
-                    if isinstance(normalized_block, dict) and not normalized_block.get("apply_url"):
-                        normalized_block["apply_url"] = marketing_url
-
                 if result.get("normalized"):
                     normalized_items.append(result["normalized"])
                 if result.get("ignored"):
                     ignored_items.append(result["ignored"])
                 if result.get("raw"):
                     raw_items.append(result["raw"])
+                if result.get("job_urls"):
+                    try:
+                        listing_job_urls.extend([u for u in result.get("job_urls") if isinstance(u, str)])
+                    except Exception:
+                        pass
                 cost_mc = result.get("costMilliCents")
                 credits = result.get("creditsUsed")
                 if isinstance(cost_mc, (int, float)):
@@ -1186,6 +1302,15 @@ class SpiderCloudScraper(BaseScraper):
             "request": request_snapshot,
             "requestedFormat": requested_format,
         }
+        if listing_job_urls:
+            deduped: List[str] = []
+            seen_urls: set[str] = set()
+            for url in listing_job_urls:
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                deduped.append(url)
+            items_block["job_urls"] = deduped
         if ignored_items:
             items_block["ignored"] = ignored_items
         if cost_milli_cents is not None:
@@ -1418,7 +1543,7 @@ class SpiderCloudScraper(BaseScraper):
                 raw_text = str(payload)
 
         try:
-            board = load_greenhouse_board(raw_text or payload or {})
+            board = load_greenhouse_board(payload or raw_text or {})
             # Structured extraction first.
             job_urls = extract_greenhouse_job_urls(board)
 

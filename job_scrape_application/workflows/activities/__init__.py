@@ -6,7 +6,7 @@ import json
 import logging
 import time
 import re
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from html.parser import HTMLParser
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -101,7 +101,7 @@ __all__ = [
     "complete_scrape_urls",
 ]
 
-MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\((https?://[^\s)]+)\)"
+MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\(([^)\s]+)\)"
 GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
 TITLE_LOCATION_PAREN_PATTERN = r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$"
 LOCATION_ANYWHERE_PATTERN = r"[A-Za-z].*,\s*[A-Za-z]"
@@ -2205,7 +2205,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if key.lower() == "href":
                     href = val
                     break
-            if href and href.startswith("http"):
+            if href:
                 self._current_href = href
                 self._text_parts = []
 
@@ -2313,8 +2313,26 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return True
         return False
 
+    def _looks_like_confluent_listing_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        if not host.endswith("confluent.io"):
+            return False
+        segments = [seg for seg in (parsed.path or "").split("/") if seg]
+        if not segments or segments[0] != "jobs":
+            return False
+        if len(segments) == 1:
+            return True
+        slug = segments[1].lower()
+        if slug == "job":
+            return False
+        return not re.search(r"\d", slug)
+
     def _should_ignore_url(url: str) -> bool:
-        return _looks_like_location_filter_url(url)
+        return _looks_like_location_filter_url(url) or _looks_like_confluent_listing_url(url)
 
     def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
         if title_text and apply_text_re.search(title_text):
@@ -2474,6 +2492,39 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     source_url = scrape.get("sourceUrl") if isinstance(scrape, dict) else ""
     handler = get_site_handler(source_url) if source_url else None
 
+    def _normalize_url(url: str | None) -> Optional[str]:
+        if not isinstance(url, str):
+            return None
+        candidate = url.strip()
+        if not candidate:
+            return None
+        lower = candidate.lower()
+        if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
+            return None
+        if candidate.startswith(("http://", "https://")):
+            return candidate
+        if candidate.startswith("//"):
+            if not source_url:
+                return None
+            scheme = urlparse(source_url).scheme or "https"
+            return f"{scheme}:{candidate}"
+        if source_url:
+            return urljoin(source_url, candidate)
+        return None
+
+    def _normalize_url_list(urls: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen_local: set[str] = set()
+        for candidate in urls:
+            normalized_url = _normalize_url(candidate)
+            if not normalized_url:
+                continue
+            if normalized_url in seen_local:
+                continue
+            seen_local.add(normalized_url)
+            normalized.append(normalized_url)
+        return normalized
+
     def _extract_handler_links(values: Iterable[str]) -> list[str]:
         if not handler:
             return []
@@ -2495,6 +2546,10 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if json_urls:
             if handler:
                 json_urls = handler.filter_job_urls(json_urls)
+            json_urls = _normalize_url_list(json_urls)
+            json_urls = [url for url in json_urls if not _should_ignore_url(url)]
+            if json_urls:
+                return json_urls
             return json_urls
         handler_links = _extract_handler_links(_gather_strings(raw_val))
         if handler_links:
@@ -2520,12 +2575,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if isinstance(url_list, list):
                 for url_val in url_list:
                     if isinstance(url_val, str) and url_val.strip():
-                        url = url_val.strip()
-                        if _should_ignore_url(url):
+                        normalized_url = _normalize_url(url_val)
+                        if not normalized_url:
                             continue
-                        if url not in seen:
-                            seen.add(url)
-                            urls.append(url)
+                        if _should_ignore_url(normalized_url):
+                            continue
+                        if normalized_url not in seen:
+                            seen.add(normalized_url)
+                            urls.append(normalized_url)
 
     for text in list(candidates):
         if isinstance(text, str):
@@ -2538,13 +2595,19 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if json_urls:
                     if handler:
                         json_urls = handler.filter_job_urls(json_urls)
-                    return json_urls
+                    json_urls = _normalize_url_list(json_urls)
+                    json_urls = [url for url in json_urls if not _should_ignore_url(url)]
+                    if json_urls:
+                        return json_urls
             for url in _extract_ashby_job_urls(text):
-                if _should_ignore_url(url):
+                normalized_url = _normalize_url(url)
+                if not normalized_url:
                     continue
-                if url not in seen:
-                    seen.add(url)
-                    urls.append(url)
+                if _should_ignore_url(normalized_url):
+                    continue
+                if normalized_url not in seen:
+                    seen.add(normalized_url)
+                    urls.append(normalized_url)
             try:
                 parsed = json.loads(text)
                 candidates.extend(_gather_strings(parsed))
@@ -2553,9 +2616,10 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if not isinstance(text, str):
             continue
         for url, title, location, context_text, context_location in _extract_markdown_links_with_context(text):
-            if not url or not url.startswith("http"):
+            normalized_url = _normalize_url(url)
+            if not normalized_url:
                 continue
-            if _should_ignore_url(url):
+            if _should_ignore_url(normalized_url):
                 continue
             title_match = title_matches_required_keywords(title)
             context_match = False
@@ -2563,32 +2627,32 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 context_match = title_matches_required_keywords(context_text)
             if not title_match and not context_match:
                 continue
-            location_value = location or context_location
-            if location_value and not location_matches_usa(location_value):
-                continue
             if not title_match:
-                if _looks_like_apply_link(title, url):
+                if _looks_like_apply_link(title, normalized_url):
                     continue
-                if not _looks_like_job_detail_url(url):
+                if not _looks_like_job_detail_url(normalized_url):
                     continue
-            if url in seen:
+            if normalized_url in seen:
                 continue
-            seen.add(url)
-            urls.append(url)
+            seen.add(normalized_url)
+            urls.append(normalized_url)
 
         for url, title, location in _extract_from_text(text):
-            if not url or not url.startswith("http"):
+            normalized_url = _normalize_url(url)
+            if not normalized_url:
                 continue
-            if _should_ignore_url(url):
+            if _should_ignore_url(normalized_url):
                 continue
-            if not title_matches_required_keywords(title):
+            title_match = title_matches_required_keywords(title) if title else False
+            if not title_match:
+                if _looks_like_apply_link(title, normalized_url):
+                    continue
+                if not _looks_like_job_detail_url(normalized_url):
+                    continue
+            if normalized_url in seen:
                 continue
-            if location and not location_matches_usa(location):
-                continue
-            if url in seen:
-                continue
-            seen.add(url)
-            urls.append(url)
+            seen.add(normalized_url)
+            urls.append(normalized_url)
 
     return urls
 

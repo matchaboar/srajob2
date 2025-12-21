@@ -39,11 +39,14 @@ def test_greenhouse_handler_rewrites_and_formats():
     assert api_url == "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4607747006"
     assert handler.get_company_uri(api_url) == "https://boards.greenhouse.io/coreweave/jobs/4607747006"
     assert handler.get_listing_api_uri("https://api.greenhouse.io/v1/boards/robinhood/jobs") == (
-        "https://boards.greenhouse.io/v1/boards/robinhood/jobs"
+        "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     )
     config = handler.get_spidercloud_config(api_url)
     assert config.get("return_format") == ["raw_html"]
     assert config.get("preserve_host") is False
+    config = handler.get_spidercloud_config(detail)
+    assert config.get("return_format") == ["raw_html"]
+    assert config.get("preserve_host") is True
 
 
 def test_github_careers_handler_builds_api_and_links():

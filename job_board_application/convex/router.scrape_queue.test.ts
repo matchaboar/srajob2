@@ -167,4 +167,79 @@ describe("leaseScrapeUrlBatch", () => {
     expect(firstUrls.length).toBeGreaterThan(0);
     expect(new Set([...firstUrls, ...secondUrls]).size).toBe(firstUrls.length + secondUrls.length);
   });
+
+  it("leases pending spidercloud rows for lambda-style URLs", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "lambda-1",
+        url: "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+      {
+        _id: "lambda-2",
+        url: "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938/application",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toEqual(rows.map((r) => r.url));
+    expect(rows.every((r) => r.status === "processing")).toBe(true);
+    expect(rows.every((r) => (r.attempts ?? 0) === 1)).toBe(true);
+  });
+
+  it("skips rows when provider does not match the lease filter", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-1",
+        url: "https://jobs.ashbyhq.com/lambda/abc",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "fetchfox",
+        attempts: 0,
+      },
+      {
+        _id: "row-2",
+        url: "https://jobs.ashbyhq.com/lambda/def",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: undefined,
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 5,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    expect(res.urls).toEqual([]);
+    expect(rows.every((r) => r.status === "pending")).toBe(true);
+    expect(rows.every((r) => (r.attempts ?? 0) === 0)).toBe(true);
+  });
 });

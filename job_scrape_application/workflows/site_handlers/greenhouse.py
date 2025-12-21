@@ -96,7 +96,19 @@ class GreenhouseHandler(BaseSiteHandler):
         slug = self._extract_slug_from_url(uri)
         if not slug:
             return None
-        return f"https://boards.greenhouse.io/v1/boards/{slug}/jobs"
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            parsed = None
+        host = (parsed.hostname or "").lower() if parsed else ""
+        scheme = "https"
+        if parsed and parsed.scheme:
+            scheme = parsed.scheme
+        if host.startswith("api.greenhouse.io"):
+            return f"{scheme}://api.greenhouse.io/v1/boards/{slug}/jobs"
+        if "boards-api.greenhouse.io" in host:
+            return f"{scheme}://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
+        return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
 
     def get_company_uri(self, uri: str) -> Optional[str]:
         try:
@@ -145,7 +157,14 @@ class GreenhouseHandler(BaseSiteHandler):
                 "external_domains": ["*"],
                 "preserve_host": False,
             }
-        return {}
+        return {
+            "request": "chrome",
+            "return_format": ["raw_html"],
+            "follow_redirects": True,
+            "redirect_policy": "Loose",
+            "external_domains": ["*"],
+            "preserve_host": True,
+        }
 
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
         """

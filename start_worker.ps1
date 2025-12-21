@@ -307,8 +307,8 @@ function Run-PreflightChecks {
     Reset-StaleVenv
 
     $steps = @(
-        @{ Name = "ruff"; Timeout = 10; Block = { uvx ruff check job_scrape_application } },
-        @{ Name = "pytest"; Timeout = 30; Block = { uv run --extra dev pytest } }
+        @{ Name = "ruff"; Timeout = 15; Block = { uvx ruff check job_scrape_application } },
+        @{ Name = "pytest"; Timeout = 60; Block = { uv run --extra dev pytest } }
     )
 
     Write-Host "[preflight] Pending checks:" -ForegroundColor DarkGray

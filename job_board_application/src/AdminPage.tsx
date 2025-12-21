@@ -9,7 +9,7 @@ import { LiveTimer } from "./components/LiveTimer";
 import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
 import type { Id } from "../convex/_generated/dataModel";
 
-type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "scrapeHistory" | "urlScrapes" | "companyNames";
+type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "urlScrapes" | "companyNames";
 type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
@@ -371,87 +371,6 @@ function TemporalStatusSection() {
   );
 }
 
-function ScrapeHistorySection() {
-  const scrapes = useQuery(api.router.listScrapes, { limit: 50 });
-
-  if (scrapes === undefined) {
-    return <div className="text-slate-400 p-4">Loading scrape history...</div>;
-  }
-
-  if (!scrapes?.length) {
-    return (
-      <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
-        No scrapes recorded yet.
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm overflow-x-auto h-full w-full flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-white">Scrape History</h2>
-        <span className="text-xs text-slate-400">Latest {scrapes.length}</span>
-      </div>
-      <table className="min-w-full w-full text-left text-sm text-slate-200 flex-1">
-        <thead className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wide">
-          <tr>
-            <th className="px-2 py-2">URL</th>
-            <th className="px-2 py-2">Type</th>
-            <th className="px-2 py-2">Provider</th>
-            <th className="px-2 py-2">Job</th>
-            <th className="px-2 py-2">Batch</th>
-            <th className="px-2 py-2">Workflow</th>
-            <th className="px-2 py-2">Sync Response</th>
-            <th className="px-2 py-2">Async State</th>
-            <th className="px-2 py-2">Async Response</th>
-            <th className="px-2 py-2">Sub URLs</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800">
-          {scrapes.map((row: any) => {
-            const jobLink = row.jobBoardJobId ? `/jobs/${row.jobBoardJobId}` : null;
-            return (
-              <tr key={row._id} className="hover:bg-slate-800/70 bg-slate-900/70">
-                <td className="px-2 py-2 max-w-[200px] truncate" title={row.sourceUrl}>
-                  {row.sourceUrl}
-                </td>
-                <td className="px-2 py-2">{row.type || "n/a"}</td>
-                <td className="px-2 py-2">{row.provider || "n/a"}</td>
-                <td className="px-2 py-2">
-                  {jobLink ? (
-                    <a href={jobLink} className="text-blue-300 hover:text-blue-100 underline">
-                      {row.jobBoardJobId}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-2 py-2">{row.batchId || "—"}</td>
-                <td className="px-2 py-2">
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-xs text-slate-300">{row.workflowName || row.workflowType || "—"}</span>
-                    <span className="text-[11px] text-slate-500">{row.workflowId || "—"}</span>
-                  </div>
-                </td>
-                <td className="px-2 py-2 max-w-[200px] truncate" title={JSON.stringify(row.response)?.slice(0, 500)}>
-                  {row.response ? JSON.stringify(row.response).slice(0, 80) : "—"}
-                </td>
-                <td className="px-2 py-2">{row.asyncState || "—"}</td>
-                <td className="px-2 py-2 max-w-[200px] truncate" title={JSON.stringify(row.asyncResponse)?.slice(0, 500)}>
-                  {row.asyncResponse ? JSON.stringify(row.asyncResponse).slice(0, 80) : "—"}
-                </td>
-                <td className="px-2 py-2 max-w-[160px] truncate" title={(row.subUrls || []).join(", ")}>
-                  {(row.subUrls || []).slice(0, 3).join(", ") || "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function UrlScrapeListSection() {
   const logs = useQuery(api.router.listUrlScrapeLogs, { limit: 200, includeJobLookup: true });
 
@@ -530,13 +449,13 @@ function UrlScrapeListSection() {
 
     return (
       <div
-        className="relative flex items-start gap-2 group"
+        className="relative flex items-center gap-2 group"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onMouseMove={handleMove}
       >
         <pre
-          className="bg-slate-950/60 border border-slate-800 rounded p-1 max-h-7 min-h-[14px] leading-tight overflow-hidden whitespace-pre-wrap break-words font-mono text-[11px] cursor-pointer transition-colors hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="bg-slate-950/60 border border-slate-800 rounded px-1 py-0.5 max-h-5 min-h-[14px] leading-none overflow-hidden truncate font-mono text-[9px] cursor-pointer transition-colors hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           onClick={() => { void handleCopy(); }}
           role="button"
           tabIndex={0}
@@ -550,32 +469,30 @@ function UrlScrapeListSection() {
         >
           {formatted}
         </pre>
-        <div className="flex flex-col items-start gap-1 pt-0.5">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              void handleCopy();
-            }}
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            title={copied ? "Copied" : "Copy JSON"}
-            aria-label="Copy JSON to clipboard"
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void handleCopy();
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          title={copied ? "Copied" : "Copy JSON"}
+          aria-label="Copy JSON to clipboard"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <rect x="9" y="9" width="11" height="11" rx="2" ry="2" />
-              <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-            </svg>
-          </button>
-          {copied && <span className="text-[10px] text-emerald-300 font-semibold">Copied</span>}
-        </div>
+            <rect x="9" y="9" width="11" height="11" rx="2" ry="2" />
+            <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+          </svg>
+        </button>
+        {copied && <span className="text-[9px] text-emerald-300 font-semibold">Copied</span>}
         {hovered && (
           <div
             className="fixed z-50 pointer-events-none"
@@ -663,19 +580,9 @@ function UrlScrapeListSection() {
     const formatted = new Date(parsed).toLocaleString();
 
     return (
-      <div className="flex flex-col gap-1">
-        <span className="text-[11px] text-slate-200 font-mono">{formatted}</span>
-        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-900/70 text-slate-200 w-fit">
-          <LiveTimer
-            startTime={parsed}
-            colorize
-            warnAfterMs={10 * 60 * 1000}
-            dangerAfterMs={60 * 60 * 1000}
-            showAgo
-            suffixClassName="text-slate-400"
-          />
-        </span>
-      </div>
+      <span className="block truncate font-mono text-[10px] text-slate-200" title={formatted}>
+        {formatted}
+      </span>
     );
   };
 
@@ -686,75 +593,71 @@ function UrlScrapeListSection() {
       </div>
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-auto">
-          <table className="min-w-full w-full text-left text-[11px] text-slate-200 table-fixed">
+          <table className="min-w-full w-full text-left text-[10px] text-slate-200 table-fixed">
             <thead className="bg-slate-800 text-slate-50 uppercase tracking-wide border-b border-slate-700 shadow-inner sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-2 w-56 font-bold">URL</th>
-                <th className="px-3 py-2 w-40 font-bold">Timestamp</th>
-                <th className="px-3 py-2 w-56 font-bold">Description URI</th>
-                <th className="px-3 py-2 w-48 font-bold">Reason</th>
-                <th className="px-3 py-2 w-20 font-bold">Action</th>
-                <th className="px-3 py-2 w-24 font-bold">Provider</th>
-                <th className="px-3 py-2 w-32 font-bold">Workflow</th>
-                <th className="px-3 py-2 w-44 font-bold">Workflow ID</th>
-                <th className="px-3 py-2 w-72 font-bold">Request</th>
-                <th className="px-3 py-2 w-72 font-bold">Response</th>
-                <th className="px-3 py-2 w-72 font-bold">Async Response</th>
+                <th className="px-2 py-1 w-56 font-bold">URL</th>
+                <th className="px-2 py-1 w-36 font-bold">Timestamp</th>
+                <th className="px-2 py-1 w-56 font-bold">Description URI</th>
+                <th className="px-2 py-1 w-40 font-bold">Reason</th>
+                <th className="px-2 py-1 w-20 font-bold">Action</th>
+                <th className="px-2 py-1 w-24 font-bold">Provider</th>
+                <th className="px-2 py-1 w-32 font-bold">Workflow</th>
+                <th className="px-2 py-1 w-44 font-bold">Workflow ID</th>
+                <th className="px-2 py-1 w-72 font-bold">Request</th>
+                <th className="px-2 py-1 w-72 font-bold">Response</th>
+                <th className="px-2 py-1 w-72 font-bold">Async Response</th>
               </tr>
             </thead>
             <tbody className="bg-slate-950 divide-y divide-slate-800">
               {logs.map((row: any, idx: number) => (
-                <tr key={`${row.url}-${idx}`} className="hover:bg-slate-900 transition-colors">
-                  <td className="px-3 py-2 align-top">
+                <tr key={`${row.url}-${idx}`} className="hover:bg-slate-900 transition-colors h-7">
+                  <td className="px-2 py-1 align-middle truncate">
                     {row.url ? (
-                      <a href={row.url} className="text-blue-300 hover:text-blue-100 underline break-all">
+                      <a
+                        href={row.url}
+                        className="text-blue-300 hover:text-blue-100 underline truncate block"
+                        title={row.url}
+                      >
                         {row.url}
                       </a>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle truncate">
                     <TimestampCell timestamp={row.timestamp} />
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle truncate">
                     {row.jobUrl ? (
-                      <div className="flex flex-col gap-1">
-                        <a
-                          href={row.jobUrl}
-                          className="text-emerald-300 hover:text-emerald-200 font-semibold underline underline-offset-2 break-all"
-                          title="Open job description URL"
-                        >
-                          {row.jobUrl}
-                        </a>
-                        {row.jobTitle && (
-                          <span className="text-[11px] text-slate-300 truncate">{row.jobTitle}</span>
-                        )}
-                        {row.jobCompany && (
-                          <span className="text-[11px] text-slate-400 truncate">{row.jobCompany}</span>
-                        )}
-                      </div>
+                      <a
+                        href={row.jobUrl}
+                        className="text-emerald-300 hover:text-emerald-200 font-semibold underline underline-offset-2 truncate block"
+                        title={[row.jobUrl, row.jobTitle, row.jobCompany].filter(Boolean).join(" • ")}
+                      >
+                        {row.jobUrl}
+                      </a>
                     ) : (
                       <span className="text-slate-600">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle truncate">
                     {(() => {
                       const info = describeReason(row);
                       return (
-                        <div className="flex flex-col gap-1">
-                          <span className={clsx("px-2 py-1 rounded text-[10px] font-semibold border w-fit", info.tone)}>
+                        <span
+                          className={clsx("px-1.5 py-0.5 rounded text-[9px] font-semibold border w-fit", info.tone)}
+                          title={info.detail || info.label}
+                        >
                             {info.label}
-                          </span>
-                          {info.detail && <span className="text-[10px] text-slate-400">{info.detail}</span>}
-                        </div>
+                        </span>
                       );
                     })()}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle truncate">
                     <span
                       className={clsx(
-                        "px-2 py-1 rounded text-[10px] font-semibold uppercase",
+                        "px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase",
                         row.action === "skipped"
                           ? "bg-amber-900/40 text-amber-200 border border-amber-800"
                           : "bg-green-900/40 text-green-200 border border-green-800"
@@ -763,9 +666,9 @@ function UrlScrapeListSection() {
                       {row.action || "n/a"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 align-top">{row.provider || "—"}</td>
-                  <td className="px-3 py-2 align-top break-words">{row.workflow || "—"}</td>
-                  <td className="px-3 py-2 align-top break-all">
+                  <td className="px-2 py-1 align-middle truncate" title={row.provider || "—"}>{row.provider || "—"}</td>
+                  <td className="px-2 py-1 align-middle truncate" title={row.workflow || "—"}>{row.workflow || "—"}</td>
+                  <td className="px-2 py-1 align-middle truncate">
                     {row.workflowId ? (
                       <a
                         href={`${resolvedTemporalUiBase}/namespaces/${encodeURIComponent(
@@ -773,7 +676,7 @@ function UrlScrapeListSection() {
                         )}/workflows/${encodeURIComponent(row.workflowId)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-300 hover:text-blue-100 underline break-all"
+                        className="text-blue-300 hover:text-blue-100 underline truncate block"
                         title="Open workflow in Temporal UI"
                       >
                         {row.workflowId}
@@ -782,13 +685,13 @@ function UrlScrapeListSection() {
                       "—"
                     )}
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle">
                     <ExpandableJsonCell value={row.requestData} />
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle">
                     <ExpandableJsonCell value={row.response} />
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-2 py-1 align-middle">
                     <ExpandableJsonCell value={row.asyncResponse} />
                   </td>
                 </tr>
@@ -807,7 +710,7 @@ export function AdminPage() {
     const raw = window.location.hash.replace("#admin-", "");
     const [section, query] = raw.split("?");
     const urlParam = new URLSearchParams(query || "").get("url");
-    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "scrapeHistory", "urlScrapes", "companyNames"] as const;
+    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "urlScrapes", "companyNames"] as const;
     const sec = allowed.includes(section as any) ? (section as AdminSectionExtended) : "scraper";
     return { section: sec, urlParam };
   };
@@ -878,11 +781,6 @@ export function AdminPage() {
             onClick={() => setNavState({ section: "database", runsUrl: null })}
           />
           <SidebarItem
-            label="Scrape History"
-            active={section === "scrapeHistory"}
-            onClick={() => setNavState({ section: "scrapeHistory", runsUrl: null })}
-          />
-          <SidebarItem
             label="URL scrape list"
             active={section === "urlScrapes"}
             onClick={() => setNavState({ section: "urlScrapes", runsUrl: null })}
@@ -917,7 +815,6 @@ export function AdminPage() {
           {section === "worker" && <WorkerStatusSection />}
           {section === "pending" && <PendingRequestsSection />}
           {section === "database" && <DatabaseSection />}
-          {section === "scrapeHistory" && <ScrapeHistorySection />}
           {section === "urlScrapes" && <UrlScrapeListSection />}
           {section === "temporal" && <TemporalStatusSection />}
         </div>

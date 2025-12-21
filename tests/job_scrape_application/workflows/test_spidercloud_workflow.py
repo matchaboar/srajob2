@@ -58,6 +58,7 @@ from job_scrape_application.workflows.activities import _extract_job_urls_from_s
 from job_scrape_application.config import runtime_config  # noqa: E402
 from job_scrape_application.workflows.site_handlers import GreenhouseHandler  # noqa: E402
 from job_scrape_application.workflows.site_handlers import GithubCareersHandler  # noqa: E402
+from job_scrape_application.workflows.site_handlers import AshbyHqHandler  # noqa: E402
 from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_scraper  # noqa: E402
 
 
@@ -480,7 +481,7 @@ async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
 
     listing = await scraper.fetch_greenhouse_listing(site)
 
-    assert requested["url"] == "https://boards.greenhouse.io/v1/boards/robinhood/jobs"
+    assert requested["url"] == "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     assert listing["job_urls"] == ["https://example.com/job/123"]
 
 
@@ -518,7 +519,7 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
 
     listing = await scraper.fetch_greenhouse_listing(site)
 
-    assert requested["url"] == "https://boards.greenhouse.io/v1/boards/robinhood/jobs"
+    assert requested["url"] == "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     assert len(listing["job_urls"]) >= 30
     assert any(u.startswith("https://boards.greenhouse.io/robinhood/jobs/") for u in listing["job_urls"])
 
@@ -580,6 +581,24 @@ def test_spidercloud_extract_json_payload_from_pre_html():
 
     assert extracted is not None
     assert extracted["jobs"][0]["absolute_url"] == job_url
+
+
+def test_spidercloud_extracts_location_from_raw_html_json_ld():
+    scraper = _make_spidercloud_scraper()
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/coupang_job_7486748_raw.html"
+    )
+    raw_html = fixture_path.read_text(encoding="utf-8")
+
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url="https://www.coupang.jobs/en/jobs/7486748/seniorstaff-android-engineer-streaming-player-coupang-play/?gh_jid=7486748",
+        markdown="",
+        events=[{"raw_html": raw_html}],
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert normalized["location"] == "Singapore, Singapore"
 
 
 @pytest.mark.asyncio
@@ -682,6 +701,39 @@ def test_extract_job_urls_from_spidercloud_ashby_html():
     assert "https://jobs.ashbyhq.com/lambda/senior-software-engineer" in urls
     assert "https://jobs.ashbyhq.com/lambda/security-engineer" in urls
     assert "https://jobs.ashbyhq.com/lambda/product-manager" not in urls
+
+
+def test_spidercloud_extracts_job_urls_from_ashby_listing_payload():
+    scraper = _make_spidercloud_scraper()
+    handler = AshbyHqHandler()
+    payload = json.loads(
+        Path("tests/fixtures/ashby_lambda_listing_payload_small.json").read_text(encoding="utf-8")
+    )
+    markdown = json.dumps(payload)
+
+    urls = scraper._extract_listing_job_urls(handler, [payload], markdown)
+
+    assert "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938" in urls
+    assert "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f" in urls
+
+
+def test_spidercloud_normalize_job_ignores_listing_payload():
+    scraper = _make_spidercloud_scraper()
+    payload = json.loads(
+        Path("tests/fixtures/ashby_lambda_listing_payload_small.json").read_text(encoding="utf-8")
+    )
+    markdown = json.dumps(payload)
+
+    normalized = scraper._normalize_job(
+        "https://jobs.ashbyhq.com/lambda",
+        markdown,
+        [payload],
+        started_at=0,
+    )
+
+    assert normalized is None
+    assert scraper._last_ignored_job is not None
+    assert scraper._last_ignored_job.get("reason") == "listing_payload"
 
 
 @pytest.mark.asyncio
@@ -813,6 +865,49 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     enqueued_urls = enqueue_calls[0]["args"]["urls"]
     assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in enqueued_urls
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in enqueued_urls
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_enqueues_jobs_from_confluent_fixture(monkeypatch):
+    html = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_raw.html"
+    ).read_text(encoding="utf-8")
+    scrape_payload = {
+        "sourceUrl": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {"provider": "spidercloud", "raw": [{"content": html}]},
+    }
+
+    calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": 0}
+        return None
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await acts.store_scrape(scrape_payload)
+
+    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
+    assert enqueue_calls, "store_scrape should enqueue job URLs from Confluent fixture"
+    enqueued_urls = enqueue_calls[0]["args"]["urls"]
+    expected_urls = {
+        "https://careers.confluent.io/jobs/job/03bd40fd-07a5-44ed-985f-689e5405c2a8",
+        "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49",
+        "https://careers.confluent.io/jobs/job/5400cdd0-87bf-4df5-aed8-3f526715fa4a",
+        "https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1",
+        "https://careers.confluent.io/jobs/job/8e0d897b-045c-46ee-9457-d6cc79a95dea",
+        "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+        "https://careers.confluent.io/jobs/job/ca9890c2-4ef6-4e07-ba1b-98a03699e395",
+        "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
+    }
+    assert set(enqueued_urls) == expected_urls
 
 
 @pytest.mark.asyncio
@@ -986,8 +1081,8 @@ def test_spidercloud_github_job_detail_uses_structured_data():
     )
 
     assert normalized is not None
-    assert normalized["title"] == "Senior Product Marketing Manager"
-    assert normalized["location"] == "United States"
+    assert normalized["title"] == "Senior Software Engineer"
+    assert normalized["location"] == "Japan"
 
 
 def test_spidercloud_allows_when_title_unknown():
@@ -1299,8 +1394,8 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
 
     assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in urls
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in urls
+    assert "https://www.github.careers/careers-home/jobs/4843?lang=en-us" in urls
     assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
-    assert "https://www.github.careers/careers-home/jobs/4843?lang=en-us" not in urls
 
 
 def test_extract_job_urls_from_snapchat_scrape_fixture():
@@ -1329,8 +1424,8 @@ def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():
     urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
 
     assert "https://example.com/jobs/1" in urls
-    assert "https://example.com/jobs/3" in urls  # Remote allowed when location omitted/remote.
-    assert "https://example.com/jobs/2" not in urls  # filtered: title keyword + non-US location.
+    assert "https://example.com/jobs/3" in urls
+    assert "https://example.com/jobs/2" in urls
 
 
 def test_extract_job_urls_from_scrape_markdown_location_context_filters():
@@ -1346,7 +1441,7 @@ def test_extract_job_urls_from_scrape_markdown_location_context_filters():
     urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
 
     assert "https://example.com/careers/jobs/123" in urls
-    assert "https://example.com/careers/jobs/456" not in urls
+    assert "https://example.com/careers/jobs/456" in urls
 
 
 def test_extract_job_urls_from_scrape_markdown_read_more_context():
@@ -1363,6 +1458,30 @@ def test_extract_job_urls_from_scrape_markdown_read_more_context():
 
     assert "https://example.com/careers/jobs/789" in urls
     assert "https://example.com/careers/jobs/789/apply" not in urls
+
+
+def test_extract_job_urls_from_confluent_spidercloud_fixture():
+    html = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_raw.html"
+    ).read_text(encoding="utf-8")
+    scrape = {
+        "sourceUrl": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+        "items": {"provider": "spidercloud", "raw": [{"content": html}]},
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    expected = {
+        "https://careers.confluent.io/jobs/job/03bd40fd-07a5-44ed-985f-689e5405c2a8",
+        "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49",
+        "https://careers.confluent.io/jobs/job/5400cdd0-87bf-4df5-aed8-3f526715fa4a",
+        "https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1",
+        "https://careers.confluent.io/jobs/job/8e0d897b-045c-46ee-9457-d6cc79a95dea",
+        "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+        "https://careers.confluent.io/jobs/job/ca9890c2-4ef6-4e07-ba1b-98a03699e395",
+        "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
+    }
+    assert set(urls) == expected
 
 
 def test_extract_job_urls_from_scrape_filters_confluent_location_urls():

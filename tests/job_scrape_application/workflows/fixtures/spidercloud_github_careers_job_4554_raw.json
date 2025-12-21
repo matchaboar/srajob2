@@ -1,7 +1,7 @@
 [
   {
     "content": {
-      "raw_html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <title>Senior Product Marketing Manager</title>\n    <script type=\"application/ld+json\">\n      {\n        \"@context\": \"http://schema.org\",\n        \"@type\": \"JobPosting\",\n        \"title\": \"Senior Product Marketing Manager\",\n        \"description\": \"<p>About GitHub</p>\",\n        \"jobLocation\": {\n          \"@type\": \"Place\",\n          \"address\": {\n            \"@type\": \"PostalAddress\",\n            \"addressCountry\": \"United States\"\n          }\n        }\n      }\n    </script>\n  </head>\n  <body>\n    <h1>Senior Product Marketing Manager</h1>\n  </body>\n</html>\n"
+      "raw_html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <title>Senior Software Engineer</title>\n    <script type=\"application/ld+json\">\n      {\n        \"@context\": \"http://schema.org\",\n        \"@type\": \"JobPosting\",\n        \"title\": \"Senior Software Engineer\",\n        \"description\": \"<p>About GitHub</p>\",\n        \"jobLocation\": {\n          \"@type\": \"Place\",\n          \"address\": {\n            \"@type\": \"PostalAddress\",\n            \"addressCountry\": \"Japan\"\n          }\n        }\n      }\n    </script>\n  </head>\n  <body>\n    <h1>Senior Software Engineer</h1>\n  </body>\n</html>\n"
     },
     "url": "https://www.github.careers/careers-home/jobs/4554?lang=en-us",
     "status": 200

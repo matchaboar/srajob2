@@ -11,6 +11,7 @@ import yaml
 class RuntimeConfig:
     spidercloud_job_details_timeout_minutes: int
     spidercloud_job_details_batch_size: int
+    spidercloud_job_details_concurrency: int
     spidercloud_job_details_processing_expire_minutes: int
     spidercloud_http_timeout_seconds: int
     temporal_general_worker_count: int
@@ -47,6 +48,11 @@ runtime_config = RuntimeConfig(
         _raw_runtime_config,
         "spidercloud_job_details_batch_size",
         50,
+    ),
+    spidercloud_job_details_concurrency=_coerce_int(
+        _raw_runtime_config,
+        "spidercloud_job_details_concurrency",
+        4,
     ),
     spidercloud_job_details_processing_expire_minutes=_coerce_int(
         _raw_runtime_config,
