@@ -2474,6 +2474,21 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     source_url = scrape.get("sourceUrl") if isinstance(scrape, dict) else ""
     handler = get_site_handler(source_url) if source_url else None
 
+    def _extract_handler_links(values: Iterable[str]) -> list[str]:
+        if not handler:
+            return []
+        for text in values:
+            if not isinstance(text, str) or not text.strip():
+                continue
+            if "<" in text and ">" in text:
+                links = handler.get_links_from_raw_html(text)
+                if links:
+                    return links
+            links = handler.get_links_from_markdown(text)
+            if links:
+                return links
+        return []
+
     if isinstance(items, dict):
         raw_val = items.get("raw")
         json_urls = _extract_job_urls_from_json_payload(raw_val)
@@ -2481,6 +2496,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if handler:
                 json_urls = handler.filter_job_urls(json_urls)
             return json_urls
+        handler_links = _extract_handler_links(_gather_strings(raw_val))
+        if handler_links:
+            return handler_links
 
     if isinstance(items, dict):
         raw_val = items.get("raw")
@@ -2489,6 +2507,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             for job in items["normalized"]:
                 candidates.extend(_gather_strings(job))
     candidates.extend(_gather_strings(scrape.get("response")))
+    handler_links = _extract_handler_links(candidates)
+    if handler_links:
+        return handler_links
 
     urls: list[str] = []
     seen: set[str] = set()

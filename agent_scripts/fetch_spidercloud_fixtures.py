@@ -2,7 +2,7 @@
 Fetch live SpiderCloud scrape payloads and write them into our test fixtures.
 
 Usage:
-    uv run python scripts/fetch_spidercloud_fixtures.py
+    uv run agent_scripts/fetch_spidercloud_fixtures.py
 
 Requires:
     - SPIDER_API_KEY in .env (loaded via python-dotenv)
@@ -10,6 +10,9 @@ Outputs:
     - tests/job_scrape_application/workflows/fixtures/spidercloud_greenhouse_api_raw.json
     - tests/job_scrape_application/workflows/fixtures/spidercloud_greenhouse_api_commonmark.json
     - tests/job_scrape_application/workflows/fixtures/spidercloud_pinterest_marketing_commonmark.json
+    - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_1.json
+    - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_2.json
+    - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_3.json
 """
 
 from __future__ import annotations
@@ -30,6 +33,8 @@ AVATURE_BLOOMBERG_URL = (
     "1845=%5B162508%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&"
     "listFilterMode=1&jobRecordsPerPage=12"
 )
+AVATURE_BLOOMBERG_PAGE_2_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=12"
+AVATURE_BLOOMBERG_PAGE_3_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=24"
 
 FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
     (
@@ -48,9 +53,19 @@ FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
         {"return_format": "commonmark", "url": PINTEREST_MARKETING_URL, "limit": 1},
     ),
     (
-        "spidercloud_bloomberg_avature_search_raw.json",
+        "spidercloud_bloomberg_avature_search_page_1.json",
         "/scrape",
         {"return_format": "raw_html", "url": AVATURE_BLOOMBERG_URL, "limit": 1},
+    ),
+    (
+        "spidercloud_bloomberg_avature_search_page_2.json",
+        "/scrape",
+        {"return_format": "raw_html", "url": AVATURE_BLOOMBERG_PAGE_2_URL, "limit": 1},
+    ),
+    (
+        "spidercloud_bloomberg_avature_search_page_3.json",
+        "/scrape",
+        {"return_format": "raw_html", "url": AVATURE_BLOOMBERG_PAGE_3_URL, "limit": 1},
     ),
 )
 

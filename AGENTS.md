@@ -8,6 +8,11 @@
 - Do not use `docker`, use `podman` instead.
 - Do not use `docker-compose`, use `podman-compose` instead.
 
+## Getting test fixtures
+- As an agent, you may use my keys and scripts at any time in order to write tests or debug code: `./agent_scripts`
+- You may also write useful scripts or edit them as needed in this folder for future use.
+- Do use the agent_scripts and spidercloud sdk/api whenever a website contents are needed. DO NOT use curl.
+
 # Python
 - Python packages, use `uv` and not python/pip commands. Example: `uv run` or `uv add`. 
 - DO NOT `uv pip`

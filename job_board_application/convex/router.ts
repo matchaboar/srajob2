@@ -748,7 +748,7 @@ export const leaseSite = mutation({
   args: {
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
-    siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+    siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
     scrapeProvider: v.optional(
       v.union(
         v.literal("fetchfox"),
@@ -777,7 +777,7 @@ export const leaseSite = mutation({
       const siteType = (site).type ?? "general";
       const scrapeProvider =
         (site).scrapeProvider ??
-        (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+        (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
       const hasSchedule = !!(site).scheduleId;
       const lastRun = (site).lastRunAt ?? 0;
       const manualTriggerAt = (site).manualTriggerAt ?? 0;
@@ -834,7 +834,9 @@ export const leaseSite = mutation({
     const s = fresh;
     const resolvedProvider =
       (s as any).scrapeProvider ??
-      ((s as any).type === "greenhouse" ? "spidercloud" : "fetchfox");
+      ((s as any).type === "greenhouse" || (s as any).type === "avature"
+        ? "spidercloud"
+        : "fetchfox");
     return {
       _id: s._id,
       name: s.name,
@@ -1940,7 +1942,7 @@ export const upsertSite = mutation({
   args: {
     name: v.optional(v.string()),
     url: v.string(),
-    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
     scrapeProvider: v.optional(
       v.union(
         v.literal("fetchfox"),
@@ -1957,7 +1959,8 @@ export const upsertSite = mutation({
     // For simplicity, just insert a new record
     const siteType = args.type ?? "general";
     const scrapeProvider =
-      args.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+      args.scrapeProvider ??
+      (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
     const normalizedUrl = normalizeSiteUrl(args.url, siteType);
     const resolvedName = fallbackCompanyName(args.name, normalizedUrl);
     const key = siteCanonicalKey(normalizedUrl, siteType);
@@ -2085,7 +2088,7 @@ export const bulkUpsertSites = mutation({
       v.object({
         name: v.optional(v.string()),
         url: v.string(),
-        type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"))),
+        type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
         scrapeProvider: v.optional(
           v.union(
             v.literal("fetchfox"),
@@ -2106,7 +2109,8 @@ export const bulkUpsertSites = mutation({
     for (const site of args.sites) {
       const siteType = site.type ?? "general";
       const scrapeProvider =
-        site.scrapeProvider ?? (siteType === "greenhouse" ? "spidercloud" : "fetchfox");
+        site.scrapeProvider ??
+        (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
       const normalizedUrl = normalizeSiteUrl(site.url, siteType);
       const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
       const key = siteCanonicalKey(normalizedUrl, siteType);

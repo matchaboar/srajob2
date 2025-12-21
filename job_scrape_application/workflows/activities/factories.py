@@ -112,7 +112,7 @@ async def select_scraper_for_site(
 
     site_type = (site.get("type") or "general").lower()
     preferred = (site.get("scrapeProvider") or "").lower()
-    if site_type == "greenhouse" and not preferred:
+    if site_type in {"greenhouse", "avature"} and not preferred:
         preferred = "spidercloud"
     if not preferred:
         if settings.spider_api_key:

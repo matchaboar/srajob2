@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from job_scrape_application.workflows.site_handlers import (
     AshbyHqHandler,
+    AvatureHandler,
     GithubCareersHandler,
     GreenhouseHandler,
     get_site_handler,
@@ -63,4 +64,19 @@ def test_github_careers_handler_builds_api_and_links():
     assert handler.get_links_from_json(payload) == [
         "https://www.github.careers/careers-home/jobs/4822?lang=en-us",
         "https://www.github.careers/careers-home/jobs/4867?lang=en-us",
+    ]
+
+
+def test_avature_handler_matches_and_extracts_links():
+    handler = AvatureHandler()
+    url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobRecordsPerPage=12"
+    assert handler.matches_url(url)
+    html = """
+    <a href="https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/15548">Apply</a>
+    <a href="https://bloomberg.avature.net/careers/SearchJobs/engineer/?jobRecordsPerPage=12&jobOffset=12">2</a>
+    <a href="https://bloomberg.avature.net/careers/SaveJob?jobId=15548">Save</a>
+    """
+    assert handler.get_links_from_raw_html(html) == [
+        "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/15548",
+        "https://bloomberg.avature.net/careers/SearchJobs/engineer/?jobRecordsPerPage=12&jobOffset=12",
     ]
