@@ -43,6 +43,9 @@ class BaseSiteHandler(ABC):
     def get_links_from_json(self, payload: Any) -> List[str]:
         return []
 
+    def is_listing_url(self, url: str) -> bool:
+        return False
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         return {}
 

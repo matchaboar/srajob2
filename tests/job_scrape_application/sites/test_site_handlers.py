@@ -74,6 +74,16 @@ def test_avature_handler_matches_and_extracts_links():
     handler = AvatureHandler()
     url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobRecordsPerPage=12"
     assert handler.matches_url(url)
+    assert handler.is_listing_url(url)
+    assert handler.is_listing_url(
+        "https://bloomberg.avature.net/careers/SearchJobsData/engineer?jobOffset=12"
+    )
+    assert handler.is_listing_url(
+        "https://bloomberg.avature.net/careers/searchjobs/engineer"
+    )
+    assert not handler.is_listing_url(
+        "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/15548"
+    )
     html = """
     <a href="https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/15548">Apply</a>
     <a href="https://bloomberg.avature.net/careers/SearchJobs/engineer/?jobRecordsPerPage=12&jobOffset=12">2</a>

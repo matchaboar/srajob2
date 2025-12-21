@@ -43,6 +43,13 @@ class AvatureHandler(BaseSiteHandler):
             return False
         return any(host.endswith(suffix) for suffix in AVATURE_HOST_SUFFIXES)
 
+    def is_listing_url(self, url: str) -> bool:
+        try:
+            path = (urlparse(url).path or "").lower()
+        except Exception:
+            return False
+        return "/careers/searchjobs" in path or "/careers/searchjobsdata" in path
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}

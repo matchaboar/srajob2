@@ -736,6 +736,21 @@ def test_spidercloud_normalize_job_ignores_listing_payload():
     assert scraper._last_ignored_job.get("reason") == "listing_payload"
 
 
+def test_spidercloud_normalize_job_skips_avature_listing_url():
+    scraper = _make_spidercloud_scraper()
+    url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobOffset=0"
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=url,
+        markdown="Bloomberg Careers",
+        events=[],
+        started_at=0,
+    )
+
+    assert normalized is None
+    assert scraper._last_ignored_job is not None  # noqa: SLF001
+    assert scraper._last_ignored_job.get("reason") == "listing_page"  # noqa: SLF001
+
+
 @pytest.mark.asyncio
 async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
     scraper = _make_spidercloud_scraper()
@@ -1224,6 +1239,44 @@ async def test_spidercloud_scrape_site_keeps_seed_when_pattern_present(monkeypat
     monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
 
     site = {"_id": "s-seed", "url": seen_url, "pattern": "https://jobs.ashbyhq.com/lambda/*"}
+    result = await scraper.scrape_site(site)
+
+    assert captured.get("urls") == [seen_url]
+    assert result["items"]["seedUrls"] == [seen_url]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_scrape_site_keeps_listing_seed_when_seen(monkeypatch):
+    seen_url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobOffset=0"
+    captured: dict[str, Any] = {}
+
+    async def fake_seen(url: str, pattern: str | None):
+        return [seen_url]
+
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=lambda payload: payload,
+        settings=types.SimpleNamespace(spider_api_key="key"),
+        fetch_seen_urls_for_site=fake_seen,
+    )
+    scraper = SpiderCloudScraper(deps)
+
+    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+        captured["urls"] = urls
+        return {
+            "sourceUrl": source_url,
+            "pattern": pattern,
+            "provider": scraper.provider,
+            "items": {"normalized": [], "provider": scraper.provider, "seedUrls": urls},
+        }
+
+    monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
+
+    site = {"_id": "s-avature", "url": seen_url, "pattern": None, "type": "avature"}
     result = await scraper.scrape_site(site)
 
     assert captured.get("urls") == [seen_url]

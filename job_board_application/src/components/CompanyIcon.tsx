@@ -102,6 +102,19 @@ interface CompanyIconProps {
 }
 
 const BRAND_FETCH_CLIENT = "1idXaGHc5cKcElppzC7";
+const COMMON_SUBDOMAIN_PREFIXES = new Set([
+    "www",
+    "jobs",
+    "careers",
+    "boards",
+    "board",
+    "apply",
+    "app",
+    "join",
+    "team",
+    "teams",
+    "work",
+]);
 const RESERVED_PATH_SEGMENTS = new Set([
     "boards",
     "jobs",
@@ -124,6 +137,8 @@ const RESERVED_PATH_SEGMENTS = new Set([
     "api",
 ]);
 const HOSTED_JOB_DOMAINS = [
+    "avature.net",
+    "avature.com",
     "greenhouse.io",
     "ashbyhq.com",
     "lever.co",
@@ -134,6 +149,18 @@ const HOSTED_JOB_DOMAINS = [
     "jobvite.com",
     "bamboohr.com",
 ];
+const HOSTED_COMPANY_SLUGS = new Set([
+    "avature",
+    "greenhouse",
+    "ashby",
+    "lever",
+    "workable",
+    "smartrecruiters",
+    "workday",
+    "icims",
+    "jobvite",
+    "bamboohr",
+]);
 
 const baseDomainFromHost = (host: string) => {
     const parts = host.split(".").filter(Boolean);
@@ -152,14 +179,36 @@ const extractCompanySlug = (pathname: string) => {
     for (const part of parts) {
         const cleaned = part.toLowerCase();
         if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
+        if (/^\d+$/.test(cleaned)) continue;
         if (!/^[a-z0-9-]+$/.test(cleaned)) continue;
         return cleaned;
     }
     return null;
 };
 
-const looksLikeHostedJobsDomain = (host: string) =>
-    HOSTED_JOB_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+const resolveHostedJobsDomain = (host: string) =>
+    HOSTED_JOB_DOMAINS.find((domain) => host === domain || host.endsWith(`.${domain}`)) ?? null;
+
+const extractCompanySlugFromHost = (host: string, hostedDomain: string) => {
+    const hostParts = host.split(".").filter(Boolean);
+    const domainParts = hostedDomain.split(".").filter(Boolean);
+    if (hostParts.length <= domainParts.length) return null;
+    const subdomains = hostParts.slice(0, hostParts.length - domainParts.length);
+    for (let i = subdomains.length - 1; i >= 0; i -= 1) {
+        const candidate = subdomains[i]?.toLowerCase() ?? "";
+        if (!candidate) continue;
+        if (COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
+        if (!/^[a-z0-9-]+$/.test(candidate)) continue;
+        return candidate;
+    }
+    return null;
+};
+
+const domainMatchesSlug = (domain: string, slug: string) => {
+    const normalizedDomain = domain.toLowerCase();
+    const normalizedSlug = slug.toLowerCase();
+    return normalizedDomain === normalizedSlug || normalizedDomain.startsWith(`${normalizedSlug}.`);
+};
 
 const deriveBrandfetchDomain = (company: string, url?: string) => {
     const trimmedCompany = (company || "").trim();
@@ -167,10 +216,15 @@ const deriveBrandfetchDomain = (company: string, url?: string) => {
         try {
             const parsed = new URL(url.includes("://") ? url : `https://${url}`);
             const host = parsed.hostname.toLowerCase();
-            if (looksLikeHostedJobsDomain(host)) {
+            const hostedDomain = resolveHostedJobsDomain(host);
+            if (hostedDomain) {
                 const slug = extractCompanySlug(parsed.pathname);
                 if (slug) {
                     return `${slug}.com`;
+                }
+                const hostSlug = extractCompanySlugFromHost(host, hostedDomain);
+                if (hostSlug) {
+                    return `${hostSlug}.com`;
                 }
             }
             return baseDomainFromHost(host);
@@ -191,6 +245,13 @@ const deriveBrandfetchDomain = (company: string, url?: string) => {
 export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
     const slug = useMemo(() => toSlug(company), [company]);
     const customLogo = useMemo(() => (slug ? customLogos[slug] ?? null : null), [slug]);
+    const brandfetchDomain = useMemo(() => deriveBrandfetchDomain(company, url), [company, url]);
+    const brandfetchUrl = brandfetchDomain ? `https://cdn.brandfetch.io/${brandfetchDomain}?c=${BRAND_FETCH_CLIENT}` : null;
+    const preferBrandfetch = useMemo(() => {
+        if (!slug || !brandfetchDomain) return false;
+        if (!HOSTED_COMPANY_SLUGS.has(slug)) return false;
+        return !domainMatchesSlug(brandfetchDomain, slug);
+    }, [brandfetchDomain, slug]);
     const [iconState, setIconState] = useState<{ icon: SimpleIcon | null; loaded: boolean }>({
         icon: null,
         loaded: false,
@@ -199,7 +260,7 @@ export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
 
     useEffect(() => {
         let cancelled = false;
-        if (!slug || customLogo) {
+        if (!slug || customLogo || preferBrandfetch) {
             setIconState({ icon: null, loaded: true });
             return () => { cancelled = true; };
         }
@@ -220,9 +281,7 @@ export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
 
     const dimension = `${size}px`;
     const color = ensureReadableColor(iconState.icon?.hex ?? "#E2E8F0");
-    const brandfetchDomain = useMemo(() => deriveBrandfetchDomain(company, url), [company, url]);
-    const brandfetchUrl = brandfetchDomain ? `https://cdn.brandfetch.io/${brandfetchDomain}?c=${BRAND_FETCH_CLIENT}` : null;
-    const showBrandfetch = !customLogo && iconState.loaded && !iconState.icon && !!brandfetchUrl && !brandfetchFailed;
+    const showBrandfetch = !customLogo && (preferBrandfetch || (iconState.loaded && !iconState.icon)) && !!brandfetchUrl && !brandfetchFailed;
 
     useEffect(() => {
         setBrandfetchFailed(false);

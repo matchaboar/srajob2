@@ -730,10 +730,10 @@ class SpiderCloudScraper(BaseScraper):
         *,
         require_keywords: bool = True,
     ) -> Dict[str, Any] | None:
+        handler = self._get_site_handler(url)
         parsed_title = None
         parsed_markdown = markdown or ""
         if parsed_markdown.lstrip().startswith(("{", "[")):
-            handler = self._get_site_handler(url)
             if handler:
                 parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
 
@@ -778,6 +778,14 @@ class SpiderCloudScraper(BaseScraper):
             from_content = True
 
         candidate_title = payload_title or parsed_title
+        if handler and handler.is_listing_url(url):
+            self._last_ignored_job = {
+                "url": url,
+                "reason": "listing_page",
+                "title": candidate_title or self._title_from_url(url),
+                "description": cleaned_markdown,
+            }
+            return None
         if looks_like_job_listing_page(candidate_title, cleaned_markdown, url):
             self._last_ignored_job = {
                 "url": url,
@@ -1413,6 +1421,7 @@ class SpiderCloudScraper(BaseScraper):
                 return api_payload
 
         urls = [u for u in [source_url] if isinstance(u, str) and u.strip()]
+        force_seed = bool(handler and source_url and handler.is_listing_url(source_url))
 
         resolved_skip: Optional[List[str]] = skip_urls
         if resolved_skip is None and source_url:
@@ -1423,7 +1432,7 @@ class SpiderCloudScraper(BaseScraper):
 
         skip_set = set(resolved_skip or [])
         urls = [u for u in urls if u not in skip_set]
-        if site.get("pattern") and source_url and source_url in skip_set:
+        if (site.get("pattern") and source_url and source_url in skip_set) or force_seed:
             urls = [source_url]
         skip_source = "precomputed" if skip_urls is not None else "fetched"
         logger.info(

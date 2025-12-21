@@ -34,4 +34,10 @@ describe("CompanyIcon custom logos", () => {
     const img = screen.getByRole("img", { name: /the trade desk logo/i });
     expectSvgSrc(img, /thetradedesk/i);
   });
+
+  it("prefers brandfetch when the company name is a hosted platform", async () => {
+    render(<CompanyIcon company="Avature" url="https://bloomberg.avature.net/careers/jobs/1234" />);
+    const img = await screen.findByRole("img", { name: /avature logo/i });
+    expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
+  });
 });

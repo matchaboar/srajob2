@@ -1,3 +1,141 @@
 {
-  "site_schedules": []
+  "site_schedules": [
+    {
+      "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
+      "name": "Robinhood",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://boards-api.greenhouse.io/v1/boards/Airbnb/jobs",
+      "name": "Airbnb",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://boards-api.greenhouse.io/v1/boards/Coupang/jobs",
+      "name": "Coupang",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs",
+      "name": "Stubhub",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.datadoghq.com/all-jobs/?s=software%20engineer",
+      "name": "datadog",
+      "enabled": false,
+      "pattern": "https://careers.datadoghq.com/detail/**",
+      "schedule": {
+        "name": "Every 5 mins checck daily",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 5.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.godaddy/jobs/search?page=1&query=engineer&country_codes%5B%5D=US",
+      "name": "GoDaddy",
+      "enabled": true,
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+      "name": "Confluent",
+      "enabled": true,
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    }
+  ]
 }
