@@ -1,0 +1,42 @@
+schedules:
+  # Kick off Firecrawl jobs with webhooks
+  - id: site-lease-firecrawl
+    workflow: SiteLease
+    interval_seconds: 15
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # Poll and process completed webhook deliveries
+  - id: process-firecrawl-webhooks
+    workflow: ProcessWebhookScrape
+    interval_seconds: 20
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # Lease and run Spidercloud scraper jobs (e.g., Greenhouse boards with spidercloud provider)
+  - id: scraper-spidercloud
+    workflow: ScraperSpidercloud
+    interval_seconds: 20
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # FetchFox crawl of listings, queueing SpiderCloud detail scrapes
+  - id: fetchfox-spidercloud
+    workflow: FetchfoxSpidercloud
+    interval_seconds: 45
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # Continuously drain job-detail queue for SpiderCloud (batch scraping)
+  - id: spidercloud-job-details
+    workflow: SpidercloudJobDetails
+    interval_seconds: 15
+    task_queue: scraper-task-queue
+    catchup_window_hours: 12
+    overlap: skip
+
+  # (Disabled) Heuristic parsing backfill was removed to reduce costly table reads.

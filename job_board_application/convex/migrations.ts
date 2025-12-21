@@ -5,6 +5,7 @@ import { components } from "./_generated/api.js";
 import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 import { internalMutation } from "./_generated/server";
+import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
@@ -302,6 +303,18 @@ export const retagGreenhouseJobs = migrations.define({
   })(),
 });
 
+export const syncSiteSchedules = migrations.define({
+  table: "sites",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx) => {
+      if (ran) return;
+      ran = true;
+      await syncSiteSchedulesFromYaml(ctx);
+    };
+  })(),
+});
+
 export const runAll = internalMutation({
   args: {},
   handler: async (ctx): Promise<any> => {
@@ -312,6 +325,7 @@ export const runAll = internalMutation({
       internal.migrations.backfillScrapeRecords,
       internal.migrations.repairJobDetailJobIds,
       internal.migrations.repairApplicationJobIds,
+      internal.migrations.syncSiteSchedules,
       internal.migrations.dedupeSites,
       internal.migrations.retagGreenhouseJobs,
     ]);

@@ -21,10 +21,10 @@ from temporalio.client import (
 )
 from temporalio.service import RPCError, RPCStatusCode
 
-from ..config import settings
+from ..config import resolve_config_path, settings
 
 
-SCHEDULES_YAML = Path(__file__).resolve().parents[1] / "config" / "schedules.yaml"
+SCHEDULES_YAML = resolve_config_path("schedules.yaml")
 
 
 @dataclass

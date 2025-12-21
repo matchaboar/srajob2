@@ -308,7 +308,7 @@ function Run-PreflightChecks {
 
     $steps = @(
         @{ Name = "ruff"; Timeout = 15; Block = { uvx ruff check job_scrape_application } },
-        @{ Name = "pytest"; Timeout = 60; Block = { uv run --extra dev pytest } }
+        @{ Name = "pytest"; Timeout = 60; Block = { uv run pytest } }
     )
 
     Write-Host "[preflight] Pending checks:" -ForegroundColor DarkGray

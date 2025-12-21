@@ -97,3 +97,28 @@ async def test_process_batch_leaves_non_greenhouse_urls(monkeypatch):
     scrapes = res.get("scrapes")
     assert isinstance(scrapes, list) and scrapes
     assert scrapes[0]["subUrls"] == [url]
+
+
+@pytest.mark.asyncio
+async def test_process_batch_does_not_rewrite_ashby_urls(monkeypatch):
+    url = "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938"
+    batch = {"urls": [{"url": url, "sourceUrl": "https://jobs.ashbyhq.com/lambda"}]}
+
+    scraper = _make_scraper()
+    captured: Dict[str, Any] = {}
+
+    async def fake_scrape(payload: Dict[str, Any]) -> Dict[str, Any]:
+        captured.update(payload)
+        return {"scrape": {"items": {"normalized": [{"url": payload["urls"][0]}]}}}
+
+    monkeypatch.setattr(scraper, "scrape_greenhouse_jobs", fake_scrape)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities._make_spidercloud_scraper",
+        lambda: scraper,
+    )
+
+    res = await process_spidercloud_job_batch(batch)
+    assert captured["urls"] == [url]
+    scrapes = res.get("scrapes")
+    assert isinstance(scrapes, list) and scrapes
+    assert scrapes[0]["subUrls"] == [url]

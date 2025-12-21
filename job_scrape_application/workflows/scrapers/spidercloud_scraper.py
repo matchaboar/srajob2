@@ -1087,6 +1087,12 @@ class SpiderCloudScraper(BaseScraper):
         source_url: str,
         pattern: Optional[str] = None,
     ) -> Dict[str, Any]:
+        def _safe_json_size(payload: Any) -> Optional[int]:
+            try:
+                return len(json.dumps(payload, ensure_ascii=False))
+            except Exception:
+                return None
+
         urls = urls[:SPIDERCLOUD_BATCH_SIZE]
         logger.info(
             "SpiderCloud batch start source=%s urls=%s pattern=%s",
@@ -1105,6 +1111,7 @@ class SpiderCloudScraper(BaseScraper):
                 "provider": self.provider,
             }
 
+        batch_start_monotonic = time.monotonic()
         api_key = self._api_key()
         def _infer_spidercloud_config(url: str) -> Dict[str, Any]:
             try:
@@ -1160,6 +1167,7 @@ class SpiderCloudScraper(BaseScraper):
         listing_job_urls: List[str] = []
         total_cost_milli_cents = 0.0
         saw_cost_field = False
+        max_markdown_len = 0
 
         timeout_seconds = runtime_config.spidercloud_http_timeout_seconds
         max_concurrency = max(1, int(runtime_config.spidercloud_job_details_concurrency))
@@ -1253,6 +1261,9 @@ class SpiderCloudScraper(BaseScraper):
                     ignored_items.append(result["ignored"])
                 if result.get("raw"):
                     raw_items.append(result["raw"])
+                    markdown_len = len(result.get("raw", {}).get("markdown") or "")
+                    if markdown_len > max_markdown_len:
+                        max_markdown_len = markdown_len
                 if result.get("job_urls"):
                     try:
                         listing_job_urls.extend([u for u in result.get("job_urls") if isinstance(u, str)])
@@ -1331,7 +1342,9 @@ class SpiderCloudScraper(BaseScraper):
         if cost_milli_cents is not None:
             scrape_payload["costMilliCents"] = cost_milli_cents
 
+        raw_payload_bytes = _safe_json_size(scrape_payload)
         trimmed = self._trim_scrape_payload(scrape_payload)
+        trimmed_payload_bytes = _safe_json_size(trimmed)
         trimmed_items = trimmed.get("items")
         if isinstance(trimmed_items, dict):
             trimmed_items.setdefault("seedUrls", urls)
@@ -1342,6 +1355,18 @@ class SpiderCloudScraper(BaseScraper):
         cost_mc_display = str(cost_milli_cents) if cost_milli_cents is not None else "n/a"
         cost_cents_display = f"{float(cost_cents):.3f}" if cost_cents is not None else "n/a"
         cost_usd_display = f"{float(cost_usd):.5f}" if cost_usd is not None else "n/a"
+        batch_elapsed = time.monotonic() - batch_start_monotonic
+        logger.info(
+            "SpiderCloud batch payload source=%s urls=%s normalized=%s raw=%s elapsed_s=%.2f raw_bytes=%s trimmed_bytes=%s max_markdown_len=%s",
+            source_url,
+            len(urls),
+            len(normalized_items),
+            len(raw_items),
+            batch_elapsed,
+            raw_payload_bytes,
+            trimmed_payload_bytes,
+            max_markdown_len,
+        )
         logger.info(
             "SpiderCloud batch complete source=%s urls=%s items=%s cost_mc=%s cost_usd=%s",
             source_url,

@@ -56,6 +56,9 @@ importers:
       tailwind-merge:
         specifier: ^3.1.0
         version: 3.4.0
+      yaml:
+        specifier: ^2.8.2
+        version: 2.8.2
     devDependencies:
       '@eslint/js':
         specifier: ^9.21.0
@@ -80,10 +83,10 @@ importers:
         version: 19.2.3(@types/react@19.2.7)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
-        version: 4.7.0(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))
+        version: 4.7.0(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))
       '@vitest/browser-preview':
         specifier: ^4.0.13
-        version: 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))(vitest@4.0.14)
+        version: 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))(vitest@4.0.14)
       autoprefixer:
         specifier: ~10
         version: 10.4.22(postcss@8.5.6)
@@ -116,7 +119,7 @@ importers:
         version: 3.7.3
       tailwindcss:
         specifier: ~3
-        version: 3.4.18
+        version: 3.4.18(yaml@2.8.2)
       typescript:
         specifier: ~5.7.2
         version: 5.7.3
@@ -125,10 +128,10 @@ importers:
         version: 8.48.0(eslint@9.39.1(jiti@1.21.7))(typescript@5.7.3)
       vite:
         specifier: ^7.2.4
-        version: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)
+        version: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2)
       vitest:
         specifier: 4.0.14
-        version: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)
+        version: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)(yaml@2.8.2)
 
 packages:
 
@@ -3120,6 +3123,11 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  yaml@2.8.2:
+    resolution: {integrity: sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -3984,7 +3992,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react@4.7.0(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))':
+  '@vitejs/plugin-react@4.7.0(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))':
     dependencies:
       '@babel/core': 7.28.5
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.5)
@@ -3992,32 +4000,32 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)
+      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/browser-preview@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))(vitest@4.0.14)':
+  '@vitest/browser-preview@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))(vitest@4.0.14)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/browser': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))(vitest@4.0.14)
-      vitest: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)
+      '@vitest/browser': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))(vitest@4.0.14)
+      vitest: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - bufferutil
       - msw
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))(vitest@4.0.14)':
+  '@vitest/browser@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))(vitest@4.0.14)':
     dependencies:
-      '@vitest/mocker': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))
+      '@vitest/mocker': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))
       '@vitest/utils': 4.0.14
       magic-string: 0.30.21
       pixelmatch: 7.1.0
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.0.3
-      vitest: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)
+      vitest: 4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)(yaml@2.8.2)
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
@@ -4034,13 +4042,13 @@ snapshots:
       chai: 6.2.1
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))':
+  '@vitest/mocker@4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 4.0.14
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)
+      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2)
 
   '@vitest/pretty-format@4.0.14':
     dependencies:
@@ -5623,12 +5631,13 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.5.6
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.6):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.6)(yaml@2.8.2):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
       postcss: 8.5.6
+      yaml: 2.8.2
 
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
@@ -6038,7 +6047,7 @@ snapshots:
 
   tailwind-merge@3.4.0: {}
 
-  tailwindcss@3.4.18:
+  tailwindcss@3.4.18(yaml@2.8.2):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -6057,7 +6066,7 @@ snapshots:
       postcss: 8.5.6
       postcss-import: 15.1.0(postcss@8.5.6)
       postcss-js: 4.1.0(postcss@8.5.6)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)(yaml@2.8.2)
       postcss-nested: 6.2.0(postcss@8.5.6)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.11
@@ -6236,7 +6245,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7):
+  vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
@@ -6248,11 +6257,12 @@ snapshots:
       '@types/node': 22.19.1
       fsevents: 2.3.3
       jiti: 1.21.7
+      yaml: 2.8.2
 
-  vitest@4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0):
+  vitest@4.0.14(@types/node@22.19.1)(@vitest/browser-preview@4.0.14)(jiti@1.21.7)(jsdom@27.2.0)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.0.14
-      '@vitest/mocker': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))
+      '@vitest/mocker': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))
       '@vitest/pretty-format': 4.0.14
       '@vitest/runner': 4.0.14
       '@vitest/snapshot': 4.0.14
@@ -6269,11 +6279,11 @@ snapshots:
       tinyexec: 0.3.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)
+      vite: 7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.1
-      '@vitest/browser-preview': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7))(vitest@4.0.14)
+      '@vitest/browser-preview': 4.0.14(vite@7.2.4(@types/node@22.19.1)(jiti@1.21.7)(yaml@2.8.2))(vitest@4.0.14)
       jsdom: 27.2.0
     transitivePeerDependencies:
       - jiti
@@ -6368,6 +6378,8 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yallist@3.1.1: {}
+
+  yaml@2.8.2: {}
 
   yocto-queue@0.1.0: {}
 

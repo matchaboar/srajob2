@@ -7,17 +7,17 @@ from urllib.parse import urljoin, urlparse
 from .base import BaseSiteHandler
 
 AVATURE_HOST_SUFFIXES = ("avature.net", "avature.com")
-JOB_DETAIL_PATH_PATTERN = re.compile(r"/careers/JobDetail/[^\"'\\s>]+", re.IGNORECASE)
+JOB_DETAIL_PATH_PATTERN = re.compile(r"/careers/JobDetail/[^\"'\s>]+", re.IGNORECASE)
 JOB_DETAIL_URL_PATTERN = re.compile(
-    r"https?://[^\"'\\s>]+/careers/JobDetail/[^\"'\\s>]+", re.IGNORECASE
+    r"https?://[^\"'\s>]+/careers/JobDetail/[^\"'\s>]+", re.IGNORECASE
 )
 PAGINATION_PATH_PATTERN = re.compile(
-    r"/careers/SearchJobs/[^\"'\\s>]*?jobOffset=\\d+", re.IGNORECASE
+    r"/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+", re.IGNORECASE
 )
 PAGINATION_URL_PATTERN = re.compile(
-    r"https?://[^\"'\\s>]+/careers/SearchJobs/[^\"'\\s>]*?jobOffset=\\d+", re.IGNORECASE
+    r"https?://[^\"'\s>]+/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+", re.IGNORECASE
 )
-BASE_URL_PATTERN = re.compile(r"https?://[^\"'\\s>]+/careers/[^\"'\\s>]*", re.IGNORECASE)
+BASE_URL_PATTERN = re.compile(r"https?://[^\"'\s>]+/careers/[^\"'\s>]*", re.IGNORECASE)
 
 
 class AvatureHandler(BaseSiteHandler):

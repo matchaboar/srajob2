@@ -1276,6 +1276,41 @@ export const leaseScrapeUrlBatch = Object.assign(
   { handler: leaseScrapeUrlBatchHandler }
 );
 
+export const requeueStaleScrapeUrls = mutation({
+  args: {
+    provider: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    processingExpiryMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const limit = Math.max(1, Math.min(args.limit ?? 500, 2000));
+    const processingExpiryMs = Math.max(
+      60_000,
+      Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000)
+    );
+    const cutoff = now - processingExpiryMs;
+
+    const rows = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_status", (q: any) => q.eq("status", "processing"))
+      .take(limit);
+
+    let requeued = 0;
+    for (const row of rows as any[]) {
+      if (args.provider && row.provider !== args.provider) continue;
+      if (!row.updatedAt || row.updatedAt >= cutoff) continue;
+      await ctx.db.patch(row._id, {
+        status: "pending",
+        updatedAt: now,
+      });
+      requeued += 1;
+    }
+
+    return { requeued, checked: rows.length, cutoff };
+  },
+});
+
 const heuristicPendingReason = "pending markdown structured extraction";
 
 const needsHeuristicVersionUpgrade = (q: any) =>

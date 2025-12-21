@@ -12,6 +12,13 @@
 - As an agent, you may use my keys and scripts at any time in order to write tests or debug code: `./agent_scripts`
 - You may also write useful scripts or edit them as needed in this folder for future use.
 - Do use the agent_scripts and spidercloud sdk/api whenever a website contents are needed. DO NOT use curl.
+- Use `agent_scripts/validate_bloomberg_avature_live.py` to validate live Bloomberg Avature search pages against the Avature handler (job detail + pagination link extraction) before updating fixtures or workflow logic.
+
+# Exporting site schedule configs
+- The schedule sync source-of-truth lives in `job_scrape_application/config/<env>/site_schedules.yml`.
+- To export current Convex schedules into those YAML files (requires `CONVEX_URL` or `CONVEX_HTTP_URL`):
+  - Dev: `PYTHONPATH=. uv run agent_scripts/export_site_schedules.py --env dev`
+  - Prod: `PYTHONPATH=. uv run agent_scripts/export_site_schedules.py --env prod`
 
 # Python
 - Python packages, use `uv` and not python/pip commands. Example: `uv run` or `uv add`. 

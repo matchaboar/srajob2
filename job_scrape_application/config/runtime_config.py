@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict
 
 import yaml
 
+from .paths import resolve_config_path
 
 @dataclass
 class RuntimeConfig:
@@ -19,7 +19,7 @@ class RuntimeConfig:
 
 
 def _load_runtime_yaml() -> Dict[str, Any]:
-    path = Path(__file__).with_name("runtime.yaml")
+    path = resolve_config_path("runtime.yaml")
     if not path.exists():
         return {}
     try:

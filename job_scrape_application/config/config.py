@@ -33,6 +33,9 @@ class Settings:
         os.getenv("WEBHOOK_WAIT_LOG_INTERVAL_SECONDS", "60")
     )
     schedule_audit_verbose: bool = _env_flag("SCHEDULE_AUDIT_VERBOSE", "false")
+    monitor_rpc_timeout_seconds: int = int(
+        os.getenv("TEMPORAL_MONITOR_RPC_TIMEOUT_SECONDS", "10")
+    )
 
     # Convex deployment URL for the ConvexClient (e.g., https://your-app.convex.cloud)
     convex_url: str | None = os.getenv("CONVEX_URL")

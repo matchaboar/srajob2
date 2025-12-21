@@ -1,0 +1,60 @@
+
+- url: https://api.greenhouse.io/v1/boards/robinhood/jobs
+  name: Robinhood
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: &id001
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://boards-api.greenhouse.io/v1/boards/Airbnb/jobs
+  name: Airbnb
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://boards-api.greenhouse.io/v1/boards/Coupang/jobs
+  name: Coupang
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs
+  name: Stubhub
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://careers.datadoghq.com/all-jobs/?s=software%20engineer
+  name: datadog
+  enabled: false
+  pattern: https://careers.datadoghq.com/detail/**
+  schedule:
+    name: Every 5 mins checck daily
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 5.0
+    timezone: America/Denver

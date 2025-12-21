@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { leaseScrapeUrlBatch } from "./router";
+import { leaseScrapeUrlBatch, requeueStaleScrapeUrls } from "./router";
 import { getHandler } from "./__tests__/getHandler";
 
 type QueueRow = {
@@ -241,5 +241,70 @@ describe("leaseScrapeUrlBatch", () => {
     expect(res.urls).toEqual([]);
     expect(rows.every((r) => r.status === "pending")).toBe(true);
     expect(rows.every((r) => (r.attempts ?? 0) === 0)).toBe(true);
+  });
+});
+
+describe("requeueStaleScrapeUrls", () => {
+  it("requeues stale processing rows and skips fresh ones", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "stale-1",
+        url: "https://example.com/stale",
+        status: "processing",
+        updatedAt: now - 30 * 60 * 1000,
+        createdAt: now - 2 * 60 * 60 * 1000,
+        provider: "spidercloud",
+      },
+      {
+        _id: "fresh-1",
+        url: "https://example.com/fresh",
+        status: "processing",
+        updatedAt: now - 2 * 60 * 1000,
+        createdAt: now - 10 * 60 * 1000,
+        provider: "spidercloud",
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(requeueStaleScrapeUrls);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.requeued).toBe(1);
+    expect(rows.find((r) => r._id === "stale-1")?.status).toBe("pending");
+    expect(rows.find((r) => r._id === "fresh-1")?.status).toBe("processing");
+  });
+
+  it("skips rows when provider does not match", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "stale-1",
+        url: "https://example.com/stale",
+        status: "processing",
+        updatedAt: now - 30 * 60 * 1000,
+        createdAt: now - 2 * 60 * 60 * 1000,
+        provider: "fetchfox",
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(requeueStaleScrapeUrls);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.requeued).toBe(0);
+    expect(rows[0].status).toBe("processing");
   });
 });

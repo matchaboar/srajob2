@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import time
+from datetime import timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
@@ -10,6 +11,7 @@ import os
 import httpx
 from temporalio import workflow
 from temporalio.client import Client
+from temporalio.service import RPCError, RPCStatusCode
 from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor, WorkflowInterceptorClassInput
 
 from ..config import settings
@@ -164,58 +166,77 @@ async def monitor_loop(client: Client, worker_id: str) -> None:
     last_log_time = 0.0
     last_workflow_count: int | None = None
     last_no_workflows_reason: str | None = None
+    monitor_timeout: timedelta | None = None
+    if settings.monitor_rpc_timeout_seconds > 0:
+        monitor_timeout = timedelta(seconds=settings.monitor_rpc_timeout_seconds)
 
     while True:
         try:
             workflows = []
+            list_failed = False
             # List running workflows
-            async for wf in client.list_workflows('ExecutionStatus="Running"'):
-                start_time = getattr(wf, "start_time", None)
-                workflows.append({
-                    "id": wf.id,
-                    "type": getattr(wf, "type", getattr(wf, "workflow_type", "unknown")),
-                    "status": "Running",
-                    "startTime": start_time.isoformat() if start_time else "",
-                })
-            
-            # Determine reason if no workflows
-            no_workflows_reason = None
-            if len(workflows) == 0:
-                no_workflows_reason = "No workflows scheduled - waiting for work"
-            
-            # Build payload with worker identification
-            payload = {
-                "workerId": worker_id,
-                "hostname": hostname,
-                "temporalAddress": settings.temporal_address,
-                "temporalNamespace": settings.temporal_namespace,
-                "taskQueue": settings.task_queue,
-                "workflows": workflows,
-            }
-            
-            if no_workflows_reason:
-                payload["noWorkflowsReason"] = no_workflows_reason
-            
-            # Push to Convex
-            url = settings.convex_http_url.rstrip("/") + "/api/temporal/status"
-            async with httpx.AsyncClient() as http:
-                resp = await http.post(url, json=payload)
-                if resp.status_code != 200:
-                    logger.error("Monitor post failed status=%s body=%s", resp.status_code, resp.text)
+            try:
+                async for wf in client.list_workflows(
+                    'ExecutionStatus="Running"',
+                    rpc_timeout=monitor_timeout,
+                ):
+                    start_time = getattr(wf, "start_time", None)
+                    workflows.append({
+                        "id": wf.id,
+                        "type": getattr(wf, "type", getattr(wf, "workflow_type", "unknown")),
+                        "status": "Running",
+                        "startTime": start_time.isoformat() if start_time else "",
+                    })
+            except RPCError as exc:
+                if exc.status in {
+                    RPCStatusCode.CANCELLED,
+                    RPCStatusCode.DEADLINE_EXCEEDED,
+                    RPCStatusCode.UNAVAILABLE,
+                }:
+                    logger.warning("Monitor workflow listing timed out: %s", exc.message)
+                    list_failed = True
                 else:
-                    now_monotonic = time.monotonic()
-                    should_log = False
-                    if last_workflow_count is None or last_workflow_count != len(workflows):
-                        should_log = True
-                    if no_workflows_reason != last_no_workflows_reason:
-                        should_log = True
-                    if now_monotonic - last_log_time >= 300:
-                        should_log = True
-                    if should_log:
-                        logger.info("Monitor heartbeat sent (workflows=%d)", len(workflows))
-                        last_log_time = now_monotonic
-                        last_workflow_count = len(workflows)
-                        last_no_workflows_reason = no_workflows_reason
+                    raise
+
+            if not list_failed:
+                # Determine reason if no workflows
+                no_workflows_reason = None
+                if len(workflows) == 0:
+                    no_workflows_reason = "No workflows scheduled - waiting for work"
+                
+                # Build payload with worker identification
+                payload = {
+                    "workerId": worker_id,
+                    "hostname": hostname,
+                    "temporalAddress": settings.temporal_address,
+                    "temporalNamespace": settings.temporal_namespace,
+                    "taskQueue": settings.task_queue,
+                    "workflows": workflows,
+                }
+                
+                if no_workflows_reason:
+                    payload["noWorkflowsReason"] = no_workflows_reason
+                
+                # Push to Convex
+                url = settings.convex_http_url.rstrip("/") + "/api/temporal/status"
+                async with httpx.AsyncClient() as http:
+                    resp = await http.post(url, json=payload)
+                    if resp.status_code != 200:
+                        logger.error("Monitor post failed status=%s body=%s", resp.status_code, resp.text)
+                    else:
+                        now_monotonic = time.monotonic()
+                        should_log = False
+                        if last_workflow_count is None or last_workflow_count != len(workflows):
+                            should_log = True
+                        if no_workflows_reason != last_no_workflows_reason:
+                            should_log = True
+                        if now_monotonic - last_log_time >= 300:
+                            should_log = True
+                        if should_log:
+                            logger.info("Monitor heartbeat sent (workflows=%d)", len(workflows))
+                            last_log_time = now_monotonic
+                            last_workflow_count = len(workflows)
+                            last_no_workflows_reason = no_workflows_reason
         except Exception as e:
             logger.exception("Monitor loop error: %s", e)
 

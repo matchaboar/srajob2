@@ -10,8 +10,11 @@ from typing import Any, Tuple
 
 import yaml
 
+from .config import resolve_config_path
+
 FILTERS_YAML_PATH = Path(__file__).resolve().parent / "scraper_filters.yaml"
-REMOTE_COMPANIES_YAML_PATH = Path(__file__).resolve().parent / "config" / "remote_companies.yaml"
+
+REMOTE_COMPANIES_YAML_PATH = resolve_config_path("remote_companies.yaml")
 
 _COMPANY_SUFFIXES = {
     "inc",

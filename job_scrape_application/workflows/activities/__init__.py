@@ -144,6 +144,7 @@ SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
 SCRAPE_URL_QUEUE_LIST_LIMIT = 500
 TEMPORAL_PAYLOAD_MAX_CHARS = 10 * 1024 * 1024
+SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS = 64_000
 
 logger = logging.getLogger("temporal.worker.activities")
 scheduling_logger = logging.getLogger("temporal.scheduler")
@@ -789,6 +790,8 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
 
     queued_urls: list[str] = []
     try:
+        now_ms = int(time.time() * 1000)
+        processing_expiry_ms = runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000
         per_status_limit = 250
         for status_value in ("pending", "processing"):
             queued_rows = await convex_query(
@@ -802,6 +805,13 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
                     if isinstance(row, dict):
                         url_val = row.get("url")
                         if isinstance(url_val, str) and url_val.strip():
+                            if status_value == "processing":
+                                updated_at = row.get("updatedAt")
+                                if isinstance(updated_at, (int, float)):
+                                    if updated_at < now_ms - processing_expiry_ms:
+                                        continue
+                                else:
+                                    continue
                             queued_urls.append(url_val.strip())
     except Exception:
         queued_urls = []
@@ -1084,7 +1094,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         SpiderCloud scraper hits the JSON API instead of the marketing site.
         """
         handler = get_site_handler(url, "greenhouse")
-        if not handler:
+        if not handler or handler.name != "greenhouse":
             return url
         api_url = handler.get_api_uri(url)
         return api_url or url
@@ -1099,9 +1109,9 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         return trim_scrape_for_convex(
             scrape,
             max_items=50,  # we only ever keep one normalized row per scrape here
-            max_description=TEMPORAL_PAYLOAD_MAX_CHARS,
-            raw_preview_chars=TEMPORAL_PAYLOAD_MAX_CHARS,
-            request_max_chars=TEMPORAL_PAYLOAD_MAX_CHARS,
+            max_description=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
+            raw_preview_chars=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
+            request_max_chars=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
         )
 
     urls: list[str] = []
