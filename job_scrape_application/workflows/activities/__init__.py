@@ -2196,6 +2196,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     md_link_re = re.compile(MARKDOWN_LINK_PATTERN)
     greenhouse_re = re.compile(GREENHOUSE_URL_PATTERN, re.IGNORECASE)
+    confluent_job_re = re.compile(r"/jobs/job/[0-9a-f-]{8,}", re.IGNORECASE)
     location_line_re = re.compile(r"^\s*location\b\s*[:\-–]?\s*(?P<location>.+)$", re.IGNORECASE)
     apply_text_re = re.compile(r"\bapply\b", re.IGNORECASE)
     dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
@@ -2395,6 +2396,10 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 continue
             links.append((match.strip(), None, None))
 
+        if is_confluent:
+            for match in confluent_job_re.findall(text):
+                links.append((match.strip(), None, None))
+
         return links
 
     def _extract_ashby_job_urls(text: str) -> list[str]:
@@ -2498,8 +2503,11 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         return _walk(value)
 
     candidates: list[str] = []
+    link_urls: list[str] = []
     items = scrape.get("items") if isinstance(scrape, dict) else {}
     source_url = scrape.get("sourceUrl") if isinstance(scrape, dict) else ""
+    source_host = urlparse(source_url).hostname if source_url else None
+    is_confluent = bool(source_host and source_host.endswith("confluent.io"))
     handler = get_site_handler(source_url) if source_url else None
 
     def _normalize_url(url: str | None) -> Optional[str]:
@@ -2550,20 +2558,55 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return links
         return []
 
+    def _extract_links_from_payload(value: Any) -> list[str]:
+        if isinstance(value, dict):
+            raw_links = value.get("links") or value.get("page_links")
+            if isinstance(raw_links, list):
+                return [link for link in raw_links if isinstance(link, str) and link.strip()]
+            for child in value.values():
+                links = _extract_links_from_payload(child)
+                if links:
+                    return links
+        elif isinstance(value, list):
+            for child in value:
+                links = _extract_links_from_payload(child)
+                if links:
+                    return links
+        return []
+
     if isinstance(items, dict):
+        link_urls: list[str] = []
+        raw_links = items.get("links") or items.get("page_links")
+        if isinstance(raw_links, list):
+            link_urls = [link for link in raw_links if isinstance(link, str) and link.strip()]
+
         raw_val = items.get("raw")
+        raw_links = _extract_links_from_payload(raw_val)
+        if raw_links:
+            link_urls.extend(raw_links)
+        if link_urls:
+            if handler:
+                link_urls = handler.filter_job_urls(link_urls)
+            link_urls = _normalize_url_list(link_urls)
+            link_urls = [url for url in link_urls if not _should_ignore_url(url)]
         json_urls = _extract_job_urls_from_json_payload(raw_val)
         if json_urls:
             if handler:
                 json_urls = handler.filter_job_urls(json_urls)
-            json_urls = _normalize_url_list(json_urls)
-            json_urls = [url for url in json_urls if not _should_ignore_url(url)]
-            if json_urls:
-                return json_urls
-            return json_urls
+            merged = json_urls + link_urls
+            merged = _normalize_url_list(merged)
+            merged = [url for url in merged if not _should_ignore_url(url)]
+            if merged:
+                return merged
+            return merged
         handler_links = _extract_handler_links(_gather_strings(raw_val))
         if handler_links:
-            return handler_links
+            merged = handler_links + link_urls
+            if handler:
+                merged = handler.filter_job_urls(merged)
+            merged = _normalize_url_list(merged)
+            merged = [url for url in merged if not _should_ignore_url(url)]
+            return merged
 
     if isinstance(items, dict):
         raw_val = items.get("raw")
@@ -2571,6 +2614,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if "raw" in items and not raw_val and isinstance(items.get("normalized"), list):
             for job in items["normalized"]:
                 candidates.extend(_gather_strings(job))
+        if link_urls:
+            candidates.extend(link_urls)
     candidates.extend(_gather_strings(scrape.get("response")))
     handler_links = _extract_handler_links(candidates)
     if handler_links:

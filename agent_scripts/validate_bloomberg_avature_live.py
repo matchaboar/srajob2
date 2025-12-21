@@ -80,9 +80,32 @@ def _extract_first_html(payload: Any) -> str | None:
     return None
 
 
-async def _fetch_html(client: AsyncSpider, url: str) -> str:
+def _iter_events(payload: Any) -> List[Any]:
+    if isinstance(payload, list):
+        events: List[Any] = []
+        for item in payload:
+            if isinstance(item, list):
+                events.extend(item)
+            else:
+                events.append(item)
+        return events
+    return [payload]
+
+
+def _extract_links(payload: Any) -> List[str]:
+    for event in _iter_events(payload):
+        if isinstance(event, dict):
+            links = event.get("links") or event.get("page_links")
+            if isinstance(links, list):
+                return [link for link in links if isinstance(link, str) and link.strip()]
+    return []
+
+
+async def _fetch_html(client: AsyncSpider, url: str) -> tuple[str, List[str]]:
+    handler = AvatureHandler()
     params: Dict[str, Any] = {
         "return_format": ["raw_html"],
+        "return_page_links": True,
         "metadata": True,
         "request": "chrome",
         "follow_redirects": True,
@@ -91,6 +114,7 @@ async def _fetch_html(client: AsyncSpider, url: str) -> str:
         "preserve_host": True,
         "limit": 1,
     }
+    params.update(handler.get_spidercloud_config(url))
     response = await _collect_response(
         client.scrape_url(
             url,
@@ -102,7 +126,8 @@ async def _fetch_html(client: AsyncSpider, url: str) -> str:
     html = _extract_first_html(response)
     if not html:
         raise SystemExit(f"Unable to extract raw HTML from SpiderCloud response for {url}")
-    return html
+    links = _extract_links(response)
+    return html, links
 
 
 async def main() -> None:
@@ -122,10 +147,11 @@ async def main() -> None:
     async with AsyncSpider(api_key=api_key) as client:
         results = []
         for url in urls:
-            html = await _fetch_html(client, url)
-            links = handler.get_links_from_raw_html(html)
-            detail_links = [link for link in links if "/careers/JobDetail/" in link]
-            pagination_links = [link for link in links if "joboffset=" in link.lower()]
+            html, raw_links = await _fetch_html(client, url)
+            filtered_links = handler.filter_job_urls(raw_links) if raw_links else []
+            detail_links = [link for link in filtered_links if "/careers/JobDetail/" in link]
+            html_links = handler.get_links_from_raw_html(html)
+            pagination_links = [link for link in html_links if "joboffset=" in link.lower()]
             results.append(
                 {
                     "url": url,

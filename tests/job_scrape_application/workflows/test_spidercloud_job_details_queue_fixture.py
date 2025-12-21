@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import sys
 import time
 import uuid
 from collections import Counter
@@ -13,7 +15,9 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-import job_scrape_application.workflows.scrape_workflow as sw
+sys.path.insert(0, os.path.abspath("."))
+
+import job_scrape_application.workflows.scrape_workflow as sw  # noqa: E402
 
 
 FIXTURE_PATH = Path(
@@ -168,7 +172,11 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
     expected_batches = int(math.ceil(total / sw.SPIDERCLOUD_BATCH_SIZE))
 
     assert summary.site_count == expected_batches
-    assert len(queue.lease_calls) == expected_batches
+    non_empty_calls = [call for call in queue.lease_calls if call]
+    assert len(non_empty_calls) == expected_batches
+    if len(non_empty_calls) < len(queue.lease_calls):
+        # Workflow performs an extra lease call to confirm the queue is empty.
+        assert queue.lease_calls[-1] == []
     assert len(stored_scrapes) == total
 
     status_counts = queue.status_counts()

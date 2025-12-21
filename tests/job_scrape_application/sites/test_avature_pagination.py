@@ -65,14 +65,50 @@ def _pagination_links(handler: AvatureHandler, html: str) -> list[str]:
     return [link for link in links if "joboffset=" in link.lower()]
 
 
+def _extract_links(payload: Any) -> list[str]:
+    if isinstance(payload, dict):
+        raw_links = payload.get("links") or payload.get("page_links")
+        if isinstance(raw_links, list):
+            return [link for link in raw_links if isinstance(link, str) and link.strip()]
+        for value in payload.values():
+            links = _extract_links(value)
+            if links:
+                return links
+    elif isinstance(payload, list):
+        for value in payload:
+            links = _extract_links(value)
+            if links:
+                return links
+    return []
+
+
+def _detail_links(handler: AvatureHandler, payload: Any) -> list[str]:
+    links = _extract_links(payload)
+    links = handler.filter_job_urls(links)
+    return [link for link in links if "/careers/jobdetail/" in link.lower()]
+
+
 def test_avature_pagination_fixtures_traverse_three_pages():
     handler = AvatureHandler()
 
+    payload_1 = json.loads(PAGE_1.read_text(encoding="utf-8"))
+    page_1_details = _detail_links(handler, payload_1)
+    assert page_1_details
+
     page_1_links = _pagination_links(handler, _load_html(PAGE_1))
+    assert any("joboffset=0" in link.lower() for link in page_1_links)
     assert any("joboffset=12" in link.lower() for link in page_1_links)
+
+    payload_2 = json.loads(PAGE_2.read_text(encoding="utf-8"))
+    page_2_details = _detail_links(handler, payload_2)
+    assert page_2_details
 
     page_2_links = _pagination_links(handler, _load_html(PAGE_2))
     assert any("joboffset=24" in link.lower() for link in page_2_links)
 
+    payload_3 = json.loads(PAGE_3.read_text(encoding="utf-8"))
+    page_3_details = _detail_links(handler, payload_3)
+    assert page_3_details
+
     page_3_links = _pagination_links(handler, _load_html(PAGE_3))
-    assert page_3_links == []
+    assert any("joboffset=36" in link.lower() for link in page_3_links)

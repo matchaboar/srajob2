@@ -899,27 +899,33 @@ function Start-WorkerMain {
                 $exitCode = $exited[0].Process.ExitCode
                 break
             }
-            if ([Console]::KeyAvailable) {
-                $key = [Console]::ReadKey($true)
-                if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq "R") {
-                    Write-Host "Ctrl+R detected: restarting worker..." -ForegroundColor Yellow
-                    try {
-                        foreach ($worker in $script:WorkerProcesses) {
-                            if ($worker.Process -and -not $worker.Process.HasExited) {
-                                Stop-Process -Id $worker.Process.Id -Force -ErrorAction SilentlyContinue
-                                Wait-Process -Id $worker.Process.Id -ErrorAction SilentlyContinue
+            if (-not [Console]::IsInputRedirected) {
+                try {
+                    if ([Console]::KeyAvailable) {
+                        $key = [Console]::ReadKey($true)
+                        if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq "R") {
+                            Write-Host "Ctrl+R detected: restarting worker..." -ForegroundColor Yellow
+                            try {
+                                foreach ($worker in $script:WorkerProcesses) {
+                                    if ($worker.Process -and -not $worker.Process.HasExited) {
+                                        Stop-Process -Id $worker.Process.Id -Force -ErrorAction SilentlyContinue
+                                        Wait-Process -Id $worker.Process.Id -ErrorAction SilentlyContinue
+                                    }
+                                }
+                            } catch {}
+                            $script:WorkerProcesses = @()
+                            for ($i = 1; $i -le $generalWorkerCount; $i++) {
+                                $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
                             }
+                            for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
+                                $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+                            }
+                            $script:WorkerProcess = $script:WorkerProcesses[0].Process
+                            continue
                         }
-                    } catch {}
-                    $script:WorkerProcesses = @()
-                    for ($i = 1; $i -le $generalWorkerCount; $i++) {
-                        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
                     }
-                    for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
-                        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
-                    }
-                    $script:WorkerProcess = $script:WorkerProcesses[0].Process
-                    continue
+                } catch {
+                    # Ignore console polling failures in non-interactive sessions.
                 }
             }
             Start-Sleep -Milliseconds 100

@@ -87,11 +87,13 @@ class AshbyHqHandler(BaseSiteHandler):
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
-        return {
+        return self._apply_page_links_config(
+            {
             "request": "chrome",
             "return_format": ["raw_html"],
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
             "preserve_host": True,
-        }
+            }
+        )

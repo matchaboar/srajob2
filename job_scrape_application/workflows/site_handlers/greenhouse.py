@@ -149,22 +149,26 @@ class GreenhouseHandler(BaseSiteHandler):
         if not self.matches_url(uri):
             return {}
         if self.is_api_detail_url(uri):
-            return {
+            return self._apply_page_links_config(
+                {
                 "request": "chrome",
                 "return_format": ["raw_html"],
                 "follow_redirects": True,
                 "redirect_policy": "Loose",
                 "external_domains": ["*"],
                 "preserve_host": False,
-            }
-        return {
+                }
+            )
+        return self._apply_page_links_config(
+            {
             "request": "chrome",
             "return_format": ["raw_html"],
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
             "preserve_host": True,
-        }
+            }
+        )
 
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
         """

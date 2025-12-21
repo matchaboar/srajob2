@@ -33,7 +33,7 @@ export function RejectedJobRow({ job, isSelected, onSelect }: RejectedJobRowProp
       <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-red-500" : "bg-transparent"}`} />
 
       <div className="flex-1 min-w-0 grid grid-cols-[auto_5fr_3fr_2fr_2fr] gap-3 items-center">
-        <CompanyIcon company={job.company ?? ""} size={30} />
+        <CompanyIcon company={job.company ?? ""} size={30} url={job.url} />
         <div className="min-w-0">
           <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
             {job.title}

@@ -29,11 +29,12 @@ type Page = {
 class FakeJobsQuery {
   constructor(
     private readonly pagesByCursor: Map<string | null, Page>,
-    private readonly tracker: { totalPaginateCalls: number }
+    private readonly tracker: { totalPaginateCalls: number; lastIndexName: string | null }
   ) {}
 
   withIndex(name: string, cb?: (q: any) => any) {
-    if (name !== "by_state_posted" && name !== "by_posted_at") {
+    this.tracker.lastIndexName = name;
+    if (name !== "by_state_posted" && name !== "by_posted_at" && name !== "by_company_posted") {
       throw new Error(`unexpected jobs index ${name}`);
     }
     if (cb) {
@@ -97,7 +98,10 @@ const buildJob = (id: string, postedAt: number): Job => ({
   postedAt,
 });
 
-const buildCtx = (pagesByCursor: Map<string | null, Page>, tracker: { totalPaginateCalls: number }) => ({
+const buildCtx = (
+  pagesByCursor: Map<string | null, Page>,
+  tracker: { totalPaginateCalls: number; lastIndexName: string | null }
+) => ({
   db: {
     query: (table: string) => {
       if (table === "jobs") return new FakeJobsQuery(pagesByCursor, tracker);
@@ -120,7 +124,7 @@ describe("listJobs pagination", () => {
     const pagesByCursor = new Map<string | null, Page>([
       [null, page1],
     ]);
-    const tracker = { totalPaginateCalls: 0 };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -132,5 +136,26 @@ describe("listJobs pagination", () => {
     expect(result.page.length).toBeGreaterThan(0);
     expect(result.continueCursor).not.toBeNull();
     expect(tracker.totalPaginateCalls).toBe(1);
+  });
+
+  it("uses the company index when a single company filter is set", async () => {
+    const page1: Page = {
+      page: [buildJob("job-1", 100)],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([
+      [null, page1],
+    ]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 2 },
+      companies: ["Airbnb"],
+    });
+
+    expect(tracker.lastIndexName).toBe("by_company_posted");
   });
 });

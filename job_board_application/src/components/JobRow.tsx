@@ -48,7 +48,7 @@ export function JobRow({ job, groupedLabel, isSelected, onSelect, onApply, onRej
             {/* Selection Indicator */}
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
             <div className="flex-1 min-w-0 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-3 items-start sm:items-center">
-                <CompanyIcon company={job.company ?? ""} size={32} />
+                <CompanyIcon company={job.company ?? ""} size={32} url={job.url} />
                 {/* Title & meta */}
                 <div className="min-w-0 space-y-1">
                     <h3 className={`text-sm font-semibold leading-snug ${isSelected ? "text-white" : "text-slate-200"} line-clamp-2`}>

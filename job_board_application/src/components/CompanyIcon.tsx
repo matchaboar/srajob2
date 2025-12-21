@@ -25,11 +25,11 @@ type CustomLogoDefinition = {
     src: string;
 };
 
-const logoUrls = import.meta.glob("../assets/company-logos/*.svg", { eager: true, as: "url" }) as Record<string, string>;
+const logoUrls = import.meta.glob("../assets/company-logos/*.{svg,png}", { eager: true, as: "url" }) as Record<string, string>;
 const customLogos: Record<string, CustomLogoDefinition> = Object.fromEntries(
     Object.entries(logoUrls).map(([path, src]) => {
         const filename = path.split("/").pop() ?? "";
-        const slug = filename.replace(/\.svg$/i, "").toLowerCase();
+        const slug = filename.replace(/\.(svg|png)$/i, "").toLowerCase();
         return [slug, { src }];
     }),
 );
@@ -98,27 +98,119 @@ const buildFallbackInitial = (company: string) => {
 interface CompanyIconProps {
     company: string;
     size?: number;
+    url?: string;
 }
 
-export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
+const BRAND_FETCH_CLIENT = "1idXaGHc5cKcElppzC7";
+const RESERVED_PATH_SEGMENTS = new Set([
+    "boards",
+    "jobs",
+    "careers",
+    "apply",
+    "application",
+    "applications",
+    "openings",
+    "positions",
+    "roles",
+    "role",
+    "departments",
+    "teams",
+    "en",
+    "en-us",
+    "en-gb",
+    "en-au",
+    "v1",
+    "v2",
+    "api",
+]);
+const HOSTED_JOB_DOMAINS = [
+    "greenhouse.io",
+    "ashbyhq.com",
+    "lever.co",
+    "workable.com",
+    "smartrecruiters.com",
+    "myworkdayjobs.com",
+    "icims.com",
+    "jobvite.com",
+    "bamboohr.com",
+];
+
+const baseDomainFromHost = (host: string) => {
+    const parts = host.split(".").filter(Boolean);
+    if (parts.length <= 1) return host;
+    const last = parts[parts.length - 1];
+    const secondLast = parts[parts.length - 2];
+    const shouldUseThree = last.length === 2 || secondLast.length === 2;
+    if (shouldUseThree && parts.length >= 3) {
+        return parts.slice(-3).join(".");
+    }
+    return parts.slice(-2).join(".");
+};
+
+const extractCompanySlug = (pathname: string) => {
+    const parts = pathname.split("/").filter(Boolean);
+    for (const part of parts) {
+        const cleaned = part.toLowerCase();
+        if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
+        if (!/^[a-z0-9-]+$/.test(cleaned)) continue;
+        return cleaned;
+    }
+    return null;
+};
+
+const looksLikeHostedJobsDomain = (host: string) =>
+    HOSTED_JOB_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+
+const deriveBrandfetchDomain = (company: string, url?: string) => {
+    const trimmedCompany = (company || "").trim();
+    if (url) {
+        try {
+            const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+            const host = parsed.hostname.toLowerCase();
+            if (looksLikeHostedJobsDomain(host)) {
+                const slug = extractCompanySlug(parsed.pathname);
+                if (slug) {
+                    return `${slug}.com`;
+                }
+            }
+            return baseDomainFromHost(host);
+        } catch {
+            // fall through to company fallback
+        }
+    }
+    if (trimmedCompany.includes(".")) {
+        return trimmedCompany.toLowerCase();
+    }
+    const slug = toSlug(trimmedCompany);
+    if (slug) {
+        return `${slug}.com`;
+    }
+    return null;
+};
+
+export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
     const slug = useMemo(() => toSlug(company), [company]);
     const customLogo = useMemo(() => (slug ? customLogos[slug] ?? null : null), [slug]);
-    const [icon, setIcon] = useState<SimpleIcon | null>(null);
+    const [iconState, setIconState] = useState<{ icon: SimpleIcon | null; loaded: boolean }>({
+        icon: null,
+        loaded: false,
+    });
+    const [brandfetchFailed, setBrandfetchFailed] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
         if (!slug || customLogo) {
-            setIcon(null);
+            setIconState({ icon: null, loaded: true });
             return () => { cancelled = true; };
         }
-        setIcon(null);
+        setIconState({ icon: null, loaded: false });
         loadIcon(slug).then((result) => {
             if (!cancelled) {
-                setIcon(result);
+                setIconState({ icon: result, loaded: true });
             }
         }).catch(() => {
             if (!cancelled) {
-                setIcon(null);
+                setIconState({ icon: null, loaded: true });
             }
         });
         return () => {
@@ -127,7 +219,14 @@ export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
     }, [slug, customLogo]);
 
     const dimension = `${size}px`;
-    const color = ensureReadableColor(icon?.hex ?? "#E2E8F0");
+    const color = ensureReadableColor(iconState.icon?.hex ?? "#E2E8F0");
+    const brandfetchDomain = useMemo(() => deriveBrandfetchDomain(company, url), [company, url]);
+    const brandfetchUrl = brandfetchDomain ? `https://cdn.brandfetch.io/${brandfetchDomain}?c=${BRAND_FETCH_CLIENT}` : null;
+    const showBrandfetch = !customLogo && iconState.loaded && !iconState.icon && !!brandfetchUrl && !brandfetchFailed;
+
+    useEffect(() => {
+        setBrandfetchFailed(false);
+    }, [brandfetchUrl, company]);
 
     return (
         <div
@@ -142,7 +241,7 @@ export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
                     className="w-6 h-6 object-contain"
                     draggable={false}
                 />
-            ) : icon ? (
+            ) : iconState.icon ? (
                 <svg
                     viewBox="0 0 24 24"
                     role="img"
@@ -151,8 +250,16 @@ export function CompanyIcon({ company, size = 34 }: CompanyIconProps) {
                     style={{ color }}
                     focusable="false"
                 >
-                    <path d={icon.path} fill="currentColor" />
+                    <path d={iconState.icon.path} fill="currentColor" />
                 </svg>
+            ) : showBrandfetch ? (
+                <img
+                    src={brandfetchUrl ?? undefined}
+                    alt={`${company} logo`}
+                    className="w-6 h-6 object-contain"
+                    draggable={false}
+                    onError={() => setBrandfetchFailed(true)}
+                />
             ) : (
                 <span className="text-sm font-semibold text-slate-200">{buildFallbackInitial(company)}</span>
             )}

@@ -58,3 +58,23 @@
     startTime: 08:00
     intervalMinutes: 5.0
     timezone: America/Denver
+- url: https://careers.godaddy/jobs/search?page=1&query=engineer&country_codes%5B%5D=US
+  name: GoDaddy
+  enabled: true
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
+  name: Confluent
+  enabled: true
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver

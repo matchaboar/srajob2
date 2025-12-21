@@ -13,6 +13,8 @@ Outputs:
     - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_1.json
     - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_2.json
     - tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_3.json
+    - tests/job_scrape_application/workflows/fixtures/spidercloud_godaddy_search_page_1.json
+    - tests/job_scrape_application/workflows/fixtures/spidercloud_godaddy_job_detail_commonmark.json
 """
 
 from __future__ import annotations
@@ -20,11 +22,16 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from dotenv import load_dotenv
 from spider import AsyncSpider
+
+sys.path.insert(0, os.path.abspath("."))
+
+from job_scrape_application.workflows.site_handlers import AvatureHandler
 
 GH_JOB_URL = "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/5572858"
 PINTEREST_MARKETING_URL = "https://www.pinterestcareers.com/jobs/?gh_jid=5572858"
@@ -35,6 +42,8 @@ AVATURE_BLOOMBERG_URL = (
 )
 AVATURE_BLOOMBERG_PAGE_2_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=12"
 AVATURE_BLOOMBERG_PAGE_3_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=24"
+GODADDY_SEARCH_URL = "https://careers.godaddy/jobs/search?page=1&query=engineer&country_codes%5B%5D=US"
+GODADDY_DETAIL_URL = "https://careers.godaddy/jobs/principal-security-engineer-florida-united-states"
 
 FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
     (
@@ -67,6 +76,16 @@ FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
         "/scrape",
         {"return_format": "raw_html", "url": AVATURE_BLOOMBERG_PAGE_3_URL, "limit": 1},
     ),
+    (
+        "spidercloud_godaddy_search_page_1.json",
+        "/scrape",
+        {"return_format": "raw_html", "url": GODADDY_SEARCH_URL, "limit": 1},
+    ),
+    (
+        "spidercloud_godaddy_job_detail_commonmark.json",
+        "/scrape",
+        {"return_format": "commonmark", "url": GODADDY_DETAIL_URL, "limit": 1},
+    ),
 )
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
@@ -92,11 +111,14 @@ async def main() -> None:
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
 
     async with AsyncSpider(api_key=api_key) as client:
+        avature_handler = AvatureHandler()
         for filename, endpoint, payload in FIXTURES:
             path = FIXTURE_DIR / filename
             try:
                 url = payload.get("url")
                 params = {k: v for k, v in payload.items() if k != "url"}
+                if isinstance(url, str) and avature_handler.matches_url(url):
+                    params.update(avature_handler.get_spidercloud_config(url))
                 return_format = params.get("return_format")
                 if isinstance(return_format, str):
                     params["return_format"] = [return_format]

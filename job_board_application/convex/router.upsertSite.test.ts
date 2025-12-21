@@ -82,6 +82,21 @@ describe("upsertSite", () => {
     const stored = ctx.db.sites.get(id);
     expect(stored?.url).toBe(url);
   });
+
+  it("preserves avature search URLs exactly when inserting from the admin UI", async () => {
+    const ctx: any = {
+      db: new FakeDb(),
+    };
+
+    const handler = getHandler(upsertSite);
+    const url =
+      "https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0";
+
+    const id = await handler(ctx, { url, enabled: true, type: "general" });
+
+    const stored = ctx.db.sites.get(id);
+    expect(stored?.url).toBe(url);
+  });
 });
 
 describe("bulkUpsertSites", () => {
@@ -93,6 +108,23 @@ describe("bulkUpsertSites", () => {
     const handler = getHandler(bulkUpsertSites);
     const url =
       "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100";
+
+    const [id] = await handler(ctx, {
+      sites: [{ url, enabled: true, type: "general" }],
+    });
+
+    const stored = ctx.db.sites.get(id);
+    expect(stored?.url).toBe(url);
+  });
+
+  it("preserves avature search URLs exactly when bulk inserting from the admin UI", async () => {
+    const ctx: any = {
+      db: new FakeDb(),
+    };
+
+    const handler = getHandler(bulkUpsertSites);
+    const url =
+      "https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0";
 
     const [id] = await handler(ctx, {
       sites: [{ url, enabled: true, type: "general" }],

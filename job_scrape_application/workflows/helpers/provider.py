@@ -11,6 +11,14 @@ from ...config import settings
 logger = logging.getLogger("temporal.worker.activities")
 
 
+def _safe_print(line: str) -> None:
+    try:
+        print(line)
+    except (BrokenPipeError, OSError):
+        # stdout may be closed when workers run under detached shells.
+        pass
+
+
 def build_provider_status_url(
     provider: str, job_id: str | None, *, status_url: str | None = None, kind: str | None = None
 ) -> str | None:
@@ -54,7 +62,7 @@ def log_provider_dispatch(provider: str, url: str, **context: Any) -> None:
     msg = f"[SCRAPE DISPATCH] provider={provider} url={url}"
     if context_str:
         msg = f"{msg} {context_str}"
-    print(f"\x1b[36m{msg}\x1b[0m")
+    _safe_print(f"\x1b[36m{msg}\x1b[0m")
     logger.info(msg)
 
 
@@ -174,7 +182,7 @@ def log_sync_response(
         parts.append(f"response={serialized}")
 
     msg = f"[SCRAPE RESPONSE] {' '.join(parts)}"
-    print(f"\x1b[33m{msg}\x1b[0m")
+    _safe_print(f"\x1b[33m{msg}\x1b[0m")
     logger.info(msg)
 
 

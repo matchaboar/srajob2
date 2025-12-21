@@ -11,6 +11,7 @@ class BaseSiteHandler(ABC):
     name: str = "base"
     site_type: str | None = None
     supports_listing_api: bool = False
+    needs_page_links: bool = False
 
     @classmethod
     @abstractmethod
@@ -56,6 +57,15 @@ class BaseSiteHandler(ABC):
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         return urls
+
+    def _apply_page_links_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.needs_page_links:
+            return config
+        if config.get("return_page_links"):
+            return config
+        merged = dict(config)
+        merged["return_page_links"] = True
+        return merged
 
     @staticmethod
     def _title_from_url(url: str) -> str:

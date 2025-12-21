@@ -36,7 +36,7 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
 
             <div className="flex-1 min-w-0 grid grid-cols-[auto_4fr_2fr_2fr_4fr] gap-3 items-center">
-                <CompanyIcon company={job.company ?? ""} size={30} />
+                <CompanyIcon company={job.company ?? ""} size={30} url={job.url} />
                 {/* Title & Company */}
                 <div className="min-w-0">
                     <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
