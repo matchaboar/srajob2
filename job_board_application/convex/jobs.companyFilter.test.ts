@@ -24,4 +24,12 @@ describe("matchesCompanyFilters", () => {
 
     expect(matchesCompanyFilters(job, filters, aliasMap)).toBe(false);
   });
+
+  it("matches by ashby slug alias", () => {
+    const filters = new Set(["serval"]);
+    const job = { company: "ashbyhq", url: "https://jobs.ashbyhq.com/Serval/2bfaede4-22b2-43b2-a14c-f45e5f398624" };
+    const aliasMap = new Map([["serval.ashbyhq.com", "Serval"]]);
+
+    expect(matchesCompanyFilters(job, filters, aliasMap)).toBe(true);
+  });
 });

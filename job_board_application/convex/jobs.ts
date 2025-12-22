@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
-import { greenhouseSlugFromUrl } from "./siteUtils";
+import { ashbySlugFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 import {
   splitLocation,
   formatLocationLabel,
@@ -36,22 +36,37 @@ const isUnknownLabel = (value?: string | null) => {
     normalized === "not available"
   );
 };
+const isVersionLabel = (value?: string | null) => /^v\d+$/i.test((value || "").trim());
+const shouldOverrideCompany = (value?: string | null) => {
+  const trimmed = (value || "").trim();
+  return isUnknownLabel(value) || trimmed === "Greenhouse" || isVersionLabel(trimmed);
+};
+
+const toTitleCase = (value: string) => {
+  const cleaned = value.replace(/[^a-z0-9]+/gi, " ").trim();
+  if (!cleaned) return "";
+  return cleaned
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
 
 export const deriveCompanyFromUrl = (url: string): string => {
   try {
+    const greenhouseSlug = greenhouseSlugFromUrl(url);
+    if (greenhouseSlug) {
+      const greenhouseName = toTitleCase(greenhouseSlug);
+      if (greenhouseName) return greenhouseName;
+    }
+
     const parsed = new URL(url);
     const hostname = (parsed.hostname || "").toLowerCase();
     if (hostname.endsWith("greenhouse.io")) {
       const parts = parsed.pathname.split("/").filter(Boolean);
       if (parts.length > 0) {
         const slug = parts[0];
-        const cleaned = slug.replace(/[^a-z0-9]+/gi, " ").trim();
-        if (cleaned) {
-          return cleaned
-            .split(" ")
-            .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-            .join(" ");
-        }
+        const cleaned = toTitleCase(slug);
+        if (cleaned) return cleaned;
       }
     }
 
@@ -64,13 +79,7 @@ export const deriveCompanyFromUrl = (url: string): string => {
     }
     const parts = baseHost.split(".").filter(Boolean);
     const name = parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
-    const cleaned = name.replace(/[^a-z0-9]+/gi, " ").trim();
-    return cleaned
-      ? cleaned
-          .split(" ")
-          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-          .join(" ")
-      : "";
+    return toTitleCase(name);
   } catch {
     return "";
   }
@@ -448,12 +457,16 @@ const normalizeDomainInput = (value: string): string => {
     const host = parsed.hostname.toLowerCase();
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    const ashbySlug = ashbySlugFromUrl(parsed.href);
+    if (ashbySlug) return `${ashbySlug}.ashbyhq.com`;
     return baseDomainFromHost(host);
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
     const host = hostOnly.toLowerCase();
     const greenhouseSlug = greenhouseSlugFromUrl(host);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    const ashbySlug = ashbySlugFromUrl(trimmed);
+    if (ashbySlug) return `${ashbySlug}.ashbyhq.com`;
     return baseDomainFromHost(host);
   }
 };
@@ -1021,7 +1034,7 @@ export const reparseJobFromDescription = mutation({
     const hints = parseMarkdownHints(description);
     const updates = buildUpdatesFromHints(job, hints);
     const derivedCompany = deriveCompanyFromUrl(job.url || "");
-    if (derivedCompany && (isUnknownLabel(job.company) || job.company === "Greenhouse")) {
+    if (derivedCompany && shouldOverrideCompany(job.company)) {
       updates.company = derivedCompany;
     }
 
@@ -1054,7 +1067,7 @@ export const reparseAllJobs = mutation({
       const hints = parseMarkdownHints(description);
       const updates = buildUpdatesFromHints(job as any, hints);
       const derivedCompany = deriveCompanyFromUrl((job as any).url || "");
-      if (derivedCompany && (isUnknownLabel((job as any).company) || (job as any).company === "Greenhouse")) {
+      if (derivedCompany && shouldOverrideCompany((job as any).company)) {
         updates.company = derivedCompany;
       }
       if (Object.keys(updates).length > 0) {

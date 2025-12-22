@@ -150,6 +150,8 @@ New York, NY
 
   it("derives company from greenhouse URL slug", () => {
     expect(deriveCompanyFromUrl("https://boards.greenhouse.io/robinhood/jobs/123")).toBe("Robinhood");
+    expect(deriveCompanyFromUrl("https://boards-api.greenhouse.io/v1/boards/mithril/jobs/4419565007")).toBe("Mithril");
+    expect(deriveCompanyFromUrl("https://api.greenhouse.io/v1/boards/mithril/jobs")).toBe("Mithril");
     expect(deriveCompanyFromUrl("https://careers.databricks.com/open-roles")).toBe("Databricks");
   });
 });

@@ -7,7 +7,13 @@ import { splitLocation, formatLocationLabel, deriveLocationFields } from "./loca
 import { runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
-import { fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
+import {
+  ashbySlugFromUrl,
+  fallbackCompanyNameFromUrl,
+  greenhouseSlugFromUrl,
+  normalizeSiteUrl,
+  siteCanonicalKey,
+} from "./siteUtils";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -40,6 +46,15 @@ const baseDomainFromHost = (host: string): string => {
   return parts.slice(-2).join(".");
 };
 const normalizeCompany = (value: string) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const toTitleCaseSlug = (value: string) => {
+  const cleaned = value.replace(/[^a-z0-9]+/gi, " ").trim();
+  if (!cleaned) return "";
+  return cleaned
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+const isVersionLabel = (value: string) => /^v\d+$/i.test((value || "").trim());
 const fallbackCompanyName = (name: string | undefined | null, url: string | undefined | null) => {
   const trimmed = (name ?? "").trim();
   if (trimmed) return trimmed;
@@ -62,6 +77,9 @@ const normalizeDomainInput = (value: string): string => {
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
     const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
     if (greenhouse) return greenhouse;
+    const ashbySlug = ashbySlugFromUrl(parsed.href);
+    const ashby = ashbySlug ? `${ashbySlug}.ashbyhq.com` : null;
+    if (ashby) return ashby;
     return baseDomainFromHost(host);
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
@@ -69,6 +87,9 @@ const normalizeDomainInput = (value: string): string => {
     const greenhouseSlug = greenhouseSlugFromUrl(host);
     const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
     if (greenhouse) return greenhouse;
+    const ashbySlug = ashbySlugFromUrl(trimmed);
+    const ashby = ashbySlug ? `${ashbySlug}.ashbyhq.com` : null;
+    if (ashby) return ashby;
     return baseDomainFromHost(host);
   }
 };
@@ -86,6 +107,10 @@ const resolveCompanyForUrl = async (
   const domain = normalizeDomainInput(url);
   const aliasCache = cache ?? new Map<string, string | null>();
   let alias: string | null = null;
+  const trimmedCurrent = (currentCompany ?? "").trim();
+  const greenhouseSlug = greenhouseSlugFromUrl(url);
+  const greenhouseName = greenhouseSlug ? toTitleCaseSlug(greenhouseSlug) : "";
+  const safeCurrent = greenhouseSlug && isVersionLabel(trimmedCurrent) ? "" : trimmedCurrent;
 
   if (domain) {
     if (aliasCache.has(domain)) {
@@ -100,8 +125,8 @@ const resolveCompanyForUrl = async (
     }
   }
 
-  const chosen = alias ?? siteName ?? currentCompany;
-  return chosen?.trim() || fallbackCompanyName(currentCompany, url);
+  const chosen = alias ?? siteName ?? (safeCurrent || greenhouseName);
+  return chosen?.trim() || fallbackCompanyName(safeCurrent, url);
 };
 const upsertCompanyProfile = async (
   ctx: any,

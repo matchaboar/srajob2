@@ -52,4 +52,10 @@ describe("CompanyIcon custom logos", () => {
     const img = await screen.findByRole("img", { name: /bloomberg logo/i });
     expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
   });
+
+  it("uses the brandfetch domain override for Serval", async () => {
+    render(<CompanyIcon company="Serval" url="https://serval.ai/careers" />);
+    const img = await screen.findByRole("img", { name: /serval logo/i });
+    expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/serval.com");
+  });
 });

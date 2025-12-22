@@ -102,6 +102,15 @@ interface CompanyIconProps {
 }
 
 const BRAND_FETCH_CLIENT = "1idXaGHc5cKcElppzC7";
+const BRANDFETCH_LOGO_OVERRIDES: Record<string, string> = {
+    mithril: "https://cdn.brandfetch.io/idZPhPbkaC/w/432/h/432/theme/dark/logo.png?c=1bxid64Mup7aczewSAYMX&t=1759798646882",
+    together: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+    togetherai: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+    togetherdotai: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+};
+const BRANDFETCH_DOMAIN_OVERRIDES: Record<string, string> = {
+    serval: "serval.com",
+};
 const COMMON_SUBDOMAIN_PREFIXES = new Set([
     "www",
     "jobs",
@@ -217,11 +226,15 @@ const domainMatchesSlug = (domain: string, slug: string) => {
 
 const deriveBrandfetchDomain = (company: string, url?: string) => {
     const trimmedCompany = (company || "").trim();
+    const companySlug = toSlug(trimmedCompany);
+    const domainOverride = companySlug ? BRANDFETCH_DOMAIN_OVERRIDES[companySlug] ?? null : null;
+    if (domainOverride) {
+        return domainOverride;
+    }
     const fallbackCompanyDomain = () => {
         if (trimmedCompany.includes(".")) {
             return trimmedCompany.toLowerCase();
         }
-        const companySlug = toSlug(trimmedCompany);
         return companySlug ? `${companySlug}.com` : null;
     };
     if (url) {
@@ -254,8 +267,10 @@ const deriveBrandfetchDomain = (company: string, url?: string) => {
 export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
     const slug = useMemo(() => toSlug(company), [company]);
     const customLogo = useMemo(() => (slug ? customLogos[slug] ?? null : null), [slug]);
+    const brandfetchOverride = useMemo(() => (slug ? BRANDFETCH_LOGO_OVERRIDES[slug] ?? null : null), [slug]);
     const brandfetchDomain = useMemo(() => deriveBrandfetchDomain(company, url), [company, url]);
     const brandfetchUrl = brandfetchDomain ? `https://cdn.brandfetch.io/${brandfetchDomain}?c=${BRAND_FETCH_CLIENT}` : null;
+    const effectiveBrandfetchUrl = brandfetchOverride ?? brandfetchUrl;
     const preferBrandfetch = useMemo(() => {
         if (!slug || !brandfetchDomain) return false;
         if (!HOSTED_COMPANY_SLUGS.has(slug)) return false;
@@ -290,11 +305,14 @@ export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
 
     const dimension = `${size}px`;
     const color = ensureReadableColor(iconState.icon?.hex ?? "#E2E8F0");
-    const showBrandfetch = !customLogo && (preferBrandfetch || (iconState.loaded && !iconState.icon)) && !!brandfetchUrl && !brandfetchFailed;
+    const showBrandfetch = !customLogo
+        && (brandfetchOverride || preferBrandfetch || (iconState.loaded && !iconState.icon))
+        && !!effectiveBrandfetchUrl
+        && !brandfetchFailed;
 
     useEffect(() => {
         setBrandfetchFailed(false);
-    }, [brandfetchUrl, company]);
+    }, [effectiveBrandfetchUrl, company]);
 
     return (
         <div
@@ -322,7 +340,7 @@ export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
                 </svg>
             ) : showBrandfetch ? (
                 <img
-                    src={brandfetchUrl ?? undefined}
+                    src={effectiveBrandfetchUrl ?? undefined}
                     alt={`${company} logo`}
                     className="w-6 h-6 object-contain"
                     draggable={false}

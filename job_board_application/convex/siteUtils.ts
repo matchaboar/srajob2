@@ -26,6 +26,25 @@ export const greenhouseSlugFromUrl = (rawUrl: string): string | null => {
   }
 };
 
+export const ashbySlugFromUrl = (rawUrl: string): string | null => {
+  try {
+    const parsed = new URL(rawUrl.includes("://") ? rawUrl : `https://${rawUrl}`);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.endsWith("ashbyhq.com")) return null;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (!parts.length) return null;
+    const jobBoardIdx = parts.findIndex((part) => part.toLowerCase() === "job-board");
+    if (jobBoardIdx >= 0 && jobBoardIdx + 1 < parts.length) {
+      return parts[jobBoardIdx + 1].toLowerCase();
+    }
+    const slug = parts[0];
+    if (!slug || slug.toLowerCase() === "posting-api") return null;
+    return slug.toLowerCase();
+  } catch {
+    return null;
+  }
+};
+
 export const normalizeSiteUrl = (rawUrl: string, type?: string): string => {
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) return "";
@@ -58,6 +77,8 @@ export const fallbackCompanyNameFromUrl = (url: string): string => {
   if (!url) return "Site";
   const slug = greenhouseSlugFromUrl(url);
   if (slug) return slug;
+  const ashbySlug = ashbySlugFromUrl(url);
+  if (ashbySlug) return ashbySlug;
   try {
     const parsed = new URL(url.includes("://") ? url : `https://${url}`);
     const hostParts = parsed.hostname

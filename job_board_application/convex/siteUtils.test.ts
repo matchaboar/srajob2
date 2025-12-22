@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { greenhouseSlugFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
+import { ashbySlugFromUrl, greenhouseSlugFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
 
 describe("siteUtils", () => {
   it("extracts greenhouse slug from boards-api URLs", () => {
     expect(greenhouseSlugFromUrl("https://boards-api.greenhouse.io/v1/boards/StubhubInc/jobs")).toBe("stubhubinc");
     expect(greenhouseSlugFromUrl("https://api.greenhouse.io/v1/boards/robinhood/jobs")).toBe("robinhood");
     expect(greenhouseSlugFromUrl("https://job-boards.eu.greenhouse.io/stubhubinc/jobs/4648156101")).toBe("stubhubinc");
+  });
+
+  it("extracts ashby slug from job board and api URLs", () => {
+    expect(ashbySlugFromUrl("https://jobs.ashbyhq.com/Serval/2bfaede4-22b2-43b2-a14c-f45e5f398624")).toBe("serval");
+    expect(ashbySlugFromUrl("https://jobs.ashbyhq.com/lambda")).toBe("lambda");
+    expect(ashbySlugFromUrl("https://api.ashbyhq.com/posting-api/job-board/Serval")).toBe("serval");
   });
 
   it("normalizes greenhouse URLs to api.greenhouse slug form", () => {
