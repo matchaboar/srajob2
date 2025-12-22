@@ -2611,6 +2611,7 @@ http.route({
       // Opportunistically ingest jobs into jobs table for UI
       try {
         const jobs = extractJobs(body.items, {
+          sourceUrl: body.sourceUrl,
           seedListingLogContext: {
             sourceUrl: body.sourceUrl,
             provider: body.provider ?? body.items?.provider,
@@ -3575,6 +3576,52 @@ const cleanScrapedText = (value: unknown): string => {
   return stripHtml(asString).replace(/\s+/g, " ").trim();
 };
 
+const stripEmbeddedJson = (value: string): string => {
+  const markers = ["\"themeOptions\"", "\"customTheme\"", "\"varTheme\"", "\"micrositeConfig\""];
+  let output = value;
+  for (let pass = 0; pass < 3; pass += 1) {
+    const markerIndex = markers.reduce((idx, marker) => {
+      if (idx !== -1) return idx;
+      return output.indexOf(marker);
+    }, -1);
+    if (markerIndex === -1) break;
+    const start = output.lastIndexOf("{", markerIndex);
+    if (start === -1) break;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let end = -1;
+    for (let i = start; i < output.length; i += 1) {
+      const char = output[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === "\"") {
+          inString = false;
+        }
+        continue;
+      }
+      if (char === "\"") {
+        inString = true;
+        continue;
+      }
+      if (char === "{") depth += 1;
+      if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    if (end === -1) break;
+    output = `${output.slice(0, start)} ${output.slice(end + 1)}`;
+  }
+  return output.replace(/\s+/g, " ").trim();
+};
+
 const extractJsonField = (blob: string, field: string): string | null => {
   const preMatch = blob.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
   const candidate = preMatch ? preMatch[1] : blob;
@@ -3599,6 +3646,111 @@ const normalizeTitle = (raw: unknown): string => {
   if (!cleaned) return "Untitled";
   const MAX_LEN = 140;
   return cleaned.length > MAX_LEN ? `${cleaned.slice(0, MAX_LEN - 3)}...` : cleaned;
+};
+
+const TITLE_PLACEHOLDERS = new Set(["page_title", "title", "job_title", "untitled", "unknown"]);
+const NOISY_TITLE_PATTERNS = [/apply with ai/i, /direct apply/i, /select an option/i, /automated source picker/i];
+
+const looksLikeUuidish = (value: string) => {
+  const compact = value.replace(/[\s-]/g, "");
+  return /^[0-9a-f]{32}$/i.test(compact);
+};
+
+const looksLikeNumericId = (value: string) => /^\d{3,}$/.test(value);
+
+const looksLikeNoisyTitle = (value: string) => {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return true;
+  const lowered = trimmed.toLowerCase();
+  if (TITLE_PLACEHOLDERS.has(lowered)) return true;
+  if (NOISY_TITLE_PATTERNS.some((pattern) => pattern.test(lowered))) return true;
+  if (/https?:\/\//i.test(trimmed)) return true;
+  if (/\\{3,}/.test(trimmed) || /\/{6,}/.test(trimmed)) return true;
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount >= 8 && (lowered.includes("posted") || lowered.includes("apply"))) return true;
+  return false;
+};
+
+const parseUrlSafe = (value: string, base?: string): URL | null => {
+  try {
+    return new URL(value);
+  } catch {
+    if (!base) return null;
+  }
+  try {
+    return new URL(value, base);
+  } catch {
+    return null;
+  }
+};
+
+const isAshbyHost = (host: string) => host.endsWith("ashbyhq.com");
+const isAvatureHost = (host: string) => host.endsWith("avature.net") || host.endsWith("avature.com");
+
+const normalizeScrapedUrl = (rawUrl: string, sourceUrl?: string): string | null => {
+  if (typeof rawUrl !== "string") return null;
+  let cleaned = rawUrl.trim();
+  if (!cleaned) return null;
+  cleaned = cleaned.replace(/\\+/g, "/");
+  const parsed = parseUrlSafe(cleaned, sourceUrl);
+  if (!parsed || !parsed.hostname) return null;
+
+  const host = parsed.hostname.toLowerCase();
+  let path = parsed.pathname || "/";
+  path = path.replace(/\/{2,}/g, "/");
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+  if (isAshbyHost(host) && path.toLowerCase().endsWith("/application")) {
+    path = path.slice(0, -"/application".length) || "/";
+  }
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+
+  if (isAvatureHost(host) && /\/(savejob|searchjobs|jobsearch)/i.test(path)) {
+    return null;
+  }
+
+  if (sourceUrl) {
+    const sourceParsed = parseUrlSafe(sourceUrl);
+    const sourceHost = sourceParsed?.hostname?.toLowerCase() ?? "";
+    const enforceMatch = isAshbyHost(sourceHost) || isAvatureHost(sourceHost);
+    if (enforceMatch && sourceHost && host !== sourceHost) return null;
+  }
+
+  parsed.pathname = path;
+  parsed.hash = "";
+  let normalized = parsed.toString();
+  if (path !== "/" && normalized.endsWith("/")) normalized = normalized.slice(0, -1);
+  return normalized;
+};
+
+const titleFromSlug = (value: string) => {
+  if (!value) return "";
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    decoded = value;
+  }
+  return decoded.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+};
+
+const deriveTitleFromUrl = (url: string): string | null => {
+  const parsed = parseUrlSafe(url);
+  if (!parsed) return null;
+  const host = parsed.hostname.toLowerCase();
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  if (!segments.length) return null;
+  if (isAvatureHost(host)) {
+    const jobDetailIndex = segments.findIndex((segment) => segment.toLowerCase() === "jobdetail");
+    if (jobDetailIndex >= 0 && segments[jobDetailIndex + 1]) {
+      const title = titleFromSlug(segments[jobDetailIndex + 1]);
+      return title || null;
+    }
+  }
+  const last = segments[segments.length - 1];
+  if (!last || /^(application|savejob|searchjobs|jobsearch)$/i.test(last)) return null;
+  const candidate = titleFromSlug(last);
+  if (!candidate || looksLikeUuidish(candidate) || looksLikeNumericId(candidate)) return null;
+  return candidate;
 };
 
 const collectSeedUrlKeys = (items: any) => {
@@ -3672,6 +3824,7 @@ export function extractJobs(
   items: any,
   options?: {
     includeSeedListings?: boolean;
+    sourceUrl?: string;
     seedListingLogContext?: {
       sourceUrl?: string;
       provider?: string;
@@ -3792,9 +3945,32 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
     .map((row: any) => {
       const rawTitle =
         (row && typeof row === "object"
-          ? row.job_title ?? row.title ?? row.heading ?? row.position
+          ? row.job_title ??
+            row.title ??
+            row.jobTitle ??
+            row.position_title ??
+            row.positionTitle ??
+            row.posting_title ??
+            row.heading ??
+            row.position ??
+            row.name ??
+            row.role ??
+            row.jobName
           : undefined) ?? row;
-      const title = normalizeTitle(rawTitle);
+
+      const rawUrl = String(row?.url || row?.link || row?.href || row?.absolute_url || "").trim();
+      const normalizedUrl = normalizeScrapedUrl(rawUrl, options?.sourceUrl);
+      if (!normalizedUrl) return null;
+
+      let title = normalizeTitle(rawTitle);
+      if (looksLikeNoisyTitle(title)) {
+        const fromUrl = deriveTitleFromUrl(normalizedUrl);
+        if (fromUrl && !looksLikeNoisyTitle(fromUrl)) {
+          title = fromUrl;
+        } else {
+          return null;
+        }
+      }
 
       const rawCompanyFromJson =
         typeof rawTitle === "string"
@@ -3812,8 +3988,6 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
                 ? row.organization
                 : rawCompanyFromJson ?? "Unknown";
 
-      const url = String(row?.url || row?.link || row?.href || row?.absolute_url || "").trim();
-
       const rawLocation =
         typeof row?.location === "string"
           ? row.location
@@ -3824,10 +3998,10 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
               : "Unknown";
       const location = cleanScrapedText(rawLocation) || "Unknown";
       const { city, state } = splitLocation(location);
-      const company = rawCompany || fallbackCompanyName(rawCompany, url);
+      const company = rawCompany || fallbackCompanyName(rawCompany, normalizedUrl);
       const locationLabel = formatLocationLabel(city, state, location);
       const remote = coerceBool(row.remote, locationLabel, title);
-      const description =
+      const descriptionRaw =
         typeof row?.description === "string"
           ? cleanScrapedText(row.description)
           : typeof row?.content === "string"
@@ -3835,6 +4009,7 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
             : typeof row === "string"
               ? cleanScrapedText(row)
               : JSON.stringify(row, null, 2).slice(0, 4000);
+      const description = stripEmbeddedJson(descriptionRaw);
       // Prefer structured pay range from Greenhouse metadata when present
       const compensationSource: any =
         (Array.isArray((row).metadata)
@@ -3872,11 +4047,11 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
         totalCompensation,
         compensationUnknown,
         compensationReason,
-        url: url || "",
+        url: normalizedUrl,
         postedAt,
       };
     })
-    .filter((j) => j.url); // require a URL to keep signal
+    .filter((j): j is NonNullable<typeof j> => Boolean(j)); // require a URL + title to keep signal
 
   if (options?.includeSeedListings) return jobs;
   if (!seedUrlKeys.size) return jobs;

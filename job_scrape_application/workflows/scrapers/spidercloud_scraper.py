@@ -17,6 +17,7 @@ from ...components.models import extract_greenhouse_job_urls, load_greenhouse_bo
 from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
+    _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
     coerce_level,
@@ -332,7 +333,13 @@ class SpiderCloudScraper(BaseScraper):
             ("robot check", None),
             ("access denied", None),
             ("captcha", re.compile(r"\bcaptcha\b")),
-            ("recaptcha", re.compile(r"\brecaptcha\b")),
+            (
+                "recaptcha",
+                re.compile(
+                    r"(?:g-recaptcha|recaptcha/api2|i[' ]?m not a robot|verify you are human)",
+                    re.IGNORECASE,
+                ),
+            ),
         )
 
         for marker, pattern in markers:
@@ -450,6 +457,15 @@ class SpiderCloudScraper(BaseScraper):
                     return found
 
         return None
+
+    def _should_use_structured_description(self, markdown: str) -> bool:
+        if not markdown or not markdown.strip():
+            return True
+        cleaned = markdown.strip()
+        if len(cleaned) < 200:
+            return True
+        lower = cleaned.lower()
+        return not any(marker in lower for marker in JOB_DETAIL_MARKERS)
 
     def _location_from_job_posting(self, payload: Dict[str, Any]) -> Optional[str]:
         def _normalize_part(value: Any) -> Optional[str]:
@@ -572,6 +588,12 @@ class SpiderCloudScraper(BaseScraper):
         placeholders = {"page_title", "title", "job_title", "untitled", "unknown"}
         stripped = title.strip().lower()
         if stripped in placeholders:
+            return True
+        try:
+            parsed = urlparse(stripped)
+        except Exception:
+            parsed = None
+        if parsed and parsed.scheme in {"http", "https"} and parsed.netloc:
             return True
         # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
         return bool(re.fullmatch(r"\d{3,}", stripped))
@@ -874,6 +896,22 @@ class SpiderCloudScraper(BaseScraper):
                     return True
         return False
 
+    def _payload_looks_like_job_detail(self, payload: Dict[str, Any]) -> bool:
+        singleview = payload.get("singleview")
+        if isinstance(singleview, bool):
+            if singleview:
+                return True
+        if isinstance(singleview, int) and singleview == 1:
+            return True
+        positions = payload.get("positions")
+        if isinstance(positions, list) and len(positions) == 1:
+            if payload.get("pid"):
+                return True
+            count = payload.get("count")
+            if isinstance(count, int) and count == 1:
+                return True
+        return False
+
     def _extract_listing_job_urls(
         self,
         handler: BaseSiteHandler,
@@ -909,7 +947,11 @@ class SpiderCloudScraper(BaseScraper):
                 parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
 
         listing_payload = self._extract_json_payload(events) or self._extract_json_payload(parsed_markdown)
-        if isinstance(listing_payload, dict) and self._payload_has_job_urls(listing_payload):
+        if (
+            isinstance(listing_payload, dict)
+            and self._payload_has_job_urls(listing_payload)
+            and not self._payload_looks_like_job_detail(listing_payload)
+        ):
             self._last_ignored_job = {
                 "url": url,
                 "reason": "listing_payload",
@@ -931,8 +973,10 @@ class SpiderCloudScraper(BaseScraper):
                 structured_description = raw_description.strip()
             structured_location = self._location_from_job_posting(structured_payload)
 
-        if structured_description and len(parsed_markdown.strip()) < 50:
-            parsed_markdown = self._html_to_markdown(structured_description)
+        if structured_description:
+            structured_markdown = self._html_to_markdown(structured_description)
+            if structured_markdown.strip() and self._should_use_structured_description(parsed_markdown):
+                parsed_markdown = structured_markdown
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
         hints = parse_markdown_hints(cleaned_markdown)
@@ -955,6 +999,10 @@ class SpiderCloudScraper(BaseScraper):
             from_content = bool(payload_title)
         else:
             from_content = True
+        if payload_title and self._is_placeholder_title(payload_title):
+            payload_title = None
+            title_source = None
+            from_content = False
 
         candidate_title = payload_title or parsed_title
         if handler and handler.is_listing_url(url):

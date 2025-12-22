@@ -98,6 +98,18 @@ describe("extractJobs sanitization", () => {
     expect(job.description).toContain("customers’ entire technology stacks");
   });
 
+  it("removes embedded Netflix theme JSON from descriptions", () => {
+    const payloadPath = resolve(fixturesDir, "netflix_job.json");
+    const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
+    const jobs = extractJobs([payload]);
+    expect(jobs).toHaveLength(1);
+    const job = jobs[0];
+    expect(job.description).toContain("Netflix is one of the world's leading entertainment services");
+    expect(job.description).not.toContain("themeOptions");
+    expect(job.description).not.toContain("customTheme");
+    expect(job.description).not.toContain("NetflixSans");
+  });
+
   it("drops seed URLs from normalized scrape payloads", () => {
     const jobs = extractJobs({
       normalized: [

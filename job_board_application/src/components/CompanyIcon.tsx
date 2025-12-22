@@ -25,7 +25,11 @@ type CustomLogoDefinition = {
     src: string;
 };
 
-const logoUrls = import.meta.glob("../assets/company-logos/*.{svg,png}", { eager: true, as: "url" }) as Record<string, string>;
+const logoUrls = import.meta.glob("../assets/company-logos/*.{svg,png}", {
+    eager: true,
+    query: "?url",
+    import: "default",
+}) as Record<string, string>;
 const customLogos: Record<string, CustomLogoDefinition> = Object.fromEntries(
     Object.entries(logoUrls).map(([path, src]) => {
         const filename = path.split("/").pop() ?? "";

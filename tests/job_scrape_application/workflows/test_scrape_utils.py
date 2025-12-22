@@ -145,6 +145,24 @@ def test_normalize_single_row_skips_listing_pages(url: str):
     assert normalized is None
 
 
+def test_normalize_single_row_strips_embedded_theme_json():
+    fixture_path = Path(__file__).parent.parent / "fixtures" / "netflix_theme_blob.md"
+    description = fixture_path.read_text(encoding="utf-8")
+    row = {
+        "title": "Software Engineer 5 - Partner Payments",
+        "url": "https://explore.jobs.netflix.net/careers/job/790312242079",
+        "description": description,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is not None
+    assert "themeOptions" not in normalized["description"]
+    assert "customTheme" not in normalized["description"]
+    assert "NetflixSans" not in normalized["description"]
+    assert "Netflix is one of the world's leading entertainment services" in normalized["description"]
+
+
 def test_looks_like_job_listing_page_detects_snapchat_table():
     fixture_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
     response = json.loads(fixture_path.read_text(encoding="utf-8"))

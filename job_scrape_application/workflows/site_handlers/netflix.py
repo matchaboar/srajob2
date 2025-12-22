@@ -10,6 +10,7 @@ from .base import BaseSiteHandler
 
 NETFLIX_HOST_SUFFIX = "jobs.netflix.net"
 LISTING_PATH = "/careers"
+JOB_DETAIL_PATH_TOKEN = "/careers/job/"
 API_PATH = "/api/apply/v2/jobs"
 DEFAULT_PAGE_SIZE = 10
 
@@ -135,6 +136,11 @@ class NetflixHandler(BaseSiteHandler):
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            parsed = None
+        path = (parsed.path or "").lower() if parsed else ""
         base_config = {
             "request": "chrome",
             "follow_redirects": True,
@@ -144,6 +150,10 @@ class NetflixHandler(BaseSiteHandler):
         }
         if API_PATH in uri:
             base_config["return_format"] = ["raw_html"]
+            return self._apply_page_links_config(base_config)
+        if JOB_DETAIL_PATH_TOKEN in path:
+            base_config["request"] = "chrome"
+            base_config["return_format"] = ["commonmark"]
             return self._apply_page_links_config(base_config)
         base_config["return_format"] = ["commonmark"]
         base_config["wait_for"] = {

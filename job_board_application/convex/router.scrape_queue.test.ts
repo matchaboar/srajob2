@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { leaseScrapeUrlBatch, requeueStaleScrapeUrls } from "./router";
+import {
+  completeScrapeUrls,
+  leaseScrapeUrlBatch,
+  requeueStaleScrapeUrls,
+  resetScrapeUrlsByStatus,
+} from "./router";
 import { getHandler } from "./__tests__/getHandler";
 
 type QueueRow = {
@@ -11,20 +16,23 @@ type QueueRow = {
   scheduledAt?: number;
   provider?: string;
   attempts?: number;
+  sourceUrl?: string;
+  lastError?: string;
+  completedAt?: number;
 };
 
 class FakeQuery {
   constructor(
     private getRows: () => QueueRow[],
-    private filterStatus: string | null = null,
+    private filterFields: Record<string, any> = {},
     private scheduledAtMax: number | null = null
   ) {}
   withIndex(_name: string, cb: (q: any) => any) {
-    let status: string | null = null;
-    let scheduledAtMax: number | null = null;
+    const filterFields = { ...this.filterFields };
+    let scheduledAtMax = this.scheduledAtMax;
     const builder = {
       eq: (field: string, val: string) => {
-        if (field === "status") status = val;
+        filterFields[field] = val;
         return builder;
       },
       lte: (field: string, val: number) => {
@@ -33,14 +41,16 @@ class FakeQuery {
       },
     };
     cb(builder);
-    return new FakeQuery(this.getRows, status, scheduledAtMax);
+    return new FakeQuery(this.getRows, filterFields, scheduledAtMax);
   }
   order() {
     return this;
   }
-  take(n: number) {
-    const rows = this.getRows();
-    let filtered = this.filterStatus ? rows.filter((r) => r.status === this.filterStatus) : rows;
+  private _filterRows(rows: QueueRow[]) {
+    let filtered = rows;
+    for (const [field, val] of Object.entries(this.filterFields)) {
+      filtered = filtered.filter((row) => (row as any)[field] === val);
+    }
     if (this.scheduledAtMax !== null) {
       const scheduledAtMax = this.scheduledAtMax;
       filtered = filtered.filter((row) => {
@@ -48,10 +58,16 @@ class FakeQuery {
         return scheduledAt <= scheduledAtMax;
       });
     }
-    return filtered.slice(0, n);
+    return filtered;
+  }
+  take(n: number) {
+    return this._filterRows(this.getRows()).slice(0, n);
+  }
+  first() {
+    return this._filterRows(this.getRows())[0];
   }
   collect() {
-    return this.getRows();
+    return this._filterRows(this.getRows());
   }
 }
 
@@ -59,7 +75,8 @@ class FakeDb {
   constructor(
     private queueRows: QueueRow[],
     private rateLimitRows: Array<any> = [],
-    private ignoredRows: Array<any> = []
+    private ignoredRows: Array<any> = [],
+    private seenRows: Array<any> = []
   ) {}
   query = (table: string) => {
     if (table === "scrape_url_queue") {
@@ -68,12 +85,19 @@ class FakeDb {
     if (table === "job_detail_rate_limits") {
       return new FakeQuery(() => this.rateLimitRows);
     }
+    if (table === "seen_job_urls") {
+      return new FakeQuery(() => this.seenRows);
+    }
     throw new Error(`Unexpected table ${table}`);
   };
   insert = vi.fn((table: string, payload: any) => {
     if (table === "ignored_jobs") {
       this.ignoredRows.push(payload);
       return "ignored-id";
+    }
+    if (table === "seen_job_urls") {
+      this.seenRows.push(payload);
+      return `seen-${this.seenRows.length}`;
     }
     if (table === "job_detail_rate_limits") {
       this.rateLimitRows.push({ _id: `rl-${this.rateLimitRows.length + 1}`, ...payload });
@@ -94,8 +118,19 @@ class FakeDb {
     }
     throw new Error(`Unknown id ${id}`);
   });
+  delete = vi.fn((id: string) => {
+    const idx = this.queueRows.findIndex((row) => row._id === id);
+    if (idx >= 0) {
+      this.queueRows.splice(idx, 1);
+      return;
+    }
+    throw new Error(`Unknown id ${id}`);
+  });
   getIgnored() {
     return this.ignoredRows;
+  }
+  getSeen() {
+    return this.seenRows;
   }
 }
 
@@ -301,6 +336,187 @@ describe("leaseScrapeUrlBatch", () => {
     expect(res.urls).toEqual([]);
     expect(rows.every((r) => r.status === "pending")).toBe(true);
     expect(rows.every((r) => (r.attempts ?? 0) === 0)).toBe(true);
+  });
+
+  it("releases stale processing rows and leases them for retry", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "netflix-1",
+        url: "https://explore.jobs.netflix.net/careers/job/790313345439",
+        sourceUrl:
+          "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+        status: "processing",
+        updatedAt: now - 31 * 60 * 1000,
+        createdAt: now - 31 * 60 * 1000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.urls.map((u: any) => u.url)).toEqual([rows[0].url]);
+    expect(rows[0].status).toBe("processing");
+    expect(rows[0].attempts).toBe(1);
+  });
+
+  it("skips rows when domain rate limit window is exhausted", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "netflix-1",
+        url: "https://explore.jobs.netflix.net/careers/job/790313345439",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const rateLimits = [
+      {
+        _id: "rl-1",
+        domain: "explore.jobs.netflix.net",
+        maxPerMinute: 1,
+        lastWindowStart: now,
+        sentInWindow: 1,
+      },
+    ];
+    const db = new FakeDb(rows, rateLimits);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.urls).toEqual([]);
+    expect(rows[0].status).toBe("pending");
+    expect(rows[0].attempts).toBe(0);
+    expect(rateLimits[0].sentInWindow).toBe(1);
+  });
+});
+
+describe("completeScrapeUrls", () => {
+  it("marks failed rows for retry without ejecting", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "netflix-1",
+        url: "https://explore.jobs.netflix.net/careers/job/790313345439",
+        sourceUrl:
+          "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+        status: "processing",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(completeScrapeUrls);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      urls: [rows[0].url],
+      status: "failed",
+      error: "timeout",
+    });
+    nowSpy.mockRestore();
+
+    expect(res.updated).toBe(1);
+    expect(rows[0].status).toBe("failed");
+    expect(rows[0].attempts).toBe(1);
+    expect(rows[0].lastError).toBe("timeout");
+    expect(rows[0].completedAt).toBeUndefined();
+    expect(db.getIgnored()).toHaveLength(0);
+  });
+
+  it("retries failed rows after reset and leases again", async () => {
+    const now = Date.now();
+    const row: QueueRow = {
+      _id: "netflix-2",
+      url: "https://explore.jobs.netflix.net/careers/job/790313323421",
+      sourceUrl:
+        "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+      status: "failed",
+      updatedAt: now - 1_000,
+      createdAt: now - 5_000,
+      scheduledAt: now - 1_000,
+      provider: "spidercloud",
+      attempts: 1,
+    };
+    const db = new FakeDb([row]);
+    const ctx: any = { db };
+    const resetHandler = getHandler(resetScrapeUrlsByStatus);
+    const leaseHandler = getHandler(leaseScrapeUrlBatch);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    await resetHandler(ctx, {
+      provider: "spidercloud",
+      status: "failed",
+      limit: 50,
+    });
+    const res = await leaseHandler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.urls.map((u: any) => u.url)).toEqual([row.url]);
+    expect(row.status).toBe("processing");
+    expect(row.attempts).toBe(2);
+  });
+
+  it("ejects rows after max attempts", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "netflix-3",
+        url: "https://explore.jobs.netflix.net/careers/job/790313310792",
+        sourceUrl:
+          "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+        status: "processing",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 2,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(completeScrapeUrls);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      urls: [rows[0].url],
+      status: "failed",
+      error: "timeout",
+    });
+    nowSpy.mockRestore();
+
+    expect(res.updated).toBe(1);
+    expect(rows).toHaveLength(0);
+    expect(db.getIgnored()[0]?.reason).toBe("max_attempts");
+    expect(db.getSeen()).toHaveLength(1);
   });
 });
 

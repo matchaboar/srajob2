@@ -9,16 +9,16 @@
         "ai_cost_formatted": "0",
         "bytes_transferred_cost": 0.0,
         "bytes_transferred_cost_formatted": "0",
-        "compute_cost": 6.700518518518519e-06,
-        "compute_cost_formatted": "0.0000067005185185185183075761",
-        "file_cost": 0.00018229200000000002,
-        "file_cost_formatted": "0.0001822920000000000206874518",
-        "total_cost": 0.00019899251851851856,
-        "total_cost_formatted": "0.0001989925185185185395501394",
+        "compute_cost": 6.233296296296297e-06,
+        "compute_cost_formatted": "0.0000062332962962962963170205",
+        "file_cost": 0.00018238200000000003,
+        "file_cost_formatted": "0.0001823820000000000107753806",
+        "total_cost": 0.00019861529629629633,
+        "total_cost_formatted": "0.0001986152962962963076475126",
         "transform_cost": 1e-05,
         "transform_cost_formatted": "0.0000100000000000000005551115"
       },
-      "duration_elasped_ms": 2673,
+      "duration_elasped_ms": 2392,
       "error": null,
       "metadata": {
         "commonmark": {

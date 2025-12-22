@@ -23,7 +23,11 @@ LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_search_page_1.json"
 DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_job_detail_commonmark.json"
 ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
 NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
+NETFLIX_LISTING_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_netflix_listing_page_commonmark.json"
+)
 NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
+NETFLIX_RAW_HTML_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_raw_html.json"
 BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_commonmark.json"
 NETFLIX_COMMONMARK_LISTING_FIXTURES = (
     FIXTURE_DIR / "spidercloud_netflix_api_page_1_commonmark.json",
@@ -34,6 +38,9 @@ NETFLIX_COMMONMARK_DETAIL_FIXTURES = (
     FIXTURE_DIR / "spidercloud_netflix_job_detail_790313345439_commonmark.json",
     FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_commonmark.json",
     FIXTURE_DIR / "spidercloud_netflix_job_detail_790313310792_commonmark.json",
+)
+NETFLIX_EMPTY_COMMONMARK_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_netflix_job_detail_790313241540_commonmark.json"
 )
 
 
@@ -69,6 +76,14 @@ def _extract_commonmark(payload: Any) -> str:
                         if isinstance(content, dict) and isinstance(content.get("commonmark"), str):
                             return content["commonmark"]
     return ""
+
+
+def _extract_event_markdown(scraper: SpiderCloudScraper, payload: Any) -> str:
+    event = _extract_first_event(payload)
+    if not isinstance(event, dict):
+        return ""
+    markdown = scraper._extract_markdown(event)  # noqa: SLF001
+    return markdown or ""
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -157,6 +172,21 @@ async def test_spidercloud_netflix_listing_extracts_job_links(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
+async def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    raw_payload = _load_fixture(NETFLIX_LISTING_COMMONMARK_FIXTURE)
+    source_url = _extract_source_url(raw_payload)
+
+    assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
+
+    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+
+    assert urls, "expected Netflix listing URLs to be extracted from commonmark"
+    assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_LISTING_FIXTURES)
 async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
     monkeypatch: pytest.MonkeyPatch,
@@ -197,6 +227,23 @@ def test_spidercloud_netflix_job_detail_commonmark_normalizes_description():
 
     assert normalized is not None
     assert "Data Engineer" in normalized["title"]
+    assert len(normalized["description"]) > 200
+    assert "Netflix" in normalized["description"]
+
+
+def test_spidercloud_netflix_job_detail_raw_html_normalizes_description():
+    payload = _load_fixture(NETFLIX_RAW_HTML_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Data Visualization Engineer" in normalized["title"]
     assert len(normalized["description"]) > 200
     assert "Netflix" in normalized["description"]
 
@@ -255,6 +302,44 @@ async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
     assert "Netflix" in (jobs[0].get("company") or "")
 
 
+@pytest.mark.asyncio
+async def test_spidercloud_ashby_commonmark_job_detail_ingests_job(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    payload = _load_fixture(ASHBY_DETAIL_FIXTURE)
+    normalized = _extract_normalized_from_commonmark(payload)
+    source_url = normalized["url"]
+
+    calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": len(args.get("jobs", []))}
+        return None
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await store_scrape(
+        {
+            "sourceUrl": source_url,
+            "provider": "spidercloud",
+            "startedAt": 0,
+            "completedAt": 1,
+            "items": {"provider": "spidercloud", "normalized": [normalized]},
+        }
+    )
+
+    ingest_calls = [c for c in calls if c["name"] == "router:ingestJobsFromScrape"]
+    assert ingest_calls, "expected normalized job to be ingested into Convex"
+    jobs = ingest_calls[0]["args"].get("jobs", [])
+    assert len(jobs) == 1
+    assert jobs[0].get("url") == source_url
+    assert "Senior Software Engineer" in (jobs[0].get("title") or "")
+
+
 def test_spidercloud_ashby_job_detail_prefers_metadata_description():
     payload = _load_fixture(ASHBY_DETAIL_FIXTURE)
     event = _extract_first_event(payload)
@@ -268,3 +353,20 @@ def test_spidercloud_ashby_job_detail_prefers_metadata_description():
     assert "Senior Software Engineer" in markdown
     assert "Lambda" in markdown
     assert len(markdown) > 500
+
+
+def test_spidercloud_netflix_detail_placeholder_title_does_not_drop():
+    payload = _load_fixture(NETFLIX_EMPTY_COMMONMARK_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+    event = _extract_first_event(payload) or {}
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url,
+        commonmark,
+        [dict(event, title=url)],
+        0,
+    )
+
+    assert normalized is not None

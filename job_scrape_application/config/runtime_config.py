@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict
 
-import yaml
-
 from .paths import resolve_config_path
 
 @dataclass
@@ -21,6 +19,10 @@ class RuntimeConfig:
 def _load_runtime_yaml() -> Dict[str, Any]:
     path = resolve_config_path("runtime.yaml")
     if not path.exists():
+        return {}
+    try:
+        import yaml
+    except Exception:
         return {}
     try:
         data = yaml.safe_load(path.read_text()) or {}

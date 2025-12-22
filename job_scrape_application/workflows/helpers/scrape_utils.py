@@ -414,6 +414,52 @@ def strip_known_nav_blocks(markdown: str) -> str:
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
 
 
+def _strip_embedded_theme_json(markdown: str) -> str:
+    """Remove embedded JSON theme blobs that sometimes appear in job descriptions."""
+
+    if not markdown:
+        return markdown
+
+    markers = ('"themeOptions"', '"customTheme"', '"varTheme"', '"micrositeConfig"')
+    output = markdown
+    for _ in range(3):
+        marker_index = next((output.find(marker) for marker in markers if marker in output), -1)
+        if marker_index == -1:
+            break
+        start = output.rfind("{", 0, marker_index + 1)
+        if start == -1:
+            break
+        depth = 0
+        in_string = False
+        escaped = False
+        end = -1
+        for idx in range(start, len(output)):
+            char = output[idx]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+                continue
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    end = idx
+                    break
+        if end == -1:
+            break
+        output = f"{output[:start]} {output[end + 1:]}"
+
+    return re.sub(WHITESPACE_PATTERN, " ", output).strip()
+
+
 def _strip_avature_tail(markdown: str) -> str:
     if not markdown:
         return markdown
@@ -1376,6 +1422,7 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     level = coerce_level(row.get("level"), title)
     description = strip_known_nav_blocks(extract_description(row))
+    description = _strip_embedded_theme_json(description)
     if looks_like_job_listing_page(raw_title or title, description, url):
         return None
     if looks_like_error_landing(raw_title or title, description):
