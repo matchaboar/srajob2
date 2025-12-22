@@ -86,6 +86,22 @@ def _ensure_logger() -> logging.Logger:
     return logger
 
 
+def _normalize_log_level(level: Any) -> int:
+    if isinstance(level, int):
+        return level
+    if isinstance(level, str):
+        normalized = level.strip().lower()
+        if normalized in {"warn", "warning"}:
+            return logging.WARNING
+        if normalized == "error":
+            return logging.ERROR
+        if normalized == "debug":
+            return logging.DEBUG
+        if normalized == "critical":
+            return logging.CRITICAL
+    return logging.INFO
+
+
 def emit_posthog_log(payload: Dict[str, Any]) -> None:
     """Send a structured log entry to PostHog via OTLP."""
 
@@ -109,9 +125,10 @@ def emit_posthog_log(payload: Dict[str, Any]) -> None:
     if "message" in payload:
         attributes["scratchpad_message"] = payload["message"]
 
+    level = _normalize_log_level(payload.get("level"))
     # Use stacklevel so OTLP location fields point to the caller of emit_posthog_log,
     # not this helper module.
-    logger.info(message, extra=attributes, stacklevel=2)
+    logger.log(level, message, extra=attributes, stacklevel=2)
 
 
 def force_flush_posthog_logs(timeout_ms: int = 30000) -> bool:

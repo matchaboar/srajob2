@@ -147,6 +147,7 @@ COMP_INR_RANGE_PATTERN = (
 )
 COMP_K_PATTERN = r"(?P<value>\d{2,3})k"
 COMP_LPA_PATTERN = r"(?P<value>\d{1,3})\s*(lpa|lakh)"
+RETIREMENT_PLAN_PATTERN = r"\b401\s*\(?k\)?\b"
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
@@ -1663,7 +1664,13 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
     except Exception:
         pass
 
-    async def _log_scratchpad(event: str, message: str | None = None, data: Dict[str, Any] | None = None):
+    async def _log_scratchpad(
+        event: str,
+        message: str | None = None,
+        data: Dict[str, Any] | None = None,
+        *,
+        level: str = "info",
+    ):
         site_url = scrape.get("sourceUrl")
         if not isinstance(site_url, str):
             site_url = ""
@@ -1678,7 +1685,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 "workflowId": workflow_id or "unknown",
                 "runId": scrape.get("runId") or scrape.get("run_id"),
                 "siteUrl": site_url or "",
-                "level": "info",
+                "level": level,
             }
         )
         payload["message"] = _build_scratchpad_message(payload)
@@ -1753,6 +1760,9 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
     if isinstance(payload.get("items"), dict):
         items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
     provider_for_log = scraped_with or payload.get("provider") or items_provider
+    invalid_reason = None
+    if workflow_name == "SpidercloudJobDetails" and normalized_count == 0:
+        invalid_reason = "no_normalized_jobs"
 
     await _log_scratchpad(
         "scrape.received",
@@ -1881,6 +1891,99 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         if data.get("subUrls") is not None:
             body["subUrls"] = data.get("subUrls")
         return body
+
+    def _build_invalid_context() -> Dict[str, Any]:
+        items_block = scrape.get("items") if isinstance(scrape, dict) else {}
+        raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
+        raw_items: List[Any] = []
+        if isinstance(raw_block, list):
+            raw_items = raw_block
+        elif isinstance(raw_block, dict):
+            raw_items = [raw_block]
+
+        markdown_samples: List[Any] = []
+        html_samples: List[Any] = []
+        event_samples: List[Any] = []
+        link_samples: List[Any] = []
+        markdown_lengths: List[int] = []
+        event_counts: List[int] = []
+        link_counts: List[int] = []
+
+        def _add_markdown(value: Any) -> None:
+            if isinstance(value, str) and value.strip():
+                markdown_samples.append(_shrink_payload(value, 12000))
+
+        def _add_html(value: Any) -> None:
+            if isinstance(value, str) and value.strip():
+                html_samples.append(_shrink_payload(value, 12000))
+
+        for raw in raw_items[:2]:
+            if not isinstance(raw, dict):
+                continue
+            markdown_val = raw.get("markdown") or raw.get("commonmark") or raw.get("content")
+            _add_markdown(markdown_val)
+            if isinstance(markdown_val, str):
+                markdown_lengths.append(len(markdown_val))
+            _add_html(raw.get("raw_html") or raw.get("html"))
+            events_val = raw.get("events")
+            if events_val is not None:
+                event_samples.append(_shrink_payload(events_val, 6000))
+                if isinstance(events_val, list):
+                    event_counts.append(len(events_val))
+            job_urls = raw.get("job_urls") or raw.get("links")
+            if isinstance(job_urls, list) and job_urls:
+                link_samples.append(job_urls[:50])
+                link_counts.append(len(job_urls))
+
+        if isinstance(items_block, dict):
+            markdown_val = items_block.get("markdown") or items_block.get("commonmark") or items_block.get("content")
+            _add_markdown(markdown_val)
+            if isinstance(markdown_val, str):
+                markdown_lengths.append(len(markdown_val))
+            _add_html(items_block.get("raw_html") or items_block.get("html"))
+            if isinstance(items_block.get("job_urls"), list):
+                job_urls = items_block.get("job_urls")
+                link_samples.append(job_urls[:50])
+                link_counts.append(len(job_urls))
+            if isinstance(items_block.get("seedUrls"), list):
+                seed_urls = items_block.get("seedUrls")
+                link_samples.append(seed_urls[:50])
+                link_counts.append(len(seed_urls))
+
+        response_preview = _shrink_payload(scrape.get("response"), 12000)
+        async_response_preview = _shrink_payload(scrape.get("asyncResponse"), 12000)
+        provider_request_preview = _shrink_payload(scrape.get("providerRequest"), 6000)
+        request_preview = _shrink_payload(scrape.get("request"), 6000)
+
+        sub_urls = scrape.get("subUrls")
+        sub_url_sample = sub_urls[:20] if isinstance(sub_urls, list) else None
+
+        return _strip_none_values(
+            {
+                "reason": invalid_reason,
+                "normalizedCount": normalized_count,
+                "ignoredCount": ignored_count,
+                "provider": provider_for_log,
+                "workflowName": workflow_name,
+                "siteId": payload.get("siteId"),
+                "sourceUrl": payload.get("sourceUrl"),
+                "pattern": payload.get("pattern"),
+                "subUrlsSample": sub_url_sample,
+                "rawItemsCount": len(raw_items),
+                "markdownLengths": markdown_lengths or None,
+                "eventCounts": event_counts or None,
+                "linkCounts": link_counts or None,
+                "requestedFormat": items_block.get("requestedFormat") if isinstance(items_block, dict) else None,
+                "markdownSamples": markdown_samples or None,
+                "htmlSamples": html_samples or None,
+                "eventSamples": event_samples or None,
+                "linkSamples": link_samples or None,
+                "response": response_preview,
+                "asyncResponse": async_response_preview,
+                "providerRequest": provider_request_preview,
+                "request": request_preview,
+            }
+        )
 
     scrape_id: str | None = None
     try:
@@ -2153,6 +2256,19 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             data={"error": str(exc), "sourceUrl": payload.get("sourceUrl")},
         )
         # Non-fatal
+
+    if invalid_reason:
+        await _log_scratchpad(
+            "scrape.invalid",
+            message=f"Invalid scrape: {invalid_reason}",
+            data=_build_invalid_context(),
+            level="error",
+        )
+        raise ApplicationError(
+            f"Invalid scrape: {invalid_reason}",
+            non_retryable=True,
+            type="invalid_scrape",
+        )
 
     return str(scrape_id)
 
@@ -2444,6 +2560,26 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 links.append((url, title or title_text, loc, context_text, context_location))
         return links
 
+    def _strip_code_fences(value: str) -> str:
+        stripped = value.strip()
+        if stripped.startswith("```"):
+            stripped = re.sub(r"^```[a-zA-Z0-9_-]*\n?", "", stripped)
+            stripped = re.sub(r"\n?```$", "", stripped)
+            return stripped.strip()
+        fence_match = re.search(
+            r"```(?:json)?\n(?P<content>.*?)\n```",
+            value,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+        if fence_match:
+            return fence_match.group("content").strip()
+        return value
+
+    def _clean_invalid_json_escapes(value: str) -> str:
+        return re.sub(r"\\(?![\"\\/bfnrtu])", "", value)
+
+    url_re = re.compile(r"https?://[^\s\"'<>]+")
+
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
         links: list[tuple[str, Optional[str], Optional[str]]] = []
 
@@ -2465,6 +2601,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if is_confluent:
             for match in confluent_job_re.findall(text):
                 links.append((match.strip(), None, None))
+
+        for match in url_re.findall(text):
+            lower = match.lower()
+            if "/job" not in lower and "/jobs/" not in lower and "/position" not in lower:
+                continue
+            links.append((match.strip(), None, None))
 
         return links
 
@@ -2623,7 +2765,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     for text in list(candidates):
         if isinstance(text, str):
             try:
-                parsed_json = json.loads(text)
+                parsed_json = json.loads(
+                    _clean_invalid_json_escapes(_strip_code_fences(text))
+                )
             except Exception:
                 parsed_json = None
             if parsed_json is not None:
@@ -2645,7 +2789,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                     seen.add(normalized_url)
                     urls.append(normalized_url)
             try:
-                parsed = json.loads(text)
+                parsed = json.loads(
+                    _clean_invalid_json_escapes(_strip_code_fences(text))
+                )
                 candidates.extend(gather_strings(parsed))
             except Exception:
                 pass
@@ -3088,7 +3234,8 @@ def _build_job_detail_heuristic_patch(
         countries = ["United States"]
 
     if (not total_comp or total_comp <= 0) and description:
-        used_pattern, found_val = _first_match(description, comp_regexes)
+        comp_description = re.sub(RETIREMENT_PLAN_PATTERN, "", description, flags=re.IGNORECASE)
+        used_pattern, found_val = _first_match(comp_description, comp_regexes)
         if found_val:
             cleaned = found_val.replace(",", "").lower()
             try:

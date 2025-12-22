@@ -171,6 +171,17 @@ class SpiderCloudScraper(BaseScraper):
             "raw_html",
             "raw",
         }
+        preferred_keys = (
+            "commonmark",
+            "markdown",
+            "content",
+            "text",
+            "body",
+            "result",
+            "html",
+            "raw_html",
+            "raw",
+        )
         min_description_len = 80
 
         def _metadata_description(value: Any) -> Optional[str]:
@@ -195,6 +206,17 @@ class SpiderCloudScraper(BaseScraper):
                 return desc
             return None
 
+        def _direct_markdown_from_dict(value: dict[str, Any]) -> Optional[str]:
+            for key in preferred_keys:
+                if key not in value:
+                    continue
+                val = value.get(key)
+                if not isinstance(val, str) or not val.strip():
+                    continue
+                looks_like_html = key in {"html", "raw_html"} or ("<" in val and ">" in val)
+                return self._html_to_markdown(val) if looks_like_html else val
+            return None
+
         def _walk(value: Any) -> Optional[str]:
             if isinstance(value, str):
                 if not value.strip():
@@ -206,9 +228,30 @@ class SpiderCloudScraper(BaseScraper):
                 return self._html_to_markdown(value) if looks_like_html else value
             if isinstance(value, dict):
                 metadata_candidate = _metadata_description(value)
+                content_val = value.get("content")
+                if isinstance(content_val, dict):
+                    content_direct = _direct_markdown_from_dict(content_val)
+                    if content_direct:
+                        lines = [line for line in content_direct.splitlines() if line.strip()]
+                        looks_like_title_only = (
+                            len(lines) <= 1 and len(content_direct.strip()) < min_description_len
+                        )
+                        if metadata_candidate and looks_like_title_only:
+                            return metadata_candidate
+                        return content_direct
+
+                direct = _direct_markdown_from_dict(value)
+                if direct:
+                    lines = [line for line in direct.splitlines() if line.strip()]
+                    looks_like_title_only = len(lines) <= 1 and len(direct.strip()) < min_description_len
+                    if metadata_candidate and looks_like_title_only:
+                        return metadata_candidate
+                    return direct
                 if metadata_candidate:
                     return metadata_candidate
                 for key, val in value.items():
+                    if key.lower() == "metadata":
+                        continue
                     if key.lower() in keys and isinstance(val, str) and val.strip():
                         looks_like_html = key.lower() in {"html", "raw_html"} or ("<" in val and ">" in val)
                         return self._html_to_markdown(val) if looks_like_html else val
@@ -738,7 +781,24 @@ class SpiderCloudScraper(BaseScraper):
                         return found
             return None
 
+        def _strip_code_fences(value: str) -> str:
+            stripped = value.strip()
+            if stripped.startswith("```"):
+                stripped = re.sub(r"^```[a-zA-Z0-9_-]*\n?", "", stripped)
+                stripped = re.sub(r"\n?```$", "", stripped)
+                return stripped.strip()
+            fence_match = re.search(
+                r"```(?:json)?\n(?P<content>.*?)\n```",
+                value,
+                flags=re.DOTALL | re.IGNORECASE,
+            )
+            if fence_match:
+                return fence_match.group("content").strip()
+            return value
+
         def _parse_json_text(text: str) -> Any | None:
+            text = _strip_code_fences(text)
+            text = re.sub(r"\\(?![\"\\/bfnrtu])", "", text)
             try:
                 parsed = json.loads(text)
             except Exception:
@@ -1251,10 +1311,6 @@ class SpiderCloudScraper(BaseScraper):
             path = (parsed.path or "").lower()
             if not host or not path:
                 return {}
-            if path.startswith("/jobs") and "careers." in host:
-                return {"return_format": ["raw_html"], "preserve_host": True}
-            if "careers" in path and "/jobs" in path and "careers." in host:
-                return {"return_format": ["raw_html"], "preserve_host": True}
             return {}
 
         handler_configs: List[Dict[str, Any]] = []

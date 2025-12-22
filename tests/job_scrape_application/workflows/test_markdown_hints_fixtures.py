@@ -49,3 +49,11 @@ def test_markdown_hints_github_locations_fixture():
 
     assert hints["title"].startswith("Senior Solutions Engineer")
     assert hints["location"] == "France"
+
+
+def test_markdown_hints_bloomberg_avature_commonmark_fixture():
+    markdown = (FIXTURES / "markdown_bloomberg_avature_commonmark.md").read_text(encoding="utf-8")
+    hints = parse_markdown_hints(markdown)
+
+    assert hints.get("compensation") == 240000
+    assert hints.get("compensation_range") == {"low": 160000, "high": 240000}

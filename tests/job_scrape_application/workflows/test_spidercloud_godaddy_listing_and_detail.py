@@ -22,6 +22,19 @@ FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_search_page_1.json"
 DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_job_detail_commonmark.json"
 ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
+NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
+NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
+BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_commonmark.json"
+NETFLIX_COMMONMARK_LISTING_FIXTURES = (
+    FIXTURE_DIR / "spidercloud_netflix_api_page_1_commonmark.json",
+    FIXTURE_DIR / "spidercloud_netflix_api_page_2_commonmark.json",
+    FIXTURE_DIR / "spidercloud_netflix_api_page_3_commonmark.json",
+)
+NETFLIX_COMMONMARK_DETAIL_FIXTURES = (
+    FIXTURE_DIR / "spidercloud_netflix_job_detail_790313345439_commonmark.json",
+    FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_commonmark.json",
+    FIXTURE_DIR / "spidercloud_netflix_job_detail_790313310792_commonmark.json",
+)
 
 
 def _load_fixture(path: Path) -> Any:
@@ -70,6 +83,15 @@ def _make_scraper() -> SpiderCloudScraper:
         fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
     )
     return SpiderCloudScraper(deps)
+
+
+def _extract_normalized_from_commonmark(payload: Any) -> Dict[str, Any]:
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+    assert normalized is not None, "expected normalized job from commonmark payload"
+    return normalized
 
 
 async def _run_store_scrape(
@@ -123,6 +145,34 @@ async def test_spidercloud_godaddy_listing_extracts_job_links(monkeypatch: pytes
     assert job_urls, "expected job detail URLs from GoDaddy listing page"
 
 
+@pytest.mark.asyncio
+async def test_spidercloud_netflix_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
+    raw_payload = _load_fixture(NETFLIX_LISTING_FIXTURE)
+    source_url = _extract_source_url(raw_payload)
+
+    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+
+    assert urls, "expected Netflix listing URLs to be extracted"
+    assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_LISTING_FIXTURES)
+async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
+    monkeypatch: pytest.MonkeyPatch,
+    fixture_path: Path,
+):
+    raw_payload = _load_fixture(fixture_path)
+    source_url = _extract_source_url(raw_payload)
+
+    assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
+
+    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+
+    assert urls, "expected Netflix listing URLs to be extracted from commonmark payload"
+    assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
+
+
 def test_spidercloud_godaddy_job_detail_normalizes_description():
     payload = _load_fixture(DETAIL_FIXTURE)
     url = _extract_source_url(payload)
@@ -137,6 +187,74 @@ def test_spidercloud_godaddy_job_detail_normalizes_description():
     assert "GoDaddy" in normalized["description"]
 
 
+def test_spidercloud_netflix_job_detail_commonmark_normalizes_description():
+    payload = _load_fixture(NETFLIX_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Data Engineer" in normalized["title"]
+    assert len(normalized["description"]) > 200
+    assert "Netflix" in normalized["description"]
+
+
+def test_spidercloud_bloomberg_avature_job_detail_commonmark_normalizes_description():
+    payload = _load_fixture(BLOOMBERG_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Infrastructure Automation Engineer" in normalized["title"]
+    assert len(normalized["description"]) > 200
+    assert "Bloomberg" in normalized["description"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_DETAIL_FIXTURES)
+async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
+    monkeypatch: pytest.MonkeyPatch,
+    fixture_path: Path,
+):
+    payload = _load_fixture(fixture_path)
+    normalized = _extract_normalized_from_commonmark(payload)
+    source_url = normalized["url"]
+
+    calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": len(args.get("jobs", []))}
+        return None
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await store_scrape(
+        {
+            "sourceUrl": source_url,
+            "provider": "spidercloud",
+            "startedAt": 0,
+            "completedAt": 1,
+            "items": {"provider": "spidercloud", "normalized": [normalized]},
+        }
+    )
+
+    ingest_calls = [c for c in calls if c["name"] == "router:ingestJobsFromScrape"]
+    assert ingest_calls, "expected normalized job to be ingested into Convex"
+    jobs = ingest_calls[0]["args"].get("jobs", [])
+    assert len(jobs) == 1
+    assert jobs[0].get("url") == source_url
+    assert "Netflix" in (jobs[0].get("company") or "")
+
+
 def test_spidercloud_ashby_job_detail_prefers_metadata_description():
     payload = _load_fixture(ASHBY_DETAIL_FIXTURE)
     event = _extract_first_event(payload)
@@ -147,6 +265,6 @@ def test_spidercloud_ashby_job_detail_prefers_metadata_description():
     markdown = scraper._extract_markdown(event)  # noqa: SLF001
 
     assert markdown is not None
-    assert "Data Center Operations Engineer" in markdown
-    assert "Operations team is at the heart" in markdown
+    assert "Senior Software Engineer" in markdown
+    assert "Lambda" in markdown
     assert len(markdown) > 500

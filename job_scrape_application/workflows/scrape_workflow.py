@@ -434,7 +434,8 @@ class SpidercloudJobDetailsWorkflow:
                             )
                         )
 
-                    succeeded: list[str] = []
+                    completed: list[str] = []
+                    invalid: list[str] = []
                     failed: list[str] = []
                     if store_futures:
                         for url_val, fut in store_futures:
@@ -443,8 +444,26 @@ class SpidercloudJobDetailsWorkflow:
                                 if isinstance(res_id, str):
                                     scrape_ids.append(res_id)
                                 if url_val:
-                                    succeeded.append(url_val)
+                                    completed.append(url_val)
                             except Exception as activity_exc:  # noqa: BLE001
+                                invalid_error = None
+                                if isinstance(activity_exc, ActivityError) and activity_exc.cause:
+                                    cause = activity_exc.cause
+                                    if isinstance(cause, ApplicationError) and cause.type == "invalid_scrape":
+                                        invalid_error = str(cause)
+                                elif isinstance(activity_exc, ApplicationError) and activity_exc.type == "invalid_scrape":
+                                    invalid_error = str(activity_exc)
+
+                                if invalid_error:
+                                    if url_val:
+                                        invalid.append(url_val)
+                                    await _log(
+                                        "batch.invalid",
+                                        level="error",
+                                        data={"error": invalid_error, "url": url_val},
+                                    )
+                                    continue
+
                                 if url_val:
                                     failed.append(url_val)
                                 await _log(
@@ -454,11 +473,20 @@ class SpidercloudJobDetailsWorkflow:
                                 )
 
                     # Mark queue statuses per-URL regardless of other outcomes.
-                    if succeeded:
+                    if completed:
                         try:
                             await workflow.execute_activity(
                                 complete_scrape_urls,
-                                args=[{"urls": succeeded, "status": "completed"}],
+                                args=[{"urls": completed, "status": "completed"}],
+                                schedule_to_close_timeout=timedelta(seconds=20),
+                            )
+                        except Exception:
+                            pass
+                    if invalid:
+                        try:
+                            await workflow.execute_activity(
+                                complete_scrape_urls,
+                                args=[{"urls": invalid, "status": "invalid", "error": "invalid_job_data"}],
                                 schedule_to_close_timeout=timedelta(seconds=20),
                             )
                         except Exception:

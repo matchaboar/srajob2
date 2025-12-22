@@ -1023,7 +1023,13 @@ export const listQueuedScrapeUrls = query({
     siteId: v.optional(v.id("sites")),
     provider: v.optional(v.string()),
     status: v.optional(
-      v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+      v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed"),
+        v.literal("invalid")
+      ),
     ),
     limit: v.optional(v.number()),
   },
@@ -1042,11 +1048,12 @@ export const listQueuedScrapeUrls = query({
     } else if (status) {
       rows = await baseQuery.withIndex("by_status", (qi) => qi.eq("status", status)).order("asc").take(limit);
     } else if (siteId) {
-      const statuses: Array<"pending" | "processing" | "completed" | "failed"> = [
+      const statuses: Array<"pending" | "processing" | "completed" | "failed" | "invalid"> = [
         "pending",
         "processing",
         "completed",
         "failed",
+        "invalid",
       ];
       let remaining = limit;
       for (const statusValue of statuses) {
@@ -1151,13 +1158,28 @@ export const enqueueScrapeUrls = mutation({
         .first();
       if (existing) {
         const createdAt = (existing as any).createdAt ?? 0;
-        if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
-          // Mark stale and skip requeue
+        const updatedAt = (existing as any).updatedAt ?? createdAt;
+        const status = (existing as any).status as string | undefined;
+        const isStale =
+          (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) ||
+          (updatedAt && updatedAt < now - SCRAPE_URL_QUEUE_TTL_MS);
+        const shouldRequeue =
+          isStale || status === "failed" || status === "completed" || status === "invalid";
+
+        if (shouldRequeue) {
           await ctx.db.patch(existing._id, {
-            status: "failed",
-            lastError: "stale (>48h)",
+            sourceUrl: args.sourceUrl,
+            provider: args.provider,
+            siteId: args.siteId,
+            pattern: args.pattern === null ? undefined : args.pattern,
+            status: "pending",
+            attempts: 0,
+            lastError: undefined,
+            completedAt: undefined,
             updatedAt: now,
+            scheduledAt,
           });
+          queued.push(url);
         }
         continue;
       }
@@ -1439,7 +1461,7 @@ export const listPendingJobDetails = query({
 
 const completeScrapeUrlsHandler = async (
   ctx: any,
-  args: { urls: string[]; status: "completed" | "failed"; error?: string }
+  args: { urls: string[]; status: "completed" | "failed" | "invalid"; error?: string }
 ) => {
   const now = Date.now();
   for (const rawUrl of args.urls) {
@@ -1498,7 +1520,7 @@ export const completeScrapeUrls = Object.assign(
   mutation({
     args: {
       urls: v.array(v.string()),
-      status: v.union(v.literal("completed"), v.literal("failed")),
+      status: v.union(v.literal("completed"), v.literal("failed"), v.literal("invalid")),
       error: v.optional(v.string()),
     },
     handler: completeScrapeUrlsHandler,
@@ -1706,7 +1728,7 @@ export const resetScrapeUrlsByStatus = mutation({
   args: {
     provider: v.optional(v.string()),
     siteId: v.optional(v.id("sites")),
-    status: v.optional(v.union(v.literal("completed"), v.literal("failed"))),
+    status: v.optional(v.union(v.literal("completed"), v.literal("failed"), v.literal("invalid"))),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -1726,7 +1748,7 @@ export const resetScrapeUrlsByStatus = mutation({
         status: "pending",
         updatedAt: now,
         completedAt: undefined,
-        lastError: status === "failed" ? undefined : row.lastError,
+        lastError: status === "failed" || status === "invalid" ? undefined : row.lastError,
       });
       updated += 1;
     }

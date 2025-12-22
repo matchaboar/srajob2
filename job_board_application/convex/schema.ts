@@ -280,7 +280,13 @@ const applicationTables = {
     provider: v.optional(v.string()),
     siteId: v.optional(v.id("sites")),
     pattern: v.optional(v.string()),
-    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("invalid")
+    ),
     attempts: v.optional(v.number()),
     lastError: v.optional(v.string()),
     createdAt: v.number(),

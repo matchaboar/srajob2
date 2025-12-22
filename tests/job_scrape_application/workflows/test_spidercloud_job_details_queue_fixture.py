@@ -116,7 +116,10 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
                 {
                     "sourceUrl": url,
                     "subUrls": [url],
-                    "items": {"provider": "spidercloud"},
+                    "items": {
+                        "provider": "spidercloud",
+                        "normalized": [{"url": url, "title": "Stub"}],
+                    },
                     "provider": "spidercloud",
                 }
             )

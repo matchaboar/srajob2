@@ -179,7 +179,7 @@ async def test_batch_params_use_raw_for_ashby_board(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_batch_params_use_raw_for_confluent_listing(monkeypatch):
+async def test_batch_params_use_commonmark_for_confluent_listing(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([{"raw_html": "<h1>Open Positions</h1>"}])
     monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
@@ -188,7 +188,7 @@ async def test_batch_params_use_raw_for_confluent_listing(monkeypatch):
     await scraper._scrape_urls_batch([url], source_url=url)
 
     call = fake_client.calls[0]
-    assert "raw_html" in call["params"]["return_format"]
+    assert call["params"]["return_format"] == ["commonmark"]
     assert call["params"]["request"] == "chrome"
     assert call["params"]["preserve_host"] is True
 
@@ -261,6 +261,16 @@ def test_extract_markdown_handles_raw_html_key():
     html_payload = {"raw_html": "<p>Hi</p>"}
     text = scraper._extract_markdown(html_payload)
     assert text == "Hi"
+
+
+def test_extract_markdown_prefers_commonmark_over_metadata():
+    scraper = _make_scraper()
+    payload = {
+        "content": {"commonmark": "### Title\nBody content"},
+        "metadata": {"commonmark": {"description": "x" * 120}},
+    }
+    text = scraper._extract_markdown(payload)
+    assert "Body content" in text
 
 
 def test_normalize_job_handles_api_json_string():

@@ -21,8 +21,15 @@ LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>
 SIMPLE_LOCATION_LINE_PATTERN = r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$"
 WORK_FROM_PATTERN = r"\bwork(?:ing)?\s+from\s+(?P<location>.+)$"
 SALARY_PATTERN = (
-    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})*))?"
+    r"\$\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+    r"(?:\s*[-–]\s*\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
     r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
+)
+SALARY_RANGE_LABEL_PATTERN = (
+    r"(?:salary|compensation|pay)\s+range\s*[:=\-–]\s*"
+    r"(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+    r"(?:\s*[-–]\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
+    r"(?:\s*(?P<code>USD|EUR|GBP))?"
 )
 SALARY_K_PATTERN = (
     r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?P<high>\d{2,3})\s*[kK])?"
@@ -36,6 +43,7 @@ LOCATION_SPLIT_PATTERN = r"[;|/]"
 LOCATION_PREFIX_PATTERN = r"^(?:location|office|offices|based in)\s*[:\-–]\s*"
 NON_ALNUM_PATTERN = r"[^a-z0-9]+"
 NUMBER_TOKEN_PATTERN = r"[0-9][0-9,\.]+"
+RETIREMENT_PLAN_PATTERN = r"\b401\s*\(?k\)?\b"
 
 DEFAULT_TOTAL_COMPENSATION = 0
 # Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
@@ -563,6 +571,7 @@ _LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
 _SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)
 _WORK_FROM_RE = re.compile(WORK_FROM_PATTERN, flags=re.IGNORECASE)
 _SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
+_SALARY_RANGE_LABEL_RE = re.compile(SALARY_RANGE_LABEL_PATTERN, flags=re.IGNORECASE)
 _SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
 _REMOTE_RE = re.compile(REMOTE_PATTERN, flags=re.IGNORECASE)
 
@@ -958,6 +967,17 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     comp_candidates: List[int] = []
     comp_ranges: List[tuple[Optional[int], Optional[int]]] = []
+    for salary_match in _SALARY_RANGE_LABEL_RE.finditer(markdown):
+        low = salary_match.group("low")
+        high = salary_match.group("high")
+        low_val = _to_int(low) if low else None
+        high_val = _to_int(high) if high else None
+        if low_val or high_val:
+            comp_ranges.append((low_val, high_val))
+        if high_val:
+            comp_candidates.append(high_val)
+        elif low_val:
+            comp_candidates.append(low_val)
     for salary_match in _SALARY_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
@@ -1067,11 +1087,17 @@ def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[in
     if isinstance(value, (int, float)) and value > 0:
         return (int(value), False) if with_meta else int(value)
     if isinstance(value, str):
-        numbers = re.findall(NUMBER_TOKEN_PATTERN, value.replace("\u00a0", " "))
+        cleaned = value.replace("\u00a0", " ")
+        has_retirement_token = re.search(RETIREMENT_PLAN_PATTERN, cleaned, flags=re.IGNORECASE) is not None
+        if has_retirement_token:
+            cleaned = re.sub(RETIREMENT_PLAN_PATTERN, " ", cleaned, flags=re.IGNORECASE)
+        numbers = re.findall(NUMBER_TOKEN_PATTERN, cleaned)
         if numbers:
             try:
                 parsed = max(float(num.replace(",", "")) for num in numbers)
                 if parsed > 0:
+                    if has_retirement_token and parsed < 1000:
+                        return (0, True) if with_meta else 0
                     return (int(parsed), False) if with_meta else int(parsed)
             except ValueError:
                 pass

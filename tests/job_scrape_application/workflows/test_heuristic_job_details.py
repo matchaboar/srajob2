@@ -93,6 +93,53 @@ async def test_process_pending_job_details_batch_updates_jobs(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_process_pending_job_details_batch_ignores_401k(monkeypatch):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-401k",
+            "title": "Senior Software Engineer",
+            "description": "Location: New York, NY\nBenefits include 401k matching.",
+            "url": "https://example.com/jobs/401k",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+            "heuristicAttempts": 0,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for 401k fixture"
+    patch = updated[0]
+    assert patch.get("totalCompensation") in (None, 0)
+    assert patch.get("compensationUnknown") is True
+
+
+@pytest.mark.asyncio
 async def test_process_pending_job_details_batch_prefers_job_id_field(monkeypatch):
     jobs: list[dict[str, Any]] = [
         {

@@ -109,6 +109,7 @@ const BRANDFETCH_LOGO_OVERRIDES: Record<string, string> = {
     togetherdotai: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
 };
 const BRANDFETCH_DOMAIN_OVERRIDES: Record<string, string> = {
+    oscar: "hioscar.com",
     serval: "serval.com",
 };
 const COMMON_SUBDOMAIN_PREFIXES = new Set([

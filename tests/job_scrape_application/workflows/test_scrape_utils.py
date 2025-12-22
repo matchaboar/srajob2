@@ -15,6 +15,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     looks_like_job_listing_page,
     normalize_firecrawl_items,
     normalize_single_row,
+    parse_compensation,
     parse_markdown_hints,
     prefer_apply_url,
 )
@@ -36,6 +37,20 @@ def test_parse_markdown_hints_extracts_fields():
     assert hints["location"] == "Toronto, Canada"
     assert hints["level"] == "senior"
     assert hints["compensation"] == 157500  # average of range
+
+
+def test_parse_compensation_ignores_401k_only():
+    comp, used_default = parse_compensation("401k match", with_meta=True)
+
+    assert comp == 0
+    assert used_default is True
+
+
+def test_parse_compensation_uses_salary_even_with_401k():
+    comp, used_default = parse_compensation("Salary $120,000 plus 401k", with_meta=True)
+
+    assert comp == 120000
+    assert used_default is False
 
 
 def test_normalize_single_row_uses_markdown_hints():
