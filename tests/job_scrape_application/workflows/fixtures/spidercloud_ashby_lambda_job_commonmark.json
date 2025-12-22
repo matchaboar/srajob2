@@ -1,0 +1,47 @@
+[
+  [
+    {
+      "content": {
+        "commonmark": "Data Center Operations Engineer - Chicago ORD @ Lambda"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 5.923037037037038e-06,
+        "compute_cost_formatted": "0.0000059230370370370368357166",
+        "file_cost": 0.000177501,
+        "file_cost_formatted": "0.0001775010000000000087716501",
+        "total_cost": 0.00019342403703703708,
+        "total_cost_formatted": "0.0001934240370370370461624782",
+        "transform_cost": 1e-05,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 2242,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU.\n\nIf you'd like to build the world's best AI cloud, join us.\n\n\n*Note: This position requires presence in our Chicago/Elk Grove Village Data Center location 5 days per week.\n\n\nThe Operations team is at the heart of keeping our AI-IaaS infrastructure running smoothly from start to finish. They handle everything from sourcing the right hardware and components to keeping our data centers performing at their best day in and day out. The team also works closely across the company, making sure our operational capabilities stay in sync with product goals and overall strategy. By managing the entire lifecycle — from procurement through deployment and ongoing efficiency — the Operations team ensures our AI infrastructure stays reliable, scalable, and ready to support the business as it grows.\n\nWhat You’ll Do\n\n - Make sure new servers, storage, and networking gear are racked, labeled, cabled, and configured the right way.\n\n - Keep data center layouts and network topologies up to date in our DCIM software.\n\n - Coordinate with supply chain and manufacturing teams so systems are deployed on time, especially for large-scale projects.\n\n - Evaluate current and future data center needs based on growth and technology trends.\n\n - Manage parts depot inventory and track equipment as it moves from delivery → storage → staging → deployment → handoff.\n\n - Work closely with hardware support teams to get tickets resolved quickly.\n\n - Create and manage RMA tickets when needed, making sure faulty parts are replaced and reinstalled without delay.\n\n - Develop and maintain installation standards (placement, labeling, cabling) to ensure consistency across all data centers.\n\n - Act as a subject matter expert on data center deployments, supporting sales engagements for major deployments in our facilities or at customer sites.\n\nYou\n\nSourcing &amp; Procurement\n\n - Researching, evaluating, and securing the right hardware and infrastructure components.\n\n - Building relationships with peers and supply chain to ensure cost-effective and timely supply.\n\nData Center Operations\n\n - Monitoring day-to-day performance of data centers to maintain uptime and efficiency.\n\n - Troubleshooting and resolving hardware or infrastructure issues quickly.\n\n - Performing regular maintenance and upgrades to keep systems running at peak performance.\n\nDeployment &amp; Lifecycle Management\n\n - Overseeing the full lifecycle of infrastructure, from initial setup to ongoing optimization.\n\n - Coordinating deployments of new hardware and ensuring seamless integration with existing systems.\n\n - Managing capacity planning to make sure infrastructure can scale with business growth.\n\nCross-Team Collaboration\n\n - Working with product management, support, and other teams to align operational capabilities with company goals.\n\n - Translating business priorities into technical and operational requirements.\n\n - Supporting cross-functional projects where infrastructure plays a critical role.\n\nReliability &amp; Scalability\n\n - Ensuring infrastructure remains stable, secure, and scalable as demand increases.\n\n - Continuously improving processes to boost efficiency and reduce downtime risks.\n\nNice to Have\n\n - Certifications: Any Linux or project management.\n\n - Military background.\n\n - Experience in the machine learning or computer hardware industry\n\nSalary Range Information\n\nThe annual salary range for this position has been set based on market data and other factors. However, a salary higher or lower than this range may be appropriate for a candidate whose qualifications differ meaningfully from those listed in the job description.\n\n\nAbout Lambda\n\n - Founded in 2012, with 500+ employees, and growing fast\n\n - Our investors notably include TWG Global, US Innovative Technology Fund (USIT), Andra Capital, SGW, Andrej Karpathy, ARK Invest, Fincadia Advisors, G Squared, In-Q-Tel (IQT), KHK &amp; Partners, NVIDIA, Pegatron, Supermicro, Wistron, Wiwynn, Gradient Ventures, Mercato Partners, SVB, 1517, and Crescent Cove\n\n - We have research papers accepted at top machine learning and graphics conferences, including NeurIPS, ICCV, SIGGRAPH, and TOG\n\n - Our values are publicly available: https://lambda.ai/careers\n\n - We offer generous cash &amp; equity compensation\n\n - Health, dental, and vision coverage for you and your dependents\n\n - Wellness and commuter stipends for select roles\n\n - 401k Plan with 2% company match (USA employees)\n\n - Flexible paid time off plan that we all actually use\n\nA Final Note:\n\nYou do not need to match all of the listed expectations to apply for this position. We are committed to building a team with a variety of backgrounds, experiences, and skills.\n\nEqual Opportunity Employer\n\nLambda is an Equal Opportunity employer. Applicants are considered without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.",
+          "domain": "jobs.ashbyhq.com",
+          "extracted_data": null,
+          "file_size": 54,
+          "final_url": null,
+          "keywords": [
+            "Data Center Operations Engineer"
+          ],
+          "og_image": "https://app.ashbyhq.com/api/images/org-theme-social/ca0c1074-b74b-4833-a014-70e20419cf8f/bc9a7309-7f00-4433-a86b-29e44edb7f6e/0a2b0e58-e1da-40c3-a337-f874ad0e2d06.png",
+          "original_url": "https://jobs.ashbyhq.com/lambda/ff3461ae-0026-4309-8577-4e502a9c5b3a",
+          "pathname": "/lambda/ff3461ae-0026-4309-8577-4e502a9c5b3a",
+          "resource_type": ".md",
+          "title": "Data Center Operations Engineer - Chicago ORD @ Lambda",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://jobs.ashbyhq.com/lambda/ff3461ae-0026-4309-8577-4e502a9c5b3a"
+    }
+  ]
+]

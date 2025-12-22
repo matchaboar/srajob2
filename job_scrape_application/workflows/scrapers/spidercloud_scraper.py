@@ -27,6 +27,7 @@ from ..helpers.scrape_utils import (
     parse_markdown_hints,
     strip_known_nav_blocks,
 )
+from ..helpers.link_extractors import gather_strings
 from ..site_handlers import BaseSiteHandler, get_site_handler
 from .base import BaseScraper
 
@@ -156,18 +157,46 @@ class SpiderCloudScraper(BaseScraper):
         return text.strip()
 
     def _extract_markdown(self, obj: Any) -> Optional[str]:
-        """Return the first markdown/text-like payload found in a response fragment."""
+        """Return a markdown/text payload found in a response fragment."""
 
         keys = {"markdown", "commonmark", "content", "text", "body", "result", "html", "raw_html"}
+        min_description_len = 80
+
+        def _metadata_description(value: Any) -> Optional[str]:
+            if not isinstance(value, dict):
+                return None
+            meta = value.get("metadata")
+            if not isinstance(meta, dict):
+                return None
+            for key in ("commonmark", "markdown", "content"):
+                entry = meta.get(key)
+                if not isinstance(entry, dict):
+                    continue
+                raw_desc = entry.get("description") or entry.get("content")
+                if not isinstance(raw_desc, str):
+                    continue
+                desc = raw_desc.strip()
+                if len(desc) < min_description_len:
+                    continue
+                raw_title = entry.get("title")
+                if isinstance(raw_title, str) and raw_title.strip():
+                    return f"# {raw_title.strip()}\n\n{desc}"
+                return desc
+            return None
 
         def _walk(value: Any) -> Optional[str]:
             if isinstance(value, str):
                 if not value.strip():
                     return None
                 # Detect obvious HTML and convert to markdown before returning.
-                looks_like_html = "<" in value and ">" in value and ("<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower())
+                looks_like_html = "<" in value and ">" in value and (
+                    "<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower()
+                )
                 return self._html_to_markdown(value) if looks_like_html else value
             if isinstance(value, dict):
+                metadata_candidate = _metadata_description(value)
+                if metadata_candidate:
+                    return metadata_candidate
                 for key, val in value.items():
                     if key.lower() in keys and isinstance(val, str) and val.strip():
                         looks_like_html = key.lower() in {"html", "raw_html"} or ("<" in val and ">" in val)
@@ -259,20 +288,6 @@ class SpiderCloudScraper(BaseScraper):
     def _extract_structured_job_posting(self, events: List[Any]) -> Optional[Dict[str, Any]]:
         """Best-effort extraction of JSON-LD JobPosting data from raw HTML events."""
 
-        def _gather_strings(node: Any) -> List[str]:
-            results: List[str] = []
-            if isinstance(node, str):
-                if node.strip():
-                    results.append(node)
-                return results
-            if isinstance(node, dict):
-                for child in node.values():
-                    results.extend(_gather_strings(child))
-            elif isinstance(node, list):
-                for child in node:
-                    results.extend(_gather_strings(child))
-            return results
-
         def _is_job_posting(candidate: Dict[str, Any]) -> bool:
             raw_type = candidate.get("@type") or candidate.get("type")
             if isinstance(raw_type, list):
@@ -305,7 +320,7 @@ class SpiderCloudScraper(BaseScraper):
             flags=re.IGNORECASE | re.DOTALL,
         )
 
-        for text in _gather_strings(events):
+        for text in (t for t in gather_strings(events) if isinstance(t, str) and t.strip()):
             if "<script" not in text.lower():
                 continue
             for match in script_pattern.finditer(text):
@@ -626,20 +641,6 @@ class SpiderCloudScraper(BaseScraper):
                         return found
             return None
 
-        def _gather_strings(node: Any) -> list[str]:
-            results: list[str] = []
-            if isinstance(node, str):
-                if node.strip():
-                    results.append(node)
-                return results
-            if isinstance(node, dict):
-                for child in node.values():
-                    results.extend(_gather_strings(child))
-            elif isinstance(node, list):
-                for child in node:
-                    results.extend(_gather_strings(child))
-            return results
-
         def _parse_json_text(text: str) -> Any | None:
             try:
                 parsed = json.loads(text)
@@ -681,7 +682,7 @@ class SpiderCloudScraper(BaseScraper):
         if found:
             return found
 
-        for text in _gather_strings(value):
+        for text in (t for t in gather_strings(value) if isinstance(t, str) and t.strip()):
             parsed = _parse_json_text(text)
             if parsed is not None:
                 found = _find_jobs_payload(parsed)

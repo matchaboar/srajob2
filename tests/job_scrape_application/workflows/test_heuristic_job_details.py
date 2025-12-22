@@ -608,6 +608,29 @@ def test_strip_known_nav_blocks(datadog_markdown):
     assert "Madrid, Spain" in cleaned
 
 
+def test_strip_known_nav_blocks_removes_cookie_banner():
+    markdown = (
+        "Senior Software Engineer - Core Financial Data\n\n"
+        "Your choice regarding cookies on this website: This website uses cookies.\n"
+        "Accept All\n"
+        "Reject All\n"
+        "Cookie Preferences\n"
+        "Save and Close\n"
+        "<iframe src=\"https://www.googletagmanager.com/ns.html?id=GTM-5GXRF8\"></iframe>\n"
+        "\n"
+        "Responsibilities\n"
+        "- Build data pipelines\n"
+    )
+
+    cleaned = strip_known_nav_blocks(markdown)
+
+    assert "Senior Software Engineer" in cleaned
+    assert "Your choice regarding cookies" not in cleaned
+    assert "cookie preferences" not in cleaned.lower()
+    assert "<iframe" not in cleaned
+    assert "Responsibilities" in cleaned
+
+
 def test_parse_markdown_hints_ignores_nav_block(datadog_markdown):
     hints = parse_markdown_hints(datadog_markdown)
 

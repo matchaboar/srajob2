@@ -21,6 +21,7 @@ from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # n
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_search_page_1.json"
 DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_godaddy_job_detail_commonmark.json"
+ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
 
 
 def _load_fixture(path: Path) -> Any:
@@ -35,6 +36,14 @@ def _extract_source_url(payload: Any) -> str:
             if isinstance(url, str):
                 return url
     return ""
+
+
+def _extract_first_event(payload: Any) -> Dict[str, Any] | None:
+    if isinstance(payload, list) and payload and isinstance(payload[0], list) and payload[0]:
+        item = payload[0][0]
+        if isinstance(item, dict):
+            return item
+    return None
 
 
 def _extract_commonmark(payload: Any) -> str:
@@ -126,3 +135,18 @@ def test_spidercloud_godaddy_job_detail_normalizes_description():
     assert "Principal Security Engineer" in normalized["title"]
     assert len(normalized["description"]) > 200
     assert "GoDaddy" in normalized["description"]
+
+
+def test_spidercloud_ashby_job_detail_prefers_metadata_description():
+    payload = _load_fixture(ASHBY_DETAIL_FIXTURE)
+    event = _extract_first_event(payload)
+
+    assert event is not None, "expected a spidercloud event for the Ashby job detail fixture"
+
+    scraper = _make_scraper()
+    markdown = scraper._extract_markdown(event)  # noqa: SLF001
+
+    assert markdown is not None
+    assert "Data Center Operations Engineer" in markdown
+    assert "Operations team is at the heart" in markdown
+    assert len(markdown) > 500

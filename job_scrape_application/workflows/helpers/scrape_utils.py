@@ -11,6 +11,8 @@ from urllib.parse import urlparse
 from ...constants import is_remote_company, title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
+from .link_extractors import dedupe_str_list, extract_links_from_payload
+
 WHITESPACE_PATTERN = r"\s+"
 ERROR_404_PATTERN = r"\b404\b"
 TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
@@ -76,6 +78,21 @@ NAV_BLOCK_PATTERN = (
     + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
     + r")?"
 )
+_COOKIE_SIGNAL_PATTERN = (
+    r"(cookie\s+preferences|cookie\s+policy|cookie\s+consent|cookie\s+settings|"
+    r"your\s+choice\s+regarding\s+cookies|this\s+website\s+uses\s+cookies|"
+    r"accept\s+all|reject\s+all|save\s+and\s+close|manage\s+cookies|"
+    r"essential\s+cookies|performance\s+cookies|functional\s+cookies|advertising\s+cookies|"
+    r"cookiebot|onetrust|trustarc|optimizely|google\s+analytics|microsoft\s+clarity|"
+    r"tag\s+manager|gtm)"
+)
+_COOKIE_SIGNAL_RE = re.compile(_COOKIE_SIGNAL_PATTERN, flags=re.IGNORECASE)
+_COOKIE_WORD_RE = re.compile(r"\bcookies?\b", flags=re.IGNORECASE)
+_COOKIE_UI_CONTROL_RE = re.compile(
+    r"^(accept\s+all|reject\s+all|save\s+and\s+close|cookie\s+preferences|preferences)$",
+    flags=re.IGNORECASE,
+)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _score_apply_url(url: str) -> int:
@@ -324,7 +341,9 @@ def strip_known_nav_blocks(markdown: str) -> str:
     if not markdown:
         return markdown
 
-    cleaned = _NAV_BLOCK_REGEX.sub("\n", markdown)
+    cleaned = _strip_cookie_banner(markdown)
+    cleaned = _strip_html_tag_lines(cleaned)
+    cleaned = _NAV_BLOCK_REGEX.sub("\n", cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -360,6 +379,61 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def _strip_html_tag_lines(markdown: str) -> str:
+    if not markdown:
+        return markdown
+    lines = [line for line in markdown.splitlines() if not _is_html_tag_line(line)]
+    return "\n".join(lines).strip("\n")
+
+
+def _strip_cookie_banner(markdown: str) -> str:
+    if not markdown:
+        return markdown
+
+    lines = markdown.splitlines()
+    signal_indices = [i for i, line in enumerate(lines) if _COOKIE_SIGNAL_RE.search(line)]
+    if len(signal_indices) < 2:
+        return markdown
+
+    if sum(1 for line in lines if _COOKIE_WORD_RE.search(line)) < 2:
+        return markdown
+
+    start = signal_indices[0]
+    end = signal_indices[-1]
+    if end - start > 240:
+        return markdown
+
+    while start > 0 and (not lines[start - 1].strip() or _is_html_tag_line(lines[start - 1])):
+        start -= 1
+
+    while end + 1 < len(lines):
+        candidate = lines[end + 1]
+        candidate_stripped = candidate.strip()
+        if not candidate_stripped:
+            end += 1
+            continue
+        if _is_html_tag_line(candidate):
+            end += 1
+            continue
+        if _COOKIE_UI_CONTROL_RE.match(candidate_stripped):
+            end += 1
+            continue
+        if _COOKIE_SIGNAL_RE.search(candidate):
+            end += 1
+            continue
+        break
+
+    cleaned = lines[:start] + lines[end + 1 :]
+    return "\n".join(cleaned).strip("\n") or markdown.strip("\n")
+
+
+def _is_html_tag_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped or not stripped.startswith("<") or not stripped.endswith(">"):
+        return False
+    return not _HTML_TAG_RE.sub("", stripped).strip()
 
 
 def looks_like_error_landing(title: str | None, description: str) -> bool:
@@ -1062,6 +1136,7 @@ def trim_scrape_for_convex(
 ) -> Dict[str, Any]:
     items = scrape.get("items", {})
     normalized: list[Dict[str, Any]] = []
+    page_links: list[str] = []
 
     if isinstance(items, dict):
         raw_normalized = items.get("normalized", [])
@@ -1101,6 +1176,13 @@ def trim_scrape_for_convex(
             raw_preview = None
 
     trimmed_items: Dict[str, Any] = {"normalized": normalized}
+    if isinstance(items, dict) and "raw" in items:
+        try:
+            page_links = extract_links_from_payload(items.get("raw"), collect_all=True)
+        except Exception:
+            page_links = []
+        if page_links:
+            trimmed_items["page_links"] = dedupe_str_list(page_links, limit=2000)
 
     def _copy_meta(key: str, value: Any) -> None:
         if value is None:

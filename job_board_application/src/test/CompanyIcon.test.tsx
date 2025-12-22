@@ -41,6 +41,12 @@ describe("CompanyIcon custom logos", () => {
     expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
   });
 
+  it("ignores JobDetail path segments for hosted job detail URLs", async () => {
+    render(<CompanyIcon company="Bloomberg" url="https://bloomberg.avature.net/careers/JobDetail/Some-Role/12345" />);
+    const img = await screen.findByRole("img", { name: /bloomberg logo/i });
+    expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
+  });
+
   it("falls back to the company domain when hosted urls lack a slug", async () => {
     render(<CompanyIcon company="Bloomberg" url="https://searchjobs.com/careers/JobDetail/12345" />);
     const img = await screen.findByRole("img", { name: /bloomberg logo/i });

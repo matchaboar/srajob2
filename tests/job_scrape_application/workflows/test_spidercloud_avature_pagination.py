@@ -7,6 +7,7 @@ from typing import Any, Dict
 import pytest
 
 from job_scrape_application.workflows.activities import store_scrape
+from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_for_convex
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 PAGE_1 = FIXTURE_DIR / "spidercloud_bloomberg_avature_search_page_1.json"
@@ -31,6 +32,8 @@ async def _run_store_scrape(
     raw_payload: Any,
     source_url: str,
     monkeypatch: pytest.MonkeyPatch,
+    *,
+    trim_payload: bool = False,
 ) -> tuple[list[str], list[Dict[str, Any]]]:
     calls: list[Dict[str, Any]] = []
 
@@ -44,15 +47,17 @@ async def _run_store_scrape(
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
 
-    await store_scrape(
-        {
-            "sourceUrl": source_url,
-            "provider": "spidercloud",
-            "startedAt": 0,
-            "completedAt": 1,
-            "items": {"provider": "spidercloud", "raw": raw_payload},
-        }
-    )
+    scrape_payload: Dict[str, Any] = {
+        "sourceUrl": source_url,
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {"provider": "spidercloud", "raw": raw_payload},
+    }
+    if trim_payload:
+        scrape_payload = trim_scrape_for_convex(scrape_payload)
+
+    await store_scrape(scrape_payload)
 
     enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue URLs from Avature listing payload"
@@ -87,3 +92,16 @@ async def test_spidercloud_avature_page_2_adds_next_offset(monkeypatch: pytest.M
 
     assert urls, "expected Avature listing URLs to be extracted"
     assert any("joboffset=24" in url.lower() for url in urls)
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_avature_trimmed_payload_preserves_links(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    raw_payload = _load_fixture(PAGE_1)
+    source_url = _extract_url(raw_payload)
+
+    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch, trim_payload=True)
+
+    assert urls, "expected Avature listing URLs to be extracted from trimmed payload"
+    assert any("/careers/JobDetail/" in url for url in urls), "expected job detail URLs from trimmed payload"

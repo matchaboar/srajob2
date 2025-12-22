@@ -119,6 +119,7 @@ const RESERVED_PATH_SEGMENTS = new Set([
     "boards",
     "jobs",
     "careers",
+    "jobdetail",
     "apply",
     "application",
     "applications",
@@ -179,6 +180,9 @@ const extractCompanySlug = (pathname: string) => {
     const parts = pathname.split("/").filter(Boolean);
     for (const part of parts) {
         const cleaned = part.toLowerCase();
+        if (cleaned === "jobdetail" || cleaned === "job-details" || cleaned === "jobdetails") {
+            break;
+        }
         if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
         if (/^\d+$/.test(cleaned)) continue;
         if (!/^[a-z0-9-]+$/.test(cleaned)) continue;

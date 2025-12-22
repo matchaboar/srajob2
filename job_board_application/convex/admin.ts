@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import type { TableNamesInDataModel } from "./_generated/dataModel";
+import type { TableNames } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 type AnyDoc = Record<string, any>;
@@ -37,7 +37,7 @@ export const wipeSiteDataByDomainPage = mutation({
       throw new Error("domain is required");
     }
 
-    const tableName = args.table as TableNamesInDataModel & WipeTable;
+    const tableName = args.table as TableNames & WipeTable;
     const prefix = (args.prefix || `https://${domain}`).trim().toLowerCase();
     const prefixUpper = `${prefix}\uffff`;
     const dryRun = args.dryRun ?? false;

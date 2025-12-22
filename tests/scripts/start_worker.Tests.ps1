@@ -6,7 +6,7 @@ Param()
 
 Describe "start_worker.ps1" {
     BeforeAll {
-        $scriptPath = (Resolve-Path (Join-Path (Split-Path -Parent $PSCommandPath) ".." "start_worker.ps1")).ProviderPath
+        $scriptPath = (Resolve-Path (Join-Path (Split-Path -Parent $PSCommandPath) ".." ".." "start_worker.ps1")).ProviderPath
         # Dot source the script so functions are available without auto-running main
         $env:SKIP_START_WORKER_MAIN = "1"
         $scriptFile = Get-Item -LiteralPath $scriptPath
