@@ -35,6 +35,16 @@ async def main() -> None:
     parser.add_argument("--track-responses", action="store_true", help="Track network responses")
     parser.add_argument("--track-requests", action="store_true", help="Track network requests")
     parser.add_argument("--track-automation", action="store_true", help="Track automation events")
+    parser.add_argument(
+        "--wait-for-selector",
+        help="CSS selector to wait for before returning content",
+    )
+    parser.add_argument(
+        "--wait-for-timeout-secs",
+        type=int,
+        default=20,
+        help="Timeout in seconds for wait-for selector (default: 20)",
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -64,6 +74,14 @@ async def main() -> None:
             "responses": bool(args.track_responses),
             "requests": bool(args.track_requests),
             "automation": bool(args.track_automation),
+        }
+    if args.wait_for_selector:
+        params["wait_for"] = {
+            "selector": {
+                "selector": args.wait_for_selector,
+                "timeout": {"secs": args.wait_for_timeout_secs, "nanos": 0},
+            },
+            "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
         }
 
     async with AsyncSpider(api_key=api_key) as client:

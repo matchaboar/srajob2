@@ -196,6 +196,12 @@ export function JobBoard() {
     if (hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
     return "jobs";
   });
+  const companyFilterFromUrl = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("company");
+    return raw && raw.trim() ? raw.trim() : null;
+  }, []);
+  const companyFilterAppliedRef = useRef(false);
 
   const [filters, setFilters] = useState<Filters>(buildEmptyFilters);
   const [throttledFilters, setThrottledFilters] = useState<Filters>(buildEmptyFilters);
@@ -215,6 +221,14 @@ export function JobBoard() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const jobListRef = useRef<HTMLDivElement | null>(null);
   const companyBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buildCompanyJobsUrl = useCallback((companyName: string) => {
+    const trimmed = companyName.trim();
+    if (!trimmed) return "";
+    const url = new URL(window.location.href);
+    url.searchParams.set("company", trimmed);
+    url.hash = "jobs";
+    return url.toString();
+  }, []);
   const markdownComponents = useMemo<Components>(() => {
     const renderCode = ({ inline, children, className: _className, ...props }: MarkdownCodeProps) =>
       inline ? (
@@ -904,6 +918,33 @@ export function JobBoard() {
   useEffect(() => {
     if (savedFilters === undefined) return;
 
+    if (companyFilterFromUrl) {
+      if (!companyFilterAppliedRef.current) {
+        companyFilterAppliedRef.current = true;
+        lastThrottleRef.current = 0;
+        setActiveTab("jobs");
+        setSelectedSavedFilterId(null);
+        setFilters({
+          ...buildEmptyFilters(),
+          companies: [companyFilterFromUrl],
+        });
+        setCompanyInput("");
+        setSelectedJobId(null);
+        pendingSelectionClearRef.current = true;
+        selectSavedFilter({ filterId: undefined })
+          .catch(() => toast.error("Failed to clear saved filter"))
+          .finally(() => {
+            pendingSelectionClearRef.current = false;
+          });
+      }
+      if (savedFilters.length === 0 && !defaultFilterRequestedRef.current) {
+        defaultFilterRequestedRef.current = true;
+        ensureDefaultFilter().catch(() => setFiltersReady(true));
+      }
+      setFiltersReady(true);
+      return;
+    }
+
     if (savedFilters.length === 0) {
       if (!defaultFilterRequestedRef.current) {
         defaultFilterRequestedRef.current = true;
@@ -927,7 +968,7 @@ export function JobBoard() {
     }
 
     setFiltersReady(true);
-  }, [applySavedFilterToState, ensureDefaultFilter, pendingSelectionClearRef, savedFilters, selectedSavedFilterId]);
+  }, [applySavedFilterToState, companyFilterFromUrl, ensureDefaultFilter, savedFilters, selectedSavedFilterId, selectSavedFilter]);
 
   useEffect(() => {
     if (filtersReady) return;
@@ -1734,6 +1775,7 @@ export function JobBoard() {
                             isExiting={exitingJobs[job._id]}
                             keyboardBlur={idx > blurFromIndex}
                             showHotkeys={selectedJobId === job._id && keyboardNavActive}
+                            getCompanyJobsUrl={buildCompanyJobsUrl}
                           />
                         ))}
                       </AnimatePresence>
@@ -1764,7 +1806,17 @@ export function JobBoard() {
                       <div className="min-w-0 pr-4">
                         <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedJobFull.title}</h2>
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                          <div className="text-sm font-medium text-blue-400 mr-1">{selectedJobFull.company}</div>
+                          {selectedJobFull.company ? (
+                            <a
+                              href={buildCompanyJobsUrl(selectedJobFull.company)}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
+                            >
+                              {selectedJobFull.company}
+                            </a>
+                          ) : null}
                           {selectedLocationDetail && selectedLocationDetail !== "Unknown" && (
                             <span
                               className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70"
@@ -2063,6 +2115,7 @@ export function JobBoard() {
                     onSelect={() => handleSelectJob(job._id)}
                     onApply={(type) => { void handleApply(job._id, type, job.url); }}
                     onReject={() => { void handleReject(job._id); }}
+                    getCompanyJobsUrl={buildCompanyJobsUrl}
                   />
                 ))}
                 {appliedList.length === 0 && (
@@ -2080,7 +2133,17 @@ export function JobBoard() {
                     <div className="min-w-0 pr-4">
                       <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedAppliedJobFull.title}</h2>
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                        <div className="text-sm font-medium text-blue-400 mr-1">{selectedAppliedJobFull.company}</div>
+                        {selectedAppliedJobFull.company ? (
+                          <a
+                            href={buildCompanyJobsUrl(selectedAppliedJobFull.company)}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                            className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
+                          >
+                            {selectedAppliedJobFull.company}
+                          </a>
+                        ) : null}
                         {selectedAppliedJobFull.location && selectedAppliedJobFull.location !== "Unknown" && (
                           <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
                             {selectedAppliedJobFull.location}
@@ -2189,6 +2252,7 @@ export function JobBoard() {
                     onSelect={() => handleSelectJob(job._id)}
                     onApply={() => { }}
                     onReject={() => { }}
+                    getCompanyJobsUrl={buildCompanyJobsUrl}
                   />
                 ))}
                 {rejectedList.length === 0 && (
@@ -2210,7 +2274,17 @@ export function JobBoard() {
                       <div className="min-w-0 pr-4">
                         <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedRejectedJob.title}</h2>
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                          <div className="text-sm font-medium text-blue-400 mr-1">{selectedRejectedJob.company}</div>
+                          {selectedRejectedJob.company ? (
+                            <a
+                              href={buildCompanyJobsUrl(selectedRejectedJob.company)}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
+                            >
+                              {selectedRejectedJob.company}
+                            </a>
+                          ) : null}
                           {selectedRejectedJob.location && selectedRejectedJob.location !== "Unknown" && (
                             <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
                               {selectedRejectedJob.location}

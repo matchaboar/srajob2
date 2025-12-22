@@ -790,7 +790,15 @@ export const leaseSite = mutation({
   args: {
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
-    siteType: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
+    siteType: v.optional(
+      v.union(
+        v.literal("general"),
+        v.literal("greenhouse"),
+        v.literal("avature"),
+        v.literal("workday"),
+        v.literal("netflix")
+      )
+    ),
     scrapeProvider: v.optional(
       v.union(
         v.literal("fetchfox"),
@@ -819,7 +827,12 @@ export const leaseSite = mutation({
       const siteType = (site).type ?? "general";
       const scrapeProvider =
         (site).scrapeProvider ??
-        (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
+        (siteType === "greenhouse" ||
+        siteType === "avature" ||
+        siteType === "workday" ||
+        siteType === "netflix"
+          ? "spidercloud"
+          : "fetchfox");
       const hasSchedule = !!(site).scheduleId;
       const lastRun = (site).lastRunAt ?? 0;
       const manualTriggerAt = (site).manualTriggerAt ?? 0;
@@ -876,7 +889,10 @@ export const leaseSite = mutation({
     const s = fresh;
     const resolvedProvider =
       (s as any).scrapeProvider ??
-      ((s as any).type === "greenhouse" || (s as any).type === "avature"
+      ((s as any).type === "greenhouse" ||
+      (s as any).type === "avature" ||
+      (s as any).type === "workday" ||
+      (s as any).type === "netflix"
         ? "spidercloud"
         : "fetchfox");
     return {
@@ -2022,7 +2038,15 @@ export const upsertSite = mutation({
   args: {
     name: v.optional(v.string()),
     url: v.string(),
-    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
+    type: v.optional(
+      v.union(
+        v.literal("general"),
+        v.literal("greenhouse"),
+        v.literal("avature"),
+        v.literal("workday"),
+        v.literal("netflix")
+      )
+    ),
     scrapeProvider: v.optional(
       v.union(
         v.literal("fetchfox"),
@@ -2040,7 +2064,12 @@ export const upsertSite = mutation({
     const siteType = args.type ?? "general";
     const scrapeProvider =
       args.scrapeProvider ??
-      (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
+      (siteType === "greenhouse" ||
+      siteType === "avature" ||
+      siteType === "workday" ||
+      siteType === "netflix"
+        ? "spidercloud"
+        : "fetchfox");
     const normalizedUrl = normalizeSiteUrl(args.url, siteType);
     const resolvedName = fallbackCompanyName(args.name, normalizedUrl);
     const key = siteCanonicalKey(normalizedUrl, siteType);
@@ -2168,7 +2197,15 @@ export const bulkUpsertSites = mutation({
       v.object({
         name: v.optional(v.string()),
         url: v.string(),
-        type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
+        type: v.optional(
+          v.union(
+            v.literal("general"),
+            v.literal("greenhouse"),
+            v.literal("avature"),
+            v.literal("workday"),
+            v.literal("netflix")
+          )
+        ),
         scrapeProvider: v.optional(
           v.union(
             v.literal("fetchfox"),
@@ -2190,7 +2227,12 @@ export const bulkUpsertSites = mutation({
       const siteType = site.type ?? "general";
       const scrapeProvider =
         site.scrapeProvider ??
-        (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
+        (siteType === "greenhouse" ||
+        siteType === "avature" ||
+        siteType === "workday" ||
+        siteType === "netflix"
+          ? "spidercloud"
+          : "fetchfox");
       const normalizedUrl = normalizeSiteUrl(site.url, siteType);
       const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
       const key = siteCanonicalKey(normalizedUrl, siteType);

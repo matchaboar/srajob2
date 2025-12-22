@@ -117,7 +117,15 @@ const applicationTables = {
   sites: defineTable({
     name: v.optional(v.string()),
     url: v.string(),
-    type: v.optional(v.union(v.literal("general"), v.literal("greenhouse"), v.literal("avature"))),
+    type: v.optional(
+      v.union(
+        v.literal("general"),
+        v.literal("greenhouse"),
+        v.literal("avature"),
+        v.literal("workday"),
+        v.literal("netflix")
+      )
+    ),
     scrapeProvider: v.optional(
       v.union(
         v.literal("fetchfox"),

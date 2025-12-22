@@ -11,7 +11,7 @@ export type SiteScheduleEntry = {
   url: string;
   name?: string;
   enabled?: boolean;
-  type?: "general" | "greenhouse" | "avature";
+  type?: "general" | "greenhouse" | "avature" | "workday" | "netflix";
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
   schedule?: {
@@ -27,7 +27,7 @@ export type NormalizedSiteSchedule = {
   url: string;
   name?: string;
   enabled: boolean;
-  type?: "general" | "greenhouse" | "avature";
+  type?: "general" | "greenhouse" | "avature" | "workday" | "netflix";
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
   schedule?: {
@@ -186,7 +186,9 @@ export const syncSiteSchedulesFromEntries = async (
     const siteType = entry.type ?? "general";
     const scrapeProvider =
       entry.scrapeProvider ??
-      (siteType === "greenhouse" || siteType === "avature" ? "spidercloud" : "fetchfox");
+      (siteType === "greenhouse" || siteType === "avature" || siteType === "workday" || siteType === "netflix"
+        ? "spidercloud"
+        : "fetchfox");
 
     const name = entry.name ?? fallbackCompanyNameFromUrl(entry.url);
 

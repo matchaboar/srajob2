@@ -1088,23 +1088,17 @@ export const retagVersionCompany = mutation({
     let updated = 0;
 
     for (const label of labels) {
-      let cursor: any = null;
-      while (true) {
-        const { page, isDone, continueCursor } = await ctx.db
-          .query("jobs")
-          .withIndex("by_company", (q: any) => q.eq("company", label))
-          .paginate({ cursor, numItems: 200 });
+      const rows = await ctx.db
+        .query("jobs")
+        .withIndex("by_company", (q: any) => q.eq("company", label))
+        .take(1000);
 
-        scanned += page.length;
-        for (const job of page) {
-          const derived = deriveCompanyFromUrl((job as any).url || "");
-          if (!derived || derived === (job as any).company) continue;
-          await ctx.db.patch(job._id, { company: derived });
-          updated += 1;
-        }
-
-        if (isDone || !continueCursor) break;
-        cursor = continueCursor;
+      scanned += rows.length;
+      for (const job of rows) {
+        const derived = deriveCompanyFromUrl((job as any).url || "");
+        if (!derived || derived === (job as any).company) continue;
+        await ctx.db.patch(job._id, { company: derived });
+        updated += 1;
       }
     }
 

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import type { MouseEvent } from "react";
 import { LiveTimer } from "./LiveTimer";
 import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
@@ -18,6 +19,7 @@ interface JobRowProps {
     keyboardBlur?: boolean;
     showHotkeys?: boolean;
     variant?: JobRowVariant;
+    getCompanyJobsUrl?: (companyName: string) => string;
 }
 
 export function JobRow({
@@ -30,13 +32,19 @@ export function JobRow({
     isExiting,
     keyboardBlur,
     showHotkeys,
-    variant = 'default'
+    variant = 'default',
+    getCompanyJobsUrl
 }: JobRowProps) {
     const compensationMeta = buildCompensationMeta(job);
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
     const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
     const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
     const displayLocation = groupedLabel ?? job.location;
+    const companyName = typeof job.company === "string" ? job.company : "";
+    const companyUrl = getCompanyJobsUrl && companyName ? getCompanyJobsUrl(companyName) : "";
+    const handleCompanyClick = (event: MouseEvent) => {
+        event.stopPropagation();
+    };
 
     // Applied/Rejected specific dates
     const appliedAt = typeof job.appliedAt === "number" ? job.appliedAt : null;
@@ -84,7 +92,20 @@ export function JobRow({
 
             <div className={`flex-1 min-w-0 grid gap-3 items-center ${variant === 'applied' ? 'grid-cols-[auto_5fr_3fr] sm:grid-cols-[auto_5fr_5fr_3fr_2fr_2fr]' : 'grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr]'}`}>
                 <div className="order-1">
-                    <CompanyIcon company={job.company ?? ""} size={28} url={job.url} />
+                    {companyUrl ? (
+                        <a
+                            href={companyUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={handleCompanyClick}
+                            className="inline-flex"
+                            aria-label={`View jobs for ${companyName}`}
+                        >
+                            <CompanyIcon company={companyName} size={28} url={job.url} />
+                        </a>
+                    ) : (
+                        <CompanyIcon company={companyName} size={28} url={job.url} />
+                    )}
                 </div>
                 {/* Title & Pills */}
                 <div className="min-w-0 flex items-center gap-2 overflow-hidden order-2">
@@ -98,9 +119,22 @@ export function JobRow({
                                 <Keycap label="R" className="text-[9px] h-4 min-w-[16px] px-1 bg-slate-700 border-slate-600 text-slate-300 shadow-sm" />
                             </div>
                         )}
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem]">
-                            {job.company}
-                        </span>
+                        {companyUrl ? (
+                            <a
+                                href={companyUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={handleCompanyClick}
+                                className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem] hover:text-white hover:border-slate-500"
+                                title={`View jobs for ${companyName}`}
+                            >
+                                {companyName}
+                            </a>
+                        ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem]">
+                                {companyName}
+                            </span>
+                        )}
                         <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border border-slate-800 bg-slate-900/70 text-slate-400 shrink-0">
                             {levelLabel}
                         </span>

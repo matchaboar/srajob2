@@ -7,8 +7,17 @@ from .avature import AvatureHandler
 from .base import BaseSiteHandler
 from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
+from .netflix import NetflixHandler
+from .workday import WorkdayHandler
 
-_HANDLER_CLASSES = (AshbyHqHandler, AvatureHandler, GithubCareersHandler, GreenhouseHandler)
+_HANDLER_CLASSES = (
+    AshbyHqHandler,
+    AvatureHandler,
+    GithubCareersHandler,
+    GreenhouseHandler,
+    NetflixHandler,
+    WorkdayHandler,
+)
 
 
 def get_site_handler(url: str | None = None, site_type: str | None = None) -> BaseSiteHandler | None:
@@ -40,6 +49,8 @@ __all__ = [
     "BaseSiteHandler",
     "GithubCareersHandler",
     "GreenhouseHandler",
+    "NetflixHandler",
+    "WorkdayHandler",
     "get_site_handler",
     "get_site_handlers_for_urls",
 ]

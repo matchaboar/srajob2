@@ -2067,6 +2067,26 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
         urls = urls_from_raw or urls_from_trimmed or []
         source_url = payload.get("sourceUrl")
+        handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
+        if urls:
+            job_urls: list[str] = []
+            listing_urls: list[str] = []
+            for url in urls:
+                if handler and handler.is_listing_url(url):
+                    listing_urls.append(url)
+                else:
+                    job_urls.append(url)
+            await _log_scratchpad(
+                "scrape.url_split",
+                message="Split scrape URLs into job and listing groups",
+                data={
+                    "sourceUrl": source_url or "",
+                    "jobUrlsCount": len(job_urls),
+                    "listingUrlsCount": len(listing_urls),
+                    "jobUrlsSample": job_urls[:3],
+                    "listingUrlsSample": listing_urls[:3],
+                },
+            )
         if urls:
             logger.info(
                 "Scrape URL extraction source=%s count=%s",
