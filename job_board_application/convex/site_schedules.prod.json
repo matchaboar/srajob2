@@ -7,7 +7,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -16,7 +16,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -27,7 +27,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -36,7 +36,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -47,7 +47,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -56,7 +56,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -67,7 +67,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -76,7 +76,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -87,7 +87,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -96,7 +96,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -107,18 +107,16 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "Every 5 mins checck daily",
+        "name": "Weekdays every 2 hours @ 08:00",
         "days": [
           "mon",
           "tue",
           "wed",
           "thu",
-          "fri",
-          "sat",
-          "sun"
+          "fri"
         ],
         "startTime": "08:00",
-        "intervalMinutes": 5.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -129,7 +127,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -138,7 +136,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -149,7 +147,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -158,7 +156,47 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/mithril/jobs",
+      "name": "Mithril",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 08:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/oscar/jobs",
+      "name": "Oscar",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 08:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -169,7 +207,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -178,7 +216,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -189,7 +227,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -198,7 +236,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -209,7 +247,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -218,7 +256,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -229,18 +267,16 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "Every 5 mins checck daily",
+        "name": "Weekdays every 2 hours @ 08:00",
         "days": [
           "mon",
           "tue",
           "wed",
           "thu",
-          "fri",
-          "sat",
-          "sun"
+          "fri"
         ],
         "startTime": "08:00",
-        "intervalMinutes": 5.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -251,7 +287,7 @@
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -260,7 +296,27 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/togetherai/jobs",
+      "name": "together.ai",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 08:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -271,7 +327,7 @@
       "type": "avature",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -280,7 +336,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -291,7 +347,7 @@
       "type": "workday",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -300,7 +356,7 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -311,30 +367,7 @@
       "type": "general",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "Every 5 mins checck daily",
-        "days": [
-          "mon",
-          "tue",
-          "wed",
-          "thu",
-          "fri",
-          "sat",
-          "sun"
-        ],
-        "startTime": "08:00",
-        "intervalMinutes": 5.0,
-        "timezone": "America/Denver"
-      }
-    },
-    {
-      "url": "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
-      "name": "Netflix",
-      "enabled": true,
-      "type": "netflix",
-      "scrapeProvider": "spidercloud",
-      "pattern": "https://explore.jobs.netflix.net/careers/job/**",
-      "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 08:00",
         "days": [
           "mon",
           "tue",
@@ -342,8 +375,8 @@
           "thu",
           "fri"
         ],
-        "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -355,7 +388,7 @@
       "scrapeProvider": "spidercloud",
       "pattern": "https://careers.snap.com/job**",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -364,19 +397,60 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+      "name": "Netflix",
+      "enabled": true,
+      "type": "netflix",
+      "scrapeProvider": "spidercloud",
+      "pattern": "https://explore.jobs.netflix.net/careers/job/**",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 09:30",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://jobs.ashbyhq.com/Serval",
+      "name": "Serval",
+      "enabled": true,
+      "type": "general",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 08:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
     {
       "url": "https://jobs.ashbyhq.com/lambda",
-      "name": "lambda",
+      "name": "Lambda",
       "enabled": true,
       "type": "general",
       "scrapeProvider": "spidercloud",
       "pattern": "https://jobs.ashbyhq.com/lambda/*",
       "schedule": {
-        "name": "weekdays 9:30am",
+        "name": "Weekdays every 2 hours @ 09:30",
         "days": [
           "mon",
           "tue",
@@ -385,7 +459,27 @@
           "fri"
         ],
         "startTime": "09:30",
-        "intervalMinutes": 1440.0,
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://jobs.ashbyhq.com/ramp",
+      "name": "ramp",
+      "enabled": true,
+      "type": "general",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 08:00",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "08:00",
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     },
@@ -396,18 +490,16 @@
       "type": "general",
       "scrapeProvider": "spidercloud",
       "schedule": {
-        "name": "Every 5 mins checck daily",
+        "name": "Weekdays every 2 hours @ 08:00",
         "days": [
           "mon",
           "tue",
           "wed",
           "thu",
-          "fri",
-          "sat",
-          "sun"
+          "fri"
         ],
         "startTime": "08:00",
-        "intervalMinutes": 5.0,
+        "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
     }

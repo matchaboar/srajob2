@@ -9,6 +9,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { JobRow } from "./components/JobRow";
+import { CompanyIcon } from "./components/CompanyIcon";
 import { StatusTracker } from "./components/StatusTracker";
 import { Keycap } from "./components/Keycap";
 import { DiagonalFraction } from "./components/DiagonalFraction";
@@ -352,6 +353,11 @@ export function JobBoard() {
   const isRejectedTab = activeTab === "rejected";
   const isLiveTab = activeTab === "live";
   const isIgnoredTab = activeTab === "ignored";
+  const companyBannerName = useMemo(() => {
+    if (filters.companies.length === 1) return filters.companies[0] ?? null;
+    if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
+    return null;
+  }, [companyFilterFromUrl, filters.companies, filtersReady]);
   const shouldFetchCompanySuggestions = isJobsTab && companyInputFocused && !!debouncedCompanyInput.trim();
 
   const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
@@ -1259,29 +1265,42 @@ export function JobBoard() {
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-950 text-slate-200 overflow-hidden">
       {/* Top Bar / Tabs */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-800 bg-slate-900/50 gap-3">
-        <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
-          {(["jobs", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
-                ? "bg-slate-800 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "applied" && appliedList.length > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded-full">
-                  {appliedList.length}
+        <div className="flex items-center gap-3 overflow-x-auto">
+          {companyBannerName && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/70">
+              <CompanyIcon company={companyBannerName} size={26} />
+              <div className="flex flex-col leading-tight">
+                <span className="text-[10px] uppercase tracking-wide text-slate-500">Company</span>
+                <span className="text-sm font-semibold text-slate-100 max-w-[140px] truncate" title={companyBannerName}>
+                  {companyBannerName}
                 </span>
-              )}
-              {tab === "rejected" && rejectedList.length > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-300 text-[10px] rounded-full">
-                  {rejectedList.length}
-                </span>
-              )}
-            </button>
-          ))}
+              </div>
+            </div>
+          )}
+          <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
+            {(["jobs", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === "applied" && appliedList.length > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded-full">
+                    {appliedList.length}
+                  </span>
+                )}
+                {tab === "rejected" && rejectedList.length > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-300 text-[10px] rounded-full">
+                    {rejectedList.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400">
           {activeTab === "jobs" && (

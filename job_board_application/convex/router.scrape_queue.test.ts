@@ -8,6 +8,7 @@ type QueueRow = {
   status: string;
   updatedAt: number;
   createdAt?: number;
+  scheduledAt?: number;
   provider?: string;
   attempts?: number;
 };
@@ -15,18 +16,38 @@ type QueueRow = {
 class FakeQuery {
   constructor(
     private getRows: () => QueueRow[],
-    private filterStatus: string | null = null
+    private filterStatus: string | null = null,
+    private scheduledAtMax: number | null = null
   ) {}
   withIndex(_name: string, cb: (q: any) => any) {
-    const status = cb({ eq: (_field: string, val: string) => val });
-    return new FakeQuery(this.getRows, status);
+    let status: string | null = null;
+    let scheduledAtMax: number | null = null;
+    const builder = {
+      eq: (field: string, val: string) => {
+        if (field === "status") status = val;
+        return builder;
+      },
+      lte: (field: string, val: number) => {
+        if (field === "scheduledAt") scheduledAtMax = val;
+        return builder;
+      },
+    };
+    cb(builder);
+    return new FakeQuery(this.getRows, status, scheduledAtMax);
   }
   order() {
     return this;
   }
   take(n: number) {
     const rows = this.getRows();
-    const filtered = this.filterStatus ? rows.filter((r) => r.status === this.filterStatus) : rows;
+    let filtered = this.filterStatus ? rows.filter((r) => r.status === this.filterStatus) : rows;
+    if (this.scheduledAtMax !== null) {
+      const scheduledAtMax = this.scheduledAtMax;
+      filtered = filtered.filter((row) => {
+        const scheduledAt = row.scheduledAt ?? 0;
+        return scheduledAt <= scheduledAtMax;
+      });
+    }
     return filtered.slice(0, n);
   }
   collect() {
@@ -204,6 +225,45 @@ describe("leaseScrapeUrlBatch", () => {
     expect(leasedUrls).toEqual(rows.map((r) => r.url));
     expect(rows.every((r) => r.status === "processing")).toBe(true);
     expect(rows.every((r) => (r.attempts ?? 0) === 1)).toBe(true);
+  });
+
+  it("skips scheduled rows until their scheduledAt time", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "future-1",
+        url: "https://example.com/job/future",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now + 60_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+      {
+        _id: "ready-1",
+        url: "https://example.com/job/ready",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const urls = res.urls.map((u: any) => u.url);
+    expect(urls).toContain("https://example.com/job/ready");
+    expect(urls).not.toContain("https://example.com/job/future");
   });
 
   it("skips rows when provider does not match the lease filter", async () => {

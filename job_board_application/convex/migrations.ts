@@ -127,6 +127,22 @@ export const backfillScrapeRecords = migrations.define({
   },
 });
 
+export const deriveScrapeQueueScheduledAt = (doc: any): number => {
+  if (typeof doc?.createdAt === "number") return doc.createdAt;
+  if (typeof doc?.updatedAt === "number") return doc.updatedAt;
+  return Date.now();
+};
+
+export const backfillScrapeQueueScheduledAt = migrations.define({
+  table: "scrape_url_queue",
+  migrateOne: async (ctx, doc) => {
+    if (doc.scheduledAt === undefined || doc.scheduledAt === null) {
+      const scheduledAt = deriveScrapeQueueScheduledAt(doc);
+      await ctx.db.patch(doc._id, { scheduledAt });
+    }
+  },
+});
+
 export const repairJobDetailJobIds = migrations.define({
   table: "job_details",
   migrateOne: async (ctx, doc) => {

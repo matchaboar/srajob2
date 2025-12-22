@@ -19,6 +19,12 @@ const parseJobDetailsId = (hash: string) => {
 
 export default function App() {
   const isAdmin = useQuery(api.auth.isAdmin);
+  const defaultJobsHref = (() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("company");
+    url.hash = "jobs";
+    return url.toString();
+  })();
 
   // Check for test page route
   const [showTestPage, setShowTestPage] = useState(() => {
@@ -84,7 +90,9 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-200">
       <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 h-16 flex justify-between items-center px-6">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-white tracking-tight">JobBoard</h2>
+          <a href={defaultJobsHref} className="text-xl font-bold text-white tracking-tight hover:text-slate-200">
+            JobBoard
+          </a>
         </div>
         <div className="flex items-center gap-4">
           <button

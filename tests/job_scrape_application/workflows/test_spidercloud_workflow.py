@@ -736,6 +736,28 @@ def test_spidercloud_normalize_job_ignores_listing_payload():
     assert scraper._last_ignored_job.get("reason") == "listing_payload"
 
 
+def test_spidercloud_ashby_detail_preserves_structured_title():
+    scraper = _make_spidercloud_scraper()
+    raw_html = Path("tests/fixtures/ashby_lambda_job_detail_raw.html").read_text(encoding="utf-8")
+    markdown = "\n".join(
+        [
+            "What You'll Do",
+            "- Partner closely with Engineering, Data Center Operations, and Finance teams to align supplier capabilities with technical roadmaps and scaling needs.",
+        ]
+    )
+
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url="https://jobs.ashbyhq.com/lambda/0d79c70e-7a49-4a4a-a72f-7ef25d62de41",
+        markdown=markdown,
+        events=[{"content": {"raw_html": raw_html}}],
+        started_at=0,
+        require_keywords=True,
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Technical Sourcing Manager"
+
+
 def test_spidercloud_normalize_job_skips_avature_listing_url():
     scraper = _make_spidercloud_scraper()
     url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobOffset=0"
@@ -1098,6 +1120,56 @@ def test_spidercloud_github_job_detail_uses_structured_data():
     assert normalized is not None
     assert normalized["title"] == "Senior Software Engineer"
     assert normalized["location"] == "Japan"
+
+
+def test_spidercloud_extracts_markdown_from_content_raw():
+    url = "https://explore.jobs.netflix.net/careers/job/790313277967"
+    html = (
+        "<html><head><title>Software Engineer 5 - TV Client Foundations</title></head>"
+        "<body><h1>Software Engineer 5 - TV Client Foundations</h1>"
+        "<p>Netflix builds new experiences for members worldwide.</p></body></html>"
+    )
+    events = [{"content": {"raw": html}, "url": url, "status": 200}]
+
+    scraper = _make_spidercloud_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=url,
+        markdown="",
+        events=events,
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert "Software Engineer 5" in normalized["title"]
+    assert "Netflix builds new experiences" in normalized["description"]
+
+
+def test_spidercloud_extracts_metadata_raw_description():
+    url = "https://explore.jobs.netflix.net/careers/job/790313277967"
+    description = (
+        "Netflix is one of the world's leading entertainment services with members worldwide."
+        " This role helps build experiences that scale across devices and audiences."
+    )
+    events = [
+        {
+            "content": {"raw": ""},
+            "metadata": {"raw": {"title": "Software Engineer 5 - TV Client Foundations", "description": description}},
+            "url": url,
+            "status": 200,
+        }
+    ]
+
+    scraper = _make_spidercloud_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=url,
+        markdown="",
+        events=events,
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert "Software Engineer 5" in normalized["title"]
+    assert description in normalized["description"]
 
 
 def test_spidercloud_allows_when_title_unknown():

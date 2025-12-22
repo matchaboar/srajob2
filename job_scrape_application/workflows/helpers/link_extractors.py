@@ -115,17 +115,29 @@ def extract_job_urls_from_json_payload(value: Any) -> list[str]:
     def _extract_from_jobs_payload(payload: dict[str, Any]) -> list[str]:
         jobs = payload.get("jobs") if isinstance(payload, dict) else None
         if not isinstance(jobs, list):
-            return []
+            jobs = None
         url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
         urls: list[str] = []
         seen_local: set[str] = set()
-        for job in jobs:
-            if not isinstance(job, dict):
-                continue
-            for key in url_keys:
-                val = job.get(key)
-                if _is_nonempty_string(val):
-                    url = str(val).strip()
+        if isinstance(jobs, list):
+            for job in jobs:
+                if not isinstance(job, dict):
+                    continue
+                for key in url_keys:
+                    val = job.get(key)
+                    if _is_nonempty_string(val):
+                        url = str(val).strip()
+                        if url not in seen_local:
+                            seen_local.add(url)
+                            urls.append(url)
+        positions = payload.get("positions") if isinstance(payload, dict) else None
+        if isinstance(positions, list):
+            for position in positions:
+                if not isinstance(position, dict):
+                    continue
+                url = position.get("canonicalPositionUrl")
+                if _is_nonempty_string(url):
+                    url = str(url).strip()
                     if url not in seen_local:
                         seen_local.add(url)
                         urls.append(url)

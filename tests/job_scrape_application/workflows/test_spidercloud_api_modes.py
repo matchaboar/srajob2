@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
@@ -35,6 +36,17 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def test_captcha_detector_ignores_recaptcha_enabled_fixture():
+    scraper = _make_scraper()
+    html_text = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_api_pre_recaptcha.html"
+    ).read_text(encoding="utf-8")
+    markdown = scraper._extract_markdown({"content": {"raw": html_text}})
+    assert markdown and "recaptcha_enabled" in markdown.lower()
+    marker = scraper._detect_captcha(markdown, [])
+    assert marker is None
+
+
 class _CaptchaClient:
     """Client that raises CaptchaDetectedError first, then succeeds."""
 
@@ -56,6 +68,14 @@ class _CaptchaClient:
             # First call simulates captcha detection.
             raise CaptchaDetectedError("vercel security checkpoint", "blocked", [{"title": "Vercel Security Checkpoint"}])
         yield self.success_payload
+
+
+class _NullClient:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return False
 
 
 class _FakeClient:
@@ -94,6 +114,41 @@ async def test_batch_params_use_raw_for_greenhouse_api(monkeypatch):
     assert "commonmark" not in call["params"]["return_format"]
     assert call["params"]["request"] == "chrome"
     assert call["params"]["preserve_host"] is False
+
+
+@pytest.mark.asyncio
+async def test_captcha_failure_emits_posthog_warn(monkeypatch):
+    scraper = _make_scraper()
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.CAPTCHA_RETRY_LIMIT",
+        0,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
+        lambda **_: _NullClient(),
+    )
+
+    async def _fail(*_args, **_kwargs):
+        raise CaptchaDetectedError("captcha", "blocked", [{"title": "captcha"}])
+
+    monkeypatch.setattr(scraper, "_scrape_single_url", _fail)
+
+    emitted: list[dict[str, Any]] = []
+
+    def _emit(payload: Dict[str, Any]) -> None:
+        emitted.append(payload)
+
+    monkeypatch.setattr("job_scrape_application.services.telemetry.emit_posthog_log", _emit)
+
+    await scraper._scrape_urls_batch(
+        ["https://example.com/job"],
+        source_url="https://example.com/job",
+    )
+
+    assert emitted
+    payload = emitted[0]
+    assert payload.get("level") == "warn"
+    assert payload.get("event") == "scrape.captcha_detected"
 
 
 @pytest.mark.asyncio

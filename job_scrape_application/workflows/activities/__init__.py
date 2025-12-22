@@ -118,6 +118,7 @@ MULTI_SPACE_PATTERN = r"\s+"
 COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 REQUEST_ID_PATTERN = r"\[Request ID:\s*([^\]]+)\]"
 NON_NUMERIC_DOT_PATTERN = r"[^0-9.]"
+PAGINATION_ENQUEUE_STAGGER_MS = 30_000
 NON_NUMERIC_PATTERN = r"[^0-9]"
 
 INR_CURRENCY_PATTERNS = [
@@ -2068,6 +2069,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         urls = urls_from_raw or urls_from_trimmed or []
         source_url = payload.get("sourceUrl")
         handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
+        delays_ms: list[int] | None = None
         if urls:
             job_urls: list[str] = []
             listing_urls: list[str] = []
@@ -2076,6 +2078,17 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     listing_urls.append(url)
                 else:
                     job_urls.append(url)
+            if listing_urls:
+                delay_map: Dict[str, int] = {}
+                delay_idx = 1
+                for url in urls:
+                    if handler and handler.is_listing_url(url):
+                        delay_map[url] = delay_idx * PAGINATION_ENQUEUE_STAGGER_MS
+                        delay_idx += 1
+                if delay_map:
+                    delays_ms = [delay_map.get(url, 0) for url in urls]
+                    if not any(delays_ms):
+                        delays_ms = None
             await _log_scratchpad(
                 "scrape.url_split",
                 message="Split scrape URLs into job and listing groups",
@@ -2107,13 +2120,16 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             site_id = _convex_site_id(payload.get("siteId"))
             await convex_mutation(
                 "router:enqueueScrapeUrls",
-                {
-                    "urls": urls,
-                    "sourceUrl": payload.get("sourceUrl") or "",
-                    "provider": scraped_with or payload.get("provider") or "",
-                    "siteId": site_id,
-                    "pattern": payload.get("pattern"),
-                },
+                _strip_none_values(
+                    {
+                        "urls": urls,
+                        "sourceUrl": payload.get("sourceUrl") or "",
+                        "provider": scraped_with or payload.get("provider") or "",
+                        "siteId": site_id,
+                        "pattern": payload.get("pattern"),
+                        "delaysMs": delays_ms,
+                    }
+                ),
             )
             await _log_scratchpad(
                 "scrape.url_enqueue",
@@ -2356,8 +2372,44 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             return False
         return not re.search(r"\d", slug)
 
+    _NON_JOB_PATH_SEGMENTS = {
+        "acceptable-use",
+        "cookie",
+        "cookie-policy",
+        "cookies",
+        "legal",
+        "notice",
+        "notices",
+        "policy",
+        "privacy",
+        "privacy-policy",
+        "terms",
+        "terms-of-service",
+        "tos",
+    }
+
+    def _looks_like_non_job_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        path = (parsed.path or "").lower()
+        if not path:
+            return False
+        segments = [seg for seg in path.split("/") if seg]
+        for seg in segments:
+            if seg in _NON_JOB_PATH_SEGMENTS:
+                return True
+            if seg.startswith(("privacy", "terms", "tos", "cookie", "legal", "notice")):
+                return True
+        return False
+
     def _should_ignore_url(url: str) -> bool:
-        return _looks_like_location_filter_url(url) or _looks_like_confluent_listing_url(url)
+        return (
+            _looks_like_location_filter_url(url)
+            or _looks_like_confluent_listing_url(url)
+            or _looks_like_non_job_url(url)
+        )
 
     def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
         if title_text and apply_text_re.search(title_text):

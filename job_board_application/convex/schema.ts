@@ -286,10 +286,12 @@ const applicationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
     completedAt: v.optional(v.number()),
+    scheduledAt: v.optional(v.number()),
   })
     .index("by_url", ["url"])
     .index("by_status", ["status"])
-    .index("by_site_status", ["siteId", "status"]),
+    .index("by_site_status", ["siteId", "status"])
+    .index("by_status_and_scheduled_at", ["status", "scheduledAt"]),
 
   job_detail_configs: defineTable({
     domain: v.string(),

@@ -23,6 +23,7 @@ PRE_PATTERN = re.compile(r"<pre[^>]*>(?P<content>.*?)</pre>", flags=re.IGNORECAS
 class NetflixHandler(BaseSiteHandler):
     name = "netflix"
     site_type = "netflix"
+    supports_listing_api = True
 
     @classmethod
     def matches_url(cls, url: str) -> bool:
@@ -62,6 +63,32 @@ class NetflixHandler(BaseSiteHandler):
         positions = self._extract_positions(payload)
         return self._extract_position_urls(positions)
 
+    def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:
+        if not isinstance(payload, dict):
+            return []
+        count = payload.get("count")
+        if not isinstance(count, int) or count <= 0:
+            return []
+        positions = self._extract_positions(payload)
+        page_size = len(positions)
+        start_current = self._extract_start_from_url(source_url)
+        num_param = self._extract_num_from_url(source_url)
+        if page_size <= 0:
+            page_size = num_param or DEFAULT_PAGE_SIZE
+        if count <= page_size:
+            return []
+        api_base, base_params = self._build_api_base(source_url, payload)
+        if not api_base:
+            return []
+        if start_current is None:
+            start_current = 0
+        urls: list[str] = []
+        for start in range(start_current + page_size, count, page_size):
+            params = self._ensure_pagination_params(base_params, start=start, num=page_size)
+            query = urlencode(params, doseq=True)
+            urls.append(f"{api_base}?{query}")
+        return urls
+
     def get_links_from_raw_html(self, html: str) -> List[str]:
         payload = self._extract_payload(html)
         if not payload:
@@ -81,6 +108,29 @@ class NetflixHandler(BaseSiteHandler):
                 urls.append(url)
 
         return urls
+
+    def _extract_start_from_url(self, uri: str | None) -> Optional[int]:
+        return self._extract_int_param(uri, "start")
+
+    def _extract_num_from_url(self, uri: str | None) -> Optional[int]:
+        return self._extract_int_param(uri, "num")
+
+    def _extract_int_param(self, uri: str | None, key: str) -> Optional[int]:
+        if not uri:
+            return None
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return None
+        for param_key, value in parse_qsl(parsed.query, keep_blank_values=True):
+            if param_key.lower() != key.lower():
+                continue
+            try:
+                parsed_val = int(str(value))
+            except Exception:
+                return None
+            return parsed_val if parsed_val >= 0 else None
+        return None
 
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
@@ -129,7 +179,13 @@ class NetflixHandler(BaseSiteHandler):
         if not content:
             return None
         parsed = self._parse_json_blob(content)
-        return parsed if isinstance(parsed, dict) else None
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            for item in parsed:
+                if isinstance(item, dict) and ("positions" in item or "jobs" in item):
+                    return item
+        return None
 
     def _parse_json_blob(self, text: str) -> Any | None:
         try:

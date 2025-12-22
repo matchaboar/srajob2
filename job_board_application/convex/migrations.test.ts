@@ -4,6 +4,7 @@ import {
   dedupeSitesImpl,
   deriveCostMilliCents,
   deriveProvider,
+  deriveScrapeQueueScheduledAt,
   retagGreenhouseJobsImpl,
   repairJobIdReferencesImpl,
 } from "./migrations";
@@ -88,6 +89,22 @@ describe("deriveProvider", () => {
   it("returns unknown when null or empty", () => {
     expect(deriveProvider({ provider: null })).toBe("unknown");
     expect(deriveProvider({})).toBe("unknown");
+  });
+});
+
+describe("deriveScrapeQueueScheduledAt", () => {
+  it("uses createdAt when present", () => {
+    expect(deriveScrapeQueueScheduledAt({ createdAt: 123, updatedAt: 456 })).toBe(123);
+  });
+
+  it("falls back to updatedAt when createdAt missing", () => {
+    expect(deriveScrapeQueueScheduledAt({ updatedAt: 456 })).toBe(456);
+  });
+
+  it("falls back to Date.now when timestamps missing", () => {
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(999);
+    expect(deriveScrapeQueueScheduledAt({})).toBe(999);
+    nowSpy.mockRestore();
   });
 });
 

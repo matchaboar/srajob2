@@ -1081,6 +1081,7 @@ export const listQueuedScrapeUrls = query({
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         completedAt: row.completedAt,
+        scheduledAt: row.scheduledAt,
       }));
   },
 });
@@ -1126,16 +1127,22 @@ export const enqueueScrapeUrls = mutation({
     provider: v.string(),
     siteId: v.optional(v.id("sites")),
     pattern: v.optional(v.union(v.string(), v.null())),
+    delaysMs: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const queued: string[] = [];
     const seen = new Set<string>();
 
-    for (const rawUrl of args.urls) {
+    for (const [index, rawUrl] of args.urls.entries()) {
       const url = (rawUrl || "").trim();
       if (!url || seen.has(url)) continue;
       seen.add(url);
+      const delayMs = args.delaysMs?.[index];
+      const scheduledAt =
+        typeof delayMs === "number" && Number.isFinite(delayMs) && delayMs > 0
+          ? now + Math.floor(delayMs)
+          : now;
 
       // Skip if already queued
       const existing = await ctx.db
@@ -1165,6 +1172,7 @@ export const enqueueScrapeUrls = mutation({
         attempts: 0,
         createdAt: now,
         updatedAt: now,
+        scheduledAt,
       });
       queued.push(url);
     }
@@ -1265,8 +1273,24 @@ const leaseScrapeUrlBatchHandler = async (
     console.error("leaseScrapeUrlBatch: failed releasing stale processing", err);
   }
 
-  const baseQuery = ctx.db.query("scrape_url_queue").withIndex("by_status", (q: any) => q.eq("status", "pending"));
-  const rows = await baseQuery.order("asc").take(limit * 3);
+  const baseQuery = ctx.db
+    .query("scrape_url_queue")
+    .withIndex("by_status_and_scheduled_at", (q: any) => q.eq("status", "pending").lte("scheduledAt", now));
+  let rows = await baseQuery.order("asc").take(limit * 3);
+  if (rows.length < limit) {
+    const legacyRows = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_status", (q: any) => q.eq("status", "pending"))
+      .order("asc")
+      .take(limit * 2);
+    const seenIds = new Set(rows.map((row: any) => row._id));
+    for (const row of legacyRows as any[]) {
+      if (!row.scheduledAt && !seenIds.has(row._id)) {
+        rows.push(row);
+      }
+      if (rows.length >= limit * 3) break;
+    }
+  }
   const picked: any[] = [];
   for (const row of rows as any[]) {
     if (picked.length >= limit) break;
@@ -1293,6 +1317,10 @@ const leaseScrapeUrlBatchHandler = async (
       } catch {
         // best-effort
       }
+      continue;
+    }
+    const scheduledAt = (row).scheduledAt ?? 0;
+    if (scheduledAt && scheduledAt > now) {
       continue;
     }
     const domain = normalizeDomain(row.url);

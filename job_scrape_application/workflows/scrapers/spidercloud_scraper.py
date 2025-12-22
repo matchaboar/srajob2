@@ -29,6 +29,7 @@ from ..helpers.scrape_utils import (
 )
 from ..helpers.link_extractors import gather_strings
 from ..site_handlers import BaseSiteHandler, get_site_handler
+from ...services import telemetry
 from .base import BaseScraper
 
 if TYPE_CHECKING:
@@ -159,7 +160,17 @@ class SpiderCloudScraper(BaseScraper):
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return a markdown/text payload found in a response fragment."""
 
-        keys = {"markdown", "commonmark", "content", "text", "body", "result", "html", "raw_html"}
+        keys = {
+            "markdown",
+            "commonmark",
+            "content",
+            "text",
+            "body",
+            "result",
+            "html",
+            "raw_html",
+            "raw",
+        }
         min_description_len = 80
 
         def _metadata_description(value: Any) -> Optional[str]:
@@ -168,7 +179,7 @@ class SpiderCloudScraper(BaseScraper):
             meta = value.get("metadata")
             if not isinstance(meta, dict):
                 return None
-            for key in ("commonmark", "markdown", "content"):
+            for key in ("commonmark", "markdown", "content", "raw"):
                 entry = meta.get(key)
                 if not isinstance(entry, dict):
                     continue
@@ -270,20 +281,83 @@ class SpiderCloudScraper(BaseScraper):
                     haystack_parts.append(val)
 
         haystack = " ".join(haystack_parts).lower()
-        markers = (
-            "vercel security checkpoint",
-            "checking your browser",
-            "are you human",
-            "captcha",
-            "security check",
-            "robot check",
-            "access denied",
+        markers: tuple[tuple[str, Optional[re.Pattern[str]]], ...] = (
+            ("vercel security checkpoint", None),
+            ("checking your browser", None),
+            ("are you human", None),
+            ("security check", None),
+            ("robot check", None),
+            ("access denied", None),
+            ("captcha", re.compile(r"\bcaptcha\b")),
+            ("recaptcha", re.compile(r"\brecaptcha\b")),
         )
 
-        for marker in markers:
-            if marker in haystack:
+        for marker, pattern in markers:
+            if pattern:
+                if pattern.search(haystack):
+                    return marker
+            elif marker in haystack:
                 return marker
         return None
+
+    def _captcha_context(
+        self,
+        marker: str,
+        markdown_text: str | None,
+        events: List[Any] | None,
+        *,
+        radius: int = 80,
+    ) -> Optional[str]:
+        if not marker:
+            return None
+        needle = marker.lower()
+        candidates: list[str] = []
+        if isinstance(markdown_text, str) and markdown_text.strip():
+            candidates.append(markdown_text)
+        for evt in events or []:
+            if not isinstance(evt, dict):
+                continue
+            for key in ("title", "reason", "description", "body", "message"):
+                val = evt.get(key)
+                if isinstance(val, str) and val.strip():
+                    candidates.append(val)
+        for text in candidates:
+            lowered = text.lower()
+            idx = lowered.find(needle)
+            if idx == -1:
+                continue
+            start = max(idx - radius, 0)
+            end = min(idx + radius, len(text))
+            return text[start:end].strip()
+        return None
+
+    def _emit_captcha_warn(
+        self,
+        *,
+        url: str,
+        marker: str,
+        attempt: int,
+        proxy: Optional[str],
+        markdown_text: str | None,
+        events: List[Any] | None,
+    ) -> None:
+        payload = {
+            "event": "scrape.captcha_detected",
+            "level": "warn",
+            "siteUrl": url,
+            "data": {
+                "provider": self.provider,
+                "marker": marker,
+                "attempt": attempt,
+                "proxy": proxy,
+                "context": self._captcha_context(marker, markdown_text, events),
+            },
+        }
+        try:
+            telemetry.emit_posthog_log(payload)
+        except Exception:
+            # best-effort logging; never fail the scrape on telemetry errors
+            pass
 
     def _extract_structured_job_posting(self, events: List[Any]) -> Optional[Dict[str, Any]]:
         """Best-effort extraction of JSON-LD JobPosting data from raw HTML events."""
@@ -539,6 +613,26 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         job_urls = handler.get_links_from_json(payload)
+        if job_urls:
+            job_urls = handler.filter_job_urls(job_urls)
+        pagination_urls = handler.get_pagination_urls_from_json(payload, request_url)
+        if pagination_urls:
+            job_urls.extend(pagination_urls)
+            job_urls = handler.filter_job_urls(job_urls)
+        else:
+            if handler.name == "netflix":
+                count = payload.get("count") if isinstance(payload, dict) else None
+                positions = payload.get("positions") if isinstance(payload, dict) else None
+                page_size = len(positions) if isinstance(positions, list) else 0
+                if isinstance(count, int) and count > 0 and page_size > 0 and count > page_size:
+                    logger.warning(
+                        "Site API fetch missing pagination handler=%s url=%s count=%s page_size=%s; falling back to rendered scrape",
+                        handler.name,
+                        api_url,
+                        count,
+                        page_size,
+                    )
+                    return None
         jobs = payload.get("jobs") if isinstance(payload, dict) else None
         job_count = len(jobs) if isinstance(jobs, list) else 0
         if job_count and not job_urls:
@@ -630,6 +724,9 @@ class SpiderCloudScraper(BaseScraper):
                 jobs = node.get("jobs")
                 if isinstance(jobs, list):
                     return node
+                positions = node.get("positions")
+                if isinstance(positions, list) and any(isinstance(position, dict) for position in positions):
+                    return node
                 for child in node.values():
                     found = _find_jobs_payload(child)
                     if found:
@@ -697,14 +794,23 @@ class SpiderCloudScraper(BaseScraper):
     def _payload_has_job_urls(self, payload: Dict[str, Any]) -> bool:
         jobs = payload.get("jobs")
         if not isinstance(jobs, list):
-            return False
+            jobs = None
         url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
-        for job in jobs:
-            if not isinstance(job, dict):
-                continue
-            for key in url_keys:
-                value = job.get(key)
-                if isinstance(value, str) and value.strip():
+        if isinstance(jobs, list):
+            for job in jobs:
+                if not isinstance(job, dict):
+                    continue
+                for key in url_keys:
+                    value = job.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return True
+        positions = payload.get("positions")
+        if isinstance(positions, list):
+            for position in positions:
+                if not isinstance(position, dict):
+                    continue
+                url = position.get("canonicalPositionUrl")
+                if isinstance(url, str) and url.strip():
                     return True
         return False
 
@@ -734,6 +840,10 @@ class SpiderCloudScraper(BaseScraper):
         handler = self._get_site_handler(url)
         parsed_title = None
         parsed_markdown = markdown or ""
+        if not parsed_markdown.strip():
+            extracted = self._extract_markdown(events)
+            if isinstance(extracted, str) and extracted.strip():
+                parsed_markdown = extracted
         if parsed_markdown.lstrip().startswith(("{", "[")):
             if handler:
                 parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
@@ -768,12 +878,20 @@ class SpiderCloudScraper(BaseScraper):
         hints = parse_markdown_hints(cleaned_markdown)
         hint_title = hints.get("title") if isinstance(hints, dict) else None
 
-        payload_title = parsed_title or structured_title or self._title_from_events(events)
+        event_title = self._title_from_events(events)
+        payload_title = parsed_title or structured_title or event_title
+        title_source: str | None = None
+        if parsed_title or structured_title:
+            title_source = "structured"
+        elif event_title:
+            title_source = "event"
         from_content = False
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
         if not payload_title:
             payload_title = hint_title or self._title_from_markdown(cleaned_markdown)
+            if payload_title:
+                title_source = "hint" if hint_title else "markdown"
             from_content = bool(payload_title)
         else:
             from_content = True
@@ -813,9 +931,11 @@ class SpiderCloudScraper(BaseScraper):
             )
             title = self._title_from_url(url)
 
+        keyword_title = None
         if from_content and not title_matches_required_keywords(title):
             keyword_title = self._title_with_required_keyword(cleaned_markdown)
-            if keyword_title:
+            can_replace_title = title_source in {None, "hint", "markdown", "event"}
+            if keyword_title and can_replace_title:
                 title = keyword_title
         if from_content and not title_matches_required_keywords(title):
             logger.info(
@@ -823,7 +943,7 @@ class SpiderCloudScraper(BaseScraper):
                 url,
                 title,
             )
-            if require_keywords:
+            if require_keywords and not keyword_title:
                 self._last_ignored_job = {
                     "url": url,
                     "reason": "missing_required_keyword",
@@ -1224,6 +1344,14 @@ class SpiderCloudScraper(BaseScraper):
                                 err.marker,
                             )
                             if attempt > CAPTCHA_RETRY_LIMIT:
+                                self._emit_captcha_warn(
+                                    url=url,
+                                    marker=err.marker,
+                                    attempt=attempt,
+                                    proxy=proxy,
+                                    markdown_text=err.markdown,
+                                    events=err.events,
+                                )
                                 self.deps.log_sync_response(
                                     self.provider,
                                     action="scrape",

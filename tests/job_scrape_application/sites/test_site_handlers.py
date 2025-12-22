@@ -3,11 +3,18 @@ from __future__ import annotations
 import html as html_lib
 import json
 import re
+import os
+import sys
 from pathlib import Path
 
-from job_scrape_application.workflows.site_handlers import (
+ROOT = os.path.abspath(".")
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     AshbyHqHandler,
     AvatureHandler,
+    BaseSiteHandler,
     GithubCareersHandler,
     GreenhouseHandler,
     NetflixHandler,
@@ -207,3 +214,43 @@ def test_netflix_handler_fixture_pages_have_unique_urls():
     assert set(urls_1).isdisjoint(urls_2)
     assert set(urls_1).isdisjoint(urls_3)
     assert set(urls_2).isdisjoint(urls_3)
+
+
+class _BaseHandlerForTest(BaseSiteHandler):
+    @classmethod
+    def matches_url(cls, url: str) -> bool:
+        return False
+
+
+def test_base_handler_extracts_positions_when_jobs_missing():
+    handler = _BaseHandlerForTest()
+    payload = {
+        "positions": [
+            {"canonicalPositionUrl": "https://example.com/job/1"},
+            {"canonicalPositionUrl": "https://example.com/job/2"},
+        ]
+    }
+    assert handler.get_links_from_json(payload) == [
+        "https://example.com/job/1",
+        "https://example.com/job/2",
+    ]
+
+
+def test_base_handler_parses_pre_json_positions():
+    handler = _BaseHandlerForTest()
+    html = (
+        "<html><pre>{"
+        "\"positions\":[{\"canonicalPositionUrl\":\"https://example.com/job/1\"}]"
+        "}</pre></html>"
+    )
+    assert handler.get_links_from_raw_html(html) == ["https://example.com/job/1"]
+
+
+def test_base_handler_parses_pre_json_list_payload():
+    handler = _BaseHandlerForTest()
+    html = (
+        "<html><pre>["
+        "{\"jobs\":[{\"jobUrl\":\"https://example.com/job/2\"}]}"
+        "]</pre></html>"
+    )
+    assert handler.get_links_from_raw_html(html) == ["https://example.com/job/2"]

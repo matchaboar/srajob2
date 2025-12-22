@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 import re
+import html as html_lib
 
 from dotenv import load_dotenv
 from spider import AsyncSpider
@@ -53,6 +54,8 @@ def _gather_strings(node: Any) -> Iterable[str]:
 def _find_jobs_payload(node: Any) -> Optional[Dict[str, Any]]:
     if isinstance(node, dict) and isinstance(node.get("jobs"), list):
         return node
+    if isinstance(node, dict) and isinstance(node.get("positions"), list):
+        return node
     if isinstance(node, dict):
         for val in node.values():
             found = _find_jobs_payload(val)
@@ -91,7 +94,7 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
         return None
     match = re.search(r"<pre>(?P<content>.*?)</pre>", text, flags=re.IGNORECASE | re.DOTALL)
     content = match.group("content") if match else text
-    content = content.strip()
+    content = html_lib.unescape(content).strip()
     if not content:
         return None
     raw_candidate = None
@@ -116,8 +119,11 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
 def _summarize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     jobs = payload.get("jobs") if isinstance(payload, dict) else None
     job_count = len(jobs) if isinstance(jobs, list) else 0
+    positions = payload.get("positions") if isinstance(payload, dict) else None
+    positions_count = len(positions) if isinstance(positions, list) else 0
     summary = {
         "jobs_count": job_count,
+        "positions_count": positions_count,
         "payload_keys": sorted(payload.keys()) if isinstance(payload, dict) else [],
     }
     for key in ("total", "count", "page", "per_page", "pageSize", "page_size"):
