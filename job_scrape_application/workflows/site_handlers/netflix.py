@@ -137,14 +137,15 @@ class NetflixHandler(BaseSiteHandler):
             return {}
         base_config = {
             "request": "chrome",
-            "return_format": ["raw_html"],
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
             "preserve_host": True,
         }
         if API_PATH in uri:
+            base_config["return_format"] = ["raw_html"]
             return self._apply_page_links_config(base_config)
+        base_config["return_format"] = ["commonmark"]
         base_config["wait_for"] = {
             "selector": {
                 "selector": "#smartApplyData",

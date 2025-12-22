@@ -102,4 +102,42 @@ async def test_lease_scrape_url_batch_handles_non_dict_response(monkeypatch):
 
     res = await acts.lease_scrape_url_batch("spidercloud", 2)
 
-    assert res == {"urls": []}
+    assert res == {"urls": [], "skippedUrls": []}
+
+
+@pytest.mark.asyncio
+async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
+    lease_payloads = [
+        {
+            "urls": [
+                {"url": "https://example.com/skip-me", "sourceUrl": "https://example.com", "pattern": None},
+            ]
+        },
+        {
+            "urls": [
+                {"url": "https://example.com/process-me", "sourceUrl": "https://example.com", "pattern": None},
+            ]
+        },
+    ]
+    mutation_calls: List[str] = []
+
+    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+        mutation_calls.append(name)
+        if name == "router:leaseScrapeUrlBatch":
+            return lease_payloads.pop(0) if lease_payloads else {"urls": []}
+        if name == "router:completeScrapeUrls":
+            return {"updated": len(args.get("urls") or [])}
+        raise RuntimeError(f"unexpected mutation {name}")
+
+    async def fake_fetch_seen(source_url: str, pattern: str | None):
+        assert source_url == "https://example.com"
+        return ["https://example.com/skip-me"]
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+
+    res = await acts.lease_scrape_url_batch("spidercloud", 1)
+
+    assert res["urls"] == [{"url": "https://example.com/process-me", "sourceUrl": "https://example.com", "pattern": None}]
+    assert "https://example.com/skip-me" in res.get("skippedUrls", [])
+    assert mutation_calls.count("router:leaseScrapeUrlBatch") == 2

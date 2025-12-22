@@ -17,6 +17,7 @@ TABLES: Tuple[str, ...] = (
     "jobs",
     "scrapes",
     "scrape_url_queue",
+    "seen_job_urls",
     "ignored_jobs",
     "scrape_errors",
     "run_requests",

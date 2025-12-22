@@ -7,6 +7,7 @@ type WipeTable =
   | "jobs"
   | "scrapes"
   | "scrape_url_queue"
+  | "seen_job_urls"
   | "ignored_jobs"
   | "scrape_errors"
   | "run_requests"
@@ -21,6 +22,7 @@ export const wipeSiteDataByDomainPage = mutation({
       v.literal("jobs"),
       v.literal("scrapes"),
       v.literal("scrape_url_queue"),
+      v.literal("seen_job_urls"),
       v.literal("ignored_jobs"),
       v.literal("scrape_errors"),
       v.literal("run_requests"),
@@ -70,6 +72,10 @@ export const wipeSiteDataByDomainPage = mutation({
           return ctx.db
             .query("ignored_jobs")
             .withIndex("by_url", (q) => q.gte("url", prefix).lt("url", prefixUpper));
+        case "seen_job_urls":
+          return ctx.db
+            .query("seen_job_urls")
+            .withIndex("by_source", (q) => q.gte("sourceUrl", prefix).lt("sourceUrl", prefixUpper));
         case "workflow_run_sites":
           return ctx.db
             .query("workflow_run_sites")
@@ -98,6 +104,8 @@ export const wipeSiteDataByDomainPage = mutation({
           if (row.siteId && siteIds.has(row.siteId)) return true;
           return matchesUrl(row.url) || matchesUrl(row.sourceUrl);
         case "ignored_jobs":
+          return matchesUrl(row.url) || matchesUrl(row.sourceUrl);
+        case "seen_job_urls":
           return matchesUrl(row.url) || matchesUrl(row.sourceUrl);
         case "scrape_errors":
           if (row.siteId && siteIdStrings.has(String(row.siteId))) return true;

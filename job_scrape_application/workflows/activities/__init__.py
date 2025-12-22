@@ -1038,58 +1038,69 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
 
     from ...services.convex_client import convex_mutation
 
-    res = await convex_mutation(
-        "router:leaseScrapeUrlBatch",
-        _strip_none_values(
-            {
-                "provider": provider,
-                "limit": limit,
-                "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE,
-                "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
-            }
-        ),
-    )
-    if not isinstance(res, dict):
-        return {"urls": []}
-
-    raw_urls = res.get("urls")
-    if not isinstance(raw_urls, list) or not raw_urls:
-        return {"urls": []}
+    def _build_lease_response(urls: list[Dict[str, Any]], skipped_urls: list[str]) -> Dict[str, Any]:
+        return {"urls": urls, "skippedUrls": skipped_urls}
 
     skipped: list[str] = []
-    filtered: list[Dict[str, Any]] = []
     skip_cache: dict[tuple[str | None, str | None], set[str]] = {}
 
-    for entry in raw_urls:
-        if not isinstance(entry, dict):
-            continue
-        url_val = entry.get("url")
-        if not isinstance(url_val, str) or not url_val.strip():
-            continue
-        source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
-        pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
-        cache_key = (source_val, pattern_val)
-        if cache_key not in skip_cache:
+    # If a leased batch is fully skipped, keep leasing so we can reach other pending URLs.
+    for _ in range(3):
+        res = await convex_mutation(
+            "router:leaseScrapeUrlBatch",
+            _strip_none_values(
+                {
+                    "provider": provider,
+                    "limit": limit,
+                    "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE,
+                    "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
+                }
+            ),
+        )
+        if not isinstance(res, dict):
+            return _build_lease_response([], skipped)
+
+        raw_urls = res.get("urls")
+        if not isinstance(raw_urls, list) or not raw_urls:
+            return _build_lease_response([], skipped)
+
+        filtered: list[Dict[str, Any]] = []
+        skipped_round: list[str] = []
+
+        for entry in raw_urls:
+            if not isinstance(entry, dict):
+                continue
+            url_val = entry.get("url")
+            if not isinstance(url_val, str) or not url_val.strip():
+                continue
+            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
+            pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
+            cache_key = (source_val, pattern_val)
+            if cache_key not in skip_cache:
+                try:
+                    skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
+                except Exception:
+                    skip_list = []
+                skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
+            if url_val in skip_cache[cache_key]:
+                skipped_round.append(url_val)
+                continue
+            filtered.append(entry)
+
+        if skipped_round:
+            skipped.extend(skipped_round)
             try:
-                skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
-            except Exception:
-                skip_list = []
-            skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
-        if url_val in skip_cache[cache_key]:
-            skipped.append(url_val)
-            continue
-        filtered.append(entry)
+                await convex_mutation(
+                    "router:completeScrapeUrls",
+                    {"urls": skipped_round, "status": "failed", "error": "skip_listed_url"},
+                )
+            except Exception as skip_err:
+                logger.warning("Failed to mark skipped URLs as failed: %s", skip_err, exc_info=skip_err)
 
-    if skipped:
-        try:
-            await convex_mutation(
-                "router:completeScrapeUrls",
-                {"urls": skipped, "status": "failed", "error": "skip_listed_url"},
-            )
-        except Exception as skip_err:
-            logger.warning("Failed to mark skipped URLs as failed: %s", skip_err, exc_info=skip_err)
+        if filtered:
+            return _build_lease_response(filtered, skipped)
 
-    return {"urls": filtered, "skippedUrls": skipped}
+    return _build_lease_response([], skipped)
 
 
 @activity.defn
@@ -1761,7 +1772,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
     provider_for_log = scraped_with or payload.get("provider") or items_provider
     invalid_reason = None
-    if workflow_name == "SpidercloudJobDetails" and normalized_count == 0:
+    if workflow_name == "SpidercloudJobDetails" and normalized_count == 0 and ignored_count == 0:
         invalid_reason = "no_normalized_jobs"
 
     await _log_scratchpad(
@@ -2181,6 +2192,30 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     listing_urls.append(url)
                 else:
                     job_urls.append(url)
+            if listing_urls and isinstance(source_url, str) and source_url:
+                seen_listing: set[str] = set()
+                try:
+                    seen_listing = set(
+                        u
+                        for u in await fetch_seen_urls_for_site(source_url, payload.get("pattern"))
+                        if isinstance(u, str)
+                    )
+                except Exception:
+                    seen_listing = set()
+                if seen_listing:
+                    filtered_listing_urls = [u for u in listing_urls if u not in seen_listing]
+                    if len(filtered_listing_urls) != len(listing_urls):
+                        listing_urls = filtered_listing_urls
+                        urls = [
+                            u
+                            for u in urls
+                            if not (
+                                handler
+                                and handler.is_listing_url(u)
+                                and isinstance(u, str)
+                                and u in seen_listing
+                            )
+                        ]
             if listing_urls:
                 delay_map: Dict[str, int] = {}
                 delay_idx = 1

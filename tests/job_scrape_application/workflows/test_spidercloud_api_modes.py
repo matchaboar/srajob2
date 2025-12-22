@@ -208,6 +208,20 @@ async def test_batch_params_use_commonmark_for_avature_job_detail(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_batch_params_use_commonmark_for_netflix_job_detail(monkeypatch):
+    scraper = _make_scraper()
+    fake_client = _FakeClient([{"commonmark": "### Staff Engineer"}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    url = "https://explore.jobs.netflix.net/careers/job/790313345439"
+    await scraper._scrape_urls_batch([url], source_url=url)
+
+    call = fake_client.calls[0]
+    assert call["params"]["return_format"] == ["commonmark"]
+    assert call["params"]["request"] == "chrome"
+
+
+@pytest.mark.asyncio
 async def test_batch_params_use_raw_for_avature_listing(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([{"raw_html": "<h1>Bloomberg Careers</h1>"}])

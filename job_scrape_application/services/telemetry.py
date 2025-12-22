@@ -128,7 +128,10 @@ def emit_posthog_log(payload: Dict[str, Any]) -> None:
     level = _normalize_log_level(payload.get("level"))
     # Use stacklevel so OTLP location fields point to the caller of emit_posthog_log,
     # not this helper module.
-    logger.log(level, message, extra=attributes, stacklevel=2)
+    if hasattr(logger, "log"):
+        logger.log(level, message, extra=attributes, stacklevel=2)
+    else:
+        logger.info(message, extra=attributes)
 
 
 def force_flush_posthog_logs(timeout_ms: int = 30000) -> bool:
