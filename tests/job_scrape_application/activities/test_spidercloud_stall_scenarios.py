@@ -7,22 +7,27 @@ from typing import Any, Dict, List
 
 import pytest
 
-firecrawl_mod = types.ModuleType("firecrawl")
-firecrawl_mod.Firecrawl = type("Firecrawl", (), {})
-sys.modules.setdefault("firecrawl", firecrawl_mod)
-firecrawl_v2 = types.ModuleType("firecrawl.v2")
-firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
-firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
-firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
-sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
-sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
-firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
-firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
-firecrawl_v2_utils_error.PaymentRequiredError = type("PaymentRequiredError", (Exception,), {})
-firecrawl_v2_utils_error.RequestTimeoutError = type("RequestTimeoutError", (Exception,), {})
-sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
-sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
-firecrawl_v2_utils.error_handler = firecrawl_v2_utils_error
+try:
+    import firecrawl  # noqa: F401
+    import firecrawl.v2.types  # noqa: F401
+    import firecrawl.v2.utils.error_handler  # noqa: F401
+except Exception:
+    firecrawl_mod = types.ModuleType("firecrawl")
+    firecrawl_mod.Firecrawl = type("Firecrawl", (), {})
+    sys.modules.setdefault("firecrawl", firecrawl_mod)
+    firecrawl_v2 = types.ModuleType("firecrawl.v2")
+    firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
+    firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
+    firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
+    sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
+    sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
+    firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
+    firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
+    firecrawl_v2_utils_error.PaymentRequiredError = type("PaymentRequiredError", (Exception,), {})
+    firecrawl_v2_utils_error.RequestTimeoutError = type("RequestTimeoutError", (Exception,), {})
+    sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
+    sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
+    firecrawl_v2_utils.error_handler = firecrawl_v2_utils_error
 fetchfox_mod = types.ModuleType("fetchfox_sdk")
 fetchfox_mod.FetchFox = type("FetchFox", (), {})
 sys.modules.setdefault("fetchfox_sdk", fetchfox_mod)

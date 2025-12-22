@@ -11,6 +11,12 @@ from typing import Any, Tuple
 import yaml
 
 from .config import resolve_config_path
+from .workflows.helpers.regex_patterns import (
+    COMPANY_NORMALIZE_RE,
+    US_ABBREVIATION_PATTERN,
+    US_STATE_CODE_PATTERN_TEMPLATE,
+    ZIP_CODE_RE,
+)
 
 FILTERS_YAML_PATH = Path(__file__).resolve().parent / "scraper_filters.yaml"
 
@@ -37,14 +43,7 @@ _COMPANY_SUFFIXES = {
     "holdings",
     "group",
 }
-_COMPANY_NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
-
-ZIP_CODE_PATTERN = r"\b\d{5}(?:-\d{4})?\b"
-US_ABBREVIATION_PATTERN = r"\bU\.?S\.?A?\b"
-US_STATE_CODE_PATTERN_TEMPLATE = r"\b{code}\b"
-
 # Simple US ZIP code heuristic to catch addresses in the listing.
-ZIP_CODE_RE = re.compile(ZIP_CODE_PATTERN)
 
 DEFAULT_REQUIRED_KEYWORDS: Tuple[str, ...] = ("engineer", "developer", "software", "development")
 DEFAULT_ALLOW_UNKNOWN_TITLE = True
@@ -317,7 +316,7 @@ def _normalize_list(raw: Any, *, lower: bool = False, upper: bool = False) -> Tu
 def _normalize_company_name(value: str | None) -> str:
     if not value:
         return ""
-    cleaned = _COMPANY_NORMALIZE_RE.sub(" ", value.lower()).strip()
+    cleaned = COMPANY_NORMALIZE_RE.sub(" ", value.lower()).strip()
     if not cleaned:
         return ""
     tokens = cleaned.split()

@@ -6,28 +6,19 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from .base import BaseSiteHandler
+from ..helpers.regex_patterns import (
+    AVATURE_BASE_URL_RE,
+    AVATURE_JOB_DETAIL_PATH_RE,
+    AVATURE_JOB_DETAIL_URL_RE,
+    AVATURE_JOB_RECORDS_PER_PAGE_RE,
+    AVATURE_PAGE_RANGE_RE,
+    AVATURE_PAGINATION_PATH_RE,
+    AVATURE_PAGINATION_URL_RE,
+    AVATURE_RESULTS_ARIA_RE,
+    BASE_URL_META_PATTERNS,
+)
 
 AVATURE_HOST_SUFFIXES = ("avature.net", "avature.com")
-JOB_DETAIL_PATH_PATTERN = re.compile(r"/careers/JobDetail/[^\"'\s>]+", re.IGNORECASE)
-JOB_DETAIL_URL_PATTERN = re.compile(
-    r"https?://[^\"'\s>]+/careers/JobDetail/[^\"'\s>]+", re.IGNORECASE
-)
-PAGINATION_PATH_PATTERN = re.compile(
-    r"/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+", re.IGNORECASE
-)
-PAGINATION_URL_PATTERN = re.compile(
-    r"https?://[^\"'\s>]+/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+", re.IGNORECASE
-)
-BASE_URL_PATTERN = re.compile(r"https?://[^\"'\s>]+/careers/[^\"'\s>]*", re.IGNORECASE)
-PAGE_RANGE_PATTERN = re.compile(
-    r"(?P<start>\d+)\s*-\s*(?P<end>\d+)\s*of\s*(?P<total>\d+)",
-    re.IGNORECASE,
-)
-JOB_RECORDS_PER_PAGE_PATTERN = re.compile(
-    r"jobRecordsPerPage\"?\s*[:=]\s*\"?(?P<count>\d+)\"?",
-    re.IGNORECASE,
-)
-RESULTS_ARIA_PATTERN = re.compile(r"aria-label=\"\s*(?P<count>\d+)\s+results", re.IGNORECASE)
 
 
 class AvatureHandler(BaseSiteHandler):
@@ -101,15 +92,15 @@ class AvatureHandler(BaseSiteHandler):
             seen.add(cleaned)
             urls.append(cleaned)
 
-        for match in JOB_DETAIL_URL_PATTERN.findall(html):
+        for match in AVATURE_JOB_DETAIL_URL_RE.findall(html):
             _add(match)
-        for match in PAGINATION_URL_PATTERN.findall(html):
+        for match in AVATURE_PAGINATION_URL_RE.findall(html):
             _add(match)
 
         if base_url:
-            for match in JOB_DETAIL_PATH_PATTERN.findall(html):
+            for match in AVATURE_JOB_DETAIL_PATH_RE.findall(html):
                 _add(urljoin(base_url, match))
-            for match in PAGINATION_PATH_PATTERN.findall(html):
+            for match in AVATURE_PAGINATION_PATH_RE.findall(html):
                 _add(urljoin(base_url, match))
 
         if base_url and "/careers/searchjobs" in base_url.lower():
@@ -139,7 +130,7 @@ class AvatureHandler(BaseSiteHandler):
                     base_offset = None
 
         def _infer_page_data() -> tuple[int | None, int | None, int | None]:
-            match = PAGE_RANGE_PATTERN.search(html)
+            match = AVATURE_PAGE_RANGE_RE.search(html)
             if match:
                 start = int(match.group("start"))
                 end = int(match.group("end"))
@@ -150,10 +141,10 @@ class AvatureHandler(BaseSiteHandler):
 
             page_size = None
             total = None
-            match = JOB_RECORDS_PER_PAGE_PATTERN.search(html)
+            match = AVATURE_JOB_RECORDS_PER_PAGE_RE.search(html)
             if match:
                 page_size = int(match.group("count"))
-            match = RESULTS_ARIA_PATTERN.search(html)
+            match = AVATURE_RESULTS_ARIA_RE.search(html)
             if match:
                 total = int(match.group("count"))
             default_offset = base_offset if base_offset is not None else 0
@@ -205,15 +196,11 @@ class AvatureHandler(BaseSiteHandler):
 
     @staticmethod
     def _extract_base_url(html: str) -> Optional[str]:
-        for pattern in (
-            r"<base[^>]+href=\"(?P<url>[^\"]+)\"",
-            r"property=\"og:url\"[^>]+content=\"(?P<url>[^\"]+)\"",
-            r"rel=\"canonical\"[^>]+href=\"(?P<url>[^\"]+)\"",
-        ):
+        for pattern in BASE_URL_META_PATTERNS:
             match = re.search(pattern, html, flags=re.IGNORECASE)
             if match:
                 return match.group("url")
-        match = BASE_URL_PATTERN.search(html)
+        match = AVATURE_BASE_URL_RE.search(html)
         if match:
             return match.group(0)
         return None

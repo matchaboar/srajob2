@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import re
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -12,40 +14,39 @@ from ...constants import is_remote_company, title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
 from .link_extractors import dedupe_str_list, extract_links_from_payload
-
-WHITESPACE_PATTERN = r"\s+"
-ERROR_404_PATTERN = r"\b404\b"
-TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
-LEVEL_PATTERN = r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b"
-LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)"
-SIMPLE_LOCATION_LINE_PATTERN = r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$"
-WORK_FROM_PATTERN = r"\bwork(?:ing)?\s+from\s+(?P<location>.+)$"
-SALARY_PATTERN = (
-    r"\$\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*[-–]\s*\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
-    r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
+from .regex_patterns import (
+    DIGIT_PATTERN,
+    ERROR_404_PATTERN,
+    LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE,
+    LOCATION_PREFIX_PATTERN,
+    LOCATION_SPLIT_PATTERN,
+    NON_ALNUM_PATTERN,
+    NON_ALNUM_SPACE_PATTERN,
+    NUMBER_TOKEN_PATTERN,
+    PARENTHETICAL_PATTERN,
+    RETIREMENT_PLAN_PATTERN,
+    WHITESPACE_PATTERN,
+    _COOKIE_SIGNAL_RE,
+    _COOKIE_UI_CONTROL_RE,
+    _COOKIE_WORD_RE,
+    _HTML_TAG_RE,
+    _LEVEL_RE,
+    _LISTING_SELECT_RE,
+    _LISTING_TABLE_HEADER_RE,
+    _LOCATION_RE,
+    _NAV_BLOCK_REGEX,
+    _NAV_MENU_SEQUENCE,
+    _REMOTE_RE,
+    _SALARY_K_RE,
+    _SALARY_RANGE_LABEL_RE,
+    _SALARY_RE,
+    _SIMPLE_LOCATION_LINE_RE,
+    _TITLE_RE,
+    _WORK_FROM_RE,
 )
-SALARY_RANGE_LABEL_PATTERN = (
-    r"(?:salary|compensation|pay)\s+range\s*[:=\-–]\s*"
-    r"(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*[-–]\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
-    r"(?:\s*(?P<code>USD|EUR|GBP))?"
-)
-SALARY_K_PATTERN = (
-    r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?P<high>\d{2,3})\s*[kK])?"
-    r"\s*(?P<code>USD|EUR|GBP)?"
-)
-REMOTE_PATTERN = r"\b(remote(-first)?|hybrid|onsite|on-site)\b"
-PARENTHETICAL_PATTERN = r"\(.*?\)"
-NON_ALNUM_SPACE_PATTERN = r"[^a-z0-9 ]+"
-LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE = r"(?:^|\s){key}(?:\s|$)"
-LOCATION_SPLIT_PATTERN = r"[;|/]"
-LOCATION_PREFIX_PATTERN = r"^(?:location|office|offices|based in)\s*[:\-–]\s*"
-NON_ALNUM_PATTERN = r"[^a-z0-9]+"
-NUMBER_TOKEN_PATTERN = r"[0-9][0-9,\.]+"
-RETIREMENT_PLAN_PATTERN = r"\b401\s*\(?k\)?\b"
-
 DEFAULT_TOTAL_COMPENSATION = 0
+MIN_TOTAL_COMPENSATION = 30_000
+MAX_TOTAL_COMPENSATION = 5_000_000
 # Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
 MAX_SCRAPE_DESCRIPTION_CHARS = 8000
 # Higher ceiling for the actual job documents so the UI can render full descriptions.
@@ -55,52 +56,6 @@ MAX_TITLE_CHARS = 500
 # Backward compat alias (used only inside this module previously).
 MAX_DESCRIPTION_CHARS = MAX_SCRAPE_DESCRIPTION_CHARS
 UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
-_NAV_MENU_SEQUENCE = [
-    "Welcome",
-    "Culture",
-    "Workplace Benefits",
-    "Candidate Experience",
-    "Diversity, Equity & Inclusion",
-    "Learning & Development",
-    "Pup Culture Blog",
-    "Teams",
-    "Engineering",
-    "General & Administrative",
-    "Marketing",
-    "Product Design",
-    "Product Management",
-    "Sales",
-    "Technical Solutions",
-    "Early Career & Internships",
-    "Locations",
-    "Americas",
-    "Asia Pacific",
-    "EMEA",
-    "Remote",
-    "All Jobs",
-]
-NAV_BLOCK_PATTERN = (
-    r"(?:"
-    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
-    + r")(?:\s+###\s*Careers)?(?:\s+"
-    + r"\s+".join(re.escape(term) for term in _NAV_MENU_SEQUENCE)
-    + r")?"
-)
-_COOKIE_SIGNAL_PATTERN = (
-    r"(cookie\s+preferences|cookie\s+policy|cookie\s+consent|cookie\s+settings|"
-    r"your\s+choice\s+regarding\s+cookies|this\s+website\s+uses\s+cookies|"
-    r"accept\s+all|reject\s+all|save\s+and\s+close|manage\s+cookies|"
-    r"essential\s+cookies|performance\s+cookies|functional\s+cookies|advertising\s+cookies|"
-    r"cookiebot|onetrust|trustarc|optimizely|google\s+analytics|microsoft\s+clarity|"
-    r"tag\s+manager|gtm)"
-)
-_COOKIE_SIGNAL_RE = re.compile(_COOKIE_SIGNAL_PATTERN, flags=re.IGNORECASE)
-_COOKIE_WORD_RE = re.compile(r"\bcookies?\b", flags=re.IGNORECASE)
-_COOKIE_UI_CONTROL_RE = re.compile(
-    r"^(accept\s+all|reject\s+all|save\s+and\s+close|cookie\s+preferences|preferences)$",
-    flags=re.IGNORECASE,
-)
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
 _AVATURE_TAIL_MARKERS = (
     "back to job search",
     "similar jobs",
@@ -126,6 +81,15 @@ def _score_apply_url(url: str) -> int:
     if host:
         return 2  # best: company-owned domain
     return -1
+
+
+def normalize_compensation_value(value: Any) -> Optional[int]:
+    if not isinstance(value, (int, float)):
+        return None
+    comp = int(value)
+    if comp <= MIN_TOTAL_COMPENSATION or comp >= MAX_TOTAL_COMPENSATION:
+        return None
+    return comp
 
 
 def _strip_ashby_application_url(url: str) -> str:
@@ -248,14 +212,6 @@ _LISTING_FILTER_TERMS = (
     "view all jobs",
     "filter by",
 )
-_LISTING_SELECT_RE = re.compile(
-    r"\bselect\s+(department|country|location|city|state|category|team)\b",
-    flags=re.IGNORECASE,
-)
-_LISTING_TABLE_HEADER_RE = re.compile(
-    r"\|\s*\*\*\s*role\s*\*\*.*\|\s*\*\*\s*(team|department)\s*\*\*.*\|\s*\*\*\s*type\s*\*\*.*\|\s*\*\*\s*location\s*\*\*",
-    flags=re.IGNORECASE,
-)
 _JOB_DETAIL_MARKERS = (
     "responsibilities",
     "requirements",
@@ -270,8 +226,6 @@ _JOB_DETAIL_MARKERS = (
     "salary",
     "equal opportunity",
 )
-
-_NAV_BLOCK_REGEX = re.compile(NAV_BLOCK_PATTERN, flags=re.IGNORECASE)
 
 
 def build_job_template() -> Dict[str, str]:
@@ -422,6 +376,7 @@ def _strip_embedded_theme_json(markdown: str) -> str:
 
     markers = ('"themeOptions"', '"customTheme"', '"varTheme"', '"micrositeConfig"')
     output = markdown
+    trimmed = False
     for _ in range(3):
         marker_index = next((output.find(marker) for marker in markers if marker in output), -1)
         if marker_index == -1:
@@ -456,8 +411,11 @@ def _strip_embedded_theme_json(markdown: str) -> str:
         if end == -1:
             break
         output = f"{output[:start]} {output[end + 1:]}"
+        trimmed = True
 
-    return re.sub(WHITESPACE_PATTERN, " ", output).strip()
+    if trimmed:
+        return re.sub(WHITESPACE_PATTERN, " ", output).strip()
+    return output.strip()
 
 
 def _strip_avature_tail(markdown: str) -> str:
@@ -563,7 +521,7 @@ def _url_suggests_listing(url: str | None) -> bool:
         if seg not in {"job", "jobs", "career", "careers"}:
             continue
         slug = segments[idx + 1]
-        if not slug or re.search(r"\d", slug):
+        if not slug or re.search(DIGIT_PATTERN, slug):
             return False
         normalized = _normalize_location_key(slug.replace("-", " ").replace("_", " "))
         if not normalized:
@@ -610,16 +568,6 @@ def looks_like_job_listing_page(title: str | None, description: str, url: str | 
 
     return False
 
-
-_TITLE_RE = re.compile(TITLE_PATTERN, flags=re.IGNORECASE | re.MULTILINE)
-_LEVEL_RE = re.compile(LEVEL_PATTERN, flags=re.IGNORECASE)
-_LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
-_SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)
-_WORK_FROM_RE = re.compile(WORK_FROM_PATTERN, flags=re.IGNORECASE)
-_SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
-_SALARY_RANGE_LABEL_RE = re.compile(SALARY_RANGE_LABEL_PATTERN, flags=re.IGNORECASE)
-_SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
-_REMOTE_RE = re.compile(REMOTE_PATTERN, flags=re.IGNORECASE)
 
 
 def _normalize_location_key(value: str) -> str:
@@ -1013,17 +961,27 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     comp_candidates: List[int] = []
     comp_ranges: List[tuple[Optional[int], Optional[int]]] = []
+
+    def _record_comp_range(low_val: Optional[int], high_val: Optional[int]) -> None:
+        low_norm = normalize_compensation_value(low_val) if low_val is not None else None
+        high_norm = normalize_compensation_value(high_val) if high_val is not None else None
+        if not low_norm and not high_norm:
+            return
+        comp_ranges.append((low_norm, high_norm))
+        if low_norm and high_norm:
+            candidate = normalize_compensation_value(int((low_norm + high_norm) / 2))
+            if candidate is not None:
+                comp_candidates.append(candidate)
+        elif low_norm:
+            comp_candidates.append(low_norm)
+        elif high_norm:
+            comp_candidates.append(high_norm)
     for salary_match in _SALARY_RANGE_LABEL_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
         low_val = _to_int(low) if low else None
         high_val = _to_int(high) if high else None
-        if low_val or high_val:
-            comp_ranges.append((low_val, high_val))
-        if high_val:
-            comp_candidates.append(high_val)
-        elif low_val:
-            comp_candidates.append(low_val)
+        _record_comp_range(low_val, high_val)
     for salary_match in _SALARY_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
@@ -1032,12 +990,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             continue
         low_val = _to_int(low) if low else None
         high_val = _to_int(high) if high else None
-        if low_val or high_val:
-            comp_ranges.append((low_val, high_val))
-        if low_val and high_val:
-            comp_candidates.append(int((low_val + high_val) / 2))
-        elif low_val:
-            comp_candidates.append(low_val)
+        _record_comp_range(low_val, high_val)
     for salary_match in _SALARY_K_RE.finditer(markdown):
         raw_match = salary_match.group(0) or ""
         if "401k" in raw_match.lower():
@@ -1048,13 +1001,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             low_val *= 1000
         if high_val:
             high_val *= 1000
-        if low_val or high_val:
-            comp_ranges.append((low_val, high_val))
-        if low_val and high_val:
-            comp_candidates.append(int((low_val + high_val) / 2))
-        elif low_val:
-            comp_candidates.append(low_val)
-    comp_val = max((c for c in comp_candidates if c >= 1000), default=None)
+        _record_comp_range(low_val, high_val)
+    range_candidates: List[int] = []
+    for low_val, high_val in comp_ranges:
+        if high_val is not None:
+            range_candidates.append(high_val)
+        elif low_val is not None:
+            range_candidates.append(low_val)
+    comp_val = max(comp_candidates + range_candidates, default=None)
     if comp_val is not None:
         hints["compensation"] = comp_val
     if comp_ranges:
@@ -1131,7 +1085,10 @@ def coerce_level(value: Any, title: str) -> str:
 
 def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[int, bool]:
     if isinstance(value, (int, float)) and value > 0:
-        return (int(value), False) if with_meta else int(value)
+        normalized = normalize_compensation_value(value)
+        if normalized is not None:
+            return (normalized, False) if with_meta else normalized
+        return (0, True) if with_meta else 0
     if isinstance(value, str):
         cleaned = value.replace("\u00a0", " ")
         has_retirement_token = re.search(RETIREMENT_PLAN_PATTERN, cleaned, flags=re.IGNORECASE) is not None
@@ -1144,7 +1101,10 @@ def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[in
                 if parsed > 0:
                     if has_retirement_token and parsed < 1000:
                         return (0, True) if with_meta else 0
-                    return (int(parsed), False) if with_meta else int(parsed)
+                    normalized = normalize_compensation_value(parsed)
+                    if normalized is not None:
+                        return (normalized, False) if with_meta else normalized
+                    return (0, True) if with_meta else 0
             except ValueError:
                 pass
     return (0, True) if with_meta else 0
@@ -1181,6 +1141,310 @@ def parse_posted_at(value: Any) -> int:
             pass
 
     return now_ms
+
+
+@dataclass(frozen=True)
+class _HintApplicationConfig:
+    apply_location_when_empty: bool
+    apply_location_when_unknown: bool
+    coerce_level_after_hint: bool
+    override_comp_reason_on_hint: bool
+    remote_company_location_when_empty: bool
+    remote_company_location_when_unknown: bool
+    title_prefix: str = "job application for"
+
+
+@dataclass(frozen=True)
+class _JobHintState:
+    title: str
+    location: str
+    level: str
+    remote: bool
+    total_compensation: int
+    compensation_unknown: bool
+    compensation_reason: Optional[str]
+
+
+class _JobHintApplier(ABC):
+    @abstractmethod
+    def apply(
+        self,
+        *,
+        state: _JobHintState,
+        hints: Dict[str, Any],
+        company: str,
+        config: _HintApplicationConfig,
+    ) -> _JobHintState:
+        raise NotImplementedError
+
+
+class _DefaultJobHintApplier(_JobHintApplier):
+    def apply(
+        self,
+        *,
+        state: _JobHintState,
+        hints: Dict[str, Any],
+        company: str,
+        config: _HintApplicationConfig,
+    ) -> _JobHintState:
+        title = state.title
+        hinted_title = hints.get("title")
+        if hinted_title and title.lower().startswith(config.title_prefix):
+            title = hinted_title
+
+        location = state.location or ""
+        hinted_location = hints.get("location")
+        if hinted_location:
+            if (config.apply_location_when_empty and not location) or (
+                config.apply_location_when_unknown and location == "Unknown"
+            ):
+                location = hinted_location
+
+        level = state.level
+        hinted_level = hints.get("level")
+        if hinted_level:
+            level = hinted_level
+        if config.coerce_level_after_hint:
+            level = coerce_level(level, title)
+
+        total_comp = state.total_compensation
+        compensation_unknown = state.compensation_unknown
+        reason = state.compensation_reason
+        hinted_comp = hints.get("compensation")
+        hinted_comp_norm = normalize_compensation_value(hinted_comp) if hinted_comp is not None else None
+        if hinted_comp_norm is not None and (not total_comp or total_comp <= 0):
+            total_comp = hinted_comp_norm
+            compensation_unknown = False
+            reason = "parsed from description"
+
+        remote = state.remote
+        hinted_remote = hints.get("remote")
+        if hinted_remote is True:
+            remote = True
+        elif hinted_remote is False:
+            remote = False
+
+        if is_remote_company(company):
+            remote = True
+            if (config.remote_company_location_when_empty and not location) or (
+                config.remote_company_location_when_unknown and location == "Unknown"
+            ):
+                location = "Remote"
+
+        if hinted_comp_norm is not None and total_comp > 0 and config.override_comp_reason_on_hint:
+            reason = "parsed from description"
+
+        return _JobHintState(
+            title=title,
+            location=location,
+            level=level,
+            remote=remote,
+            total_compensation=int(total_comp or 0),
+            compensation_unknown=compensation_unknown,
+            compensation_reason=reason,
+        )
+
+
+_NORMALIZED_HINT_CONFIG = _HintApplicationConfig(
+    apply_location_when_empty=False,
+    apply_location_when_unknown=True,
+    coerce_level_after_hint=False,
+    override_comp_reason_on_hint=True,
+    remote_company_location_when_empty=True,
+    remote_company_location_when_unknown=True,
+)
+
+_JOB_HINT_CONFIG = _HintApplicationConfig(
+    apply_location_when_empty=True,
+    apply_location_when_unknown=False,
+    coerce_level_after_hint=True,
+    override_comp_reason_on_hint=False,
+    remote_company_location_when_empty=True,
+    remote_company_location_when_unknown=False,
+)
+
+
+@dataclass(frozen=True)
+class _JobBuildContext:
+    default_posted_at: int
+    scraped_at: Optional[int] = None
+    scraped_with: Optional[str] = None
+    workflow_name: Optional[str] = None
+    scraped_cost_milli_cents: Optional[int] = None
+
+
+class _JobRowNormalizer:
+    def __init__(
+        self,
+        *,
+        hint_applier: Optional[_JobHintApplier] = None,
+        normalized_hint_config: _HintApplicationConfig = _NORMALIZED_HINT_CONFIG,
+        job_hint_config: _HintApplicationConfig = _JOB_HINT_CONFIG,
+        max_description_chars: int = MAX_JOB_DESCRIPTION_CHARS,
+    ) -> None:
+        self.hint_applier = hint_applier or _DefaultJobHintApplier()
+        self.normalized_hint_config = normalized_hint_config
+        self.job_hint_config = job_hint_config
+        self.max_description_chars = max_description_chars
+
+    def normalize_row(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        raw_title_value = row.get("job_title") or row.get("title")
+        raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
+        title = raw_title or stringify(row.get("job_title") or row.get("title") or "Untitled")
+
+        preferred_url = prefer_apply_url(row)
+        url = stringify(preferred_url) if preferred_url is not None else ""
+        if not url:
+            return None
+        if not title_matches_required_keywords(raw_title or None):
+            return None
+
+        company_raw = stringify(
+            row.get("company") or row.get("company_name") or row.get("employer") or row.get("organization") or ""
+        )
+        company = company_raw or derive_company_from_url(url) or "Unknown"
+
+        raw_location = row.get("location") or row.get("city") or row.get("region") or ""
+        if isinstance(raw_location, dict):
+            raw_location = raw_location.get("name") or raw_location.get("location") or ""
+        location = stringify(raw_location)
+        remote = coerce_remote(row.get("remote"), location, title)
+        if not location:
+            location = "Remote" if remote else "Unknown"
+
+        level = coerce_level(row.get("level"), title)
+        description = strip_known_nav_blocks(extract_description(row))
+        description = _strip_embedded_theme_json(description)
+        if looks_like_job_listing_page(raw_title or title, description, url):
+            return None
+        if looks_like_error_landing(raw_title or title, description):
+            return None
+        if len(description) > self.max_description_chars:
+            description = description[: self.max_description_chars]
+
+        hints = parse_markdown_hints(description)
+        total_comp, used_default_comp = parse_compensation(
+            row.get("total_compensation") or row.get("salary") or row.get("compensation"),
+            with_meta=True,
+        )
+        raw_reason = row.get("compensation_reason") or row.get("compensationReason")
+        reason = raw_reason.strip() if isinstance(raw_reason, str) and raw_reason.strip() else None
+
+        state = _JobHintState(
+            title=title,
+            location=location,
+            level=level,
+            remote=remote,
+            total_compensation=int(total_comp or 0),
+            compensation_unknown=bool(used_default_comp),
+            compensation_reason=reason,
+        )
+        state = self.hint_applier.apply(
+            state=state,
+            hints=hints,
+            company=company,
+            config=self.normalized_hint_config,
+        )
+
+        posted_at = parse_posted_at(
+            row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
+        )
+        normalized_row: Dict[str, Any] = {
+            "job_title": state.title,
+            "title": state.title,
+            "company": company,
+            "location": state.location,
+            "remote": state.remote,
+            "level": state.level,
+            "total_compensation": state.total_compensation,
+            "url": url,
+            "description": description,
+            "posted_at": posted_at,
+        }
+        if state.compensation_reason:
+            normalized_row["compensation_reason"] = state.compensation_reason
+        normalized_row["compensation_unknown"] = state.compensation_unknown
+
+        return normalized_row
+
+    def build_job_from_normalized(
+        self,
+        row: Dict[str, Any],
+        *,
+        context: _JobBuildContext,
+    ) -> Optional[Dict[str, Any]]:
+        description = stringify(row.get("description") or "")
+        if len(description) > self.max_description_chars:
+            description = description[: self.max_description_chars]
+        hints = parse_markdown_hints(description)
+        compensation_unknown = bool(row.get("compensation_unknown"))
+        raw_reason = row.get("compensation_reason") or row.get("compensationReason")
+        reason = raw_reason.strip() if isinstance(raw_reason, str) and raw_reason.strip() else None
+        if not compensation_unknown:
+            total_comp_value = row.get("total_compensation")
+            if not isinstance(total_comp_value, (int, float)) or total_comp_value <= 0:
+                compensation_unknown = True
+
+        title_val = row.get("title") or row.get("job_title") or "Untitled"
+        location_val = row.get("location") or ""
+        level_val = row.get("level") or "mid"
+        total_comp_val = row.get("total_compensation") or 0
+        company_val = row.get("company") or "Unknown"
+        remote_val = bool(row.get("remote"))
+
+        state = _JobHintState(
+            title=str(title_val),
+            location=str(location_val),
+            level=str(level_val),
+            remote=remote_val,
+            total_compensation=int(total_comp_val or 0),
+            compensation_unknown=compensation_unknown,
+            compensation_reason=reason,
+        )
+        state = self.hint_applier.apply(
+            state=state,
+            hints=hints,
+            company=company_val,
+            config=self.job_hint_config,
+        )
+
+        preferred_url = prefer_apply_url(row)
+        apply_url = stringify(preferred_url) if preferred_url is not None else ""
+        url = apply_url or row.get("url") or ""
+        if not url:
+            return None
+
+        job = {
+            "title": state.title,
+            "company": company_val,
+            "description": description,
+            "location": state.location,
+            "remote": state.remote,
+            "level": state.level,
+            "totalCompensation": int(state.total_compensation or 0),
+            "url": url,
+            "postedAt": int(row.get("posted_at") or context.default_posted_at),
+        }
+        if context.scraped_at:
+            job["scrapedAt"] = context.scraped_at
+        if context.scraped_with:
+            job["scrapedWith"] = context.scraped_with
+        if context.workflow_name:
+            job["workflowName"] = context.workflow_name
+        if context.scraped_cost_milli_cents is not None:
+            job["scrapedCostMilliCents"] = context.scraped_cost_milli_cents
+        if state.compensation_unknown:
+            job["compensationUnknown"] = True
+        if state.compensation_reason:
+            job["compensationReason"] = state.compensation_reason
+        elif state.compensation_unknown:
+            job["compensationReason"] = UNKNOWN_COMPENSATION_REASON
+        elif context.scraped_with:
+            job["compensationReason"] = f"{context.scraped_with} extracted compensation"
+        else:
+            job["compensationReason"] = "compensation provided in scrape payload"
+
+        return job
 
 
 def _shrink_payload(value: Any, max_chars: int) -> Any:
@@ -1351,135 +1615,76 @@ def trim_scrape_for_convex(
     return trimmed
 
 
-def normalize_firecrawl_items(payload: Any) -> List[Dict[str, Any]]:
-    rows = _rows_from_firecrawl_payload(payload)
-    normalized: List[Dict[str, Any]] = []
-    for row in rows:
-        norm = normalize_single_row(row)
-        if norm:
-            normalized.append(norm)
-    return normalized
+class _PayloadRowCollector(ABC):
+    @abstractmethod
+    def collect_rows(self, payload: Any) -> List[Dict[str, Any]]:
+        raise NotImplementedError
 
 
-def normalize_fetchfox_items(payload: Any) -> List[Dict[str, Any]]:
-    def collect_rows(obj: Any) -> List[Dict[str, Any]]:
+class _FirecrawlRowCollector(_PayloadRowCollector):
+    def collect_rows(self, payload: Any) -> List[Dict[str, Any]]:
+        parsed = _parse_firecrawl_json(payload)
+        if parsed is None:
+            parsed = payload
+        return _rows_from_firecrawl_payload(parsed)
+
+
+class _FetchfoxRowCollector(_PayloadRowCollector):
+    def collect_rows(self, payload: Any) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
-        if isinstance(obj, list):
-            rows.extend([r for r in obj if isinstance(r, dict)])
+        if isinstance(payload, list):
+            rows.extend([r for r in payload if isinstance(r, dict)])
             return rows
 
-        if isinstance(obj, dict):
-            if isinstance(obj.get("normalized"), list):
-                rows.extend([r for r in obj["normalized"] if isinstance(r, dict)])
-            if isinstance(obj.get("items"), list):
-                rows.extend([r for r in obj["items"] if isinstance(r, dict)])
-            if isinstance(obj.get("results"), list):
-                rows.extend([r for r in obj["results"] if isinstance(r, dict)])
-            results_obj = obj.get("results")
+        if isinstance(payload, dict):
+            if isinstance(payload.get("normalized"), list):
+                rows.extend([r for r in payload["normalized"] if isinstance(r, dict)])
+            if isinstance(payload.get("items"), list):
+                rows.extend([r for r in payload["items"] if isinstance(r, dict)])
+            if isinstance(payload.get("results"), list):
+                rows.extend([r for r in payload["results"] if isinstance(r, dict)])
+            results_obj = payload.get("results")
             if isinstance(results_obj, dict):
                 if isinstance(results_obj.get("items"), list):
                     rows.extend([r for r in results_obj["items"] if isinstance(r, dict)])
                 if isinstance(results_obj.get("normalized"), list):
                     rows.extend([r for r in results_obj["normalized"] if isinstance(r, dict)])
-            if isinstance(obj.get("data"), dict):
-                rows.extend(collect_rows(obj.get("data")))
+            if isinstance(payload.get("data"), dict):
+                rows.extend(self.collect_rows(payload.get("data")))
 
         return rows
 
-    raw_rows = collect_rows(payload)
+
+_DEFAULT_JOB_NORMALIZER = _JobRowNormalizer()
+_FIRECRAWL_COLLECTOR = _FirecrawlRowCollector()
+_FETCHFOX_COLLECTOR = _FetchfoxRowCollector()
+
+
+def _normalize_payload_items(
+    payload: Any,
+    *,
+    collector: _PayloadRowCollector,
+    normalizer: _JobRowNormalizer = _DEFAULT_JOB_NORMALIZER,
+) -> List[Dict[str, Any]]:
+    rows = collector.collect_rows(payload)
     normalized: List[Dict[str, Any]] = []
-    for row in raw_rows:
-        norm = normalize_single_row(row)
+    for row in rows:
+        norm = normalizer.normalize_row(row)
         if norm:
             normalized.append(norm)
-
     return normalized
 
 
+def normalize_firecrawl_items(payload: Any) -> List[Dict[str, Any]]:
+    return _normalize_payload_items(payload, collector=_FIRECRAWL_COLLECTOR, normalizer=_DEFAULT_JOB_NORMALIZER)
+
+
+def normalize_fetchfox_items(payload: Any) -> List[Dict[str, Any]]:
+    return _normalize_payload_items(payload, collector=_FETCHFOX_COLLECTOR, normalizer=_DEFAULT_JOB_NORMALIZER)
+
+
 def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    raw_title_value = row.get("job_title") or row.get("title")
-    raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
-    title = raw_title or stringify(row.get("job_title") or row.get("title") or "Untitled")
-    preferred_url = prefer_apply_url(row)
-    url = stringify(preferred_url) if preferred_url is not None else ""
-    if not url:
-        return None
-    if not title_matches_required_keywords(raw_title or None):
-        return None
-
-    company_raw = stringify(
-        row.get("company") or row.get("company_name") or row.get("employer") or row.get("organization") or ""
-    )
-    company = company_raw or derive_company_from_url(url) or "Unknown"
-
-    raw_location = row.get("location") or row.get("city") or row.get("region") or ""
-    if isinstance(raw_location, dict):
-        raw_location = raw_location.get("name") or raw_location.get("location") or ""
-    location = stringify(raw_location)
-    remote = coerce_remote(row.get("remote"), location, title)
-    if not location:
-        location = "Remote" if remote else "Unknown"
-
-    level = coerce_level(row.get("level"), title)
-    description = strip_known_nav_blocks(extract_description(row))
-    description = _strip_embedded_theme_json(description)
-    if looks_like_job_listing_page(raw_title or title, description, url):
-        return None
-    if looks_like_error_landing(raw_title or title, description):
-        return None
-    if len(description) > MAX_JOB_DESCRIPTION_CHARS:
-        description = description[:MAX_JOB_DESCRIPTION_CHARS]
-    # Use markdown hints to fill missing data.
-    hints = parse_markdown_hints(description)
-    hinted_title = hints.get("title")
-    if hinted_title and title.lower().startswith("job application for"):
-        title = hinted_title
-    hinted_location = hints.get("location")
-    if hinted_location and location == "Unknown":
-        location = hinted_location
-    hinted_level = hints.get("level")
-    if hinted_level:
-        level = hinted_level
-    if hints.get("remote") is True:
-        remote = True
-    elif hints.get("remote") is False:
-        remote = False
-    if is_remote_company(company):
-        remote = True
-        if not location or location == "Unknown":
-            location = "Remote"
-    hinted_comp = hints.get("compensation")
-    total_comp, used_default_comp = parse_compensation(
-        row.get("total_compensation") or row.get("salary") or row.get("compensation"),
-        with_meta=True,
-    )
-    if hinted_comp is not None and total_comp <= 0:
-        total_comp = hinted_comp
-        used_default_comp = False
-    posted_at = parse_posted_at(
-        row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
-    )
-
-    normalized_row: Dict[str, Any] = {
-        "job_title": title,
-        "title": title,
-        "company": company,
-        "location": location,
-        "remote": remote,
-        "level": level,
-        "total_compensation": total_comp,
-        "url": url,
-        "description": description,
-        "posted_at": posted_at,
-    }
-    raw_reason = row.get("compensation_reason") or row.get("compensationReason")
-    if isinstance(raw_reason, str) and raw_reason.strip():
-        normalized_row["compensation_reason"] = raw_reason.strip()
-    normalized_row["compensation_unknown"] = used_default_comp
-    if hinted_comp is not None and total_comp > 0:
-        normalized_row["compensation_reason"] = "parsed from description"
-
-    return normalized_row
+    return _DEFAULT_JOB_NORMALIZER.normalize_row(row)
 
 
 def _parse_firecrawl_json(payload: Any) -> Any:
@@ -1536,85 +1741,27 @@ def _jobs_from_scrape_items(
     if not isinstance(normalized, list):
         return jobs
 
+    context = _JobBuildContext(
+        default_posted_at=default_posted_at,
+        scraped_at=scraped_at,
+        scraped_with=scraped_with,
+        workflow_name=workflow_name,
+        scraped_cost_milli_cents=scraped_cost_milli_cents,
+    )
     for row in normalized:
         if not isinstance(row, dict):
             continue
-        description = stringify(row.get("description") or "")
-        if len(description) > MAX_JOB_DESCRIPTION_CHARS:
-            description = description[:MAX_JOB_DESCRIPTION_CHARS]
-        hints = parse_markdown_hints(description)
-        compensation_unknown = bool(row.get("compensation_unknown"))
-        raw_comp_reason = row.get("compensation_reason")
-        reason = raw_comp_reason.strip() if isinstance(raw_comp_reason, str) else None
-        if not compensation_unknown:
-            total_comp_value = row.get("total_compensation")
-            if not isinstance(total_comp_value, (int, float)) or total_comp_value <= 0:
-                compensation_unknown = True
-        title_val = row.get("title") or row.get("job_title") or "Untitled"
-        if hints.get("title") and str(title_val).lower().startswith("job application for"):
-            title_val = hints["title"]
-        location_val = row.get("location") or ""
-        if not location_val and hints.get("location"):
-            location_val = hints["location"]
-        level_val = hints.get("level") or row.get("level") or "mid"
-        level_val = coerce_level(level_val, str(title_val))
-        total_comp_val = row.get("total_compensation") or 0
-        if (not total_comp_val or total_comp_val <= 0) and hints.get("compensation"):
-            total_comp_val = hints["compensation"]
-            compensation_unknown = False
-            reason = "parsed from description"
-        company_val = row.get("company") or "Unknown"
-        remote_val = bool(row.get("remote"))
-        if hints.get("remote") is True:
-            remote_val = True
-        elif hints.get("remote") is False:
-            remote_val = False
-        if is_remote_company(company_val):
-            remote_val = True
-            if not location_val:
-                location_val = "Remote"
-
-        preferred_url = prefer_apply_url(row)
-        apply_url = stringify(preferred_url) if preferred_url is not None else ""
-
-        job = {
-            "title": title_val,
-            "company": company_val,
-            "description": description,
-            "location": location_val,
-            "remote": remote_val,
-            "level": level_val,
-            "totalCompensation": int(total_comp_val or 0),
-            "url": apply_url or row.get("url") or "",
-            "postedAt": int(row.get("posted_at") or default_posted_at),
-        }
-        if not job["url"]:
-            continue
-        if scraped_at:
-            job["scrapedAt"] = scraped_at
-        if scraped_with:
-            job["scrapedWith"] = scraped_with
-        if workflow_name:
-            job["workflowName"] = workflow_name
-        if scraped_cost_milli_cents is not None:
-            job["scrapedCostMilliCents"] = scraped_cost_milli_cents
-        if compensation_unknown:
-            job["compensationUnknown"] = True
-        if reason:
-            job["compensationReason"] = reason
-        elif compensation_unknown:
-            job["compensationReason"] = UNKNOWN_COMPENSATION_REASON
-        elif scraped_with:
-            job["compensationReason"] = f"{scraped_with} extracted compensation"
-        else:
-            job["compensationReason"] = "compensation provided in scrape payload"
-        jobs.append(job)
+        job = _DEFAULT_JOB_NORMALIZER.build_job_from_normalized(row, context=context)
+        if job:
+            jobs.append(job)
 
     return jobs
 
 
 __all__ = [
     "DEFAULT_TOTAL_COMPENSATION",
+    "MIN_TOTAL_COMPENSATION",
+    "MAX_TOTAL_COMPENSATION",
     "MAX_JOB_DESCRIPTION_CHARS",
     "MAX_DESCRIPTION_CHARS",
     "UNKNOWN_COMPENSATION_REASON",
@@ -1629,6 +1776,7 @@ __all__ = [
     "looks_like_job_listing_page",
     "normalize_fetchfox_items",
     "normalize_firecrawl_items",
+    "normalize_compensation_value",
     "normalize_single_row",
     "parse_compensation",
     "parse_posted_at",

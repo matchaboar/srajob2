@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import type { TableNames } from "./_generated/dataModel";
 import { v } from "convex/values";
 
@@ -13,6 +13,9 @@ type WipeTable =
   | "run_requests"
   | "workflow_run_sites"
   | "scratchpad_entries";
+
+type SalaryLevel = "junior" | "mid" | "senior" | "staff";
+const SALARY_LEVELS: SalaryLevel[] = ["junior", "mid", "senior", "staff"];
 
 export const wipeSiteDataByDomainPage = mutation({
   args: {
@@ -155,6 +158,75 @@ export const wipeSiteDataByDomainPage = mutation({
         url: site.url,
         name: site.name ?? null,
       })),
+    };
+  },
+});
+
+export const listCompanySalaryMaxima = query({
+  args: {
+    minCompensation: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const minCompensation = Math.max(0, args.minCompensation ?? 0);
+    const jobs = await ctx.db.query("jobs").collect();
+    const companies = new Set<string>();
+    const caps: Record<string, Partial<Record<SalaryLevel, number>>> = {};
+    const globalMaxByLevel: Record<SalaryLevel, number> = {
+      junior: 0,
+      mid: 0,
+      senior: 0,
+      staff: 0,
+    };
+
+    const addCompany = (value: unknown) => {
+      if (typeof value !== "string") return;
+      const trimmed = value.trim();
+      if (!trimmed || trimmed.toLowerCase() === "unknown") return;
+      companies.add(trimmed);
+    };
+
+    for (const job of jobs as AnyDoc[]) {
+      const company = typeof job.company === "string" ? job.company.trim() : "";
+      addCompany(company);
+
+      const level = job.level as SalaryLevel;
+      if (!SALARY_LEVELS.includes(level)) continue;
+
+      const compensation = typeof job.totalCompensation === "number" ? job.totalCompensation : null;
+      if (compensation === null || Number.isNaN(compensation)) continue;
+      if (job.compensationUnknown === true) continue;
+      if (compensation < minCompensation) continue;
+
+      const companyCaps = caps[company] ?? {};
+      const existing = companyCaps[level];
+      if (existing === undefined || compensation > existing) {
+        companyCaps[level] = compensation;
+        caps[company] = companyCaps;
+      }
+      if (compensation > globalMaxByLevel[level]) {
+        globalMaxByLevel[level] = compensation;
+      }
+    }
+
+    const profiles = await ctx.db.query("company_profiles").collect();
+    for (const profile of profiles as AnyDoc[]) {
+      addCompany(profile.name);
+      if (Array.isArray(profile.aliases)) {
+        for (const alias of profile.aliases) {
+          addCompany(alias);
+        }
+      }
+    }
+
+    const sites = await ctx.db.query("sites").collect();
+    for (const site of sites as AnyDoc[]) {
+      addCompany(site.name);
+    }
+
+    return {
+      allCompanies: Array.from(companies).sort((a, b) => a.localeCompare(b)),
+      caps,
+      globalMaxByLevel,
     };
   },
 });

@@ -10,14 +10,18 @@ import pytest
 sys.path.insert(0, os.path.abspath("."))
 
 # Stub firecrawl dependency so activities can import without installing it
-firecrawl_mod = types.ModuleType("firecrawl")
-firecrawl_mod.Firecrawl = type("Firecrawl", (), {})
-sys.modules.setdefault("firecrawl", firecrawl_mod)
-firecrawl_v2 = types.ModuleType("firecrawl.v2")
-firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
-firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
-sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
-sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
+try:
+    import firecrawl  # noqa: F401
+    import firecrawl.v2.types  # noqa: F401
+except Exception:
+    firecrawl_mod = types.ModuleType("firecrawl")
+    firecrawl_mod.Firecrawl = type("Firecrawl", (), {})
+    sys.modules.setdefault("firecrawl", firecrawl_mod)
+    firecrawl_v2 = types.ModuleType("firecrawl.v2")
+    firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
+    firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
+    sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
+    sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
 
 try:
     import temporalio  # noqa: F401

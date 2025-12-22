@@ -14,6 +14,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     _jobs_from_scrape_items,
     looks_like_job_listing_page,
     normalize_firecrawl_items,
+    normalize_fetchfox_items,
     normalize_single_row,
     parse_compensation,
     parse_markdown_hints,
@@ -187,6 +188,40 @@ def test_normalize_firecrawl_items_handles_greenhouse_job_json():
     assert row["company"] == "Pinterest"
     assert row["location"] == "Toronto, ON, CA"
     assert "Pinterest" in row["description"]
+
+
+def test_normalize_firecrawl_items_accepts_json_string_payload():
+    payload = json.dumps(
+        {
+            "title": "Software Engineer",
+            "absolute_url": "https://careers.example.com/jobs/1",
+            "content": "<p>Example role</p>",
+        }
+    )
+
+    normalized = normalize_firecrawl_items(payload)
+
+    assert len(normalized) == 1
+    assert normalized[0]["url"] == "https://careers.example.com/jobs/1"
+
+
+def test_normalize_fetchfox_items_handles_nested_data_payload():
+    payload = {
+        "data": {
+            "normalized": [
+                {
+                    "title": "Data Engineer",
+                    "url": "https://jobs.example.com/data/123",
+                    "description": "Build data pipelines.",
+                }
+            ]
+        }
+    }
+
+    normalized = normalize_fetchfox_items(payload)
+
+    assert len(normalized) == 1
+    assert normalized[0]["title"] == "Data Engineer"
 
 
 def test_jobs_from_scrape_items_uses_normalized_row():

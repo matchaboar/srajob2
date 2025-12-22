@@ -14,25 +14,30 @@ sys.path.insert(0, os.path.abspath("."))
 # Stub firecrawl dependency for tests that don't exercise it
 import types
 
-firecrawl_mod = types.ModuleType("firecrawl")
-firecrawl_mod.Firecrawl = type("Firecrawl", (), {})  # dummy class
-sys.modules.setdefault("firecrawl", firecrawl_mod)
-firecrawl_v2 = types.ModuleType("firecrawl.v2")
-firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
-firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
-firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
-sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
-sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
-firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
-firecrawl_v2_utils.error_handler = types.SimpleNamespace(
-    PaymentRequiredError=type("PaymentRequiredError", (Exception,), {}),
-    RequestTimeoutError=type("RequestTimeoutError", (Exception,), {}),
-)
-sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
-firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
-firecrawl_v2_utils_error.PaymentRequiredError = firecrawl_v2_utils.error_handler.PaymentRequiredError
-firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.error_handler.RequestTimeoutError
-sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
+try:
+    import firecrawl  # noqa: F401
+    import firecrawl.v2.types  # noqa: F401
+    import firecrawl.v2.utils.error_handler  # noqa: F401
+except Exception:
+    firecrawl_mod = types.ModuleType("firecrawl")
+    firecrawl_mod.Firecrawl = type("Firecrawl", (), {})  # dummy class
+    sys.modules.setdefault("firecrawl", firecrawl_mod)
+    firecrawl_v2 = types.ModuleType("firecrawl.v2")
+    firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
+    firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
+    firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
+    sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
+    sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
+    firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
+    firecrawl_v2_utils.error_handler = types.SimpleNamespace(
+        PaymentRequiredError=type("PaymentRequiredError", (Exception,), {}),
+        RequestTimeoutError=type("RequestTimeoutError", (Exception,), {}),
+    )
+    sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
+    firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
+    firecrawl_v2_utils_error.PaymentRequiredError = firecrawl_v2_utils.error_handler.PaymentRequiredError
+    firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.error_handler.RequestTimeoutError
+    sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows.activities.types import Site  # noqa: E402

@@ -11,23 +11,28 @@ import pytest
 sys.path.insert(0, os.path.abspath("."))
 
 # Stub firecrawl dependency to avoid import errors when running in isolation.
-firecrawl_mod = types.ModuleType("firecrawl")
-firecrawl_mod.Firecrawl = type("Firecrawl", (), {})  # dummy class
-sys.modules.setdefault("firecrawl", firecrawl_mod)
-firecrawl_v2 = types.ModuleType("firecrawl.v2")
-firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
-firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
-firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
-sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
-sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
-firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
-firecrawl_v2_utils.PaymentRequiredError = type("PaymentRequiredError", (Exception,), {})
-firecrawl_v2_utils.RequestTimeoutError = type("RequestTimeoutError", (Exception,), {})
-sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
-firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
-firecrawl_v2_utils_error.PaymentRequiredError = firecrawl_v2_utils.PaymentRequiredError
-firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.RequestTimeoutError
-sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
+try:
+    import firecrawl  # noqa: F401
+    import firecrawl.v2.types  # noqa: F401
+    import firecrawl.v2.utils.error_handler  # noqa: F401
+except Exception:
+    firecrawl_mod = types.ModuleType("firecrawl")
+    firecrawl_mod.Firecrawl = type("Firecrawl", (), {})  # dummy class
+    sys.modules.setdefault("firecrawl", firecrawl_mod)
+    firecrawl_v2 = types.ModuleType("firecrawl.v2")
+    firecrawl_v2_types = types.ModuleType("firecrawl.v2.types")
+    firecrawl_v2_types.PaginationConfig = type("PaginationConfig", (), {})
+    firecrawl_v2_types.ScrapeOptions = type("ScrapeOptions", (), {})
+    sys.modules.setdefault("firecrawl.v2", firecrawl_v2)
+    sys.modules.setdefault("firecrawl.v2.types", firecrawl_v2_types)
+    firecrawl_v2_utils = types.ModuleType("firecrawl.v2.utils")
+    firecrawl_v2_utils.PaymentRequiredError = type("PaymentRequiredError", (Exception,), {})
+    firecrawl_v2_utils.RequestTimeoutError = type("RequestTimeoutError", (Exception,), {})
+    sys.modules.setdefault("firecrawl.v2.utils", firecrawl_v2_utils)
+    firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
+    firecrawl_v2_utils_error.PaymentRequiredError = firecrawl_v2_utils.PaymentRequiredError
+    firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.RequestTimeoutError
+    sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
 fetchfox_mod = types.ModuleType("fetchfox_sdk")
 fetchfox_mod.FetchFox = type("FetchFox", (), {})
 sys.modules.setdefault("fetchfox_sdk", fetchfox_mod)
@@ -137,6 +142,54 @@ async def test_process_pending_job_details_batch_ignores_401k(monkeypatch):
     patch = updated[0]
     assert patch.get("totalCompensation") in (None, 0)
     assert patch.get("compensationUnknown") is True
+
+
+@pytest.mark.asyncio
+async def test_process_pending_job_details_batch_ignores_company_metrics(monkeypatch, ramp_markdown):
+    jobs: list[dict[str, Any]] = [
+        {
+            "_id": "job-ramp",
+            "title": "Procurement Architect",
+            "description": ramp_markdown,
+            "url": "https://jobs.ashbyhq.com/ramp/4c24a55a-ea3b-4cea-a5b5-7862938616bf",
+            "location": "Unknown",
+            "totalCompensation": 0,
+            "compensationReason": "pending markdown structured extraction",
+            "compensationUnknown": True,
+            "heuristicAttempts": 0,
+        }
+    ]
+
+    recorded: list[dict[str, Any]] = []
+    updated: list[dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listPendingJobDetails":
+            return jobs
+        if name == "router:listJobDetailConfigs":
+            return []
+        raise AssertionError(f"unexpected query {name}")
+
+    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:recordJobDetailHeuristic":
+            recorded.append(args or {})
+            return {"created": True}
+        if name == "router:updateJobWithHeuristic":
+            updated.append(args or {})
+            return {"updated": True}
+        raise AssertionError(f"unexpected mutation {name}")
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    result = await process_pending_job_details_batch()
+
+    assert result["processed"] == 1
+    assert updated, "expected heuristic update for ramp fixture"
+    patch = updated[0]
+    assert patch.get("totalCompensation") in (None, 0)
+    assert patch.get("compensationUnknown") is True
+    assert not any(call.get("field") == "compensation" for call in recorded)
 
 
 @pytest.mark.asyncio
@@ -638,6 +691,12 @@ def airbnb_china_markdown() -> str:
 @pytest.fixture
 def stubhub_markdown() -> str:
     path = Path("tests/fixtures/stubhub-commonmark-spidercloud.md")
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def ramp_markdown() -> str:
+    path = Path("tests/fixtures/ramp-procurement-architect.md")
     return path.read_text(encoding="utf-8")
 
 

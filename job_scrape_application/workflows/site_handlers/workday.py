@@ -6,19 +6,16 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from .base import BaseSiteHandler
+from ..helpers.regex_patterns import (
+    BASE_URL_META_PATTERNS,
+    WORKDAY_BASE_URL_RE,
+    WORKDAY_JOB_DETAIL_PATH_RE,
+    WORKDAY_JOB_DETAIL_URL_RE,
+    WORKDAY_JOB_TITLE_ANCHOR_RE,
+    WORKDAY_PAGE_RANGE_RE,
+)
 
 WORKDAY_HOST_SUFFIX = "myworkdayjobs.com"
-JOB_DETAIL_URL_PATTERN = re.compile(r"https?://[^\"'\\s>]+/job/[^\"'\\s>]+", re.IGNORECASE)
-JOB_DETAIL_PATH_PATTERN = re.compile(r"/job/[^\"'\\s>]+", re.IGNORECASE)
-JOB_TITLE_ANCHOR_PATTERN = re.compile(
-    r"<a[^>]+data-automation-id=[\"']jobTitle[\"'][^>]+href=[\"'](?P<href>[^\"']+)[\"']",
-    re.IGNORECASE,
-)
-PAGE_RANGE_PATTERN = re.compile(
-    r"(?P<start>\\d+)\\s*-\\s*(?P<end>\\d+)\\s*of\\s*(?P<total>\\d+)\\s+jobs",
-    re.IGNORECASE,
-)
-BASE_URL_PATTERN = re.compile(r"https?://[^\"'\\s>]*myworkdayjobs\\.com/[^\"'\\s>]*", re.IGNORECASE)
 
 
 class WorkdayHandler(BaseSiteHandler):
@@ -97,14 +94,14 @@ class WorkdayHandler(BaseSiteHandler):
             seen.add(cleaned)
             urls.append(cleaned)
 
-        for match in JOB_TITLE_ANCHOR_PATTERN.finditer(html):
+        for match in WORKDAY_JOB_TITLE_ANCHOR_RE.finditer(html):
             _add(match.group("href"))
 
-        for match in JOB_DETAIL_URL_PATTERN.findall(html):
+        for match in WORKDAY_JOB_DETAIL_URL_RE.findall(html):
             _add(match)
 
         if base_url:
-            for match in JOB_DETAIL_PATH_PATTERN.findall(html):
+            for match in WORKDAY_JOB_DETAIL_PATH_RE.findall(html):
                 _add(urljoin(base_url, match))
 
         if base_url and self.is_listing_url(base_url):
@@ -152,7 +149,7 @@ class WorkdayHandler(BaseSiteHandler):
                     base_limit = None
 
         def _infer_page_data() -> tuple[int | None, int | None, int | None]:
-            match = PAGE_RANGE_PATTERN.search(html)
+            match = WORKDAY_PAGE_RANGE_RE.search(html)
             if match:
                 start = int(match.group("start"))
                 end = int(match.group("end"))
@@ -223,15 +220,11 @@ class WorkdayHandler(BaseSiteHandler):
 
     @staticmethod
     def _extract_base_url(html: str) -> Optional[str]:
-        for pattern in (
-            r"<base[^>]+href=\"(?P<url>[^\"]+)\"",
-            r"property=\"og:url\"[^>]+content=\"(?P<url>[^\"]+)\"",
-            r"rel=\"canonical\"[^>]+href=\"(?P<url>[^\"]+)\"",
-        ):
+        for pattern in BASE_URL_META_PATTERNS:
             match = re.search(pattern, html, flags=re.IGNORECASE)
             if match:
                 return match.group("url")
-        match = BASE_URL_PATTERN.search(html)
+        match = WORKDAY_BASE_URL_RE.search(html)
         if match:
             return match.group(0)
         return None

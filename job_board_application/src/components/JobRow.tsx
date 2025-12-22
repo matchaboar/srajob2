@@ -5,6 +5,9 @@ import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
 import { Keycap } from "./Keycap";
 import { StatusTracker } from "./StatusTracker";
+import { JobRowCompanyPill } from "./jobRow/JobRowCompanyPill";
+import { JobRowLevelPill } from "./jobRow/JobRowLevelPill";
+import { JobRowSalary } from "./jobRow/JobRowSalary";
 
 export type JobRowVariant = 'default' | 'applied' | 'rejected';
 
@@ -119,25 +122,13 @@ export function JobRow({
                                 <Keycap label="R" className="text-[9px] h-4 min-w-[16px] px-1 bg-slate-700 border-slate-600 text-slate-300 shadow-sm" />
                             </div>
                         )}
-                        {companyUrl ? (
-                            <a
-                                href={companyUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={handleCompanyClick}
-                                className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem] hover:text-white hover:border-slate-500"
-                                title={`View jobs for ${companyName}`}
-                            >
-                                {companyName}
-                            </a>
-                        ) : (
-                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem]">
-                                {companyName}
-                            </span>
-                        )}
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border border-slate-800 bg-slate-900/70 text-slate-400 shrink-0">
-                            {levelLabel}
-                        </span>
+                        <JobRowCompanyPill
+                            company={companyName}
+                            href={companyUrl || undefined}
+                            onClick={handleCompanyClick}
+                            title={companyUrl ? `View jobs for ${companyName}` : undefined}
+                        />
+                        <JobRowLevelPill label={levelLabel} />
                         {variant === 'rejected' && (
                             <span className="shrink-0 px-1.5 py-0.5 bg-red-500/10 text-red-300 text-[10px] font-medium rounded border border-red-500/20">
                                 Rejected
@@ -160,12 +151,7 @@ export function JobRow({
 
                 {/* Salary */}
                 <div className={`text-right min-w-0 ${variant === 'applied' ? 'order-5' : 'order-4'}`}>
-                    <span
-                        className={`text-sm sm:text-xs font-bold ${compensationMeta.isUnknown ? "text-slate-500" : "text-emerald-400"} truncate block`}
-                        title={compensationMeta.reason}
-                    >
-                        {compensationMeta.display}
-                    </span>
+                    <JobRowSalary meta={compensationMeta} className="text-sm sm:text-xs" />
                 </div>
 
                 {/* Col 5: Posted (Default) / Applied (Applied) / Rejected (Rejected) */}

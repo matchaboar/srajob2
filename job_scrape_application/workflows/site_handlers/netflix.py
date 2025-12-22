@@ -7,18 +7,18 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from .base import BaseSiteHandler
+from ..helpers.regex_patterns import (
+    JSON_OBJECT_PATTERN,
+    NETFLIX_LISTING_URL_PATTERNS,
+    PRE_PATTERN,
+    SMART_APPLY_PATTERN,
+)
 
 NETFLIX_HOST_SUFFIX = "jobs.netflix.net"
 LISTING_PATH = "/careers"
 JOB_DETAIL_PATH_TOKEN = "/careers/job/"
 API_PATH = "/api/apply/v2/jobs"
 DEFAULT_PAGE_SIZE = 10
-
-SMART_APPLY_PATTERN = re.compile(
-    r"<code[^>]*id=\"smartApplyData\"[^>]*>(?P<content>.*?)</code>",
-    flags=re.IGNORECASE | re.DOTALL,
-)
-PRE_PATTERN = re.compile(r"<pre[^>]*>(?P<content>.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
 
 
 class NetflixHandler(BaseSiteHandler):
@@ -205,7 +205,7 @@ class NetflixHandler(BaseSiteHandler):
             parsed = None
         if parsed is not None:
             return parsed
-        match = re.search(r"{.*}", text, flags=re.DOTALL)
+        match = re.search(JSON_OBJECT_PATTERN, text, flags=re.DOTALL)
         if match:
             try:
                 return json.loads(match.group(0))
@@ -253,12 +253,7 @@ class NetflixHandler(BaseSiteHandler):
         return urls
 
     def _extract_listing_url(self, html: str) -> Optional[str]:
-        patterns = (
-            r"rel=\"canonical\"[^>]+href=\"(?P<url>[^\"]+)\"",
-            r"property=\"og:url\"[^>]+content=\"(?P<url>[^\"]+)\"",
-            r"name=\"og:url\"[^>]+content=\"(?P<url>[^\"]+)\"",
-        )
-        for pattern in patterns:
+        for pattern in NETFLIX_LISTING_URL_PATTERNS:
             match = re.search(pattern, html, flags=re.IGNORECASE)
             if match:
                 return html_lib.unescape(match.group("url"))

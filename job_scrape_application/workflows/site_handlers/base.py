@@ -7,6 +7,7 @@ import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
+from ..helpers.regex_patterns import JSON_ARRAY_PATTERN, JSON_OBJECT_PATTERN, PRE_PATTERN
 
 class BaseSiteHandler(ABC):
     """Base class for site-specific scraping helpers."""
@@ -113,7 +114,7 @@ class BaseSiteHandler(ABC):
     def _extract_json_payload_from_html(html: str) -> Optional[Dict[str, Any]]:
         if not isinstance(html, str) or not html:
             return None
-        match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html, flags=re.IGNORECASE | re.DOTALL)
+        match = PRE_PATTERN.search(html)
         if not match:
             return None
         content = html_lib.unescape(match.group("content")).strip()
@@ -141,7 +142,7 @@ class BaseSiteHandler(ABC):
                     return json.loads(unescaped)
                 except Exception:
                     pass
-            for pattern in (r"{.*}", r"\[.*\]"):
+            for pattern in (JSON_OBJECT_PATTERN, JSON_ARRAY_PATTERN):
                 match = re.search(pattern, text, flags=re.DOTALL)
                 if not match:
                     continue

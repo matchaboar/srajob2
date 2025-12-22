@@ -2,6 +2,9 @@ import { motion } from "framer-motion";
 import { StatusTracker } from "./StatusTracker";
 import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
+import { JobRowCompanyPill } from "./jobRow/JobRowCompanyPill";
+import { JobRowLevelPill } from "./jobRow/JobRowLevelPill";
+import { JobRowSalary } from "./jobRow/JobRowSalary";
 
 interface AppliedJobRowProps {
     job: any;
@@ -52,12 +55,8 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
                         {job.title}
                     </h3>
                     <div className="flex items-center gap-1.5 shrink-0 overflow-hidden">
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem]">
-                            {job.company}
-                        </span>
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border border-slate-800 bg-slate-900/70 text-slate-400 shrink-0">
-                            {levelLabel}
-                        </span>
+                        <JobRowCompanyPill company={job.company ?? ""} />
+                        <JobRowLevelPill label={levelLabel} />
                     </div>
                 </div>
 
@@ -75,12 +74,7 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
 
                 {/* Salary */}
                 <div className="text-right min-w-0 hidden sm:block">
-                    <span
-                        className={`text-xs font-bold ${compensationMeta.isUnknown ? "text-slate-500" : "text-emerald-400"} truncate block`}
-                        title={compensationMeta.reason}
-                    >
-                        {compensationMeta.display}
-                    </span>
+                    <JobRowSalary meta={compensationMeta} className="text-xs" />
                 </div>
 
                 {/* Applied Date */}

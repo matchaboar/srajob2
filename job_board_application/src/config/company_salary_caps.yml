@@ -1,0 +1,191 @@
+company_salary_caps:
+  Airbnb:
+    junior: 83000
+    mid: 250000
+    senior: 305000
+    staff: 305000
+  Airtable:
+    junior: 185000
+    mid: 276000
+    senior: 276000
+    staff: 336000
+  Api:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Ashbyhq:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Avature:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Bloomberg:
+    junior: 75000
+    mid: 225000
+    senior: 300000
+    staff: 300000
+  Boards-Api:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Broadcom:
+    junior: 184000
+    mid: 192000
+    senior: 192000
+    staff: 192000
+  Careerpuck:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Coinbase:
+    junior: 165000
+    mid: 219000
+    senior: 309000
+    staff: 309000
+  Confluent:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Coreweave:
+    junior: 92000
+    mid: 275000
+    senior: 303000
+    staff: 330000
+  Coupang:
+    junior: 103000
+    mid: 309000
+    senior: 580000
+    staff: 580000
+  Datadog:
+    junior: 100000
+    mid: 300000
+    senior: 340000
+    staff: 340000
+  Datadoghq:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Figma:
+    junior: 84000
+    mid: 251000
+    senior: 307000
+    staff: 307000
+  Github:
+    junior: 0
+    mid: 305000
+    senior: 372000
+    staff: 372000
+  Google:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Instagram:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Lambda:
+    junior: 136000
+    mid: 409000
+    senior: 500000
+    staff: 500000
+  Linkedin:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Lyft:
+    junior: 5000
+    mid: 144000
+    senior: 215000
+    staff: 215000
+  Mithril:
+    junior: 63000
+    mid: 188000
+    senior: 230000
+    staff: 230000
+  Myworkdayjobs:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Netflix:
+    junior: 0
+    mid: 589000
+    senior: 720000
+    staff: 720000
+  Oscar:
+    junior: 50000
+    mid: 150000
+    senior: 183000
+    staff: 222000
+  Pinterest:
+    junior: 89000
+    mid: 267000
+    senior: 469000
+    staff: 469000
+  Pinterestcareers:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Ramp:
+    junior: 12000
+    mid: 234000
+    senior: 234000
+    staff: 234000
+  Robinhood:
+    junior: 154000
+    mid: 212000
+    senior: 268000
+    staff: 302000
+  Rubrik:
+    junior: 79000
+    mid: 237000
+    senior: 293000
+    staff: 342000
+  Serval:
+    junior: 88000
+    mid: 265000
+    senior: 350000
+    staff: 350000
+  Snap:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  Snapchat:
+    junior: 95000
+    mid: 286000
+    senior: 345000
+    staff: 345000
+  Stubhub:
+    junior: 134000
+    mid: 401000
+    senior: 500000
+    staff: 500000
+  Stubhubinc:
+    junior: 83000
+    mid: 248000
+    senior: 303000
+    staff: 303000
+  The Trade Desk:
+    junior: 76000
+    mid: 227000
+    senior: 250000
+    staff: 276000
+  Togetherai:
+    junior: 82000
+    mid: 245000
+    senior: 245000
+    staff: 245000

@@ -102,6 +102,11 @@ export function FakePublicJobPreview() {
             <div className="space-y-4">
               {previewJobs.map((job, index) => {
                 const meta = buildCompensationMeta(job);
+                const compensationClass = meta.isEstimated
+                  ? "text-slate-300 border-slate-500/30 bg-slate-500/10"
+                  : meta.isUnknown
+                    ? "text-amber-300 border-amber-500/20 bg-amber-500/5"
+                    : "text-emerald-400 border-emerald-500/10 bg-emerald-500/5";
                 return (
                   <div
                     key={job._id}
@@ -130,7 +135,7 @@ export function FakePublicJobPreview() {
                         </p>
                         <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800/50 pt-3">
                           <span
-                            className={`font-mono ${meta.isUnknown ? "text-amber-300 border-amber-500/20 bg-amber-500/5" : "text-emerald-400 border-emerald-500/10 bg-emerald-500/5"} px-1.5 py-0.5 rounded border`}
+                            className={`font-mono ${compensationClass} px-1.5 py-0.5 rounded border`}
                             title={meta.reason}
                           >
                             {meta.display}

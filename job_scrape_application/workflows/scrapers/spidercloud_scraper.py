@@ -29,25 +29,37 @@ from ..helpers.scrape_utils import (
     strip_known_nav_blocks,
 )
 from ..helpers.link_extractors import gather_strings
+from ..helpers.regex_patterns import (
+    CAPTCHA_PROVIDER_PATTERN,
+    CAPTCHA_WORD_PATTERN,
+    CODE_FENCE_CONTENT_PATTERN,
+    CODE_FENCE_END_PATTERN,
+    CODE_FENCE_JSON_OBJECT_PATTERN,
+    CODE_FENCE_START_PATTERN,
+    GREENHOUSE_BOARDS_PATH_PATTERN,
+    GREENHOUSE_URL_PATTERN,
+    HTML_BR_TAG_PATTERN,
+    HTML_SCRIPT_BLOCK_PATTERN,
+    HTML_STYLE_BLOCK_PATTERN,
+    HTML_TAG_PATTERN,
+    INVALID_JSON_ESCAPE_PATTERN,
+    JSON_LD_SCRIPT_PATTERN,
+    JSON_OBJECT_PATTERN,
+    MARKDOWN_HEADING_PATTERN,
+    MARKDOWN_HEADING_PREFIX_PATTERN,
+    MIN_THREE_DIGIT_PATTERN,
+    PRE_PATTERN,
+    QUERY_STRING_PATTERN,
+    SLUG_SEPARATOR_PATTERN,
+    SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN,
+    SPIDERCLOUD_MULTI_NEWLINE_PATTERN,
+)
 from ..site_handlers import BaseSiteHandler, get_site_handler
 from ...services import telemetry
 from .base import BaseScraper
 
 if TYPE_CHECKING:
     from ..activities import Site
-
-HTML_BR_TAG_PATTERN = r"(?i)<br\\s*/?>"
-HTML_PARAGRAPH_CLOSE_PATTERN = r"(?i)</p>"
-HTML_SCRIPT_BLOCK_PATTERN = r"(?is)<script[^>]*>.*?</script>"
-HTML_STYLE_BLOCK_PATTERN = r"(?is)<style[^>]*>.*?</style>"
-HTML_TAG_PATTERN = r"<[^>]+>"
-MULTI_NEWLINE_PATTERN = r"\n{3,}"
-MARKDOWN_HEADING_PATTERN = r"^#{1,6}\s*(.+)$"
-MARKDOWN_HEADING_PREFIX_PATTERN = r"^#{1,6}\s*"
-SLUG_SEPARATOR_PATTERN = r"[-_]+"
-QUERY_STRING_PATTERN = r"\?.*$"
-GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
-GREENHOUSE_BOARDS_PATH_PATTERN = r"/boards/([^/]+)/jobs"
 
 SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
@@ -150,12 +162,12 @@ class SpiderCloudScraper(BaseScraper):
 
         # Lightweight fallback: strip tags and preserve basic breaks.
         text = re.sub(HTML_BR_TAG_PATTERN, "\n", raw_html)
-        text = re.sub(HTML_PARAGRAPH_CLOSE_PATTERN, "\n\n", text)
+        text = re.sub(SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN, "\n\n", text)
         text = re.sub(HTML_SCRIPT_BLOCK_PATTERN, "", text)
         text = re.sub(HTML_STYLE_BLOCK_PATTERN, "", text)
         text = re.sub(HTML_TAG_PATTERN, "", text)
         text = html.unescape(text)
-        text = re.sub(MULTI_NEWLINE_PATTERN, "\n\n", text)
+        text = re.sub(SPIDERCLOUD_MULTI_NEWLINE_PATTERN, "\n\n", text)
         return text.strip()
 
     def _extract_markdown(self, obj: Any) -> Optional[str]:
@@ -332,13 +344,10 @@ class SpiderCloudScraper(BaseScraper):
             ("security check", None),
             ("robot check", None),
             ("access denied", None),
-            ("captcha", re.compile(r"\bcaptcha\b")),
+            ("captcha", re.compile(CAPTCHA_WORD_PATTERN)),
             (
                 "recaptcha",
-                re.compile(
-                    r"(?:g-recaptcha|recaptcha/api2|i[' ]?m not a robot|verify you are human)",
-                    re.IGNORECASE,
-                ),
+                re.compile(CAPTCHA_PROVIDER_PATTERN, re.IGNORECASE),
             ),
         )
 
@@ -439,10 +448,7 @@ class SpiderCloudScraper(BaseScraper):
                         return found
             return None
 
-        script_pattern = re.compile(
-            r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(?P<payload>.*?)</script>",
-            flags=re.IGNORECASE | re.DOTALL,
-        )
+        script_pattern = re.compile(JSON_LD_SCRIPT_PATTERN, flags=re.IGNORECASE | re.DOTALL)
 
         for text in (t for t in gather_strings(events) if isinstance(t, str) and t.strip()):
             if "<script" not in text.lower():
@@ -531,7 +537,7 @@ class SpiderCloudScraper(BaseScraper):
     def _title_from_markdown(self, markdown: str) -> Optional[str]:
         if "```" in markdown:
             fenced_match = re.search(
-                r"```(?:json)?\s*(\{.*?\})\s*```",
+                CODE_FENCE_JSON_OBJECT_PATTERN,
                 markdown,
                 flags=re.IGNORECASE | re.DOTALL,
             )
@@ -596,7 +602,7 @@ class SpiderCloudScraper(BaseScraper):
         if parsed and parsed.scheme in {"http", "https"} and parsed.netloc:
             return True
         # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
-        return bool(re.fullmatch(r"\d{3,}", stripped))
+        return bool(re.fullmatch(MIN_THREE_DIGIT_PATTERN, stripped))
 
     def _regex_extract_job_urls(self, text: str) -> List[str]:
         """
@@ -806,11 +812,11 @@ class SpiderCloudScraper(BaseScraper):
         def _strip_code_fences(value: str) -> str:
             stripped = value.strip()
             if stripped.startswith("```"):
-                stripped = re.sub(r"^```[a-zA-Z0-9_-]*\n?", "", stripped)
-                stripped = re.sub(r"\n?```$", "", stripped)
+                stripped = re.sub(CODE_FENCE_START_PATTERN, "", stripped)
+                stripped = re.sub(CODE_FENCE_END_PATTERN, "", stripped)
                 return stripped.strip()
             fence_match = re.search(
-                r"```(?:json)?\n(?P<content>.*?)\n```",
+                CODE_FENCE_CONTENT_PATTERN,
                 value,
                 flags=re.DOTALL | re.IGNORECASE,
             )
@@ -820,7 +826,7 @@ class SpiderCloudScraper(BaseScraper):
 
         def _parse_json_text(text: str) -> Any | None:
             text = _strip_code_fences(text)
-            text = re.sub(r"\\(?![\"\\/bfnrtu])", "", text)
+            text = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", text)
             try:
                 parsed = json.loads(text)
             except Exception:
@@ -835,7 +841,7 @@ class SpiderCloudScraper(BaseScraper):
         def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
             if "<pre" not in text.lower():
                 return None
-            match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", text, flags=re.IGNORECASE | re.DOTALL)
+            match = PRE_PATTERN.search(text)
             content = match.group("content") if match else text
             if not content:
                 return None
@@ -844,7 +850,7 @@ class SpiderCloudScraper(BaseScraper):
                 return None
             candidate = content
             if not candidate.lstrip().startswith("{"):
-                brace_match = re.search(r"{.*}", candidate, flags=re.DOTALL)
+                brace_match = re.search(JSON_OBJECT_PATTERN, candidate, flags=re.DOTALL)
                 if brace_match:
                     candidate = brace_match.group(0)
             parsed = _parse_json_text(candidate)

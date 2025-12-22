@@ -465,6 +465,7 @@ export function JobBoard() {
     return `${dateLabel} • ${days}d ago`;
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
+  const selectedCompColorClass = selectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const groupedLocationsLabel = useCallback((job: ListedJob) => {
     const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
     if (locs.length === 0) return job.location || "Unknown";
@@ -670,6 +671,7 @@ export function JobBoard() {
     return descriptionText.split(/\s+/).filter(Boolean).length;
   }, [descriptionText]);
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
+  const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
     const raw = selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
     const trimmed = raw.trim();
@@ -1854,15 +1856,15 @@ export function JobBoard() {
                               {formatLevelLabel(selectedJobFull.level)}
                             </span>
                           )}
-                          {!selectedCompMeta.isUnknown && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span
-                                className="text-emerald-200"
+                        {!selectedCompMeta.isUnknown && (
+                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                            <span
+                                className={selectedCompColorClass}
                                 title={selectedCompMeta.reason}
                               >
                                 {selectedCompMeta.display}
                               </span>
-                            </span>
+                          </span>
                           )}
                           {typeof selectedJobFull.postedAt === "number" && (
                             <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
@@ -2180,7 +2182,7 @@ export function JobBoard() {
                         )}
                         {!appliedCompMeta.isUnknown && (
                           <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            <span className="text-emerald-200">
+                            <span className={appliedCompColorClass}>
                               {appliedCompMeta.display}
                             </span>
                           </span>
@@ -2287,6 +2289,7 @@ export function JobBoard() {
                 const selectedRejectedJob = rejectedList.find(j => j._id === selectedJobId);
                 if (!selectedRejectedJob) return null;
                 const rejectedCompMeta = buildCompensationMeta(selectedRejectedJob);
+                const rejectedCompColorClass = rejectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
                 return (
                   <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
                     <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
@@ -2321,7 +2324,7 @@ export function JobBoard() {
                           )}
                           {!rejectedCompMeta.isUnknown && (
                             <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span className="text-emerald-200">
+                              <span className={rejectedCompColorClass}>
                                 {rejectedCompMeta.display}
                               </span>
                             </span>

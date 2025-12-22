@@ -52,6 +52,7 @@ from ..helpers.scrape_utils import (
     _jobs_from_scrape_items,
     _shrink_payload,
     build_firecrawl_schema,
+    normalize_compensation_value,
     parse_markdown_hints,
     strip_known_nav_blocks,
     fetch_seen_urls_for_site,
@@ -65,6 +66,43 @@ from ..helpers.link_extractors import (
     extract_links_from_payload,
     normalize_url,
     normalize_url_list,
+)
+from ..helpers.regex_patterns import (
+    APPLY_WORD_PATTERN,
+    ASHBY_JOB_SLUG_PATTERN,
+    CODE_FENCE_CONTENT_PATTERN,
+    CODE_FENCE_END_PATTERN,
+    CODE_FENCE_START_PATTERN,
+    CONFLUENT_JOB_PATH_PATTERN,
+    COUNTRY_CODE_PATTERN,
+    DIGIT_PATTERN,
+    GREENHOUSE_URL_PATTERN,
+    INVALID_JSON_ESCAPE_PATTERN,
+    LOCATION_ANYWHERE_PATTERN,
+    LOCATION_CITY_STATE_PATTERN,
+    LOCATION_FULL_PATTERN,
+    LOCATION_LABEL_PATTERN,
+    LOCATION_LINE_PATTERN,
+    LOCATION_PAREN_PATTERN,
+    LOCATION_SPLIT_PATTERN,
+    LOCATION_TOKEN_SPLIT_PATTERN,
+    MARKDOWN_LINK_PATTERN,
+    MULTI_SPACE_PATTERN,
+    NON_NUMERIC_DOT_PATTERN,
+    NON_NUMERIC_PATTERN,
+    REQUEST_ID_PATTERN,
+    RETIREMENT_PLAN_PATTERN,
+    TITLE_LOCATION_PAREN_PATTERN,
+    URL_PATTERN,
+    CAD_CURRENCY_PATTERNS,
+    GBP_CURRENCY_PATTERNS,
+    INR_CURRENCY_PATTERNS,
+    EUR_CURRENCY_PATTERNS,
+    AUD_CURRENCY_PATTERNS,
+    COMP_INR_RANGE_PATTERN,
+    COMP_K_PATTERN,
+    COMP_LPA_PATTERN,
+    COMP_USD_RANGE_PATTERN,
 )
 from ..scrapers import BaseScraper, FetchfoxScraper, FirecrawlScraper, SpiderCloudScraper
 from ..site_handlers import get_site_handler
@@ -108,46 +146,10 @@ __all__ = [
     "complete_scrape_urls",
 ]
 
-MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\(([^)\s]+)\)"
-GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
-TITLE_LOCATION_PAREN_PATTERN = r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$"
-LOCATION_ANYWHERE_PATTERN = r"[A-Za-z].*,\s*[A-Za-z]"
-LOCATION_SPLIT_PATTERN = r"[;|/]"
-LOCATION_TOKEN_SPLIT_PATTERN = r"[,\s]+"
-MULTI_SPACE_PATTERN = r"\s+"
-COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
-REQUEST_ID_PATTERN = r"\[Request ID:\s*([^\]]+)\]"
-NON_NUMERIC_DOT_PATTERN = r"[^0-9.]"
+COMP_MAGNITUDE_SUFFIX_PATTERN = r"^\s*(?:[kmb]|bn|mm|million|billion|trillion)\b"
+COMP_MAGNITUDE_SUFFIX_RE = re.compile(COMP_MAGNITUDE_SUFFIX_PATTERN, flags=re.IGNORECASE)
+
 PAGINATION_ENQUEUE_STAGGER_MS = 30_000
-NON_NUMERIC_PATTERN = r"[^0-9]"
-
-INR_CURRENCY_PATTERNS = [
-    r"₹",
-    r"\brupees?\b",
-    r"\brupee\b",
-    r"\bINR\b",
-    r"\blakh\b",
-    r"\blpa\b",
-]
-GBP_CURRENCY_PATTERNS = [r"£", r"\bGBP\b"]
-EUR_CURRENCY_PATTERNS = [r"€", r"\bEUR\b"]
-AUD_CURRENCY_PATTERNS = [r"\bAUD\b", r"\bA\\$"]
-CAD_CURRENCY_PATTERNS = [r"\bCAD\b", r"\bC\\$"]
-
-LOCATION_FULL_PATTERN = r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z][A-Za-z .'-]{3,})"
-LOCATION_LABEL_PATTERN = r"location[:\-\s]+(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})"
-LOCATION_CITY_STATE_PATTERN = r"(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})"
-LOCATION_PAREN_PATTERN = r"\((?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\)"
-
-COMP_USD_RANGE_PATTERN = (
-    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?))?"
-)
-COMP_INR_RANGE_PATTERN = (
-    r"[₹]\s*(?P<low>\d{1,3}(?:[.,]\d{3})?)(?:\s*[-–]\s*[₹]?\s*(?P<high>\d{1,3}(?:[.,]\d{3})?))?"
-)
-COMP_K_PATTERN = r"(?P<value>\d{2,3})k"
-COMP_LPA_PATTERN = r"(?P<value>\d{1,3})\s*(lpa|lakh)"
-RETIREMENT_PLAN_PATTERN = r"\b401\s*\(?k\)?\b"
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
@@ -2390,9 +2392,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     md_link_re = re.compile(MARKDOWN_LINK_PATTERN)
     greenhouse_re = re.compile(GREENHOUSE_URL_PATTERN, re.IGNORECASE)
-    confluent_job_re = re.compile(r"/jobs/job/[0-9a-f-]{8,}", re.IGNORECASE)
-    location_line_re = re.compile(r"^\s*location\b\s*[:\-–]?\s*(?P<location>.+)$", re.IGNORECASE)
-    apply_text_re = re.compile(r"\bapply\b", re.IGNORECASE)
+    confluent_job_re = re.compile(CONFLUENT_JOB_PATH_PATTERN, re.IGNORECASE)
+    location_line_re = re.compile(LOCATION_LINE_PATTERN, re.IGNORECASE)
+    apply_text_re = re.compile(APPLY_WORD_PATTERN, re.IGNORECASE)
     dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
 
     class _AnchorParser(HTMLParser):  # noqa: N801
@@ -2501,7 +2503,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if seg not in {"job", "jobs"}:
                 continue
             slug = segments[idx + 1].lower()
-            if slug.startswith(("united_states", "united-states")) and not re.search(r"\d", slug):
+            if slug.startswith(("united_states", "united-states")) and not re.search(DIGIT_PATTERN, slug):
                 return True
         return False
 
@@ -2521,7 +2523,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         slug = segments[1].lower()
         if slug == "job":
             return False
-        return not re.search(r"\d", slug)
+        return not re.search(DIGIT_PATTERN, slug)
 
     _NON_JOB_PATH_SEGMENTS = {
         "acceptable-use",
@@ -2598,11 +2600,11 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     def _strip_code_fences(value: str) -> str:
         stripped = value.strip()
         if stripped.startswith("```"):
-            stripped = re.sub(r"^```[a-zA-Z0-9_-]*\n?", "", stripped)
-            stripped = re.sub(r"\n?```$", "", stripped)
+            stripped = re.sub(CODE_FENCE_START_PATTERN, "", stripped)
+            stripped = re.sub(CODE_FENCE_END_PATTERN, "", stripped)
             return stripped.strip()
         fence_match = re.search(
-            r"```(?:json)?\n(?P<content>.*?)\n```",
+            CODE_FENCE_CONTENT_PATTERN,
             value,
             flags=re.DOTALL | re.IGNORECASE,
         )
@@ -2611,9 +2613,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         return value
 
     def _clean_invalid_json_escapes(value: str) -> str:
-        return re.sub(r"\\(?![\"\\/bfnrtu])", "", value)
+        return re.sub(INVALID_JSON_ESCAPE_PATTERN, "", value)
 
-    url_re = re.compile(r"https?://[^\s\"'<>]+")
+    url_re = re.compile(URL_PATTERN)
 
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
         links: list[tuple[str, Optional[str], Optional[str]]] = []
@@ -2655,7 +2657,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 slug_val = org.get("hostedJobsPageSlug")
                 if isinstance(slug_val, str) and slug_val.strip():
                     return slug_val.strip()
-            match = re.search(r"https?://jobs\\.ashbyhq\\.com/([^/\"'\\s]+)", raw_text, re.IGNORECASE)
+            match = re.search(ASHBY_JOB_SLUG_PATTERN, raw_text, re.IGNORECASE)
             return match.group(1).strip() if match else None
 
         def _load_app_data(raw_text: str) -> Optional[Dict[str, Any]]:
@@ -3137,6 +3139,96 @@ def _extract_pending_count(value: Any) -> Optional[int]:
     return None
 
 
+def _parse_comp_int(value: Optional[str]) -> Optional[int]:
+    if not value:
+        return None
+    cleaned = re.sub(NON_NUMERIC_PATTERN, "", value)
+    if not cleaned:
+        return None
+    try:
+        return int(cleaned)
+    except ValueError:
+        return None
+
+
+def _parse_comp_float(value: Optional[str]) -> Optional[float]:
+    if not value:
+        return None
+    cleaned = re.sub(NON_NUMERIC_DOT_PATTERN, "", value)
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _match_has_comp_magnitude_suffix(text: str, match: re.Match[str]) -> bool:
+    tail = text[match.end() :]
+    return bool(COMP_MAGNITUDE_SUFFIX_RE.match(tail))
+
+
+def _select_compensation_from_bounds(
+    low_val: Optional[int],
+    high_val: Optional[int],
+) -> Optional[int]:
+    candidates = [normalize_compensation_value(val) for val in (low_val, high_val)]
+    valid = [val for val in candidates if val is not None]
+    if not valid:
+        return None
+    if len(valid) == 2:
+        candidate = int((valid[0] + valid[1]) / 2)
+    else:
+        candidate = valid[0]
+    return normalize_compensation_value(candidate)
+
+
+def _parse_compensation_match(match: re.Match[str]) -> Optional[int]:
+    group_dict = match.groupdict() or {}
+    if "low" in group_dict or "high" in group_dict:
+        low_val = _parse_comp_int(group_dict.get("low"))
+        high_val = _parse_comp_int(group_dict.get("high"))
+        return _select_compensation_from_bounds(low_val, high_val)
+
+    raw = match.group(0) or ""
+    cleaned = raw.lower()
+    comp_val: Optional[int] = None
+    if "lpa" in cleaned or "lakh" in cleaned:
+        base_val = _parse_comp_float(cleaned)
+        if base_val is not None:
+            comp_val = int(base_val * 100_000)
+    elif cleaned.strip().endswith("k"):
+        base_val = _parse_comp_float(cleaned[:-1])
+        if base_val is not None:
+            comp_val = int(base_val * 1000)
+    else:
+        base_val = _parse_comp_int(cleaned)
+        if base_val is not None:
+            comp_val = int(base_val)
+    if comp_val is None:
+        return None
+    return normalize_compensation_value(comp_val)
+
+
+def _extract_compensation_from_text(
+    text: str,
+    regexes: List[str],
+) -> tuple[Optional[int], Optional[str]]:
+    for pattern in regexes:
+        try:
+            matches = re.finditer(pattern, text, flags=re.MULTILINE | re.IGNORECASE)
+        except re.error:
+            continue
+        for match in matches:
+            if _match_has_comp_magnitude_suffix(text, match):
+                continue
+            comp_val = _parse_compensation_match(match)
+            if comp_val is None:
+                continue
+            return comp_val, pattern
+    return None, None
+
+
 def _first_match(text: str, regexes: List[str]) -> tuple[Optional[str], Optional[str]]:
     for pattern in regexes:
         try:
@@ -3208,25 +3300,33 @@ def _build_job_detail_heuristic_patch(
     location_unknown = raw_location_lower in _UNKNOWN_LOCATION_TOKENS or not raw_location_value
     locations = _normalize_locations(locations_hint or ([location_fallback] if location_fallback else []))
     comp_reason = row.get("compensationReason")
-    total_comp = row.get("totalCompensation") or 0
+    raw_total_comp = row.get("totalCompensation")
+    total_comp = normalize_compensation_value(raw_total_comp) or 0
     raw_comp_unknown = row.get("compensationUnknown")
     compensation_unknown = bool(raw_comp_unknown) if raw_comp_unknown is not None else None
     currency_code = row.get("currencyCode")
     currency_hint = _detect_currency_code(description)
     if currency_hint and currency_hint != currency_code:
         currency_code = currency_hint
+    if raw_total_comp and not total_comp:
+        compensation_unknown = True
     if (not total_comp or total_comp <= 0) and isinstance(hinted_comp, (int, float)):
-        total_comp = int(hinted_comp)
-        compensation_unknown = False
-        comp_reason = "parsed from description"
-    elif (not total_comp or total_comp <= 0) and isinstance(comp_range_hint, dict):
-        low_hint = comp_range_hint.get("low")
-        high_hint = comp_range_hint.get("high")
-        range_values = [v for v in (low_hint, high_hint) if isinstance(v, (int, float)) and v >= 1000]
-        if range_values:
-            total_comp = int(sum(range_values) / len(range_values))
+        normalized_hint = normalize_compensation_value(hinted_comp)
+        if normalized_hint is not None:
+            total_comp = normalized_hint
             compensation_unknown = False
             comp_reason = "parsed from description"
+    elif (not total_comp or total_comp <= 0) and isinstance(comp_range_hint, dict):
+        low_hint = normalize_compensation_value(comp_range_hint.get("low"))
+        high_hint = normalize_compensation_value(comp_range_hint.get("high"))
+        range_values = [v for v in (low_hint, high_hint) if v is not None]
+        if range_values:
+            candidate = int(sum(range_values) / len(range_values))
+            candidate = normalize_compensation_value(candidate)
+            if candidate is not None:
+                total_comp = candidate
+                compensation_unknown = False
+                comp_reason = "parsed from description"
     elif total_comp and total_comp > 0 and compensation_unknown is None:
         compensation_unknown = False
 
@@ -3270,25 +3370,13 @@ def _build_job_detail_heuristic_patch(
 
     if (not total_comp or total_comp <= 0) and description:
         comp_description = re.sub(RETIREMENT_PLAN_PATTERN, "", description, flags=re.IGNORECASE)
-        used_pattern, found_val = _first_match(comp_description, comp_regexes)
-        if found_val:
-            cleaned = found_val.replace(",", "").lower()
-            try:
-                if "lpa" in cleaned or "lakh" in cleaned:
-                    base_val = re.sub(NON_NUMERIC_DOT_PATTERN, "", cleaned)
-                    comp_val = int(float(base_val) * 100_000) if base_val else None
-                elif cleaned.endswith("k"):
-                    comp_val = int(float(cleaned[:-1]) * 1000)
-                else:
-                    comp_val = int(float(re.sub(NON_NUMERIC_PATTERN, "", cleaned)))
-            except Exception:
-                comp_val = None
-            if comp_val and comp_val > 0:
-                total_comp = comp_val
-                compensation_unknown = False
-                comp_reason = "parsed with heuristic"
-                if currency_hint and currency_hint != "USD":
-                    currency_code = currency_hint
+        comp_val, used_pattern = _extract_compensation_from_text(comp_description, comp_regexes)
+        if comp_val is not None:
+            total_comp = comp_val
+            compensation_unknown = False
+            comp_reason = "parsed with heuristic"
+            if currency_hint and currency_hint != "USD":
+                currency_code = currency_hint
             if used_pattern:
                 records.append(
                     {"domain": domain or "default", "field": "compensation", "regex": used_pattern}

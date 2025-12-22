@@ -5,8 +5,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .base import BaseSiteHandler
-
-ASHBY_JOB_URL_PATTERN = r"https?://jobs\\.ashbyhq\\.com/[^\\s\"'>]+"
+from ..helpers.regex_patterns import ASHBY_JOB_URL_PATTERN
 
 
 class AshbyHqHandler(BaseSiteHandler):

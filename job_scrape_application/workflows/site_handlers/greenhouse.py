@@ -7,17 +7,18 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 from .base import BaseSiteHandler
-
-JOB_ID_PATH_PATTERN = r"/jobs/(\\d+)"
-HTML_LINE_BREAK_PATTERN = r"<br\\s*/?>"
-HTML_PARAGRAPH_CLOSE_PATTERN = r"</p\\s*>"
-HTML_PARAGRAPH_OPEN_PATTERN = r"<p[^>]*>"
-HTML_LIST_ITEM_OPEN_PATTERN = r"<li[^>]*>"
-HTML_SCRIPT_OR_STYLE_BLOCK_PATTERN = r"<(script|style)[^>]*>.*?</\\1>"
-HTML_TAG_PATTERN = r"<[^>]+>"
-HORIZONTAL_WHITESPACE_PATTERN = r"[ \t]+"
-LINE_WRAPPED_WHITESPACE_PATTERN = r"\\s*\\n\\s*"
-MULTI_NEWLINE_PATTERN = r"\\n{3,}"
+from ..helpers.regex_patterns import (
+    HORIZONTAL_WHITESPACE_PATTERN,
+    HTML_LINE_BREAK_PATTERN,
+    HTML_LIST_ITEM_OPEN_PATTERN,
+    HTML_PARAGRAPH_CLOSE_PATTERN,
+    HTML_PARAGRAPH_OPEN_PATTERN,
+    HTML_SCRIPT_OR_STYLE_BLOCK_PATTERN,
+    HTML_TAG_PATTERN,
+    JOB_ID_PATH_PATTERN,
+    LINE_WRAPPED_WHITESPACE_PATTERN,
+    MULTI_NEWLINE_PATTERN,
+)
 
 
 class GreenhouseHandler(BaseSiteHandler):
