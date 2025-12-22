@@ -139,6 +139,7 @@ const RESERVED_PATH_SEGMENTS = new Set([
 const HOSTED_JOB_DOMAINS = [
     "avature.net",
     "avature.com",
+    "searchjobs.com",
     "greenhouse.io",
     "ashbyhq.com",
     "lever.co",
@@ -212,6 +213,13 @@ const domainMatchesSlug = (domain: string, slug: string) => {
 
 const deriveBrandfetchDomain = (company: string, url?: string) => {
     const trimmedCompany = (company || "").trim();
+    const fallbackCompanyDomain = () => {
+        if (trimmedCompany.includes(".")) {
+            return trimmedCompany.toLowerCase();
+        }
+        const companySlug = toSlug(trimmedCompany);
+        return companySlug ? `${companySlug}.com` : null;
+    };
     if (url) {
         try {
             const parsed = new URL(url.includes("://") ? url : `https://${url}`);
@@ -226,20 +234,17 @@ const deriveBrandfetchDomain = (company: string, url?: string) => {
                 if (hostSlug) {
                     return `${hostSlug}.com`;
                 }
+                const companyFallback = fallbackCompanyDomain();
+                if (companyFallback) {
+                    return companyFallback;
+                }
             }
             return baseDomainFromHost(host);
         } catch {
             // fall through to company fallback
         }
     }
-    if (trimmedCompany.includes(".")) {
-        return trimmedCompany.toLowerCase();
-    }
-    const slug = toSlug(trimmedCompany);
-    if (slug) {
-        return `${slug}.com`;
-    }
-    return null;
+    return fallbackCompanyDomain();
 };
 
 export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {

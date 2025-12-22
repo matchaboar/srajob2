@@ -40,4 +40,10 @@ describe("CompanyIcon custom logos", () => {
     const img = await screen.findByRole("img", { name: /avature logo/i });
     expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
   });
+
+  it("falls back to the company domain when hosted urls lack a slug", async () => {
+    render(<CompanyIcon company="Bloomberg" url="https://searchjobs.com/careers/JobDetail/12345" />);
+    const img = await screen.findByRole("img", { name: /bloomberg logo/i });
+    expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
+  });
 });

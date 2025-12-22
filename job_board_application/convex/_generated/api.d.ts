@@ -9,6 +9,7 @@
  */
 
 import type * as __tests___getHandler from "../__tests__/getHandler.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as filters from "../filters.js";
@@ -36,6 +37,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "__tests__/getHandler": typeof __tests___getHandler;
+  admin: typeof admin;
   auth: typeof auth;
   crons: typeof crons;
   filters: typeof filters;
