@@ -298,7 +298,7 @@ export function CompanyIcon({ company, size = 34, url }: CompanyIconProps) {
 
     return (
         <div
-            className="flex-shrink-0 rounded-full border border-slate-700/70 bg-slate-900/70 flex items-center justify-center shadow-sm shadow-slate-900/40"
+            className="flex-shrink-0 overflow-hidden rounded-full border border-slate-700/70 bg-slate-900/70 flex items-center justify-center shadow-sm shadow-slate-900/40"
             style={{ width: dimension, height: dimension }}
             aria-label={company ? `${company} logo` : "Company logo"}
         >

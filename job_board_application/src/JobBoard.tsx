@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type HTMLAttributes } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type HTMLAttributes } from "react";
 import { usePaginatedQuery, useMutation, useQuery, type PaginatedQueryItem } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../convex/_generated/api";
@@ -9,8 +9,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { JobRow } from "./components/JobRow";
-import { AppliedJobRow } from "./components/AppliedJobRow";
-import { RejectedJobRow } from "./components/RejectedJobRow";
+import { StatusTracker } from "./components/StatusTracker";
 import { Keycap } from "./components/Keycap";
 import { DiagonalFraction } from "./components/DiagonalFraction";
 import { buildCompensationMeta, formatCompensationDisplay, parseCompensationInput } from "./lib/compensation";
@@ -368,9 +367,9 @@ export function JobBoard() {
     api.jobs.searchCompanies,
     shouldFetchCompanySuggestions
       ? {
-          search: debouncedCompanyInput.trim(),
-          limit: 8,
-        }
+        search: debouncedCompanyInput.trim(),
+        limit: 8,
+      }
       : "skip"
   ) as CompanySuggestion[] | undefined;
   const savedFilters = useQuery(api.filters.getSavedFilters, isJobsTab ? {} : "skip");
@@ -384,17 +383,17 @@ export function JobBoard() {
     shouldFetchIgnored ? { limit: 200 } : "skip"
   ) as
     | Array<{
-        _id: string;
-        url: string;
-        sourceUrl?: string;
-        reason?: string;
-        provider?: string;
-        workflowName?: string;
-        createdAt: number;
-        details?: Record<string, unknown>;
-        title?: string;
-        description?: string;
-      }>
+      _id: string;
+      url: string;
+      sourceUrl?: string;
+      reason?: string;
+      provider?: string;
+      workflowName?: string;
+      createdAt: number;
+      details?: Record<string, unknown>;
+      title?: string;
+      description?: string;
+    }>
     | undefined;
   const shouldFetchRecentJobs = isJobsTab || isLiveTab;
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
@@ -402,7 +401,7 @@ export function JobBoard() {
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
-  const reparseJob = useMutation(api.jobs.reparseJobFromDescription);
+
   // Withdraw not used in this view; keep mutation available for future enhancements
   const ensureDefaultFilter = useMutation(api.filters.ensureDefaultFilter);
   const saveFilter = useMutation(api.filters.saveFilter);
@@ -566,15 +565,9 @@ export function JobBoard() {
       label: "Compensation",
       value: selectedCompMeta.display,
     });
-    details.push({
-      label: "Posted",
-      value: typeof selectedJobFull.postedAt === "number" ? formatPostedLabel(selectedJobFull.postedAt) : "Not provided",
-    });
+
     // Scrape metadata rendered below description; omit here.
-    details.push({
-      label: "Applications",
-      value: String(selectedJobFull.applicationCount ?? 0),
-    });
+
     if (selectedJobFull.url) {
       details.push({
         label: "Job URL",
@@ -1133,15 +1126,7 @@ export function JobBoard() {
     }
   }, [rejectJob, exitingJobs, filteredResults]);
 
-  const handleReparseJob = useCallback(async (jobId: JobId) => {
-    try {
-      const res = await reparseJob({ jobId });
-      const updated = (res as any)?.updated ?? 0;
-      toast.success(updated > 0 ? `Updated ${updated} fields` : "No changes from reparse");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to reparse job");
-    }
-  }, [reparseJob]);
+
 
   // Keyboard Navigation
   useEffect(() => {
@@ -1158,7 +1143,7 @@ export function JobBoard() {
         }
       }
 
-      if (activeTab !== "jobs") return;
+      if (!["jobs", "applied", "rejected"].includes(activeTab)) return;
 
       // Ignore keyboard shortcuts if Ctrl, Cmd, or Alt is pressed
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1167,9 +1152,10 @@ export function JobBoard() {
       const typingTarget = target?.closest("input, textarea, select, button, [role='textbox']");
       if (target?.isContentEditable || typingTarget) return;
 
-      if (!selectedJobId || filteredResults.length === 0) return;
+      const currentList: any[] = activeTab === "jobs" ? filteredResults : activeTab === "applied" ? appliedList : rejectedList;
+      if (!selectedJobId || currentList.length === 0) return;
 
-      const currentIndex = filteredResults.findIndex(j => j._id === selectedJobId);
+      const currentIndex = currentList.findIndex(j => j._id === selectedJobId);
       if (currentIndex === -1) return;
 
       switch (e.key) {
@@ -1177,13 +1163,13 @@ export function JobBoard() {
         case "j":
           e.preventDefault();
           setKeyboardNavActive(true);
-          if (currentIndex < filteredResults.length - 1) {
-            const nextId = filteredResults[currentIndex + 1]._id;
+          if (currentIndex < currentList.length - 1) {
+            const nextId = currentList[currentIndex + 1]._id;
             const nextIndex = currentIndex + 1;
             setKeyboardTopIndex(nextIndex >= 3 ? nextIndex - 3 : 0);
             setSelectedJobId(nextId);
             scrollToJob(nextId, currentIndex + 1 >= 3);
-          } else if (status === "CanLoadMore") {
+          } else if (activeTab === "jobs" && status === "CanLoadMore") {
             loadMore(20);
           }
           break;
@@ -1192,7 +1178,7 @@ export function JobBoard() {
           e.preventDefault();
           setKeyboardNavActive(true);
           if (currentIndex > 0) {
-            const prevId = filteredResults[currentIndex - 1]._id;
+            const prevId = currentList[currentIndex - 1]._id;
             const prevIndex = currentIndex - 1;
             setKeyboardTopIndex((prevTop) => {
               const top = prevTop ?? (prevIndex >= 3 ? prevIndex - 3 : 0);
@@ -1207,13 +1193,13 @@ export function JobBoard() {
           break;
         case "a": {
           e.preventDefault();
-          const jobToApply = filteredResults[currentIndex];
-          void handleApply(jobToApply._id, "ai", jobToApply.url);
+          const jobToApply = currentList[currentIndex];
+          void handleApply(jobToApply._id, "manual", jobToApply.url);
           break;
         }
         case "r": {
           e.preventDefault();
-          void handleReject(filteredResults[currentIndex]._id);
+          void handleReject(currentList[currentIndex]._id);
           break;
         }
         case "Enter":
@@ -1260,7 +1246,7 @@ export function JobBoard() {
           {activeTab === "jobs" && (
             <button
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className="sm:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-500 hover:text-white transition-colors text-xs font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-500 hover:text-white transition-colors text-xs font-medium"
               aria-expanded={filtersOpen}
               aria-label="Toggle filters"
             >
@@ -1336,11 +1322,11 @@ export function JobBoard() {
             <>
               {/* Sidebar Filters */}
               <div
-                className={`w-full sm:w-64 bg-slate-900/30 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200 sm:transform-none sm:relative sm:z-10 ${filtersOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} fixed sm:static inset-y-[64px] left-0 right-0 sm:right-auto z-30 sm:z-auto shadow-2xl sm:shadow-none backdrop-blur-sm sm:backdrop-blur-0`}
+                className={`w-full sm:w-80 bg-slate-900/95 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200 ${filtersOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-[64px] left-0 z-30 shadow-2xl backdrop-blur-sm`}
                 role="complementary"
                 aria-label="Job filters"
               >
-                <div className="sm:hidden flex items-center justify-between pb-2 border-b border-slate-800">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                   <h3 className="text-sm font-semibold text-white">Filters</h3>
                   <button
                     onClick={() => setFiltersOpen(false)}
@@ -1520,15 +1506,13 @@ export function JobBoard() {
                     role="switch"
                     aria-checked={filters.includeRemote}
                     onClick={() => updateFilters({ includeRemote: !filters.includeRemote }, { forceImmediate: true })}
-                    className={`relative h-6 w-11 rounded-full border transition-colors duration-150 overflow-hidden ${
-                      filters.includeRemote ? "bg-emerald-500/40 border-emerald-400" : "bg-slate-800 border-slate-700"
-                    }`}
+                    className={`relative h-6 w-11 rounded-full border transition-colors duration-150 overflow-hidden ${filters.includeRemote ? "bg-emerald-500/40 border-emerald-400" : "bg-slate-800 border-slate-700"
+                      }`}
                     aria-label={filters.includeRemote ? "Remote on" : "Remote off"}
                   >
                     <span
-                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${
-                        filters.includeRemote ? "translate-x-5" : "translate-x-0"
-                      }`}
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${filters.includeRemote ? "translate-x-5" : "translate-x-0"
+                        }`}
                     />
                   </button>
                 </div>
@@ -1723,36 +1707,33 @@ export function JobBoard() {
 
                     {/* Header Row (sticky for alignment with scrollbar) */}
                     <div className="sticky top-0 z-20 relative">
-                      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 pr-4 sm:pr-36 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         <div className="w-1" /> {/* Spacer for alignment with selection indicator */}
-                        <div className="flex-1 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_4fr_3fr_2fr_3fr_3fr_3fr] gap-2 sm:gap-3 items-center">
+                        <div className="flex-1 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr] gap-2 sm:gap-3 items-center">
                           <div className="w-8 h-8" />
                           <div>Job</div>
+                          <div className="hidden sm:block">Location(s)</div>
                           <div className="text-right">Salary</div>
-                          <div className="hidden sm:block text-center">Level</div>
-            <div className="hidden sm:block">Location(s)</div>
                           <div className="text-right hidden sm:block">Posted</div>
                           <div className="text-right hidden sm:block">Scraped</div>
                         </div>
-                      </div>
-                      <div className="hidden sm:flex absolute inset-y-0 right-0 items-center justify-end gap-0 w-36 pl-2 pr-0 pointer-events-none" aria-hidden="true">
-                        <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Action</span>
                       </div>
                     </div>
 
                     <div className="min-h-full">
                       <AnimatePresence initial={false}>
-        {filteredResults.map((job, idx) => (
-          <JobRow
-            key={job._id}
-            job={job}
-            groupedLabel={groupedLocationsLabel(job)}
-            isSelected={selectedJobId === job._id}
-            onSelect={() => handleSelectJob(job._id)}
+                        {filteredResults.map((job, idx) => (
+                          <JobRow
+                            key={job._id}
+                            job={job}
+                            groupedLabel={groupedLocationsLabel(job)}
+                            isSelected={selectedJobId === job._id}
+                            onSelect={() => handleSelectJob(job._id)}
                             onApply={(type) => { void handleApply(job._id, type, job.url); }}
                             onReject={() => { void handleReject(job._id); }}
                             isExiting={exitingJobs[job._id]}
                             keyboardBlur={idx > blurFromIndex}
+                            showHotkeys={selectedJobId === job._id && keyboardNavActive}
                           />
                         ))}
                       </AnimatePresence>
@@ -1778,39 +1759,45 @@ export function JobBoard() {
                 </div>
 
                 {showJobDetails && selectedJobFull && (
-                  <div className="w-full sm:w-[32rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
-                    <div className="flex items-start justify-between px-6 py-4 border-b border-slate-800/50 bg-slate-900/20">
+                  <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
+                    <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
                       <div className="min-w-0 pr-4">
-                        <h2 className="text-lg font-bold text-white leading-tight mb-1">{selectedJobFull.title}</h2>
-                        <div className="text-sm font-medium text-blue-400">{selectedJobFull.company}</div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
-                          <span
-                            className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70"
-                            title={selectedJobFull.location || undefined}
-                          >
-                            {selectedLocationDetail}
-                          </span>
+                        <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedJobFull.title}</h2>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                          <div className="text-sm font-medium text-blue-400 mr-1">{selectedJobFull.company}</div>
+                          {selectedLocationDetail && selectedLocationDetail !== "Unknown" && (
+                            <span
+                              className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70"
+                              title={selectedJobFull.location || undefined}
+                            >
+                              {selectedLocationDetail}
+                            </span>
+                          )}
                           {selectedJobFull.remote && (
-                            <span className="px-2 py-1 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
+                            <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
                               Remote
                             </span>
                           )}
-                          <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            {formatLevelLabel(selectedJobFull.level)}
-                          </span>
-                          <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            <span
-                              className={`${selectedCompMeta.isUnknown ? "text-amber-200" : "text-emerald-200"}`}
-                              title={selectedCompMeta.reason}
-                            >
-                              {selectedCompMeta.display}
+                          {selectedJobFull.level && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              {formatLevelLabel(selectedJobFull.level)}
                             </span>
-                          </span>
-                          <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                            {typeof selectedJobFull.postedAt === "number"
-                              ? formatPostedLabel(selectedJobFull.postedAt)
-                              : "Not provided"}
-                          </span>
+                          )}
+                          {!selectedCompMeta.isUnknown && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              <span
+                                className="text-emerald-200"
+                                title={selectedCompMeta.reason}
+                              >
+                                {selectedCompMeta.display}
+                              </span>
+                            </span>
+                          )}
+                          {typeof selectedJobFull.postedAt === "number" && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              Posted {formatPostedLabel(selectedJobFull.postedAt)}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -1825,7 +1812,7 @@ export function JobBoard() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      <div className="p-5 space-y-4">
+                      <div className="p-3 space-y-2">
                         <div className="flex gap-2">
                           {selectedJobFull.url && (
                             <button
@@ -1844,97 +1831,28 @@ export function JobBoard() {
                           </button>
                         </div>
 
+
                         <div className="flex justify-end">
-                          <button
-                            onClick={() => { if (selectedJobFull) void handleReparseJob(selectedJobFull._id); }}
-                            className="text-[11px] px-3 py-1.5 rounded-md border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
-                          >
-                            Re-run parsing
-                          </button>
+
                         </div>
 
-                      {jobUrlDetail && (
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Job URL
-                          </div>
-                            <div className="text-sm font-medium text-slate-100 flex items-center gap-2 break-words">
-                              <a
-                                href={jobUrlDetail.value}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
-                              >
-                                {jobUrlDetail.value}
+                        {jobUrlDetail && (
+                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-1.5 flex items-center gap-2">
+                            <a
+                              href={jobUrlDetail.value}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-blue-300 hover:text-blue-200 underline-offset-2 break-all truncate"
+                            >
+                              {jobUrlDetail.value}
                             </a>
                           </div>
-                        </div>
-                      )}
-                      {selectedJobFull?.alternateUrls && Array.isArray(selectedJobFull.alternateUrls) && selectedJobFull.alternateUrls.length > 1 && (
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Other locations / links
-                          </div>
-                          <div className="flex flex-col gap-1 text-sm text-slate-100">
-                            {selectedJobFull.alternateUrls.map((link: string) => (
-                              <a
-                                key={link}
-                                href={link}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
-                              >
-                                {link}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                        <div className="grid grid-cols-2 gap-2">
-                          {selectedJobDetailItems.filter(item => item.label !== "Job URL").map((item) => (
-                            <div
-                              key={item.label}
-                              className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-1"
-                            >
-                              <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                                {item.label}
-                              </div>
-                              <div className="text-sm font-medium text-slate-100 flex flex-wrap items-center gap-2 break-words">
-                                {item.badge && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                                    {item.badge}
-                                  </span>
-                                )}
-                                {Array.isArray(item.value) ? (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {item.value.map((loc) => (
-                                      <span
-                                        key={loc}
-                                        className="px-2 py-0.5 text-[12px] font-medium rounded bg-slate-800/70 text-slate-100 border border-slate-700"
-                                      >
-                                        {loc}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : item.type === "link" ? (
-                                  <a
-                                    href={item.value}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-blue-300 hover:text-blue-200 underline-offset-2"
-                                  >
-                                    {item.value}
-                                  </a>
-                                ) : (
-                                  <span className="text-slate-200 break-words">{item.value}</span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
 
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3">
+
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2">
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</h3>
                             <span className="text-[11px] text-slate-500">
@@ -1948,7 +1866,28 @@ export function JobBoard() {
                           </div>
                         </div>
 
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3 space-y-2">
+                        {selectedJobFull?.alternateUrls && Array.isArray(selectedJobFull.alternateUrls) && selectedJobFull.alternateUrls.length > 1 && (
+                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
+                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                              Other locations / links
+                            </div>
+                            <div className="flex flex-col gap-1 text-sm text-slate-100">
+                              {selectedJobFull.alternateUrls.map((link: string) => (
+                                <a
+                                  key={link}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
+                                >
+                                  {link}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                             Scrape Info
                           </div>
@@ -1957,11 +1896,11 @@ export function JobBoard() {
                             <span className="font-semibold text-slate-100 break-words">
                               {typeof selectedJobFull?.scrapedAt === "number"
                                 ? new Date(selectedJobFull.scrapedAt).toLocaleString(undefined, {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                                 : "None"}
                               {selectedJobFull?.scrapedWith ? ` • ${selectedJobFull.scrapedWith}` : ""}
                             </span>
@@ -1977,14 +1916,25 @@ export function JobBoard() {
                             <span className="font-semibold text-slate-100 break-words">
                               {typeof selectedJobFull?.scrapedCostMilliCents === "number"
                                 ? (() => {
-                                    return renderScrapeCost(selectedJobFull.scrapedCostMilliCents as number);
-                                  })()
+                                  return renderScrapeCost(selectedJobFull.scrapedCostMilliCents as number);
+                                })()
                                 : "None"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3 space-y-2">
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                            Applications
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-slate-200">
+                            <span className="font-semibold text-slate-100 break-words">
+                              {selectedJobFull?.applicationCount ?? 0}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                             Parsing Workflows
                           </div>
@@ -2001,11 +1951,10 @@ export function JobBoard() {
                                   <span className="flex items-center gap-2">
                                     <span className="font-semibold">{step.label}</span>
                                     <span
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${
-                                        step.checked
-                                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                                          : "border-amber-500/40 bg-amber-500/10 text-amber-100"
-                                      }`}
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${step.checked
+                                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                                        : "border-amber-500/40 bg-amber-500/10 text-amber-100"
+                                        }`}
                                     >
                                       {step.status || (step.checked ? "Completed" : "Pending")}
                                     </span>
@@ -2046,31 +1995,31 @@ export function JobBoard() {
                 {(ignoredJobs?.length ?? 0).toLocaleString()} entries
               </span>
             </div>
-                <div className="space-y-3">
-                  {(ignoredJobs || []).map((row) => (
-                    <div
-                      key={row._id}
-                      className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-1"
-                    >
-                      <div className="text-sm text-blue-200 break-all flex flex-col gap-1">
-                        <span className="text-xs uppercase tracking-wide text-slate-500">Ignored</span>
-                        <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
-                          {row.title || "Unknown"}
-                        </a>
-                        <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline text-slate-400 text-[12px]">
-                          {row.url}
-                        </a>
-                        {row.description && (
-                          <p className="text-[12px] text-slate-300 line-clamp-3 whitespace-pre-wrap break-words">
-                            {row.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-400 flex flex-wrap gap-2">
-                        {row.reason && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Reason: {row.reason}</span>}
-                        {row.provider && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Provider: {row.provider}</span>}
-                        {row.workflowName && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Workflow: {row.workflowName}</span>}
-                        <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">
+            <div className="space-y-3">
+              {(ignoredJobs || []).map((row) => (
+                <div
+                  key={row._id}
+                  className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-1"
+                >
+                  <div className="text-sm text-blue-200 break-all flex flex-col gap-1">
+                    <span className="text-xs uppercase tracking-wide text-slate-500">Ignored</span>
+                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
+                      {row.title || "Unknown"}
+                    </a>
+                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline text-slate-400 text-[12px]">
+                      {row.url}
+                    </a>
+                    {row.description && (
+                      <p className="text-[12px] text-slate-300 line-clamp-3 whitespace-pre-wrap break-words">
+                        {row.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400 flex flex-wrap gap-2">
+                    {row.reason && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Reason: {row.reason}</span>}
+                    {row.provider && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Provider: {row.provider}</span>}
+                    {row.workflowName && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Workflow: {row.workflowName}</span>}
+                    <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">
                       Seen: {new Date(row.createdAt).toLocaleString()}
                     </span>
                     {row.sourceUrl && (
@@ -2090,176 +2039,156 @@ export function JobBoard() {
 
         {activeTab === "applied" && (
           <div className="flex-1 flex bg-slate-950 overflow-hidden">
-            <div className="w-[28rem] flex flex-col border-r border-slate-800">
-              {/* Header Row */}
-              <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <div className="w-1" />
-                <div className="flex-1 grid grid-cols-12 gap-4">
-                  <div className="col-span-6">Job</div>
-                  <div className="col-span-3">Location</div>
-                  <div className="col-span-3 text-right">Applied</div>
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Header Row - Matches JobRow 'applied' variant grid */}
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="w-8" />
+                <div className="flex-1 grid grid-cols-[auto_5fr_3fr] sm:grid-cols-[auto_5fr_5fr_3fr_2fr_2fr] gap-3 items-center">
+                  <div className="w-8" />
+                  <div>Job</div>
+                  <div className="hidden sm:block">Status</div>
+                  <div className="hidden sm:block">Location</div>
+                  <div className="text-right hidden sm:block">Salary</div>
+                  <div className="text-right hidden sm:block">Applied</div>
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                <div className="min-h-full">
-                  {appliedList.map(job => (
-                    <AppliedJobRow
-                      key={job._id}
-                      job={job}
-                      isSelected={selectedJobId === job._id}
-                      onSelect={() => setSelectedJobId(job._id)}
-                    />
-                  ))}
-                  {appliedList.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                      <p>No applied jobs yet.</p>
-                    </div>
-                  )}
-                </div>
+                {appliedList.map((job) => (
+                  <JobRow
+                    key={job._id}
+                    job={job}
+                    variant="applied"
+                    isSelected={selectedJobId === job._id}
+                    onSelect={() => handleSelectJob(job._id)}
+                    onApply={(type) => { void handleApply(job._id, type, job.url); }}
+                    onReject={() => { void handleReject(job._id); }}
+                  />
+                ))}
+                {appliedList.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+                    <p>No applied jobs yet.</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {selectedAppliedJobFull ? (
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h2 className="text-2xl font-bold text-white leading-tight mb-1">{selectedAppliedJobFull.title}</h2>
-                      <div className="text-base font-semibold text-blue-300">{selectedAppliedJobFull.company}</div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-[12px] text-slate-200">
-                        <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                          {selectedAppliedJobFull.location || "Unknown"}
-                        </span>
+            <AnimatePresence>
+              {showJobDetails && selectedAppliedJobFull && (
+                <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
+                  <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
+                    <div className="min-w-0 pr-4">
+                      <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedAppliedJobFull.title}</h2>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                        <div className="text-sm font-medium text-blue-400 mr-1">{selectedAppliedJobFull.company}</div>
+                        {selectedAppliedJobFull.location && selectedAppliedJobFull.location !== "Unknown" && (
+                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                            {selectedAppliedJobFull.location}
+                          </span>
+                        )}
                         {selectedAppliedJobFull.remote && (
-                          <span className="px-2 py-1 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
+                          <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
                             Remote
                           </span>
                         )}
-                        <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                          {formatLevelLabel(selectedAppliedJobFull.level)}
-                        </span>
-                        <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70">
-                          {appliedCompMeta.display}
-                        </span>
+                        {selectedAppliedJobFull.level && (
+                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                            {formatLevelLabel(selectedAppliedJobFull.level)}
+                          </span>
+                        )}
+                        {!appliedCompMeta.isUnknown && (
+                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                            <span className="text-emerald-200">
+                              {appliedCompMeta.display}
+                            </span>
+                          </span>
+                        )}
                         {typeof selectedAppliedJobFull.postedAt === "number" && (
-                          <span className="px-2 py-1 rounded-md border border-slate-800 bg-slate-900/70 text-slate-300">
-                            {formatPostedLabel(selectedAppliedJobFull.postedAt)}
+                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                            Posted {formatPostedLabel(selectedAppliedJobFull.postedAt)}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="text-right text-sm text-slate-400">
-                      <div className="font-semibold text-slate-200">
-                        {selectedAppliedJobFull.userStatus ? selectedAppliedJobFull.userStatus.toUpperCase() : "APPLIED"}
+                    <button
+                      onClick={() => setShowJobDetails(false)}
+                      className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      aria-label="Close job details"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="p-3 space-y-2">
+                      <div className="flex justify-center w-full pb-2">
+                        <StatusTracker
+                          status={selectedAppliedJobFull.workerStatus || (selectedAppliedJobFull.userStatus === 'applied' ? 'Applied' : null)}
+                          updatedAt={selectedAppliedJobFull.workerUpdatedAt || selectedAppliedJobFull.appliedAt}
+                        />
                       </div>
-                      {selectedAppliedJobFull.appliedAt && (
-                        <div className="mt-1 text-slate-500">
-                          {new Date(selectedAppliedJobFull.appliedAt).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-                      )}
-                      {selectedAppliedJobFull.workerStatus && (
-                        <div className="mt-2 text-xs text-amber-300">
-                          Worker: {selectedAppliedJobFull.workerStatus}
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {selectedAppliedJobFull.url && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => window.open(selectedAppliedJobFull.url as string, "_blank")}
-                        className="w-full px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
-                      >
-                        Direct Apply
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
-                      <span className="text-[11px] text-slate-500">
-                        {appliedDescriptionWordCount !== null ? `${appliedDescriptionWordCount} words` : ""}
-                      </span>
-                    </div>
-                    <div className="text-sm leading-relaxed text-slate-200 font-sans max-h-[70vh] overflow-y-auto pr-1 space-y-3">
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                        {appliedDescriptionText}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-4 space-y-2">
-                      <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Links</div>
-                      {selectedAppliedJobFull.url ? (
-                        <a
-                          href={selectedAppliedJobFull.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-blue-300 hover:text-blue-200 underline break-all"
-                        >
-                          Job posting
-                        </a>
-                      ) : (
-                        <div className="text-sm text-slate-400">No link available</div>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-4 space-y-2">
-                      <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Scrape Info</div>
-                      <div className="text-sm text-slate-200">
-                        {typeof selectedAppliedJobFull.scrapedAt === "number"
-                          ? new Date(selectedAppliedJobFull.scrapedAt).toLocaleString()
-                          : "No scrape metadata"}
+                      <div className="flex gap-2">
+                        {selectedAppliedJobFull.url && (
+                          <button
+                            onClick={() => window.open(selectedAppliedJobFull.url as string, "_blank")}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-blue-400 hover:bg-blue-300 border border-blue-500 shadow-lg shadow-blue-900/30 transition-transform active:scale-[0.99]"
+                          >
+                            View Job Posting
+                          </button>
+                        )}
                       </div>
-                      {selectedAppliedJobFull.scrapedWith && (
-                        <div className="text-sm text-slate-200">With: {selectedAppliedJobFull.scrapedWith}</div>
-                      )}
-                      {selectedAppliedJobFull.workflowName && (
-                        <div className="text-sm text-slate-200">Workflow: {selectedAppliedJobFull.workflowName}</div>
-                      )}
-                      {typeof selectedAppliedJobFull.scrapedCostMilliCents === "number" && (
-                        <div className="text-sm text-slate-200">Cost: {renderScrapeCost(selectedAppliedJobFull.scrapedCostMilliCents)}</div>
-                      )}
+
+
+                      <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
+                          <span className="text-[11px] text-slate-500">
+                            {appliedDescriptionWordCount !== null ? `${appliedDescriptionWordCount} words` : ""}
+                          </span>
+                        </div>
+                        <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
+                            {appliedDescriptionText}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-slate-500">
-                  Select an applied job to see details.
                 </div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
         )}
 
         {activeTab === "rejected" && (
-          <div className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
-            <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              <div className="w-1" />
-              <div className="flex-1 grid grid-cols-12 gap-4">
-                <div className="col-span-5">Job</div>
-                <div className="col-span-3">Location</div>
-                <div className="col-span-2 text-right">Rejected</div>
-                <div className="col-span-2 text-right">Level</div>
+          <div className="flex-1 flex bg-slate-950 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Header Row - Matches JobRow grid */}
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="w-8" />
+                <div className="flex-1 grid grid-cols-[auto_6fr_3fr] md:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr] gap-3 items-center">
+                  <div className="w-8" />
+                  <div>Job</div>
+                  <div className="hidden sm:block">Location</div>
+                  <div className="text-right hidden sm:block">Salary</div>
+                  <div className="text-right hidden sm:block">Rejected</div>
+                  <div className="hidden sm:block" />
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto">
-              <div className="min-h-full">
+              <div className="flex-1 overflow-y-auto">
                 {rejectedList.map(job => (
-                  <RejectedJobRow
+                  <JobRow
                     key={job._id}
                     job={job}
+                    variant="rejected"
                     isSelected={selectedJobId === job._id}
-                    onSelect={() => setSelectedJobId(job._id)}
+                    onSelect={() => handleSelectJob(job._id)}
+                    onApply={() => { }}
+                    onReject={() => { }}
                   />
                 ))}
                 {rejectedList.length === 0 && (
@@ -2269,6 +2198,105 @@ export function JobBoard() {
                 )}
               </div>
             </div>
+
+            <AnimatePresence>
+              {showJobDetails && selectedJobId && (() => {
+                const selectedRejectedJob = rejectedList.find(j => j._id === selectedJobId);
+                if (!selectedRejectedJob) return null;
+                const rejectedCompMeta = buildCompensationMeta(selectedRejectedJob);
+                return (
+                  <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
+                    <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
+                      <div className="min-w-0 pr-4">
+                        <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedRejectedJob.title}</h2>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                          <div className="text-sm font-medium text-blue-400 mr-1">{selectedRejectedJob.company}</div>
+                          {selectedRejectedJob.location && selectedRejectedJob.location !== "Unknown" && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              {selectedRejectedJob.location}
+                            </span>
+                          )}
+                          {selectedRejectedJob.remote && (
+                            <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
+                              Remote
+                            </span>
+                          )}
+                          {selectedRejectedJob.level && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              {formatLevelLabel(selectedRejectedJob.level)}
+                            </span>
+                          )}
+                          {!rejectedCompMeta.isUnknown && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              <span className="text-emerald-200">
+                                {rejectedCompMeta.display}
+                              </span>
+                            </span>
+                          )}
+                          {typeof selectedRejectedJob.postedAt === "number" && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              Posted {formatPostedLabel(selectedRejectedJob.postedAt)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowJobDetails(false)}
+                        className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        aria-label="Close job details"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      <div className="p-3 space-y-2">
+                        <div className="flex gap-2">
+                          {selectedRejectedJob.url && (
+                            <button
+                              onClick={() => window.open(selectedRejectedJob.url as string, "_blank")}
+                              className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-red-400 hover:bg-red-300 border border-red-500 shadow-lg shadow-red-900/30 transition-transform active:scale-[0.99]"
+                            >
+                              View Job Posting
+                            </button>
+                          )}
+                        </div>
+
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
+                          </div>
+                          <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
+                              {selectedRejectedJob.description || "No description available."}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
+                          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Links</div>
+                          {selectedRejectedJob.url ? (
+                            <a
+                              href={selectedRejectedJob.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm text-blue-300 hover:text-blue-200 underline break-all"
+                            >
+                              {selectedRejectedJob.url}
+                            </a>
+                          ) : (
+                            <div className="text-sm text-slate-400">No link available</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </AnimatePresence>
           </div>
         )}
 

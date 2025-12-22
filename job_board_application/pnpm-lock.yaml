@@ -13,16 +13,16 @@ importers:
         version: 0.37.4
       '@convex-dev/auth':
         specifier: ^0.0.80
-        version: 0.0.80(@auth/core@0.37.4)(convex@1.29.3(react@19.2.0))(react@19.2.0)
+        version: 0.0.80(@auth/core@0.37.4)(convex@1.31.1(react@19.2.0))(react@19.2.0)
       '@convex-dev/migrations':
         specifier: ^0.3.0
-        version: 0.3.1(convex@1.29.3(react@19.2.0))
+        version: 0.3.1(convex@1.31.1(react@19.2.0))
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       convex:
-        specifier: ^1.24.2
-        version: 1.29.3(react@19.2.0)
+        specifier: ^1.31.1
+        version: 1.31.1(react@19.2.0)
       framer-motion:
         specifier: ^12.23.12
         version: 12.23.24(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -1421,8 +1421,8 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
-  convex@1.29.3:
-    resolution: {integrity: sha512-tg5TXzMjpNk9m50YRtdp6US+t7ckxE4E+7DNKUCjJ2MupQs2RBSPF/z5SNN4GUmQLSfg0eMILDySzdAvjTrhnw==}
+  convex@1.31.1:
+    resolution: {integrity: sha512-VcElFD0q+BxxhYmoxoiOIsInmMrPMsGHpFSD1UYybRDJYvbNd69977ra6e3EXywUOF4qE0P4In9qCphr78QYCw==}
     engines: {node: '>=18.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -3283,11 +3283,11 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@convex-dev/auth@0.0.80(@auth/core@0.37.4)(convex@1.29.3(react@19.2.0))(react@19.2.0)':
+  '@convex-dev/auth@0.0.80(@auth/core@0.37.4)(convex@1.31.1(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@auth/core': 0.37.4
       arctic: 1.9.2
-      convex: 1.29.3(react@19.2.0)
+      convex: 1.31.1(react@19.2.0)
       cookie: 1.1.1
       jose: 5.10.0
       jwt-decode: 4.0.0
@@ -3299,9 +3299,9 @@ snapshots:
     optionalDependencies:
       react: 19.2.0
 
-  '@convex-dev/migrations@0.3.1(convex@1.29.3(react@19.2.0))':
+  '@convex-dev/migrations@0.3.1(convex@1.31.1(react@19.2.0))':
     dependencies:
-      convex: 1.29.3(react@19.2.0)
+      convex: 1.31.1(react@19.2.0)
 
   '@csstools/color-helpers@5.1.0': {}
 
@@ -4266,7 +4266,7 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex@1.29.3(react@19.2.0):
+  convex@1.31.1(react@19.2.0):
     dependencies:
       esbuild: 0.25.4
       prettier: 3.7.3

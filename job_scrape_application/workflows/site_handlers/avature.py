@@ -53,23 +53,32 @@ class AvatureHandler(BaseSiteHandler):
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
-        return self._apply_page_links_config(
-            {
+        if self.is_listing_url(uri):
+            return self._apply_page_links_config(
+                {
+                    "request": "chrome",
+                    "return_format": ["raw_html"],
+                    "follow_redirects": True,
+                    "redirect_policy": "Loose",
+                    "external_domains": ["*"],
+                    "preserve_host": True,
+                    "wait_for": {
+                        "selector": {
+                            "selector": "a[href*='/careers/JobDetail/']",
+                            "timeout": {"secs": 15, "nanos": 0},
+                        },
+                        "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
+                    },
+                }
+            )
+        return {
             "request": "chrome",
-            "return_format": ["raw_html"],
+            "return_format": ["commonmark"],
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
             "preserve_host": True,
-            "wait_for": {
-                "selector": {
-                    "selector": "a[href*='/careers/JobDetail/']",
-                    "timeout": {"secs": 15, "nanos": 0},
-                },
-                "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
-            },
-            }
-        )
+        }
 
     def get_links_from_raw_html(self, html: str) -> List[str]:
         if not html:

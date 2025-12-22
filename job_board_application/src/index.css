@@ -160,10 +160,8 @@ body {
   }
 }
 
-/* Status Tracker Arrow Shapes */
-.status-tracker-arrow {
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%, 8px 50%);
-}
+/* Status Tracker Arrow Shapes - REMOVED (now rectangular) */
+
 
 /* Status Tracker Glow Effects */
 .status-tracker-glow-blue {

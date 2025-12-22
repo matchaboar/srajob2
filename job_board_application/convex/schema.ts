@@ -301,6 +301,14 @@ const applicationTables = {
     sentInWindow: v.number(),
   }).index("by_domain", ["domain"]),
 
+  seen_job_urls: defineTable({
+    sourceUrl: v.string(),
+    url: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_source", ["sourceUrl"])
+    .index("by_source_url", ["sourceUrl", "url"]),
+
   ignored_jobs: defineTable({
     url: v.string(),
     sourceUrl: v.optional(v.string()),

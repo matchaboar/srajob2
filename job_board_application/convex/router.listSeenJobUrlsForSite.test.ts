@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { listSeenJobUrlsForSite } from "./router";
 import { getHandler } from "./__tests__/getHandler";
 
-type Row = { sourceUrl: string; url?: string; items?: unknown };
+type Row = { sourceUrl: string; url?: string };
 
 class FakeQuery {
   constructor(private rows: Row[], private sourceUrl: string | null = null) {}
@@ -25,24 +25,8 @@ describe("listSeenJobUrlsForSite", () => {
       "https://careers.confluent.io/jobs/united_states-finance_&_operations",
     ];
 
-    const scrapes: Row[] = [
-      {
-        sourceUrl,
-        items: {
-          normalized: [
-            {
-              url: "https://careers.confluent.io/jobs/123",
-              title: "Senior Software Engineer",
-              company: "Confluent",
-              description: "Job description",
-              location: "Remote",
-              remote: true,
-              level: "senior",
-              totalCompensation: 0,
-            },
-          ],
-        },
-      },
+    const seenRows: Row[] = [
+      { sourceUrl, url: "https://careers.confluent.io/jobs/123" },
     ];
 
     const ignored: Row[] = ignoredUrls.map((url) => ({ sourceUrl, url }));
@@ -50,7 +34,7 @@ describe("listSeenJobUrlsForSite", () => {
     const ctx: any = {
       db: {
         query: (table: string) => {
-          if (table === "scrapes") return new FakeQuery(scrapes);
+          if (table === "seen_job_urls") return new FakeQuery(seenRows);
           if (table === "ignored_jobs") return new FakeQuery(ignored);
           throw new Error(`Unexpected table ${table}`);
         },

@@ -139,6 +139,34 @@ async def test_batch_params_use_raw_for_confluent_listing(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_batch_params_use_commonmark_for_avature_job_detail(monkeypatch):
+    scraper = _make_scraper()
+    fake_client = _FakeClient([{"commonmark": "### Senior Engineer"}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    url = "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/15548"
+    await scraper._scrape_urls_batch([url], source_url=url)
+
+    call = fake_client.calls[0]
+    assert call["params"]["return_format"] == ["commonmark"]
+    assert call["params"]["request"] == "chrome"
+
+
+@pytest.mark.asyncio
+async def test_batch_params_use_raw_for_avature_listing(monkeypatch):
+    scraper = _make_scraper()
+    fake_client = _FakeClient([{"raw_html": "<h1>Bloomberg Careers</h1>"}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobOffset=0"
+    await scraper._scrape_urls_batch([url], source_url=url)
+
+    call = fake_client.calls[0]
+    assert "raw_html" in call["params"]["return_format"]
+    assert call["params"]["request"] == "chrome"
+
+
+@pytest.mark.asyncio
 async def test_scrape_single_url_sets_raw_format_for_api(monkeypatch):
     scraper = _make_scraper()
     payload = {"raw_html": "<h1>Software Engineer</h1><p>Hello</p>"}

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { StatusTracker } from "./StatusTracker";
 import { CompanyIcon } from "./CompanyIcon";
+import { buildCompensationMeta } from "../lib/compensation";
 
 interface AppliedJobRowProps {
     job: any;
@@ -9,13 +10,20 @@ interface AppliedJobRowProps {
 }
 
 export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps) {
+    const compensationMeta = buildCompensationMeta(job);
+    const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
+
+    // Format: "Dec 21 • 7:03 PM" (matches JobRow posted date style roughly, but specific for applied)
     const formatDate = (date: number) => {
         return new Date(date).toLocaleDateString(undefined, {
             month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
         });
+    };
+
+    const formatDaysAgo = (timestamp: number) => {
+        const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
+        return `${days}d ago`;
     };
 
     return (
@@ -28,41 +36,64 @@ export function AppliedJobRow({ job, isSelected, onSelect }: AppliedJobRowProps)
             }}
             onClick={onSelect}
             className={`
-        group flex items-center gap-3 px-4 py-2 border-b border-slate-800 cursor-pointer transition-colors
+        group flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-2 border-b border-slate-800 cursor-pointer transition-colors
         ${isSelected ? "bg-slate-800" : "hover:bg-slate-900"}
       `}
         >
             {/* Selection Indicator */}
             <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-blue-500" : "bg-transparent"}`} />
 
-            <div className="flex-1 min-w-0 grid grid-cols-[auto_4fr_2fr_2fr_4fr] gap-3 items-center">
-                <CompanyIcon company={job.company ?? ""} size={30} url={job.url} />
-                {/* Title & Company */}
-                <div className="min-w-0">
-                    <h3 className={`text-sm font-semibold truncate ${isSelected ? "text-white" : "text-slate-200"}`}>
+            <div className="flex-1 min-w-0 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr] gap-3 items-center">
+                <CompanyIcon company={job.company ?? ""} size={32} url={job.url} />
+
+                {/* Title & Pills */}
+                <div className="min-w-0 flex items-center gap-2 overflow-hidden">
+                    <h3 className={`text-sm font-semibold ${isSelected ? "text-white" : "text-slate-200"} truncate shrink-0 max-w-[50%]`}>
                         {job.title}
                     </h3>
-                    <p className="text-xs text-slate-500 truncate">{job.company}</p>
+                    <div className="flex items-center gap-1.5 shrink-0 overflow-hidden">
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-md border border-slate-700 bg-slate-800/50 text-slate-300 truncate max-w-[12rem]">
+                            {job.company}
+                        </span>
+                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border border-slate-800 bg-slate-900/70 text-slate-400 shrink-0">
+                            {levelLabel}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Location */}
-                <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-slate-400 truncate max-w-[120px]">{job.location}</span>
+                {/* Location (desktop only) */}
+                <div className="hidden sm:flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-slate-400 truncate max-w-[160px]">
+                        {job.location || "—"}
+                    </span>
                     {job.remote && (
-                        <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-medium rounded border border-emerald-500/20">
+                        <span className="shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wide rounded border border-emerald-500/20">
                             Remote
                         </span>
                     )}
                 </div>
 
+                {/* Salary */}
+                <div className="text-right min-w-0 hidden sm:block">
+                    <span
+                        className={`text-xs font-bold ${compensationMeta.isUnknown ? "text-slate-500" : "text-emerald-400"} truncate block`}
+                        title={compensationMeta.reason}
+                    >
+                        {compensationMeta.display}
+                    </span>
+                </div>
+
                 {/* Applied Date */}
-                <div className="text-right">
-                    <span className="text-xs text-slate-500 block">Applied</span>
-                    <span className="text-xs text-slate-300">{formatDate(job.appliedAt)}</span>
+                <div className="hidden sm:block text-right min-w-0">
+                    <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-[10px] text-slate-500 font-medium truncate">
+                            {formatDate(job.appliedAt)} • {formatDaysAgo(job.appliedAt)}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Status Tracker */}
-                <div className="flex justify-end">
+                <div className="flex justify-end min-w-0">
                     <StatusTracker
                         status={job.workerStatus || (job.userStatus === 'applied' ? 'Applied' : null)}
                         updatedAt={job.workerUpdatedAt || job.appliedAt}

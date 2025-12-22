@@ -1,0 +1,4 @@
+'\\wsl.localhost\Ubuntu-24.04\home\boarcoder\documents\github\srajob2\job_board_application'
+CMD.EXE was started with the above path as the current directory.
+UNC paths are not supported.  Defaulting to Windows directory.
+ΓÇëERR_PNPM_NO_IMPORTER_MANIFEST_FOUNDΓÇë No package.json (or package.yaml, or package.json5) was found in "C:\Windows".

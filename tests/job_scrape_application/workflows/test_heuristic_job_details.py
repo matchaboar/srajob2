@@ -631,6 +631,23 @@ def test_strip_known_nav_blocks_removes_cookie_banner():
     assert "Responsibilities" in cleaned
 
 
+def test_strip_known_nav_blocks_trims_avature_tail():
+    markdown = (
+        "Senior Software Engineer - DataHub Search\n"
+        "Description & Requirements\n"
+        "Build search pipelines.\n"
+        "Back to Job Search\n"
+        "Similar jobs\n"
+        "Senior Software Engineer - Tradebook\n"
+    )
+
+    cleaned = strip_known_nav_blocks(markdown)
+
+    assert "Build search pipelines." in cleaned
+    assert "Back to Job Search" not in cleaned
+    assert "Similar jobs" not in cleaned
+
+
 def test_parse_markdown_hints_ignores_nav_block(datadog_markdown):
     hints = parse_markdown_hints(datadog_markdown)
 

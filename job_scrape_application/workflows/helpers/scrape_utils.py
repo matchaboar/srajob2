@@ -93,6 +93,10 @@ _COOKIE_UI_CONTROL_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
+_AVATURE_TAIL_MARKERS = (
+    "back to job search",
+    "similar jobs",
+)
 
 
 def _score_apply_url(url: str) -> int:
@@ -114,6 +118,23 @@ def _score_apply_url(url: str) -> int:
     if host:
         return 2  # best: company-owned domain
     return -1
+
+
+def _strip_ashby_application_url(url: str) -> str:
+    """Return the Ashby job overview URL when given an /application URL."""
+
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return url
+    host = (parsed.hostname or "").lower()
+    if not host.endswith("ashbyhq.com"):
+        return url
+    path = parsed.path or ""
+    if not path.endswith("/application"):
+        return url
+    trimmed = path[: -len("/application")] or "/"
+    return parsed._replace(path=trimmed).geturl()
 
 
 def _apply_url_candidates(row: Dict[str, Any]) -> List[str]:
@@ -159,10 +180,13 @@ def prefer_apply_url(row: Dict[str, Any]) -> Optional[str]:
     for candidate in candidates:
         if candidate in seen:
             continue
-        seen.add(candidate)
-        score = _score_apply_url(candidate)
+        normalized = _strip_ashby_application_url(candidate)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        score = _score_apply_url(normalized)
         if score > best_score:
-            best = candidate
+            best = normalized
             best_score = score
 
     return best
@@ -344,6 +368,7 @@ def strip_known_nav_blocks(markdown: str) -> str:
     cleaned = _strip_cookie_banner(markdown)
     cleaned = _strip_html_tag_lines(cleaned)
     cleaned = _NAV_BLOCK_REGEX.sub("\n", cleaned)
+    cleaned = _strip_avature_tail(cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -379,6 +404,20 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def _strip_avature_tail(markdown: str) -> str:
+    if not markdown:
+        return markdown
+    lines = markdown.splitlines()
+    for idx, line in enumerate(lines):
+        lower = line.strip().lower()
+        if not lower:
+            continue
+        if any(marker in lower for marker in _AVATURE_TAIL_MARKERS):
+            trimmed = "\n".join(lines[:idx]).strip("\n")
+            return trimmed or markdown
+    return markdown
 
 
 def _strip_html_tag_lines(markdown: str) -> str:

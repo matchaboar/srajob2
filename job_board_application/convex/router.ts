@@ -704,7 +704,25 @@ export const listSites = query({
   },
 });
 
-// Gather previously seen job URLs for a site (from scrapes + ignored) so scrapers can skip them
+const recordSeenJobUrl = async (ctx: any, sourceUrl?: string, url?: string) => {
+  const cleanedSource = (sourceUrl ?? "").trim();
+  const cleanedUrl = (url ?? "").trim();
+  if (!cleanedSource || !cleanedUrl) return;
+
+  const existing = await ctx.db
+    .query("seen_job_urls")
+    .withIndex("by_source_url", (q: any) => q.eq("sourceUrl", cleanedSource).eq("url", cleanedUrl))
+    .first();
+  if (existing) return;
+
+  await ctx.db.insert("seen_job_urls", {
+    sourceUrl: cleanedSource,
+    url: cleanedUrl,
+    createdAt: Date.now(),
+  });
+};
+
+// Gather previously seen job URLs for a site (from seen + ignored) so scrapers can skip them
 export const listSeenJobUrlsForSite = query({
   args: {
     sourceUrl: v.string(),
@@ -713,15 +731,14 @@ export const listSeenJobUrlsForSite = query({
   handler: async (ctx, args) => {
     const seen = new Set<string>();
 
-    const scrapes = await ctx.db
-      .query("scrapes")
-      .withIndex("by_source", (q) => q.eq("sourceUrl", args.sourceUrl))
+    const rows = await ctx.db
+      .query("seen_job_urls")
+      .withIndex("by_source", (q: any) => q.eq("sourceUrl", args.sourceUrl))
       .collect();
-
-    for (const scrape of scrapes as any[]) {
-      const jobs = extractJobs((scrape).items);
-      for (const job of jobs) {
-        if (job.url) seen.add(job.url);
+    for (const row of rows as any[]) {
+      const url = (row).url;
+      if (typeof url === "string") {
+        seen.add(url);
       }
     }
 
@@ -869,6 +886,8 @@ export const insertIgnoredJob = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const now = Date.now();
+    await recordSeenJobUrl(ctx, args.sourceUrl, args.url);
     return await ctx.db.insert("ignored_jobs", {
       url: args.url,
       sourceUrl: args.sourceUrl,
@@ -878,7 +897,7 @@ export const insertIgnoredJob = mutation({
       details: args.details,
       title: args.title,
       description: args.description,
-      createdAt: Date.now(),
+      createdAt: now,
     });
   },
 });
@@ -1363,6 +1382,7 @@ const completeScrapeUrlsHandler = async (
       .withIndex("by_url", (q: any) => q.eq("url", url))
       .first();
     if (!existing) continue;
+    await recordSeenJobUrl(ctx, (existing).sourceUrl, url);
 
     const attempts = ((existing).attempts ?? 0) + 1;
     const shouldIgnore =
@@ -3320,16 +3340,23 @@ export const ingestJobsFromScrape = mutation({
   },
   handler: async (ctx, args) => {
     let companyOverride: string | undefined;
+    let sourceUrlForSeen: string | undefined;
     if (args.siteId) {
       const site = await ctx.db.get(args.siteId);
       if (site && typeof (site as any).name === "string") {
         companyOverride = (site as any).name;
+      }
+      if (site && typeof (site as any).url === "string") {
+        sourceUrlForSeen = (site as any).url;
       }
     }
     const aliasCache = new Map<string, string | null>();
 
     let inserted = 0;
     for (const job of args.jobs) {
+      if (sourceUrlForSeen) {
+        await recordSeenJobUrl(ctx, sourceUrlForSeen, job.url);
+      }
       const dup = await ctx.db
         .query("jobs")
         .withIndex("by_url", (q) => q.eq("url", job.url))

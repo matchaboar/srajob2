@@ -212,6 +212,17 @@ def test_prefer_apply_url_prefers_company_over_greenhouse_api():
     assert chosen == "https://careers.acme.com/jobs/123"
 
 
+def test_prefer_apply_url_strips_ashby_application_path():
+    row = {
+        "applyUrl": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938/application",
+        "jobUrl": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+    }
+
+    chosen = prefer_apply_url(row)
+
+    assert chosen == "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938"
+
+
 def test_jobs_from_scrape_items_prefers_marketing_apply_url():
     items = {
         "normalized": [
@@ -234,3 +245,26 @@ def test_jobs_from_scrape_items_prefers_marketing_apply_url():
     jobs = _jobs_from_scrape_items(items, default_posted_at=0)
     assert len(jobs) == 1
     assert jobs[0]["url"] == "https://boards.greenhouse.io/acme/jobs/123"
+
+
+def test_jobs_from_scrape_items_prefers_ashby_overview_url():
+    items = {
+        "normalized": [
+            {
+                "applyUrl": "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f/application",
+                "jobUrl": "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f",
+                "title": "Product Manager",
+                "company": "Lambda",
+                "description": "desc",
+                "location": "Remote",
+                "remote": True,
+                "level": "mid",
+                "total_compensation": 0,
+                "posted_at": 0,
+            }
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+    assert len(jobs) == 1
+    assert jobs[0]["url"] == "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f"

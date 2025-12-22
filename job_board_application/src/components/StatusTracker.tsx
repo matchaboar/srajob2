@@ -1,12 +1,14 @@
 import { motion } from "framer-motion";
 import { LiveTimer } from "./LiveTimer";
 
+
 interface StatusTrackerProps {
   status: string | null;
   updatedAt: number | null;
+  compact?: boolean;
 }
 
-export function StatusTracker({ status, updatedAt }: StatusTrackerProps) {
+export function StatusTracker({ status, updatedAt, compact = false }: StatusTrackerProps) {
   const steps = ["Applied", "Queued", "Processing", "Done"];
 
   // Normalize status to match steps
@@ -21,9 +23,9 @@ export function StatusTracker({ status, updatedAt }: StatusTrackerProps) {
   const isFailed = currentStatus === "failed";
 
   return (
-    <div className="flex flex-col items-end w-full max-w-[280px]">
+    <div className={`flex flex-col w-full ${compact ? "" : "max-w-[280px] items-end"}`}>
       {/* Arrow-based tracker */}
-      <div className="flex items-center w-full mb-2">
+      <div className={`flex items-center w-full ${compact ? "" : "mb-2"}`}>
         {steps.map((step, index) => {
           const isCompleted = index < activeIndex;
           const isCurrent = index === activeIndex;
@@ -69,27 +71,26 @@ export function StatusTracker({ status, updatedAt }: StatusTrackerProps) {
 
           return (
             <div key={step} className="relative flex-1">
-              {/* Arrow/Chevron Shape */}
+              {/* Rectangular Shape */}
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
+                initial={false}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
                 className={`
-                                    relative h-8 bg-gradient-to-br ${bgGradient}
+                                    relative ${compact ? "h-4" : "h-6"} bg-gradient-to-br ${bgGradient}
                                     border ${borderColor}
                                     ${isCurrent ? glowClass + " status-tracker-pulse" : ""}
-                                    ${index < steps.length - 1 ? "status-tracker-arrow" : "rounded-r"}
-                                    ${index === 0 ? "rounded-l" : ""}
+                                    ${index === 0 ? "rounded-l-md" : ""}
+                                    ${index === steps.length - 1 ? "rounded-r-md" : ""}
+                                    ${index > 0 && index < steps.length - 1 ? "" : ""}
                                     transition-all duration-300
                                     flex items-center justify-center
-                                    ${index > 0 ? "-ml-2" : ""}
                                 `}
                 style={{
                   zIndex: steps.length - index,
                 }}
               >
                 {/* Step Label */}
-                <span className={`text-[9px] font-bold uppercase tracking-wide ${textColor} relative z-10 px-2`}>
+                <span className={`${compact ? "text-[8px] px-1" : "text-[9px] px-2"} font-bold uppercase tracking-wide ${textColor} relative z-10 truncate`}>
                   {step}
                 </span>
               </motion.div>
@@ -98,32 +99,34 @@ export function StatusTracker({ status, updatedAt }: StatusTrackerProps) {
         })}
       </div>
 
-      {/* Status Text */}
-      <div className="flex items-center gap-2 text-[10px]">
-        <span
-          className={`font-semibold uppercase tracking-wider ${isFailed
-            ? "text-red-400"
-            : activeIndex === 3
-              ? "text-emerald-400"
-              : "text-blue-400"
-            }`}
-        >
-          {isFailed ? "Failed" : steps[activeIndex]}
-        </span>
-        {updatedAt && (
-          <span className="text-slate-500 flex items-center gap-1">
-            •
-            <LiveTimer
-              startTime={updatedAt}
-              colorize
-              warnAfterMs={5 * 60 * 1000}
-              dangerAfterMs={30 * 60 * 1000}
-              showAgo
-              suffixClassName="text-slate-500"
-            />
+      {/* Status Text - Hidden in compact mode */}
+      {!compact && (
+        <div className="flex items-center gap-2 text-[10px]">
+          <span
+            className={`font-semibold uppercase tracking-wider ${isFailed
+              ? "text-red-400"
+              : activeIndex === 3
+                ? "text-emerald-400"
+                : "text-blue-400"
+              }`}
+          >
+            {isFailed ? "Failed" : steps[activeIndex]}
           </span>
-        )}
-      </div>
+          {updatedAt && (
+            <span className="text-slate-500 flex items-center gap-1">
+              •
+              <LiveTimer
+                startTime={updatedAt}
+                colorize
+                warnAfterMs={5 * 60 * 1000}
+                dangerAfterMs={30 * 60 * 1000}
+                showAgo
+                suffixClassName="text-slate-500"
+              />
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
