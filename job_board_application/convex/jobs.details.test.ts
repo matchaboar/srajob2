@@ -3,7 +3,7 @@ import { getJobById, getJobDetails } from "./jobs";
 import { getHandler } from "./__tests__/getHandler";
 
 type JobRow = { _id: string; url: string; location?: string; remote?: boolean; totalCompensation?: number };
-type DetailRow = { _id: string; jobId: string; description?: string };
+type DetailRow = { _id: string; jobId: string; description?: string; metadata?: string };
 
 class FakeDb {
   private job: JobRow | null;
@@ -67,7 +67,7 @@ describe("getJobById", () => {
     const ctx: any = {
       db: new FakeDb(
         { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
-        { _id: "detail-1", jobId: "job-1", description: "Details" }
+        { _id: "detail-1", jobId: "job-1", description: "Details", metadata: "Location\nRemote" }
       ),
     };
 
@@ -76,5 +76,6 @@ describe("getJobById", () => {
 
     expect(result?._id).toBe("job-1");
     expect(result?.description).toBe("Details");
+    expect(result?.metadata).toBe("Location\nRemote");
   });
 });

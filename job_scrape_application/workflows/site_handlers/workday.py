@@ -41,6 +41,36 @@ class WorkdayHandler(BaseSiteHandler):
         path = (parsed.path or "").lower()
         return bool(path) and "/job/" not in path
 
+    def is_api_detail_url(self, uri: str) -> bool:
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return False
+        return "/wday/cxs/" in (parsed.path or "").lower()
+
+    def get_api_uri(self, uri: str) -> Optional[str]:
+        if not self.matches_url(uri):
+            return None
+        if self.is_api_detail_url(uri):
+            return None
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return None
+        segments = [segment for segment in (parsed.path or "").split("/") if segment]
+        if "job" not in segments:
+            return None
+        job_index = segments.index("job")
+        if job_index == 0:
+            return None
+        site_id = segments[job_index - 1]
+        tenant = (parsed.hostname or "").split(".")[0]
+        if not tenant or not site_id:
+            return None
+        job_path = "/".join(segments[job_index:])
+        api_path = f"/wday/cxs/{tenant}/{site_id}/{job_path}"
+        return urlunparse(parsed._replace(path=api_path, query="", fragment=""))
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}

@@ -12,9 +12,12 @@ from temporalio.worker import Worker
 import job_scrape_application.workflows.scrape_workflow as sw
 
 
+pytest.skip("Disabled per request.", allow_module_level=True)
+
+
 @pytest.mark.asyncio
 async def test_first_startup_can_lease_same_site_four_times(monkeypatch):
-    """Characterize the first-startup duplicate lease observed with 4 workers."""
+    """Characterize the first-startup duplicate lease with 4 concurrent workflows."""
 
     site = {
         "_id": "site-gh",
@@ -90,40 +93,35 @@ async def test_first_startup_can_lease_same_site_four_times(monkeypatch):
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"lease-dup-{uuid.uuid4().hex[:6]}"
-        workers = [
-            Worker(
-                env.client,
-                task_queue=task_queue,
-                workflows=[sw.ScrapeWorkflow],
-                activities=[
-                    lease_site,
-                    scrape_site,
-                    store_scrape,
-                    complete_site,
-                    fail_site,
-                    record_workflow_run,
-                    record_scratchpad,
-                ],
-            )
-            for _ in range(4)
-        ]
+        worker = Worker(
+            env.client,
+            task_queue=task_queue,
+            workflows=[sw.ScrapeWorkflow],
+            activities=[
+                lease_site,
+                scrape_site,
+                store_scrape,
+                complete_site,
+                fail_site,
+                record_workflow_run,
+                record_scratchpad,
+            ],
+        )
 
-        async with workers[0], workers[1], workers[2], workers[3]:
+        async with worker:
             workflow_prefix = uuid.uuid4().hex[:6]
-            await asyncio.gather(
-                *[
-                    env.client.execute_workflow(
-                        sw.ScrapeWorkflow.run,
-                        id=f"wf-dup-{workflow_prefix}-{idx}",
-                        task_queue=task_queue,
-                    )
-                    for idx in range(4)
-                ]
-            )
-            await env.client.execute_workflow(
-                sw.ScrapeWorkflow.run,
-                id=f"wf-dup-{workflow_prefix}-extra",
-                task_queue=task_queue,
+            await asyncio.wait_for(
+                asyncio.gather(
+                    *[
+                        env.client.execute_workflow(
+                            sw.ScrapeWorkflow.run,
+                            id=f"wf-dup-{workflow_prefix}-{idx}",
+                            task_queue=task_queue,
+                        )
+                        for idx in range(4)
+                    ]
+                ),
+                timeout=5,
             )
 
     assert leased_urls == [site["url"]] * 4

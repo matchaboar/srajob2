@@ -68,6 +68,24 @@ const buildEmptyFilters = (): Filters => ({
   companies: [],
 });
 
+const resolveShareBaseUrl = () => {
+  const explicit = (import.meta.env.VITE_CONVEX_HTTP_URL as string | undefined) ?? undefined;
+  const fallback = (import.meta.env.VITE_CONVEX_URL as string | undefined) ?? undefined;
+  const candidate = explicit || fallback;
+  if (candidate) {
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.hostname.endsWith(".convex.cloud")) {
+        parsed.hostname = parsed.hostname.replace(".convex.cloud", ".convex.site");
+      }
+      return parsed.origin;
+    } catch {
+      // ignore invalid env URLs
+    }
+  }
+  return window.location.origin;
+};
+
 const buildFilterLabel = (filter: {
   search?: string | null;
   state?: TargetState | null;
@@ -670,12 +688,24 @@ export function JobBoard() {
     if (!descriptionText) return null;
     return descriptionText.split(/\s+/).filter(Boolean).length;
   }, [descriptionText]);
+  const metadataText = useMemo(() => {
+    const raw = (selectedJobFull as { metadata?: string } | null)?.metadata || "";
+    const trimmed = raw.trim();
+    if (!trimmed) return "";
+    return normalizeMarkdown(trimmed);
+  }, [selectedJobFull]);
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
     const raw = selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
+    return normalizeMarkdown(trimmed);
+  }, [selectedAppliedJobFull]);
+  const appliedMetadataText = useMemo(() => {
+    const raw = (selectedAppliedJobFull as { metadata?: string } | null)?.metadata || "";
+    const trimmed = raw.trim();
+    if (!trimmed) return "";
     return normalizeMarkdown(trimmed);
   }, [selectedAppliedJobFull]);
   const appliedDescriptionWordCount = useMemo(() => {
@@ -1176,9 +1206,11 @@ export function JobBoard() {
   }, [rejectJob, exitingJobs, filteredResults]);
 
   const buildJobDetailsLink = useCallback((jobId: JobId) => {
-    const url = new URL(window.location.href);
-    url.hash = `job-details-${jobId}`;
-    return url.toString();
+    const shareBase = resolveShareBaseUrl();
+    const shareUrl = new URL("/share/job", shareBase);
+    shareUrl.searchParams.set("id", jobId);
+    shareUrl.searchParams.set("app", window.location.origin);
+    return shareUrl.toString();
   }, []);
 
   const copyToClipboard = useCallback(async (text: string) => {
@@ -1986,6 +2018,19 @@ export function JobBoard() {
                           </div>
                         </div>
 
+                        {metadataText && (
+                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/35 p-2">
+                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
+                              Metadata
+                            </div>
+                            <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-56 overflow-y-auto pr-1 space-y-3">
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
+                                {metadataText}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+
                         {selectedJobFull?.alternateUrls && Array.isArray(selectedJobFull.alternateUrls) && selectedJobFull.alternateUrls.length > 1 && (
                           <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
                             <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
@@ -2298,6 +2343,19 @@ export function JobBoard() {
                           </ReactMarkdown>
                         </div>
                       </div>
+
+                      {appliedMetadataText && (
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/35 p-2">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
+                            Metadata
+                          </div>
+                          <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-56 overflow-y-auto pr-1 space-y-3">
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
+                              {appliedMetadataText}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

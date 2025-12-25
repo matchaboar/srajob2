@@ -21,6 +21,83 @@ const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
 const HEURISTIC_VERSION = 4;
+const JOB_BOARD_NAME = "JobBoard";
+const JOB_BOARD_LOGO_PATH = "/share/jobboard-logo.svg";
+const JOB_BOARD_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" rx="56" fill="#0F172A"/><rect x="28" y="28" width="200" height="200" rx="44" fill="#111827"/><text x="50%" y="56%" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" font-weight="700" fill="#34D399">JB</text></svg>`;
+const BRAND_FETCH_CLIENT = "1idXaGHc5cKcElppzC7";
+const BRANDFETCH_LOGO_OVERRIDES: Record<string, string> = {
+  mithril: "https://cdn.brandfetch.io/idZPhPbkaC/w/432/h/432/theme/dark/logo.png?c=1bxid64Mup7aczewSAYMX&t=1759798646882",
+  together: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+  togetherai: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+  togetherdotai: "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
+};
+const BRANDFETCH_DOMAIN_OVERRIDES: Record<string, string> = {
+  oscar: "hioscar.com",
+  serval: "serval.com",
+};
+const LOGO_SLUG_CHAR_MAP: Record<string, string> = {
+  "+": "plus",
+  ".": "dot",
+  "&": "and",
+  "đ": "d",
+  "ħ": "h",
+  "ı": "i",
+  "ĸ": "k",
+  "ŀ": "l",
+  "ł": "l",
+  "ß": "ss",
+  "ŧ": "t",
+  "ø": "o",
+};
+const COMMON_SUBDOMAIN_PREFIXES = new Set([
+  "www",
+  "jobs",
+  "careers",
+  "boards",
+  "board",
+  "apply",
+  "app",
+  "join",
+  "team",
+  "teams",
+  "work",
+]);
+const RESERVED_PATH_SEGMENTS = new Set([
+  "boards",
+  "jobs",
+  "careers",
+  "jobdetail",
+  "apply",
+  "application",
+  "applications",
+  "openings",
+  "positions",
+  "roles",
+  "role",
+  "departments",
+  "teams",
+  "en",
+  "en-us",
+  "en-gb",
+  "en-au",
+  "v1",
+  "v2",
+  "api",
+]);
+const HOSTED_JOB_DOMAINS = [
+  "avature.net",
+  "avature.com",
+  "searchjobs.com",
+  "greenhouse.io",
+  "ashbyhq.com",
+  "lever.co",
+  "workable.com",
+  "smartrecruiters.com",
+  "myworkdayjobs.com",
+  "icims.com",
+  "jobvite.com",
+  "bamboohr.com",
+];
 const toSlug = (value: string) =>
   (value || "")
     .toLowerCase()
@@ -44,6 +121,128 @@ const baseDomainFromHost = (host: string): string => {
     return parts.slice(-3).join(".");
   }
   return parts.slice(-2).join(".");
+};
+const toLogoSlug = (company: string) => {
+  const lowered = (company || "").toLowerCase();
+  const replaced = lowered.replace(/[+.&đħıĸŀłßŧø]/g, (char) => LOGO_SLUG_CHAR_MAP[char] ?? "");
+  const normalized = replaced.normalize("NFD").replace(/[^a-z0-9]/g, "");
+  return normalized || null;
+};
+const extractCompanySlug = (pathname: string) => {
+  const parts = pathname.split("/").filter(Boolean);
+  for (const part of parts) {
+    const cleaned = part.toLowerCase();
+    if (cleaned === "jobdetail" || cleaned === "job-details" || cleaned === "jobdetails") {
+      break;
+    }
+    if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
+    if (/^\d+$/.test(cleaned)) continue;
+    if (!/^[a-z0-9-]+$/.test(cleaned)) continue;
+    return cleaned;
+  }
+  return null;
+};
+const resolveHostedJobsDomain = (host: string) =>
+  HOSTED_JOB_DOMAINS.find((domain) => host === domain || host.endsWith(`.${domain}`)) ?? null;
+const extractCompanySlugFromHost = (host: string, hostedDomain: string) => {
+  const hostParts = host.split(".").filter(Boolean);
+  const domainParts = hostedDomain.split(".").filter(Boolean);
+  if (hostParts.length <= domainParts.length) return null;
+  const subdomains = hostParts.slice(0, hostParts.length - domainParts.length);
+  for (let i = subdomains.length - 1; i >= 0; i -= 1) {
+    const candidate = subdomains[i]?.toLowerCase() ?? "";
+    if (!candidate) continue;
+    if (COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
+    if (!/^[a-z0-9-]+$/.test(candidate)) continue;
+    return candidate;
+  }
+  return null;
+};
+const deriveBrandfetchDomain = (company: string, url?: string | null) => {
+  const trimmedCompany = (company || "").trim();
+  const companySlug = toLogoSlug(trimmedCompany);
+  const domainOverride = companySlug ? BRANDFETCH_DOMAIN_OVERRIDES[companySlug] ?? null : null;
+  if (domainOverride) {
+    return domainOverride;
+  }
+  const fallbackCompanyDomain = () => {
+    if (trimmedCompany.includes(".")) {
+      return trimmedCompany.toLowerCase();
+    }
+    return companySlug ? `${companySlug}.com` : null;
+  };
+  if (url) {
+    try {
+      const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+      const host = parsed.hostname.toLowerCase();
+      const hostedDomain = resolveHostedJobsDomain(host);
+      if (hostedDomain) {
+        const slugFromPath = extractCompanySlug(parsed.pathname);
+        if (slugFromPath) {
+          return `${slugFromPath}.com`;
+        }
+        const hostSlug = extractCompanySlugFromHost(host, hostedDomain);
+        if (hostSlug) {
+          return `${hostSlug}.com`;
+        }
+        const fallback = fallbackCompanyDomain();
+        if (fallback) {
+          return fallback;
+        }
+      }
+      return baseDomainFromHost(host);
+    } catch {
+      // fall through to company fallback
+    }
+  }
+  return fallbackCompanyDomain();
+};
+const resolveCompanyLogoUrl = (company: string, url: string | null | undefined, fallbackLogoUrl: string) => {
+  const slug = toLogoSlug(company);
+  if (slug && BRANDFETCH_LOGO_OVERRIDES[slug]) {
+    return BRANDFETCH_LOGO_OVERRIDES[slug] as string;
+  }
+  const brandfetchDomain = deriveBrandfetchDomain(company, url);
+  if (brandfetchDomain) {
+    return `https://cdn.brandfetch.io/${brandfetchDomain}?c=${BRAND_FETCH_CLIENT}`;
+  }
+  if (slug) {
+    return `https://cdn.simpleicons.org/${slug}`;
+  }
+  return fallbackLogoUrl;
+};
+const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
+const truncateText = (value: string, max = 220) => {
+  const cleaned = normalizeWhitespace(value);
+  if (cleaned.length <= max) return cleaned;
+  const clipped = cleaned.slice(0, Math.max(0, max - 3)).trimEnd();
+  const withoutPartial = clipped.replace(/\s+\S*$/, "");
+  const base = withoutPartial || clipped;
+  return `${base}...`;
+};
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+const parseAppOrigin = (value: string | null) => {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.origin;
+    }
+  } catch {
+    // ignore invalid app params
+  }
+  return null;
+};
+const buildShareDescription = (raw: string | null | undefined) => {
+  const cleaned = stripEmbeddedJson(cleanScrapedText(raw));
+  if (!cleaned) return "Job details available on JobBoard.";
+  return truncateText(cleaned, 240);
 };
 const normalizeCompany = (value: string) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const toTitleCaseSlug = (value: string) => {
@@ -563,6 +762,180 @@ http.route({
     // listScrapeActivity may not be present in generated types during CI; cast to any for safety.
     const rows = await ctx.runQuery((api as any).sites.listScrapeActivity, {});
     return new Response(JSON.stringify(rows), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
+http.route({
+  path: JOB_BOARD_LOGO_PATH,
+  method: "GET",
+  handler: httpAction(async () => {
+    return new Response(JOB_BOARD_LOGO_SVG, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
+  }),
+});
+
+http.route({
+  path: "/share/job",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const jobId = (url.searchParams.get("id") ?? "").trim();
+    if (!jobId) {
+      return new Response("Missing job id.", { status: 400, headers: { "Content-Type": "text/plain" } });
+    }
+
+    const job = await ctx.runQuery(api.jobs.getJobById, { id: jobId as Id<"jobs"> });
+    if (!job) {
+      return new Response("Job not found.", { status: 404, headers: { "Content-Type": "text/plain" } });
+    }
+
+    const companyName = (job.company ?? "Unknown company").trim() || "Unknown company";
+    const jobTitle = (job.title ?? "Job details").trim() || "Job details";
+    const shareTitle = companyName ? `${jobTitle} at ${companyName}` : jobTitle;
+    const shortDescription = buildShareDescription(job.description);
+    const jobBoardLogoUrl = new URL(JOB_BOARD_LOGO_PATH, url).toString();
+    const companyLogoUrl = resolveCompanyLogoUrl(companyName, job.url ?? null, jobBoardLogoUrl);
+    const oembedUrl = new URL("/share/job/oembed", url);
+    oembedUrl.searchParams.set("id", jobId);
+    const appParam = url.searchParams.get("app");
+    if (appParam) {
+      oembedUrl.searchParams.set("app", appParam);
+    }
+    const appOrigin = parseAppOrigin(appParam);
+    const openInAppUrl = appOrigin ? `${appOrigin}/#job-details-${jobId}` : null;
+    const shareUrl = url.toString();
+
+    const metaParts = [
+      job.location ? String(job.location) : null,
+      job.remote === true ? "Remote" : job.remote === false ? "On-site" : null,
+      job.level ? `Level: ${job.level}` : null,
+    ].filter(Boolean) as string[];
+    const metaLine = metaParts.length ? metaParts.join(" • ") : "Job details";
+
+    const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${escapeHtml(shareTitle)} | ${JOB_BOARD_NAME}</title>
+    <meta name="description" content="${escapeHtml(shortDescription)}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="${JOB_BOARD_NAME}">
+    <meta property="og:title" content="${escapeHtml(shareTitle)}">
+    <meta property="og:description" content="${escapeHtml(shortDescription)}">
+    <meta property="og:image" content="${escapeHtml(companyLogoUrl)}">
+    <meta property="og:image:alt" content="${escapeHtml(`${companyName} logo`)}">
+    <meta property="og:url" content="${escapeHtml(shareUrl)}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${escapeHtml(shareTitle)}">
+    <meta name="twitter:description" content="${escapeHtml(shortDescription)}">
+    <meta name="twitter:image" content="${escapeHtml(companyLogoUrl)}">
+    <link rel="alternate" type="application/json+oembed" href="${escapeHtml(oembedUrl.toString())}" title="${escapeHtml(shareTitle)}">
+    <link rel="icon" href="${escapeHtml(jobBoardLogoUrl)}" type="image/svg+xml">
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; background: #0b1220; color: #e2e8f0; }
+      .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px 48px; gap: 20px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px; color: #94a3b8; }
+      .brand img { width: 28px; height: 28px; border-radius: 8px; }
+      .card { width: min(720px, 100%); background: #111827; border: 1px solid #1f2937; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.35); }
+      .header { display: flex; gap: 16px; align-items: center; }
+      .header img { width: 72px; height: 72px; border-radius: 16px; background: #0f172a; border: 1px solid #1f2937; object-fit: contain; }
+      .title { margin: 0; font-size: 24px; font-weight: 700; color: #f8fafc; }
+      .company { margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #38bdf8; }
+      .meta { margin-top: 6px; font-size: 12px; color: #94a3b8; }
+      .description { margin: 18px 0; font-size: 15px; line-height: 1.6; color: #cbd5f5; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px; background: #34d399; color: #0f172a; font-weight: 700; text-decoration: none; font-size: 13px; }
+      .btn.secondary { background: transparent; color: #93c5fd; border: 1px solid #334155; }
+      .footer { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="brand">
+        <img src="${escapeHtml(jobBoardLogoUrl)}" alt="${JOB_BOARD_NAME} logo">
+        <span>${JOB_BOARD_NAME}</span>
+      </div>
+      <div class="card">
+        <div class="header">
+          <img src="${escapeHtml(companyLogoUrl)}" alt="${escapeHtml(`${companyName} logo`)}">
+          <div>
+            <p class="company">${escapeHtml(companyName)}</p>
+            <h1 class="title">${escapeHtml(jobTitle)}</h1>
+            <div class="meta">${escapeHtml(metaLine)}</div>
+          </div>
+        </div>
+        <p class="description">${escapeHtml(shortDescription)}</p>
+        <div class="actions">
+          ${openInAppUrl ? `<a class="btn" href="${escapeHtml(openInAppUrl)}" target="_blank" rel="noreferrer">Open in JobBoard</a>` : ""}
+          ${job.url ? `<a class="btn secondary" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer">View job source</a>` : ""}
+        </div>
+      </div>
+      <div class="footer">Shared via ${JOB_BOARD_NAME}</div>
+    </div>
+  </body>
+</html>`;
+
+    return new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }),
+});
+
+http.route({
+  path: "/share/job/oembed",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const jobId = (url.searchParams.get("id") ?? "").trim();
+    if (!jobId) {
+      return new Response(JSON.stringify({ error: "Missing job id." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const job = await ctx.runQuery(api.jobs.getJobById, { id: jobId as Id<"jobs"> });
+    if (!job) {
+      return new Response(JSON.stringify({ error: "Job not found." }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const companyName = (job.company ?? "Unknown company").trim() || "Unknown company";
+    const jobTitle = (job.title ?? "Job details").trim() || "Job details";
+    const shareTitle = companyName ? `${jobTitle} at ${companyName}` : jobTitle;
+    const shortDescription = buildShareDescription(job.description);
+    const jobBoardLogoUrl = new URL(JOB_BOARD_LOGO_PATH, url).toString();
+    const companyLogoUrl = resolveCompanyLogoUrl(companyName, job.url ?? null, jobBoardLogoUrl);
+    const appOrigin = parseAppOrigin(url.searchParams.get("app"));
+
+    const payload: Record<string, unknown> = {
+      version: "1.0",
+      type: "link",
+      title: shareTitle,
+      provider_name: JOB_BOARD_NAME,
+      provider_url: appOrigin ?? url.origin,
+      author_name: companyName,
+      author_url: job.url ?? undefined,
+      thumbnail_url: companyLogoUrl,
+      thumbnail_width: 256,
+      thumbnail_height: 256,
+      description: shortDescription,
+    };
+
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -1602,6 +1975,7 @@ export const updateJobWithHeuristicHandler = async (
     countries?: string[];
     country?: string;
     description?: string;
+    metadata?: string;
     totalCompensation?: number;
     compensationReason?: string;
     compensationUnknown?: boolean;
@@ -1631,7 +2005,7 @@ export const updateJobWithHeuristicHandler = async (
       patch[key] = args[key] as any;
     }
   }
-  for (const key of ["description", "heuristicAttempts", "heuristicLastTried", "heuristicVersion"] as const) {
+  for (const key of ["description", "metadata", "heuristicAttempts", "heuristicLastTried", "heuristicVersion"] as const) {
     if (args[key] !== undefined) {
       detailPatch[key] = args[key] as any;
     }
@@ -1665,6 +2039,7 @@ export const updateJobWithHeuristic = Object.assign(
       countries: v.optional(v.array(v.string())),
       country: v.optional(v.string()),
       description: v.optional(v.string()),
+      metadata: v.optional(v.string()),
       totalCompensation: v.optional(v.number()),
       compensationReason: v.optional(v.string()),
       compensationUnknown: v.optional(v.boolean()),
@@ -3429,6 +3804,7 @@ export const ingestJobsFromScrape = mutation({
         title: v.string(),
         company: v.string(),
         description: v.string(),
+        metadata: v.optional(v.string()),
         location: v.string(),
         locations: v.optional(v.array(v.string())),
         city: v.optional(v.string()),
@@ -3502,6 +3878,7 @@ export const ingestJobsFromScrape = mutation({
       );
       const {
         description,
+        metadata,
         scrapedWith,
         workflowName,
         scrapedCostMilliCents,
@@ -3527,6 +3904,7 @@ export const ingestJobsFromScrape = mutation({
       });
       const detailRow: any = { jobId };
       if (description !== undefined) detailRow.description = description;
+      if (metadata !== undefined) detailRow.metadata = metadata;
       if (scrapedWith !== undefined) detailRow.scrapedWith = scrapedWith;
       if (workflowName !== undefined) detailRow.workflowName = workflowName;
       if (scrapedCostMilliCents !== undefined) detailRow.scrapedCostMilliCents = scrapedCostMilliCents;

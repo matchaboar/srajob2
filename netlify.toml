@@ -9,6 +9,21 @@ VITE_CONVEX_URL = "https://affable-kiwi-46.convex.cloud"
 
 # SPA fallback so client-side routes work on refresh
 [[redirects]]
+from = "/share/job"
+to = "https://affable-kiwi-46.convex.site/share/job"
+status = 200
+
+[[redirects]]
+from = "/share/job/oembed"
+to = "https://affable-kiwi-46.convex.site/share/job/oembed"
+status = 200
+
+[[redirects]]
+from = "/share/jobboard-logo.svg"
+to = "https://affable-kiwi-46.convex.site/share/jobboard-logo.svg"
+status = 200
+
+[[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200

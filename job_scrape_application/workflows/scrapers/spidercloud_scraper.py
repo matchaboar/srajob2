@@ -250,6 +250,76 @@ class SpiderCloudScraper(BaseScraper):
         )
         min_description_len = 80
 
+        def _parse_json_blob(text: str) -> Any | None:
+            text = text.strip()
+            if not text:
+                return None
+            try:
+                return json.loads(text)
+            except Exception:
+                pass
+            try:
+                unescaped = text.encode("utf-8", errors="ignore").decode("unicode_escape")
+            except Exception:
+                unescaped = ""
+            if unescaped:
+                try:
+                    return json.loads(unescaped)
+                except Exception:
+                    pass
+            match = re.search(JSON_OBJECT_PATTERN, text, flags=re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except Exception:
+                    return None
+            return None
+
+        def _find_job_description(node: Any) -> tuple[str, str | None] | None:
+            if isinstance(node, dict):
+                info = node.get("jobPostingInfo")
+                if isinstance(info, dict):
+                    desc = info.get("jobDescription") or info.get("description")
+                    title = info.get("title") or info.get("jobPostingId")
+                    if isinstance(desc, str) and desc.strip():
+                        return desc, title if isinstance(title, str) and title.strip() else None
+                desc = node.get("jobDescription")
+                if isinstance(desc, str) and desc.strip():
+                    title = node.get("title") if isinstance(node.get("title"), str) else None
+                    return desc, title
+                for val in node.values():
+                    found = _find_job_description(val)
+                    if found:
+                        return found
+            if isinstance(node, list):
+                for child in node:
+                    found = _find_job_description(child)
+                    if found:
+                        return found
+            return None
+
+        def _job_description_from_pre(raw_html: str) -> Optional[str]:
+            if "<pre" not in raw_html.lower():
+                return None
+            match = PRE_PATTERN.search(raw_html)
+            if not match:
+                return None
+            content = html.unescape(match.group("content") or "").strip()
+            if not content:
+                return None
+            parsed = _parse_json_blob(content)
+            if parsed is None:
+                return None
+            found = _find_job_description(parsed)
+            if not found:
+                return None
+            desc_html, title = found
+            desc_html = html.unescape(desc_html)
+            rendered = _markdown_from_html(desc_html)
+            if title and title not in rendered:
+                return f"# {title}\n\n{rendered}".strip()
+            return rendered.strip()
+
         def _markdown_from_html(value: str) -> str:
             rendered = self._html_to_markdown(value)
             if len(rendered.strip()) < min_description_len:
@@ -299,6 +369,10 @@ class SpiderCloudScraper(BaseScraper):
                 looks_like_html = "<" in value and ">" in value and (
                     "<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower()
                 )
+                if looks_like_html and "<pre" in value.lower():
+                    extracted = _job_description_from_pre(value)
+                    if extracted:
+                        return extracted
                 return _markdown_from_html(value) if looks_like_html else value
             if isinstance(value, dict):
                 metadata_candidate = _metadata_description(value)
@@ -1228,13 +1302,18 @@ class SpiderCloudScraper(BaseScraper):
         scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
         local_params = dict(params)
         handler = self._get_site_handler(url)
+        request_url = url
         if handler:
-            local_params.update(handler.get_spidercloud_config(url))
+            api_url = handler.get_api_uri(url) if handler.name == "workday" else None
+            if api_url and api_url != url:
+                request_url = api_url
+                logger.debug("SpiderCloud using api_url=%s original_url=%s", request_url, url)
+            local_params.update(handler.get_spidercloud_config(request_url))
 
         try:
             async for chunk in self._iterate_scrape_response(
                 scrape_fn(  # type: ignore[call-arg]
-                    url,
+                    request_url,
                     params=local_params,
                     stream=True,
                     content_type="application/jsonl",
@@ -1275,7 +1354,7 @@ class SpiderCloudScraper(BaseScraper):
                 logger.debug("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
                 async for resp in self._iterate_scrape_response(
                     scrape_fn(  # type: ignore[call-arg]
-                        url,
+                        request_url,
                         params=local_params,
                         stream=False,
                         content_type="application/json",

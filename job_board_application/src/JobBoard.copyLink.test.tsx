@@ -14,6 +14,9 @@ let jobDetailsById: Record<string, any> = {};
 let savedFiltersFixture: any[] = [];
 let recentJobsFixture: any[] = [];
 
+const PROD_CONVEX_HTTP_URL = "https://affable-kiwi-46.convex.site";
+const PROD_CONVEX_URL = "https://affable-kiwi-46.convex.cloud";
+
 const resetFixtures = () => {
   paginatedResults = [];
   appliedJobsFixture = [];
@@ -127,6 +130,16 @@ const mockClipboard = () => {
   return writeText;
 };
 
+const expectShareLink = (writeText: ReturnType<typeof vi.fn>, jobId: string) => {
+  const called = writeText.mock.calls[0]?.[0];
+  expect(typeof called).toBe("string");
+  const url = new URL(called);
+  expect(url.origin).toBe(new URL(PROD_CONVEX_HTTP_URL).origin);
+  expect(url.pathname).toBe("/share/job");
+  expect(url.searchParams.get("id")).toBe(jobId);
+  expect(url.searchParams.get("app")).toBe(window.location.origin);
+};
+
 afterEach(() => {
   cleanup();
   resetFixtures();
@@ -135,6 +148,17 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  const meta = import.meta as any;
+  if (!meta.env || typeof meta.env !== "object") {
+    meta.env = {};
+  }
+  Object.assign(meta.env, {
+    VITE_CONVEX_HTTP_URL: PROD_CONVEX_HTTP_URL,
+    VITE_CONVEX_URL: PROD_CONVEX_URL,
+    MODE: "production",
+    DEV: false,
+    PROD: true,
+  });
   window.location.hash = "#jobs";
 });
 
@@ -153,11 +177,8 @@ describe("JobBoard copy link button", () => {
     const copyButton = await screen.findByRole("button", { name: /copy job link/i });
     fireEvent.click(copyButton);
 
-    const expected = new URL(window.location.href);
-    expected.hash = `job-details-${job._id}`;
-
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(expected.toString());
+      expectShareLink(writeText, job._id);
     });
     expect(toast.success).toHaveBeenCalledWith("Job link copied");
   });
@@ -177,11 +198,8 @@ describe("JobBoard copy link button", () => {
     const copyButton = await screen.findByRole("button", { name: /copy job link/i });
     fireEvent.click(copyButton);
 
-    const expected = new URL(window.location.href);
-    expected.hash = `job-details-${job._id}`;
-
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(expected.toString());
+      expectShareLink(writeText, job._id);
     });
     expect(toast.success).toHaveBeenCalledWith("Job link copied");
   });
@@ -203,11 +221,8 @@ describe("JobBoard copy link button", () => {
     const copyButton = await screen.findByRole("button", { name: /copy job link/i });
     fireEvent.click(copyButton);
 
-    const expected = new URL(window.location.href);
-    expected.hash = `job-details-${job._id}`;
-
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(expected.toString());
+      expectShareLink(writeText, job._id);
     });
     expect(toast.success).toHaveBeenCalledWith("Job link copied");
   });

@@ -29,6 +29,10 @@ NETFLIX_LISTING_COMMONMARK_FIXTURE = (
 NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
 NETFLIX_RAW_HTML_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_raw_html.json"
 BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_commonmark.json"
+WORKDAY_DETAIL_FIXTURES = (
+    FIXTURE_DIR / "spidercloud_broadcom_workday_job_detail_api.json",
+    FIXTURE_DIR / "spidercloud_broadcom_workday_job_detail_kubernetes_api.json",
+)
 NETFLIX_COMMONMARK_LISTING_FIXTURES = (
     FIXTURE_DIR / "spidercloud_netflix_api_page_1_commonmark.json",
     FIXTURE_DIR / "spidercloud_netflix_api_page_2_commonmark.json",
@@ -263,6 +267,18 @@ def test_spidercloud_bloomberg_avature_job_detail_commonmark_normalizes_descript
     assert "Infrastructure Automation Engineer" in normalized["title"]
     assert len(normalized["description"]) > 200
     assert "Bloomberg" in normalized["description"]
+
+
+@pytest.mark.parametrize("fixture_path", WORKDAY_DETAIL_FIXTURES)
+def test_spidercloud_workday_job_detail_api_extracts_markdown(fixture_path: Path):
+    payload = _load_fixture(fixture_path)
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+
+    assert markdown, "expected markdown extracted from Workday API payload"
+    assert "Job Description" in markdown
+    assert "Please Note" in markdown
+    assert "Requirements" in markdown
 
 
 @pytest.mark.asyncio

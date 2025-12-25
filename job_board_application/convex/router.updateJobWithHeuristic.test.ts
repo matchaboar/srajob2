@@ -24,11 +24,13 @@ describe("updateJobWithHeuristic", () => {
       heuristicAttempts: 2,
       heuristicLastTried: 123,
       heuristicVersion: 4,
+      metadata: "Location\nNew York",
     });
 
     expect(res.updated).toBe(true);
     expect(patches[0]?.payload.location).toBe("NYC");
     expect(inserts[0]?.table).toBe("job_details");
     expect(inserts[0]?.payload.heuristicVersion).toBe(4);
+    expect(inserts[0]?.payload.metadata).toBe("Location\nNew York");
   });
 });

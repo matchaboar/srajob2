@@ -42,7 +42,11 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("temporalio not installed", allow_module_level=True)
 
-from job_scrape_application.workflows.activities import HEURISTIC_VERSION, process_pending_job_details_batch  # noqa: E402
+from job_scrape_application.workflows.activities import (  # noqa: E402
+    HEURISTIC_VERSION,
+    _build_job_detail_heuristic_patch,
+    process_pending_job_details_batch,
+)
 from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints, strip_known_nav_blocks  # noqa: E402
 
 
@@ -777,6 +781,38 @@ def test_parse_markdown_hints_prefers_country_over_incidental_city(airbnb_china_
     assert hints.get("locations") == ["China"]
     assert hints.get("location") == "China"
     assert "San Francisco" not in (hints.get("location") or "")
+
+
+def test_build_job_detail_heuristic_patch_extracts_metadata():
+    description = (
+        "Senior Software Engineer - Securitized Products Cashflow Engine\n\n"
+        "15441\n\n"
+        "Bloomberg\n"
+        "Senior Software Engineer - Securitized Products Cashflow Engine\n"
+        "Location\n"
+        "New York\n"
+        "Business Area\n"
+        "Engineering and CTO\n"
+        "Ref #\n"
+        "10047267\n\n"
+        "Description & Requirements\n"
+        "Bloomberg's Securitized Products (SP) Analytics group develops the mission-critical systems.\n"
+    )
+    row = {
+        "description": description,
+        "url": "https://bloomberg.avature.net/careers/JobDetail/15441",
+        "location": "",
+        "totalCompensation": 0,
+        "compensationUnknown": True,
+        "company": "Bloomberg",
+        "remote": False,
+    }
+
+    patch, _ = _build_job_detail_heuristic_patch(row, [], 0)
+
+    assert "metadata" in patch
+    assert "Business Area" in patch["metadata"]
+    assert "Description & Requirements" not in patch.get("description", "")
 
 
 @pytest.mark.asyncio

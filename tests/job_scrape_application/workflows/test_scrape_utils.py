@@ -19,6 +19,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     parse_compensation,
     parse_markdown_hints,
     prefer_apply_url,
+    split_description_metadata,
     strip_known_nav_blocks,
 )
 
@@ -39,6 +40,55 @@ def test_parse_markdown_hints_extracts_fields():
     assert hints["location"] == "Toronto, Canada"
     assert hints["level"] == "senior"
     assert hints["compensation"] == 157500  # average of range
+
+
+def test_split_description_metadata_moves_list_header():
+    markdown = textwrap.dedent(
+        """
+        Senior Software Engineer - Securitized Products Cashflow Engine
+
+        15441
+
+        Bloomberg
+        Senior Software Engineer - Securitized Products Cashflow Engine
+        Location
+        New York
+        Business Area
+        Engineering and CTO
+        Ref #
+        10047267
+
+        Description & Requirements
+        Bloomberg's Securitized Products (SP) Analytics group develops the mission-critical systems.
+        """
+    ).strip()
+
+    description, metadata = split_description_metadata(markdown)
+
+    assert metadata is not None
+    assert "Business Area" in metadata
+    assert "Ref #" in metadata
+    assert "Description & Requirements" not in description
+    assert "Bloomberg's Securitized Products" in description
+    assert "Business Area" not in description
+
+
+def test_split_description_metadata_keeps_intro_when_not_metadata():
+    markdown = textwrap.dedent(
+        """
+        About the team
+        We build resilient systems.
+
+        Job Description
+        This role focuses on platform reliability.
+        """
+    ).strip()
+
+    description, metadata = split_description_metadata(markdown)
+
+    assert metadata is None
+    assert "Job Description" not in description
+    assert description.startswith("About the team")
 
 
 def test_parse_compensation_ignores_401k_only():

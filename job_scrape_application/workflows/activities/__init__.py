@@ -54,6 +54,7 @@ from ..helpers.scrape_utils import (
     build_firecrawl_schema,
     normalize_compensation_value,
     parse_markdown_hints,
+    split_description_metadata,
     strip_known_nav_blocks,
     fetch_seen_urls_for_site,
     normalize_fetchfox_items,
@@ -3254,7 +3255,9 @@ def _build_job_detail_heuristic_patch(
     """Return heuristic patch + records for a job row without mutating Convex."""
 
     raw_description = row.get("description") or ""
-    description = strip_known_nav_blocks(raw_description)
+    cleaned_description = strip_known_nav_blocks(raw_description)
+    analysis_description = cleaned_description
+    description_body, description_metadata = split_description_metadata(cleaned_description)
     url = row.get("url") or ""
     domain = _domain_from_url(url)
     attempts = int(row.get("heuristicAttempts") or 0)
@@ -3278,7 +3281,7 @@ def _build_job_detail_heuristic_patch(
     location_regexes = _build_ordered_regexes(configs, "location", location_defaults)
     comp_regexes = _build_ordered_regexes(configs, "compensation", comp_defaults)
 
-    hints = parse_markdown_hints(description)
+    hints = parse_markdown_hints(analysis_description)
     hinted_comp = hints.get("compensation")
     comp_range_hint = hints.get("compensation_range") or {}
     locations_hint = hints.get("locations") or []
@@ -3305,7 +3308,7 @@ def _build_job_detail_heuristic_patch(
     raw_comp_unknown = row.get("compensationUnknown")
     compensation_unknown = bool(raw_comp_unknown) if raw_comp_unknown is not None else None
     currency_code = row.get("currencyCode")
-    currency_hint = _detect_currency_code(description)
+    currency_hint = _detect_currency_code(analysis_description)
     if currency_hint and currency_hint != currency_code:
         currency_code = currency_hint
     if raw_total_comp and not total_comp:
@@ -3331,8 +3334,8 @@ def _build_job_detail_heuristic_patch(
         compensation_unknown = False
 
     matched_locations: List[str] = []
-    if description:
-        used_pattern, found = _first_match(description, location_regexes)
+    if analysis_description:
+        used_pattern, found = _first_match(analysis_description, location_regexes)
         if found and (location_matches_usa(found) or _looks_like_location_anywhere(found)):
             found_locations = _normalize_locations([found])
             if found_locations:
@@ -3368,8 +3371,8 @@ def _build_job_detail_heuristic_patch(
     if not countries and (is_remote or location_unknown):
         countries = ["United States"]
 
-    if (not total_comp or total_comp <= 0) and description:
-        comp_description = re.sub(RETIREMENT_PLAN_PATTERN, "", description, flags=re.IGNORECASE)
+    if (not total_comp or total_comp <= 0) and analysis_description:
+        comp_description = re.sub(RETIREMENT_PLAN_PATTERN, "", analysis_description, flags=re.IGNORECASE)
         comp_val, used_pattern = _extract_compensation_from_text(comp_description, comp_regexes)
         if comp_val is not None:
             total_comp = comp_val
@@ -3420,8 +3423,12 @@ def _build_job_detail_heuristic_patch(
         patch["remote"] = True
     elif remote_hint is False and row.get("remote") is not False:
         patch["remote"] = False
-    if description and description != raw_description:
-        patch["description"] = description
+    if description_metadata and description_metadata != row.get("metadata"):
+        patch["metadata"] = description_metadata
+    if description_body.strip() and description_body != raw_description:
+        patch["description"] = description_body
+    elif cleaned_description.strip() and cleaned_description != raw_description:
+        patch["description"] = cleaned_description
 
     return patch, records
 

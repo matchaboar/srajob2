@@ -56,6 +56,7 @@ const applicationTables = {
   job_details: defineTable({
     jobId: v.id("jobs"),
     description: v.optional(v.string()),
+    metadata: v.optional(v.string()),
     scrapedWith: v.optional(v.string()),
     workflowName: v.optional(v.string()),
     scrapedCostMilliCents: v.optional(v.number()),

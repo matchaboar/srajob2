@@ -82,6 +82,56 @@ _EMBEDDED_JSON_BLOB_MARKERS = (
 )
 _EMBEDDED_JSON_MIN_LEN = 200
 _EMBEDDED_JSON_HUGE_LEN = 1200
+_DESCRIPTION_SECTION_MARKERS = {
+    "job description",
+    "job details",
+    "job detail",
+    "job summary",
+    "job overview",
+    "role description",
+    "position description",
+    "position details",
+    "description and requirements",
+    "description and requirement",
+    "description and responsibilities",
+    "description & requirements",
+    "description & requirement",
+    "description & responsibilities",
+    "description",
+}
+_METADATA_LABEL_KEYS = {
+    "location",
+    "locations",
+    "business area",
+    "business unit",
+    "department",
+    "team",
+    "function",
+    "work type",
+    "time type",
+    "employment type",
+    "shift",
+    "job id",
+    "job number",
+    "job req id",
+    "requisition id",
+    "posting id",
+    "position id",
+    "reference",
+    "ref",
+    "req",
+    "req id",
+    "ref id",
+    "ref #",
+    "salary",
+    "compensation",
+    "pay",
+    "rate",
+    "office",
+    "city",
+    "state",
+    "country",
+}
 
 
 def _score_apply_url(url: str) -> int:
@@ -389,6 +439,135 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def _is_separator_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return True
+    if all(ch == "#" for ch in stripped):
+        return True
+    if re.fullmatch(r"[-*_]{3,}", stripped):
+        return True
+    return False
+
+
+def _trim_separator_lines(lines: List[str]) -> List[str]:
+    if not lines:
+        return lines
+    start = 0
+    end = len(lines)
+    while start < end and _is_separator_line(lines[start]):
+        start += 1
+    while end > start and _is_separator_line(lines[end - 1]):
+        end -= 1
+    return lines[start:end]
+
+
+def _normalize_section_heading(line: str) -> str:
+    text = line.strip()
+    if not text:
+        return ""
+    text = re.sub(r"^[#*\-\u2022]+\s*", "", text)
+    text = text.strip().rstrip(":").strip()
+    if not text:
+        return ""
+    text = text.replace("&", "and")
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip().lower()
+
+
+def _line_is_metadata_label(line: str) -> bool:
+    normalized = _normalize_section_heading(line)
+    if not normalized:
+        return False
+    if normalized in _METADATA_LABEL_KEYS:
+        return True
+    if normalized.endswith(" id") and len(normalized.split()) <= 3:
+        return True
+    if normalized.startswith(("ref", "req")) and len(normalized.split()) <= 2:
+        return True
+    return False
+
+
+def _line_is_numeric(line: str) -> bool:
+    stripped = re.sub(r"^[#*\-\u2022]+\s*", "", line).strip()
+    if not stripped:
+        return False
+    return re.fullmatch(r"[A-Za-z]{0,3}\d{3,}", stripped) is not None
+
+
+def _looks_like_metadata_block(lines: List[str]) -> bool:
+    cleaned = [line.strip() for line in lines if line.strip() and not _is_separator_line(line)]
+    if len(cleaned) < 3 or len(cleaned) > 40:
+        return False
+    label_hits = 0
+    numeric_hits = 0
+    short_hits = 0
+    for line in cleaned:
+        stripped = re.sub(r"^[#*\-\u2022]+\s*", "", line).strip()
+        if not stripped:
+            continue
+        if _line_is_metadata_label(stripped):
+            label_hits += 1
+        if _line_is_numeric(stripped):
+            numeric_hits += 1
+        if len(stripped) <= 80 and not stripped.endswith("."):
+            short_hits += 1
+    short_ratio = short_hits / max(len(cleaned), 1)
+    if label_hits >= 2 and short_ratio >= 0.6:
+        return True
+    if label_hits >= 1 and numeric_hits >= 1 and short_ratio >= 0.6:
+        return True
+    if numeric_hits >= 1 and short_ratio >= 0.8 and len(cleaned) >= 4:
+        return True
+    return False
+
+
+def split_description_metadata(markdown: str) -> tuple[str, Optional[str]]:
+    """Split metadata-like headers from descriptions.
+
+    Returns a tuple of (cleaned_description, metadata_block). The metadata block
+    is only returned when the header section looks like a short list of labels
+    (e.g. Location/Ref #) preceding a description heading.
+    """
+
+    if not markdown:
+        return markdown, None
+
+    lines = markdown.splitlines()
+    heading_idx: Optional[int] = None
+    for idx, line in enumerate(lines):
+        normalized = _normalize_section_heading(line)
+        if not normalized:
+            continue
+        if normalized in _DESCRIPTION_SECTION_MARKERS:
+            heading_idx = idx
+            break
+
+    if heading_idx is None:
+        return markdown, None
+
+    prefix_lines = _trim_separator_lines(lines[:heading_idx])
+    suffix_lines = _trim_separator_lines(lines[heading_idx + 1 :])
+
+    prefix_text = "\n".join(prefix_lines).strip("\n")
+    suffix_text = "\n".join(suffix_lines).strip("\n")
+
+    if prefix_text and suffix_text and _looks_like_metadata_block(prefix_lines):
+        return suffix_text, prefix_text
+
+    merged: List[str] = []
+    if prefix_lines:
+        merged.extend(prefix_lines)
+    if prefix_lines and suffix_lines:
+        merged.append("")
+    if suffix_lines:
+        merged.extend(suffix_lines)
+
+    description = "\n".join(merged).strip("\n") or markdown.strip("\n")
+    return description, None
 
 
 def _strip_embedded_theme_json(markdown: str) -> str:
@@ -1931,6 +2110,7 @@ __all__ = [
     "parse_compensation",
     "parse_posted_at",
     "prefer_apply_url",
+    "split_description_metadata",
     "stringify",
     "trim_scrape_for_convex",
     "_jobs_from_scrape_items",
