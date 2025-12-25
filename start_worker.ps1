@@ -815,7 +815,7 @@ function Start-WorkerMain {
     Write-Host "Ensuring scrape schedule exists (every 5 minutes)..."
     $maxScheduleAttempts = 5
     for ($i = 1; $i -le $maxScheduleAttempts; $i++) {
-        uv run python -m job_scrape_application.workflows.create_schedule
+        uv run python -m job_scrape_application.workflows.create_schedule --skip-trigger
         if ($LASTEXITCODE -eq 0) {
             break
         }

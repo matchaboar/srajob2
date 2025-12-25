@@ -65,7 +65,7 @@ EXISTING=override
         }
 
         # Expect schedule creation and worker start python invocations
-        ($UvCalls | Where-Object { ($_ -join " ") -eq "run python -m job_scrape_application.workflows.create_schedule" }) | Should -Not -BeNullOrEmpty
+        ($UvCalls | Where-Object { ($_ -join " ") -eq "run python -m job_scrape_application.workflows.create_schedule --skip-trigger" }) | Should -Not -BeNullOrEmpty
         ($UvCalls | Where-Object { ($_ -join " ") -eq "run python -u -m job_scrape_application.workflows.worker" }) | Should -Not -BeNullOrEmpty
         $ThreadJobs.Count | Should -Be 0
     }
@@ -77,9 +77,9 @@ EXISTING=override
             param([Parameter(ValueFromRemainingArguments = $true)] $rest)
             $cmdline = ($rest -join " ")
             $script:UvCalls += $cmdline
-            if ($cmdline -like "*create_schedule*") {
-                $script:ScheduleAttempts++
-                $global:LASTEXITCODE = if ($script:ScheduleAttempts -lt 2) { 32 } else { 0 }
+        if ($cmdline -like "*create_schedule*") {
+            $script:ScheduleAttempts++
+            $global:LASTEXITCODE = if ($script:ScheduleAttempts -lt 2) { 32 } else { 0 }
             } else {
                 $global:LASTEXITCODE = 0
             }
@@ -110,8 +110,8 @@ EXISTING=override
             param([Parameter(ValueFromRemainingArguments = $true)] $rest)
             $cmdline = ($rest -join " ")
             $script:UvCalls += $cmdline
-            if ($cmdline -like "*create_schedule*") {
-                $global:LASTEXITCODE = 2
+        if ($cmdline -like "*create_schedule*") {
+            $global:LASTEXITCODE = 2
             } else {
                 $global:LASTEXITCODE = 0
             }

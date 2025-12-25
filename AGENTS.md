@@ -17,10 +17,10 @@
 ## Agent scripts quick reference
 - Short guide lives in `agent_scripts/README.md`.
 - Use `agent_scripts/fetch_spidercloud_fixtures.py` for the standard fixture refresh set (Greenhouse/Pinterest/Bloomberg/GoDaddy).
-- Use `agent_scripts/fetch_bloomberg_avature_fixtures.py` for Bloomberg SearchJobs HTML fixtures or `agent_scripts/fetch_bloomberg_avature_searchjobsdata.py` for SearchJobsData JSON.
 - Use `agent_scripts/dump_spidercloud_response.py` for one-off SpiderCloud payload debugging.
 - Use `agent_scripts/diagnose_spidercloud_stalls.py` and `agent_scripts/measure_spidercloud_batch.py` to diagnose queue/worker stalls or scrape latency.
 - Use `agent_scripts/wipe_comapny_convex.py` to wipe Convex data by domain/company and trigger `runSiteNow`.
+- Use `agent_scripts/export_company_jobs_fixture.py` to export the first N jobs (with descriptions) for a company into a fixture. Example: `uv run agent_scripts/export_company_jobs_fixture.py --company "GitHub" --env prod`
 
 # Exporting site schedule configs
 - The schedule sync source-of-truth lives in `job_scrape_application/config/<env>/site_schedules.yml`.

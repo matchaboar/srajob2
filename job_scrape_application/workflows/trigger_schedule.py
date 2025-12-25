@@ -27,11 +27,14 @@ async def main() -> None:
         settings.temporal_address,
         namespace=settings.temporal_namespace,
     )
+    triggered_ids: set[str] = set()
+
     async def trigger_or_start(schedule_id: str, workflow_name: str) -> None:
         handle = client.get_schedule_handle(schedule_id)
         try:
             await handle.trigger()
             print(f"Triggered {schedule_id} once.")
+            triggered_ids.add(schedule_id)
         except RPCError as e:
             if e.status == RPCStatusCode.NOT_FOUND:
                 print(f"Schedule {schedule_id} not found; starting one-off {workflow_name} instead.")
@@ -45,6 +48,8 @@ async def main() -> None:
                 raise
 
     for schedule_id, workflow_name in _load_ids_from_yaml():
+        if schedule_id in triggered_ids:
+            continue
         await trigger_or_start(schedule_id, workflow_name)
 
 

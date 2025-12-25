@@ -3,7 +3,6 @@ import type { MouseEvent } from "react";
 import { LiveTimer } from "./LiveTimer";
 import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
-import { Keycap } from "./Keycap";
 import { StatusTracker } from "./StatusTracker";
 import { JobRowCompanyPill } from "./jobRow/JobRowCompanyPill";
 import { JobRowLevelPill } from "./jobRow/JobRowLevelPill";
@@ -16,11 +15,8 @@ interface JobRowProps {
     groupedLabel?: string;
     isSelected: boolean;
     onSelect: () => void;
-    onApply: (type: "ai" | "manual") => void;
-    onReject: () => void;
     isExiting?: "apply" | "reject";
     keyboardBlur?: boolean;
-    showHotkeys?: boolean;
     variant?: JobRowVariant;
     getCompanyJobsUrl?: (companyName: string) => string;
 }
@@ -30,11 +26,8 @@ export function JobRow({
     groupedLabel,
     isSelected,
     onSelect,
-    onApply,
-    onReject,
     isExiting,
     keyboardBlur,
-    showHotkeys,
     variant = 'default',
     getCompanyJobsUrl
 }: JobRowProps) {
@@ -116,12 +109,6 @@ export function JobRow({
                         {job.title}
                     </h3>
                     <div className="flex items-center gap-1.5 shrink-0 overflow-hidden">
-                        {showHotkeys && variant === 'default' && (
-                            <div className="flex items-center gap-1 mr-1">
-                                <Keycap label="A" className="text-[9px] h-4 min-w-[16px] px-1 bg-slate-700 border-slate-600 text-slate-300 shadow-sm" />
-                                <Keycap label="R" className="text-[9px] h-4 min-w-[16px] px-1 bg-slate-700 border-slate-600 text-slate-300 shadow-sm" />
-                            </div>
-                        )}
                         <JobRowCompanyPill
                             company={companyName}
                             href={companyUrl || undefined}
@@ -218,26 +205,6 @@ export function JobRow({
                 </div>
             </div>
 
-            {/* Mobile inline actions */}
-            {isSelected && variant === 'default' && (
-                <div className="sm:hidden mt-3 ml-10 flex gap-2">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onApply("ai"); }}
-                        disabled
-                        className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 rounded shadow-sm cursor-not-allowed"
-                        title="AI Apply (a)"
-                    >
-                        Apply
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onReject(); }}
-                        className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-200 border border-red-500/70 hover:border-red-400 hover:bg-red-500/10 rounded shadow-sm transition-colors"
-                        title="Reject (r)"
-                    >
-                        Reject
-                    </button>
-                </div>
-            )}
         </motion.div>
     );
 }

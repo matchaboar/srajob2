@@ -229,6 +229,9 @@ def test_spidercloud_netflix_job_detail_commonmark_normalizes_description():
     assert "Data Engineer" in normalized["title"]
     assert len(normalized["description"]) > 200
     assert "Netflix" in normalized["description"]
+    assert "themeOptions" not in normalized["description"]
+    assert '"domain": "netflix.com"' not in normalized["description"]
+    assert "display_banner" not in normalized["description"]
 
 
 def test_spidercloud_netflix_job_detail_raw_html_normalizes_description():
@@ -300,6 +303,10 @@ async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
     assert len(jobs) == 1
     assert jobs[0].get("url") == source_url
     assert "Netflix" in (jobs[0].get("company") or "")
+    description = jobs[0].get("description") or ""
+    assert "themeOptions" not in description
+    assert '"domain": "netflix.com"' not in description
+    assert "display_banner" not in description
 
 
 @pytest.mark.asyncio

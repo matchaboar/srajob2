@@ -1175,6 +1175,42 @@ export function JobBoard() {
     }
   }, [rejectJob, exitingJobs, filteredResults]);
 
+  const buildJobDetailsLink = useCallback((jobId: JobId) => {
+    const url = new URL(window.location.href);
+    url.hash = `job-details-${jobId}`;
+    return url.toString();
+  }, []);
+
+  const copyToClipboard = useCallback(async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const success = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    if (!success) {
+      throw new Error("Copy failed");
+    }
+  }, []);
+
+  const handleCopyJobLink = useCallback(async (jobId: JobId) => {
+    try {
+      const link = buildJobDetailsLink(jobId);
+      await copyToClipboard(link);
+      toast.success("Job link copied");
+    } catch {
+      toast.error("Failed to copy job link");
+    }
+  }, [buildJobDetailsLink, copyToClipboard]);
+
 
 
   // Keyboard Navigation
@@ -1791,11 +1827,8 @@ export function JobBoard() {
                             groupedLabel={groupedLocationsLabel(job)}
                             isSelected={selectedJobId === job._id}
                             onSelect={() => handleSelectJob(job._id)}
-                            onApply={(type) => { void handleApply(job._id, type, job.url); }}
-                            onReject={() => { void handleReject(job._id); }}
                             isExiting={exitingJobs[job._id]}
                             keyboardBlur={idx > blurFromIndex}
-                            showHotkeys={selectedJobId === job._id && keyboardNavActive}
                             getCompanyJobsUrl={buildCompanyJobsUrl}
                           />
                         ))}
@@ -1928,9 +1961,23 @@ export function JobBoard() {
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2">
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</h3>
-                            <span className="text-[11px] text-slate-500">
-                              {descriptionWordCount !== null ? `${descriptionWordCount} words` : ""}
-                            </span>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                              {descriptionWordCount !== null && (
+                                <span>{`${descriptionWordCount} words`}</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => { void handleCopyJobLink(selectedJobFull._id); }}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
+                                aria-label="Copy job link"
+                                title="Copy job link"
+                              >
+                                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                           <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-72 overflow-y-auto pr-1 space-y-3">
                             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
@@ -2134,8 +2181,6 @@ export function JobBoard() {
                     variant="applied"
                     isSelected={selectedJobId === job._id}
                     onSelect={() => handleSelectJob(job._id)}
-                    onApply={(type) => { void handleApply(job._id, type, job.url); }}
-                    onReject={() => { void handleReject(job._id); }}
                     getCompanyJobsUrl={buildCompanyJobsUrl}
                   />
                 ))}
@@ -2229,9 +2274,23 @@ export function JobBoard() {
                       <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
-                          <span className="text-[11px] text-slate-500">
-                            {appliedDescriptionWordCount !== null ? `${appliedDescriptionWordCount} words` : ""}
-                          </span>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                            {appliedDescriptionWordCount !== null && (
+                              <span>{`${appliedDescriptionWordCount} words`}</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => { void handleCopyJobLink(selectedAppliedJobFull._id); }}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
+                              aria-label="Copy job link"
+                              title="Copy job link"
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                         <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
                           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
@@ -2271,8 +2330,6 @@ export function JobBoard() {
                     variant="rejected"
                     isSelected={selectedJobId === job._id}
                     onSelect={() => handleSelectJob(job._id)}
-                    onApply={() => { }}
-                    onReject={() => { }}
                     getCompanyJobsUrl={buildCompanyJobsUrl}
                   />
                 ))}
@@ -2364,6 +2421,18 @@ export function JobBoard() {
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
                           <div className="flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
+                            <button
+                              type="button"
+                              onClick={() => { void handleCopyJobLink(selectedRejectedJob._id); }}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
+                              aria-label="Copy job link"
+                              title="Copy job link"
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
+                              </svg>
+                            </button>
                           </div>
                           <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
                             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>

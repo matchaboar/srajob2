@@ -18,6 +18,7 @@ from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
     _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
+    _strip_embedded_theme_json,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
     coerce_level,
@@ -170,6 +171,58 @@ class SpiderCloudScraper(BaseScraper):
         text = re.sub(SPIDERCLOUD_MULTI_NEWLINE_PATTERN, "\n\n", text)
         return text.strip()
 
+    def _extract_meta_description(self, raw_html: str) -> Optional[str]:
+        if not raw_html:
+            return None
+        meta_pattern = re.compile(r"<meta\s+[^>]*>", re.IGNORECASE)
+        attr_pattern = re.compile(r'([a-zA-Z0-9:_-]+)\s*=\s*(["\'])(.*?)\2', re.DOTALL)
+        desc = None
+        title = None
+        for tag in meta_pattern.findall(raw_html):
+            attrs = {
+                key.lower(): html.unescape(value).strip()
+                for key, _, value in attr_pattern.findall(tag)
+            }
+            if not attrs:
+                continue
+            name = (
+                attrs.get("name")
+                or attrs.get("property")
+                or attrs.get("itemprop")
+                or ""
+            ).lower()
+            content = attrs.get("content")
+            if not content:
+                continue
+            if not desc and name in {"description", "og:description", "twitter:description"}:
+                desc = content.strip()
+            if not title and name in {"og:title", "twitter:title"}:
+                title = content.strip()
+        if not title:
+            title_match = re.search(r"<title[^>]*>(.*?)</title>", raw_html, re.IGNORECASE | re.DOTALL)
+            if title_match:
+                title = html.unescape(title_match.group(1)).strip()
+        if desc:
+            desc = re.sub(r"\s+", " ", desc).strip()
+        if title:
+            title = re.sub(r"\s+", " ", title).strip()
+        if not desc:
+            return None
+        if title and title.lower() not in desc.lower():
+            return f"# {title}\n\n{desc}"
+        return desc
+
+    def _extract_meta_description_from_events(self, events: List[Any]) -> Optional[str]:
+        for text in gather_strings(events):
+            if not isinstance(text, str):
+                continue
+            if "<meta" not in text.lower():
+                continue
+            desc = self._extract_meta_description(text)
+            if desc:
+                return desc
+        return None
+
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return a markdown/text payload found in a response fragment."""
 
@@ -196,6 +249,14 @@ class SpiderCloudScraper(BaseScraper):
             "raw",
         )
         min_description_len = 80
+
+        def _markdown_from_html(value: str) -> str:
+            rendered = self._html_to_markdown(value)
+            if len(rendered.strip()) < min_description_len:
+                meta_desc = self._extract_meta_description(value)
+                if meta_desc:
+                    return meta_desc
+            return rendered
 
         def _metadata_description(value: Any) -> Optional[str]:
             if not isinstance(value, dict):
@@ -227,7 +288,7 @@ class SpiderCloudScraper(BaseScraper):
                 if not isinstance(val, str) or not val.strip():
                     continue
                 looks_like_html = key in {"html", "raw_html"} or ("<" in val and ">" in val)
-                return self._html_to_markdown(val) if looks_like_html else val
+                return _markdown_from_html(val) if looks_like_html else val
             return None
 
         def _walk(value: Any) -> Optional[str]:
@@ -238,7 +299,7 @@ class SpiderCloudScraper(BaseScraper):
                 looks_like_html = "<" in value and ">" in value and (
                     "<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower()
                 )
-                return self._html_to_markdown(value) if looks_like_html else value
+                return _markdown_from_html(value) if looks_like_html else value
             if isinstance(value, dict):
                 metadata_candidate = _metadata_description(value)
                 content_val = value.get("content")
@@ -267,7 +328,7 @@ class SpiderCloudScraper(BaseScraper):
                         continue
                     if key.lower() in keys and isinstance(val, str) and val.strip():
                         looks_like_html = key.lower() in {"html", "raw_html"} or ("<" in val and ">" in val)
-                        return self._html_to_markdown(val) if looks_like_html else val
+                        return _markdown_from_html(val) if looks_like_html else val
                     found = _walk(val)
                     if found:
                         return found
@@ -985,6 +1046,11 @@ class SpiderCloudScraper(BaseScraper):
                 parsed_markdown = structured_markdown
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
+        cleaned_markdown = _strip_embedded_theme_json(cleaned_markdown)
+        if len(cleaned_markdown.strip()) < 200:
+            meta_description = self._extract_meta_description_from_events(events)
+            if meta_description and len(meta_description) > len(cleaned_markdown.strip()):
+                cleaned_markdown = meta_description
         hints = parse_markdown_hints(cleaned_markdown)
         hint_title = hints.get("title") if isinstance(hints, dict) else None
 

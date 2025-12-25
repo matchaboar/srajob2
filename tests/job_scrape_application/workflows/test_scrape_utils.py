@@ -19,6 +19,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     parse_compensation,
     parse_markdown_hints,
     prefer_apply_url,
+    strip_known_nav_blocks,
 )
 
 
@@ -162,6 +163,23 @@ def test_normalize_single_row_strips_embedded_theme_json():
     assert "customTheme" not in normalized["description"]
     assert "NetflixSans" not in normalized["description"]
     assert "Netflix is one of the world's leading entertainment services" in normalized["description"]
+
+
+def test_strip_known_nav_blocks_removes_embedded_json_blobs_from_netflix_job_details():
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "netflix_job_detail_convex_prod.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    description = payload["description"]
+
+    cleaned = strip_known_nav_blocks(description)
+
+    assert "Netflix is one of the world's leading entertainment services" in cleaned
+    assert "themeOptions" not in cleaned
+    assert '"domain": "netflix.com"' not in cleaned
+    assert "display_banner" not in cleaned
 
 
 def test_looks_like_job_listing_page_detects_snapchat_table():

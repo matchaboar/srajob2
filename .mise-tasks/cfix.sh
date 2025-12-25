@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Build the CLI"
+#MISE description="Fix things with codex"
 uv run pytest
 if [ $? -ne 0 ]; then
   echo "Error: pytest failed or encountered an error, running codex" >&2

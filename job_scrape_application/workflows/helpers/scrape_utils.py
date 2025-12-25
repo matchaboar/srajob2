@@ -42,6 +42,8 @@ from .regex_patterns import (
     _SALARY_RE,
     _SIMPLE_LOCATION_LINE_RE,
     _TITLE_RE,
+    _TITLE_BAR_RE,
+    _TITLE_IN_BAR_RE,
     _WORK_FROM_RE,
 )
 DEFAULT_TOTAL_COMPENSATION = 0
@@ -60,6 +62,26 @@ _AVATURE_TAIL_MARKERS = (
     "back to job search",
     "similar jobs",
 )
+_EMBEDDED_JSON_ALWAYS_DROP_MARKERS = (
+    '"display_banner"',
+    '"display_text"',
+)
+_EMBEDDED_JSON_BLOB_MARKERS = (
+    '"domain"',
+    '"positions"',
+    '"branding"',
+    '"candidate"',
+    '"custom_html"',
+    '"custom_style"',
+    '"customNavbarItems"',
+    '"themeOptions"',
+    '"customTheme"',
+    '"varTheme"',
+    '"micrositeConfig"',
+    '"i18n_overrides_master"',
+)
+_EMBEDDED_JSON_MIN_LEN = 200
+_EMBEDDED_JSON_HUGE_LEN = 1200
 
 
 def _score_apply_url(url: str) -> int:
@@ -331,6 +353,7 @@ def strip_known_nav_blocks(markdown: str) -> str:
     cleaned = _strip_html_tag_lines(cleaned)
     cleaned = _NAV_BLOCK_REGEX.sub("\n", cleaned)
     cleaned = _strip_avature_tail(cleaned)
+    cleaned = _strip_embedded_json_blobs(cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -374,32 +397,45 @@ def _strip_embedded_theme_json(markdown: str) -> str:
     if not markdown:
         return markdown
 
-    markers = ('"themeOptions"', '"customTheme"', '"varTheme"', '"micrositeConfig"')
-    output = markdown
-    trimmed = False
-    for _ in range(3):
-        marker_index = next((output.find(marker) for marker in markers if marker in output), -1)
-        if marker_index == -1:
-            break
-        start = output.rfind("{", 0, marker_index + 1)
+    markers = ("themeOptions", "customTheme", "varTheme", "micrositeConfig")
+
+    def _is_escaped_quote(text: str, index: int) -> bool:
+        if index <= 0 or text[index] != '"':
+            return False
+        backslashes = 0
+        cursor = index - 1
+        while cursor >= 0 and text[cursor] == "\\":
+            backslashes += 1
+            cursor -= 1
+        return (backslashes % 2) == 1
+
+    def _find_marker_index(text: str) -> int:
+        earliest: Optional[int] = None
+        for token in [f'"{marker}"' for marker in markers] + [f'\\"{marker}\\"' for marker in markers]:
+            idx = text.find(token)
+            if idx != -1 and (earliest is None or idx < earliest):
+                earliest = idx
+        if earliest is not None:
+            return earliest
+        for marker in markers:
+            idx = text.find(marker)
+            if idx != -1 and (earliest is None or idx < earliest):
+                earliest = idx
+        return earliest if earliest is not None else -1
+
+    def _find_json_span(text: str, marker_index: int) -> Optional[tuple[int, int]]:
+        start = text.rfind("{", 0, marker_index + 1)
         if start == -1:
-            break
+            return None
         depth = 0
         in_string = False
-        escaped = False
-        end = -1
-        for idx in range(start, len(output)):
-            char = output[idx]
-            if in_string:
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == '"':
-                    in_string = False
+        end = None
+        for idx in range(start, len(text)):
+            char = text[idx]
+            if char == '"' and not _is_escaped_quote(text, idx):
+                in_string = not in_string
                 continue
-            if char == '"':
-                in_string = True
+            if in_string:
                 continue
             if char == "{":
                 depth += 1
@@ -408,14 +444,102 @@ def _strip_embedded_theme_json(markdown: str) -> str:
                 if depth == 0:
                     end = idx
                     break
-        if end == -1:
+        if end is None:
+            return None
+        return start, end
+
+    output = markdown
+    trimmed = False
+    for _ in range(3):
+        marker_index = _find_marker_index(output)
+        if marker_index == -1:
             break
+        span = _find_json_span(output, marker_index)
+        if span is None:
+            break
+        start, end = span
         output = f"{output[:start]} {output[end + 1:]}"
         trimmed = True
 
     if trimmed:
-        return re.sub(WHITESPACE_PATTERN, " ", output).strip()
+        output = re.sub(r"[ \t]+", " ", output)
+        output = re.sub(r"[ \t]*\n[ \t]*", "\n", output)
+        output = re.sub(r"\n{3,}", "\n\n", output)
     return output.strip()
+
+
+def _strip_embedded_json_blobs(markdown: str) -> str:
+    """Remove large inline JSON blobs that are not part of the job description."""
+
+    if not markdown:
+        return markdown
+
+    def _unwrap_backticks(text: str) -> str:
+        stripped = text.strip()
+        if stripped.startswith("`") and stripped.endswith("`") and len(stripped) >= 2:
+            return stripped.strip("`").strip()
+        return stripped
+
+    def _looks_like_json_block(text: str) -> bool:
+        candidate = _unwrap_backticks(text)
+        if not candidate:
+            return False
+        if not (candidate.startswith("{") or candidate.startswith("[")):
+            return False
+        if not (candidate.endswith("}") or candidate.endswith("]")):
+            return False
+        return True
+
+    def _should_drop_json_block(text: str) -> bool:
+        candidate = _unwrap_backticks(text)
+        if not candidate:
+            return False
+        if not (candidate.startswith("{") or candidate.startswith("[")):
+            return False
+        quote_hits = candidate.count('":')
+        if quote_hits < 2:
+            return False
+        if any(marker in candidate for marker in _EMBEDDED_JSON_ALWAYS_DROP_MARKERS):
+            return True
+        if len(candidate) < _EMBEDDED_JSON_MIN_LEN:
+            return False
+        if any(marker in candidate for marker in _EMBEDDED_JSON_BLOB_MARKERS):
+            return True
+        if len(candidate) >= _EMBEDDED_JSON_HUGE_LEN and (candidate.count("{") + candidate.count("[")) >= 2:
+            return True
+        return False
+
+    cleaned_lines: List[str] = []
+    buffer: List[str] = []
+    in_block = False
+
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if not in_block:
+            if stripped and stripped.lstrip().startswith(("`{", "`[", "{", "[")):
+                buffer = [line]
+                if _looks_like_json_block(stripped):
+                    if not _should_drop_json_block(stripped):
+                        cleaned_lines.append(line)
+                    buffer = []
+                else:
+                    in_block = True
+                continue
+            cleaned_lines.append(line)
+            continue
+
+        buffer.append(line)
+        if _looks_like_json_block(stripped):
+            block_text = "\n".join(buffer)
+            if not _should_drop_json_block(block_text):
+                cleaned_lines.extend(buffer)
+            buffer = []
+            in_block = False
+
+    if buffer:
+        cleaned_lines.extend(buffer)
+
+    return "\n".join(cleaned_lines).strip("\n") or markdown.strip("\n")
 
 
 def _strip_avature_tail(markdown: str) -> str:
@@ -855,12 +979,41 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     markdown = strip_known_nav_blocks(markdown)
 
+    def _is_generic_heading_title(value: str) -> bool:
+        lower = value.strip().lower().rstrip(":")
+        return lower in {
+            "job description",
+            "description",
+        }
+
     title_lower = ""
-    if m := _TITLE_RE.search(markdown):
-        title = stringify(m.group("title"))
-        if title:
-            hints["title"] = title
-            title_lower = title.lower()
+    for match in _TITLE_RE.finditer(markdown):
+        title = stringify(match.group("title"))
+        if not title or _is_generic_heading_title(title):
+            continue
+        hints["title"] = title
+        title_lower = title.lower()
+        break
+    if "title" not in hints:
+        for line in markdown.splitlines()[:12]:
+            t = line.strip()
+            if not t:
+                continue
+            lower = t.lower()
+            if lower in ("job description", "description"):
+                continue
+            if lower.startswith(("back", "[ back")):
+                continue
+            if t.startswith(("#", "*", "-", "•")):
+                continue
+            match = _TITLE_IN_BAR_RE.match(t) or _TITLE_BAR_RE.match(t)
+            if not match:
+                continue
+            candidate = stringify(match.group("title"))
+            if candidate:
+                hints["title"] = candidate
+                title_lower = candidate.lower()
+                break
 
     if m := _LEVEL_RE.search(markdown):
         lvl = stringify(m.group("level")).lower()
@@ -962,16 +1115,19 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     comp_candidates: List[int] = []
     comp_ranges: List[tuple[Optional[int], Optional[int]]] = []
 
-    def _record_comp_range(low_val: Optional[int], high_val: Optional[int]) -> None:
+    def _record_comp_range(low_val: Optional[int], high_val: Optional[int], *, prefer_high: bool = False) -> None:
         low_norm = normalize_compensation_value(low_val) if low_val is not None else None
         high_norm = normalize_compensation_value(high_val) if high_val is not None else None
         if not low_norm and not high_norm:
             return
         comp_ranges.append((low_norm, high_norm))
         if low_norm and high_norm:
-            candidate = normalize_compensation_value(int((low_norm + high_norm) / 2))
-            if candidate is not None:
-                comp_candidates.append(candidate)
+            if prefer_high:
+                comp_candidates.append(high_norm)
+            else:
+                candidate = normalize_compensation_value(int((low_norm + high_norm) / 2))
+                if candidate is not None:
+                    comp_candidates.append(candidate)
         elif low_norm:
             comp_candidates.append(low_norm)
         elif high_norm:
@@ -981,7 +1137,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         high = salary_match.group("high")
         low_val = _to_int(low) if low else None
         high_val = _to_int(high) if high else None
-        _record_comp_range(low_val, high_val)
+        _record_comp_range(low_val, high_val, prefer_high=True)
     for salary_match in _SALARY_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
@@ -1002,13 +1158,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if high_val:
             high_val *= 1000
         _record_comp_range(low_val, high_val)
-    range_candidates: List[int] = []
-    for low_val, high_val in comp_ranges:
-        if high_val is not None:
-            range_candidates.append(high_val)
-        elif low_val is not None:
-            range_candidates.append(low_val)
-    comp_val = max(comp_candidates + range_candidates, default=None)
+    comp_val = max(comp_candidates, default=None)
     if comp_val is not None:
         hints["compensation"] = comp_val
     if comp_ranges:

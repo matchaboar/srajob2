@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
@@ -91,7 +92,17 @@ def build_schedule(cfg: ScheduleConfig) -> Schedule:
     return Schedule(action=action, spec=spec, policy=policy)
 
 
-async def main() -> None:
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Create or update Temporal schedules")
+    parser.add_argument(
+        "--skip-trigger",
+        action="store_true",
+        help="Do not trigger schedules immediately when they are first created.",
+    )
+    return parser.parse_args()
+
+
+async def main(*, skip_trigger: bool = False) -> None:
     client = await Client.connect(
         settings.temporal_address,
         namespace=settings.temporal_namespace,
@@ -131,13 +142,15 @@ async def main() -> None:
                 await client.create_schedule(
                     id=schedule_id,
                     schedule=schedule,
-                    trigger_immediately=True,
+                    trigger_immediately=not skip_trigger,
                 )
                 print(f"Created schedule: {schedule_id}")
-                print("Triggered schedule immediately for first run.")
+                if not skip_trigger:
+                    print("Triggered schedule immediately for first run.")
             else:
                 raise
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    args = _parse_args()
+    asyncio.run(main(skip_trigger=bool(args.skip_trigger)))

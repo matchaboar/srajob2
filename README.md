@@ -1,5 +1,9 @@
 # srajob
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e61ec88d-2beb-487a-aafa-3fad121cf882/deploy-status)](https://app.netlify.com/projects/srajob/deploys)
+
+https://srajob.netlify.app/
+
 Utilities for job scraping and application automation.
 
 ## Run workers to scrape jobs in temporal 
