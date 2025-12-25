@@ -319,6 +319,10 @@ type DbJob = Omit<
   job_description?: string | null;
 };
 
+type JobDetailDoc = Doc<"job_details">;
+type JobDetailFields = Omit<JobDetailDoc, "jobId" | "_id">;
+type JobWithDetails = DbJob & Partial<JobDetailFields>;
+
 const ensureLocationFields = async (ctx: any, job: DbJob) => {
   const locationInfo = deriveLocationFields(job);
   const { city, state } = locationInfo;
@@ -363,14 +367,14 @@ const ensureLocationFields = async (ctx: any, job: DbJob) => {
   } as DbJob;
 };
 
-const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">) => {
-  return await ctx.db
+const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">): Promise<JobDetailDoc | null> => {
+  return (await ctx.db
     .query("job_details")
     .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
-    .first();
+    .first()) as JobDetailDoc | null;
 };
 
-const mergeJobDetails = (job: Record<string, unknown>, details: Record<string, unknown> | null) => {
+const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetails => {
   if (!details) return job;
   const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
   return { ...job, ...detailFields };
