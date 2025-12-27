@@ -14,6 +14,7 @@ import {
   normalizeSiteUrl,
   siteCanonicalKey,
 } from "./siteUtils";
+import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -49,6 +50,8 @@ const LOGO_SLUG_CHAR_MAP: Record<string, string> = {
   "ŧ": "t",
   "ø": "o",
 };
+const literalSiteType = <T extends SiteType>(siteType: T) => v.literal(siteType);
+const SITE_TYPE_VALIDATORS = SITE_TYPES.map(literalSiteType);
 const COMMON_SUBDOMAIN_PREFIXES = new Set([
   "www",
   "jobs",
@@ -1164,13 +1167,7 @@ export const leaseSite = mutation({
     workerId: v.string(),
     lockSeconds: v.optional(v.number()),
     siteType: v.optional(
-      v.union(
-        v.literal("general"),
-        v.literal("greenhouse"),
-        v.literal("avature"),
-        v.literal("workday"),
-        v.literal("netflix")
-      )
+      v.union(...SITE_TYPE_VALIDATORS)
     ),
     scrapeProvider: v.optional(
       v.union(
@@ -1200,12 +1197,7 @@ export const leaseSite = mutation({
       const siteType = (site).type ?? "general";
       const scrapeProvider =
         (site).scrapeProvider ??
-        (siteType === "greenhouse" ||
-        siteType === "avature" ||
-        siteType === "workday" ||
-        siteType === "netflix"
-          ? "spidercloud"
-          : "fetchfox");
+        (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
       const hasSchedule = !!(site).scheduleId;
       const lastRun = (site).lastRunAt ?? 0;
       const manualTriggerAt = (site).manualTriggerAt ?? 0;
@@ -2367,20 +2359,46 @@ export const listRunRequests = query({
 });
 
 export const resetActiveSites = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { respectSchedule: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const respectSchedule = args.respectSchedule ?? false;
     const sites = await ctx.db
       .query("sites")
       .withIndex("by_enabled", (q) => q.eq("enabled", true))
       .collect();
 
     for (const site of sites as any[]) {
-      await ctx.db.patch(site._id, {
+      const patch: Record<string, any> = {
         completed: false,
         failed: false,
         lockedBy: "",
         lockExpiresAt: 0,
-      });
+        lastFailureAt: undefined,
+        lastError: undefined,
+      };
+
+      if (!respectSchedule) {
+        patch.lastRunAt = 0;
+        patch.manualTriggerAt = now;
+      }
+
+      await ctx.db.patch(site._id, patch);
+
+      if (!respectSchedule) {
+        try {
+          await ctx.db.insert("run_requests", {
+            siteId: site._id,
+            siteUrl: site.url ?? "",
+            status: "pending",
+            createdAt: now,
+            expectedEta: now + 15_000,
+            completedAt: undefined,
+          });
+        } catch (err) {
+          console.error("resetActiveSites: failed to record run_request", err);
+        }
+      }
     }
 
     return { reset: sites.length };
@@ -2408,8 +2426,16 @@ http.route({
 http.route({
   path: "/api/sites/reset",
   method: "POST",
-  handler: httpAction(async (ctx) => {
-    const res = await ctx.runMutation(api.router.resetActiveSites, {});
+  handler: httpAction(async (ctx, request) => {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+    const res = await ctx.runMutation(api.router.resetActiveSites, {
+      respectSchedule: body?.respectSchedule ?? false,
+    });
     return new Response(JSON.stringify(res), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -2464,13 +2490,7 @@ export const upsertSite = mutation({
     name: v.optional(v.string()),
     url: v.string(),
     type: v.optional(
-      v.union(
-        v.literal("general"),
-        v.literal("greenhouse"),
-        v.literal("avature"),
-        v.literal("workday"),
-        v.literal("netflix")
-      )
+      v.union(...SITE_TYPE_VALIDATORS)
     ),
     scrapeProvider: v.optional(
       v.union(
@@ -2489,12 +2509,7 @@ export const upsertSite = mutation({
     const siteType = args.type ?? "general";
     const scrapeProvider =
       args.scrapeProvider ??
-      (siteType === "greenhouse" ||
-      siteType === "avature" ||
-      siteType === "workday" ||
-      siteType === "netflix"
-        ? "spidercloud"
-        : "fetchfox");
+      (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
     const normalizedUrl = normalizeSiteUrl(args.url, siteType);
     const resolvedName = fallbackCompanyName(args.name, normalizedUrl);
     const key = siteCanonicalKey(normalizedUrl, siteType);
@@ -2623,13 +2638,7 @@ export const bulkUpsertSites = mutation({
         name: v.optional(v.string()),
         url: v.string(),
         type: v.optional(
-          v.union(
-            v.literal("general"),
-            v.literal("greenhouse"),
-            v.literal("avature"),
-            v.literal("workday"),
-            v.literal("netflix")
-          )
+          v.union(...SITE_TYPE_VALIDATORS)
         ),
         scrapeProvider: v.optional(
           v.union(
@@ -2652,12 +2661,7 @@ export const bulkUpsertSites = mutation({
       const siteType = site.type ?? "general";
       const scrapeProvider =
         site.scrapeProvider ??
-        (siteType === "greenhouse" ||
-        siteType === "avature" ||
-        siteType === "workday" ||
-        siteType === "netflix"
-          ? "spidercloud"
-          : "fetchfox");
+        (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
       const normalizedUrl = normalizeSiteUrl(site.url, siteType);
       const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
       const key = siteCanonicalKey(normalizedUrl, siteType);

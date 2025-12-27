@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
@@ -40,6 +40,20 @@ const isVersionLabel = (value?: string | null) => /^v\d+$/i.test((value || "").t
 const shouldOverrideCompany = (value?: string | null) => {
   const trimmed = (value || "").trim();
   return isUnknownLabel(value) || trimmed === "Greenhouse" || isVersionLabel(trimmed);
+};
+
+const normalizeSortTimestamp = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const compareNewestJobs = (a: any, b: any) => {
+  const aScraped = normalizeSortTimestamp(a.scrapedAt);
+  const bScraped = normalizeSortTimestamp(b.scrapedAt);
+  if (aScraped !== bScraped) {
+    return bScraped - aScraped;
+  }
+  const aPosted = normalizeSortTimestamp(a.postedAt);
+  const bPosted = normalizeSortTimestamp(b.postedAt);
+  return bPosted - aPosted;
 };
 
 const toTitleCase = (value: string) => {
@@ -410,6 +424,26 @@ export const computeJobCountry = (job: DbJob) => {
 const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
 const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
+type CompanySummary = {
+  name: string;
+  count: number;
+  avgCompensationJunior: number | null;
+  avgCompensationMid: number | null;
+  avgCompensationSenior: number | null;
+  currencyCode: string | null;
+  sampleUrl: string | null;
+  lastScrapedAt: number;
+};
+
+type CompanyLevelStats = {
+  sum: number;
+  count: number;
+};
+
+const emptyCompanyLevelStats = (): CompanyLevelStats => ({ sum: 0, count: 0 });
+const averageFromStats = (stats: CompanyLevelStats) =>
+  stats.count > 0 ? Math.round(stats.sum / stats.count) : null;
+
 type FilterCursorPayload = {
   raw: string | null;
   carry: string[];
@@ -699,7 +733,7 @@ export const listJobs = query({
         .take(SEARCH_LIMIT);
 
       jobs = {
-        page: matches.sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)),
+        page: matches.sort(compareNewestJobs),
         isDone: true,
         continueCursor: null,
       };
@@ -719,7 +753,11 @@ export const listJobs = query({
         })
         .take(SEARCH_LIMIT);
 
-      const fallbackCandidates = await ctx.db.query("jobs").withIndex("by_posted_at").order("desc").take(SEARCH_LIMIT);
+      const fallbackCandidates = await ctx.db
+        .query("jobs")
+        .withIndex("by_scraped_posted")
+        .order("desc")
+        .take(SEARCH_LIMIT);
       const combined = new Map<string, any>();
       for (const job of matches) {
         combined.set(String(job._id), job);
@@ -735,7 +773,7 @@ export const listJobs = query({
       }
 
       jobs = {
-        page: Array.from(combined.values()).sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)),
+        page: Array.from(combined.values()).sort(compareNewestJobs),
         isDone: true,
         continueCursor: null,
       };
@@ -748,7 +786,7 @@ export const listJobs = query({
         } else if (stateFilter) {
           query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
         } else {
-          query = query.withIndex("by_posted_at");
+          query = query.withIndex("by_scraped_posted");
         }
 
         query = query.order("desc");
@@ -804,7 +842,7 @@ export const listJobs = query({
           rawCursor = page.continueCursor;
           rawIsDone = page.isDone;
           if (page.page.length) {
-            const orderedPage = [...page.page].sort((a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
+            const orderedPage = [...page.page].sort(compareNewestJobs);
             for (const job of orderedPage) {
               if (jobPassesFilters(job)) {
                 filteredBuffer.push(job);
@@ -827,10 +865,8 @@ export const listJobs = query({
       }
     }
 
-    // Ensure descending order by postedAt for all paths
-    const orderedPage = [...jobs.page].sort(
-      (a: any, b: any) => (b.postedAt ?? 0) - (a.postedAt ?? 0)
-    );
+    // Ensure descending order by scrapedAt then postedAt for all paths.
+    const orderedPage = [...jobs.page].sort(compareNewestJobs);
 
     // Filter out applied/rejected jobs and apply compensation filters
     const filteredJobs = jobsAlreadyFiltered ? orderedPage : orderedPage.filter(jobPassesFilters);
@@ -931,7 +967,7 @@ export const searchCompanies = query({
       ? ctx.db
           .query("jobs")
           .withSearchIndex("search_company", (q) => q.search("company", searchTerm))
-      : ctx.db.query("jobs").withIndex("by_posted_at").order("desc");
+      : ctx.db.query("jobs").withIndex("by_scraped_posted").order("desc");
 
     const matches = await baseQuery.take(200);
     const counts = new Map<string, { name: string; count: number }>();
@@ -956,6 +992,149 @@ export const searchCompanies = query({
       .slice(0, limit);
 
     return suggestions;
+  },
+});
+
+export const refreshCompanySummaries = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const jobs = await ctx.db.query("jobs").collect();
+    const summaries = new Map<
+      string,
+      {
+        name: string;
+        count: number;
+        currencyCode: string | null;
+        sampleUrl: string | null;
+        lastScrapedAt: number;
+        levels: Record<"junior" | "mid" | "senior", CompanyLevelStats>;
+      }
+    >();
+
+    for (const job of jobs as Doc<"jobs">[]) {
+      const rawCompany = typeof job.company === "string" ? job.company.trim() : "";
+      const companyName = rawCompany.replace(/\s+/g, " ").trim();
+      if (!companyName || isUnknownLabel(companyName)) continue;
+
+      const key = normalizeCompanyKey(companyName);
+      if (!key) continue;
+
+      let entry = summaries.get(key);
+      if (!entry) {
+        entry = {
+          name: companyName,
+          count: 0,
+          currencyCode: null,
+          sampleUrl: null,
+          lastScrapedAt: 0,
+          levels: {
+            junior: emptyCompanyLevelStats(),
+            mid: emptyCompanyLevelStats(),
+            senior: emptyCompanyLevelStats(),
+          },
+        };
+        summaries.set(key, entry);
+      }
+
+      entry.count += 1;
+      if (!entry.sampleUrl && typeof job.url === "string" && job.url.trim()) {
+        entry.sampleUrl = job.url.trim();
+      }
+      if (typeof job.scrapedAt === "number" && job.scrapedAt > entry.lastScrapedAt) {
+        entry.lastScrapedAt = job.scrapedAt;
+      }
+
+      const compensationUnknown = job.compensationUnknown === true;
+      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : null;
+      if (!compensationUnknown && compValue && Number.isFinite(compValue) && compValue > 0) {
+        if (!entry.currencyCode && typeof job.currencyCode === "string" && job.currencyCode.trim()) {
+          entry.currencyCode = job.currencyCode.trim();
+        }
+        if (job.level === "junior" || job.level === "mid" || job.level === "senior") {
+          const stats = entry.levels[job.level];
+          stats.sum += compValue;
+          stats.count += 1;
+        }
+      }
+    }
+
+    const now = Date.now();
+    const existing = (await ctx.db.query("company_summaries").collect()) as Doc<"company_summaries">[];
+    const existingByKey = new Map(existing.map((row) => [row.key, row]));
+    const seen = new Set<string>();
+    let inserted = 0;
+    let updated = 0;
+    let deleted = 0;
+
+    for (const [key, entry] of summaries) {
+      seen.add(key);
+      const avgJunior = averageFromStats(entry.levels.junior);
+      const avgMid = averageFromStats(entry.levels.mid);
+      const avgSenior = averageFromStats(entry.levels.senior);
+      const payload = {
+        key,
+        name: entry.name,
+        count: entry.count,
+        sampleUrl: entry.sampleUrl ?? undefined,
+        currencyCode: entry.currencyCode ?? undefined,
+        avgCompensationJunior: avgJunior ?? undefined,
+        avgCompensationMid: avgMid ?? undefined,
+        avgCompensationSenior: avgSenior ?? undefined,
+        updatedAt: now,
+      };
+      const existingRow = existingByKey.get(key);
+      if (existingRow) {
+        await ctx.db.patch(existingRow._id, payload);
+        updated += 1;
+      } else {
+        await ctx.db.insert("company_summaries", payload);
+        inserted += 1;
+      }
+    }
+
+    for (const row of existing) {
+      if (!seen.has(row.key)) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    }
+
+    return { inserted, updated, deleted, total: summaries.size };
+  },
+});
+
+export const listCompanySummaries = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const limit = Math.max(1, Math.min(args.limit ?? 200, 1000));
+    const summaries = (await ctx.db.query("company_summaries").collect()) as Doc<"company_summaries">[];
+
+    return summaries
+      .map((row) => ({
+        name: row.name,
+        count: row.count,
+        avgCompensationJunior:
+          typeof row.avgCompensationJunior === "number" ? row.avgCompensationJunior : null,
+        avgCompensationMid: typeof row.avgCompensationMid === "number" ? row.avgCompensationMid : null,
+        avgCompensationSenior:
+          typeof row.avgCompensationSenior === "number" ? row.avgCompensationSenior : null,
+        currencyCode: typeof row.currencyCode === "string" ? row.currencyCode : null,
+        sampleUrl: typeof row.sampleUrl === "string" ? row.sampleUrl : null,
+        lastScrapedAt: typeof row.lastScrapedAt === "number" ? row.lastScrapedAt : 0,
+      }))
+      .sort((a, b) => {
+        if (b.lastScrapedAt !== a.lastScrapedAt) return b.lastScrapedAt - a.lastScrapedAt;
+        if (b.count !== a.count) return b.count - a.count;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, limit) as CompanySummary[];
   },
 });
 
@@ -1117,7 +1296,7 @@ export const getRecentJobs = query({
     // because Convex queries are reactive by default
     const jobs = await ctx.db
       .query("jobs")
-      .withIndex("by_posted_at")
+      .withIndex("by_scraped_posted")
       .order("desc")
       .take(20); // Increased from 10 to show more recent jobs
 

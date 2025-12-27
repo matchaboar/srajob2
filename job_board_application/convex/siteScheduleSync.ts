@@ -3,6 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import { fallbackCompanyNameFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
 import devSchedules from "./site_schedules.dev.json";
 import prodSchedules from "./site_schedules.prod.json";
+import { SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
 
 const DEFAULT_TIMEZONE = "America/Denver";
 const VALID_DAYS = new Set(["sun", "mon", "tue", "wed", "thu", "fri", "sat"]);
@@ -11,7 +12,7 @@ export type SiteScheduleEntry = {
   url: string;
   name?: string;
   enabled?: boolean;
-  type?: "general" | "greenhouse" | "avature" | "workday" | "netflix";
+  type?: SiteType;
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
   schedule?: {
@@ -27,7 +28,7 @@ export type NormalizedSiteSchedule = {
   url: string;
   name?: string;
   enabled: boolean;
-  type?: "general" | "greenhouse" | "avature" | "workday" | "netflix";
+  type?: SiteType;
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
   schedule?: {
@@ -186,9 +187,7 @@ export const syncSiteSchedulesFromEntries = async (
     const siteType = entry.type ?? "general";
     const scrapeProvider =
       entry.scrapeProvider ??
-      (siteType === "greenhouse" || siteType === "avature" || siteType === "workday" || siteType === "netflix"
-        ? "spidercloud"
-        : "fetchfox");
+      (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType) ? "spidercloud" : "fetchfox");
 
     const name = entry.name ?? fallbackCompanyNameFromUrl(entry.url);
 

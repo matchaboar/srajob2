@@ -2,6 +2,8 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 
+const internalAny = internal as any;
+
 // Clear expired locks so stuck rows recover even if workers die without reporting failure.
 export const clearExpiredSiteLocks = internalMutation({
   args: {},
@@ -33,6 +35,13 @@ crons.interval(
   "clearStaleScrapeQueue",
   { hours: 1 },
   internal.router.clearStaleScrapeQueue,
+);
+
+// Keep the company summary cron registered (component-based cron is idempotent).
+crons.interval(
+  "ensureCompanySummaryCron",
+  { hours: 12 },
+  internalAny.companySummaryCron.registerCompanySummaryCron,
 );
 
 export default crons;

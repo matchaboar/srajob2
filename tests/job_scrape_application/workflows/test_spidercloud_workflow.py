@@ -708,6 +708,33 @@ def test_extract_job_urls_from_spidercloud_ashby_html():
     assert "https://jobs.ashbyhq.com/lambda/product-manager" not in urls
 
 
+def test_extract_job_urls_from_spidercloud_paloalto_html():
+    html_fixture = Path("tests/fixtures/paloalto_networks_search_raw.html").read_text(encoding="utf-8")
+    scrape_payload = {
+        "sourceUrl": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {
+            "provider": "spidercloud",
+            "raw": [
+                {
+                    "url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+                    "events": [{"content": {"raw_html": html_fixture}}],
+                    "markdown": "",
+                }
+            ],
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape_payload)
+
+    assert (
+        "https://jobs.paloaltonetworks.com/en/job/reston/channel-systems-engineer-2/47263/89375432832"
+        in urls
+    )
+
+
 def test_spidercloud_extracts_job_urls_from_ashby_listing_payload():
     scraper = _make_spidercloud_scraper()
     handler = AshbyHqHandler()

@@ -21,6 +21,106 @@
       }
     },
     {
+      "url": "https://api.greenhouse.io/v1/boards/mongodb/jobs",
+      "name": "MongoDB",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/nexhealth/jobs",
+      "name": "NexHealth",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/okta/jobs",
+      "name": "Okta",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/axon/jobs",
+      "name": "Axon",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/flex/jobs",
+      "name": "Flex",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
       "url": "https://boards-api.greenhouse.io/v1/boards/Airbnb/jobs",
       "name": "Airbnb",
       "enabled": true,
@@ -43,6 +143,66 @@
     {
       "url": "https://boards-api.greenhouse.io/v1/boards/Coupang/jobs",
       "name": "Coupang",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/purestorage/jobs",
+      "name": "PureStorage",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/samsara/jobs",
+      "name": "Samsara",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/stripe/jobs",
+      "name": "Stripe",
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
@@ -122,6 +282,126 @@
       "url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
       "name": "Confluent",
       "enabled": true,
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://www.uber.com/us/en/careers/list/?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington",
+      "name": "Uber",
+      "enabled": true,
+      "type": "uber",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
+      "name": "Cisco",
+      "enabled": true,
+      "type": "cisco",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+      "name": "Palo Alto Networks",
+      "enabled": true,
+      "type": "general",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/?q=engineer",
+      "name": "Dataminr",
+      "enabled": true,
+      "type": "workday",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false",
+      "name": "Docusign",
+      "enabled": true,
+      "type": "docusign",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://www.notion.com/careers",
+      "name": "Notion",
+      "enabled": true,
+      "type": "notion",
       "scrapeProvider": "spidercloud",
       "schedule": {
         "name": "weekdays 9:30am",

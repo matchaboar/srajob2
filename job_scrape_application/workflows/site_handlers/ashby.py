@@ -86,13 +86,24 @@ class AshbyHqHandler(BaseSiteHandler):
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
-        return self._apply_page_links_config(
-            {
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            parsed = None
+        host = (parsed.hostname or "").lower() if parsed else ""
+        path = (parsed.path or "").strip("/") if parsed else ""
+        segments = [seg for seg in path.split("/") if seg]
+        is_api = host.startswith("api.ashbyhq.com") or (
+            len(segments) >= 2 and segments[0] == "posting-api" and segments[1] == "job-board"
+        )
+        is_job_detail = not is_api and len(segments) >= 2
+        return_format = ["commonmark"] if is_job_detail else ["raw_html"]
+        base_config = {
             "request": "chrome",
-            "return_format": ["raw_html"],
+            "return_format": return_format,
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],
             "preserve_host": True,
-            }
-        )
+        }
+        return self._apply_page_links_config(base_config)

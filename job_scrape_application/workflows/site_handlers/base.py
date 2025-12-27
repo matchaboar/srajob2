@@ -80,6 +80,9 @@ class BaseSiteHandler(ABC):
 
         return urls
 
+    def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
+        return None
+
     def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:
         return []
 
@@ -94,6 +97,9 @@ class BaseSiteHandler(ABC):
 
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
         return markdown, None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        return None
 
     def is_api_detail_url(self, uri: str) -> bool:
         return False

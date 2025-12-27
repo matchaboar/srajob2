@@ -105,4 +105,5 @@ def test_jobs_from_scrape_items_produces_convex_safe_payload():
     assert isinstance(job["totalCompensation"], int)
     assert job["totalCompensation"] >= 0
     assert isinstance(job["postedAt"], int)
+    assert job["postedAt"] == default_ts
     assert "scrapedCostMilliCents" in job

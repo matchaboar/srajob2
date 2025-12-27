@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
+import { CompanyIcon } from "./components/CompanyIcon";
 import { useState, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { buildCompensationMeta } from "./lib/compensation";
@@ -114,33 +115,36 @@ export function FakePublicJobPreview() {
                       }`}
                   >
                     <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                          <h3 className="text-lg font-semibold text-slate-100 truncate">{job.title}</h3>
-                          <div className="flex gap-2">
-                            <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium rounded-md">
-                              {job.level}
-                            </span>
-                            {job.remote && (
-                              <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium rounded-md">
-                                Remote
+                      <div className="flex-1 min-w-0 flex items-start gap-3">
+                        <CompanyIcon company={job.company ?? ""} size={32} url={job.url} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                            <h3 className="text-lg font-semibold text-slate-100 truncate">{job.title}</h3>
+                            <div className="flex gap-2">
+                              <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium rounded-md">
+                                {job.level}
                               </span>
-                            )}
+                              {job.remote && (
+                                <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium rounded-md">
+                                  Remote
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-sm font-medium text-slate-300 mb-1">{job.company}</p>
-                        <p className="text-xs text-slate-500 mb-2">{job.location}</p>
-                        <p className="text-sm text-slate-500 mb-3 line-clamp-2 leading-relaxed italic">
-                          Sign in to read the full description.
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800/50 pt-3">
-                          <span
-                            className={`font-mono ${compensationClass} px-1.5 py-0.5 rounded border`}
-                            title={meta.reason}
-                          >
-                            {meta.display}
-                          </span>
-                          <span>Posted {new Date(job.postedAt).toLocaleDateString()}</span>
+                          <p className="text-sm font-medium text-slate-300 mb-1">{job.company}</p>
+                          <p className="text-xs text-slate-500 mb-2">{job.location}</p>
+                          <p className="text-sm text-slate-500 mb-3 line-clamp-2 leading-relaxed italic">
+                            Sign in to read the full description.
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800/50 pt-3">
+                            <span
+                              className={`font-mono ${compensationClass} px-1.5 py-0.5 rounded border`}
+                              title={meta.reason}
+                            >
+                              {meta.display}
+                            </span>
+                            <span>Posted {new Date(job.postedAt).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -166,6 +167,20 @@ async def test_batch_params_use_commonmark_with_chrome_for_non_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_batch_params_use_raw_for_paloalto_listing(monkeypatch):
+    scraper = _make_scraper()
+    fake_client = _FakeClient([{"raw_html": "<h1>Search Results</h1>"}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    url = "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States"
+    await scraper._scrape_urls_batch([url], source_url=url)
+
+    call = fake_client.calls[0]
+    assert "raw_html" in call["params"]["return_format"]
+    assert call["params"]["request"] == "chrome"
+
+
+@pytest.mark.asyncio
 async def test_batch_params_use_raw_for_ashby_board(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([{"raw_html": "<h1>Lambda Jobs</h1>"}])
@@ -307,6 +322,36 @@ def test_normalize_job_handles_api_json_events():
     )
     assert normalized is not None
     assert normalized["title"] == "Senior Software Engineer"
+
+
+def test_normalize_job_uses_greenhouse_updated_at():
+    scraper = _make_scraper()
+    raw_json = Path("tests/fixtures/greenhouse_api_job.json").read_text(encoding="utf-8")
+    normalized = scraper._normalize_job(
+        "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5001698007",
+        raw_json,
+        [],
+        123,
+    )
+    assert normalized is not None
+    expected_ms = int(datetime.fromisoformat("2025-12-09T19:23:44-05:00").timestamp() * 1000)
+    assert normalized["posted_at"] == expected_ms
+
+
+def test_normalize_job_falls_back_when_greenhouse_updated_at_missing():
+    scraper = _make_scraper()
+    payload = json.loads(Path("tests/fixtures/greenhouse_api_job.json").read_text(encoding="utf-8"))
+    payload.pop("updated_at", None)
+    payload.pop("first_published", None)
+    started_at = 456
+    normalized = scraper._normalize_job(
+        "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5001698007",
+        json.dumps(payload),
+        [],
+        started_at,
+    )
+    assert normalized is not None
+    assert normalized["posted_at"] == started_at
 
 
 @pytest.mark.asyncio

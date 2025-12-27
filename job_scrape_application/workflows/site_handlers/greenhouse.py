@@ -146,6 +146,56 @@ class GreenhouseHandler(BaseSiteHandler):
                     urls.append(cleaned)
         return urls
 
+    def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
+        def _pick_date(node: Any) -> Any | None:
+            if not isinstance(node, dict):
+                return None
+            for key in (
+                "updated_at",
+                "updatedAt",
+                "first_published",
+                "firstPublished",
+                "created_at",
+                "createdAt",
+            ):
+                value = node.get(key)
+                if isinstance(value, str):
+                    cleaned = value.strip()
+                    if cleaned:
+                        return cleaned
+                elif isinstance(value, (int, float)):
+                    return value
+            return None
+
+        if not isinstance(payload, dict):
+            return None
+
+        direct = _pick_date(payload)
+        if direct is not None:
+            return direct
+
+        jobs = payload.get("jobs")
+        if not isinstance(jobs, list) or not url:
+            return None
+
+        job_id = self._extract_job_id_from_url(url)
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            if job_id is not None:
+                candidate_id = job.get("id") or job.get("job_id") or job.get("internal_job_id")
+                if candidate_id is not None and str(candidate_id) == str(job_id):
+                    matched = _pick_date(job)
+                    if matched is not None:
+                        return matched
+            absolute_url = job.get("absolute_url")
+            if isinstance(absolute_url, str) and absolute_url.strip() == url:
+                matched = _pick_date(job)
+                if matched is not None:
+                    return matched
+
+        return None
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}

@@ -13,7 +13,7 @@ import { CompanyIcon } from "./components/CompanyIcon";
 import { StatusTracker } from "./components/StatusTracker";
 import { Keycap } from "./components/Keycap";
 import { DiagonalFraction } from "./components/DiagonalFraction";
-import { buildCompensationMeta, formatCompensationDisplay, parseCompensationInput } from "./lib/compensation";
+import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "./lib/compensation";
 
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
@@ -23,8 +23,10 @@ type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
 type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
+type CompanySummariesResult = FunctionReturnType<typeof api.jobs.listCompanySummaries>;
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
+type CompanySummary = CompanySummariesResult extends Array<infer Item> ? NonNullable<Item> : never;
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
 
 interface Filters {
@@ -210,9 +212,9 @@ const DeleteXIcon = ({ className }: { className?: string }) => (
 
 export function JobBoard() {
   // Use URL hash to persist active tab across refreshes
-  const [activeTab, setActiveTab] = useState<"jobs" | "applied" | "rejected" | "live" | "ignored">(() => {
+  const [activeTab, setActiveTab] = useState<"jobs" | "companies" | "applied" | "rejected" | "live" | "ignored">(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
+    if (hash === "companies" || hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
     return "jobs";
   });
   const companyFilterFromUrl = useMemo(() => {
@@ -313,7 +315,7 @@ export function JobBoard() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") {
+      if (hash === "companies" || hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") {
         setActiveTab(hash);
       } else if (hash === "" || hash === "jobs") {
         setActiveTab("jobs");
@@ -367,6 +369,7 @@ export function JobBoard() {
   }, [activeTab]);
 
   const isJobsTab = activeTab === "jobs";
+  const isCompaniesTab = activeTab === "companies";
   const isAppliedTab = activeTab === "applied";
   const isRejectedTab = activeTab === "rejected";
   const isLiveTab = activeTab === "live";
@@ -410,6 +413,10 @@ export function JobBoard() {
       }
       : "skip"
   ) as CompanySuggestion[] | undefined;
+  const companySummaries = useQuery(
+    api.jobs.listCompanySummaries,
+    isCompaniesTab ? { limit: 300 } : "skip"
+  ) as CompanySummary[] | undefined;
   const savedFilters = useQuery(api.filters.getSavedFilters, isJobsTab ? {} : "skip");
   const selectedSavedFilter = useMemo(
     () => (savedFilters as SavedFilter[] | undefined)?.find((f) => f.isSelected),
@@ -481,6 +488,24 @@ export function JobBoard() {
     const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
     const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return `${dateLabel} • ${days}d ago`;
+  }, []);
+  const formatCompanySalary = useCallback((summary: CompanySummary) => {
+    const currencyCode = summary.currencyCode || "USD";
+    const formatValue = (value: number | null) => {
+      if (value === null || !Number.isFinite(value) || value <= 0) return null;
+      if (currencyCode && currencyCode !== "USD") {
+        return formatCurrencyCompensation(value, currencyCode);
+      }
+      return formatCompensationDisplay(value);
+    };
+
+    const parts = [
+      { label: "Junior", value: formatValue(summary.avgCompensationJunior) ?? "N/A" },
+      { label: "Mid", value: formatValue(summary.avgCompensationMid) ?? "N/A" },
+      { label: "Senior", value: formatValue(summary.avgCompensationSenior) ?? "N/A" },
+    ];
+
+    return parts.map((part) => `${part.label} ${part.value}`).join(" • ");
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
   const selectedCompColorClass = selectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
@@ -915,6 +940,23 @@ export function JobBoard() {
     }
   }, [selectSavedFilter]);
 
+  const handleCompanyCardClick = useCallback(
+    (companyName: string) => {
+      const trimmed = companyName.trim();
+      if (!trimmed) return;
+      setActiveTab("jobs");
+      updateFilters({ ...buildEmptyFilters(), companies: [trimmed] }, { forceImmediate: true });
+      setCompanyInput("");
+      setSelectedJobId(null);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("company", trimmed);
+      url.hash = "jobs";
+      window.history.pushState({}, "", url.toString());
+    },
+    [updateFilters],
+  );
+
   const handleSaveCurrentFilter = useCallback(async () => {
     const trimmedName = generatedFilterName.trim() || "Saved filter";
     try {
@@ -1348,7 +1390,7 @@ export function JobBoard() {
             </div>
           )}
           <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
-            {(["jobs", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
+            {(["jobs", "companies", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -2151,6 +2193,58 @@ export function JobBoard() {
               Loading your filters...
             </div>
           )
+        )}
+        {activeTab === "companies" && (
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Companies</h2>
+                <p className="text-xs text-slate-500">Browse companies and jump straight into their open roles.</p>
+              </div>
+              <span className="text-xs text-slate-400">
+                {(companySummaries?.length ?? 0).toLocaleString()} companies
+              </span>
+            </div>
+
+            {!companySummaries && (
+              <div className="text-sm text-slate-500">Loading companies...</div>
+            )}
+
+            {companySummaries && companySummaries.length === 0 && (
+              <div className="text-sm text-slate-500">No companies available yet.</div>
+            )}
+
+            {companySummaries && companySummaries.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {companySummaries.map((company) => (
+                  <button
+                    key={company.name}
+                    type="button"
+                    onClick={() => handleCompanyCardClick(company.name)}
+                    className="group text-left rounded-xl border border-slate-800 bg-slate-900/60 p-4 hover:border-blue-500/60 hover:bg-slate-900/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CompanyIcon
+                        company={company.name}
+                        size={34}
+                        url={company.sampleUrl ?? undefined}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-100 truncate">{company.name}</div>
+                        <div className="text-xs text-slate-400">
+                          {company.count.toLocaleString()} jobs
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
+                      <span className="text-xs font-mono text-blue-200">{formatCompanySalary(company)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {activeTab === "ignored" && (
           <div className="flex-1 overflow-y-auto px-6 py-4">

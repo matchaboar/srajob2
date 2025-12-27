@@ -18,6 +18,7 @@ type Job = {
   compensationUnknown?: boolean;
   url: string;
   postedAt: number;
+  scrapedAt?: number;
 };
 
 type Page = {
@@ -34,7 +35,12 @@ class FakeJobsQuery {
 
   withIndex(name: string, cb?: (q: any) => any) {
     this.tracker.lastIndexName = name;
-    if (name !== "by_state_posted" && name !== "by_posted_at" && name !== "by_company_posted") {
+    if (
+      name !== "by_state_posted" &&
+      name !== "by_posted_at" &&
+      name !== "by_company_posted" &&
+      name !== "by_scraped_posted"
+    ) {
       throw new Error(`unexpected jobs index ${name}`);
     }
     if (cb) {
@@ -85,9 +91,9 @@ class FakeApplicationsQuery {
   }
 }
 
-const buildJob = (id: string, postedAt: number): Job => ({
+const buildJob = (id: string, postedAt: number, scrapedAt: number | undefined = postedAt, title = "Software Engineer"): Job => ({
   _id: id,
-  title: "Software Engineer",
+  title,
   company: "Example Co",
   location: "Remote",
   remote: true,
@@ -96,6 +102,7 @@ const buildJob = (id: string, postedAt: number): Job => ({
   compensationUnknown: false,
   url: `https://example.com/jobs/${id}`,
   postedAt,
+  scrapedAt,
 });
 
 const buildCtx = (
@@ -136,6 +143,46 @@ describe("listJobs pagination", () => {
     expect(result.page.length).toBeGreaterThan(0);
     expect(result.continueCursor).not.toBeNull();
     expect(tracker.totalPaginateCalls).toBe(1);
+  });
+
+  it("uses the scraped+posted index by default", async () => {
+    const page1: Page = {
+      page: [buildJob("job-1", 100)],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 2 },
+    });
+
+    expect(tracker.lastIndexName).toBe("by_scraped_posted");
+  });
+
+  it("orders results by scrapedAt then postedAt", async () => {
+    const page1: Page = {
+      page: [
+        buildJob("job-1", 500, 100, "Engineer A"),
+        buildJob("job-2", 1000, 200, "Engineer B"),
+      ],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    const result = await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 2 },
+    });
+
+    expect(result.page[0]._id).toBe("job-2");
+    expect(result.page[1]._id).toBe("job-1");
   });
 
   it("uses the company index when a single company filter is set", async () => {

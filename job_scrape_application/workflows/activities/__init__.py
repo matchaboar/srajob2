@@ -2649,7 +2649,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         return links
 
     def _extract_ashby_job_urls(text: str) -> list[str]:
-        if "ashbyhq.com" not in text or "window.__appData" not in text:
+        if "window.__appData" not in text:
             return []
 
         def _find_slug(raw_text: str, payload: Dict[str, Any]) -> Optional[str]:
@@ -2719,7 +2719,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     handler = get_site_handler(source_url) if source_url else None
 
     def _extract_handler_links(values: Iterable[str]) -> list[str]:
-        if not handler:
+        if not handler or getattr(handler, "name", "") == "ashby":
             return []
         for text in values:
             if not isinstance(text, str) or not text.strip():

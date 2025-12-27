@@ -35,6 +35,7 @@ const applicationTables = {
   })
     .index("by_posted_at", ["postedAt"])
     .index("by_scraped_at", ["scrapedAt"])
+    .index("by_scraped_posted", ["scrapedAt", "postedAt"])
     .index("by_company", ["company"])
     .index("by_state_posted", ["state", "postedAt"])
     .index("by_country_posted", ["country", "postedAt"])
@@ -84,6 +85,19 @@ const applicationTables = {
     createdAt: v.number(),
   }).index("by_domain", ["domain"]),
 
+  company_summaries: defineTable({
+    key: v.string(),
+    name: v.string(),
+    count: v.number(),
+    sampleUrl: v.optional(v.string()),
+    currencyCode: v.optional(v.string()),
+    avgCompensationJunior: v.optional(v.number()),
+    avgCompensationMid: v.optional(v.number()),
+    avgCompensationSenior: v.optional(v.number()),
+    lastScrapedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
   saved_filters: defineTable({
     userId: v.id("users"),
     name: v.string(),
@@ -124,7 +138,13 @@ const applicationTables = {
         v.literal("greenhouse"),
         v.literal("avature"),
         v.literal("workday"),
-        v.literal("netflix")
+        v.literal("netflix"),
+        v.literal("uber"),
+        v.literal("cisco"),
+        v.literal("adobe"),
+        v.literal("docusign"),
+        v.literal("notion"),
+        v.literal("paloalto")
       )
     ),
     scrapeProvider: v.optional(

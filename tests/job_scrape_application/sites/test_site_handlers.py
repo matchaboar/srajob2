@@ -15,9 +15,11 @@ from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     AshbyHqHandler,
     AvatureHandler,
     BaseSiteHandler,
+    CiscoCareersHandler,
     GithubCareersHandler,
     GreenhouseHandler,
     NetflixHandler,
+    UberCareersHandler,
     get_site_handler,
 )
 
@@ -214,6 +216,85 @@ def test_netflix_handler_fixture_pages_have_unique_urls():
     assert set(urls_1).isdisjoint(urls_2)
     assert set(urls_1).isdisjoint(urls_3)
     assert set(urls_2).isdisjoint(urls_3)
+
+
+def test_uber_careers_handler_extracts_listing_and_pagination_links():
+    handler = UberCareersHandler()
+    url = (
+        "https://www.uber.com/us/en/careers/list/"
+        "?query=engineer&location=USA-California-San%20Francisco"
+        "&location=USA-California-Los%20Angeles"
+        "&location=USA-California-Sunnyvale"
+        "&location=USA-California-Culver%20City"
+        "&location=USA-New%20York-New%20York"
+        "&location=USA-Washington-Seattle"
+        "&location=USA-Illinois-Chicago"
+        "&location=USA-Texas-Dallas"
+        "&location=USA-Florida-Miami"
+        "&location=USA-Arizona-Phoenix"
+        "&location=USA-Georgia-Atlanta"
+        "&location=USA-District%20of%20Columbia-Washington"
+    )
+    assert handler.matches_url(url)
+    assert handler.is_listing_url(url)
+
+    fixture_paths = [
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_1.json"
+        ),
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_2.json"
+        ),
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_3.json"
+        ),
+    ]
+    for fixture_path in fixture_paths:
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        html = _extract_first_html(payload)
+        assert html
+
+        links = handler.get_links_from_raw_html(html)
+        job_links = [link for link in links if re.search(r"/careers/list/\d+$", link)]
+        assert job_links
+
+
+def test_cisco_careers_handler_extracts_listing_and_pagination_links():
+    handler = CiscoCareersHandler()
+    url = "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1"
+    assert handler.matches_url(url)
+    assert handler.is_listing_url(url)
+
+    fixture_sets = [
+        (
+            Path(
+                "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_1.json"
+            ),
+            "from=10",
+        ),
+        (
+            Path(
+                "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_2.json"
+            ),
+            "from=20",
+        ),
+        (
+            Path(
+                "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_3.json"
+            ),
+            "from=30",
+        ),
+    ]
+
+    for fixture_path, expected_page in fixture_sets:
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        html = _extract_first_html(payload)
+        assert html
+
+        links = handler.get_links_from_raw_html(html)
+        job_links = [link for link in links if "/global/en/job/" in link]
+        assert job_links
+        assert any("search-results" in link and expected_page in link for link in links)
 
 
 class _BaseHandlerForTest(BaseSiteHandler):

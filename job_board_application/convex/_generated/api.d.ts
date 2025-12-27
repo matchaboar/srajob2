@@ -11,6 +11,7 @@
 import type * as __tests___getHandler from "../__tests__/getHandler.js";
 import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
+import type * as companySummaryCron from "../companySummaryCron.js";
 import type * as crons from "../crons.js";
 import type * as filters from "../filters.js";
 import type * as firecrawlWebhookUtil from "../firecrawlWebhookUtil.js";
@@ -25,6 +26,7 @@ import type * as router from "../router.js";
 import type * as scratchpad from "../scratchpad.js";
 import type * as seedData from "../seedData.js";
 import type * as siteScheduleSync from "../siteScheduleSync.js";
+import type * as siteTypes from "../siteTypes.js";
 import type * as siteUtils from "../siteUtils.js";
 import type * as sites from "../sites.js";
 import type * as temporal from "../temporal.js";
@@ -39,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "__tests__/getHandler": typeof __tests___getHandler;
   admin: typeof admin;
   auth: typeof auth;
+  companySummaryCron: typeof companySummaryCron;
   crons: typeof crons;
   filters: typeof filters;
   firecrawlWebhookUtil: typeof firecrawlWebhookUtil;
@@ -53,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   scratchpad: typeof scratchpad;
   seedData: typeof seedData;
   siteScheduleSync: typeof siteScheduleSync;
+  siteTypes: typeof siteTypes;
   siteUtils: typeof siteUtils;
   sites: typeof sites;
   temporal: typeof temporal;
@@ -85,6 +89,57 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  crons: {
+    public: {
+      del: FunctionReference<
+        "mutation",
+        "internal",
+        { identifier: { id: string } | { name: string } },
+        null
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { identifier: { id: string } | { name: string } },
+        {
+          args: Record<string, any>;
+          functionHandle: string;
+          id: string;
+          name?: string;
+          schedule:
+            | { kind: "interval"; ms: number }
+            | { cronspec: string; kind: "cron"; tz?: string };
+        } | null
+      >;
+      list: FunctionReference<
+        "query",
+        "internal",
+        {},
+        Array<{
+          args: Record<string, any>;
+          functionHandle: string;
+          id: string;
+          name?: string;
+          schedule:
+            | { kind: "interval"; ms: number }
+            | { cronspec: string; kind: "cron"; tz?: string };
+        }>
+      >;
+      register: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          args: Record<string, any>;
+          functionHandle: string;
+          name?: string;
+          schedule:
+            | { kind: "interval"; ms: number }
+            | { cronspec: string; kind: "cron"; tz?: string };
+        },
+        string
+      >;
+    };
+  };
   migrations: {
     lib: {
       cancel: FunctionReference<

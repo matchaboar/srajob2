@@ -2,20 +2,32 @@ from __future__ import annotations
 
 from typing import Iterable, List
 
+from .adobe_careers import AdobeCareersHandler
 from .ashby import AshbyHqHandler
 from .avature import AvatureHandler
 from .base import BaseSiteHandler
+from .cisco_careers import CiscoCareersHandler
+from .docusign import DocusignHandler
 from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
 from .netflix import NetflixHandler
+from .notion_careers import NotionCareersHandler
+from .paloalto_networks import PaloAltoNetworksHandler
+from .uber_careers import UberCareersHandler
 from .workday import WorkdayHandler
 
 _HANDLER_CLASSES = (
+    AdobeCareersHandler,
     AshbyHqHandler,
     AvatureHandler,
+    CiscoCareersHandler,
+    DocusignHandler,
     GithubCareersHandler,
     GreenhouseHandler,
     NetflixHandler,
+    NotionCareersHandler,
+    PaloAltoNetworksHandler,
+    UberCareersHandler,
     WorkdayHandler,
 )
 
@@ -44,12 +56,18 @@ def get_site_handlers_for_urls(
 
 
 __all__ = [
+    "AdobeCareersHandler",
     "AshbyHqHandler",
     "AvatureHandler",
     "BaseSiteHandler",
+    "CiscoCareersHandler",
+    "DocusignHandler",
     "GithubCareersHandler",
     "GreenhouseHandler",
     "NetflixHandler",
+    "NotionCareersHandler",
+    "PaloAltoNetworksHandler",
+    "UberCareersHandler",
     "WorkdayHandler",
     "get_site_handler",
     "get_site_handlers_for_urls",

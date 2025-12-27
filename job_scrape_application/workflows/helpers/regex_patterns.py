@@ -24,7 +24,7 @@ URL_PATTERN = r"https?://[^\s\"'<>]+"
 MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\(([^)\s]+)\)"
 GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
 GREENHOUSE_BOARDS_PATH_PATTERN = r"/boards/([^/]+)/jobs"
-ASHBY_JOB_URL_PATTERN = r"https?://jobs\\.ashbyhq\\.com/[^\\s\"'>]+"
+ASHBY_JOB_URL_PATTERN = r"https?://jobs\.ashbyhq\.com/[^\s\"'>]+"
 ASHBY_JOB_SLUG_PATTERN = r"https?://jobs\.ashbyhq\.com/([^/\"'\s]+)"
 CONFLUENT_JOB_PATH_PATTERN = r"/jobs/job/[0-9a-f-]{8,}"
 
@@ -65,17 +65,24 @@ ERROR_404_PATTERN = r"\b404\b"
 
 SALARY_PATTERN = (
     r"\$\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*[-–]\s*\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
+    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
     r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
 )
 SALARY_RANGE_LABEL_PATTERN = (
-    r"(?:salary|compensation|pay)\s+range\s*[:=\-–]\s*"
+    r"(?:salary|compensation|pay)\s+range\s*[:=\-–—]\s*"
     r"(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*[-–]\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
+    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
     r"(?:\s*(?P<code>USD|EUR|GBP))?"
 )
+SALARY_BETWEEN_PATTERN = (
+    r"(?:between|from)\s+"
+    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+    r"(?:\s*[^\d$]{0,80}?)?\s*(?:and|to)\s*"
+    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+)
 SALARY_K_PATTERN = (
-    r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?P<high>\d{2,3})\s*[kK])?"
+    r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]"
+    r"\s*(?:([-–—]|&ndash;|&mdash;)\s*(?P<high>\d{2,3})\s*[kK])?"
     r"\s*(?P<code>USD|EUR|GBP)?"
 )
 COMP_USD_RANGE_PATTERN = (
@@ -186,6 +193,7 @@ _SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MUL
 _WORK_FROM_RE = re.compile(WORK_FROM_PATTERN, flags=re.IGNORECASE)
 _SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
 _SALARY_RANGE_LABEL_RE = re.compile(SALARY_RANGE_LABEL_PATTERN, flags=re.IGNORECASE)
+_SALARY_BETWEEN_RE = re.compile(SALARY_BETWEEN_PATTERN, flags=re.IGNORECASE)
 _SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
 _REMOTE_RE = re.compile(REMOTE_PATTERN, flags=re.IGNORECASE)
 

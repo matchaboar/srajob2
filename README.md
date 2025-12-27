@@ -6,6 +6,10 @@ https://srajob.netlify.app/
 
 Utilities for job scraping and application automation.
 
+## Site handlers
+
+Examples of supported site handlers include Greenhouse, Workday, Avature, Netflix, Uber, Notion (www.notion.com/careers), and Docusign (careers.docusign.com/api/jobs).
+
 ## Run workers to scrape jobs in temporal 
 
 Use the `-ForceScrapeAll` switch with `start_worker.ps1` to reset active sites and force every scheduled site to run right away (even if not scheduled at the moment). For production convex, use `-UseProd`.

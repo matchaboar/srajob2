@@ -2,6 +2,7 @@
 
 param(
     [switch]$ForceScrapeAll = $false,
+    [switch]$ResetWithinSchedule = $false,
     [switch]$UseProd = $false,
     [string]$EnvFile = ""
 )
@@ -106,8 +107,6 @@ function Invoke-LoggedCommand {
     }
 
     $scriptText = ($Action.ToString()).Trim()
-    Write-Host ("[preflight] {0} starting (timeout={1}s)" -f $StepName, $TimeoutSeconds) -ForegroundColor Cyan
-    Write-Host ("[preflight] {0} command: {1}" -f $StepName, $scriptText) -ForegroundColor DarkGray
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     $capturedLines = New-Object System.Collections.Generic.List[string]
 
@@ -298,6 +297,10 @@ function Stop-ErrorWatcher {
 }
 
 function Run-PreflightChecks {
+    param(
+        [bool]$UseProd = $false
+    )
+
     if ($env:SKIP_PREFLIGHT_CHECKS -eq "1") {
         Write-Host "[preflight] SKIP_PREFLIGHT_CHECKS=1 set; skipping preflight checks." -ForegroundColor Yellow
         return
@@ -306,18 +309,32 @@ function Run-PreflightChecks {
     Write-Host "=== Running preflight checks ===" -ForegroundColor Cyan
     Reset-StaleVenv
 
+    $updateSiteSchedulesBlock = if ($UseProd) {
+        {
+            if (-not $env:CONVEX_HTTP_URL) {
+                Write-Host "CONVEX_HTTP_URL not set; skipping site schedule sync."
+                return
+            }
+            uv run agent_scripts/update_and_sync_site_schedules.py --env prod
+        }
+    } else {
+        {
+            if (-not $env:CONVEX_HTTP_URL) {
+                Write-Host "CONVEX_HTTP_URL not set; skipping site schedule sync."
+                return
+            }
+            uv run agent_scripts/update_and_sync_site_schedules.py --env dev
+        }
+    }
+
     $steps = @(
+        @{ Name = "update site schedules"; Timeout = 45; Block = $updateSiteSchedulesBlock },
         @{ Name = "ruff"; Timeout = 15; Block = { uvx ruff check job_scrape_application } },
         @{ Name = "pytest"; Timeout = 60; Block = { uv run pytest } }
     )
 
-    Write-Host "[preflight] Pending checks:" -ForegroundColor DarkGray
     foreach ($step in $steps) {
-        Write-Host ("[ ] {0}" -f $step.Name) -ForegroundColor DarkGray
-    }
-
-    foreach ($step in $steps) {
-        Write-Host ("[ ] {0} (running...)" -f $step.Name) -ForegroundColor Yellow
+        Write-Host ("[preflight] Running {0}..." -f $step.Name) -ForegroundColor DarkGray
         try {
             $result = Invoke-LoggedCommand -StepName $step.Name -TimeoutSeconds $step.Timeout -Action $step.Block
             $duration = if ($result -and $result.ContainsKey("Duration")) { $result["Duration"] } else { $null }
@@ -699,7 +716,7 @@ function Start-WorkerMain {
     $TemporalComposeFile = "docker/temporal/docker-compose.yml"
 
     Write-Host "[preflight] Running checks before starting services..." -ForegroundColor Cyan
-    Run-PreflightChecks
+    Run-PreflightChecks -UseProd:$UseProd
 
     # Check for Podman or Docker
     $cmd = "docker"
@@ -795,14 +812,24 @@ function Start-WorkerMain {
 
     Reset-StaleVenv
 
-    if ($ForceScrapeAll) {
+    if ($ForceScrapeAll -or $ResetWithinSchedule) {
         if (-not $env:CONVEX_HTTP_URL) {
             Write-Warning "CONVEX_HTTP_URL is not set; cannot reset sites for forced scrape."
         } else {
-            Write-Host "Resetting active sites to force a fresh scrape on first run..."
+            $respectSchedule = $ResetWithinSchedule.IsPresent
+            if ($respectSchedule) {
+                Write-Host "Resetting active sites (respecting schedules)..."
+            } else {
+                Write-Host "Resetting active sites to force a fresh scrape on first run..."
+            }
             try {
-                Invoke-WebRequest -Method POST -Uri "$($env:CONVEX_HTTP_URL.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body "{}" | Out-Null
-                Write-Host "Site reset request sent."
+                $resetPayload = @{ respectSchedule = $respectSchedule } | ConvertTo-Json -Compress
+                $resetResponse = Invoke-WebRequest -Method POST -Uri "$($env:CONVEX_HTTP_URL.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body $resetPayload
+                if ($resetResponse -and $resetResponse.Content) {
+                    Write-Host ("Site reset response: {0}" -f $resetResponse.Content)
+                } else {
+                    Write-Host "Site reset request sent."
+                }
             } catch {
                 Write-Warning "Failed to reset sites for forced scrape: $_"
             }

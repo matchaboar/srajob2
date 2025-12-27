@@ -27,6 +27,7 @@ from ..helpers.scrape_utils import (
     looks_like_error_landing,
     looks_like_job_listing_page,
     parse_markdown_hints,
+    parse_posted_at,
     strip_known_nav_blocks,
 )
 from ..helpers.link_extractors import gather_strings
@@ -223,6 +224,37 @@ class SpiderCloudScraper(BaseScraper):
                 return desc
         return None
 
+    def _extract_greenhouse_location_from_events(self, events: List[Any]) -> Optional[str]:
+        def _normalize(value: Any) -> Optional[str]:
+            if isinstance(value, dict):
+                value = value.get("name") or value.get("location")
+            if not isinstance(value, str):
+                return None
+            cleaned = value.strip()
+            return cleaned or None
+
+        for text in gather_strings(events):
+            if not isinstance(text, str) or not text.strip():
+                continue
+            payload = None
+            if "<pre" in text.lower():
+                payload = BaseSiteHandler._extract_json_payload_from_html(text)  # noqa: SLF001
+            if payload is None:
+                parsed = self._try_parse_json(text)
+                if isinstance(parsed, dict):
+                    payload = parsed
+            if not isinstance(payload, dict):
+                continue
+            location = _normalize(payload.get("location"))
+            if location:
+                return location
+            offices = payload.get("offices")
+            if isinstance(offices, list) and offices:
+                location = _normalize(offices[0])
+                if location:
+                    return location
+        return None
+
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return a markdown/text payload found in a response fragment."""
 
@@ -316,8 +348,12 @@ class SpiderCloudScraper(BaseScraper):
             desc_html, title = found
             desc_html = html.unescape(desc_html)
             rendered = _markdown_from_html(desc_html)
-            if title and title not in rendered:
-                return f"# {title}\n\n{rendered}".strip()
+            if title:
+                normalized_title = title.strip()
+                if normalized_title:
+                    first_line = rendered.lstrip().splitlines()[0].strip() if rendered.strip() else ""
+                    if first_line.lstrip("#").strip() != normalized_title:
+                        return f"# {normalized_title}\n\n{rendered}".strip()
             return rendered.strip()
 
         def _markdown_from_html(value: str) -> str:
@@ -358,6 +394,10 @@ class SpiderCloudScraper(BaseScraper):
                 if not isinstance(val, str) or not val.strip():
                     continue
                 looks_like_html = key in {"html", "raw_html"} or ("<" in val and ">" in val)
+                if looks_like_html and "<pre" in val.lower():
+                    extracted = _job_description_from_pre(val)
+                    if extracted:
+                        return extracted
                 return _markdown_from_html(val) if looks_like_html else val
             return None
 
@@ -1083,9 +1123,13 @@ class SpiderCloudScraper(BaseScraper):
             extracted = self._extract_markdown(events)
             if isinstance(extracted, str) and extracted.strip():
                 parsed_markdown = extracted
-        if parsed_markdown.lstrip().startswith(("{", "[")):
-            if handler:
-                parsed_markdown, parsed_title = handler.normalize_markdown(parsed_markdown)
+        raw_markdown = parsed_markdown
+        if handler:
+            normalized_markdown, normalized_title = handler.normalize_markdown(parsed_markdown)
+            if isinstance(normalized_markdown, str) and normalized_markdown.strip():
+                parsed_markdown = normalized_markdown
+            if normalized_title:
+                parsed_title = normalized_title
 
         listing_payload = self._extract_json_payload(events) or self._extract_json_payload(parsed_markdown)
         if (
@@ -1125,6 +1169,7 @@ class SpiderCloudScraper(BaseScraper):
             meta_description = self._extract_meta_description_from_events(events)
             if meta_description and len(meta_description) > len(cleaned_markdown.strip()):
                 cleaned_markdown = meta_description
+        cleaned_markdown_len = len(cleaned_markdown.strip())
         hints = parse_markdown_hints(cleaned_markdown)
         hint_title = hints.get("title") if isinstance(hints, dict) else None
 
@@ -1197,7 +1242,7 @@ class SpiderCloudScraper(BaseScraper):
                 url,
                 title,
             )
-            if require_keywords and not keyword_title:
+            if require_keywords and not keyword_title and cleaned_markdown_len < 200:
                 self._last_ignored_job = {
                     "url": url,
                     "reason": "missing_required_keyword",
@@ -1207,10 +1252,42 @@ class SpiderCloudScraper(BaseScraper):
                 return None
         company = derive_company_from_url(url) or "Unknown"
         location_hint = hints.get("location") if isinstance(hints, dict) else None
-        location = structured_location or location_hint
+        handler_location = None
+        if handler:
+            handler_location = handler.extract_location_hint(raw_markdown)
+        greenhouse_location = None
+        if handler and handler.name == "greenhouse":
+            greenhouse_location = self._extract_greenhouse_location_from_events(events)
+        location = structured_location or greenhouse_location or handler_location or location_hint
         remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", f"{title}\n{cleaned_markdown}")
         level = coerce_level(hints.get("level") if isinstance(hints, dict) else None, title)
         description = cleaned_markdown or ""
+
+        posted_at = started_at
+        if handler:
+            extractor = getattr(handler, "extract_posted_at", None)
+            if callable(extractor):
+                raw_posted_at = extractor(listing_payload, url) if listing_payload is not None else None
+                if raw_posted_at is None and structured_payload is not None:
+                    raw_posted_at = extractor(structured_payload, url)
+                if raw_posted_at is None and raw_markdown:
+                    candidate_payload = None
+                    stripped = raw_markdown.strip()
+                    if stripped.startswith("{"):
+                        candidate_payload = self._try_parse_json(stripped)
+                    if candidate_payload is None and "```" in raw_markdown:
+                        fence_match = re.search(
+                            CODE_FENCE_JSON_OBJECT_PATTERN,
+                            raw_markdown,
+                            flags=re.DOTALL | re.IGNORECASE,
+                        )
+                        if fence_match:
+                            candidate_payload = self._try_parse_json(fence_match.group(1))
+                    if isinstance(candidate_payload, dict):
+                        raw_posted_at = extractor(candidate_payload, url)
+                if raw_posted_at is not None:
+                    if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
+                        posted_at = parse_posted_at(raw_posted_at)
 
         self._last_ignored_job = None
         return {
@@ -1226,7 +1303,7 @@ class SpiderCloudScraper(BaseScraper):
             "compensation_unknown": True,
             "compensation_reason": UNKNOWN_COMPENSATION_REASON,
             "url": url,
-            "posted_at": started_at,
+            "posted_at": posted_at,
         }
 
     def _consume_chunk(self, chunk: Any, buffer: str) -> Tuple[str, List[Any]]:

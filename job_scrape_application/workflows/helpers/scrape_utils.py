@@ -37,6 +37,7 @@ from .regex_patterns import (
     _NAV_BLOCK_REGEX,
     _NAV_MENU_SEQUENCE,
     _REMOTE_RE,
+    _SALARY_BETWEEN_RE,
     _SALARY_K_RE,
     _SALARY_RANGE_LABEL_RE,
     _SALARY_RE,
@@ -404,6 +405,7 @@ def strip_known_nav_blocks(markdown: str) -> str:
     cleaned = _NAV_BLOCK_REGEX.sub("\n", cleaned)
     cleaned = _strip_avature_tail(cleaned)
     cleaned = _strip_embedded_json_blobs(cleaned)
+    cleaned = _strip_empty_link_lines(cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -439,6 +441,31 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def _strip_empty_link_lines(markdown: str) -> str:
+    if not markdown:
+        return markdown
+
+    def _is_empty_link_line(value: str) -> bool:
+        if not value:
+            return False
+        if value == "[":
+            return True
+        if re.fullmatch(r"\[\s*\]", value):
+            return True
+        if re.fullmatch(r"\]\(\s*#?\s*\)", value):
+            return True
+        if re.fullmatch(r"\[\s*\]\(\s*#?\s*\)", value):
+            return True
+        return False
+
+    lines = []
+    for line in markdown.splitlines():
+        if _is_empty_link_line(line.strip()):
+            continue
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def _is_separator_line(line: str) -> bool:
@@ -1311,6 +1338,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             comp_candidates.append(low_norm)
         elif high_norm:
             comp_candidates.append(high_norm)
+    for salary_match in _SALARY_BETWEEN_RE.finditer(markdown):
+        low = salary_match.group("low")
+        high = salary_match.group("high")
+        low_val = _to_int(low) if low else None
+        high_val = _to_int(high) if high else None
+        _record_comp_range(low_val, high_val, prefer_high=True)
     for salary_match in _SALARY_RANGE_LABEL_RE.finditer(markdown):
         low = salary_match.group("low")
         high = salary_match.group("high")
@@ -1341,7 +1374,11 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     if comp_val is not None:
         hints["compensation"] = comp_val
     if comp_ranges:
-        best_low, best_high = max(comp_ranges, key=lambda pair: ((pair[1] or pair[0] or 0)))
+        ranged = [pair for pair in comp_ranges if pair[0] is not None and pair[1] is not None]
+        if ranged:
+            best_low, best_high = max(ranged, key=lambda pair: (pair[1] or 0))
+        else:
+            best_low, best_high = max(comp_ranges, key=lambda pair: ((pair[1] or pair[0] or 0)))
         range_payload = {k: v for k, v in (("low", best_low), ("high", best_high)) if v is not None}
         if range_payload:
             hints["compensation_range"] = range_payload
