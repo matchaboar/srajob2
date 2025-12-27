@@ -15,6 +15,7 @@ from temporalio.service import RPCError, RPCStatusCode
 from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor, WorkflowInterceptorClassInput
 
 from ..config import settings
+from ..services import telemetry
 from ..services.convex_client import convex_query
 from . import activities
 from .scrape_workflow import (
@@ -308,6 +309,10 @@ async def main() -> None:
     logger = _setup_logging()
     logger.info("Worker main() started.")
     logger.info("Settings: Temporal=%s, Convex=%s", settings.temporal_address, settings.convex_http_url)
+    if telemetry.initialize_posthog_exception_tracking():
+        logger.info("PostHog exception autocapture enabled.")
+    elif settings.posthog_project_api_key:
+        logger.warning("PostHog exception autocapture disabled or failed to initialize.")
     logger.info("Connecting to Temporal at %s...", settings.temporal_address)
     os.environ.setdefault("TEMPORAL_MAX_INCOMING_GRPC_BYTES", str(10 * 1024 * 1024))
     try:

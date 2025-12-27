@@ -30,7 +30,7 @@ crons.interval(
   internal.crons.clearExpiredSiteLocks,
 );
 
-// Hourly, purge stale queued URLs older than 48 hours
+// Hourly, purge stale queued URLs older than 7 days
 crons.interval(
   "clearStaleScrapeQueue",
   { hours: 1 },

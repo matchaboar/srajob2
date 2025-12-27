@@ -17,7 +17,7 @@ import {
 import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
 
 const http = httpRouter();
-const SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
+const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
@@ -1684,10 +1684,10 @@ const leaseScrapeUrlBatchHandler = async (
     if (args.provider && row.provider !== args.provider) continue;
     const createdAt = (row).createdAt ?? 0;
     if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
-      // Skip stale (>48h) entries; mark ignored
+      // Skip stale (>7d) entries; mark ignored
       await ctx.db.patch(row._id, {
         status: "failed",
-        lastError: "stale (>48h)",
+        lastError: "stale (>7d)",
         updatedAt: now,
         completedAt: now,
       });

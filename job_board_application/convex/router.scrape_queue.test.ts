@@ -142,7 +142,7 @@ describe("leaseScrapeUrlBatch", () => {
       url: "https://example.com/stale",
       status: "pending",
       updatedAt: now - 25 * 60 * 1000,
-      createdAt: now - 49 * 60 * 60 * 1000, // older than 48h to trigger ignore
+      createdAt: now - 8 * 24 * 60 * 60 * 1000, // older than 7d to trigger ignore
       provider: "spidercloud",
       attempts: 1,
     };

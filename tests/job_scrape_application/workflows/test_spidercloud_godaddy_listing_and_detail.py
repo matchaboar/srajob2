@@ -40,6 +40,7 @@ ZSCALER_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_zscaler_greenhouse_listing.json"
 )
 ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
+ASHBY_RAMP_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_ramp_job_commonmark.json"
 NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
 NETFLIX_LISTING_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_netflix_listing_page_commonmark.json"
@@ -53,6 +54,13 @@ NEXHEALTH_DETAIL_FIXTURE = (
 )
 DATAMINR_WORKDAY_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_dataminr_workday_job_detail_api.json"
+)
+GITHUB_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_github_careers_job_4648_raw.json"
+MITHRIL_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_greenhouse_mithril_job_4604609007_raw.json"
+)
+TOGETHERAI_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_greenhouse_togetherai_job_4967737007_raw.json"
 )
 WORKDAY_DETAIL_FIXTURES = (
     FIXTURE_DIR / "spidercloud_broadcom_workday_job_detail_api.json",
@@ -389,6 +397,117 @@ def test_spidercloud_nexhealth_job_detail_normalizes_fields():
     assert len(normalized["description"]) > 200
 
 
+def test_spidercloud_greenhouse_mithril_api_job_detail_normalizes_description():
+    payload = _load_fixture(MITHRIL_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Senior Product Engineer" in normalized["title"]
+    assert "Mithril" in normalized["description"]
+    assert len(normalized["description"]) > 200
+
+
+def test_spidercloud_greenhouse_togetherai_api_job_detail_normalizes_description():
+    payload = _load_fixture(TOGETHERAI_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Sales Development Engineer" in normalized["title"]
+    assert "Together AI" in normalized["description"]
+    assert len(normalized["description"]) > 200
+
+
+def test_spidercloud_github_careers_job_detail_not_ignored():
+    payload = _load_fixture(GITHUB_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert "Senior Service Delivery Engineer" in normalized["title"]
+    assert "GitHub" in normalized["description"]
+    assert len(normalized["description"]) > 200
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fixture_path, expected_title, expected_description_snippet",
+    [
+        (GITHUB_DETAIL_FIXTURE, "Senior Service Delivery Engineer", "GitHub"),
+        (MITHRIL_DETAIL_FIXTURE, "Senior Product Engineer", "Mithril"),
+        (TOGETHERAI_DETAIL_FIXTURE, "Sales Development Engineer", "Together AI"),
+    ],
+)
+async def test_spidercloud_detail_raw_payload_ingests_job(
+    monkeypatch: pytest.MonkeyPatch,
+    fixture_path: Path,
+    expected_title: str,
+    expected_description_snippet: str,
+):
+    payload = _load_fixture(fixture_path)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+    assert normalized is not None
+
+    calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": len(args.get("jobs", []))}
+        return None
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+
+    await store_scrape(
+        {
+            "sourceUrl": url,
+            "provider": "spidercloud",
+            "startedAt": 0,
+            "completedAt": 1,
+            "items": {"provider": "spidercloud", "normalized": [normalized]},
+        }
+    )
+
+    ingest_calls = [c for c in calls if c["name"] == "router:ingestJobsFromScrape"]
+    assert ingest_calls, "expected normalized job to be ingested into Convex"
+    jobs = ingest_calls[0]["args"].get("jobs", [])
+    assert len(jobs) == 1
+    assert jobs[0].get("url") == url
+    assert expected_title in (jobs[0].get("title") or "")
+    description = jobs[0].get("description") or ""
+    assert expected_description_snippet in description
+    assert len(description) > 200
+    assert not any(c["name"] == "router:insertIgnoredJob" for c in calls)
+
+
 def test_spidercloud_okta_job_detail_commonmark_normalizes_description():
     payload = _load_fixture(OKTA_DETAIL_FIXTURE)
     url = _extract_source_url(payload)
@@ -579,6 +698,18 @@ def test_spidercloud_ashby_job_detail_prefers_metadata_description():
     assert "Senior Software Engineer" in markdown
     assert "Lambda" in markdown
     assert len(markdown) > 500
+
+
+def test_spidercloud_ashby_ramp_job_detail_not_ignored():
+    payload = _load_fixture(ASHBY_RAMP_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+    scraper = _make_scraper()
+
+    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert scraper._last_ignored_job is None  # noqa: SLF001
 
 
 def test_spidercloud_netflix_detail_placeholder_title_does_not_drop():

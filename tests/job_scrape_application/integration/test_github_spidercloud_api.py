@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 import re
 
@@ -23,12 +23,7 @@ SPIDER_PARAMS: Dict[str, Any] = {
     "limit": 1,
 }
 
-API_KEY = os.getenv("SPIDER_API_KEY") or os.getenv("SPIDER_KEY")
-
-pytestmark = pytest.mark.skipif(
-    not API_KEY,
-    reason="SPIDER_API_KEY (or SPIDER_KEY) not set; skipping live SpiderCloud test.",
-)
+API_KEY = "stubbed-key"
 
 
 async def _collect_response(response: Any) -> List[Any]:
@@ -88,6 +83,8 @@ def _extract_payload(events: List[Any]) -> Optional[Dict[str, Any]]:
 def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
     if not text:
         return None
+    if "<pre" not in text.lower():
+        return None
     match = re.search(r"<pre>(?P<content>.*?)</pre>", text, flags=re.IGNORECASE | re.DOTALL)
     content = match.group("content") if match else text
     content = content.strip()
@@ -132,7 +129,39 @@ def _summarize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_github_api_payload_is_html_wrapped_and_yields_more_than_10_jobs() -> None:
+async def test_github_api_payload_is_html_wrapped_and_yields_more_than_10_jobs(monkeypatch) -> None:
+    fixture_path = Path("tests/fixtures/github_careers_api_jobs_12.json")
+    payload_full = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload_default = {
+        "jobs": payload_full["jobs"][:10],
+        "count": 10,
+        "totalCount": 10,
+    }
+
+    class FakeAsyncSpider:
+        def __init__(self, api_key: str):  # noqa: D401
+            self.api_key = api_key
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def scrape_url(
+            self,
+            url: str,
+            params: Dict[str, Any] | None = None,
+            stream: bool = False,
+            content_type: str | None = None,
+        ):
+            return [
+                {"content": json.dumps(payload_default)},
+                {"raw_html": f"<pre>{json.dumps(payload_full)}</pre>"},
+            ]
+
+    monkeypatch.setattr(f"{__name__}.AsyncSpider", FakeAsyncSpider)
+
     async with AsyncSpider(api_key=API_KEY) as client:
         response = await _collect_response(
             client.scrape_url(

@@ -44,6 +44,7 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("temporalio not installed", allow_module_level=True)
 
+from temporalio.exceptions import ApplicationError  # noqa: E402
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows import scrape_workflow as sw  # noqa: E402
 from job_scrape_application.workflows.activities import factories  # noqa: E402
@@ -527,6 +528,30 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
     assert requested["url"] == "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     assert len(listing["job_urls"]) >= 30
     assert any(u.startswith("https://boards.greenhouse.io/robinhood/jobs/") for u in listing["job_urls"])
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_greenhouse_listing_invalid_json_raises(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    requested: dict[str, str] = {}
+
+    async def fake_fetch(api_url: str, _handler):
+        requested["url"] = api_url
+        return "not-json", []
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+
+    site: Site = {
+        "_id": "01hzconvexsiteid123456789ac0",
+        "url": "https://api.greenhouse.io/v1/boards/rubrik/jobs",
+        "type": "greenhouse",
+    }
+
+    with pytest.raises(ApplicationError) as excinfo:
+        await scraper.fetch_greenhouse_listing(site)
+
+    assert requested["url"] == "https://api.greenhouse.io/v1/boards/rubrik/jobs"
+    assert "Greenhouse board payload was not valid JSON" in str(excinfo.value)
 
 
 @pytest.mark.asyncio

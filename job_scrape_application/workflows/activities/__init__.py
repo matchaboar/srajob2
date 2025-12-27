@@ -1751,6 +1751,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         ignored_items = payload["items"].get("ignored")
         if isinstance(ignored_items, list):
             ignored_count = len(ignored_items)
+    failed_count = 0
+    failed_reasons: list[str] = []
+    failed_items = None
+    if isinstance(payload.get("items"), dict):
+        failed_items = payload["items"].get("failed")
+        if isinstance(failed_items, list):
+            failed_count = len(failed_items)
+            for entry in failed_items:
+                if isinstance(entry, dict):
+                    reason = entry.get("reason")
+                    if isinstance(reason, str) and reason:
+                        failed_reasons.append(reason)
 
     scraped_with = None
     if isinstance(payload.get("items"), dict):
@@ -1775,8 +1787,15 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
     provider_for_log = scraped_with or payload.get("provider") or items_provider
     invalid_reason = None
+    failure_reason = None
     if workflow_name == "SpidercloudJobDetails" and normalized_count == 0 and ignored_count == 0:
-        invalid_reason = "no_normalized_jobs"
+        if failed_count:
+            if failed_reasons and all(reason == "captcha_failed" for reason in failed_reasons):
+                failure_reason = "captcha_failed"
+            else:
+                failure_reason = "scrape_failed"
+        else:
+            invalid_reason = "no_normalized_jobs"
 
     await _log_scratchpad(
         "scrape.received",
@@ -1792,6 +1811,19 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             "siteId": payload.get("siteId"),
         },
     )
+    if failed_count:
+        await _log_scratchpad(
+            "scrape.failed_urls",
+            message="Scrape payload contained failed URLs",
+            data={
+                "workflowId": payload.get("workflowId"),
+                "provider": provider_for_log,
+                "failedCount": failed_count,
+                "failedSample": failed_items[:10] if isinstance(failed_items, list) else None,
+                "siteId": payload.get("siteId"),
+            },
+            level="warning",
+        )
 
     # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
     try:
@@ -1971,18 +2003,27 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
         sub_urls = scrape.get("subUrls")
         sub_url_sample = sub_urls[:20] if isinstance(sub_urls, list) else None
+        failed_entries: list[Any] = []
+        failed_count_local = 0
+        if isinstance(items_block, dict):
+            failed_items_local = items_block.get("failed")
+            if isinstance(failed_items_local, list):
+                failed_entries = failed_items_local[:10]
+                failed_count_local = len(failed_items_local)
 
         return _strip_none_values(
             {
-                "reason": invalid_reason,
+                "reason": invalid_reason or failure_reason,
                 "normalizedCount": normalized_count,
                 "ignoredCount": ignored_count,
+                "failedCount": failed_count_local,
                 "provider": provider_for_log,
                 "workflowName": workflow_name,
                 "siteId": payload.get("siteId"),
                 "sourceUrl": payload.get("sourceUrl"),
                 "pattern": payload.get("pattern"),
                 "subUrlsSample": sub_url_sample,
+                "failedSamples": failed_entries or None,
                 "rawItemsCount": len(raw_items),
                 "markdownLengths": markdown_lengths or None,
                 "eventCounts": event_counts or None,
@@ -2306,6 +2347,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             f"Invalid scrape: {invalid_reason}",
             non_retryable=True,
             type="invalid_scrape",
+        )
+
+    if failure_reason:
+        await _log_scratchpad(
+            "scrape.failed",
+            message=f"Scrape failed: {failure_reason}",
+            data=_build_invalid_context(),
+            level="error",
+        )
+        raise ApplicationError(
+            f"Scrape failed: {failure_reason}",
+            type=failure_reason,
         )
 
     return str(scrape_id)

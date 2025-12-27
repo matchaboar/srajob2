@@ -60,6 +60,7 @@ except ImportError:  # pragma: no cover
 
 sys.path.insert(0, os.path.abspath("."))
 
+from temporalio.exceptions import ApplicationError  # noqa: E402
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -135,6 +136,30 @@ async def test_store_scrape_omits_null_pattern(monkeypatch):
 
     assert res == "scrape-id"
     assert "pattern" not in calls["args"]
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_marks_spidercloud_captcha_failed(monkeypatch):
+    payload = {
+        "sourceUrl": "https://api.greenhouse.io/v1/boards/axon/jobs",
+        "workflowName": "SpidercloudJobDetails",
+        "items": {
+            "normalized": [],
+            "failed": [{"url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/1", "reason": "captcha_failed"}],
+        },
+    }
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        return "scrape-id"
+
+    monkeypatch.setattr(acts, "trim_scrape_for_convex", lambda x, **kwargs: x)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_log", lambda *_args, **_kwargs: None)
+
+    with pytest.raises(ApplicationError) as excinfo:
+        await acts.store_scrape(payload)
+
+    assert excinfo.value.type == "captcha_failed"
 
 
 @pytest.mark.asyncio

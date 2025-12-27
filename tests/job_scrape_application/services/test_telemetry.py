@@ -65,6 +65,24 @@ if "opentelemetry" not in sys.modules:
     sys.modules["opentelemetry.sdk._logs.export"] = types.SimpleNamespace(
         BatchLogRecordProcessor=_FakeBatchLogRecordProcessor
     )
+if "posthog" not in sys.modules:
+    class _FakePosthog:
+        def __init__(self, api_key: str, host: str | None = None, enable_exception_autocapture: bool = False):
+            self.api_key = api_key
+            self.host = host
+            self.enable_exception_autocapture = enable_exception_autocapture
+            self.captured: List[Dict[str, Any]] = []
+
+        def capture_exception(self, exc, distinct_id=None, properties=None):
+            self.captured.append(
+                {
+                    "exc": exc,
+                    "distinct_id": distinct_id,
+                    "properties": properties or {},
+                }
+            )
+
+    sys.modules["posthog"] = types.SimpleNamespace(Posthog=_FakePosthog)
 
 from job_scrape_application.services import telemetry  # noqa: E402
 
@@ -75,6 +93,7 @@ def reset_logger_state(monkeypatch):
 
     monkeypatch.setattr(telemetry, "_logger", None)
     monkeypatch.setattr(telemetry, "_logger_provider", None)
+    monkeypatch.setattr(telemetry, "_posthog_client", None)
 
 
 def test_resolve_endpoint_prefers_explicit_override(monkeypatch):
@@ -96,6 +115,13 @@ def test_resolve_endpoint_defaults_to_us(monkeypatch):
     monkeypatch.setattr(telemetry.settings, "posthog_region", None)
 
     assert telemetry._resolve_endpoint() == telemetry.DEFAULT_POSTHOG_ENDPOINT
+
+
+def test_resolve_posthog_host_from_logs_endpoint(monkeypatch):
+    monkeypatch.setattr(telemetry.settings, "posthog_logs_endpoint", "https://eu.i.posthog.com/i/v1/logs")
+    monkeypatch.setattr(telemetry.settings, "posthog_region", "US")
+
+    assert telemetry._resolve_posthog_host() == "https://eu.i.posthog.com"
 
 
 def test_ensure_logger_requires_api_key(monkeypatch):
@@ -221,6 +247,25 @@ def test_emit_posthog_log_preserves_caller_location(monkeypatch):
     assert record.pathname.endswith("test_telemetry.py")
     assert record.funcName == "test_emit_posthog_log_preserves_caller_location"
     assert record.lineno > 0
+
+
+def test_emit_posthog_exception_uses_client(monkeypatch):
+    captured: Dict[str, Any] = {}
+
+    class FakeClient:
+        def capture_exception(self, exc, distinct_id=None, properties=None):
+            captured["exc"] = exc
+            captured["distinct_id"] = distinct_id
+            captured["properties"] = properties or {}
+
+    monkeypatch.setattr(telemetry, "_ensure_posthog_client", lambda: FakeClient())
+    monkeypatch.setattr(telemetry, "_infer_workflow_id", lambda: "wf-123")
+
+    telemetry.emit_posthog_exception(ValueError("boom"))
+
+    assert isinstance(captured["exc"], ValueError)
+    assert captured["distinct_id"] == "wf-123"
+    assert captured["properties"]["workflowId"] == "wf-123"
 
 
 def test_force_flush_uses_provider(monkeypatch):

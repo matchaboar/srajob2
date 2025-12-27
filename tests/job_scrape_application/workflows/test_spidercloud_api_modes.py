@@ -48,6 +48,21 @@ def test_captcha_detector_ignores_recaptcha_enabled_fixture():
     assert marker is None
 
 
+def test_captcha_detector_ignores_security_check_in_job_text():
+    scraper = _make_scraper()
+    markdown = "Build and maintain security checks into CI/CD pipelines."
+    marker = scraper._detect_captcha(markdown, [])
+    assert marker is None
+
+
+def test_captcha_detector_flags_security_check_with_bot_context():
+    scraper = _make_scraper()
+    markdown = "Security check your browser before accessing this site."
+    marker = scraper._detect_captcha(markdown, [])
+    assert marker is not None
+    assert marker.marker == "security check"
+
+
 class _CaptchaClient:
     """Client that raises CaptchaDetectedError first, then succeeds."""
 
@@ -272,6 +287,26 @@ async def test_scrape_single_url_sets_raw_format_for_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_greenhouse_api_valid_json_skips_captcha_detection():
+    scraper = _make_scraper()
+    job_payload = {
+        "id": 6281323003,
+        "title": "Senior Application Security Engineer II",
+        "content": "Security check your browser before applying.",
+    }
+    fake_client = _FakeClient([{"content": {"raw": json.dumps(job_payload)}}])
+
+    result = await scraper._scrape_single_url(
+        fake_client,
+        "https://boards-api.greenhouse.io/v1/boards/axon/jobs/6281323003",
+        {"return_format": ["raw_html"]},
+    )
+
+    assert result["normalized"] is not None
+    assert "security check your browser" in result["normalized"]["description"].lower()
+
+
+@pytest.mark.asyncio
 async def test_scrape_single_url_keeps_commonmark_for_non_api():
     scraper = _make_scraper()
     payload = {"commonmark": "### Senior Software Engineer\nBody"}
@@ -396,6 +431,8 @@ async def test_captcha_gives_up_after_limit(monkeypatch):
     payload = await scraper._scrape_urls_batch(["https://careers.confluent.io/jobs/united_states"], source_url="https://careers.confluent.io/jobs/united_states")
 
     assert payload["items"]["normalized"] == []
+    assert payload["items"]["failed"]
+    assert payload["items"]["failed"][0]["reason"] == "captcha_failed"
     assert len(client.calls) == CAPTCHA_RETRY_LIMIT + 1
     proxies_seen = [c["params"].get("proxy") for c in client.calls]
     assert proxies_seen[0] is None

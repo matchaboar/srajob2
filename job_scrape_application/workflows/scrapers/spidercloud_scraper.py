@@ -75,11 +75,51 @@ logger = logging.getLogger("temporal.worker.activities")
 class CaptchaDetectedError(Exception):
     """Raised when a SpiderCloud response looks like a captcha wall."""
 
-    def __init__(self, marker: str, markdown: str | None = None, events: Optional[List[Any]] = None):
+    def __init__(
+        self,
+        marker: str,
+        markdown: str | None = None,
+        events: Optional[List[Any]] = None,
+        match_text: str | None = None,
+    ):
         super().__init__(marker)
         self.marker = marker
         self.markdown = markdown or ""
         self.events = events or []
+        self.match_text = match_text
+
+
+class CaptchaRetriesExceededError(Exception):
+    """Raised when captcha retries are exhausted for a SpiderCloud scrape."""
+
+    def __init__(
+        self,
+        url: str,
+        marker: str,
+        match_text: str | None,
+        attempts: int,
+        proxy: str | None,
+        markdown: str | None = None,
+        events: Optional[List[Any]] = None,
+    ) -> None:
+        message = (
+            "Captcha retries exhausted"
+            f" url={url} attempts={attempts} marker={marker} match={match_text} proxy={proxy}"
+        )
+        super().__init__(message)
+        self.url = url
+        self.marker = marker
+        self.match_text = match_text
+        self.attempts = attempts
+        self.proxy = proxy
+        self.markdown = markdown or ""
+        self.events = events or []
+
+
+@dataclass(frozen=True)
+class CaptchaMatch:
+    marker: str
+    match_text: str | None = None
 
 
 @dataclass
@@ -496,7 +536,42 @@ class SpiderCloudScraper(BaseScraper):
             return None
         return max(costs)
 
-    def _detect_captcha(self, markdown_text: str, events: List[Any]) -> Optional[str]:
+    def _is_greenhouse_job_payload(self, payload: Any) -> bool:
+        if not isinstance(payload, dict):
+            return False
+        content = payload.get("content")
+        title = payload.get("title")
+        job_id = payload.get("id") or payload.get("internal_job_id") or payload.get("job_id")
+        if not isinstance(content, str) or not content.strip():
+            return False
+        if not isinstance(title, str) or not title.strip():
+            return False
+        if job_id is None:
+            return False
+        return True
+
+    def _has_valid_greenhouse_job_payload(
+        self,
+        events: List[Any],
+        markdown_parts: List[str],
+    ) -> bool:
+        candidates: list[str] = []
+        for text in gather_strings(events):
+            if isinstance(text, str) and text.strip():
+                candidates.append(text)
+        for text in markdown_parts:
+            if isinstance(text, str) and text.strip():
+                candidates.append(text)
+
+        for text in candidates:
+            payload = self._try_parse_json(text)
+            if isinstance(payload, str):
+                payload = self._try_parse_json(payload)
+            if self._is_greenhouse_job_payload(payload):
+                return True
+        return False
+
+    def _detect_captcha(self, markdown_text: str, events: List[Any]) -> Optional[CaptchaMatch]:
         """Return a matched captcha marker when the payload looks like a bot check."""
 
         haystack_parts: List[str] = []
@@ -511,12 +586,16 @@ class SpiderCloudScraper(BaseScraper):
                 if isinstance(val, str) and val.strip():
                     haystack_parts.append(val)
 
-        haystack = " ".join(haystack_parts).lower()
+        haystack = " ".join(haystack_parts)
+        security_check_pattern = re.compile(
+            r"(?:security check|security checks).{0,80}(?:browser|captcha|human|robot|verify|cloudflare|ddos)",
+            re.IGNORECASE,
+        )
         markers: tuple[tuple[str, Optional[re.Pattern[str]]], ...] = (
             ("vercel security checkpoint", None),
             ("checking your browser", None),
             ("are you human", None),
-            ("security check", None),
+            ("security check", security_check_pattern),
             ("robot check", None),
             ("access denied", None),
             ("captcha", re.compile(CAPTCHA_WORD_PATTERN)),
@@ -526,17 +605,40 @@ class SpiderCloudScraper(BaseScraper):
             ),
         )
 
+        def _match_pattern(text: str, compiled: re.Pattern[str]) -> Optional[re.Match[str]]:
+            if compiled.flags & re.IGNORECASE:
+                return compiled.search(text)
+            return re.search(compiled.pattern, text, compiled.flags | re.IGNORECASE)
+
+        def _match_marker(text: str, marker_text: str) -> Optional[re.Match[str]]:
+            return re.search(re.escape(marker_text), text, re.IGNORECASE)
+
         for marker, pattern in markers:
-            if pattern:
-                if pattern.search(haystack):
-                    return marker
-            elif marker in haystack:
-                return marker
+            for candidate in haystack_parts:
+                if not isinstance(candidate, str) or not candidate.strip():
+                    continue
+                if pattern:
+                    match = _match_pattern(candidate, pattern)
+                    if match:
+                        return CaptchaMatch(marker=marker, match_text=match.group(0))
+                else:
+                    match = _match_marker(candidate, marker)
+                    if match:
+                        return CaptchaMatch(marker=marker, match_text=match.group(0))
+        if haystack and isinstance(haystack, str):
+            lowered = haystack.lower()
+            for marker, pattern in markers:
+                if pattern:
+                    if _match_pattern(lowered, pattern):
+                        return CaptchaMatch(marker=marker, match_text=marker)
+                elif marker in lowered:
+                    return CaptchaMatch(marker=marker, match_text=marker)
         return None
 
     def _captcha_context(
         self,
         marker: str,
+        match_text: str | None,
         markdown_text: str | None,
         events: List[Any] | None,
         *,
@@ -544,7 +646,7 @@ class SpiderCloudScraper(BaseScraper):
     ) -> Optional[str]:
         if not marker:
             return None
-        needle = marker.lower()
+        needle = (match_text or marker).lower()
         candidates: list[str] = []
         if isinstance(markdown_text, str) and markdown_text.strip():
             candidates.append(markdown_text)
@@ -570,11 +672,13 @@ class SpiderCloudScraper(BaseScraper):
         *,
         url: str,
         marker: str,
+        match_text: str | None,
         attempt: int,
         proxy: Optional[str],
         markdown_text: str | None,
         events: List[Any] | None,
     ) -> None:
+        context = self._captcha_context(marker, match_text, markdown_text, events)
         payload = {
             "event": "scrape.captcha_detected",
             "level": "warn",
@@ -582,9 +686,10 @@ class SpiderCloudScraper(BaseScraper):
             "data": {
                 "provider": self.provider,
                 "marker": marker,
+                "matchText": match_text,
                 "attempt": attempt,
                 "proxy": proxy,
-                "context": self._captcha_context(marker, markdown_text, events),
+                "context": context,
             },
         }
         try:
@@ -592,6 +697,77 @@ class SpiderCloudScraper(BaseScraper):
         except Exception:
             # best-effort logging; never fail the scrape on telemetry errors
             pass
+        try:
+            telemetry.emit_posthog_exception(
+                CaptchaRetriesExceededError(
+                    url=url,
+                    marker=marker,
+                    match_text=match_text,
+                    attempts=attempt,
+                    proxy=proxy,
+                    markdown=markdown_text,
+                    events=events,
+                ),
+                properties={
+                    "event": "scrape.captcha_failed",
+                    "siteUrl": url,
+                    "provider": self.provider,
+                    "captchaMarker": marker,
+                    "captchaMatchText": match_text,
+                    "captchaContext": context,
+                    "attempt": attempt,
+                    "proxy": proxy,
+                },
+            )
+        except Exception:
+            # best-effort logging; never fail the scrape on telemetry errors
+            pass
+
+    def _emit_scrape_log(
+        self,
+        *,
+        event: str,
+        level: str,
+        site_url: str,
+        api_url: str | None = None,
+        data: Dict[str, Any] | None = None,
+        exc: BaseException | None = None,
+        capture_exception: bool = False,
+    ) -> None:
+        payload: Dict[str, Any] = {
+            "event": event,
+            "level": level,
+            "siteUrl": site_url,
+            "data": {
+                "provider": self.provider,
+            },
+        }
+        if api_url:
+            payload["data"]["apiUrl"] = api_url
+        if data:
+            payload["data"].update(data)
+        if exc:
+            payload["data"]["error"] = str(exc)
+
+        try:
+            telemetry.emit_posthog_log(payload)
+        except Exception:
+            # best-effort logging; never fail the scrape on telemetry errors
+            pass
+
+        if exc and capture_exception:
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": event,
+                        "siteUrl": site_url,
+                        "apiUrl": api_url,
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
 
     def _extract_structured_job_posting(self, events: List[Any]) -> Optional[Dict[str, Any]]:
         """Best-effort extraction of JSON-LD JobPosting data from raw HTML events."""
@@ -1158,10 +1334,17 @@ class SpiderCloudScraper(BaseScraper):
                 structured_description = raw_description.strip()
             structured_location = self._location_from_job_posting(structured_payload)
 
+        structured_markdown = None
         if structured_description:
             structured_markdown = self._html_to_markdown(structured_description)
-            if structured_markdown.strip() and self._should_use_structured_description(parsed_markdown):
-                parsed_markdown = structured_markdown
+            if structured_markdown.strip():
+                if self._should_use_structured_description(parsed_markdown):
+                    parsed_markdown = structured_markdown
+                else:
+                    listing_probe = strip_known_nav_blocks(parsed_markdown or "")
+                    listing_probe = _strip_embedded_theme_json(listing_probe)
+                    if looks_like_job_listing_page(parsed_title, listing_probe, url):
+                        parsed_markdown = structured_markdown
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
         cleaned_markdown = _strip_embedded_theme_json(cleaned_markdown)
@@ -1464,15 +1647,25 @@ class SpiderCloudScraper(BaseScraper):
         )
 
         # Detect captcha walls early so the caller can decide whether to retry with a proxy.
-        marker = self._detect_captcha("\n\n".join(markdown_parts), raw_events)
-        if marker:
+        captcha_match = None
+        if handler and handler.name == "greenhouse" and handler.is_api_detail_url(url):
+            if not self._has_valid_greenhouse_job_payload(raw_events, markdown_parts):
+                captcha_match = self._detect_captcha("\n\n".join(markdown_parts), raw_events)
+        else:
+            captcha_match = self._detect_captcha("\n\n".join(markdown_parts), raw_events)
+        if captcha_match:
             logger.warning(
                 "SpiderCloud captcha detected url=%s attempt=%s marker=%s",
                 url,
                 attempt,
-                marker,
+                captcha_match.marker,
             )
-            raise CaptchaDetectedError(marker, "\n\n".join(markdown_parts), raw_events)
+            raise CaptchaDetectedError(
+                captcha_match.marker,
+                "\n\n".join(markdown_parts),
+                raw_events,
+                match_text=captcha_match.match_text,
+            )
 
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
@@ -1625,6 +1818,7 @@ class SpiderCloudScraper(BaseScraper):
         normalized_items: List[Dict[str, Any]] = []
         raw_items: List[Dict[str, Any]] = []
         ignored_items: List[Dict[str, Any]] = []
+        failed_items: List[Dict[str, Any]] = []
         listing_job_urls: List[str] = []
         total_cost_milli_cents = 0.0
         saw_cost_field = False
@@ -1679,6 +1873,7 @@ class SpiderCloudScraper(BaseScraper):
                                 self._emit_captcha_warn(
                                     url=url,
                                     marker=err.marker,
+                                    match_text=getattr(err, "match_text", None),
                                     attempt=attempt,
                                     proxy=proxy,
                                     markdown_text=err.markdown,
@@ -1691,7 +1886,15 @@ class SpiderCloudScraper(BaseScraper):
                                     summary=f"captcha_failed marker={err.marker}",
                                     metadata={"attempts": attempt, "proxy": proxy},
                                 )
-                                break
+                                return idx, url, {
+                                    "failed": {
+                                        "url": url,
+                                        "reason": "captcha_failed",
+                                        "marker": err.marker,
+                                        "attempts": attempt,
+                                        "proxy": proxy,
+                                    }
+                                }
                         except asyncio.TimeoutError:
                             logger.warning(
                                 "SpiderCloud scrape timed out url=%s timeout=%s",
@@ -1728,6 +1931,8 @@ class SpiderCloudScraper(BaseScraper):
                     normalized_items.append(result["normalized"])
                 if result.get("ignored"):
                     ignored_items.append(result["ignored"])
+                if result.get("failed"):
+                    failed_items.append(result["failed"])
                 if result.get("raw"):
                     raw_items.append(result["raw"])
                     markdown_len = len(result.get("raw", {}).get("markdown") or "")
@@ -1793,6 +1998,8 @@ class SpiderCloudScraper(BaseScraper):
             items_block["job_urls"] = deduped
         if ignored_items:
             items_block["ignored"] = ignored_items
+        if failed_items:
+            items_block["failed"] = failed_items
         if cost_milli_cents is not None:
             items_block["costMilliCents"] = cost_milli_cents
 
@@ -1836,6 +2043,12 @@ class SpiderCloudScraper(BaseScraper):
             trimmed_payload_bytes,
             max_markdown_len,
         )
+        if failed_items:
+            logger.warning(
+                "SpiderCloud batch failures source=%s failed=%s",
+                source_url,
+                len(failed_items),
+            )
         logger.info(
             "SpiderCloud batch complete source=%s urls=%s items=%s cost_mc=%s cost_usd=%s",
             source_url,
@@ -1968,11 +2181,28 @@ class SpiderCloudScraper(BaseScraper):
                 api_url,
                 timeout_seconds,
             )
+            self._emit_scrape_log(
+                event="scrape.greenhouse_listing.timeout",
+                level="error",
+                site_url=api_url,
+                api_url=api_url,
+                data={"timeoutSeconds": timeout_seconds},
+                exc=exc,
+                capture_exception=True,
+            )
             raise ApplicationError(
                 f"Failed to fetch Greenhouse board via SpiderCloud (timeout {timeout_seconds}s)."
             ) from exc
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud greenhouse listing fetch failed url=%s error=%s", api_url, exc)
+            self._emit_scrape_log(
+                event="scrape.greenhouse_listing.fetch_failed",
+                level="error",
+                site_url=api_url,
+                api_url=api_url,
+                exc=exc,
+                capture_exception=True,
+            )
             raise ApplicationError(f"Failed to fetch Greenhouse board via SpiderCloud: {exc}") from exc
 
         def _extract_text(value: Any) -> str:
@@ -2082,6 +2312,18 @@ class SpiderCloudScraper(BaseScraper):
             logger.error("SpiderCloud greenhouse listing parse error url=%s error=%s", api_url, exc)
             regex_urls = self._regex_extract_job_urls(raw_text)
             if regex_urls:
+                self._emit_scrape_log(
+                    event="scrape.greenhouse_listing.regex_fallback",
+                    level="warn",
+                    site_url=url or api_url,
+                    api_url=api_url,
+                    data={
+                        "urls": len(regex_urls),
+                        "rawLength": len(raw_text) if isinstance(raw_text, str) else 0,
+                    },
+                    exc=exc,
+                    capture_exception=False,
+                )
                 logger.info(
                     "SpiderCloud greenhouse listing falling back to regex extraction url=%s urls=%s",
                     api_url,
@@ -2093,6 +2335,18 @@ class SpiderCloudScraper(BaseScraper):
                     "startedAt": started_at,
                     "completedAt": int(time.time() * 1000),
                 }
+            self._emit_scrape_log(
+                event="scrape.greenhouse_listing.parse_failed",
+                level="error",
+                site_url=url or api_url,
+                api_url=api_url,
+                data={
+                    "rawLength": len(raw_text) if isinstance(raw_text, str) else 0,
+                    "hasPayload": payload is not None,
+                },
+                exc=exc,
+                capture_exception=True,
+            )
             raise ApplicationError(f"Unable to parse Greenhouse board payload (SpiderCloud): {exc}") from exc
 
         completed_at = int(time.time() * 1000)

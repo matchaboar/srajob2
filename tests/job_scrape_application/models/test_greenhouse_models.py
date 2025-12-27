@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 
+import pytest
+
 
 # Ensure repo root is importable
 sys.path.insert(0, os.path.abspath("."))
@@ -79,3 +81,8 @@ def test_extract_greenhouse_job_urls_filters_titles():
     assert "https://example.com/job/eng" in urls
     assert "https://example.com/job/unknown" in urls  # Unknown title should still be scraped
     assert "https://example.com/job/pm" not in urls
+
+
+def test_load_greenhouse_board_rejects_invalid_json():
+    with pytest.raises(ValueError, match="Greenhouse board payload was not valid JSON"):
+        load_greenhouse_board("not-json")

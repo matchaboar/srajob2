@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import logging
 import importlib
+import logging
+import os
+import sys
 from typing import Any, Dict
+from urllib.parse import urlparse
 
 from opentelemetry import _logs as logs
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -11,10 +14,16 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
 from ..config import settings
 
+try:
+    from posthog import Posthog
+except Exception:  # pragma: no cover - optional dependency in constrained environments
+    Posthog = None  # type: ignore[assignment]
+
 DEFAULT_POSTHOG_ENDPOINT = "https://us.i.posthog.com/i/v1/logs"
 
 _logger_provider: LoggerProvider | None = None
 _logger: logging.Logger | None = None
+_posthog_client: Posthog | None = None  # type: ignore[valid-type]
 
 
 def _resolve_endpoint() -> str:
@@ -26,6 +35,17 @@ def _resolve_endpoint() -> str:
         return "https://eu.i.posthog.com/i/v1/logs"
 
     return DEFAULT_POSTHOG_ENDPOINT
+
+
+def _resolve_posthog_host() -> str:
+    endpoint = _resolve_endpoint()
+    parsed = urlparse(endpoint)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    region = (settings.posthog_region or "").lower()
+    if region.startswith("eu"):
+        return "https://eu.i.posthog.com"
+    return "https://us.i.posthog.com"
 
 
 def _build_otlp_exporter(endpoint: str, token: str) -> OTLPLogExporter:
@@ -52,6 +72,37 @@ def _infer_workflow_id() -> str | None:
         except Exception:
             continue
     return None
+
+
+def _posthog_sdk_disabled() -> bool:
+    if settings.posthog_disabled:
+        return True
+    if os.getenv("PYTEST_CURRENT_TEST") or "pytest" in sys.modules:
+        return True
+    return False
+
+
+def _ensure_posthog_client() -> Posthog | None:  # type: ignore[valid-type]
+    global _posthog_client
+
+    if _posthog_client is not None:
+        return _posthog_client
+
+    if _posthog_sdk_disabled():
+        return None
+    if not Posthog:
+        return None
+    token = settings.posthog_project_api_key
+    if not token:
+        return None
+
+    host = _resolve_posthog_host()
+    _posthog_client = Posthog(
+        token,
+        host=host,
+        enable_exception_autocapture=settings.posthog_exception_autocapture,
+    )
+    return _posthog_client
 
 
 def _ensure_logger() -> logging.Logger:
@@ -134,7 +185,36 @@ def emit_posthog_log(payload: Dict[str, Any]) -> None:
         logger.info(message, extra=attributes)
 
 
+def emit_posthog_exception(
+    exc: BaseException,
+    *,
+    distinct_id: str | None = None,
+    properties: Dict[str, Any] | None = None,
+) -> None:
+    client = _ensure_posthog_client()
+    if not client:
+        return
+
+    workflow_id = distinct_id or _infer_workflow_id() or "scraper-worker"
+    payload: Dict[str, Any] = {"level": "error", "workflowId": workflow_id}
+    if properties:
+        payload.update(properties)
+
+    try:
+        client.capture_exception(exc, distinct_id=workflow_id, properties=payload)
+    except Exception:
+        # best-effort; never fail the caller on telemetry issues
+        return
+
+
 def force_flush_posthog_logs(timeout_ms: int = 30000) -> bool:
     if _logger_provider:
         return _logger_provider.force_flush(timeout_ms)
     return True
+
+
+def initialize_posthog_exception_tracking() -> bool:
+    """Initialize PostHog client for exception autocapture; returns True when enabled."""
+
+    client = _ensure_posthog_client()
+    return client is not None
