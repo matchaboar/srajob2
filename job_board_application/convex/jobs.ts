@@ -492,6 +492,12 @@ export const normalizeCompanyFilterKey = (value?: string | null) => {
   return tokens.join("");
 };
 
+export const deriveCompanyKey = (value?: string | null) => {
+  const normalized = normalizeCompanyFilterKey(value);
+  if (normalized) return normalized;
+  return (value ?? "").trim().toLowerCase();
+};
+
 type CompanySummary = {
   name: string;
   count: number;
@@ -578,13 +584,16 @@ const normalizeDomainInput = (value: string): string => {
 };
 
 export const matchesCompanyFilters = (
-  job: { company?: string | null; url?: string | null },
+  job: { company?: string | null; companyKey?: string | null; url?: string | null },
   normalizedCompanyFilters: Set<string>,
   domainAliasByDomain?: Map<string, string> | null
 ) => {
   if (!normalizedCompanyFilters.size) return true;
-  const companyKey = normalizeCompanyFilterKey(job.company);
-  if (companyKey && normalizedCompanyFilters.has(companyKey)) return true;
+  const jobCompanyKey =
+    typeof job.companyKey === "string" && job.companyKey.trim()
+      ? normalizeCompanyFilterKey(job.companyKey)
+      : normalizeCompanyFilterKey(job.company);
+  if (jobCompanyKey && normalizedCompanyFilters.has(jobCompanyKey)) return true;
   if (!domainAliasByDomain || domainAliasByDomain.size === 0) return false;
   const domain = normalizeDomainInput(job.url ?? "");
   if (!domain) return false;
@@ -719,6 +728,8 @@ export const listJobs = query({
       companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean)
     );
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
+    const singleCompanyFilter = companyFilters.length === 1 ? companyFilters[0] : null;
+    const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
 
     // Get user's applied/rejected jobs first
     const userApplications = await ctx.db
@@ -868,6 +879,8 @@ export const listJobs = query({
 
         if (stateFilter) {
           query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+        } else if (singleCompanyKey) {
+          query = query.withIndex("by_company_key_posted", (q: any) => q.eq("companyKey", singleCompanyKey));
         } else if (wantsEngineer) {
           query = query.withIndex("by_engineer_scraped_posted", (q: any) => q.eq("engineer", true));
         } else {
@@ -1307,6 +1320,7 @@ export const reparseJobFromDescription = mutation({
     const derivedCompany = deriveCompanyFromUrl(job.url || "");
     if (derivedCompany && shouldOverrideCompany(job.company)) {
       updates.company = derivedCompany;
+      updates.companyKey = deriveCompanyKey(derivedCompany);
     }
 
     if (Object.keys(updates).length === 0) {
@@ -1340,6 +1354,7 @@ export const reparseAllJobs = mutation({
       const derivedCompany = deriveCompanyFromUrl((job as any).url || "");
       if (derivedCompany && shouldOverrideCompany((job as any).company)) {
         updates.company = derivedCompany;
+        updates.companyKey = deriveCompanyKey(derivedCompany);
       }
       if (Object.keys(updates).length > 0) {
         await ctx.db.patch(job._id, updates);
@@ -1368,7 +1383,7 @@ export const retagVersionCompany = mutation({
       for (const job of rows) {
         const derived = deriveCompanyFromUrl((job as any).url || "");
         if (!derived || derived === (job as any).company) continue;
-        await ctx.db.patch(job._id, { company: derived });
+        await ctx.db.patch(job._id, { company: derived, companyKey: deriveCompanyKey(derived) });
         updated += 1;
       }
     }

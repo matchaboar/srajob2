@@ -11,6 +11,7 @@ type Job = {
   _id: string;
   title: string;
   company: string;
+  companyKey?: string;
   location: string;
   remote: boolean;
   level: "junior" | "mid" | "senior" | "staff";
@@ -39,7 +40,10 @@ class FakeJobsQuery {
     if (
       name !== "by_state_posted" &&
       name !== "by_posted_at" &&
+      name !== "by_company" &&
       name !== "by_company_posted" &&
+      name !== "by_company_key" &&
+      name !== "by_company_key_posted" &&
       name !== "by_scraped_posted" &&
       name !== "by_engineer_scraped_posted"
     ) {
@@ -72,6 +76,10 @@ class FakeJobsQuery {
         continueCursor: null,
       }
     );
+  }
+
+  take(_limit?: number) {
+    return this.pagesByCursor.get(null)?.page ?? [];
   }
 }
 
@@ -112,6 +120,11 @@ const buildJob = (
   postedAt,
   scrapedAt,
   engineer,
+});
+
+const buildJobWithCompany = (id: string, postedAt: number, company: string): Job => ({
+  ...buildJob(id, postedAt),
+  company,
 });
 
 const buildCtx = (
@@ -194,7 +207,7 @@ describe("listJobs pagination", () => {
     expect(result.page[1]._id).toBe("job-1");
   });
 
-  it("uses the scraped+posted index when a single company filter is set", async () => {
+  it("uses the company key+posted index when a single company filter is set", async () => {
     const page1: Page = {
       page: [buildJob("job-1", 100)],
       isDone: true,
@@ -212,7 +225,33 @@ describe("listJobs pagination", () => {
       companies: ["Airbnb"],
     });
 
-    expect(tracker.lastIndexName).toBe("by_scraped_posted");
+    expect(tracker.lastIndexName).toBe("by_company_key_posted");
+  });
+
+  it("returns matching jobs when a single company filter is set", async () => {
+    const page1: Page = {
+      page: [
+        buildJobWithCompany("job-1", 100, "bloomberg"),
+        buildJobWithCompany("job-2", 50, "OtherCo"),
+      ],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([
+      [null, page1],
+    ]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    const result = await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 50 },
+      companies: ["Bloomberg"],
+    });
+
+    expect(result.page.map((job: Job) => job.company)).toEqual(["bloomberg"]);
+    expect(result.continueCursor).toBeNull();
+    expect(tracker.lastIndexName).toBe("by_company_key_posted");
   });
 
   it("matches company filters case-insensitively", async () => {

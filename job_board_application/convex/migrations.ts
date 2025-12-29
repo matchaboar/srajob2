@@ -4,7 +4,7 @@ import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
-import { deriveEngineerFlag } from "./jobs";
+import { deriveCompanyKey, deriveEngineerFlag } from "./jobs";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 
@@ -313,7 +313,7 @@ export const retagGreenhouseJobsImpl = async (ctx: any) => {
     const domain = `${slug}.greenhouse.io`;
     const desired = aliasMap.get(domain) ?? fallbackCompanyNameFromUrl(normalizeSiteUrl(job.url, "greenhouse"));
     if (desired && desired !== job.company) {
-      await ctx.db.patch(job._id, { company: desired });
+      await ctx.db.patch(job._id, { company: desired, companyKey: deriveCompanyKey(desired) });
     }
   }
 };
@@ -328,6 +328,15 @@ export const retagGreenhouseJobs = migrations.define({
       await retagGreenhouseJobsImpl(ctx);
     };
   })(),
+});
+
+export const backfillCompanyKey = migrations.define({
+  table: "jobs",
+  migrateOne: async (ctx, doc) => {
+    const desired = deriveCompanyKey(doc.company);
+    if (!desired || (doc as any).companyKey === desired) return;
+    await ctx.db.patch(doc._id, { companyKey: desired });
+  },
 });
 
 export const syncSiteSchedules = migrations.define({
@@ -349,6 +358,7 @@ export const runAll = internalMutation({
       internal.migrations.fixJobLocations,
       internal.migrations.backfillScrapeMetadata,
       internal.migrations.backfillEngineerFlag,
+      internal.migrations.backfillCompanyKey,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
       internal.migrations.repairJobDetailJobIds,

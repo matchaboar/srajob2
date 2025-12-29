@@ -1,6 +1,6 @@
 import type { Doc } from "./_generated/dataModel";
 import { deriveLocationFields, formatLocationLabel } from "./location";
-import { deriveEngineerFlag } from "./jobs";
+import { deriveCompanyKey, deriveEngineerFlag } from "./jobs";
 
 export type JobInsert = Omit<Doc<"jobs">, "_id" | "_creationTime">;
 export type JobDetailInsert = Omit<Doc<"job_details">, "_id" | "_creationTime" | "jobId">;
@@ -44,6 +44,7 @@ export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
   const base: JobInsert = {
     ...rest,
     engineer,
+    companyKey: deriveCompanyKey(rest.company),
     location: locationLabel,
     locations: locationInfo.locations,
     countries: locationInfo.countries,

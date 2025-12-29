@@ -15,7 +15,7 @@ import {
   siteCanonicalKey,
 } from "./siteUtils";
 import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
-import { deriveEngineerFlag, matchesCompanyFilters } from "./jobs";
+import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters } from "./jobs";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -500,7 +500,7 @@ const updateJobsCompany = async (ctx: any, oldName: string, nextName: string) =>
     if (!id || patchedIds.has(id)) return;
     const company = (job).company ?? "";
     if (normalizeCompany(company) !== prevNorm) return;
-    await ctx.db.patch(job._id, { company: next });
+    await ctx.db.patch(job._id, { company: next, companyKey: deriveCompanyKey(next) });
     patchedIds.add(id);
   };
 
@@ -543,7 +543,7 @@ const updateJobsCompanyByDomain = async (ctx: any, domain: string, nextName: str
     if (!jobDomain || jobDomain !== normalizedDomain) continue;
     const currentCompany = typeof job?.company === "string" ? job.company : "";
     if (normalizeCompany(currentCompany) === nextNorm) continue;
-    await ctx.db.patch(job._id, { company: next });
+    await ctx.db.patch(job._id, { company: next, companyKey: deriveCompanyKey(next) });
     updated += 1;
   }
   return updated;
@@ -4024,6 +4024,7 @@ export const ingestJobsFromScrape = mutation({
         ...jobFields,
         engineer,
         company: resolvedCompany,
+        companyKey: deriveCompanyKey(resolvedCompany),
         city: job.city ?? city,
         state: job.state ?? state,
         location: formatLocationLabel(job.city ?? city, job.state ?? state, locationInfo.primaryLocation),

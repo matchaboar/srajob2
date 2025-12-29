@@ -6,6 +6,7 @@ const applicationTables = {
   jobs: defineTable({
     title: v.string(),
     company: v.string(),
+    companyKey: v.optional(v.string()),
     location: v.string(),
     locations: v.optional(v.array(v.string())),
     countries: v.optional(v.array(v.string())),
@@ -38,9 +39,11 @@ const applicationTables = {
     .index("by_scraped_at", ["scrapedAt"])
     .index("by_scraped_posted", ["scrapedAt", "postedAt"])
     .index("by_company", ["company"])
+    .index("by_company_key", ["companyKey"])
     .index("by_state_posted", ["state", "postedAt"])
     .index("by_country_posted", ["country", "postedAt"])
     .index("by_company_posted", ["company", "postedAt"])
+    .index("by_company_key_posted", ["companyKey", "postedAt"])
     .index("by_title_posted", ["title", "postedAt"])
     .index("by_url", ["url"])
     .index("by_engineer_scraped_posted", ["engineer", "scrapedAt", "postedAt"])
