@@ -1308,12 +1308,22 @@ class SpiderCloudScraper(BaseScraper):
         ]
         if len(fragments) < 2:
             return None
-        jsonish = [fragment for fragment in fragments if any(ch in fragment for ch in ("{", "}", "[", "]"))]
-        if len(jsonish) < 2:
+        merged = "".join(fragments)
+        if not any(ch in merged for ch in ("{", "}", "[", "]")):
             return None
-        merged = "".join(jsonish)
         if "jobs" not in merged and "positions" not in merged:
             return None
+        brace_candidates = [idx for idx in (merged.find("{"), merged.find("[")) if idx != -1]
+        if not brace_candidates:
+            return None
+        start = min(brace_candidates)
+        if start > 0:
+            merged = merged[start:]
+        end_candidates = [idx for idx in (merged.rfind("}"), merged.rfind("]")) if idx != -1]
+        if end_candidates:
+            end = max(end_candidates)
+            if end + 1 < len(merged):
+                merged = merged[: end + 1]
         return merged
 
     def _payload_has_job_urls(self, payload: Dict[str, Any]) -> bool:
@@ -2368,23 +2378,25 @@ class SpiderCloudScraper(BaseScraper):
 
         def _extract_text(value: Any) -> str:
             if isinstance(value, dict):
+                best = ""
                 for key in ("content", "raw_html", "html", "text", "body", "result"):
                     candidate = value.get(key)
                     if isinstance(candidate, (bytes, bytearray)):
                         candidate = candidate.decode("utf-8", errors="replace")
-                    if isinstance(candidate, str) and candidate.strip():
-                        return candidate
+                    if isinstance(candidate, str) and candidate.strip() and len(candidate) > len(best):
+                        best = candidate
                 for child in value.values():
                     found = _extract_text(child)
-                    if found:
-                        return found
-                return ""
+                    if found and len(found) > len(best):
+                        best = found
+                return best
             if isinstance(value, list):
+                best = ""
                 for child in value:
                     found = _extract_text(child)
-                    if found:
-                        return found
-                return ""
+                    if found and len(found) > len(best):
+                        best = found
+                return best
             if isinstance(value, (bytes, bytearray)):
                 return value.decode("utf-8", errors="replace")
             if isinstance(value, str):
@@ -2394,9 +2406,8 @@ class SpiderCloudScraper(BaseScraper):
         raw_text = ""
         for event in raw_events:
             candidate = _extract_text(event)
-            if isinstance(candidate, str) and candidate.strip():
+            if isinstance(candidate, str) and candidate.strip() and len(candidate) > len(raw_text):
                 raw_text = candidate
-                break
 
         return raw_text, raw_events
 

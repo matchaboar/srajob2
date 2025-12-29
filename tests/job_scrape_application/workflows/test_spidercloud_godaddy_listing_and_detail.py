@@ -36,6 +36,9 @@ SAMSARA_LISTING_FIXTURE = (
 NEXHEALTH_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_nexhealth_greenhouse_listing.json"
 )
+RUBRIK_LISTING_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_rubrik_greenhouse_listing.json"
+)
 ZSCALER_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_zscaler_greenhouse_listing.json"
 )
@@ -258,6 +261,19 @@ async def test_spidercloud_nexhealth_listing_extracts_job_links(
 
     assert urls, "expected NexHealth listing URLs to be extracted"
     assert any("nexhealth.com/careers/open-positions" in url for url in urls)
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_rubrik_listing_extracts_job_links(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    raw_payload = _load_fixture(RUBRIK_LISTING_FIXTURE)
+    source_url = _extract_source_url(raw_payload)
+
+    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+
+    assert urls, "expected Rubrik listing URLs to be extracted"
+    assert any("rubrik.com/company/careers" in url and "gh_jid=" in url for url in urls)
 
 
 @pytest.mark.asyncio

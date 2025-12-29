@@ -54,7 +54,7 @@ def main() -> None:
     )
     parser.add_argument("--hours", type=float, required=True, help="Hours back from now to delete.")
     parser.add_argument("--env", choices=["dev", "prod"], default="prod")
-    parser.add_argument("--batch-size", type=int, default=200)
+    parser.add_argument("--batch-size", type=int, default=25)
     parser.add_argument("--max-iterations", type=int, default=200)
     parser.add_argument("--sleep-ms", type=int, default=200)
     args = parser.parse_args()
