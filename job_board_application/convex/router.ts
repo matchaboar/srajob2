@@ -2369,7 +2369,7 @@ export const listRunRequests = query({
     const rows = await (args.status
       ? ctx.db
         .query("run_requests")
-        .withIndex("by_status_created", (q) => q.eq("status", args.status).gte("createdAt", 0))
+        .withIndex("by_status_created", (q) => q.eq("status", args.status!).gte("createdAt", 0))
         .order("desc")
         .take(lim)
       : ctx.db

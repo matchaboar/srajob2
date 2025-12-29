@@ -224,6 +224,6 @@ describe("listJobs pagination", () => {
       companies: ["lambda"],
     });
 
-    expect(result.page.map((job) => job.company)).toEqual(["Lambda"]);
+    expect(result.page.map((job: Job) => job.company)).toEqual(["Lambda"]);
   });
 });
