@@ -27,7 +27,7 @@ const applicationTables = {
     heuristicAttempts: v.optional(v.number()),
     heuristicLastTried: v.optional(v.number()),
     heuristicVersion: v.optional(v.number()),
-    engineer: v.boolean(),
+    engineer: v.optional(v.boolean()),
     url: v.string(),
     postedAt: v.number(),
     scrapedAt: v.optional(v.number()),
