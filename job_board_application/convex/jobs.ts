@@ -535,6 +535,16 @@ type CompanyLevelStats = {
 const emptyCompanyLevelStats = (): CompanyLevelStats => ({ sum: 0, count: 0 });
 const averageFromStats = (stats: CompanyLevelStats) =>
   stats.count > 0 ? Math.round(stats.sum / stats.count) : null;
+const normalizeUsdCurrency = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const upper = trimmed.toUpperCase();
+  if (upper === "USD" || upper === "US$" || upper === "$" || upper === "USD$") {
+    return "USD";
+  }
+  return null;
+};
 
 type FilterCursorPayload = {
   raw: string | null;
@@ -1146,9 +1156,10 @@ export const refreshCompanySummaries = internalMutation({
 
       const compensationUnknown = job.compensationUnknown === true;
       const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : null;
-      if (!compensationUnknown && compValue && Number.isFinite(compValue) && compValue > 0) {
-        if (!entry.currencyCode && typeof job.currencyCode === "string" && job.currencyCode.trim()) {
-          entry.currencyCode = job.currencyCode.trim();
+      const usdCurrency = normalizeUsdCurrency(job.currencyCode);
+      if (!compensationUnknown && compValue && Number.isFinite(compValue) && compValue > 0 && usdCurrency) {
+        if (!entry.currencyCode) {
+          entry.currencyCode = usdCurrency;
         }
         if (job.level === "junior" || job.level === "mid" || job.level === "senior") {
           const stats = entry.levels[job.level];

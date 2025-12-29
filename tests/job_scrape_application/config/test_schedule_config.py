@@ -108,6 +108,27 @@ def test_load_schedule_configs_defaults_overlap_skip(tmp_path: Path):
     assert cfgs and cfgs[0].overlap == "skip"
 
 
+def test_load_schedule_configs_expands_count(tmp_path: Path):
+    yaml_data = {
+        "schedules": [
+            {
+                "id": "multi",
+                "workflow": "WFMulti",
+                "interval_seconds": 5,
+                "count": 3,
+            }
+        ]
+    }
+    path = tmp_path / "schedules.yaml"
+    path.write_text(yaml.safe_dump(yaml_data), encoding="utf-8")
+
+    cfgs = cs.load_schedule_configs(path)
+
+    ids = [cfg.id for cfg in cfgs]
+    assert ids == ["multi", "multi-2", "multi-3"]
+    assert all(cfg.workflow == "WFMulti" for cfg in cfgs)
+
+
 def test_default_schedule_includes_spidercloud_job_details():
     cfgs = cs.load_schedule_configs()
     match = next((cfg for cfg in cfgs if cfg.id == "spidercloud-job-details"), None)

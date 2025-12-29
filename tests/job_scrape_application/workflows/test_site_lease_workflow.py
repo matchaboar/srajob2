@@ -14,9 +14,8 @@ from job_scrape_application.workflows import webhook_workflow as wf  # noqa: E40
 
 @pytest.mark.asyncio
 async def test_site_lease_workflow_handles_activity_failure(monkeypatch):
-    site1 = {"_id": "s1", "url": "https://one.example"}
     site2 = {"_id": "s2", "url": "https://two.example"}
-    lease_iter = iter([site1, site2, None])
+    lease_iter = iter([site2, None])
 
     calls: Dict[str, Any] = {"fail_site": [], "record": None, "jobs_started": []}
 
@@ -47,7 +46,7 @@ async def test_site_lease_workflow_handles_activity_failure(monkeypatch):
 
     result = await wf.SiteLeaseWorkflow().run()
 
-    assert result.leased == 2
-    assert result.jobs_started == 1
+    assert result.leased == 1
+    assert result.jobs_started == 0
     assert calls["fail_site"] == [{"id": "s2", "error": "firecrawl failed"}]
     assert calls["record"]["status"] == "failed"

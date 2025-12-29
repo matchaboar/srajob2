@@ -122,141 +122,140 @@ class SiteLeaseWorkflow:
         await _log("workflow.start", message="SiteLease started")
 
         try:
-            while True:
-                site = await workflow.execute_activity(
-                    lease_site,
-                    args=["scraper-worker", DEFAULT_LOCK_SECONDS, None, "firecrawl"],
-                    schedule_to_close_timeout=timedelta(seconds=30),
-                )
-                if not site:
-                    break
+            site = await workflow.execute_activity(
+                lease_site,
+                args=["scraper-worker", DEFAULT_LOCK_SECONDS, None, "firecrawl"],
+                schedule_to_close_timeout=timedelta(seconds=30),
+            )
+            if not site:
+                return SiteLeaseResult(leased=leased, jobs_started=jobs_started, job_ids=job_ids)
 
-                leased += 1
-                site_urls.append(site["url"])
-                await _log(
-                    "site.leased",
-                    site_url=site["url"],
-                    data={"siteId": site.get("_id")},
-                )
+            leased += 1
+            site_urls.append(site["url"])
+            await _log(
+                "site.leased",
+                site_url=site["url"],
+                data={"siteId": site.get("_id")},
+            )
 
-                try:
-                    job_info = await workflow.execute_activity(
-                        start_firecrawl_webhook_scrape,
-                        args=[site],
-                        start_to_close_timeout=timedelta(minutes=2),
-                    )
-                    if isinstance(job_info, dict):
-                        job_id = job_info.get("jobId")
-                        if job_id:
-                            jobs_started += 1
-                            job_id_str = str(job_id)
-                            job_ids.append(job_id_str)
-                            await _log(
-                                "firecrawl.job.started",
-                                site_url=site.get("url"),
-                                data={
+            try:
+                job_info = await workflow.execute_activity(
+                    start_firecrawl_webhook_scrape,
+                    args=[site],
+                    start_to_close_timeout=timedelta(minutes=2),
+                )
+                if isinstance(job_info, dict):
+                    job_id = job_info.get("jobId")
+                    if job_id:
+                        jobs_started += 1
+                        job_id_str = str(job_id)
+                        job_ids.append(job_id_str)
+                        await _log(
+                            "firecrawl.job.started",
+                            site_url=site.get("url"),
+                            data={
+                                "jobId": job_id_str,
+                                "statusUrl": job_info.get("statusUrl"),
+                                "kind": job_info.get("kind"),
+                            },
+                        )
+                        try:
+                            now_ms = int(workflow.now().timestamp() * 1000)
+                            queued_scrape = {
+                                "sourceUrl": site.get("url"),
+                                "pattern": site.get("pattern"),
+                                "startedAt": job_info.get("receivedAt") or now_ms,
+                                "completedAt": now_ms,
+                                "items": {
+                                    "normalized": [],
+                                    "provider": "firecrawl",
                                     "jobId": job_id_str,
                                     "statusUrl": job_info.get("statusUrl"),
-                                    "kind": job_info.get("kind"),
+                                    "webhookId": job_info.get("webhookId"),
+                                    "queued": True,
+                                    "raw": {
+                                        "start": job_info.get("rawStart"),
+                                        "metadata": job_info.get("metadata"),
+                                    },
+                                    "request": {
+                                        "url": site.get("url"),
+                                        "pattern": site.get("pattern"),
+                                        "siteType": site.get("type") or "general",
+                                    },
+                                    "seedUrls": [site.get("url")],
                                 },
-                            )
-                            try:
-                                now_ms = int(workflow.now().timestamp() * 1000)
-                                queued_scrape = {
-                                    "sourceUrl": site.get("url"),
-                                    "pattern": site.get("pattern"),
-                                    "startedAt": job_info.get("receivedAt") or now_ms,
-                                    "completedAt": now_ms,
-                                    "items": {
-                                        "normalized": [],
-                                        "provider": "firecrawl",
-                                        "jobId": job_id_str,
-                                        "statusUrl": job_info.get("statusUrl"),
-                                        "webhookId": job_info.get("webhookId"),
-                                        "queued": True,
-                                        "raw": {
-                                            "start": job_info.get("rawStart"),
-                                            "metadata": job_info.get("metadata"),
-                                        },
-                                        "request": {
-                                            "url": site.get("url"),
-                                            "pattern": site.get("pattern"),
-                                            "siteType": site.get("type") or "general",
-                                        },
-                                        "seedUrls": [site.get("url")],
-                                    },
-                                    "provider": "firecrawl",
-                                    "workflowName": "SiteLease",
-                                    "workflowId": run_info.workflow_id,
-                                    "runId": run_info.run_id,
-                                    "asyncState": "queued",
-                                    "asyncResponse": {
-                                        "jobId": job_id_str,
-                                        "statusUrl": job_info.get("statusUrl"),
-                                        "webhookId": job_info.get("webhookId"),
-                                        "kind": job_info.get("kind"),
-                                        "receivedAt": job_info.get("receivedAt"),
-                                    },
-                                    "providerRequest": job_info.get("providerRequest"),
-                                    "response": job_info.get("rawStart") or job_info,
-                                }
-                                await workflow.execute_activity(
-                                    store_scrape,
-                                    args=[queued_scrape],
-                                    schedule_to_close_timeout=timedelta(minutes=3),
-                                    start_to_close_timeout=timedelta(minutes=3),
-                                    heartbeat_timeout=timedelta(seconds=30),
-                                )
-                            except Exception as store_err:  # noqa: BLE001
-                                await _log(
-                                    "firecrawl.job.store_failed",
-                                    site_url=site.get("url"),
-                                    message=str(store_err),
-                                    level="warn",
-                                )
-                            recovery_payload = {
-                                "jobId": job_id_str,
-                                "webhookId": job_info.get("webhookId"),
-                                "metadata": job_info.get("metadata"),
-                                "siteId": site.get("_id"),
-                                "siteUrl": site.get("url"),
-                                "statusUrl": job_info.get("statusUrl"),
-                                "receivedAt": job_info.get("receivedAt"),
+                                "provider": "firecrawl",
+                                "workflowName": "SiteLease",
+                                "workflowId": run_info.workflow_id,
+                                "runId": run_info.run_id,
+                                "asyncState": "queued",
+                                "asyncResponse": {
+                                    "jobId": job_id_str,
+                                    "statusUrl": job_info.get("statusUrl"),
+                                    "webhookId": job_info.get("webhookId"),
+                                    "kind": job_info.get("kind"),
+                                    "receivedAt": job_info.get("receivedAt"),
+                                },
+                                "providerRequest": job_info.get("providerRequest"),
+                                "response": job_info.get("rawStart") or job_info,
                             }
-                            try:
-                                await workflow.start_child_workflow(
-                                    "RecoverMissingFirecrawlWebhook",
-                                    recovery_payload,
-                                    id=f"wf-firecrawl-recovery-{job_id}",
-                                    task_queue=workflow.info().task_queue,
-                                )
-                            except Exception as child_err:  # noqa: BLE001
-                                await _log(
-                                    "recovery.start_failed",
-                                    site_url=site.get("url"),
-                                    message=str(child_err),
-                                    level="warn",
-                                )
-                except Exception as e:  # noqa: BLE001
-                    status = "failed"
-                    await workflow.execute_activity(
-                        fail_site,
-                        args=[{"id": site["_id"], "error": str(e)}],
-                        start_to_close_timeout=timedelta(seconds=30),
-                    )
-                    if isinstance(e, ActivityError) and e.cause:
-                        failure_reasons.append(f"{site['url']}: {e.cause}")
-                    elif isinstance(e, ApplicationError):
-                        failure_reasons.append(f"{site['url']}: {e}")
-                    else:
-                        failure_reasons.append(f"{site['url']}: {e}")
+                            await workflow.execute_activity(
+                                store_scrape,
+                                args=[queued_scrape],
+                                schedule_to_close_timeout=timedelta(minutes=3),
+                                start_to_close_timeout=timedelta(minutes=3),
+                                heartbeat_timeout=timedelta(seconds=30),
+                            )
+                        except Exception as store_err:  # noqa: BLE001
+                            await _log(
+                                "firecrawl.job.store_failed",
+                                site_url=site.get("url"),
+                                message=str(store_err),
+                                level="warn",
+                            )
+                        recovery_payload = {
+                            "jobId": job_id_str,
+                            "webhookId": job_info.get("webhookId"),
+                            "metadata": job_info.get("metadata"),
+                            "siteId": site.get("_id"),
+                            "siteUrl": site.get("url"),
+                            "statusUrl": job_info.get("statusUrl"),
+                            "receivedAt": job_info.get("receivedAt"),
+                        }
+                        try:
+                            await workflow.start_child_workflow(
+                                "RecoverMissingFirecrawlWebhook",
+                                recovery_payload,
+                                id=f"wf-firecrawl-recovery-{job_id}",
+                                task_queue=workflow.info().task_queue,
+                            )
+                        except Exception as child_err:  # noqa: BLE001
+                            await _log(
+                                "recovery.start_failed",
+                                site_url=site.get("url"),
+                                message=str(child_err),
+                                level="warn",
+                            )
+            except Exception as e:  # noqa: BLE001
+                status = "failed"
+                await workflow.execute_activity(
+                    fail_site,
+                    args=[{"id": site["_id"], "error": str(e)}],
+                    start_to_close_timeout=timedelta(seconds=30),
+                )
+                if isinstance(e, ActivityError) and e.cause:
+                    failure_reasons.append(f"{site['url']}: {e.cause}")
+                elif isinstance(e, ApplicationError):
+                    failure_reasons.append(f"{site['url']}: {e}")
+                else:
+                    failure_reasons.append(f"{site['url']}: {e}")
 
-                    await _log(
-                        "site.error",
-                        site_url=site.get("url"),
-                        message=str(e),
-                        level="error",
-                    )
+                await _log(
+                    "site.error",
+                    site_url=site.get("url"),
+                    message=str(e),
+                    level="error",
+                )
 
             return SiteLeaseResult(leased=leased, jobs_started=jobs_started, job_ids=job_ids)
         finally:

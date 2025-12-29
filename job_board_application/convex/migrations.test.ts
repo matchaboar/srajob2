@@ -284,7 +284,7 @@ describe("retagGreenhouseJobs", () => {
     expect(patches).toHaveLength(1);
     expect(patches[0]).toEqual({
       id: "job-1",
-      payload: { company: "Stubhub" },
+      payload: { company: "Stubhub", companyKey: "stubhub" },
     });
   });
 });

@@ -36,6 +36,20 @@ class ScheduleConfig:
     task_queue: str | None = None
     catchup_window_hours: int = 12
     overlap: str = "skip"
+    count: int = 1
+
+
+def _coerce_int(value: object, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
 
 
 def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
@@ -45,16 +59,23 @@ def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
     for item in items:
         if not isinstance(item, dict):
             continue
-        configs.append(
-            ScheduleConfig(
-                id=str(item["id"]),
-                workflow=str(item["workflow"]),
-                interval_seconds=int(item.get("interval_seconds", 15)),
-                task_queue=item.get("task_queue"),
-                catchup_window_hours=int(item.get("catchup_window_hours", 12)),
-                overlap=str(item.get("overlap", "skip")).lower(),
+        base_id = str(item["id"])
+        count = _coerce_int(item.get("count", 1), 1)
+        if count < 1:
+            count = 1
+        for idx in range(1, count + 1):
+            schedule_id = base_id if idx == 1 else f"{base_id}-{idx}"
+            configs.append(
+                ScheduleConfig(
+                    id=schedule_id,
+                    workflow=str(item["workflow"]),
+                    interval_seconds=int(item.get("interval_seconds", 15)),
+                    task_queue=item.get("task_queue"),
+                    catchup_window_hours=int(item.get("catchup_window_hours", 12)),
+                    overlap=str(item.get("overlap", "skip")).lower(),
+                    count=count,
+                )
             )
-        )
     return configs
 
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import sys
 import time
@@ -172,17 +171,15 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
             )
 
     total = len(rows)
-    expected_batches = int(math.ceil(total / sw.SPIDERCLOUD_BATCH_SIZE))
-
-    assert summary.site_count == expected_batches
     non_empty_calls = [call for call in queue.lease_calls if call]
-    assert len(non_empty_calls) == expected_batches
-    if len(non_empty_calls) < len(queue.lease_calls):
-        # Workflow performs an extra lease call to confirm the queue is empty.
-        assert queue.lease_calls[-1] == []
-    assert len(stored_scrapes) == total
+
+    assert summary.site_count == 1
+    assert len(non_empty_calls) == 1
+    leased_urls = non_empty_calls[0]
+    assert len(leased_urls) == sw.SPIDERCLOUD_BATCH_SIZE
+    assert len(stored_scrapes) == len(leased_urls)
 
     status_counts = queue.status_counts()
-    assert status_counts.get("pending", 0) == 0
+    assert status_counts.get("completed", 0) == len(leased_urls)
     assert status_counts.get("processing", 0) == 0
-    assert status_counts.get("completed", 0) == total
+    assert status_counts.get("pending", 0) == total - len(leased_urls)

@@ -224,6 +224,77 @@ describe("leaseScrapeUrlBatch", () => {
     expect(new Set([...firstUrls, ...secondUrls]).size).toBe(firstUrls.length + secondUrls.length);
   });
 
+  it("skips active processing rows to prevent double-leasing", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "processing-1",
+        url: "https://example.com/job/processing",
+        status: "processing",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        provider: "spidercloud",
+        attempts: 1,
+      },
+      {
+        _id: "pending-1",
+        url: "https://example.com/job/pending",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toEqual(["https://example.com/job/pending"]);
+    expect(rows.find((r) => r._id === "processing-1")?.status).toBe("processing");
+  });
+
+  it("leases distinct rows across six worker calls", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = Array.from({ length: 6 }, (_, idx) => ({
+      _id: `row-${idx + 1}`,
+      url: `https://example.com/job/${idx + 1}`,
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 10_000,
+      provider: "spidercloud",
+      attempts: 0,
+    }));
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const leased: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const res = await handler(ctx, {
+        provider: "spidercloud",
+        limit: 1,
+        processingExpiryMs: 15 * 60 * 1000,
+      });
+      const url = res.urls[0]?.url;
+      if (url) leased.push(url);
+    }
+
+    expect(leased).toHaveLength(6);
+    expect(new Set(leased).size).toBe(6);
+    for (const row of rows) {
+      expect(row.status).toBe("processing");
+      expect(row.attempts).toBe(1);
+    }
+  });
+
   it("leases pending spidercloud rows for lambda-style URLs", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
