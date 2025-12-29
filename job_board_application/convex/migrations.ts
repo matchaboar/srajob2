@@ -4,6 +4,7 @@ import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
+import { deriveEngineerFlag } from "./jobs";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 
@@ -68,6 +69,16 @@ export const backfillScrapeMetadata = migrations.define({
     }
     if (Object.keys(update).length > 0) {
       await ctx.db.patch(doc._id, update);
+    }
+  },
+});
+
+export const backfillEngineerFlag = migrations.define({
+  table: "jobs",
+  migrateOne: async (ctx, doc) => {
+    const desired = deriveEngineerFlag(doc.title);
+    if ((doc as any).engineer !== desired) {
+      await ctx.db.patch(doc._id, { engineer: desired });
     }
   },
 });
@@ -337,6 +348,7 @@ export const runAll = internalMutation({
     return await migrations.runSerially(ctx, [
       internal.migrations.fixJobLocations,
       internal.migrations.backfillScrapeMetadata,
+      internal.migrations.backfillEngineerFlag,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
       internal.migrations.repairJobDetailJobIds,

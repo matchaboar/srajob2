@@ -1,5 +1,6 @@
 import type { Doc } from "./_generated/dataModel";
 import { deriveLocationFields, formatLocationLabel } from "./location";
+import { deriveEngineerFlag } from "./jobs";
 
 export type JobInsert = Omit<Doc<"jobs">, "_id" | "_creationTime">;
 export type JobDetailInsert = Omit<Doc<"job_details">, "_id" | "_creationTime" | "jobId">;
@@ -9,8 +10,9 @@ export type JobDetailInsert = Omit<Doc<"job_details">, "_id" | "_creationTime" |
  * All schema-required fields remain required here so type checking will surface
  * any schema changes that the generators are not updated to handle.
  */
-export type JobSeed = Omit<JobInsert, "location" | "city" | "state" | "postedAt"> & {
+export type JobSeed = Omit<JobInsert, "location" | "city" | "state" | "postedAt" | "engineer"> & {
   location: string;
+  engineer?: boolean;
   locations?: string[];
   countries?: string[];
   country?: string;
@@ -32,6 +34,7 @@ export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
     details: _details,
     ...rest
   } = seed;
+  const engineer = typeof (rest as any).engineer === "boolean" ? (rest as any).engineer : deriveEngineerFlag(rest.title);
   const locationInfo = deriveLocationFields({ locations: seedLocations ?? [location], location });
   const city = seedCity ?? locationInfo.city;
   const state = seedState ?? locationInfo.state;
@@ -40,6 +43,7 @@ export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
 
   const base: JobInsert = {
     ...rest,
+    engineer,
     location: locationLabel,
     locations: locationInfo.locations,
     countries: locationInfo.countries,

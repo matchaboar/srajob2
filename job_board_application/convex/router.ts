@@ -15,7 +15,7 @@ import {
   siteCanonicalKey,
 } from "./siteUtils";
 import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
-import { matchesCompanyFilters } from "./jobs";
+import { deriveEngineerFlag, matchesCompanyFilters } from "./jobs";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -3019,14 +3019,17 @@ export const insertJobRecord = mutation({
     compensationReason: v.optional(v.string()),
     url: v.string(),
     test: v.optional(v.boolean()),
+    engineer: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const resolvedCompany = await resolveCompanyForUrl(ctx, args.url, args.company);
     const { description, ...jobArgs } = args;
+    const engineer = typeof args.engineer === "boolean" ? args.engineer : deriveEngineerFlag(args.title);
     const jobId = await ctx.db.insert(
       "jobs",
       buildJobInsert({
         ...jobArgs,
+        engineer,
         company: resolvedCompany,
         compensationUnknown: args.compensationUnknown ?? false,
         compensationReason: args.compensationReason,
@@ -3943,6 +3946,7 @@ export const ingestJobsFromScrape = mutation({
         remote: v.boolean(),
         level: v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff")),
         totalCompensation: v.number(),
+        engineer: v.optional(v.boolean()),
         url: v.string(),
         postedAt: v.number(),
         scrapedAt: v.optional(v.number()),
@@ -4012,10 +4016,13 @@ export const ingestJobsFromScrape = mutation({
         heuristicAttempts,
         heuristicLastTried,
         heuristicVersion,
+        engineer: jobEngineer,
         ...jobFields
       } = job;
+      const engineer = typeof jobEngineer === "boolean" ? jobEngineer : deriveEngineerFlag(job.title);
       const jobId = await ctx.db.insert("jobs", {
         ...jobFields,
+        engineer,
         company: resolvedCompany,
         city: job.city ?? city,
         state: job.state ?? state,

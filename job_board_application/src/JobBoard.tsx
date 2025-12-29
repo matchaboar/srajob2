@@ -39,6 +39,7 @@ interface Filters {
   minCompensation: number | null;
   maxCompensation: number | null;
   hideUnknownCompensation: boolean;
+  engineer: boolean;
   companies: string[];
 }
 
@@ -55,6 +56,7 @@ interface SavedFilter {
   minCompensation?: number;
   maxCompensation?: number;
   hideUnknownCompensation?: boolean;
+  engineer?: boolean;
   isSelected: boolean;
   companies?: string[];
 }
@@ -68,6 +70,7 @@ const buildEmptyFilters = (): Filters => ({
   minCompensation: null,
   maxCompensation: null,
   hideUnknownCompensation: false,
+  engineer: false,
   companies: [],
 });
 
@@ -100,6 +103,7 @@ const buildFilterLabel = (filter: {
   maxCompensation?: number | null;
   hideUnknownCompensation?: boolean | null;
   companies?: Array<string | null> | null;
+  engineer?: boolean | null;
 }) => {
   const parts: string[] = [];
   const companies = (filter.companies ?? []).filter((name): name is string => typeof name === "string" && !!name.trim());
@@ -113,6 +117,9 @@ const buildFilterLabel = (filter: {
   }
   if (filter.level) {
     parts.push(filter.level.charAt(0).toUpperCase() + filter.level.slice(1));
+  }
+  if (filter.engineer) {
+    parts.push("Engineer");
   }
   if (filter.country && filter.country !== "United States") {
     parts.push(filter.country);
@@ -406,6 +413,7 @@ export function JobBoard() {
       minCompensation: throttledFilters.minCompensation ?? undefined,
       maxCompensation: throttledFilters.maxCompensation ?? undefined,
       hideUnknownCompensation: throttledFilters.hideUnknownCompensation,
+      engineer: throttledFilters.engineer ? true : undefined,
       companies: throttledFilters.companies.length > 0 ? throttledFilters.companies : undefined,
     } : "skip",
     { initialNumItems: jobsPageSize } // Load more items for the dense list
@@ -801,6 +809,7 @@ export function JobBoard() {
       minCompensation: filter.minCompensation ?? null,
       maxCompensation: filter.maxCompensation ?? null,
       hideUnknownCompensation: filter.hideUnknownCompensation ?? false,
+      engineer: filter.engineer ?? false,
       companies: filter.companies ?? [],
     });
     setCompanyInput("");
@@ -840,6 +849,7 @@ export function JobBoard() {
   const countrySelectId = "job-board-country-filter";
   const stateSelectId = "job-board-state-filter";
   const levelSelectId = "job-board-level-filter";
+  const engineerCheckboxId = "job-board-engineer-filter";
   const clampToSliderRange = useCallback(
     (value: number) => Math.min(Math.max(value, MIN_SALARY), MAX_SALARY),
     [MAX_SALARY, MIN_SALARY]
@@ -984,6 +994,7 @@ export function JobBoard() {
         minCompensation: filters.minCompensation ?? undefined,
         maxCompensation: filters.maxCompensation ?? undefined,
         hideUnknownCompensation: filters.hideUnknownCompensation,
+        engineer: filters.engineer,
         companies: filters.companies.length > 0 ? filters.companies : undefined,
       });
       toast.success("Filter saved");
@@ -1743,6 +1754,20 @@ export function JobBoard() {
                   </select>
                 </div>
 
+                <label
+                  htmlFor={engineerCheckboxId}
+                  className="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2 cursor-pointer"
+                >
+                  <span className="text-[11px] font-semibold uppercase text-slate-500">Engineer titles only</span>
+                  <input
+                    id={engineerCheckboxId}
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                    checked={filters.engineer}
+                    onChange={(e) => updateFilters({ engineer: e.target.checked }, { forceImmediate: true })}
+                  />
+                </label>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Min Salary</label>
                   <input
@@ -1838,6 +1863,7 @@ export function JobBoard() {
                           minCompensation: filter.minCompensation ?? null,
                           maxCompensation: filter.maxCompensation ?? null,
                           hideUnknownCompensation: filter.hideUnknownCompensation ?? false,
+                          engineer: filter.engineer ?? false,
                           companies: filter.companies ?? [],
                         });
                         return (

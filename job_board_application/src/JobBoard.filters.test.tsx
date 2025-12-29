@@ -84,6 +84,7 @@ afterEach(() => {
   (convexReact as any).useQuery.mockClear();
   (convexReact as any).usePaginatedQuery.mockClear();
   (convexReact as any).useMutation.mockClear();
+  window.history.pushState({}, "", "/");
 });
 
 beforeEach(() => {
@@ -128,5 +129,35 @@ describe("JobBoard filters panel", () => {
     expect(header.className).toContain("sticky");
     const closeButton = screen.getByTestId("filters-close");
     expect(closeButton).toBeVisible();
+  });
+
+  it("applies the engineer filter on the main job list", async () => {
+    const user = userEvent.setup();
+    render(<JobBoard />);
+
+    const toggle = screen.getByRole("button", { name: /toggle filters/i });
+    await user.click(toggle);
+
+    const engineerCheckbox = await screen.findByLabelText(/engineer titles only/i);
+    await user.click(engineerCheckbox);
+
+    const lastArgs = (convexReact as any).usePaginatedQuery.mock.calls.at(-1)?.[1];
+    expect(lastArgs?.engineer).toBe(true);
+  });
+
+  it("keeps the engineer filter when a company is selected via URL", async () => {
+    const user = userEvent.setup();
+    window.history.pushState({}, "", "?company=Acme");
+    render(<JobBoard />);
+
+    const toggle = screen.getByRole("button", { name: /toggle filters/i });
+    await user.click(toggle);
+
+    const engineerCheckbox = await screen.findByLabelText(/engineer titles only/i);
+    await user.click(engineerCheckbox);
+
+    const lastArgs = (convexReact as any).usePaginatedQuery.mock.calls.at(-1)?.[1];
+    expect(lastArgs?.engineer).toBe(true);
+    expect(lastArgs?.companies).toEqual(["Acme"]);
   });
 });

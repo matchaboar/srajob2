@@ -36,6 +36,19 @@ const isUnknownLabel = (value?: string | null) => {
     normalized === "not available"
   );
 };
+const UNKNOWN_TITLE_LABELS = new Set(["page_title", "title", "job_title", "untitled", "application"]);
+
+const isUnknownJobTitle = (value?: string | null) => {
+  const normalized = (value || "").trim().toLowerCase();
+  if (!normalized) return true;
+  if (isUnknownLabel(normalized)) return true;
+  return UNKNOWN_TITLE_LABELS.has(normalized);
+};
+
+export const deriveEngineerFlag = (title?: string | null) => {
+  if (isUnknownJobTitle(title)) return true;
+  return (title || "").toLowerCase().includes("engineer");
+};
 const isVersionLabel = (value?: string | null) => /^v\d+$/i.test((value || "").trim());
 const shouldOverrideCompany = (value?: string | null) => {
   const trimmed = (value || "").trim();
@@ -684,6 +697,7 @@ export const listJobs = query({
     hideUnknownCompensation: v.optional(v.boolean()),
     companies: v.optional(v.array(v.string())),
     useSearch: v.optional(v.boolean()),
+    engineer: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -698,6 +712,7 @@ export const listJobs = query({
     const isOtherCountry = countryFilter.toLowerCase() === "other";
     const stateFilter = (args.state ?? "").trim();
     const shouldUseSearch = rawSearch.length > 0;
+    const wantsEngineer = args.engineer === true;
 
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
     const normalizedCompanyFilters = new Set(
@@ -745,6 +760,10 @@ export const listJobs = query({
       if (args.includeRemote === false && job.remote) {
         return false;
       }
+      if (wantsEngineer) {
+        const isEngineer = typeof job.engineer === "boolean" ? job.engineer : deriveEngineerFlag(job.title);
+        if (!isEngineer) return false;
+      }
       if (hasCompanyFilter) {
         if (!matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasLookup)) {
           return false;
@@ -775,6 +794,9 @@ export const listJobs = query({
         .query("jobs")
         .withSearchIndex("search_title", (q: any) => {
           let searchQuery = q.search("title", rawSearch);
+          if (wantsEngineer) {
+            searchQuery = searchQuery.eq("engineer", true);
+          }
           if (args.includeRemote === false) {
             searchQuery = searchQuery.eq("remote", false);
           }
@@ -799,6 +821,9 @@ export const listJobs = query({
         .query("jobs")
         .withSearchIndex("search_locations", (q: any) => {
           let searchQuery = q.search("locationSearch", stateFilter);
+          if (wantsEngineer) {
+            searchQuery = searchQuery.eq("engineer", true);
+          }
           if (args.includeRemote === false) {
             searchQuery = searchQuery.eq("remote", false);
           }
@@ -821,6 +846,10 @@ export const listJobs = query({
       for (const job of fallbackCandidates) {
         const locationInfo = deriveLocationFields(job);
         const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        if (wantsEngineer) {
+          const isEngineer = typeof job.engineer === "boolean" ? job.engineer : deriveEngineerFlag(job.title);
+          if (!isEngineer) continue;
+        }
         if (args.includeRemote === false && job.remote) continue;
         if (args.level && job.level !== args.level) continue;
         if (statesForFilter.includes(stateFilter)) {
@@ -839,12 +868,17 @@ export const listJobs = query({
 
         if (stateFilter) {
           query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+        } else if (wantsEngineer) {
+          query = query.withIndex("by_engineer_scraped_posted", (q: any) => q.eq("engineer", true));
         } else {
           query = query.withIndex("by_scraped_posted");
         }
 
         query = query.order("desc");
 
+        if (wantsEngineer && stateFilter) {
+          query = query.filter((q: any) => q.eq(q.field("engineer"), true));
+        }
         if (args.includeRemote === false) {
           query = query.filter((q: any) => q.eq(q.field("remote"), false));
         }

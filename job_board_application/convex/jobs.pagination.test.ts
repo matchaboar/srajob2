@@ -19,6 +19,7 @@ type Job = {
   url: string;
   postedAt: number;
   scrapedAt?: number;
+  engineer: boolean;
 };
 
 type Page = {
@@ -39,7 +40,8 @@ class FakeJobsQuery {
       name !== "by_state_posted" &&
       name !== "by_posted_at" &&
       name !== "by_company_posted" &&
-      name !== "by_scraped_posted"
+      name !== "by_scraped_posted" &&
+      name !== "by_engineer_scraped_posted"
     ) {
       throw new Error(`unexpected jobs index ${name}`);
     }
@@ -91,7 +93,13 @@ class FakeApplicationsQuery {
   }
 }
 
-const buildJob = (id: string, postedAt: number, scrapedAt: number | undefined = postedAt, title = "Software Engineer"): Job => ({
+const buildJob = (
+  id: string,
+  postedAt: number,
+  scrapedAt: number | undefined = postedAt,
+  title = "Software Engineer",
+  engineer = true
+): Job => ({
   _id: id,
   title,
   company: "Example Co",
@@ -103,6 +111,7 @@ const buildJob = (id: string, postedAt: number, scrapedAt: number | undefined = 
   url: `https://example.com/jobs/${id}`,
   postedAt,
   scrapedAt,
+  engineer,
 });
 
 const buildCtx = (
@@ -225,5 +234,27 @@ describe("listJobs pagination", () => {
     });
 
     expect(result.page.map((job: Job) => job.company)).toEqual(["Lambda"]);
+  });
+
+  it("filters to engineer jobs when the engineer filter is enabled", async () => {
+    const page1: Page = {
+      page: [
+        buildJob("job-1", 200, 200, "Software Engineer", true),
+        buildJob("job-2", 100, 100, "Product Designer", false),
+      ],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    const result = await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 2 },
+      engineer: true,
+    });
+
+    expect(result.page.map((job: Job) => job._id)).toEqual(["job-1"]);
   });
 });

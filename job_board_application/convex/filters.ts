@@ -66,6 +66,7 @@ export const ensureDefaultFilter = mutation({
       name: "Software Engineer $150k+",
       search: "software engineer",
       useSearch: false,
+      engineer: true,
       minCompensation: 150000,
       includeRemote: true,
       state: undefined,
@@ -92,6 +93,7 @@ export const saveFilter = mutation({
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
     companies: v.optional(v.array(v.string())),
+    engineer: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);

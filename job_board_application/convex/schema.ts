@@ -27,6 +27,7 @@ const applicationTables = {
     heuristicAttempts: v.optional(v.number()),
     heuristicLastTried: v.optional(v.number()),
     heuristicVersion: v.optional(v.number()),
+    engineer: v.boolean(),
     url: v.string(),
     postedAt: v.number(),
     scrapedAt: v.optional(v.number()),
@@ -42,13 +43,14 @@ const applicationTables = {
     .index("by_company_posted", ["company", "postedAt"])
     .index("by_title_posted", ["title", "postedAt"])
     .index("by_url", ["url"])
+    .index("by_engineer_scraped_posted", ["engineer", "scrapedAt", "postedAt"])
     .searchIndex("search_locations", {
       searchField: "locationSearch",
-      filterFields: ["remote", "level", "state"],
+      filterFields: ["remote", "level", "state", "engineer"],
     })
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["remote", "level", "state"],
+      filterFields: ["remote", "level", "state", "engineer"],
     })
     .searchIndex("search_company", {
       searchField: "company",
@@ -110,6 +112,7 @@ const applicationTables = {
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
     country: v.optional(v.string()),
+    engineer: v.optional(v.boolean()),
     useSearch: v.optional(v.boolean()),
     companies: v.optional(v.array(v.string())),
     isSelected: v.boolean(),
