@@ -458,10 +458,10 @@ site_schedules:
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://www.notion.com/careers
+- url: https://jobs.ashbyhq.com/notion
   name: notion
   enabled: true
-  type: notion
+  type: ashby
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 09:30

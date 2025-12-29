@@ -243,11 +243,9 @@ export const listWorkflowRunsByUrl = query({
 export const listWorkflowRuns = query({
     args: { limit: v.optional(v.number()) },
     handler: async (ctx, args) => {
-        const lim = args.limit ?? 50;
-        const runs = await ctx.db.query("workflow_runs").collect();
-        return runs
-            .sort((a: any, b: any) => (b.startedAt ?? 0) - (a.startedAt ?? 0))
-            .slice(0, lim);
+        const requested = args.limit ?? 50;
+        const lim = Math.min(Math.max(requested, 1), 200);
+        return await ctx.db.query("workflow_runs").withIndex("by_started").order("desc").take(lim);
     },
 });
 

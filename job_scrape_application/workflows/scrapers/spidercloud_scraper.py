@@ -1301,11 +1301,30 @@ class SpiderCloudScraper(BaseScraper):
         return None
 
     def _merge_json_fragments(self, value: Any) -> str | None:
-        fragments = [
-            text.strip()
-            for text in gather_strings(value)
-            if isinstance(text, str) and text.strip()
-        ]
+        fragments: list[str] = []
+
+        def _add_fragment(candidate: Any) -> None:
+            if isinstance(candidate, (bytes, bytearray)):
+                candidate = candidate.decode("utf-8", errors="replace")
+            if isinstance(candidate, str):
+                stripped = candidate.strip()
+                if stripped:
+                    fragments.append(stripped)
+
+        if isinstance(value, list):
+            for event in value:
+                if isinstance(event, dict):
+                    content = event.get("content", event)
+                    if isinstance(content, dict):
+                        for key in ("raw", "raw_html", "html", "text", "body", "result"):
+                            _add_fragment(content.get(key))
+                    else:
+                        _add_fragment(content)
+                else:
+                    _add_fragment(event)
+        else:
+            _add_fragment(value)
+
         if len(fragments) < 2:
             return None
         merged = "".join(fragments)
@@ -1313,17 +1332,6 @@ class SpiderCloudScraper(BaseScraper):
             return None
         if "jobs" not in merged and "positions" not in merged:
             return None
-        brace_candidates = [idx for idx in (merged.find("{"), merged.find("[")) if idx != -1]
-        if not brace_candidates:
-            return None
-        start = min(brace_candidates)
-        if start > 0:
-            merged = merged[start:]
-        end_candidates = [idx for idx in (merged.rfind("}"), merged.rfind("]")) if idx != -1]
-        if end_candidates:
-            end = max(end_candidates)
-            if end + 1 < len(merged):
-                merged = merged[: end + 1]
         return merged
 
     def _payload_has_job_urls(self, payload: Dict[str, Any]) -> bool:

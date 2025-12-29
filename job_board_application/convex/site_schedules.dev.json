@@ -221,6 +221,46 @@
       }
     },
     {
+      "url": "https://api.greenhouse.io/v1/boards/zscaler/jobs",
+      "name": "Zscaler",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/twilio/jobs",
+      "name": "Twilio",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
       "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs",
       "name": "Stubhub",
       "enabled": true,
@@ -318,6 +358,26 @@
       }
     },
     {
+      "url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+      "name": "Adobe",
+      "enabled": true,
+      "type": "adobe",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "weekdays 9:30am",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 1440.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
       "url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
       "name": "Cisco",
       "enabled": true,
@@ -398,10 +458,10 @@
       }
     },
     {
-      "url": "https://www.notion.com/careers",
+      "url": "https://jobs.ashbyhq.com/notion",
       "name": "Notion",
       "enabled": true,
-      "type": "notion",
+      "type": "ashby",
       "scrapeProvider": "spidercloud",
       "schedule": {
         "name": "weekdays 9:30am",

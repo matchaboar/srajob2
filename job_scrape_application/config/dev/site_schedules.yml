@@ -254,10 +254,10 @@
     startTime: 09:30
     intervalMinutes: 1440.0
     timezone: America/Denver
-- url: https://www.notion.com/careers
+- url: https://jobs.ashbyhq.com/notion
   name: Notion
   enabled: true
-  type: notion
+  type: ashby
   scrapeProvider: spidercloud
   schedule:
     name: weekdays 9:30am

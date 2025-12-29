@@ -441,6 +441,26 @@
       }
     },
     {
+      "url": "https://api.greenhouse.io/v1/boards/twilio/jobs",
+      "name": "twilio",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 09:30",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
       "url": "https://api.greenhouse.io/v1/boards/thetradedesk/jobs",
       "name": "theTradeDesk",
       "enabled": true,
@@ -476,6 +496,26 @@
           "fri"
         ],
         "startTime": "08:00",
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://api.greenhouse.io/v1/boards/zscaler/jobs",
+      "name": "zscaler",
+      "enabled": true,
+      "type": "greenhouse",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 09:30",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
         "intervalMinutes": 120.0,
         "timezone": "America/Denver"
       }
@@ -565,6 +605,26 @@
       "name": "Uber",
       "enabled": true,
       "type": "uber",
+      "scrapeProvider": "spidercloud",
+      "schedule": {
+        "name": "Weekdays every 2 hours @ 09:30",
+        "days": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri"
+        ],
+        "startTime": "09:30",
+        "intervalMinutes": 120.0,
+        "timezone": "America/Denver"
+      }
+    },
+    {
+      "url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+      "name": "Adobe",
+      "enabled": true,
+      "type": "adobe",
       "scrapeProvider": "spidercloud",
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
@@ -764,10 +824,10 @@
       }
     },
     {
-      "url": "https://www.notion.com/careers",
+      "url": "https://jobs.ashbyhq.com/notion",
       "name": "notion",
       "enabled": true,
-      "type": "notion",
+      "type": "ashby",
       "scrapeProvider": "spidercloud",
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",

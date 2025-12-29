@@ -218,6 +218,16 @@ export function JobBoard() {
     if (hash === "companies" || hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
     return "jobs";
   });
+  const ignoredReasonDetails: Record<string, string> = {
+    listing_page: "Looks like a listing/filter page, not a single job detail. We use it to discover job URLs but do not ingest it as a job.",
+    listing_payload: "Payload contains multiple job URLs rather than a single job detail; used for URL discovery only.",
+    error_landing: "Looks like an error/expired posting page.",
+    missing_required_keyword: "Job title/description is missing required keywords (e.g., engineer).",
+    stale_scrape_queue_entry: "URL sat in the scrape queue too long and was marked stale.",
+    http_404: "Job detail URL returned 404 after retries.",
+    max_attempts: "Job detail failed too many times and was retired.",
+    filtered: "Filtered out by scraping rules.",
+  };
   const companyFilterFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("company");
@@ -2274,51 +2284,99 @@ export function JobBoard() {
           </div>
         )}
         {activeTab === "ignored" && (
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Ignored URLs</h2>
-              <span className="text-xs text-slate-400">
-                {(ignoredJobs?.length ?? 0).toLocaleString()} entries
-              </span>
-            </div>
-            <div className="space-y-3">
-              {(ignoredJobs || []).map((row) => (
-                <div
-                  key={row._id}
-                  className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-1"
-                >
-                  <div className="text-sm text-blue-200 break-all flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">Ignored</span>
-                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
-                      {row.title || "Unknown"}
-                    </a>
-                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline text-slate-400 text-[12px]">
-                      {row.url}
-                    </a>
-                    {row.description && (
-                      <p className="text-[12px] text-slate-300 line-clamp-3 whitespace-pre-wrap break-words">
-                        {row.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-400 flex flex-wrap gap-2">
-                    {row.reason && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Reason: {row.reason}</span>}
-                    {row.provider && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Provider: {row.provider}</span>}
-                    {row.workflowName && <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">Workflow: {row.workflowName}</span>}
-                    <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px]">
-                      Seen: {new Date(row.createdAt).toLocaleString()}
-                    </span>
-                    {row.sourceUrl && (
-                      <span className="px-2 py-1 rounded bg-slate-800/80 text-[11px] break-all">
-                        Source: {row.sourceUrl}
-                      </span>
-                    )}
-                  </div>
+          <div className="flex-1 flex bg-slate-950 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950/60">
+                <h2 className="text-lg font-semibold text-white">Ignored URLs</h2>
+                <span className="text-xs text-slate-400">
+                  {(ignoredJobs?.length ?? 0).toLocaleString()} entries
+                </span>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="flex-1 grid grid-cols-[5fr_2fr] sm:grid-cols-[6fr_2fr_2fr_2fr_2fr] gap-3 items-center">
+                  <div>Job</div>
+                  <div>Reason</div>
+                  <div className="hidden sm:block">Provider</div>
+                  <div className="hidden sm:block">Source</div>
+                  <div className="hidden sm:block text-right">Seen</div>
                 </div>
-              ))}
-              {(ignoredJobs?.length ?? 0) === 0 && (
-                <div className="text-sm text-slate-500">No ignored URLs yet.</div>
-              )}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {(ignoredJobs || []).map((row) => (
+                  <div
+                    key={row._id}
+                    className="group flex items-start gap-3 px-4 py-3 border-b border-slate-800 transition-colors hover:bg-slate-900/60"
+                  >
+                    <div className="flex-1 grid grid-cols-[5fr_2fr] sm:grid-cols-[6fr_2fr_2fr_2fr_2fr] gap-3 items-start">
+                      <div className="min-w-0 flex flex-col gap-1">
+                        <a
+                          href={row.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-semibold text-slate-100 hover:underline truncate"
+                          title={row.title || row.url}
+                        >
+                          {row.title || "Unknown"}
+                        </a>
+                        <a
+                          href={row.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-slate-400 hover:underline truncate"
+                          title={row.url}
+                        >
+                          {row.url}
+                        </a>
+                        {row.description && (
+                          <p className="text-[11px] text-slate-300 line-clamp-2 whitespace-pre-wrap break-words">
+                            {row.description}
+                          </p>
+                        )}
+                        {row.sourceUrl && (
+                          <div className="text-[10px] text-slate-500 truncate sm:hidden" title={row.sourceUrl}>
+                            Source: {row.sourceUrl}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-1">
+                        <span className="text-xs text-slate-200">{row.reason || "—"}</span>
+                        {row.reason && (
+                          <details className="text-[11px] text-slate-400">
+                            <summary className="cursor-pointer text-[11px] text-slate-300 hover:text-white">
+                              Show why
+                            </summary>
+                            <div className="mt-1 text-[11px] text-slate-400">
+                              {ignoredReasonDetails[row.reason] ?? "No description available for this reason code yet."}
+                            </div>
+                          </details>
+                        )}
+                        <div className="sm:hidden text-[10px] text-slate-500">
+                          {(row.provider || "Unknown provider") + " • " + new Date(row.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex flex-col gap-1 text-xs text-slate-400">
+                        <span>{row.provider || "Unknown"}</span>
+                        {row.workflowName && (
+                          <span className="text-[10px] text-slate-500">Workflow: {row.workflowName}</span>
+                        )}
+                      </div>
+                      <div className="hidden sm:flex flex-col gap-1 text-xs text-slate-400 min-w-0">
+                        <span className="truncate" title={row.sourceUrl || ""}>
+                          {row.sourceUrl || "—"}
+                        </span>
+                      </div>
+                      <div className="hidden sm:block text-right text-xs text-slate-400">
+                        {new Date(row.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(ignoredJobs?.length ?? 0) === 0 && (
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+                    <p>No ignored URLs yet.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

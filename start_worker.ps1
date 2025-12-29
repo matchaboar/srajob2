@@ -3,6 +3,7 @@
 param(
     [switch]$ForceScrapeAll = $false,
     [switch]$ResetWithinSchedule = $false,
+    [switch]$ResetProcessingQueue = $false,
     [switch]$UseProd = $false,
     [string]$EnvFile = ""
 )
@@ -833,6 +834,26 @@ function Start-WorkerMain {
             } catch {
                 Write-Warning "Failed to reset sites for forced scrape: $_"
             }
+        }
+    }
+
+    if ($ResetProcessingQueue) {
+        Write-Host "Resetting scrape_url_queue processing rows back to pending..." -ForegroundColor Yellow
+        try {
+            $convexArgs = "{}"
+            $convexCmd = @("convex", "run")
+            if ($UseProd) { $convexCmd += "--prod" }
+            $convexCmd += "router:resetScrapeUrlProcessing"
+            $convexCmd += $convexArgs
+            Push-Location "job_board_application"
+            try {
+                & npx @convexCmd
+                Assert-LastExit "Reset scrape_url_queue processing rows"
+            } finally {
+                Pop-Location
+            }
+        } catch {
+            Write-Warning "Failed to reset scrape_url_queue processing rows: $($_.Exception.Message)"
         }
     }
 
