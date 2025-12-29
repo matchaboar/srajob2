@@ -313,7 +313,36 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
 
     from ...services.convex_client import convex_mutation, convex_query
 
-    listing = await scraper.fetch_greenhouse_listing(site)
+    try:
+        listing = await scraper.fetch_greenhouse_listing(site)
+    except Exception as exc:  # noqa: BLE001
+        payload = {
+            "event": "scrape.greenhouse_listing.activity_failed",
+            "level": "error",
+            "siteUrl": site.get("url") or "",
+            "data": {
+                "provider": getattr(scraper, "provider", "spidercloud"),
+                "siteId": site.get("_id"),
+                "error": str(exc),
+            },
+        }
+        try:
+            telemetry.emit_posthog_log(payload)
+        except Exception:
+            pass
+        try:
+            telemetry.emit_posthog_exception(
+                exc,
+                properties={
+                    "event": "scrape.greenhouse_listing.activity_failed",
+                    "siteUrl": site.get("url"),
+                    "siteId": site.get("_id"),
+                    "provider": getattr(scraper, "provider", "spidercloud"),
+                },
+            )
+        except Exception:
+            pass
+        raise
     job_urls = listing.get("job_urls") if isinstance(listing, dict) else []
     urls: list[str] = [u for u in job_urls if isinstance(u, str) and u]
 
@@ -1796,6 +1825,23 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 failure_reason = "scrape_failed"
         else:
             invalid_reason = "no_normalized_jobs"
+    if invalid_reason or failure_reason:
+        try:
+            telemetry.emit_posthog_exception(
+                ValueError(f"Scrape payload invalid: {invalid_reason or failure_reason}"),
+                properties={
+                    "event": "scrape.invalid_payload" if invalid_reason else "scrape.failed_payload",
+                    "siteUrl": payload.get("sourceUrl") or "",
+                    "provider": provider_for_log,
+                    "workflowName": workflow_name,
+                    "normalizedCount": normalized_count,
+                    "ignoredCount": ignored_count,
+                    "failedCount": failed_count,
+                    "reason": invalid_reason or failure_reason,
+                },
+            )
+        except Exception:
+            pass
 
     await _log_scratchpad(
         "scrape.received",
@@ -2066,6 +2112,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             pass
     except Exception as exc:
         logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
+        try:
+            telemetry.emit_posthog_exception(
+                exc,
+                properties={
+                    "event": "scrape.persist_failed",
+                    "siteUrl": payload.get("sourceUrl") or "",
+                    "provider": provider_for_log,
+                    "workflowName": workflow_name,
+                },
+            )
+        except Exception:
+            pass
         # Fallback: aggressively trim and retry once so we still record the run
         fallback = trim_scrape_for_convex(
             scrape,
@@ -2101,6 +2159,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 fallback_exc,
                 exc_info=fallback_exc,
             )
+            try:
+                telemetry.emit_posthog_exception(
+                    fallback_exc,
+                    properties={
+                        "event": "scrape.persist_failed.final",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                    },
+                )
+            except Exception:
+                pass
             return f"store-error:{int(time.time() * 1000)}"
 
     # Best-effort job ingestion (mimics router.ts behavior)
@@ -2155,7 +2225,20 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
             except Exception:
                 pass
-    except Exception:
+    except Exception as exc:
+        try:
+            telemetry.emit_posthog_exception(
+                exc,
+                properties={
+                    "event": "ingest.jobs_failed",
+                    "siteUrl": payload.get("sourceUrl") or "",
+                    "provider": provider_for_log,
+                    "workflowName": workflow_name,
+                    "normalizedCount": normalized_count,
+                },
+            )
+        except Exception:
+            pass
         # Non-fatal: ingestion failures shouldn't block scrape recording
         pass
 
@@ -2203,7 +2286,20 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "provider": provider_for_log,
                 },
             )
-    except Exception:
+    except Exception as exc:
+        try:
+            telemetry.emit_posthog_exception(
+                exc,
+                properties={
+                    "event": "ignored_jobs.record_failed",
+                    "siteUrl": payload.get("sourceUrl") or "",
+                    "provider": provider_for_log,
+                    "workflowName": workflow_name,
+                    "ignoredCount": ignored_count,
+                },
+            )
+        except Exception:
+            pass
         # Best-effort; ignore failures
         pass
 

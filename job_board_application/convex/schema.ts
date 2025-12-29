@@ -434,7 +434,9 @@ const applicationTables = {
     completedAt: v.optional(v.number()),
   })
     .index("by_status", ["status"])
-    .index("by_created", ["createdAt"]),
+    .index("by_created", ["createdAt"])
+    .index("by_site_status_created", ["siteId", "status", "createdAt"])
+    .index("by_status_created", ["status", "createdAt"]),
 };
 
 export default defineSchema({

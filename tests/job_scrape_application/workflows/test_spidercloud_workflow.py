@@ -555,6 +555,88 @@ async def test_spidercloud_greenhouse_listing_invalid_json_raises(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_spidercloud_greenhouse_listing_activity_emits_posthog_on_parse_error(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_robinhood_greenhouse_listing_blocked.json"
+    )
+    raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    raw_events = raw_payload[0] if isinstance(raw_payload, list) and raw_payload else []
+    raw_text = ""
+    if isinstance(raw_events, list) and raw_events:
+        first = raw_events[0]
+        if isinstance(first, dict):
+            content = first.get("content")
+            if isinstance(content, dict):
+                raw_text = (
+                    content.get("raw")
+                    or content.get("raw_html")
+                    or content.get("html")
+                    or content.get("text")
+                    or ""
+                )
+            elif isinstance(content, str):
+                raw_text = content
+    truncated = raw_text.split("https://", 1)[0].strip()
+    if not truncated:
+        truncated = "not-json"
+
+    async def fake_fetch(api_url: str, _handler):
+        return truncated, raw_events
+
+    async def fake_convex_mutation(*_args, **_kwargs):
+        return None
+
+    async def fake_convex_query(*_args, **_kwargs):
+        return []
+
+    async def fake_seen_urls(*_args, **_kwargs):
+        return []
+
+    async def fake_filter_existing(*_args, **_kwargs):
+        return []
+
+    emitted_logs: list[dict[str, Any]] = []
+    emitted_exceptions: list[tuple[BaseException, dict[str, Any]]] = []
+
+    def _emit_log(payload: dict[str, Any]) -> None:
+        emitted_logs.append(payload)
+
+    def _emit_exception(exc: BaseException, **kwargs: dict[str, Any]) -> None:
+        emitted_exceptions.append((exc, kwargs))
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+    monkeypatch.setattr(scraper, "_extract_json_payload", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "job_scrape_application.services.convex_client.convex_mutation",
+        fake_convex_mutation,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.services.convex_client.convex_query",
+        fake_convex_query,
+    )
+    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen_urls)
+    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_log", _emit_log)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_exception", _emit_exception)
+
+    site: Site = {
+        "_id": "01hzconvexsiteid123456789ad0",
+        "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
+        "type": "greenhouse",
+    }
+
+    with pytest.raises(ApplicationError):
+        await acts._scrape_spidercloud_greenhouse(scraper, site, [])
+
+    assert any(
+        payload.get("event") == "scrape.greenhouse_listing.activity_failed"
+        for payload in emitted_logs
+    )
+    assert emitted_exceptions
+
+
+@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_empty(monkeypatch):
     scraper = _make_spidercloud_scraper()
     job_url = "https://boards.greenhouse.io/example/jobs/123"
@@ -585,6 +667,43 @@ async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_e
     assert listing["job_urls"] == [job_url]
     raw_payload = json.loads(listing["raw"])
     assert raw_payload["jobs"][0]["absolute_url"] == job_url
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_greenhouse_listing_reconstructs_chunked_json(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    job_url = "https://boards.greenhouse.io/example/jobs/456"
+    payload = {
+        "jobs": [
+            {
+                "absolute_url": job_url,
+                "title": "Software Engineer",
+                "id": 456,
+                "location": {"name": "Remote"},
+            }
+        ]
+    }
+    payload_text = json.dumps(payload)
+    html_payload = f"<html><body><pre>{payload_text}</pre></body></html>"
+    chunk_one = html_payload[:40]
+    chunk_two = html_payload[40:]
+
+    async def fake_fetch(_api_url: str, _handler):
+        return chunk_one, [{"content": chunk_one}, {"content": chunk_two}]
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+
+    site: Site = {
+        "_id": "01hzconvexsiteid123456789ac2",
+        "url": "https://api.greenhouse.io/v1/boards/example/jobs",
+        "type": "greenhouse",
+    }
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+
+    assert listing["job_urls"] == [job_url]
+    assert "<pre>" in listing["raw"]
+    assert payload_text in listing["raw"]
 
 
 def test_spidercloud_extract_json_payload_from_pre_html():

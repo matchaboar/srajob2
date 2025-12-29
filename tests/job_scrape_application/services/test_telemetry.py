@@ -67,10 +67,17 @@ if "opentelemetry" not in sys.modules:
     )
 if "posthog" not in sys.modules:
     class _FakePosthog:
-        def __init__(self, api_key: str, host: str | None = None, enable_exception_autocapture: bool = False):
+        def __init__(
+            self,
+            api_key: str,
+            host: str | None = None,
+            enable_exception_autocapture: bool = False,
+            capture_exception_code_variables: bool = False,
+        ):
             self.api_key = api_key
             self.host = host
             self.enable_exception_autocapture = enable_exception_autocapture
+            self.capture_exception_code_variables = capture_exception_code_variables
             self.captured: List[Dict[str, Any]] = []
 
         def capture_exception(self, exc, distinct_id=None, properties=None):

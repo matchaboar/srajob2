@@ -241,6 +241,48 @@ def test_looks_like_job_listing_page_detects_snapchat_table():
     assert looks_like_job_listing_page(title, content, "https://careers.snap.com/jobs")
 
 
+def test_looks_like_job_listing_page_detects_listing_card_snippet():
+    content = textwrap.dedent(
+        """
+        Jobs
+        snapchat
+        United States
+        Mid
+        $286,000
+        Posted Dec 27 • 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://careers.snap.com/jobs
+        """
+    ).strip()
+
+    assert looks_like_job_listing_page("Jobs", content, "https://careers.snap.com/jobs")
+
+
+def test_looks_like_job_listing_page_allows_detail_with_apply_markers():
+    content = textwrap.dedent(
+        """
+        Senior Software Engineer
+        Posted Dec 27, 2025
+        Direct Apply
+        Apply with AI
+
+        Responsibilities
+        Build services that scale.
+
+        Qualifications
+        5+ years of experience.
+        """
+    ).strip()
+
+    assert not looks_like_job_listing_page(
+        "Senior Software Engineer",
+        content,
+        "https://careers.snap.com/jobs/12345",
+    )
+
+
 def test_normalize_firecrawl_items_handles_greenhouse_job_json():
     raw_json = """
     {"absolute_url":"https://www.pinterestcareers.com/jobs/?gh_jid=5572858","data_compliance":[{"type":"gdpr","requires_consent":false,"requires_processing_consent":false,"requires_retention_consent":false,"retention_period":null,"demographic_data_consent_applies":false}],"internal_job_id":2745516,"location":{"name":"Toronto, ON, CA"},"metadata":[{"id":5955,"name":"Employment Type","value":"Regular","value_type":"single_select"},{"id":16373425,"name":"Career Track","value":null,"value_type":"single_select"},{"id":2110283,"name":"Careers Page Department","value":"Engineering","value_type":"single_select"}],"id":5572858,"updated_at":"2025-11-19T19:53:17-05:00","requisition_id":"Evergreen - Backend Engineer, IC15, Monetization, CAN","title":"Sr. Software Engineer, Backend","company_name":"Pinterest","first_published":"2023-12-15T14:26:24-05:00","language":"en","content":"<div class=\\"content-intro\\"><p><strong>About Pinterest:</strong></p><p>Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime.</p></div>","departments":[{"id":7789,"name":"Engineering and Product (L2)","child_ids":[71474,77118,84986,71470,71472,71473,77096,84413,71468,523,91068,285130,285128,285129],"parent_id":null}],"offices":[{"id":58564,"name":"Toronto","location":"Toronto, ON, CA","child_ids":[],"parent_id":78375}]}

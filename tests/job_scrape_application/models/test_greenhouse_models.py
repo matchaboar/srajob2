@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -86,3 +87,41 @@ def test_extract_greenhouse_job_urls_filters_titles():
 def test_load_greenhouse_board_rejects_invalid_json():
     with pytest.raises(ValueError, match="Greenhouse board payload was not valid JSON"):
         load_greenhouse_board("not-json")
+
+
+def test_load_greenhouse_board_parses_html_with_pre():
+    job_url = "https://boards.greenhouse.io/example/jobs/123"
+    payload = {
+        "jobs": [
+            {
+                "absolute_url": job_url,
+                "id": 123,
+                "title": "Software Engineer",
+                "location": {"name": "Remote"},
+            }
+        ]
+    }
+    html_payload = f"<html><body><pre>{json.dumps(payload)}</pre></body></html>"
+
+    board = load_greenhouse_board(html_payload)
+
+    assert board.jobs[0].absolute_url == job_url
+
+
+def test_load_greenhouse_board_parses_json_with_prefix():
+    job_url = "https://boards.greenhouse.io/example/jobs/456"
+    payload = {
+        "jobs": [
+            {
+                "absolute_url": job_url,
+                "id": 456,
+                "title": "Data Scientist",
+                "location": {"name": "Remote"},
+            }
+        ]
+    }
+    text_payload = f"blocked-response\n{json.dumps(payload)}\ntrailer"
+
+    board = load_greenhouse_board(text_payload)
+
+    assert board.jobs[0].absolute_url == job_url

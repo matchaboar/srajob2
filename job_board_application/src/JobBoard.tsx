@@ -11,6 +11,7 @@ import remarkBreaks from "remark-breaks";
 import { JobRow } from "./components/JobRow";
 import { CompanyIcon } from "./components/CompanyIcon";
 import { StatusTracker } from "./components/StatusTracker";
+import { LiveTimer } from "./components/LiveTimer";
 import { Keycap } from "./components/Keycap";
 import { DiagonalFraction } from "./components/DiagonalFraction";
 import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "./lib/compensation";
@@ -2239,6 +2240,18 @@ export function JobBoard() {
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
                       <span className="text-xs font-mono text-blue-200">{formatCompanySalary(company)}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-950/60 text-slate-200">
+                        <LiveTimer
+                          startTime={company.lastScrapedAt}
+                          showAgo
+                          showSeconds={false}
+                          className="text-[10px] font-mono text-slate-200"
+                          suffixClassName="text-slate-400"
+                        />
+                      </span>
                     </div>
                   </button>
                 ))}

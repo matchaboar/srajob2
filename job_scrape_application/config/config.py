@@ -58,6 +58,10 @@ class Settings:
     posthog_region: str | None = os.getenv("POSTHOG_REGION")
     posthog_project_id: str | None = os.getenv("POSTHOG_PROJECT_ID")
     posthog_exception_autocapture: bool = _env_flag("POSTHOG_EXCEPTION_AUTOCAPTURE", "true")
+    posthog_capture_exception_code_variables: bool = _env_flag(
+        "POSTHOG_CAPTURE_EXCEPTION_CODE_VARIABLES",
+        "true",
+    )
     posthog_disabled: bool = _env_flag("POSTHOG_DISABLED", "false") or _env_flag(
         "POSTHOG_DISABLE", "false"
     )

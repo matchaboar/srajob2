@@ -285,6 +285,21 @@ _LISTING_FILTER_TERMS = (
     "view all jobs",
     "filter by",
 )
+_LISTING_CARD_APPLY_MARKERS = (
+    "direct apply",
+    "apply with ai",
+    "apply now",
+    "view job",
+    "view details",
+)
+_LISTING_URL_TOKENS = {
+    "jobs",
+    "careers",
+    "career",
+    "positions",
+    "openings",
+}
+_LISTING_CARD_POSTED_RE = re.compile(r"\bposted\b.{0,40}\bago\b")
 _JOB_DETAIL_MARKERS = (
     "responsibilities",
     "requirements",
@@ -866,6 +881,60 @@ def _url_suggests_listing(url: str | None) -> bool:
     return False
 
 
+def _url_is_listing_root(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    segments = [seg for seg in (parsed.path or "").split("/") if seg]
+    if not segments:
+        return False
+    if any(re.search(DIGIT_PATTERN, seg) for seg in segments):
+        return False
+    return segments[-1].lower() in _LISTING_URL_TOKENS
+
+
+def _description_mentions_listing_url(description: str) -> bool:
+    if not description:
+        return False
+    for match in re.findall(r"https?://\S+", description):
+        cleaned = match.rstrip(").,;]\"'")
+        if _url_is_listing_root(cleaned):
+            return True
+    return False
+
+
+def _looks_like_listing_card_snippet(
+    sample: str,
+    description: str,
+    url: str | None,
+    detail_hits: int,
+) -> bool:
+    if detail_hits:
+        return False
+    trimmed = description.strip()
+    if not trimmed or len(trimmed) > 500:
+        return False
+    word_count = len(re.findall(r"\w+", trimmed))
+    if word_count > 120:
+        return False
+    line_count = len([line for line in description.splitlines() if line.strip()])
+    if line_count > 14:
+        return False
+    apply_hits = sum(1 for marker in _LISTING_CARD_APPLY_MARKERS if marker in sample)
+    if apply_hits == 0:
+        return False
+    listing_url_present = _description_mentions_listing_url(description) or _url_is_listing_root(url)
+    if not listing_url_present:
+        return False
+    posted_hit = bool(_LISTING_CARD_POSTED_RE.search(sample)) or ("posted" in sample and "ago" in sample)
+    if posted_hit:
+        return True
+    return apply_hits >= 2 and word_count <= 80
+
+
 def looks_like_job_listing_page(title: str | None, description: str, url: str | None = None) -> bool:
     """Heuristically detect job board listing/filter pages rather than a single job."""
 
@@ -892,6 +961,8 @@ def looks_like_job_listing_page(title: str | None, description: str, url: str | 
     if link_hits >= 8 and marker_hits >= 2:
         return True
     if marker_hits >= 2 and _url_suggests_listing(url):
+        return True
+    if _looks_like_listing_card_snippet(sample, description, url, detail_hits):
         return True
     if detail_hits >= 2 and marker_hits <= 2 and select_hits < 2:
         return False

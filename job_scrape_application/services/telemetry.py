@@ -101,6 +101,7 @@ def _ensure_posthog_client() -> Posthog | None:  # type: ignore[valid-type]
         token,
         host=host,
         enable_exception_autocapture=settings.posthog_exception_autocapture,
+        capture_exception_code_variables=settings.posthog_capture_exception_code_variables,
     )
     return _posthog_client
 

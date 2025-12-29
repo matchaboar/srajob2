@@ -801,6 +801,7 @@ class SpiderCloudScraper(BaseScraper):
 
         script_pattern = re.compile(JSON_LD_SCRIPT_PATTERN, flags=re.IGNORECASE | re.DOTALL)
 
+        logged_parse_error = False
         for text in (t for t in gather_strings(events) if isinstance(t, str) and t.strip()):
             if "<script" not in text.lower():
                 continue
@@ -808,6 +809,19 @@ class SpiderCloudScraper(BaseScraper):
                 payload_raw = html.unescape(match.group("payload").strip())
                 parsed = self._try_parse_json(payload_raw)
                 if parsed is None:
+                    if not logged_parse_error and "jobposting" in payload_raw.lower():
+                        logged_parse_error = True
+                        try:
+                            telemetry.emit_posthog_exception(
+                                ValueError("Failed to parse JSON-LD JobPosting payload"),
+                                properties={
+                                    "event": "scrape.structured_data.parse_failed",
+                                    "provider": self.provider,
+                                    "payloadSnippet": payload_raw[:500],
+                                },
+                            )
+                        except Exception:
+                            pass
                     continue
                 found = _find_job_posting(parsed)
                 if found:
@@ -1230,6 +1244,22 @@ class SpiderCloudScraper(BaseScraper):
 
         return None
 
+    def _merge_json_fragments(self, value: Any) -> str | None:
+        fragments = [
+            text.strip()
+            for text in gather_strings(value)
+            if isinstance(text, str) and text.strip()
+        ]
+        if len(fragments) < 2:
+            return None
+        jsonish = [fragment for fragment in fragments if any(ch in fragment for ch in ("{", "}", "[", "]"))]
+        if len(jsonish) < 2:
+            return None
+        merged = "".join(jsonish)
+        if "jobs" not in merged and "positions" not in merged:
+            return None
+        return merged
+
     def _payload_has_job_urls(self, payload: Dict[str, Any]) -> bool:
         jobs = payload.get("jobs")
         if not isinstance(jobs, list):
@@ -1325,7 +1355,9 @@ class SpiderCloudScraper(BaseScraper):
         structured_title = None
         structured_location = None
         structured_description = None
+        structured_present = False
         if structured_payload:
+            structured_present = True
             raw_title = structured_payload.get("title")
             if isinstance(raw_title, str) and raw_title.strip():
                 structured_title = raw_title.strip()
@@ -1333,6 +1365,8 @@ class SpiderCloudScraper(BaseScraper):
             if isinstance(raw_description, str) and raw_description.strip():
                 structured_description = raw_description.strip()
             structured_location = self._location_from_job_posting(structured_payload)
+        if structured_description and not structured_present:
+            structured_present = True
 
         structured_markdown = None
         if structured_description:
@@ -1380,6 +1414,21 @@ class SpiderCloudScraper(BaseScraper):
 
         candidate_title = payload_title or parsed_title
         if handler and handler.is_listing_url(url):
+            if structured_present:
+                self._emit_scrape_log(
+                    event="scrape.normalization.listing_misdetection",
+                    level="error",
+                    site_url=url,
+                    data={
+                        "reason": "handler_listing_url",
+                        "title": candidate_title or "",
+                        "structuredTitle": structured_title,
+                        "structuredLocation": structured_location,
+                        "markdownLength": len(cleaned_markdown.strip()),
+                    },
+                    exc=ValueError("Listing heuristic matched on structured job detail page."),
+                    capture_exception=True,
+                )
             self._last_ignored_job = {
                 "url": url,
                 "reason": "listing_page",
@@ -1388,6 +1437,21 @@ class SpiderCloudScraper(BaseScraper):
             }
             return None
         if looks_like_job_listing_page(candidate_title, cleaned_markdown, url):
+            if structured_present:
+                self._emit_scrape_log(
+                    event="scrape.normalization.listing_misdetection",
+                    level="error",
+                    site_url=url,
+                    data={
+                        "reason": "listing_page_heuristic",
+                        "title": candidate_title or "",
+                        "structuredTitle": structured_title,
+                        "structuredLocation": structured_location,
+                        "markdownLength": len(cleaned_markdown.strip()),
+                    },
+                    exc=ValueError("Listing heuristic matched on structured job detail page."),
+                    capture_exception=True,
+                )
             self._last_ignored_job = {
                 "url": url,
                 "reason": "listing_page",
@@ -1445,6 +1509,19 @@ class SpiderCloudScraper(BaseScraper):
         remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", f"{title}\n{cleaned_markdown}")
         level = coerce_level(hints.get("level") if isinstance(hints, dict) else None, title)
         description = cleaned_markdown or ""
+        if not description.strip() and (raw_markdown or structured_description):
+            self._emit_scrape_log(
+                event="scrape.normalization.missing_description",
+                level="error",
+                site_url=url,
+                data={
+                    "title": title,
+                    "markdownLength": len(cleaned_markdown.strip()),
+                    "structuredDescription": bool(structured_description),
+                },
+                exc=ValueError("Normalized job missing description content."),
+                capture_exception=True,
+            )
 
         posted_at = started_at
         if handler:
@@ -1636,6 +1713,15 @@ class SpiderCloudScraper(BaseScraper):
             raise
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud scrape failed url=%s error=%s", url, exc)
+            self._emit_scrape_log(
+                event="scrape.single_url.failed",
+                level="error",
+                site_url=url,
+                api_url=request_url,
+                data={"attempt": attempt},
+                exc=exc,
+                capture_exception=True,
+            )
             raise ApplicationError(f"SpiderCloud scrape failed for {url}: {exc}") from exc
 
         logger.debug(
@@ -1842,6 +1928,7 @@ class SpiderCloudScraper(BaseScraper):
                     attempt = 0
                     result: Dict[str, Any] | None = None
                     proxy: Optional[str] = None
+                    last_error: BaseException | None = None
                     while attempt <= CAPTCHA_RETRY_LIMIT:
                         attempt += 1
                         local_params = dict(params)
@@ -1895,11 +1982,20 @@ class SpiderCloudScraper(BaseScraper):
                                         "proxy": proxy,
                                     }
                                 }
-                        except asyncio.TimeoutError:
+                        except asyncio.TimeoutError as exc:
                             logger.warning(
                                 "SpiderCloud scrape timed out url=%s timeout=%s",
                                 url,
                                 timeout_seconds,
+                            )
+                            last_error = exc
+                            self._emit_scrape_log(
+                                event="scrape.single_url.timeout",
+                                level="error",
+                                site_url=url,
+                                data={"timeoutSeconds": timeout_seconds, "attempt": attempt},
+                                exc=exc,
+                                capture_exception=True,
                             )
                             break
                         except Exception:
@@ -1908,6 +2004,15 @@ class SpiderCloudScraper(BaseScraper):
 
                     if not result:
                         logger.warning("SpiderCloud skipping url after retries url=%s", url)
+                        if last_error is None:
+                            self._emit_scrape_log(
+                                event="scrape.single_url.no_result",
+                                level="error",
+                                site_url=url,
+                                data={"attempts": attempt},
+                                exc=ValueError("SpiderCloud scrape returned empty result"),
+                                capture_exception=True,
+                            )
                         return idx, url, None
 
                     if marketing_url and isinstance(result, dict):
@@ -2261,6 +2366,11 @@ class SpiderCloudScraper(BaseScraper):
         started_at = int(time.time() * 1000)
         raw_text, raw_events = await self._fetch_greenhouse_listing_payload(api_url, handler)
         payload = self._extract_json_payload(raw_events)
+        merged_text = self._merge_json_fragments(raw_events)
+        if merged_text and (not raw_text or len(merged_text) > len(raw_text)):
+            raw_text = merged_text
+        if payload is None and merged_text:
+            payload = self._extract_json_payload(merged_text)
         if not raw_text and payload is not None:
             try:
                 raw_text = json.dumps(payload, ensure_ascii=False)

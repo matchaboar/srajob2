@@ -1248,6 +1248,22 @@ export const leaseSite = mutation({
       lockedBy: args.workerId,
       lockExpiresAt: now + ttlMs,
     });
+    try {
+      const pendingRequest = await ctx.db
+        .query("run_requests")
+        .withIndex("by_site_status_created", (q) => q.eq("siteId", pick._id).eq("status", "pending"))
+        .order("desc")
+        .first();
+      if (pendingRequest) {
+        await ctx.db.patch(pendingRequest._id, {
+          status: "processing",
+          createdAt: now,
+          expectedEta: undefined,
+        });
+      }
+    } catch (err) {
+      console.error("leaseSite: failed to update run_request status", err);
+    }
     // Return minimal fields for the worker
     const fresh = await ctx.db.get(pick._id as Id<"sites">);
     if (!fresh) return null;
@@ -2347,14 +2363,36 @@ export const failSite = mutation({
 });
 
 export const listRunRequests = query({
-  args: { limit: v.optional(v.number()) },
+  args: { limit: v.optional(v.number()), status: v.optional(v.union(v.literal("pending"), v.literal("processing"), v.literal("done"))) },
   handler: async (ctx, args) => {
     const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
-    return await ctx.db
-      .query("run_requests")
-      .withIndex("by_created", (q) => q.gte("createdAt", 0))
-      .order("desc")
-      .take(lim);
+    const rows = await (args.status
+      ? ctx.db
+        .query("run_requests")
+        .withIndex("by_status_created", (q) => q.eq("status", args.status).gte("createdAt", 0))
+        .order("desc")
+        .take(lim)
+      : ctx.db
+        .query("run_requests")
+        .withIndex("by_created", (q) => q.gte("createdAt", 0))
+        .order("desc")
+        .take(lim));
+    const aliasCache = new Map<string, string | null>();
+    const results = [];
+    for (const row of rows as any[]) {
+      const site = await ctx.db.get(row.siteId);
+      const siteUrl = row.siteUrl || (site as any)?.url || "";
+      const siteName = (site as any)?.name || "";
+      const companyName = siteUrl
+        ? await resolveCompanyForUrl(ctx, siteUrl, siteName, siteName, aliasCache)
+        : fallbackCompanyName(siteName, siteUrl);
+      results.push({
+        ...row,
+        siteUrl,
+        companyName,
+      });
+    }
+    return results;
   },
 });
 

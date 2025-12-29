@@ -2636,8 +2636,38 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 }
 
       function PendingRequestsSection() {
-  const runRequests = useQuery(api.router.listRunRequests, {limit: 25 });
-      const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, {limit: 25 });
+  const RUN_REQUEST_TABS = [
+    {
+      id: "pending",
+      label: "Pending",
+      description: "Request created; not yet leased by a worker.",
+    },
+    {
+      id: "processing",
+      label: "Processing",
+      description: "Leased by a worker and currently running.",
+    },
+    {
+      id: "done",
+      label: "Done",
+      description: "Workflow finished and request marked complete.",
+    },
+  ] as const;
+  type RunRequestTab = typeof RUN_REQUEST_TABS[number]["id"];
+  const [runRequestTab, setRunRequestTab] = useState<RunRequestTab>("pending");
+  const pendingRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "pending" });
+  const processingRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "processing" });
+  const doneRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "done" });
+  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, {limit: 25 });
+
+  const runRequestByStatus: Record<RunRequestTab, any[] | undefined> = {
+    pending: pendingRequests ?? undefined,
+    processing: processingRequests ?? undefined,
+    done: doneRequests ?? undefined,
+  };
+  const runRequestsRaw = runRequestByStatus[runRequestTab];
+  const runRequests = runRequestsRaw ?? [];
+  const activeTabMeta = RUN_REQUEST_TABS.find((tab) => tab.id === runRequestTab);
 
       return (
       <div className="space-y-4">
@@ -2648,7 +2678,34 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
               <p className="text-xs text-slate-500">{SITE_LEASE_WORKFLOW.description}</p>
               <WorkflowMetaSummary workflow={SITE_LEASE_WORKFLOW} />
             </div>
-            <span className="text-[10px] text-slate-500 font-mono">{runRequests?.length ?? 0} pending</span>
+            <span className="text-[10px] text-slate-500 font-mono">
+              {runRequests?.length ?? 0} {runRequestTab}
+            </span>
+          </div>
+          <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/40">
+            <div className="flex flex-wrap gap-2">
+              {RUN_REQUEST_TABS.map((tab) => {
+                const count = (runRequestByStatus[tab.id]?.length ?? 0);
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setRunRequestTab(tab.id)}
+                    className={clsx(
+                      "px-2.5 py-1 rounded text-[11px] font-medium border transition-colors",
+                      runRequestTab === tab.id
+                        ? "bg-slate-800 text-white border-slate-600 shadow-inner"
+                        : "bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
+                    )}
+                  >
+                    {tab.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            {activeTabMeta && (
+              <p className="text-[11px] text-slate-500 mt-2">{activeTabMeta.description}</p>
+            )}
           </div>
           <div className="overflow-auto">
             <table className="min-w-full text-left text-xs text-slate-200">
@@ -2664,14 +2721,17 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
                 {(runRequests ?? []).length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
-                      {runRequests === undefined ? "Loading..." : "No pending run requests."}
+                      {runRequestsRaw === undefined ? "Loading..." : "No run requests in this state."}
                     </td>
                   </tr>
                 )}
                 {(runRequests ?? []).map((req: any) => (
                   <tr key={req._id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="px-3 py-2">
-                      <div className="text-[11px] text-slate-200 truncate max-w-[220px]">{req.siteUrl || "—"}</div>
+                      <div className="text-[11px] text-slate-100 font-semibold truncate max-w-[220px]">
+                        {req.companyName || "—"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate max-w-[220px]">{req.siteUrl || "—"}</div>
                       <div className="text-[10px] text-slate-500 font-mono">{String(req.siteId)}</div>
                     </td>
                     <td className="px-3 py-2">
