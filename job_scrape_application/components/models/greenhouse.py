@@ -37,6 +37,7 @@ class GreenhouseBoardResponse(BaseModel):
 
 
 _PRE_TAG_PATTERN = re.compile(r"<pre[^>]*>(.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
+_INVALID_JSON_ESCAPE_PATTERN = re.compile(r"\\(?![\"\\/bfnrtu])")
 
 
 def _find_jobs_payload(node: Any) -> Optional[dict[str, Any]]:
@@ -94,25 +95,70 @@ def _extract_jobs_payload_from_text(text: str) -> Optional[dict[str, Any]]:
     return None
 
 
+def _strip_invalid_json_escapes(text: str) -> str:
+    return _INVALID_JSON_ESCAPE_PATTERN.sub("", text)
+
+
 def load_greenhouse_board(raw_payload: Any) -> GreenhouseBoardResponse:
     """Normalize raw FetchFox/http payload into a typed board response.
 
     Accepts raw JSON string, bytes, or already-parsed mapping/list structures.
     """
 
+    if raw_payload is None:
+        return GreenhouseBoardResponse()
+
     if isinstance(raw_payload, (bytes, bytearray)):
-        raw_payload = raw_payload.decode()
+        raw_payload = raw_payload.decode("utf-8", errors="replace")
 
     if isinstance(raw_payload, str):
+        text_payload = raw_payload.lstrip("\ufeff")
+        if not text_payload.strip():
+            return GreenhouseBoardResponse()
         try:
-            data = json.loads(raw_payload)
+            data = json.loads(text_payload)
         except json.JSONDecodeError:
-            extracted = _extract_jobs_payload_from_text(raw_payload)
-            if extracted is None:
-                raise ValueError("Greenhouse board payload was not valid JSON")
-            data = extracted
+            cleaned = _strip_invalid_json_escapes(text_payload)
+            if not cleaned.strip():
+                return GreenhouseBoardResponse()
+            try:
+                data = json.loads(cleaned)
+            except json.JSONDecodeError:
+                extracted = _extract_jobs_payload_from_text(text_payload)
+                if extracted is None and cleaned != text_payload:
+                    extracted = _extract_jobs_payload_from_text(cleaned)
+                if extracted is None:
+                    raise ValueError("Greenhouse board payload was not valid JSON")
+                data = extracted
     else:
         data = raw_payload
+
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except Exception:
+            extracted = _extract_jobs_payload_from_text(data)
+            if extracted is not None:
+                data = extracted
+
+    if data is None:
+        return GreenhouseBoardResponse()
+
+    if isinstance(data, list):
+        if not data:
+            return GreenhouseBoardResponse()
+        if all(isinstance(item, dict) for item in data):
+            if any(
+                key in item
+                for item in data
+                for key in ("absolute_url", "id", "requisition_id", "company_name")
+            ):
+                data = {"jobs": data}
+
+    if isinstance(data, dict):
+        found = _find_jobs_payload(data)
+        if found is not None:
+            data = found
 
     return GreenhouseBoardResponse.model_validate(data)
 

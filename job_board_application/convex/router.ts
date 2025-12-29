@@ -15,6 +15,7 @@ import {
   siteCanonicalKey,
 } from "./siteUtils";
 import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
+import { matchesCompanyFilters } from "./jobs";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -269,6 +270,29 @@ const fallbackCompanyName = (name: string | undefined | null, url: string | unde
   }
   return fallbackCompanyNameFromUrl(url ?? "");
 };
+const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
+const isUnknownLabel = (value?: string | null) => {
+  const normalized = (value ?? "").trim().toLowerCase();
+  return (
+    !normalized ||
+    normalized === "unknown" ||
+    normalized === "n/a" ||
+    normalized === "na" ||
+    normalized === "unspecified" ||
+    normalized === "not available"
+  );
+};
+const shouldReplaceText = (next?: string | null, prev?: string | null) => {
+  const trimmedNext = (next ?? "").trim();
+  if (!trimmedNext) return false;
+  const nextLower = trimmedNext.toLowerCase();
+  const prevLower = (prev ?? "").trim().toLowerCase();
+  const nextUnknown = isUnknownLabel(trimmedNext) || nextLower === "untitled";
+  const prevUnknown = isUnknownLabel(prevLower) || prevLower === "untitled";
+  if (nextUnknown && !prevUnknown) return false;
+  return trimmedNext !== (prev ?? "").trim();
+};
+const arraysEqual = (a?: unknown[] | null, b?: unknown[] | null) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 const normalizeDomainInput = (value: string): string => {
   const trimmed = (value || "").trim();
   if (!trimmed) return "";
@@ -298,6 +322,58 @@ const normalizeDomainInput = (value: string): string => {
 const deriveNameFromDomain = (domain: string): string => {
   if (!domain) return "Site";
   return fallbackCompanyName(undefined, `https://${domain}`);
+};
+const resolveCompanyFilterSet = async (ctx: any, input: string) => {
+  const trimmed = (input ?? "").trim();
+  if (!trimmed) {
+    throw new Error("Company name is required.");
+  }
+
+  const inputKey = normalizeCompanyKey(trimmed);
+  const profiles = await ctx.db.query("company_profiles").collect();
+  let nameMatch: any = null;
+  let aliasMatch: any = null;
+
+  for (const profile of profiles as any[]) {
+    const name = (profile?.name ?? "").trim();
+    if (name && normalizeCompanyKey(name) === inputKey) {
+      nameMatch = profile;
+      break;
+    }
+    if (!aliasMatch && Array.isArray(profile?.aliases)) {
+      if ((profile.aliases as any[]).some((alias) => normalizeCompanyKey(alias) === inputKey)) {
+        aliasMatch = profile;
+      }
+    }
+  }
+
+  const matched = nameMatch ?? aliasMatch;
+  const names = new Set<string>();
+  if (matched) {
+    if (typeof matched.name === "string" && matched.name.trim()) {
+      names.add(matched.name.trim());
+    }
+    if (Array.isArray(matched.aliases)) {
+      for (const alias of matched.aliases) {
+        if (typeof alias === "string" && alias.trim()) {
+          names.add(alias.trim());
+        }
+      }
+    }
+  }
+  names.add(trimmed);
+
+  const normalized = new Set<string>();
+  for (const name of names) {
+    const key = normalizeCompanyKey(name);
+    if (key) normalized.add(key);
+  }
+
+  return {
+    resolvedName: matched?.name ?? trimmed,
+    names: Array.from(names),
+    normalized,
+  };
 };
 const resolveCompanyForUrl = async (
   ctx: any,
@@ -381,11 +457,20 @@ const _collectRows = async (cursorable: any) => {
   if (typeof cursorable.paginate === "function") {
     let cursor: any = null;
     const rows: any[] = [];
+    const seen = new Set<string | null>();
+    const normalizeCursor = (value: any) => (value === null || value === undefined ? null : String(value));
+    let pages = 0;
+    const maxPages = 1000;
     while (true) {
       const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: 200 });
       rows.push(...(page || []));
       if (isDone || !continueCursor) break;
+      const nextKey = normalizeCursor(continueCursor);
+      const currentKey = normalizeCursor(cursor);
+      if (!page?.length || nextKey === currentKey || seen.has(nextKey) || pages >= maxPages) break;
+      seen.add(nextKey);
       cursor = continueCursor;
+      pages += 1;
     }
     return rows;
   }
@@ -4068,7 +4153,7 @@ const normalizeTitle = (raw: unknown): string => {
   return cleaned.length > MAX_LEN ? `${cleaned.slice(0, MAX_LEN - 3)}...` : cleaned;
 };
 
-const TITLE_PLACEHOLDERS = new Set(["page_title", "title", "job_title", "untitled", "unknown"]);
+const TITLE_PLACEHOLDERS = new Set(["page_title", "title", "job_title", "untitled", "unknown", "application"]);
 const NOISY_TITLE_PATTERNS = [/apply with ai/i, /direct apply/i, /select an option/i, /automated source picker/i];
 
 const looksLikeUuidish = (value: string) => {
@@ -4089,6 +4174,89 @@ const looksLikeNoisyTitle = (value: string) => {
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount >= 8 && (lowered.includes("posted") || lowered.includes("apply"))) return true;
   return false;
+};
+
+const LIST_ITEM_RE = /^([-*]|\u2022|\d+[.)])\s+/;
+
+const looksLikeSentenceLine = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const words = trimmed.split(/\s+/);
+  if (words.length >= 15) return true;
+  if (/[.!?]$/.test(trimmed) && words.length >= 8) return true;
+  return false;
+};
+
+const extractTitleFromListingBlob = (raw: unknown): string | null => {
+  if (typeof raw !== "string") return null;
+  if (raw.length < 200) return null;
+  if (!/\bdescription\b/i.test(raw) || !/\bposted\b/i.test(raw)) return null;
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return null;
+
+  const descriptionIndex = lines.findIndex((line) => /^description\b/i.test(line));
+  const startIndex = descriptionIndex >= 0 ? descriptionIndex + 1 : Math.floor(lines.length * 0.6);
+
+  for (let i = startIndex; i < lines.length; i += 1) {
+    const line = lines[i];
+    const lower = line.toLowerCase();
+    if (lower.startsWith("description")) continue;
+    if (lower.startsWith("posted ") || lower.startsWith("direct apply") || lower.startsWith("apply with")) continue;
+    if (/\bwords\b/.test(lower) && /\d/.test(lower)) continue;
+    if (/^https?:\/\//i.test(line)) continue;
+    if (/:$/.test(line)) continue;
+    if (LIST_ITEM_RE.test(line)) continue;
+    if (looksLikeSentenceLine(line)) continue;
+
+    let cleaned = cleanScrapedText(line);
+    if (!cleaned) continue;
+    if (cleaned.length > 140) continue;
+    if (looksLikeNoisyTitle(cleaned)) continue;
+    if (cleaned.split(/\s+/).length < 2) continue;
+
+    const atMatch = cleaned.match(/^(.+?)\s+@\s+.+$/);
+    if (atMatch) cleaned = atMatch[1].trim();
+    const dashMatch = cleaned.match(/^(.+?)\s+[-\u2013\u2014]\s+(.+)$/);
+    if (dashMatch) {
+      const suffix = dashMatch[2].trim();
+      const suffixLower = suffix.toLowerCase();
+      const stripSuffix =
+        /\b(remote|hybrid|on[- ]?site|anywhere)\b/.test(suffixLower) ||
+        /\b(usa|us|u\.s\.|uk|u\.k\.|eu|emea|apac|latam)\b/.test(suffixLower) ||
+        /\b(inc|llc|ltd|corp|co|company|plc|gmbh|s\.a\.|sarl|pte|pty)\b/i.test(suffix) ||
+        /\b[A-Za-z .'-]+,\s*[A-Z]{2}\b/.test(suffix);
+      if (stripSuffix) cleaned = dashMatch[1].trim();
+    }
+    if (cleaned && cleaned.split(/\s+/).length >= 2) return cleaned;
+  }
+
+  if (lines.length <= 1) {
+    const normalized = raw.replace(/\s+/g, " ").trim();
+    const parts = normalized.split(/\bdescription\b/i);
+    const tail = parts[parts.length - 1] ?? "";
+    let candidate = tail.replace(/^\s*\d+\s*words\b/i, "").trim();
+    if (candidate) {
+      const atMatch = candidate.match(/^(.+?)\s+@\s+.+$/);
+      if (atMatch) candidate = atMatch[1].trim();
+      const dashMatch = candidate.match(/^(.+?)\s+[-\u2013\u2014]\s+.+$/);
+      if (dashMatch) candidate = dashMatch[1].trim();
+      candidate = cleanScrapedText(candidate);
+      if (
+        candidate &&
+        candidate.length <= 140 &&
+        !looksLikeNoisyTitle(candidate) &&
+        candidate.split(/\s+/).length >= 2
+      ) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
 };
 
 const parseUrlSafe = (value: string, base?: string): URL | null => {
@@ -4256,6 +4424,8 @@ export function extractJobs(
   company: string;
   description: string;
   location: string;
+  city?: string;
+  state?: string;
   remote: boolean;
   level: "junior" | "mid" | "senior" | "staff";
   totalCompensation: number;
@@ -4266,6 +4436,10 @@ export function extractJobs(
 }[] {
   const rawList: any[] = [];
   const seedUrlKeys = collectSeedUrlKeys(items);
+  if (options?.sourceUrl && looksLikeListingUrl(options.sourceUrl)) {
+    const normalizedSource = normalizeUrlKey(options.sourceUrl);
+    if (normalizedSource) seedUrlKeys.add(normalizedSource);
+  }
 
   const DEFAULT_TOTAL_COMPENSATION = 0;
 
@@ -4382,7 +4556,8 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
       const normalizedUrl = normalizeScrapedUrl(rawUrl, options?.sourceUrl);
       if (!normalizedUrl) return null;
 
-      let title = normalizeTitle(rawTitle);
+      const hintedTitle = extractTitleFromListingBlob(rawTitle);
+      let title = normalizeTitle(hintedTitle ?? rawTitle);
       if (looksLikeNoisyTitle(title)) {
         const fromUrl = deriveTitleFromUrl(normalizedUrl);
         if (fromUrl && !looksLikeNoisyTitle(fromUrl)) {
@@ -4391,6 +4566,10 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
           return null;
         }
       }
+
+      const parsedUrl = parseUrlSafe(normalizedUrl);
+      const ashbySlug = parsedUrl && isAshbyHost(parsedUrl.hostname.toLowerCase()) ? ashbySlugFromUrl(normalizedUrl) : null;
+      const ashbyCompany = ashbySlug ? toTitleCaseSlug(ashbySlug) : null;
 
       const rawCompanyFromJson =
         typeof rawTitle === "string"
@@ -4418,7 +4597,13 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
               : "Unknown";
       const location = cleanScrapedText(rawLocation) || "Unknown";
       const { city, state } = splitLocation(location);
-      const company = rawCompany || fallbackCompanyName(rawCompany, normalizedUrl);
+      let company = rawCompany || fallbackCompanyName(rawCompany, normalizedUrl);
+      if (ashbyCompany) {
+        const normalizedCompany = (company || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!company || normalizedCompany === "ashbyhq" || normalizedCompany === "ashby") {
+          company = ashbyCompany;
+        }
+      }
       const locationLabel = formatLocationLabel(city, state, location);
       const remote = coerceBool(row.remote, locationLabel, title);
       const descriptionRaw =
@@ -4488,6 +4673,248 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
   }
   return filtered.jobs;
 }
+
+export const reparseRecentCompanyJobs = mutation({
+  args: {
+    company: v.string(),
+    lookbackHours: v.optional(v.number()),
+    jobLimit: v.optional(v.number()),
+    scrapeLimit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const lookbackHours = Math.max(0.1, args.lookbackHours ?? 24);
+    const jobLimit = Math.max(1, Math.min(args.jobLimit ?? 500, 5000));
+    const scrapeLimit = Math.max(1, Math.min(args.scrapeLimit ?? 500, 5000));
+    const cutoff = now - lookbackHours * 60 * 60 * 1000;
+
+    const { resolvedName, names, normalized } = await resolveCompanyFilterSet(ctx, args.company);
+    if (!normalized.size) {
+      throw new Error("Unable to resolve company filter.");
+    }
+
+    const aliasRows = await ctx.db.query("domain_aliases").collect();
+    const domainAliasLookup = new Map<string, string>();
+    for (const row of aliasRows as any[]) {
+      const domain = (row)?.domain?.trim?.() ?? "";
+      const alias = normalizeCompanyKey((row)?.alias ?? "");
+      if (domain && alias) {
+        domainAliasLookup.set(domain, alias);
+      }
+    }
+
+    const recentJobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_scraped_at", (q: any) => q.gte("scrapedAt", cutoff))
+      .order("desc")
+      .take(jobLimit);
+
+    const companyJobs = (recentJobs as any[]).filter((job) =>
+      matchesCompanyFilters(job, normalized, domainAliasLookup)
+    );
+
+    const targetJobsByUrl = new Map<string, any>();
+    for (const job of companyJobs) {
+      const key = normalizeUrlKey((job).url);
+      if (!key) continue;
+      targetJobsByUrl.set(key, job);
+    }
+
+    if (targetJobsByUrl.size === 0) {
+      return {
+        companyInput: args.company,
+        companyResolved: resolvedName,
+        companyAliases: names,
+        lookbackHours,
+        jobLimit,
+        scrapeLimit,
+        jobsScanned: recentJobs.length,
+        jobsMatched: 0,
+        jobsWithScrape: 0,
+        jobsUpdated: 0,
+        jobDetailsUpdated: 0,
+        jobsSkippedNoScrape: 0,
+        scrapesScanned: 0,
+      };
+    }
+
+    const scrapes = await ctx.db
+      .query("scrapes")
+      .withIndex("by_completedAt", (q: any) => q.gte("completedAt", cutoff))
+      .order("desc")
+      .take(scrapeLimit);
+
+    const matchedByUrl = new Map<
+      string,
+      { job: any; parsed: ReturnType<typeof extractJobs>[number]; scrape: any; scrapeTime: number }
+    >();
+    const scrapeJobCounts = new Map<string, number>();
+
+    for (const scrape of scrapes as any[]) {
+      const parsedJobs = extractJobs(scrape.items, { sourceUrl: scrape.sourceUrl });
+      const scrapeId = (scrape as any)._id;
+      if (scrapeId) {
+        scrapeJobCounts.set(String(scrapeId), parsedJobs.length);
+      }
+      if (parsedJobs.length === 0) continue;
+
+      const scrapeTime = scrape.completedAt ?? scrape.startedAt ?? scrape._creationTime ?? now;
+      for (const parsed of parsedJobs) {
+        const key = normalizeUrlKey(parsed.url);
+        if (!key || !targetJobsByUrl.has(key)) continue;
+        const existing = matchedByUrl.get(key);
+        if (!existing || scrapeTime > existing.scrapeTime) {
+          matchedByUrl.set(key, { job: targetJobsByUrl.get(key), parsed, scrape, scrapeTime });
+        }
+      }
+
+      if (matchedByUrl.size === targetJobsByUrl.size) {
+        break;
+      }
+    }
+
+    const aliasCache = new Map<string, string | null>();
+    let jobsUpdated = 0;
+    let jobDetailsUpdated = 0;
+    let jobsSkippedNoScrape = 0;
+
+    for (const [urlKey, job] of targetJobsByUrl.entries()) {
+      const matched = matchedByUrl.get(urlKey);
+      if (!matched) {
+        jobsSkippedNoScrape += 1;
+        continue;
+      }
+
+      const { parsed, scrape } = matched;
+      const locationSeed = [parsed.location];
+      const locationInfo = deriveLocationFields({ locations: locationSeed, location: parsed.location });
+      const { city: derivedCity, state: derivedState } = splitLocation(
+        parsed.city ?? parsed.state ? `${parsed.city ?? ""}, ${parsed.state ?? ""}` : locationInfo.primaryLocation
+      );
+      const city = parsed.city ?? derivedCity;
+      const state = parsed.state ?? derivedState;
+      const locationLabel = formatLocationLabel(city, state, locationInfo.primaryLocation);
+
+      const scrapedWith = scrape.provider ?? scrape.items?.provider;
+      const compensationUnknown = parsed.compensationUnknown === true;
+      const compensationReason =
+        typeof parsed.compensationReason === "string" && parsed.compensationReason.trim()
+          ? parsed.compensationReason.trim()
+          : compensationUnknown
+            ? UNKNOWN_COMPENSATION_REASON
+            : scrapedWith
+              ? `${scrapedWith} extracted compensation`
+              : "compensation provided in scrape payload";
+      const resolvedCompany = await resolveCompanyForUrl(ctx, parsed.url, parsed.company, undefined, aliasCache);
+
+      const patch: Record<string, any> = {};
+
+      if (shouldReplaceText(parsed.title, job.title)) {
+        patch.title = parsed.title;
+      }
+      if (shouldReplaceText(resolvedCompany, job.company)) {
+        patch.company = resolvedCompany;
+      }
+
+      const shouldUpdateLocation = !isUnknownLabel(locationLabel) || isUnknownLabel(job.location);
+      if (shouldUpdateLocation) {
+        if (locationLabel && locationLabel !== job.location) patch.location = locationLabel;
+        if (!arraysEqual(locationInfo.locations, job.locations)) patch.locations = locationInfo.locations;
+        if (!arraysEqual(locationInfo.countries, job.countries)) patch.countries = locationInfo.countries;
+        if (locationInfo.country !== job.country) patch.country = locationInfo.country;
+        if (!arraysEqual(locationInfo.locationStates, job.locationStates)) {
+          patch.locationStates = locationInfo.locationStates;
+        }
+        if (locationInfo.locationSearch !== job.locationSearch) {
+          patch.locationSearch = locationInfo.locationSearch;
+        }
+        if (shouldReplaceText(city, job.city)) patch.city = city;
+        if (shouldReplaceText(state, job.state)) patch.state = state;
+      }
+
+      if (typeof parsed.remote === "boolean" && parsed.remote !== job.remote) patch.remote = parsed.remote;
+      if (parsed.level && parsed.level !== job.level) patch.level = parsed.level;
+      if (typeof parsed.postedAt === "number" && parsed.postedAt !== job.postedAt) {
+        patch.postedAt = parsed.postedAt;
+      }
+      if (job.scrapedAt === undefined && typeof scrape.completedAt === "number") {
+        patch.scrapedAt = scrape.completedAt;
+      }
+
+      const prevKnownComp =
+        job.compensationUnknown !== true &&
+        typeof job.totalCompensation === "number" &&
+        job.totalCompensation > 0;
+      const shouldUpdateCompensation = !compensationUnknown || !prevKnownComp;
+      if (shouldUpdateCompensation) {
+        if (parsed.totalCompensation !== job.totalCompensation) {
+          patch.totalCompensation = parsed.totalCompensation;
+        }
+        if (compensationUnknown !== job.compensationUnknown) {
+          patch.compensationUnknown = compensationUnknown;
+        }
+        if (compensationReason !== job.compensationReason) {
+          patch.compensationReason = compensationReason;
+        }
+      }
+
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(job._id, patch);
+        jobsUpdated += 1;
+      }
+
+      const detailPatch: Record<string, any> = {};
+      if (typeof parsed.description === "string" && parsed.description.trim()) {
+        detailPatch.description = parsed.description;
+      }
+      if (scrapedWith) detailPatch.scrapedWith = scrapedWith;
+      if (scrape.workflowName) detailPatch.workflowName = scrape.workflowName;
+      const cost = typeof scrape.costMilliCents === "number" ? scrape.costMilliCents : undefined;
+      const jobCount = scrapeJobCounts.get(String(scrape._id ?? "")) ?? 0;
+      if (cost !== undefined && jobCount > 0) {
+        detailPatch.scrapedCostMilliCents = Math.floor(cost / jobCount);
+      }
+
+      if (Object.keys(detailPatch).length > 0) {
+        const existing = await ctx.db
+          .query("job_details")
+          .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+          .first();
+        if (existing) {
+          const updates: Record<string, any> = {};
+          for (const [key, value] of Object.entries(detailPatch)) {
+            if ((existing as any)[key] !== value) {
+              updates[key] = value;
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            await ctx.db.patch(existing._id, updates);
+            jobDetailsUpdated += 1;
+          }
+        } else {
+          await ctx.db.insert("job_details", { jobId: job._id, ...detailPatch });
+          jobDetailsUpdated += 1;
+        }
+      }
+    }
+
+    return {
+      companyInput: args.company,
+      companyResolved: resolvedName,
+      companyAliases: names,
+      lookbackHours,
+      jobLimit,
+      scrapeLimit,
+      jobsScanned: recentJobs.length,
+      jobsMatched: companyJobs.length,
+      jobsWithScrape: matchedByUrl.size,
+      jobsUpdated,
+      jobDetailsUpdated,
+      jobsSkippedNoScrape,
+      scrapesScanned: scrapes.length,
+    };
+  },
+});
 
 /**
  * API endpoint to update Temporal status

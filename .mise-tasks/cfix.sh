@@ -1,40 +1,30 @@
 #!/usr/bin/env bash
 #MISE description="Fix things with codex"
-uv run pytest
-if [ $? -ne 0 ]; then
-  echo "Error: pytest failed or encountered an error, running codex" >&2
-  codex exec \
-  --model gpt-5.2-codex \
-  --sandbox danger-full-access \
-  --config model_reasoning_effort="high" \
-  --config model_verbosity="medium" \
-  "`uv run pytest` fix bug"
-else
-  echo "Success: All tests passed"
-fi
+run_check() {
+  local label="$1"
+  local fix_hint="$2"
+  local display_cmd="$3"
+  shift 3
 
-uvx ruff check **.py
-if [ $? -ne 0 ]; then
-  echo "Error: ruff failed or encountered an error, running codex" >&2
-  codex exec \
-  --model gpt-5.2-codex \
-  --sandbox danger-full-access \
-  --config model_reasoning_effort="high" \
-  --config model_verbosity="medium" \
-  "`uvx ruff check **.py` fix linting issues"
-else
-  echo "Success: All tests passed"
-fi
+  echo "----- $label: [${display_cmd}] -----"
+  local output
+  output=$("$@" 2>&1)
+  local status=$?
 
-pnpm --dir job_board_application exec tsc -p . -noEmit --pretty false
-if [ $? -ne 0 ]; then
-  echo "Error: TypeScript type check failed or encountered an error, running codex" >&2
-  codex exec \
-  --model gpt-5.2-codex \
-  --sandbox danger-full-access \
-  --config model_reasoning_effort="high" \
-  --config model_verbosity="medium" \
-  "`pnpm --dir job_board_application exec tsc -p . -noEmit --pretty false` fix type errors"
-else
-  echo "Success: All type checks passed"
-fi
+  if [ $status -ne 0 ]; then
+    echo "Error: $label failed or encountered an error, running codex" >&2
+    codex exec \
+      --model gpt-5.2-codex \
+      --sandbox danger-full-access \
+      --config model_reasoning_effort="high" \
+      --config model_verbosity="medium" \
+      "$output $fix_hint"
+  else
+    echo "Success: $label passed"
+  fi
+}
+
+run_check "pytest" "fix bug" "[uv run pytest]" uv run pytest
+run_check "ruff" "fix linting issues" "[uvx ruff check **.py]" uvx ruff check **.py
+run_check "TypeScript type check" "fix type errors" "[pnpm --dir job_board_application exec tsc -p . -noEmit --pretty false]" pnpm --dir job_board_application exec tsc -p . -noEmit --pretty false
+run_check "CONVEX DB TypeScript type check" "fix type errors" "[pnpm --dir job_board_application exec tsc -p convex -noEmit --pretty false]" pnpm --dir job_board_application exec tsc -p convex -noEmit --pretty false

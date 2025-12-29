@@ -337,7 +337,11 @@ type JobDetailDoc = Doc<"job_details">;
 type JobDetailFields = Omit<JobDetailDoc, "jobId" | "_id">;
 type JobWithDetails = DbJob & Partial<JobDetailFields>;
 
-const ensureLocationFields = async (ctx: any, job: DbJob) => {
+const ensureLocationFields = async (
+  ctx: any,
+  job: DbJob,
+  options: { allowPatch?: boolean } = {}
+) => {
   const locationInfo = deriveLocationFields(job);
   const { city, state } = locationInfo;
   const normalizedCity = isUnknownLocationValue(job.city) ? locationInfo.city : job.city ?? locationInfo.city;
@@ -366,7 +370,7 @@ const ensureLocationFields = async (ctx: any, job: DbJob) => {
     patched.locationSearch = locationInfo.locationSearch;
   }
 
-  if (Object.keys(patched).length > 0 && typeof ctx.db?.patch === "function") {
+  if (options.allowPatch && Object.keys(patched).length > 0 && typeof ctx.db?.patch === "function") {
     await ctx.db.patch(job._id, patched);
   }
 
@@ -423,6 +427,57 @@ export const computeJobCountry = (job: DbJob) => {
 
 const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
 const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+const COMPANY_SUFFIXES = new Set([
+  "inc",
+  "incorporated",
+  "corp",
+  "corporation",
+  "co",
+  "company",
+  "llc",
+  "llp",
+  "ltd",
+  "limited",
+  "plc",
+]);
+
+export const normalizeCompanyFilterKey = (value?: string | null) => {
+  const cleaned = (value ?? "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+
+  const tokens = cleaned.split(/\s+/);
+  const maybeStripJoinedSuffix = () => {
+    for (const size of [3, 2]) {
+      if (tokens.length <= size) continue;
+      const tail = tokens.slice(-size);
+      if (!tail.every((token) => token.length === 1)) continue;
+      const joined = tail.join("");
+      if (!COMPANY_SUFFIXES.has(joined)) continue;
+      tokens.splice(-size);
+      return true;
+    }
+    return false;
+  };
+
+  while (tokens.length > 1) {
+    const last = tokens[tokens.length - 1];
+    if (COMPANY_SUFFIXES.has(last)) {
+      tokens.pop();
+      continue;
+    }
+    if (maybeStripJoinedSuffix()) {
+      continue;
+    }
+    break;
+  }
+
+  return tokens.join("");
+};
 
 type CompanySummary = {
   name: string;
@@ -515,12 +570,12 @@ export const matchesCompanyFilters = (
   domainAliasByDomain?: Map<string, string> | null
 ) => {
   if (!normalizedCompanyFilters.size) return true;
-  const companyKey = normalizeCompanyKey(job.company);
+  const companyKey = normalizeCompanyFilterKey(job.company);
   if (companyKey && normalizedCompanyFilters.has(companyKey)) return true;
   if (!domainAliasByDomain || domainAliasByDomain.size === 0) return false;
   const domain = normalizeDomainInput(job.url ?? "");
   if (!domain) return false;
-  const aliasKey = normalizeCompanyKey(domainAliasByDomain.get(domain) ?? "");
+  const aliasKey = normalizeCompanyFilterKey(domainAliasByDomain.get(domain) ?? "");
   if (!aliasKey) return false;
   return normalizedCompanyFilters.has(aliasKey);
 };
@@ -645,7 +700,9 @@ export const listJobs = query({
     const shouldUseSearch = rawSearch.length > 0;
 
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
-    const normalizedCompanyFilters = new Set(companyFilters.map((c) => normalizeCompanyKey(c)));
+    const normalizedCompanyFilters = new Set(
+      companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean)
+    );
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
 
     // Get user's applied/rejected jobs first
@@ -662,7 +719,7 @@ export const listJobs = query({
       domainAliasLookup = new Map();
       for (const row of aliasRows as any[]) {
         const domain = (row)?.domain?.trim?.() ?? "";
-        const alias = normalizeCompanyKey((row)?.alias ?? "");
+        const alias = normalizeCompanyFilterKey((row)?.alias ?? "");
         if (domain && alias) {
           domainAliasLookup.set(domain, alias);
         }

@@ -144,7 +144,8 @@ const applicationTables = {
         v.literal("adobe"),
         v.literal("docusign"),
         v.literal("notion"),
-        v.literal("paloalto")
+        v.literal("paloalto"),
+        v.literal("ashby")
       )
     ),
     scrapeProvider: v.optional(
@@ -207,7 +208,8 @@ const applicationTables = {
     .index("by_source_completed", ["sourceUrl", "completedAt"])
     .index("by_completedAt", ["completedAt"])
     .index("by_startedAt", ["startedAt"])
-    .index("by_site", ["siteId"]),
+    .index("by_site", ["siteId"])
+    .index("by_site_completed", ["siteId", "completedAt"]),
 
   firecrawl_webhooks: defineTable({
     jobId: v.string(),

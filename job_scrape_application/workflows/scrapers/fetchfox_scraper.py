@@ -11,6 +11,7 @@ from temporalio.exceptions import ApplicationError
 
 from ...components.models import FetchFoxPriority, FetchFoxScrapeRequest, GreenhouseBoardResponse, MAX_FETCHFOX_VISITS
 from ..helpers.scrape_utils import MAX_JOB_DESCRIPTION_CHARS, _shrink_payload
+from ...services import telemetry
 from .base import BaseScraper
 
 if TYPE_CHECKING:
@@ -165,6 +166,33 @@ class FetchfoxScraper(BaseScraper):
             result = await asyncio.to_thread(_do_scrape, request)
             result_obj: Dict[str, Any] = result if isinstance(result, dict) else json.loads(result)
         except Exception as exc:  # noqa: BLE001
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.fetch_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.fetch_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(f"Failed to fetch Greenhouse board: {exc}") from exc
 
         raw_text = self.deps.extract_raw_body_from_fetchfox_result(result_obj)
@@ -173,6 +201,34 @@ class FetchfoxScraper(BaseScraper):
             board: GreenhouseBoardResponse = self.deps.load_greenhouse_board(raw_text or result_obj)
             job_urls = self.deps.extract_greenhouse_job_urls(board)
         except Exception as exc:  # noqa: BLE001
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.parse_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "rawLength": len(raw_text) if isinstance(raw_text, str) else 0,
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.parse_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(f"Unable to parse Greenhouse board payload: {exc}") from exc
 
         completed_at = int(time.time() * 1000)

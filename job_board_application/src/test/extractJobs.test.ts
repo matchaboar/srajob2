@@ -98,6 +98,26 @@ describe("extractJobs sanitization", () => {
     expect(job.description).toContain("customers’ entire technology stacks");
   });
 
+  it("prefers description section titles over summary sentences in listing blobs", () => {
+    const payloadPath = resolve(fixturesDir, "purestorage_greenhouse_listing_blob.json");
+    const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
+    const jobs = extractJobs([payload]);
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].title).toBe("Principal Product Manager - K8s, Observability, Manageability");
+    expect(jobs[0].description).toContain("unbelievably exciting area of tech");
+  });
+
+  it("prefers description section titles over summary sentences for remote listings", () => {
+    const payloadPath = resolve(fixturesDir, "samsara_greenhouse_listing_blob.json");
+    const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
+    const jobs = extractJobs([payload]);
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].title).toBe("Enterprise Customer Success Manager");
+    expect(jobs[0].description).toContain("Connected Operations");
+  });
+
   it("removes embedded Netflix theme JSON from descriptions", () => {
     const payloadPath = resolve(fixturesDir, "netflix_job.json");
     const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
@@ -131,6 +151,31 @@ describe("extractJobs sanitization", () => {
 
     expect(jobs).toHaveLength(1);
     expect(jobs[0].url).toBe("https://careers.snap.com/jobs/12345");
+  });
+
+  it("drops listing URLs when sourceUrl is a listing page", () => {
+    const jobs = extractJobs(
+      [
+        {
+          title: "",
+          company: "snapchat",
+          location: "United States",
+          url: "https://careers.snap.com/jobs",
+          description: "https://careers.snap.com/jobs",
+        },
+        {
+          title: "Staff Software Engineer",
+          company: "snapchat",
+          location: "Remote",
+          url: "https://careers.snap.com/job?id=R0043314",
+          description: "Build the next generation of Snap products.",
+        },
+      ],
+      { sourceUrl: "https://careers.snap.com/jobs" }
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].url).toBe("https://careers.snap.com/job?id=R0043314");
   });
 
   it("keeps spidercloud job URLs even when they are seed URLs", () => {

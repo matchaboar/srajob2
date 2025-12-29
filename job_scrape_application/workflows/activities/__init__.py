@@ -52,6 +52,7 @@ from ..helpers.scrape_utils import (
     _jobs_from_scrape_items,
     _shrink_payload,
     build_firecrawl_schema,
+    derive_company_from_url,
     normalize_compensation_value,
     parse_markdown_hints,
     split_description_metadata,
@@ -1628,6 +1629,34 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
             board: GreenhouseBoardResponse = load_greenhouse_board(raw_text or json_payload)
             job_urls = extract_greenhouse_job_urls(board, required_keywords=())
         except Exception as exc:  # noqa: BLE001
+            payload = {
+                "event": "scrape.greenhouse_listing.webhook_parse_failed",
+                "level": "error",
+                "siteUrl": source_url or "",
+                "data": {
+                    "provider": "firecrawl",
+                    "siteId": site_id,
+                    "rawLength": len(raw_text) if isinstance(raw_text, str) else 0,
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.webhook_parse_failed",
+                        "siteUrl": source_url,
+                        "siteId": site_id,
+                        "provider": "firecrawl",
+                        "jobId": job_id,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(f"Unable to parse Greenhouse board payload (webhook): {exc}", non_retryable=True) from exc
 
         logger.info(
@@ -2171,7 +2200,11 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 )
             except Exception:
                 pass
-            return f"store-error:{int(time.time() * 1000)}"
+            error_id = f"store-error:{int(time.time() * 1000)}"
+            raise ApplicationError(
+                f"Failed to persist scrape after fallback ({error_id})",
+                type="store_scrape_failed",
+            ) from fallback_exc
 
     # Best-effort job ingestion (mimics router.ts behavior)
     try:
@@ -2324,9 +2357,9 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         source_url = payload.get("sourceUrl")
         handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
         delays_ms: list[int] | None = None
+        job_urls: list[str] = []
+        listing_urls: list[str] = []
         if urls:
-            job_urls: list[str] = []
-            listing_urls: list[str] = []
             for url in urls:
                 if handler and handler.is_listing_url(url):
                     listing_urls.append(url)
@@ -2377,6 +2410,45 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "jobUrlsSample": job_urls[:3],
                     "listingUrlsSample": listing_urls[:3],
                 },
+            )
+        if not job_urls and normalized_count == 0:
+            company_name = None
+            for key in ("company", "companyName"):
+                val = payload.get(key)
+                if isinstance(val, str) and val.strip():
+                    company_name = val.strip()
+                    break
+            if not company_name and isinstance(source_url, str) and source_url:
+                derived_company = derive_company_from_url(source_url)
+                if derived_company:
+                    company_name = derived_company
+
+            await _log_scratchpad(
+                "scrape.job_urls.none",
+                message="No job URLs extracted from job site scrape",
+                data=_strip_none_values(
+                    {
+                        "companyName": company_name or "Unknown",
+                        "details": _strip_none_values(
+                            {
+                                "sourceUrl": source_url or "",
+                                "provider": provider_for_log,
+                                "workflowName": workflow_name,
+                                "pattern": payload.get("pattern"),
+                                "siteId": payload.get("siteId"),
+                                "normalizedCount": normalized_count,
+                                "ignoredCount": ignored_count,
+                                "failedCount": failed_count,
+                                "totalUrlsCount": len(urls),
+                                "jobUrlsCount": len(job_urls),
+                                "listingUrlsCount": len(listing_urls),
+                                "urlsSample": urls[:5] if urls else None,
+                                "listingUrlsSample": listing_urls[:5] if listing_urls else None,
+                            }
+                        ),
+                    }
+                ),
+                level="error",
             )
         if urls:
             logger.info(

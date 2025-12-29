@@ -64,6 +64,13 @@ def test_greenhouse_handler_rewrites_and_formats():
     assert config.get("preserve_host") is True
 
 
+def test_greenhouse_handler_builds_api_from_board_job_url():
+    handler = GreenhouseHandler()
+    url = "https://boards.greenhouse.io/samsara/jobs/1234567"
+    api_url = handler.get_api_uri(url)
+    assert api_url == "https://boards-api.greenhouse.io/v1/boards/samsara/jobs/1234567"
+
+
 def test_github_careers_handler_builds_api_and_links():
     handler = GithubCareersHandler()
     url = "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100"

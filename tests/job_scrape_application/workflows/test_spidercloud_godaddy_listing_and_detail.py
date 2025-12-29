@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import textwrap
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -27,6 +28,9 @@ MONGODB_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_mongodb_greenhouse_listing.
 MONGODB_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_mongodb_greenhouse_job_detail.json"
 AXON_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_axon_greenhouse_listing.json"
 AXON_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_axon_greenhouse_job_detail.json"
+AXON_DETAIL_PRODUCT_SPECIALIST_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_axon_greenhouse_job_detail_7552623003.json"
+)
 PURESTORAGE_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_purestorage_greenhouse_listing.json"
 )
@@ -64,6 +68,9 @@ MITHRIL_DETAIL_FIXTURE = (
 )
 TOGETHERAI_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_greenhouse_togetherai_job_4967737007_raw.json"
+)
+STRIPE_DETAIL_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_stripe_greenhouse_job_7313002_commonmark.json"
 )
 WORKDAY_DETAIL_FIXTURES = (
     FIXTURE_DIR / "spidercloud_broadcom_workday_job_detail_api.json",
@@ -393,6 +400,22 @@ def test_spidercloud_axon_job_detail_normalizes_description():
     hints = parse_markdown_hints(normalized["description"])
     assert hints.get("compensation_range") == {"low": 73100, "high": 117000}
     assert hints.get("compensation") == 197750
+
+
+def test_spidercloud_axon_product_specialist_title_extraction():
+    payload = _load_fixture(AXON_DETAIL_PRODUCT_SPECIALIST_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Senior Product Specialist, Productivity"
+    assert "Partner with demo engineers" not in normalized["title"]
 
 
 def test_spidercloud_nexhealth_job_detail_normalizes_fields():
@@ -776,6 +799,174 @@ def test_spidercloud_title_from_markdown_skips_id_and_url_lines():
     title = scraper._title_from_markdown(markdown)  # noqa: SLF001
 
     assert title == "Senior Software Engineer"
+
+
+def test_spidercloud_title_from_markdown_skips_application_metadata_block():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        Application
+        Ashbyhq
+        United States
+        Mid
+        $248,000
+        Posted Dec 28 • 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://jobs.ashbyhq.com/notion/fc3fae35-960b-4a45-ab61-8561001fffc1
+        Description
+        1 words
+
+        https://jobs.ashbyhq.com/notion/fc3fae35-960b-4a45-ab61-8561001fffc1/application
+
+        Other locations / links
+        https://jobs.ashbyhq.com/notion/fc3fae35-960b-4a45-ab61-8561001fffc1
+        """
+    ).strip()
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title is None
+
+
+def test_spidercloud_title_from_markdown_prefers_description_first_line_title():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        As the Strategy & Operations Manager, you will play a pivotal role in scaling and supporting our existing products.
+        robinhood
+        Washington, District of Columbia
+        Senior
+        $180,500
+        Posted Dec 29 - 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://boards.greenhouse.io/robinhood/jobs/7435275
+        Description
+        753 words
+
+        Strategy & Operations Manager, Money
+
+        Join us in building the future of finance.
+        Our mission is to democratize finance for all.
+        """
+    ).strip()
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Strategy & Operations Manager, Money"
+
+
+def test_spidercloud_title_from_markdown_prefers_description_title_after_bullet_lead():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        - Drive product development with a team of world-class engineers, data scientists, researchers, marketing and other functional owners
+        coupang
+        United States
+        Senior
+        $580,000
+        Posted Dec 29 - 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://boards.greenhouse.io/coupang/jobs/7382671
+        Description
+        954 words
+
+        Director of Product Management (Offsite Ads)
+
+        We exist to wow our customers. We know we're doing the right thing when we hear our customers say, "How did we ever live without Coupang?"
+        """
+    ).strip()
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Director of Product Management (Offsite Ads)"
+
+
+def test_spidercloud_title_from_markdown_prefers_description_title_after_summary_line():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        This is a dynamic, rapidly evolving and complex ecosystem, and thus the person hired for this role will be comfortable dealing with high degree of complexity and working with a large cohort of stakeholders internationally across South Korea, China and the US. These stakeholders include Retail and Pricing Product, 3P Marketplace, Search & Discovery, and Finance. S/he will directly manage a team of Product Managers (scaling the team over time) and work closely with engineering and data science
+        coupang
+        Shanghai, China
+        Senior
+        $580,000
+        Posted Dec 29 - 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://boards.greenhouse.io/coupang/jobs/7351588
+        Description
+        1268 words
+
+        Director of Product Management, Catalog
+
+        About Coupang
+        We exist to wow our customers. We know we're doing the right thing when we hear our customers say, "How did we ever live without Coupang?"
+        """
+    ).strip()
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Director of Product Management, Catalog"
+
+
+def test_spidercloud_event_sentence_title_falls_back_to_metadata_title():
+    payload = _load_fixture(STRIPE_DETAIL_COMMONMARK_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+    event = dict(_extract_first_event(payload) or {})
+    event["title"] = (
+        "Experience working closely with engineering teams to develop and enhance investigative tools and treatments"
+    )
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Fraud Operations Manager"
+
+
+def test_spidercloud_title_from_markdown_skips_stay_in_the_loop():
+    scraper = _make_scraper()
+    markdown = "\n".join(
+        [
+            "## Stay in the loop.",
+            "Senior Computer Scientist - Fullstack - Backend heavy in Bangalore, Karnataka, India | Design at Adobe",
+            "",
+            "Description",
+        ]
+    )
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Senior Computer Scientist - Fullstack - Backend heavy"
+
+
+def test_spidercloud_title_with_required_keyword_skips_bullet_sentence():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        - Partner with demo engineers to design high-impact, scenario-based demos that resonate with the unique operational realities of each agency.
+        Axon
+        Remote
+        Description
+        1093 words
+
+        Senior Software Engineer, Productivity
+
+        Join Axon and be a Force for Good.
+        """
+    ).strip()
+
+    title = scraper._title_with_required_keyword(markdown)  # noqa: SLF001
+
+    assert title == "Senior Software Engineer, Productivity"
 
 
 def test_spidercloud_title_from_url_skips_id_like_slugs():

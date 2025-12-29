@@ -57,3 +57,17 @@ def test_markdown_hints_bloomberg_avature_commonmark_fixture():
 
     assert hints.get("compensation") == 240000
     assert hints.get("compensation_range") == {"low": 160000, "high": 240000}
+
+
+def test_markdown_hints_skips_stay_in_the_loop():
+    markdown = "\n".join(
+        [
+            "## Stay in the loop.",
+            "Senior Computer Scientist - Fullstack - Backend heavy in Bangalore, Karnataka, India | Design at Adobe",
+            "",
+            "Description",
+        ]
+    )
+    hints = parse_markdown_hints(markdown)
+
+    assert hints.get("title") == "Senior Computer Scientist - Fullstack - Backend heavy"

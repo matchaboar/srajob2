@@ -21,6 +21,7 @@ from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # n
     SpiderCloudScraper,
     SpidercloudDependencies,
 )
+from job_scrape_application.workflows.site_handlers.greenhouse import GreenhouseHandler  # noqa: E402
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -61,6 +62,13 @@ def test_captcha_detector_flags_security_check_with_bot_context():
     marker = scraper._detect_captcha(markdown, [])
     assert marker is not None
     assert marker.marker == "security check"
+
+
+def test_greenhouse_listing_api_config_uses_raw():
+    handler = GreenhouseHandler()
+    config = handler.get_spidercloud_config("https://api.greenhouse.io/v1/boards/lyft/jobs")
+    assert config["return_format"] == ["raw"]
+    assert config["request"] == "basic"
 
 
 class _CaptchaClient:

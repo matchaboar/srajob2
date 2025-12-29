@@ -385,6 +385,9 @@ export function JobBoard() {
   const isRejectedTab = activeTab === "rejected";
   const isLiveTab = activeTab === "live";
   const isIgnoredTab = activeTab === "ignored";
+  const isAdmin = useQuery(api.auth.isAdmin);
+  const jobsPageSize = isAdmin ? 500 : 50;
+  const jobsLoadMoreSize = isAdmin ? 500 : 20;
   const companyBannerName = useMemo(() => {
     if (filters.companies.length === 1) return filters.companies[0] ?? null;
     if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
@@ -405,7 +408,7 @@ export function JobBoard() {
       hideUnknownCompensation: throttledFilters.hideUnknownCompensation,
       companies: throttledFilters.companies.length > 0 ? throttledFilters.companies : undefined,
     } : "skip",
-    { initialNumItems: 50 } // Load more items for the dense list
+    { initialNumItems: jobsPageSize } // Load more items for the dense list
   );
 
   const [displayedResults, setDisplayedResults] = useState<ListedJob[]>(results);
@@ -1340,7 +1343,7 @@ export function JobBoard() {
             setSelectedJobId(nextId);
             scrollToJob(nextId, currentIndex + 1 >= 3);
           } else if (activeTab === "jobs" && status === "CanLoadMore") {
-            loadMore(20);
+            loadMore(jobsLoadMoreSize);
           }
           break;
         case "ArrowUp":
@@ -1936,7 +1939,7 @@ export function JobBoard() {
                       {status === "CanLoadMore" && (
                         <div className="p-4 flex justify-center border-t border-slate-800">
                           <button
-                            onClick={() => loadMore(20)}
+                            onClick={() => loadMore(jobsLoadMoreSize)}
                             className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
                           >
                             Load More

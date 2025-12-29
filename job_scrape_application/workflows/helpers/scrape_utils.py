@@ -1257,10 +1257,11 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     markdown = strip_known_nav_blocks(markdown)
 
     def _is_generic_heading_title(value: str) -> bool:
-        lower = value.strip().lower().rstrip(":")
+        lower = value.strip().lower().rstrip(":.")
         return lower in {
             "job description",
             "description",
+            "stay in the loop",
         }
 
     title_lower = ""

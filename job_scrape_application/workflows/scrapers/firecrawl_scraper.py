@@ -18,6 +18,7 @@ from ..exceptions import (
     RateLimitWorkflowError,
     TimeoutWorkflowError,
 )
+from ...services import telemetry
 from .base import BaseScraper
 
 if TYPE_CHECKING:
@@ -141,14 +142,95 @@ class FirecrawlScraper(BaseScraper):
         try:
             job = await asyncio.to_thread(_do_scrape)
         except RequestTimeoutError as exc:
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.fetch_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.fetch_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(
                 f"Firecrawl scrape timed out for {site.get('url')}: {exc}", non_retryable=True
             ) from exc
         except ValueError as exc:
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.fetch_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.fetch_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(
                 f"Firecrawl scrape failed (invalid json format configuration): {exc}", non_retryable=True
             ) from exc
         except Exception as exc:  # noqa: BLE001
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.fetch_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.fetch_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(f"Firecrawl scrape failed: {exc}") from exc
 
         docs = getattr(job, "data", None) if hasattr(job, "data") else None
@@ -181,6 +263,34 @@ class FirecrawlScraper(BaseScraper):
             board: GreenhouseBoardResponse = self.deps.load_greenhouse_board(raw_text or raw_json or first_doc or {})
             job_urls = self.deps.extract_greenhouse_job_urls(board)
         except Exception as exc:  # noqa: BLE001
+            site_url = site.get("url") or ""
+            payload = {
+                "event": "scrape.greenhouse_listing.parse_failed",
+                "level": "error",
+                "siteUrl": site_url,
+                "data": {
+                    "provider": self.provider,
+                    "siteId": site.get("_id"),
+                    "rawLength": len(raw_text) if isinstance(raw_text, str) else 0,
+                    "error": str(exc),
+                },
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "scrape.greenhouse_listing.parse_failed",
+                        "siteUrl": site_url,
+                        "siteId": site.get("_id"),
+                        "provider": self.provider,
+                    },
+                )
+            except Exception:
+                pass
             raise ApplicationError(f"Unable to parse Greenhouse board payload (Firecrawl): {exc}") from exc
 
         self.deps.log_sync_response(

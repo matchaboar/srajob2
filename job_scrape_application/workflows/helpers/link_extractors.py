@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as html_lib
 from typing import Any, Iterable, Sequence
 from urllib.parse import urljoin, urlparse
 
@@ -26,6 +27,9 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     if not isinstance(url, str):
         return None
     candidate = url.strip()
+    if not candidate:
+        return None
+    candidate = html_lib.unescape(candidate).strip()
     if not candidate:
         return None
     lower = candidate.lower()

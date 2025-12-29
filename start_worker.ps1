@@ -814,7 +814,25 @@ function Start-WorkerMain {
     Reset-StaleVenv
 
     if ($ForceScrapeAll -or $ResetWithinSchedule) {
-        if (-not $env:CONVEX_HTTP_URL) {
+        $resetConvexUrl = $env:CONVEX_HTTP_URL
+        if ($UseProd -and -not $EnvFile -and (Test-Path $prodEnvPath)) {
+            if (-not $resetConvexUrl -or $convexSourcePath -ne $prodEnvPath) {
+                Load-DotEnv $prodEnvPath -Override:$true -SourceMap:$envSourceMap
+                $resetConvexUrl = $env:CONVEX_HTTP_URL
+                $convexSourcePath = $prodEnvPath
+            }
+        }
+
+        if ($UseProd -and $resetConvexUrl) {
+            if ($resetConvexUrl -match "\.convex\.cloud") {
+                Write-Error "CONVEX_HTTP_URL points to .convex.cloud; prod HTTP routes require .convex.site. Skipping forced reset."
+                $resetConvexUrl = $null
+            } elseif ($resetConvexUrl -notmatch "\.convex\.site") {
+                Write-Warning "CONVEX_HTTP_URL does not look like a .convex.site endpoint; forced reset may not hit prod."
+            }
+        }
+
+        if (-not $resetConvexUrl) {
             Write-Warning "CONVEX_HTTP_URL is not set; cannot reset sites for forced scrape."
         } else {
             $respectSchedule = $ResetWithinSchedule.IsPresent
@@ -825,7 +843,7 @@ function Start-WorkerMain {
             }
             try {
                 $resetPayload = @{ respectSchedule = $respectSchedule } | ConvertTo-Json -Compress
-                $resetResponse = Invoke-WebRequest -Method POST -Uri "$($env:CONVEX_HTTP_URL.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body $resetPayload
+                $resetResponse = Invoke-WebRequest -Method POST -Uri "$($resetConvexUrl.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body $resetPayload
                 if ($resetResponse -and $resetResponse.Content) {
                     Write-Host ("Site reset response: {0}" -f $resetResponse.Content)
                 } else {

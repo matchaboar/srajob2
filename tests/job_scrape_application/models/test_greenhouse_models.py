@@ -89,6 +89,33 @@ def test_load_greenhouse_board_rejects_invalid_json():
         load_greenhouse_board("not-json")
 
 
+def test_load_greenhouse_board_accepts_blank_payloads():
+    board = load_greenhouse_board(" \n\t")
+    assert board.jobs == []
+    board = load_greenhouse_board(None)
+    assert board.jobs == []
+
+
+def test_load_greenhouse_board_strips_invalid_escapes():
+    job_url = "https://boards.greenhouse.io/example/jobs/789"
+    payload = {
+        "jobs": [
+            {
+                "absolute_url": job_url,
+                "id": 789,
+                "title": "Staff \\q Engineer",
+                "location": {"name": "Remote"},
+            }
+        ]
+    }
+    valid_json = json.dumps(payload)
+    invalid_json = valid_json.replace("\\\\q", "\\q")
+
+    board = load_greenhouse_board(invalid_json)
+
+    assert board.jobs[0].absolute_url == job_url
+
+
 def test_load_greenhouse_board_parses_html_with_pre():
     job_url = "https://boards.greenhouse.io/example/jobs/123"
     payload = {

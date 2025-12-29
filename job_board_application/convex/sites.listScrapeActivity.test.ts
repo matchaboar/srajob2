@@ -5,23 +5,39 @@ import { getHandler } from "./__tests__/getHandler";
 type Scrape = { _id: string; siteId?: string; sourceUrl: string; completedAt?: number; items?: any };
 type Run = { _id: string; siteUrls: string[]; startedAt: number; completedAt?: number; status?: string };
 
+type QueryTracker = { take: number; collect: number; paginate: number };
+
 class FakeQuery<T extends { [key: string]: any }> {
-  constructor(private table: string, private rows: T[]) {}
+  constructor(private table: string, private rows: T[], private tracker?: QueryTracker) {}
 
   withIndex(_name: string, cb: (q: any) => any) {
+    const filters: { eq?: { field: string; value: any }; gte?: { field: string; value: any } } = {};
+    const builder = {
+      eq: (field: string, value: any) => {
+        filters.eq = { field, value };
+        return builder;
+      },
+      gte: (field: string, value: any) => {
+        filters.gte = { field, value };
+        return builder;
+      },
+    };
+    cb(builder);
+
     if (this.table === "scrapes") {
-      const value = cb({ eq: (_field: string, val: any) => val });
-      const filtered = this.rows.filter(
-        (r) => r.siteId === value || r.sourceUrl === value
-      );
-      return new FakeQuery<T>(this.table, filtered);
+      let filtered = this.rows;
+      if (filters.eq) {
+        filtered = filtered.filter((r: any) => r[filters.eq!.field] === filters.eq!.value);
+      }
+      if (filters.gte) {
+        filtered = filtered.filter((r: any) => (r[filters.gte!.field] ?? 0) >= filters.gte!.value);
+      }
+      return new FakeQuery<T>(this.table, filtered, this.tracker);
     }
     if (this.table === "workflow_runs") {
-      const cutoff = cb({
-        gte: (_field: string, val: any) => val,
-      });
+      const cutoff = filters.gte?.value ?? 0;
       const filtered = this.rows.filter((r: any) => (r.startedAt ?? 0) >= cutoff);
-      return new FakeQuery<T>(this.table, filtered);
+      return new FakeQuery<T>(this.table, filtered, this.tracker);
     }
     return this;
   }
@@ -31,14 +47,17 @@ class FakeQuery<T extends { [key: string]: any }> {
   }
 
   take(n: number) {
+    if (this.tracker) this.tracker.take += 1;
     return this.rows.slice(0, n);
   }
 
   collect() {
+    if (this.tracker) this.tracker.collect += 1;
     return this.rows;
   }
 
   paginate() {
+    if (this.tracker) this.tracker.paginate += 1;
     throw new Error("paginate should not be used in listScrapeActivity");
   }
 }
@@ -94,7 +113,7 @@ describe("listScrapeActivity", () => {
 
     expect(rows).toHaveLength(1);
     const row = rows[0];
-    expect(row.totalScrapes).toBe(2); // both fetched
+    expect(row.totalScrapes).toBe(1); // only recent scrapes counted
     expect(row.totalJobsScraped).toBe(2); // only recent counted
     expect(row.lastScrapeEnd).toBe(recentScrape.completedAt);
   });
@@ -102,6 +121,7 @@ describe("listScrapeActivity", () => {
   it("avoids paginate helpers when collect/take are available", async () => {
     const now = Date.now();
     vi.setSystemTime(now);
+    const tracker: QueryTracker = { take: 0, collect: 0, paginate: 0 };
 
     const ctx: any = {
       db: {
@@ -109,17 +129,17 @@ describe("listScrapeActivity", () => {
           if (table === "sites") {
             return new FakeQuery<any>("sites", [
               { _id: "site-1", url: "https://example.com", name: "Site", enabled: true, _creationTime: now },
-            ]);
+            ], tracker);
           }
           if (table === "scrapes") {
             return new FakeQuery<Scrape>("scrapes", [
               { _id: "scrape-1", siteId: "site-1", sourceUrl: "https://example.com", completedAt: now, items: [] },
-            ]);
+            ], tracker);
           }
           if (table === "workflow_runs") {
             return new FakeQuery<Run>("workflow_runs", [
               { _id: "run-1", siteUrls: ["https://example.com"], startedAt: now, status: "completed" },
-            ]);
+            ], tracker);
           }
           throw new Error(`Unexpected table ${table}`);
         },
@@ -131,5 +151,8 @@ describe("listScrapeActivity", () => {
     vi.useRealTimers();
 
     expect(rows).toHaveLength(1);
+    expect(tracker.paginate).toBe(0);
+    expect(tracker.collect).toBe(0);
+    expect(tracker.take).toBeGreaterThan(0);
   });
 });

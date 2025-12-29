@@ -273,6 +273,8 @@ def test_emit_posthog_exception_uses_client(monkeypatch):
     assert isinstance(captured["exc"], ValueError)
     assert captured["distinct_id"] == "wf-123"
     assert captured["properties"]["workflowId"] == "wf-123"
+    assert captured["properties"]["exceptionType"] == "ValueError"
+    assert captured["properties"]["exceptionMessage"] == "boom"
 
 
 def test_force_flush_uses_provider(monkeypatch):

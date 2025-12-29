@@ -54,6 +54,8 @@ class GreenhouseHandler(BaseSiteHandler):
         if len(parts) >= 2 and parts[0] == "v1" and parts[1] == "boards":
             if len(parts) >= 3:
                 return parts[2]
+        if len(parts) >= 2 and parts[1] == "jobs":
+            return parts[0]
         host = (parsed.hostname or "").lower()
         host_parts = host.split(".")
         if len(host_parts) >= 3 and host_parts[-2] != "greenhouse":
@@ -81,6 +83,21 @@ class GreenhouseHandler(BaseSiteHandler):
             return False
         host = (parsed.hostname or "").lower()
         return "boards-api.greenhouse.io" in host and "/jobs/" in parsed.path
+
+    def _is_listing_api_url(self, uri: str) -> bool:
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        if "api.greenhouse.io" not in host and "boards-api.greenhouse.io" not in host:
+            return False
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 4:
+            return False
+        if parts[0] != "v1" or parts[1] != "boards":
+            return False
+        return parts[3] == "jobs" and len(parts) == 4
 
     def get_api_uri(self, uri: str) -> Optional[str]:
         if self.is_api_detail_url(uri):
@@ -199,6 +216,17 @@ class GreenhouseHandler(BaseSiteHandler):
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
+        if self._is_listing_api_url(uri):
+            return self._apply_page_links_config(
+                {
+                "request": "basic",
+                "return_format": ["raw"],
+                "follow_redirects": True,
+                "redirect_policy": "Loose",
+                "external_domains": ["*"],
+                "preserve_host": True,
+                }
+            )
         if self.is_api_detail_url(uri):
             return self._apply_page_links_config(
                 {

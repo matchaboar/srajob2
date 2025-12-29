@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("."))
+
 from job_scrape_application.workflows.helpers.link_extractors import (
     dedupe_str_list,
     extract_job_urls_from_json_payload,
@@ -72,6 +77,12 @@ def test_normalize_url_handles_relative_and_scheme_relative():
     assert normalize_url("/jobs/1", base_url="https://example.com/careers") == "https://example.com/jobs/1"
     assert normalize_url("//cdn.example.com/asset", base_url="https://example.com") == "https://cdn.example.com/asset"
     assert normalize_url("mailto:test@example.com", base_url="https://example.com") is None
+
+
+def test_normalize_url_unescapes_html_entities():
+    url = "https://careers.adobe.com/us/en/search-results?keywords=engineer&amp;from=70&amp;s=1"
+
+    assert normalize_url(url) == "https://careers.adobe.com/us/en/search-results?keywords=engineer&from=70&s=1"
 
 
 def test_normalize_url_list_dedupes_and_filters():

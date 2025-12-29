@@ -49,6 +49,7 @@ def _update_entries(
         schedule = entry.get("schedule")
         if isinstance(schedule, dict):
             start_time = schedule.get("startTime") or "09:30"
+            schedule["startTime"] = start_time
             schedule["days"] = days
             schedule["intervalMinutes"] = float(interval_minutes)
             schedule["timezone"] = schedule.get("timezone") or DEFAULT_TIMEZONE

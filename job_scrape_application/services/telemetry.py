@@ -200,6 +200,8 @@ def emit_posthog_exception(
     payload: Dict[str, Any] = {"level": "error", "workflowId": workflow_id}
     if properties:
         payload.update(properties)
+    payload.setdefault("exceptionType", type(exc).__name__)
+    payload.setdefault("exceptionMessage", str(exc))
 
     try:
         client.capture_exception(exc, distinct_id=workflow_id, properties=payload)

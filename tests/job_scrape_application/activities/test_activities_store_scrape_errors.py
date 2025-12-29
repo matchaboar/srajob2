@@ -172,6 +172,7 @@ async def test_store_scrape_retries_on_failure(monkeypatch):
 
     calls: list[str] = []
     first_insert_failed: Dict[str, bool] = {"value": False}
+    emitted: list[Dict[str, Any]] = []
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append(name)
@@ -180,14 +181,31 @@ async def test_store_scrape_retries_on_failure(monkeypatch):
             raise RuntimeError("first failure")
         return "scrape-id"
 
+    def fake_emit_exception(
+        exc: BaseException,
+        *,
+        distinct_id: str | None = None,  # noqa: ARG001
+        properties: Dict[str, Any] | None = None,
+    ) -> None:
+        emitted.append(
+            {
+                "exc": exc,
+                "properties": properties or {},
+            }
+        )
+
     monkeypatch.setattr(acts, "trim_scrape_for_convex", lambda x, **kwargs: x)
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_exception", fake_emit_exception)
 
     res = await acts.store_scrape(payload)
 
     assert res == "scrape-id"
     assert first_insert_failed["value"] is True
     assert calls.count("router:insertScrapeRecord") == 2
+    assert emitted
+    assert isinstance(emitted[0]["exc"], RuntimeError)
+    assert emitted[0]["properties"].get("event") == "scrape.persist_failed"
 
 
 @pytest.mark.asyncio
@@ -213,7 +231,7 @@ async def test_store_scrape_ingest_jobs_failure_is_nonfatal(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_returns_error_id_after_double_failure(monkeypatch, caplog):
+async def test_store_scrape_raises_after_double_failure(monkeypatch, caplog):
     payload = {
         "sourceUrl": "https://example.com",
         "items": {"normalized": [{"url": "https://example.com/job"}]},
@@ -229,9 +247,10 @@ async def test_store_scrape_returns_error_id_after_double_failure(monkeypatch, c
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
 
     with caplog.at_level("ERROR", logger="temporal.worker.activities"):
-        res = await acts.store_scrape(payload)
+        with pytest.raises(ApplicationError) as excinfo:
+            await acts.store_scrape(payload)
 
-    assert res.startswith("store-error:")
+    assert excinfo.value.type == "store_scrape_failed"
     assert attempts == ["router:insertScrapeRecord", "router:insertScrapeRecord"]
     assert any("Failed to persist scrape after fallback" in msg for msg in caplog.messages)
 

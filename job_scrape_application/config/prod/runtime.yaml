@@ -15,7 +15,7 @@ spidercloud_job_details_processing_expire_minutes: 20
 spidercloud_http_timeout_seconds: 900
 
 # Number of Temporal worker processes for general scraping tasks.
-temporal_general_worker_count: 4
+temporal_general_worker_count: 6
 
 # Number of Temporal worker processes dedicated to Spidercloud job-details.
-temporal_job_details_worker_count: 4
+temporal_job_details_worker_count: 6

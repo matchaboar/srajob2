@@ -29,6 +29,23 @@ describe("collectWithLimit", () => {
     const res = await collectWithLimit(cursorable, 10, 2);
     expect(res).toEqual([1, 2, 3]);
   });
+
+  it("stops when paginate repeats the same cursor", async () => {
+    const calls: Array<string | null> = [];
+    const cursorable = {
+      paginate: async ({ cursor }: { cursor: string | null }) => {
+        calls.push(cursor ?? null);
+        if (cursor == null) {
+          return { page: [1], isDone: false, continueCursor: "same" };
+        }
+        return { page: [2], isDone: false, continueCursor: "same" };
+      },
+    };
+
+    const res = await collectWithLimit(cursorable, 10, 2);
+    expect(res).toEqual([1, 2]);
+    expect(calls).toHaveLength(2);
+  });
 });
 
 describe("countJobs", () => {

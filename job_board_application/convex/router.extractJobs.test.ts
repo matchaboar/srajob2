@@ -84,6 +84,104 @@ https://jobs.ashbyhq.com/lambda/4b807933-f10a-45fd-b92d-6820f66bae27`;
     expect(jobs).toEqual([]);
   });
 
+  it("extracts the title from longform Ashby listing text", () => {
+    const title = `- Partner with the Customer Success and Solutions Engineering teams to onboard new customers and refine our customer journey to set new customers up for longer term success with Notion.
+Ashbyhq
+New York, New York
+Senior
+$280,000
+Posted Dec 28 • 0d ago
+
+Direct Apply
+Apply with AI
+https://jobs.ashbyhq.com/notion/5703a1d4-e1a2-4286-af10-a48c65fd4114
+Description
+1037 words
+
+Manager, Commercial Sales @ Notion
+ABOUT US:
+
+Notion helps you build beautiful tools for your life's work.`;
+
+    const jobs = extractJobs(
+      [
+        {
+          ...baseRow,
+          title,
+          url: "https://jobs.ashbyhq.com/notion/5703a1d4-e1a2-4286-af10-a48c65fd4114",
+        },
+      ],
+      { sourceUrl: "https://jobs.ashbyhq.com/notion" }
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].title).toBe("Manager, Commercial Sales");
+  });
+
+  it("extracts the title from flattened Ashby listing text", () => {
+    const rawTitle = `You'll independently run research projects from start to finish, translating stakeholder needs into concrete research plans and delivering insights that shape our product strategy. Working alongside passionate experts across Product, Design, Data, and Engineering, you'll help build the tools that millions of people rely on to get their work done.
+Ashbyhq
+San Francisco, California
+Junior
+$83,000
+Posted Dec 28 • 0d ago
+
+Direct Apply
+Apply with AI
+https://jobs.ashbyhq.com/notion/2e7b83cd-9210-4492-ad30-7b898b80807b
+Description
+982 words
+
+UX Research Intern (Summer 2026) @ Notion`;
+    const title = rawTitle.replace(/\s+/g, " ").trim();
+
+    const jobs = extractJobs(
+      [
+        {
+          ...baseRow,
+          title,
+          url: "https://jobs.ashbyhq.com/notion/2e7b83cd-9210-4492-ad30-7b898b80807b",
+        },
+      ],
+      { sourceUrl: "https://jobs.ashbyhq.com/notion" }
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].title).toContain("UX Research Intern (Summer 2026)");
+  });
+
+  it("drops Ashby listings with placeholder Application titles", () => {
+    const jobs = extractJobs(
+      [
+        {
+          ...baseRow,
+          title: "Application",
+          url: "https://jobs.ashbyhq.com/notion/2e7b83cd-9210-4492-ad30-7b898b80807b/application",
+        },
+      ],
+      { sourceUrl: "https://jobs.ashbyhq.com/notion" }
+    );
+
+    expect(jobs).toEqual([]);
+  });
+
+  it("uses the Ashby slug when the company name is the provider", () => {
+    const jobs = extractJobs(
+      [
+        {
+          ...baseRow,
+          title: "Account Executive",
+          company: "Ashbyhq",
+          url: "https://jobs.ashbyhq.com/notion/2e7b83cd-9210-4492-ad30-7b898b80807b",
+        },
+      ],
+      { sourceUrl: "https://jobs.ashbyhq.com/notion" }
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].company).toBe("Notion");
+  });
+
   it("normalizes Avature URLs and derives a slug title when the title is noise", () => {
     const noisyTitle = "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\";
     const url =

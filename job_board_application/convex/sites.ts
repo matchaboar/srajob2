@@ -246,20 +246,30 @@ const SCRAPE_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 async function collectWithLimit(cursorable: any, maxItems: number = 500, pageSize: number = DEFAULT_PAGE_SIZE) {
   try {
     if (!cursorable) return [];
-    if (typeof cursorable.collect === "function") {
-      return await cursorable.collect();
-    }
     if (typeof cursorable.take === "function") {
       return await cursorable.take(maxItems);
+    }
+    if (typeof cursorable.collect === "function") {
+      const rows = await cursorable.collect();
+      return rows.slice(0, maxItems);
     }
     if (typeof cursorable.paginate === "function") {
       let cursor: any = null;
       const rows: any[] = [];
+      const seen = new Set<string | null>();
+      const maxPages = Math.ceil(maxItems / Math.max(pageSize, 1)) + 5;
+      let pages = 0;
+      const normalizeCursor = (value: any) => (value === null || value === undefined ? null : String(value));
       while (true) {
         const { page, isDone, continueCursor } = await cursorable.paginate({ cursor, numItems: pageSize });
         rows.push(...(page || []));
         if (rows.length >= maxItems || isDone || !continueCursor) break;
+        const nextKey = normalizeCursor(continueCursor);
+        const currentKey = normalizeCursor(cursor);
+        if (!page?.length || nextKey === currentKey || seen.has(nextKey) || pages >= maxPages) break;
+        seen.add(nextKey);
         cursor = continueCursor;
+        pages += 1;
       }
       return rows.slice(0, maxItems);
     }
@@ -288,6 +298,7 @@ function countJobs(items: any): number {
 const listScrapeActivityHandler = async (ctx: any) => {
   const now = Date.now();
   const runCutoff = now - RUN_LOOKBACK_MS;
+  const scrapeCutoff = now - SCRAPE_LOOKBACK_MS;
   const sites = await collectWithLimit(ctx.db.query("sites").order("desc"), SITE_LIMIT, 50);
   const runs = await ctx.db
     .query("workflow_runs")
@@ -304,14 +315,20 @@ const listScrapeActivityHandler = async (ctx: any) => {
 
       const scrapes = await collectWithLimit(
         site._id
-          ? ctx.db.query("scrapes").withIndex("by_site", (q: any) => q.eq("siteId", site._id)).order("desc")
-          : ctx.db.query("scrapes").withIndex("by_source", (q: any) => q.eq("sourceUrl", siteUrl)).order("desc"),
+          ? ctx.db
+            .query("scrapes")
+            .withIndex("by_site_completed", (q: any) => q.eq("siteId", site._id).gte("completedAt", scrapeCutoff))
+            .order("desc")
+          : ctx.db
+            .query("scrapes")
+            .withIndex("by_source_completed", (q: any) => q.eq("sourceUrl", siteUrl).gte("completedAt", scrapeCutoff))
+            .order("desc"),
         SCRAPE_LIMIT,
         SCRAPE_PAGE_SIZE
       );
 
       const filteredScrapes = (scrapes as any[]).filter(
-        (s) => (s).completedAt === undefined || (s).completedAt >= now - SCRAPE_LOOKBACK_MS
+        (s) => (s).completedAt === undefined || (s).completedAt >= scrapeCutoff
       );
       const sortedScrapes = filteredScrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
       const latest = sortedScrapes[0];
@@ -352,7 +369,7 @@ const listScrapeActivityHandler = async (ctx: any) => {
         workerId: typeof site.lockedBy === "string" ? site.lockedBy : undefined,
         lastFailureAt: site.lastFailureAt,
         failed: site.failed,
-        totalScrapes: scrapes.length,
+        totalScrapes: filteredScrapes.length,
         totalJobsScraped,
       });
     } catch (err) {

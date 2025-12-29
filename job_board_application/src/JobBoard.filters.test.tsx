@@ -9,17 +9,20 @@ import { JobBoard } from "./JobBoard";
 
 vi.mock("convex/react", () => {
   let savedFiltersFixture: any[] = [];
-
-  const usePaginatedQuery = vi.fn(() => ({
-    results: [] as any[],
+  let paginatedResults: any[] = [];
+  const paginatedResponse = {
+    results: paginatedResults,
     status: "Complete",
     loadMore: vi.fn(),
-  }));
+  };
+  const emptyResults: any[] = [];
+
+  const usePaginatedQuery = vi.fn(() => paginatedResponse);
 
   const useQuery = vi.fn((queryFn: any, args?: any) => {
     if (args === "skip") return undefined;
     if (queryFn === api.filters.getSavedFilters) return savedFiltersFixture;
-    return [];
+    return emptyResults;
   });
 
   const useMutation = vi.fn(() => vi.fn(async () => ({})));
@@ -30,6 +33,10 @@ vi.mock("convex/react", () => {
     useMutation,
     __setSavedFilters: (filters: any[]) => {
       savedFiltersFixture = filters;
+    },
+    __setPaginatedResults: (results: any[]) => {
+      paginatedResults = results;
+      paginatedResponse.results = results;
     },
   };
 });

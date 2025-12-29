@@ -9,7 +9,7 @@ import re
 import time
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
 from spider import AsyncSpider
 from temporalio.exceptions import ApplicationError
 
@@ -18,6 +18,7 @@ from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
     _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
+    _normalize_country_label,
     _strip_embedded_theme_json,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
@@ -47,6 +48,7 @@ from ..helpers.regex_patterns import (
     INVALID_JSON_ESCAPE_PATTERN,
     JSON_LD_SCRIPT_PATTERN,
     JSON_OBJECT_PATTERN,
+    JOB_ID_PATH_PATTERN,
     MARKDOWN_HEADING_PATTERN,
     MARKDOWN_HEADING_PREFIX_PATTERN,
     MIN_THREE_DIGIT_PATTERN,
@@ -55,6 +57,10 @@ from ..helpers.regex_patterns import (
     SLUG_SEPARATOR_PATTERN,
     SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN,
     SPIDERCLOUD_MULTI_NEWLINE_PATTERN,
+    _SALARY_BETWEEN_RE,
+    _SALARY_K_RE,
+    _SALARY_RANGE_LABEL_RE,
+    _SALARY_RE,
     _TITLE_BAR_RE,
     _TITLE_IN_BAR_RE,
 )
@@ -212,6 +218,7 @@ class SpiderCloudScraper(BaseScraper):
         # Lightweight fallback: strip tags and preserve basic breaks.
         text = re.sub(HTML_BR_TAG_PATTERN, "\n", raw_html)
         text = re.sub(SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN, "\n\n", text)
+        text = re.sub(r"</(?:title|h[1-6])\s*>", "\n\n", text, flags=re.IGNORECASE)
         text = re.sub(HTML_SCRIPT_BLOCK_PATTERN, "", text)
         text = re.sub(HTML_STYLE_BLOCK_PATTERN, "", text)
         text = re.sub(HTML_TAG_PATTERN, "", text)
@@ -897,21 +904,180 @@ class SpiderCloudScraper(BaseScraper):
         return None
 
     def _title_from_events(self, events: List[Any]) -> Optional[str]:
+        def _looks_like_sentence_title(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return True
+            if stripped.startswith(("*", "-")) or ORDERED_LIST_LINE_RE.match(stripped):
+                return True
+            lowered = stripped.lower()
+            if lowered.endswith((".", "!", "?")):
+                return True
+            if lowered.startswith(("as the ", "as a ", "as an ")):
+                return True
+            if re.search(r"\b(?:you|your|we|our|will|you'll|you\u2019ll|join us)\b", lowered):
+                return True
+            if len(lowered.split()) > 12:
+                return True
+            return False
+
+        def _maybe_select_title(value: Any, *, fallback: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+            if not isinstance(value, str):
+                return None, fallback
+            candidate = value.strip()
+            if not candidate:
+                return None, fallback
+            if self._is_placeholder_title(candidate):
+                return None, fallback
+            if _looks_like_sentence_title(candidate):
+                return None, fallback or candidate
+            return candidate, fallback
+
+        fallback: Optional[str] = None
         for evt in events:
             if not isinstance(evt, dict):
                 continue
             for key in ("title", "job_title", "heading"):
-                val = evt.get(key)
-                if isinstance(val, str) and val.strip():
-                    return val.strip()
-        return None
+                selected, fallback = _maybe_select_title(evt.get(key), fallback=fallback)
+                if selected:
+                    return selected
+            metadata = evt.get("metadata")
+            if isinstance(metadata, dict):
+                for meta_key in ("commonmark", "markdown", "raw", "html", "text"):
+                    meta_val = metadata.get(meta_key)
+                    if isinstance(meta_val, dict):
+                        for key in ("title", "job_title", "heading"):
+                            selected, fallback = _maybe_select_title(meta_val.get(key), fallback=fallback)
+                            if selected:
+                                return selected
+                    else:
+                        selected, fallback = _maybe_select_title(meta_val, fallback=fallback)
+                        if selected:
+                            return selected
+                for key in ("title", "job_title", "heading"):
+                    selected, fallback = _maybe_select_title(metadata.get(key), fallback=fallback)
+                    if selected:
+                        return selected
+        return fallback
 
     def _title_from_markdown(self, markdown: str) -> Optional[str]:
+        application_headers = {
+            "application",
+            "job application",
+            "application form",
+        }
+        job_title_keywords = {
+            "accountant",
+            "analyst",
+            "architect",
+            "associate",
+            "backend",
+            "business",
+            "cloud",
+            "consultant",
+            "data",
+            "design",
+            "designer",
+            "developer",
+            "development",
+            "devops",
+            "engineer",
+            "engineering",
+            "finance",
+            "frontend",
+            "fullstack",
+            "growth",
+            "hr",
+            "infrastructure",
+            "intern",
+            "ios",
+            "legal",
+            "manager",
+            "marketing",
+            "mobile",
+            "operations",
+            "people",
+            "platform",
+            "principal",
+            "product",
+            "program",
+            "project",
+            "qa",
+            "quality",
+            "recruiter",
+            "research",
+            "sales",
+            "scientist",
+            "security",
+            "senior",
+            "sre",
+            "staff",
+            "support",
+        }
+
         def _looks_like_list_item(value: str) -> bool:
             stripped = value.strip()
             if stripped.startswith(("*", "-")):
                 return True
             return bool(ORDERED_LIST_LINE_RE.match(stripped))
+
+        def _looks_like_metadata_line(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return True
+            lowered = stripped.lower()
+            if lowered in {"remote", "hybrid", "onsite", "on-site"}:
+                return True
+            if lowered in {"intern", "junior", "mid", "mid-level", "senior", "staff", "principal", "lead", "manager", "director", "vp", "cto"}:
+                return True
+            if _normalize_country_label(stripped):
+                return True
+            if _SALARY_RE.search(stripped) or _SALARY_K_RE.search(stripped):
+                return True
+            if _SALARY_RANGE_LABEL_RE.search(stripped) or _SALARY_BETWEEN_RE.search(stripped):
+                return True
+            if re.search(r"[$£€]\s*\d", stripped):
+                return True
+            if re.fullmatch(r"\d+\s+words?", lowered):
+                return True
+            if "posted" in lowered and ("ago" in lowered or re.search(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", lowered)):
+                return True
+            return False
+
+        def _looks_like_job_title(value: str) -> bool:
+            lowered = value.strip().lower()
+            if not lowered:
+                return False
+            if re.fullmatch(r"\d+\s+words?", lowered):
+                return False
+            if _looks_like_metadata_line(value):
+                return False
+            if lowered in {"location", "locations", "link", "links"}:
+                return False
+            if lowered.startswith(("other locations", "other location", "other links")):
+                return False
+            if len(lowered.split()) >= 2:
+                return True
+            return any(keyword in lowered for keyword in job_title_keywords)
+
+        def _looks_like_sentence(value: str) -> bool:
+            lowered = value.strip().lower()
+            if not lowered:
+                return False
+            if lowered.endswith((".", "!", "?")):
+                return True
+            if lowered.startswith(("as the ", "as a ", "as an ")):
+                return True
+            if re.search(r"\b(?:you|your|we|our|will|you'll|you\u2019ll|join us)\b", lowered):
+                return True
+            if len(lowered.split()) > 12:
+                return True
+            return False
+
+        def _looks_like_strong_title(value: str) -> bool:
+            if not _looks_like_job_title(value):
+                return False
+            return not _looks_like_sentence(value)
 
         def _looks_like_skip_line(value: str) -> bool:
             lowered = value.strip().lower()
@@ -923,6 +1089,46 @@ class SpiderCloudScraper(BaseScraper):
                 return True
             return self._is_placeholder_title(value)
 
+        def _title_from_description_section(text: str) -> Optional[str]:
+            description_headers = {
+                "description",
+                "job description",
+                "role description",
+                "position description",
+            }
+            description_header = False
+            scanned_lines = 0
+            for line in text.splitlines():
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                normalized = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", stripped).strip()
+                normalized = normalized.rstrip(":").lower()
+                if normalized in description_headers or re.fullmatch(
+                    r"(?:job\s+|role\s+|position\s+)?description\b(?:\s+\d+\s+words?)?",
+                    normalized,
+                ):
+                    description_header = True
+                    scanned_lines = 0
+                    continue
+                if not description_header:
+                    continue
+                if _looks_like_skip_line(stripped) or _looks_like_metadata_line(stripped):
+                    continue
+                if stripped.startswith(("{", "[")):
+                    continue
+                scanned_lines += 1
+                if scanned_lines <= 3 and _looks_like_strong_title(stripped):
+                    return stripped
+                if scanned_lines >= 3:
+                    break
+            return None
+
+        description_title = _title_from_description_section(markdown)
+        if description_title:
+            return description_title
+
+        application_header = False
         if "```" in markdown:
             fenced_match = re.search(
                 CODE_FENCE_JSON_OBJECT_PATTERN,
@@ -939,28 +1145,51 @@ class SpiderCloudScraper(BaseScraper):
                         val = parsed.get(key)
                         if isinstance(val, str) and val.strip():
                             candidate = val.strip()
-                            if not _looks_like_skip_line(candidate):
+                            if candidate.lower() in application_headers:
+                                application_header = True
+                                continue
+                            if not _looks_like_skip_line(candidate) and not _looks_like_metadata_line(candidate):
+                                if _looks_like_sentence(candidate):
+                                    continue
+                                if application_header and not _looks_like_job_title(candidate):
+                                    continue
                                 return candidate
         for line in markdown.splitlines():
             if not line.strip():
                 continue
+            normalized_line = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", line).strip()
+            if normalized_line.lower() in application_headers:
+                application_header = True
+                continue
             heading_match = re.match(MARKDOWN_HEADING_PATTERN, line.strip())
             if heading_match:
                 candidate = heading_match.group(1).strip()
-                if candidate and not _looks_like_skip_line(candidate):
+                if candidate and not _looks_like_skip_line(candidate) and not _looks_like_metadata_line(candidate):
+                    if _looks_like_sentence(candidate):
+                        continue
+                    if application_header and not _looks_like_job_title(candidate):
+                        continue
                     return candidate
                 continue
             stripped = line.strip()
-            if _looks_like_skip_line(stripped):
+            if _looks_like_skip_line(stripped) or _looks_like_metadata_line(stripped):
                 continue
             if stripped.startswith(("{", "[")):
                 continue
             bar_match = _TITLE_IN_BAR_RE.match(stripped) or _TITLE_BAR_RE.match(stripped)
             if bar_match:
                 candidate = bar_match.group("title").strip()
-                if candidate and not _looks_like_skip_line(candidate):
+                if candidate and not _looks_like_skip_line(candidate) and not _looks_like_metadata_line(candidate):
+                    if _looks_like_sentence(candidate):
+                        continue
+                    if application_header and not _looks_like_job_title(candidate):
+                        continue
                     return candidate
             if len(stripped) > 6:
+                if _looks_like_sentence(stripped):
+                    continue
+                if application_header and not _looks_like_job_title(stripped):
+                    continue
                 return stripped
         return None
 
@@ -970,12 +1199,66 @@ class SpiderCloudScraper(BaseScraper):
         if not markdown:
             return None
 
+        def _looks_like_list_item(value: str) -> bool:
+            stripped = value.strip()
+            if stripped.startswith(("*", "-")):
+                return True
+            return bool(ORDERED_LIST_LINE_RE.match(stripped))
+
+        def _looks_like_metadata_line(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return True
+            lowered = stripped.lower()
+            if lowered in {"remote", "hybrid", "onsite", "on-site"}:
+                return True
+            if lowered in {"intern", "junior", "mid", "mid-level", "senior", "staff", "principal", "lead", "manager", "director", "vp", "cto"}:
+                return True
+            if _normalize_country_label(stripped):
+                return True
+            if _SALARY_RE.search(stripped) or _SALARY_K_RE.search(stripped):
+                return True
+            if _SALARY_RANGE_LABEL_RE.search(stripped) or _SALARY_BETWEEN_RE.search(stripped):
+                return True
+            if re.search(r"[$£€]\s*\d", stripped):
+                return True
+            if re.fullmatch(r"\d+\s+words?", lowered):
+                return True
+            if "posted" in lowered and ("ago" in lowered or re.search(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", lowered)):
+                return True
+            return False
+
+        def _looks_like_sentence(value: str) -> bool:
+            lowered = value.strip().lower()
+            if not lowered:
+                return False
+            if lowered.endswith((".", "!", "?")):
+                return True
+            if lowered.startswith(("as the ", "as a ", "as an ")):
+                return True
+            if re.search(r"\b(?:you|your|we|our|will|you'll|you\u2019ll|join us)\b", lowered):
+                return True
+            if len(lowered.split()) > 12:
+                return True
+            return False
+
         for raw_line in markdown.splitlines():
             line = raw_line.strip()
             if not line:
                 continue
+            if line.startswith(("http://", "https://")):
+                continue
+            if _looks_like_list_item(line) or _looks_like_metadata_line(line):
+                continue
             # Strip heading markers before evaluating keywords so `# Title` works.
-            line = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", line)
+            line = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", line).strip()
+            if not line or self._is_placeholder_title(line):
+                continue
+            bar_match = _TITLE_IN_BAR_RE.match(line) or _TITLE_BAR_RE.match(line)
+            if bar_match:
+                line = bar_match.group("title").strip()
+            if not line or _looks_like_sentence(line):
+                continue
             if title_matches_required_keywords(line):
                 return line.strip()
 
@@ -1008,8 +1291,9 @@ class SpiderCloudScraper(BaseScraper):
             "job description",
             "description",
             "company overview",
+            "stay in the loop",
         }
-        stripped = title.strip().lower()
+        stripped = title.strip().lower().rstrip(":.!?")
         if stripped in placeholders:
             return True
         try:
@@ -1034,6 +1318,16 @@ class SpiderCloudScraper(BaseScraper):
 
         if not text:
             return []
+
+        def _is_greenhouse_job_url(url: str) -> bool:
+            try:
+                parsed = urlparse(url)
+            except Exception:
+                return False
+            if "gh_jid" in (parsed.query or ""):
+                return True
+            return bool(re.search(JOB_ID_PATH_PATTERN, parsed.path or ""))
+
         # Capture both boards.greenhouse.io and api.greenhouse.io absolute URLs
         pattern = re.compile(GREENHOUSE_URL_PATTERN)
         seen: set[str] = set()
@@ -1042,7 +1336,22 @@ class SpiderCloudScraper(BaseScraper):
             if "jobs" not in match:
                 continue
             url = match.strip()
+            if not _is_greenhouse_job_url(url):
+                continue
             if url not in seen:
+                seen.add(url)
+                urls.append(url)
+        return urls
+
+    def _regex_extract_job_urls_from_events(self, raw_text: str, raw_events: list[Any]) -> List[str]:
+        urls = self._regex_extract_job_urls(raw_text)
+        if not raw_events:
+            return urls
+        seen: set[str] = set(urls)
+        for candidate in gather_strings(raw_events):
+            for url in self._regex_extract_job_urls(candidate):
+                if url in seen:
+                    continue
                 seen.add(url)
                 urls.append(url)
         return urls
@@ -1245,6 +1554,21 @@ class SpiderCloudScraper(BaseScraper):
                 return fence_match.group("content").strip()
             return value
 
+        def _scan_json_candidates(text: str) -> Iterable[Any]:
+            decoder = json.JSONDecoder()
+            for match in re.finditer(r"[{[]", text):
+                idx = match.start()
+                try:
+                    parsed, _ = decoder.raw_decode(text[idx:])
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, str):
+                    try:
+                        parsed = json.loads(parsed)
+                    except Exception:
+                        pass
+                yield parsed
+
         def _parse_json_text(text: str) -> Any | None:
             text = _strip_code_fences(text)
             text = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", text)
@@ -1297,6 +1621,13 @@ class SpiderCloudScraper(BaseScraper):
             html_found = _extract_json_from_html(text)
             if html_found:
                 return html_found
+            if "{" in text or "[" in text:
+                cleaned = _strip_code_fences(text)
+                cleaned = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", cleaned)
+                for candidate in _scan_json_candidates(cleaned):
+                    found = _find_jobs_payload(candidate)
+                    if found:
+                        return found
 
         return None
 
@@ -1338,7 +1669,15 @@ class SpiderCloudScraper(BaseScraper):
         jobs = payload.get("jobs")
         if not isinstance(jobs, list):
             jobs = None
-        url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
+        url_keys = (
+            "jobUrl",
+            "applyUrl",
+            "jobPostingUrl",
+            "postingUrl",
+            "url",
+            "absolute_url",
+            "absoluteUrl",
+        )
         if isinstance(jobs, list):
             for job in jobs:
                 if not isinstance(job, dict):
@@ -1543,6 +1882,20 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         title = payload_title or self._title_from_url(url)
+        if isinstance(title, str) and hint_title:
+            normalized_title = title.strip()
+            if normalized_title.lower().startswith("job application for"):
+                title = hint_title
+        if isinstance(title, str):
+            match = re.match(
+                r"^(?:job\s+)?application\s+for\s+(?P<title>.+?)(?:\s+at\s+.+)?$",
+                title.strip(),
+                flags=re.IGNORECASE,
+            )
+            if match:
+                cleaned = match.group("title").strip()
+                if cleaned:
+                    title = cleaned
         if isinstance(title, str) and len(title) > MAX_TITLE_CHARS:
             logger.info(
                 "SpiderCloud title too long; falling back to URL title url=%s title_len=%s",
@@ -2454,15 +2807,19 @@ class SpiderCloudScraper(BaseScraper):
 
         try:
             board = load_greenhouse_board(payload or raw_text or {})
-            # Structured extraction first.
-            job_urls = extract_greenhouse_job_urls(board)
+            # Structured extraction first. Do not filter by required keywords here.
+            required_keywords: tuple[str, ...] = ()
+            job_urls = extract_greenhouse_job_urls(board, required_keywords=required_keywords)
 
             # Prefer API detail URLs when we know the board slug and job IDs.
             if slug and job_urls:
                 api_urls: list[str] = []
                 seen_api: set[str] = set()
                 for job in board.jobs:
-                    if not job.absolute_url or not title_matches_required_keywords(job.title):
+                    if not job.absolute_url or not title_matches_required_keywords(
+                        job.title,
+                        keywords=required_keywords,
+                    ):
                         continue
                     # Only build API URLs when the original link clearly points to a Greenhouse flow
                     # (either greenhouse domain or gh_jid markers).
@@ -2490,12 +2847,12 @@ class SpiderCloudScraper(BaseScraper):
             # If structured extraction yields nothing (or a single item), fall back to regex
             # parsing so we still return a useful list for downstream workflows.
             if len(job_urls) <= 1:
-                regex_urls = self._regex_extract_job_urls(raw_text)
+                regex_urls = self._regex_extract_job_urls_from_events(raw_text, raw_events)
                 if regex_urls:
                     job_urls = regex_urls
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud greenhouse listing parse error url=%s error=%s", api_url, exc)
-            regex_urls = self._regex_extract_job_urls(raw_text)
+            regex_urls = self._regex_extract_job_urls_from_events(raw_text, raw_events)
             if regex_urls:
                 self._emit_scrape_log(
                     event="scrape.greenhouse_listing.regex_fallback",
@@ -2532,7 +2889,19 @@ class SpiderCloudScraper(BaseScraper):
                 exc=exc,
                 capture_exception=True,
             )
-            raise ApplicationError(f"Unable to parse Greenhouse board payload (SpiderCloud): {exc}") from exc
+            completed_at = int(time.time() * 1000)
+            logger.warning(
+                "SpiderCloud greenhouse listing parse failed url=%s; returning empty result",
+                api_url,
+            )
+            return {
+                "raw": raw_text,
+                "job_urls": [],
+                "startedAt": started_at,
+                "completedAt": completed_at,
+                "parseFailed": True,
+                "error": str(exc),
+            }
 
         completed_at = int(time.time() * 1000)
         logger.info(

@@ -194,4 +194,50 @@ EXISTING=override
 
         ($UvCalls | Where-Object { $_ -like "*worker*" }).Count | Should -Be 1
     }
+
+    It "requeues processing scrape_url_queue rows when ResetProcessingQueue is set (prod)" {
+        $env:SKIP_PREFLIGHT_CHECKS = "1"
+        $env:CONVEX_HTTP_URL = "https://convex.test"
+        $script:ResetProcessingQueue = $true
+        $script:UseProd = $true
+
+        Set-ContainerMocks
+
+        Mock -CommandName uv -MockWith {
+            param([Parameter(ValueFromRemainingArguments = $true)] $rest)
+            $global:LASTEXITCODE = 0
+        }
+
+        $script:NpxCalls = @()
+        Mock -CommandName npx -MockWith {
+            param([Parameter(ValueFromRemainingArguments = $true)] $rest)
+            $script:NpxCalls += ,$rest
+            $global:LASTEXITCODE = 0
+        }
+
+        Mock -CommandName Stop-ExistingWorkers -MockWith { }
+        Mock -CommandName Start-WorkerProcess -MockWith {
+            return @{
+                Process = [pscustomobject]@{ HasExited = $true; ExitCode = 0; Id = 1 }
+                Role = "all"
+                TaskQueue = "scraper-task-queue"
+                JobDetailsQueue = "spidercloud-job-details-queue"
+            }
+        }
+
+        Push-Location $TestDrive
+        try {
+            Set-Content ".env" ""
+            Start-WorkerMain
+        } finally {
+            Pop-Location
+            $script:ResetProcessingQueue = $false
+            $script:UseProd = $false
+            Remove-Item Env:SKIP_PREFLIGHT_CHECKS -ErrorAction SilentlyContinue
+        }
+
+        $script:NpxCalls | Should -Not -BeNullOrEmpty
+        $call = $script:NpxCalls[0]
+        ($call -join " ") | Should -Be "convex run --prod router:resetScrapeUrlProcessing {}"
+    }
 }

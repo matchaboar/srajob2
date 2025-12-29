@@ -22,7 +22,7 @@ INVALID_JSON_ESCAPE_PATTERN = r"\\(?![\"\\/bfnrtu])"
 # URL / link patterns
 URL_PATTERN = r"https?://[^\s\"'<>]+"
 MARKDOWN_LINK_PATTERN = r"(?<!!)\[([^\]]+)\]\(([^)\s]+)\)"
-GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'>]+"
+GREENHOUSE_URL_PATTERN = r"https?://[\w.-]*greenhouse\.io/[^\s\"'<>]+"
 GREENHOUSE_BOARDS_PATH_PATTERN = r"/boards/([^/]+)/jobs"
 ASHBY_JOB_URL_PATTERN = r"https?://jobs\.ashbyhq\.com/[^\s\"'>\)\]\*#]+"
 ASHBY_JOB_SLUG_PATTERN = r"https?://jobs\.ashbyhq\.com/([^/\"'\s]+)"
@@ -244,7 +244,7 @@ SMART_APPLY_PATTERN = re.compile(
 )
 
 # Site handlers: Greenhouse
-JOB_ID_PATH_PATTERN = r"/jobs/(\\d+)"
+JOB_ID_PATH_PATTERN = r"/jobs/(\d+)"
 
 # SpiderCloud helpers
 HTML_BR_TAG_PATTERN = r"(?i)<br\\s*/?>"
