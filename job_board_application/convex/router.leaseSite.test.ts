@@ -15,6 +15,22 @@ class FakeSitesQuery {
   }
 }
 
+class FakeRunRequestsQuery {
+  withIndex(_name: string, cb: (q: any) => any) {
+    const eq = (_field: string, _val: any) => ({ eq });
+    cb({ eq });
+    return this;
+  }
+
+  order(_dir: string) {
+    return this;
+  }
+
+  first() {
+    return null;
+  }
+}
+
 describe("leaseSite", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -52,6 +68,9 @@ describe("leaseSite", () => {
         query: (table: string) => {
           if (table === "sites") {
             return new FakeSitesQuery([site]);
+          }
+          if (table === "run_requests") {
+            return new FakeRunRequestsQuery();
           }
           throw new Error(`Unexpected table ${table}`);
         },
@@ -94,6 +113,9 @@ describe("leaseSite", () => {
         query: (table: string) => {
           if (table === "sites") {
             return new FakeSitesQuery([site]);
+          }
+          if (table === "run_requests") {
+            return new FakeRunRequestsQuery();
           }
           throw new Error(`Unexpected table ${table}`);
         },
@@ -143,6 +165,9 @@ describe("leaseSite", () => {
         query: (table: string) => {
           if (table === "sites") {
             return new FakeSitesQuery([site]);
+          }
+          if (table === "run_requests") {
+            return new FakeRunRequestsQuery();
           }
           throw new Error(`Unexpected table ${table}`);
         },
@@ -207,6 +232,9 @@ describe("leaseSite", () => {
         query: (table: string) => {
           if (table === "sites") {
             return new FakeSitesQuery([site]);
+          }
+          if (table === "run_requests") {
+            return new FakeRunRequestsQuery();
           }
           throw new Error(`Unexpected table ${table}`);
         },

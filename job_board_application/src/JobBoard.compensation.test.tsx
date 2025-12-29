@@ -8,6 +8,7 @@ import { api } from "../convex/_generated/api";
 import { JobBoard } from "./JobBoard";
 
 const listJobsRef = api.jobs.listJobs;
+const functionNameSymbol = Symbol.for("functionName");
 const defaultPaginatedResponse = { results: [] as any[], status: "Complete", loadMore: vi.fn() };
 function defaultUsePaginatedQueryImpl(queryFn: any, _args: any, _opts: any) {
   if (queryFn === listJobsRef) {
@@ -18,13 +19,12 @@ function defaultUsePaginatedQueryImpl(queryFn: any, _args: any, _opts: any) {
 
 vi.mock("convex/react", () => {
   let savedFiltersFixture: any[] = [];
-  let useQueryCallCount = 0;
 
   const usePaginatedQuery = vi.fn(defaultUsePaginatedQueryImpl);
 
-  const useQuery = vi.fn((_queryFn: any) => {
-    const callIndex = useQueryCallCount++;
-    if (callIndex === 1) return savedFiltersFixture;
+  const useQuery = vi.fn((queryFn: any, args: any) => {
+    if (args === "skip") return undefined;
+    if (queryFn?.[functionNameSymbol] === "filters:getSavedFilters") return savedFiltersFixture;
     return [];
   });
 
@@ -36,9 +36,6 @@ vi.mock("convex/react", () => {
     useMutation,
     __setSavedFilters: (filters: any[]) => {
       savedFiltersFixture = filters;
-    },
-    __resetUseQueryCounter: () => {
-      useQueryCallCount = 0;
     },
   };
 });
@@ -82,7 +79,6 @@ afterEach(() => {
   (convexReact as any).usePaginatedQuery.mockImplementation(defaultUsePaginatedQueryImpl);
   (convexReact as any).usePaginatedQuery.mockClear();
   (convexReact as any).useQuery.mockClear();
-  (convexReact as any).__resetUseQueryCounter?.();
 });
 
 describe("JobBoard min salary input", () => {

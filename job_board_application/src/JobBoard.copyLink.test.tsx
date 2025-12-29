@@ -84,7 +84,22 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("framer-motion", () => {
-  const passthrough = ({ children, ...rest }: any) => <div {...rest}>{children}</div>;
+  const passthrough = ({ children, ...rest }: any) => {
+    const {
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      variants: _variants,
+      layout: _layout,
+      layoutId: _layoutId,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      whileInView: _whileInView,
+      ...domProps
+    } = rest;
+    return <div {...domProps}>{children}</div>;
+  };
   const motion = new Proxy(
     {},
     {

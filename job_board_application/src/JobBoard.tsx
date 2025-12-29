@@ -1493,18 +1493,32 @@ export function JobBoard() {
         {activeTab === "jobs" && (
           filtersReady ? (
             <>
+              {filtersOpen && (
+                <button
+                  type="button"
+                  aria-label="Close filters"
+                  data-testid="filters-overlay"
+                  onClick={() => setFiltersOpen(false)}
+                  className="fixed inset-0 z-20 bg-slate-950/40 backdrop-blur-[1px]"
+                />
+              )}
               {/* Sidebar Filters */}
               <div
                 className={`w-full sm:w-80 bg-slate-900/95 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200 ${filtersOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-[64px] left-0 z-30 shadow-2xl backdrop-blur-sm`}
                 role="complementary"
                 aria-label="Job filters"
+                data-testid="filters-panel"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div
+                  className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm flex items-center justify-between"
+                  data-testid="filters-header"
+                >
                   <h3 className="text-sm font-semibold text-white">Filters</h3>
                   <button
                     onClick={() => setFiltersOpen(false)}
                     className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                     aria-label="Close filters"
+                    data-testid="filters-close"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -185,7 +185,7 @@ describe("listJobs pagination", () => {
     expect(result.page[1]._id).toBe("job-1");
   });
 
-  it("uses the company index when a single company filter is set", async () => {
+  it("uses the scraped+posted index when a single company filter is set", async () => {
     const page1: Page = {
       page: [buildJob("job-1", 100)],
       isDone: true,
@@ -203,6 +203,27 @@ describe("listJobs pagination", () => {
       companies: ["Airbnb"],
     });
 
-    expect(tracker.lastIndexName).toBe("by_company_posted");
+    expect(tracker.lastIndexName).toBe("by_scraped_posted");
+  });
+
+  it("matches company filters case-insensitively", async () => {
+    const job1 = { ...buildJob("job-1", 200), company: "Lambda" };
+    const job2 = { ...buildJob("job-2", 100), company: "Other Co" };
+    const page1: Page = {
+      page: [job1, job2],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    const result = await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 5 },
+      companies: ["lambda"],
+    });
+
+    expect(result.page.map((job) => job.company)).toEqual(["Lambda"]);
   });
 });

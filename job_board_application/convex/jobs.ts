@@ -647,7 +647,6 @@ export const listJobs = query({
     const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
     const normalizedCompanyFilters = new Set(companyFilters.map((c) => normalizeCompanyKey(c)));
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
-    const singleCompanyFilter = hasCompanyFilter && companyFilters.length === 1 ? companyFilters[0] : null;
 
     // Get user's applied/rejected jobs first
     const userApplications = await ctx.db
@@ -781,9 +780,7 @@ export const listJobs = query({
       const buildBaseQuery = () => {
         let query: any = ctx.db.query("jobs");
 
-        if (singleCompanyFilter) {
-          query = query.withIndex("by_company_posted", (q: any) => q.eq("company", singleCompanyFilter));
-        } else if (stateFilter) {
+        if (stateFilter) {
           query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
         } else {
           query = query.withIndex("by_scraped_posted");

@@ -727,3 +727,55 @@ def test_spidercloud_netflix_detail_placeholder_title_does_not_drop():
     )
 
     assert normalized is not None
+
+
+def test_spidercloud_title_from_markdown_skips_list_item():
+    scraper = _make_scraper()
+    markdown = "\n".join(
+        [
+            "* Facilitate requirements definition with design and engineering partners",
+            "",
+            "Sr. Director, Data Product Management - Product/Growth in San Francisco, California | Docusign",
+            "",
+            "Company Overview",
+        ]
+    )
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Sr. Director, Data Product Management - Product/Growth"
+
+
+def test_spidercloud_title_from_markdown_skips_id_and_url_lines():
+    scraper = _make_scraper()
+    markdown = "\n".join(
+        [
+            "C49B5C9B 6646 4A13 Af57 Ed522D15Cdf7)\\N*",
+            "https://careers.docusign.com/jobs/27794?lang=en-us",
+            "Jobs",
+            "Senior Software Engineer",
+        ]
+    )
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Senior Software Engineer"
+
+
+def test_spidercloud_title_from_url_skips_id_like_slugs():
+    scraper = _make_scraper()
+
+    assert (
+        scraper._title_from_url("https://careers.docusign.com/jobs/27794?lang=en-us")  # noqa: SLF001
+        == "Untitled"
+    )
+    assert (
+        scraper._title_from_url("https://boards.greenhouse.io/stripe/jobs/7379530")  # noqa: SLF001
+        == "Untitled"
+    )
+    assert (
+        scraper._title_from_url(
+            "https://jobs.ashbyhq.com/notion/c49b5c9b-6646-4a13-af57-ed522d15cdf7"
+        )  # noqa: SLF001
+        == "Untitled"
+    )

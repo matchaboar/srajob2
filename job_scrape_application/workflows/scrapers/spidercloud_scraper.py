@@ -55,6 +55,8 @@ from ..helpers.regex_patterns import (
     SLUG_SEPARATOR_PATTERN,
     SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN,
     SPIDERCLOUD_MULTI_NEWLINE_PATTERN,
+    _TITLE_BAR_RE,
+    _TITLE_IN_BAR_RE,
 )
 from ..site_handlers import BaseSiteHandler, get_site_handler
 from ...services import telemetry
@@ -67,6 +69,11 @@ SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
 CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
 MAX_TITLE_CHARS = 500
+UUID_LIKE_RE = re.compile(
+    r"[0-9a-f]{8}([-\s]?[0-9a-f]{4}){3}[-\s]?[0-9a-f]{12}",
+    flags=re.IGNORECASE,
+)
+ORDERED_LIST_LINE_RE = re.compile(r"^\d+[\.)]\s+\S+")
 
 
 logger = logging.getLogger("temporal.worker.activities")
@@ -900,6 +907,22 @@ class SpiderCloudScraper(BaseScraper):
         return None
 
     def _title_from_markdown(self, markdown: str) -> Optional[str]:
+        def _looks_like_list_item(value: str) -> bool:
+            stripped = value.strip()
+            if stripped.startswith(("*", "-")):
+                return True
+            return bool(ORDERED_LIST_LINE_RE.match(stripped))
+
+        def _looks_like_skip_line(value: str) -> bool:
+            lowered = value.strip().lower()
+            if lowered in {"back", "apply", "apply now", "direct apply", "apply with ai"}:
+                return True
+            if lowered.startswith(("http://", "https://")):
+                return True
+            if _looks_like_list_item(value):
+                return True
+            return self._is_placeholder_title(value)
+
         if "```" in markdown:
             fenced_match = re.search(
                 CODE_FENCE_JSON_OBJECT_PATTERN,
@@ -915,16 +938,28 @@ class SpiderCloudScraper(BaseScraper):
                     for key in ("title", "job_title", "heading"):
                         val = parsed.get(key)
                         if isinstance(val, str) and val.strip():
-                            return val.strip()
+                            candidate = val.strip()
+                            if not _looks_like_skip_line(candidate):
+                                return candidate
         for line in markdown.splitlines():
             if not line.strip():
                 continue
             heading_match = re.match(MARKDOWN_HEADING_PATTERN, line.strip())
             if heading_match:
-                return heading_match.group(1).strip()
+                candidate = heading_match.group(1).strip()
+                if candidate and not _looks_like_skip_line(candidate):
+                    return candidate
+                continue
             stripped = line.strip()
+            if _looks_like_skip_line(stripped):
+                continue
             if stripped.startswith(("{", "[")):
                 continue
+            bar_match = _TITLE_IN_BAR_RE.match(stripped) or _TITLE_BAR_RE.match(stripped)
+            if bar_match:
+                candidate = bar_match.group("title").strip()
+                if candidate and not _looks_like_skip_line(candidate):
+                    return candidate
             if len(stripped) > 6:
                 return stripped
         return None
@@ -953,10 +988,27 @@ class SpiderCloudScraper(BaseScraper):
         cleaned = re.sub(QUERY_STRING_PATTERN, "", cleaned)
         if not cleaned:
             return "Untitled"
+        if self._is_placeholder_title(cleaned):
+            return "Untitled"
         return cleaned.title()
 
     def _is_placeholder_title(self, title: str) -> bool:
-        placeholders = {"page_title", "title", "job_title", "untitled", "unknown"}
+        placeholders = {
+            "page_title",
+            "title",
+            "job_title",
+            "untitled",
+            "unknown",
+            "jobs",
+            "job",
+            "careers",
+            "career",
+            "open roles",
+            "openings",
+            "job description",
+            "description",
+            "company overview",
+        }
         stripped = title.strip().lower()
         if stripped in placeholders:
             return True
@@ -965,6 +1017,10 @@ class SpiderCloudScraper(BaseScraper):
         except Exception:
             parsed = None
         if parsed and parsed.scheme in {"http", "https"} and parsed.netloc:
+            return True
+        if UUID_LIKE_RE.search(stripped):
+            return True
+        if re.fullmatch(r"[0-9a-f]{12,}", stripped):
             return True
         # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
         return bool(re.fullmatch(MIN_THREE_DIGIT_PATTERN, stripped))
