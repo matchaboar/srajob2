@@ -405,6 +405,24 @@ const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">): Promise<JobDet
     .first()) as JobDetailDoc | null;
 };
 
+const countAppliedApplications = async (ctx: any, jobIds: Array<Id<"jobs"> | string>) => {
+  const unique = Array.from(new Set(jobIds.map((id) => String(id)).filter(Boolean)));
+  if (unique.length === 0) return 0;
+
+  const counts = await Promise.all(
+    unique.map(async (jobId) => {
+      const applications = await ctx.db
+        .query("applications")
+        .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+        .filter((q: any) => q.eq(q.field("status"), "applied"))
+        .collect();
+      return applications.length;
+    })
+  );
+
+  return counts.reduce((sum, count) => sum + count, 0);
+};
+
 const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetails => {
   if (!details) return job;
   const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
@@ -1007,25 +1025,6 @@ export const listJobs = query({
         );
 
         const urls = Array.from(new Set(members.map((m) => (m).url).filter(Boolean)));
-        const applicationCount = await ctx.db
-          .query("applications")
-          .withIndex("by_job", (q) => q.eq("jobId", base._id))
-          .filter((q) => q.eq(q.field("status"), "applied"))
-          .collect();
-
-        // Sum applications across grouped job ids (fallback to base when access limited)
-        let totalApplications = applicationCount.length;
-        if ((members).length > 1) {
-          for (const member of members) {
-            if ((member)._id === base._id) continue;
-            const extra = await ctx.db
-              .query("applications")
-              .withIndex("by_job", (q) => q.eq("jobId", (member)._id))
-              .filter((q) => q.eq(q.field("status"), "applied"))
-              .collect();
-            totalApplications += extra.length;
-          }
-        }
 
         return {
           ...normalizedBase,
@@ -1037,7 +1036,7 @@ export const listJobs = query({
           url: urls[0],
           alternateUrls: urls,
           groupedJobIds: members.map((m) => (m)._id),
-          applicationCount: totalApplications,
+          applicationCount: 0,
           userStatus: null, // These jobs don't have user applications by definition
         } as any;
       })
@@ -1501,13 +1500,18 @@ export const getJobById = query({
 export const getJobDetails = query({
   args: {
     jobId: v.optional(v.id("jobs")),
+    groupedJobIds: v.optional(v.array(v.id("jobs"))),
   },
   handler: async (ctx, args) => {
     if (!args.jobId) return null;
     const details = await getJobDetailsByJobId(ctx, args.jobId);
-    if (!details) return null;
+    const jobIds = args.groupedJobIds && args.groupedJobIds.length > 0 ? args.groupedJobIds : [args.jobId];
+    const applicationCount = await countAppliedApplications(ctx, jobIds);
+    if (!details) {
+      return { applicationCount };
+    }
     const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
-    return detailFields;
+    return { ...detailFields, applicationCount };
   },
 });
 

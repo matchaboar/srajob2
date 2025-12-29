@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import unicodedata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
@@ -45,6 +46,7 @@ from .regex_patterns import (
     _TITLE_RE,
     _TITLE_BAR_RE,
     _TITLE_IN_BAR_RE,
+    _TITLE_LOCATION_PAREN_RE,
     _WORK_FROM_RE,
 )
 DEFAULT_TOTAL_COMPENSATION = 0
@@ -972,7 +974,9 @@ def looks_like_job_listing_page(title: str | None, description: str, url: str | 
 
 
 def _normalize_location_key(value: str) -> str:
-    lowered = value.lower()
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    lowered = normalized.lower()
     lowered = re.sub(PARENTHETICAL_PATTERN, " ", lowered)
     lowered = re.sub(NON_ALNUM_SPACE_PATTERN, " ", lowered)
     lowered = re.sub(WHITESPACE_PATTERN, " ", lowered)
@@ -1265,12 +1269,51 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         }
 
     title_lower = ""
+    title_location_hint: Optional[str] = None
+
+    def _looks_like_title_location(value: str) -> bool:
+        if not value:
+            return False
+        lowered = value.lower()
+        if "remote" in lowered:
+            return True
+        if "," in value:
+            return True
+        if _normalize_country_label(value):
+            return True
+        if _resolve_location_from_dictionary(value) is not None:
+            return True
+        return False
+
+    def _extract_title_and_location_from_line(line: str) -> tuple[Optional[str], Optional[str]]:
+        if not line:
+            return None, None
+        bar_match = _TITLE_IN_BAR_RE.match(line) or _TITLE_BAR_RE.match(line)
+        if bar_match:
+            title = stringify(bar_match.group("title"))
+            location = stringify(bar_match.groupdict().get("location")) if bar_match.groupdict() else None
+            return title, location
+        paren_match = _TITLE_LOCATION_PAREN_RE.match(line)
+        if paren_match:
+            return stringify(paren_match.group(1)), stringify(paren_match.group(2))
+        return None, None
+
     for match in _TITLE_RE.finditer(markdown):
-        title = stringify(match.group("title"))
-        if not title or _is_generic_heading_title(title):
+        raw_title = stringify(match.group("title"))
+        if not raw_title or _is_generic_heading_title(raw_title):
             continue
+        title, location = _extract_title_and_location_from_line(raw_title)
+        title = title or raw_title
         hints["title"] = title
         title_lower = title.lower()
+        if location and _looks_like_title_location(location):
+            title_location_hint = location
+        elif " in " in title and not title_location_hint:
+            head, tail = title.rsplit(" in ", 1)
+            if tail and _looks_like_title_location(tail):
+                hints["title"] = head.strip() or title
+                title_lower = hints["title"].lower()
+                title_location_hint = tail
         break
     if "title" not in hints:
         for line in markdown.splitlines()[:12]:
@@ -1284,14 +1327,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 continue
             if t.startswith(("#", "*", "-", "•")):
                 continue
-            match = _TITLE_IN_BAR_RE.match(t) or _TITLE_BAR_RE.match(t)
-            if not match:
+            candidate_title, candidate_location = _extract_title_and_location_from_line(t)
+            if not candidate_title:
                 continue
-            candidate = stringify(match.group("title"))
-            if candidate:
-                hints["title"] = candidate
-                title_lower = candidate.lower()
-                break
+            hints["title"] = candidate_title
+            title_lower = candidate_title.lower()
+            if candidate_location and _looks_like_title_location(candidate_location):
+                title_location_hint = candidate_location
+            break
 
     if m := _LEVEL_RE.search(markdown):
         lvl = stringify(m.group("level")).lower()
@@ -1318,6 +1361,9 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                     location_candidates.append(part_clean)
             return
         location_candidates.append(candidate)
+
+    if title_location_hint and _looks_like_title_location(title_location_hint):
+        _add_location_candidate(title_location_hint)
 
     for line in markdown.splitlines():
         t = line.strip()

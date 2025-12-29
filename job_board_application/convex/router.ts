@@ -4185,6 +4185,36 @@ const looksLikeNoisyTitle = (value: string) => {
 };
 
 const LIST_ITEM_RE = /^([-*]|\u2022|\d+[.)])\s+/;
+const LISTING_SECTION_RE =
+  /\b(?:who we are|about (?:the )?job|about (?:the )?role|about us|responsibilities|what you(?:'|\u2019)?ll do|what you will do|requirements|qualifications|location|travel|what we offer|benefits|the role|the team|summary)\b/i;
+
+const normalizeListingTitleCandidate = (value: string): string | null => {
+  let cleaned = cleanScrapedText(value);
+  if (!cleaned) return null;
+  if (looksLikeNoisyTitle(cleaned)) return null;
+  if (cleaned.length > 140) return null;
+  if (cleaned.split(/\s+/).length < 2) return null;
+
+  const atMatch = cleaned.match(/^(.+?)\s+@\s+.+$/);
+  if (atMatch) cleaned = atMatch[1].trim();
+  const dashMatch = cleaned.match(/^(.+?)\s+[-\u2013\u2014]\s+(.+)$/);
+  if (dashMatch) {
+    const suffix = dashMatch[2].trim();
+    const suffixLower = suffix.toLowerCase();
+    const stripSuffix =
+      /\b(remote|hybrid|on[- ]?site|anywhere)\b/.test(suffixLower) ||
+      /\b(usa|us|u\.s\.|uk|u\.k\.|eu|emea|apac|latam)\b/.test(suffixLower) ||
+      /\b(inc|llc|ltd|corp|co|company|plc|gmbh|s\.a\.|sarl|pte|pty)\b/i.test(suffix) ||
+      /\b[A-Za-z .'-]+,\s*[A-Z]{2}\b/.test(suffix);
+    if (stripSuffix) cleaned = dashMatch[1].trim();
+  }
+
+  if (!cleaned) return null;
+  if (looksLikeNoisyTitle(cleaned)) return null;
+  if (cleaned.length > 140) return null;
+  if (cleaned.split(/\s+/).length < 2) return null;
+  return cleaned;
+};
 
 const looksLikeSentenceLine = (value: string) => {
   const trimmed = value.trim();
@@ -4220,48 +4250,23 @@ const extractTitleFromListingBlob = (raw: unknown): string | null => {
     if (LIST_ITEM_RE.test(line)) continue;
     if (looksLikeSentenceLine(line)) continue;
 
-    let cleaned = cleanScrapedText(line);
-    if (!cleaned) continue;
-    if (cleaned.length > 140) continue;
-    if (looksLikeNoisyTitle(cleaned)) continue;
-    if (cleaned.split(/\s+/).length < 2) continue;
-
-    const atMatch = cleaned.match(/^(.+?)\s+@\s+.+$/);
-    if (atMatch) cleaned = atMatch[1].trim();
-    const dashMatch = cleaned.match(/^(.+?)\s+[-\u2013\u2014]\s+(.+)$/);
-    if (dashMatch) {
-      const suffix = dashMatch[2].trim();
-      const suffixLower = suffix.toLowerCase();
-      const stripSuffix =
-        /\b(remote|hybrid|on[- ]?site|anywhere)\b/.test(suffixLower) ||
-        /\b(usa|us|u\.s\.|uk|u\.k\.|eu|emea|apac|latam)\b/.test(suffixLower) ||
-        /\b(inc|llc|ltd|corp|co|company|plc|gmbh|s\.a\.|sarl|pte|pty)\b/i.test(suffix) ||
-        /\b[A-Za-z .'-]+,\s*[A-Z]{2}\b/.test(suffix);
-      if (stripSuffix) cleaned = dashMatch[1].trim();
-    }
-    if (cleaned && cleaned.split(/\s+/).length >= 2) return cleaned;
+    const candidate = normalizeListingTitleCandidate(line);
+    if (candidate) return candidate;
   }
 
-  if (lines.length <= 1) {
-    const normalized = raw.replace(/\s+/g, " ").trim();
-    const parts = normalized.split(/\bdescription\b/i);
-    const tail = parts[parts.length - 1] ?? "";
-    let candidate = tail.replace(/^\s*\d+\s*words\b/i, "").trim();
-    if (candidate) {
-      const atMatch = candidate.match(/^(.+?)\s+@\s+.+$/);
-      if (atMatch) candidate = atMatch[1].trim();
-      const dashMatch = candidate.match(/^(.+?)\s+[-\u2013\u2014]\s+.+$/);
-      if (dashMatch) candidate = dashMatch[1].trim();
-      candidate = cleanScrapedText(candidate);
-      if (
-        candidate &&
-        candidate.length <= 140 &&
-        !looksLikeNoisyTitle(candidate) &&
-        candidate.split(/\s+/).length >= 2
-      ) {
-        return candidate;
-      }
+  const normalized = raw.replace(/\s+/g, " ").trim();
+  const parts = normalized.split(/\bdescription\b/i);
+  const tail = parts[parts.length - 1] ?? "";
+  let candidate = tail.replace(/^\s*\d+\s*words?\b/i, "").trim();
+  if (candidate) {
+    candidate = candidate.replace(/^(direct apply|apply with ai)\b/i, "").trim();
+    const sectionMatch = candidate.match(LISTING_SECTION_RE);
+    if (sectionMatch?.index && sectionMatch.index > 0) {
+      candidate = candidate.slice(0, sectionMatch.index).trim();
     }
+    const sentenceCandidate = candidate.split(/[.!?]\s/)[0]?.trim();
+    const finalCandidate = normalizeListingTitleCandidate(sentenceCandidate || candidate);
+    if (finalCandidate) return finalCandidate;
   }
 
   return null;

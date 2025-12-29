@@ -46,6 +46,9 @@ RUBRIK_LISTING_FIXTURE = (
 ZSCALER_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_zscaler_greenhouse_listing.json"
 )
+ZSCALER_DETAIL_MARKDOWN_FIXTURE = (
+    FIXTURE_DIR / "markdown_zscaler_staff_program_manager.md"
+)
 ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
 ASHBY_RAMP_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_ramp_job_commonmark.json"
 NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
@@ -71,6 +74,9 @@ TOGETHERAI_DETAIL_FIXTURE = (
 )
 STRIPE_DETAIL_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_stripe_greenhouse_job_7313002_commonmark.json"
+)
+COUPANG_QUALIFICATION_MARKDOWN_FIXTURE = (
+    FIXTURE_DIR / "markdown_coupang_qualification_title.md"
 )
 WORKDAY_DETAIL_FIXTURES = (
     FIXTURE_DIR / "spidercloud_broadcom_workday_job_detail_api.json",
@@ -859,6 +865,21 @@ def test_spidercloud_title_from_markdown_prefers_description_first_line_title():
     assert title == "Strategy & Operations Manager, Money"
 
 
+def test_spidercloud_title_prefers_description_over_company_event_title():
+    scraper = _make_scraper()
+    markdown = ZSCALER_DETAIL_MARKDOWN_FIXTURE.read_text(encoding="utf-8")
+
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        "https://boards.greenhouse.io/zscaler/jobs/4999840007",
+        markdown,
+        [{"title": "Zscaler"}],
+        0,
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Staff Program Manager - Security Compliance Programs"
+
+
 def test_spidercloud_title_from_markdown_prefers_description_title_after_bullet_lead():
     scraper = _make_scraper()
     markdown = textwrap.dedent(
@@ -914,6 +935,15 @@ def test_spidercloud_title_from_markdown_prefers_description_title_after_summary
     title = scraper._title_from_markdown(markdown)  # noqa: SLF001
 
     assert title == "Director of Product Management, Catalog"
+
+
+def test_spidercloud_title_from_markdown_skips_qualification_lead():
+    scraper = _make_scraper()
+    markdown = COUPANG_QUALIFICATION_MARKDOWN_FIXTURE.read_text(encoding="utf-8")
+
+    title = scraper._title_from_markdown(markdown)  # noqa: SLF001
+
+    assert title == "Director of Product Management (Taiwan Marketplace Product)"
 
 
 def test_spidercloud_event_sentence_title_falls_back_to_metadata_title():

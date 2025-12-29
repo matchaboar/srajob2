@@ -71,3 +71,4 @@ def test_markdown_hints_skips_stay_in_the_loop():
     hints = parse_markdown_hints(markdown)
 
     assert hints.get("title") == "Senior Computer Scientist - Fullstack - Backend heavy"
+    assert hints.get("location") == "Bangalore, India"

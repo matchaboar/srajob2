@@ -42,6 +42,28 @@ def test_parse_markdown_hints_extracts_fields():
     assert hints["compensation"] == 157500  # average of range
 
 
+def test_parse_markdown_hints_adobe_bucharest_commonmark_fixture():
+    fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_adobe_job_detail_bucharest_commonmark.json"
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    commonmark = ""
+    if isinstance(payload, list):
+        for entry in payload:
+            if isinstance(entry, list):
+                for item in entry:
+                    if isinstance(item, dict):
+                        content = item.get("content")
+                        if isinstance(content, dict) and isinstance(content.get("commonmark"), str):
+                            commonmark = content["commonmark"]
+                            break
+            if commonmark:
+                break
+
+    assert commonmark, "expected commonmark content in Adobe Bucharest fixture"
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("location") == "Bucharest, Romania"
+
+
 def test_split_description_metadata_moves_list_header():
     markdown = textwrap.dedent(
         """

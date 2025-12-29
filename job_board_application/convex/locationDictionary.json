@@ -103,6 +103,7 @@
   { "city": "Prague", "state": "Czech Republic", "country": "Czech Republic" },
   { "city": "Vienna", "state": "Austria", "country": "Austria" },
   { "city": "Budapest", "state": "Hungary", "country": "Hungary" },
+  { "city": "Bucharest", "state": "Romania", "country": "Romania", "aliases": ["bucuresti"] },
   { "city": "Singapore", "state": "Singapore", "country": "Singapore" },
   { "city": "Hong Kong", "state": "Hong Kong", "country": "Hong Kong" },
   { "city": "Tokyo", "state": "Japan", "country": "Japan" },

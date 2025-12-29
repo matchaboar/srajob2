@@ -94,6 +94,7 @@ from ..helpers.regex_patterns import (
     NON_NUMERIC_PATTERN,
     REQUEST_ID_PATTERN,
     RETIREMENT_PLAN_PATTERN,
+    TITLE_IN_BAR_PATTERN,
     TITLE_LOCATION_PAREN_PATTERN,
     URL_PATTERN,
     CAD_CURRENCY_PATTERNS,
@@ -2657,6 +2658,13 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         paren_match = re.match(TITLE_LOCATION_PAREN_PATTERN, val)
         if paren_match:
             return paren_match.group(1).strip() or None, paren_match.group(2).strip() or None
+        in_bar_match = re.match(TITLE_IN_BAR_PATTERN, val, flags=re.IGNORECASE)
+        if in_bar_match:
+            title = in_bar_match.group("title").strip() or None
+            location = in_bar_match.group("location").strip() or None
+            if location and ("," in location or "remote" in location.lower()):
+                return title, location
+            return title, None
         for sep in dash_separators:
             if sep in val:
                 left, right = val.rsplit(sep, 1)

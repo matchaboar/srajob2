@@ -118,6 +118,16 @@ describe("extractJobs sanitization", () => {
     expect(jobs[0].description).toContain("Connected Operations");
   });
 
+  it("extracts titles from flattened listing blobs with section headings", () => {
+    const payloadPath = resolve(fixturesDir, "twilio_greenhouse_listing_blob.json");
+    const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));
+    const flattened = { ...payload, title: payload.title.replace(/\s+/g, " ").trim() };
+    const jobs = extractJobs([flattened]);
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].title).toBe("Digital Sales Representative - Activate");
+  });
+
   it("removes embedded Netflix theme JSON from descriptions", () => {
     const payloadPath = resolve(fixturesDir, "netflix_job.json");
     const payload = JSON.parse(readFileSync(payloadPath, "utf-8"));

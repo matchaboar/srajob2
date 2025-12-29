@@ -40,7 +40,7 @@ US_STATE_CODE_PATTERN_TEMPLATE = r"\b{code}\b"
 TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
 TITLE_LOCATION_PAREN_PATTERN = r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$"
 TITLE_BAR_PATTERN = r"^(?P<title>.+?)\s+\|\s+.+$"
-TITLE_IN_BAR_PATTERN = r"^(?P<title>.+?)\s+in\s+.+?\s+\|\s+.+$"
+TITLE_IN_BAR_PATTERN = r"^(?P<title>.+?)\s+in\s+(?P<location>.+?)\s+\|\s+.+$"
 LEVEL_PATTERN = (
     r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|"
     r"cto|chief technology officer)\b"
@@ -187,6 +187,7 @@ _NAV_BLOCK_REGEX = re.compile(NAV_BLOCK_PATTERN, flags=re.IGNORECASE)
 _TITLE_RE = re.compile(TITLE_PATTERN, flags=re.IGNORECASE | re.MULTILINE)
 _TITLE_BAR_RE = re.compile(TITLE_BAR_PATTERN, flags=re.IGNORECASE)
 _TITLE_IN_BAR_RE = re.compile(TITLE_IN_BAR_PATTERN, flags=re.IGNORECASE)
+_TITLE_LOCATION_PAREN_RE = re.compile(TITLE_LOCATION_PAREN_PATTERN, flags=re.IGNORECASE)
 _LEVEL_RE = re.compile(LEVEL_PATTERN, flags=re.IGNORECASE)
 _LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
 _SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)

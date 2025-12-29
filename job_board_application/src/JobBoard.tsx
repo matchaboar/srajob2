@@ -492,11 +492,23 @@ export function JobBoard() {
   }, [appliedList, selectedJobId]);
   const selectedJobDetails = useQuery(
     api.jobs.getJobDetails,
-    isJobsTab && selectedJob?._id ? { jobId: selectedJob._id } : "skip"
+    isJobsTab && selectedJob?._id
+      ? {
+        jobId: selectedJob._id,
+        groupedJobIds: selectedJob.groupedJobIds?.length ? selectedJob.groupedJobIds : undefined,
+      }
+      : "skip"
   );
   const selectedAppliedJobDetails = useQuery(
     api.jobs.getJobDetails,
-    isAppliedTab && selectedAppliedJob?._id ? { jobId: selectedAppliedJob._id } : "skip"
+    isAppliedTab && selectedAppliedJob?._id
+      ? {
+        jobId: selectedAppliedJob._id,
+        groupedJobIds: (selectedAppliedJob as { groupedJobIds?: string[] }).groupedJobIds?.length
+          ? (selectedAppliedJob as { groupedJobIds?: string[] }).groupedJobIds
+          : undefined,
+      }
+      : "skip"
   );
   const selectedJobFull = useMemo(
     () => (selectedJob ? { ...selectedJob, ...(selectedJobDetails ?? {}) } : null),

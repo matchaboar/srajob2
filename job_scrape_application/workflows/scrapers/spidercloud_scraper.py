@@ -80,6 +80,54 @@ UUID_LIKE_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ORDERED_LIST_LINE_RE = re.compile(r"^\d+[\.)]\s+\S+")
+JOB_TITLE_KEYWORDS = {
+    "accountant",
+    "analyst",
+    "architect",
+    "associate",
+    "backend",
+    "business",
+    "cloud",
+    "consultant",
+    "data",
+    "design",
+    "designer",
+    "developer",
+    "development",
+    "devops",
+    "engineer",
+    "engineering",
+    "finance",
+    "frontend",
+    "fullstack",
+    "growth",
+    "hr",
+    "infrastructure",
+    "intern",
+    "ios",
+    "legal",
+    "manager",
+    "marketing",
+    "mobile",
+    "operations",
+    "people",
+    "platform",
+    "principal",
+    "product",
+    "program",
+    "project",
+    "qa",
+    "quality",
+    "recruiter",
+    "research",
+    "sales",
+    "scientist",
+    "security",
+    "senior",
+    "sre",
+    "staff",
+    "support",
+}
 
 
 logger = logging.getLogger("temporal.worker.activities")
@@ -921,6 +969,41 @@ class SpiderCloudScraper(BaseScraper):
                 return True
             return False
 
+        def _looks_like_metadata_line(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return True
+            lowered = stripped.lower()
+            if lowered in {"remote", "hybrid", "onsite", "on-site"}:
+                return True
+            if lowered in {"intern", "junior", "mid", "mid-level", "senior", "staff", "principal", "lead", "manager", "director", "vp", "cto"}:
+                return True
+            if _normalize_country_label(stripped):
+                return True
+            if _SALARY_RE.search(stripped) or _SALARY_K_RE.search(stripped):
+                return True
+            if _SALARY_RANGE_LABEL_RE.search(stripped) or _SALARY_BETWEEN_RE.search(stripped):
+                return True
+            if re.search(r"[$£€]\s*\d", stripped):
+                return True
+            if re.fullmatch(r"\d+\s+words?", lowered):
+                return True
+            if "posted" in lowered and ("ago" in lowered or re.search(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", lowered)):
+                return True
+            return False
+
+        def _looks_like_job_title(value: str) -> bool:
+            lowered = value.strip().lower()
+            if not lowered:
+                return False
+            if re.fullmatch(r"\d+\s+words?", lowered):
+                return False
+            if _looks_like_metadata_line(value):
+                return False
+            if len(lowered.split()) >= 2:
+                return True
+            return any(keyword in lowered for keyword in JOB_TITLE_KEYWORDS)
+
         def _maybe_select_title(value: Any, *, fallback: Optional[str]) -> tuple[Optional[str], Optional[str]]:
             if not isinstance(value, str):
                 return None, fallback
@@ -931,6 +1014,8 @@ class SpiderCloudScraper(BaseScraper):
                 return None, fallback
             if _looks_like_sentence_title(candidate):
                 return None, fallback or candidate
+            if not _looks_like_job_title(candidate):
+                return None, fallback
             return candidate, fallback
 
         fallback: Optional[str] = None
@@ -966,60 +1051,48 @@ class SpiderCloudScraper(BaseScraper):
             "job application",
             "application form",
         }
-        job_title_keywords = {
-            "accountant",
-            "analyst",
-            "architect",
-            "associate",
-            "backend",
-            "business",
-            "cloud",
-            "consultant",
-            "data",
-            "design",
-            "designer",
-            "developer",
-            "development",
-            "devops",
-            "engineer",
-            "engineering",
-            "finance",
-            "frontend",
-            "fullstack",
-            "growth",
-            "hr",
-            "infrastructure",
-            "intern",
-            "ios",
-            "legal",
-            "manager",
-            "marketing",
-            "mobile",
-            "operations",
-            "people",
-            "platform",
-            "principal",
-            "product",
-            "program",
-            "project",
-            "qa",
-            "quality",
-            "recruiter",
-            "research",
-            "sales",
-            "scientist",
-            "security",
-            "senior",
-            "sre",
-            "staff",
-            "support",
-        }
-
         def _looks_like_list_item(value: str) -> bool:
             stripped = value.strip()
             if stripped.startswith(("*", "-")):
                 return True
             return bool(ORDERED_LIST_LINE_RE.match(stripped))
+
+        def _looks_like_qualification_line(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return False
+            lowered = stripped.lower()
+            if lowered in {
+                "qualifications",
+                "requirements",
+                "minimum qualifications",
+                "preferred qualifications",
+                "minimum requirements",
+                "preferred requirements",
+            }:
+                return True
+            if re.search(r"\b\d+\+?\s+years?\s+of\s+experience\b", lowered):
+                return True
+            if "years of experience" in lowered:
+                return True
+            if "degree" in lowered and any(
+                token in lowered
+                for token in (
+                    "bachelor",
+                    "master",
+                    "phd",
+                    "ph.d",
+                    "mba",
+                    "m.s",
+                    "ms",
+                    "b.s",
+                    "bs",
+                    "b.a",
+                    "ba",
+                )
+            ):
+                return True
+            return False
 
         def _looks_like_metadata_line(value: str) -> bool:
             stripped = value.strip()
@@ -1029,6 +1102,8 @@ class SpiderCloudScraper(BaseScraper):
             if lowered in {"remote", "hybrid", "onsite", "on-site"}:
                 return True
             if lowered in {"intern", "junior", "mid", "mid-level", "senior", "staff", "principal", "lead", "manager", "director", "vp", "cto"}:
+                return True
+            if _looks_like_qualification_line(stripped):
                 return True
             if _normalize_country_label(stripped):
                 return True
@@ -1058,7 +1133,7 @@ class SpiderCloudScraper(BaseScraper):
                 return False
             if len(lowered.split()) >= 2:
                 return True
-            return any(keyword in lowered for keyword in job_title_keywords)
+            return any(keyword in lowered for keyword in JOB_TITLE_KEYWORDS)
 
         def _looks_like_sentence(value: str) -> bool:
             lowered = value.strip().lower()
@@ -1084,6 +1159,8 @@ class SpiderCloudScraper(BaseScraper):
             if lowered in {"back", "apply", "apply now", "direct apply", "apply with ai"}:
                 return True
             if lowered.startswith(("http://", "https://")):
+                return True
+            if _looks_like_qualification_line(value):
                 return True
             if _looks_like_list_item(value):
                 return True
@@ -1154,6 +1231,7 @@ class SpiderCloudScraper(BaseScraper):
                                 if application_header and not _looks_like_job_title(candidate):
                                     continue
                                 return candidate
+        fallback_title: Optional[str] = None
         for line in markdown.splitlines():
             if not line.strip():
                 continue
@@ -1169,7 +1247,10 @@ class SpiderCloudScraper(BaseScraper):
                         continue
                     if application_header and not _looks_like_job_title(candidate):
                         continue
-                    return candidate
+                    if _looks_like_job_title(candidate):
+                        return candidate
+                    if fallback_title is None:
+                        fallback_title = candidate
                 continue
             stripped = line.strip()
             if _looks_like_skip_line(stripped) or _looks_like_metadata_line(stripped):
@@ -1184,14 +1265,20 @@ class SpiderCloudScraper(BaseScraper):
                         continue
                     if application_header and not _looks_like_job_title(candidate):
                         continue
-                    return candidate
+                    if _looks_like_job_title(candidate):
+                        return candidate
+                    if fallback_title is None:
+                        fallback_title = candidate
             if len(stripped) > 6:
                 if _looks_like_sentence(stripped):
                     continue
                 if application_header and not _looks_like_job_title(stripped):
                     continue
-                return stripped
-        return None
+                if _looks_like_job_title(stripped):
+                    return stripped
+                if fallback_title is None:
+                    fallback_title = stripped
+        return fallback_title
 
     def _title_with_required_keyword(self, markdown: str) -> Optional[str]:
         """Find the first markdown line that satisfies required title keywords."""
@@ -1205,6 +1292,43 @@ class SpiderCloudScraper(BaseScraper):
                 return True
             return bool(ORDERED_LIST_LINE_RE.match(stripped))
 
+        def _looks_like_qualification_line(value: str) -> bool:
+            stripped = value.strip()
+            if not stripped:
+                return False
+            lowered = stripped.lower()
+            if lowered in {
+                "qualifications",
+                "requirements",
+                "minimum qualifications",
+                "preferred qualifications",
+                "minimum requirements",
+                "preferred requirements",
+            }:
+                return True
+            if re.search(r"\b\d+\+?\s+years?\s+of\s+experience\b", lowered):
+                return True
+            if "years of experience" in lowered:
+                return True
+            if "degree" in lowered and any(
+                token in lowered
+                for token in (
+                    "bachelor",
+                    "master",
+                    "phd",
+                    "ph.d",
+                    "mba",
+                    "m.s",
+                    "ms",
+                    "b.s",
+                    "bs",
+                    "b.a",
+                    "ba",
+                )
+            ):
+                return True
+            return False
+
         def _looks_like_metadata_line(value: str) -> bool:
             stripped = value.strip()
             if not stripped:
@@ -1213,6 +1337,8 @@ class SpiderCloudScraper(BaseScraper):
             if lowered in {"remote", "hybrid", "onsite", "on-site"}:
                 return True
             if lowered in {"intern", "junior", "mid", "mid-level", "senior", "staff", "principal", "lead", "manager", "director", "vp", "cto"}:
+                return True
+            if _looks_like_qualification_line(stripped):
                 return True
             if _normalize_country_label(stripped):
                 return True
