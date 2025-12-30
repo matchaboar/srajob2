@@ -40,6 +40,19 @@ def test_extract_links_from_payload_collects_all():
     assert links == ["https://example.com/one", "https://example.com/two"]
 
 
+def test_extract_links_from_payload_scans_strings_with_hints():
+    payload = {
+        "content": {
+            "commonmark": "See [Job](https://careers.example.com/jobs/123) and https://example.com/about",
+        }
+    }
+
+    links = extract_links_from_payload(payload, collect_all=True, scan_strings=True)
+
+    assert "https://careers.example.com/jobs/123" in links
+    assert "https://example.com/about" not in links
+
+
 def test_extract_job_urls_from_json_payload_walks_nested_jobs():
     payload = {
         "data": {

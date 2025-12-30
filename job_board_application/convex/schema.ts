@@ -218,6 +218,19 @@ const applicationTables = {
     .index("by_site", ["siteId"])
     .index("by_site_completed", ["siteId", "completedAt"]),
 
+  // Lightweight scrape summary data for activity views
+  scrape_activity: defineTable({
+    sourceUrl: v.string(),
+    siteId: v.optional(v.id("sites")),
+    startedAt: v.number(),
+    completedAt: v.number(),
+    jobCount: v.optional(v.number()),
+  })
+    .index("by_source_completed", ["sourceUrl", "completedAt"])
+    .index("by_site_completed", ["siteId", "completedAt"])
+    .index("by_completedAt", ["completedAt"])
+    .index("by_startedAt", ["startedAt"]),
+
   firecrawl_webhooks: defineTable({
     jobId: v.string(),
     event: v.string(),

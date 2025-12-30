@@ -1885,6 +1885,76 @@ class SpiderCloudScraper(BaseScraper):
         urls = handler.get_links_from_json(payload)
         return [u for u in urls if isinstance(u, str) and u.strip()]
 
+    def _extract_listing_job_urls_from_events(
+        self,
+        handler: BaseSiteHandler,
+        raw_events: List[Any],
+        markdown_text: str,
+        *,
+        base_url: str | None = None,
+    ) -> List[str]:
+        candidates: List[str] = []
+        for text in gather_strings(raw_events):
+            if isinstance(text, str) and text.strip():
+                candidates.append(text)
+        if isinstance(markdown_text, str) and markdown_text.strip():
+            candidates.append(markdown_text)
+
+        urls: List[str] = []
+        for text in candidates:
+            if "<" not in text or ">" not in text:
+                continue
+            urls = handler.get_links_from_raw_html(text)
+            if urls:
+                break
+
+        if not urls:
+            for text in candidates:
+                if not text.strip():
+                    continue
+                urls = handler.get_links_from_markdown(text)
+                if urls:
+                    break
+
+        if not urls:
+            return []
+
+        filtered = handler.filter_job_urls([u for u in urls if isinstance(u, str) and u.strip()])
+        normalized: List[str] = []
+        seen: set[str] = set()
+        for url in filtered:
+            normalized_url = normalize_url(url, base_url=base_url)
+            if not normalized_url:
+                continue
+            if normalized_url in seen:
+                continue
+            seen.add(normalized_url)
+            normalized.append(normalized_url)
+        return normalized
+
+    def _extract_listing_links_from_html(
+        self,
+        handler: BaseSiteHandler,
+        raw_events: List[Any],
+        markdown_text: str,
+    ) -> List[str]:
+        candidates: List[str] = []
+        if isinstance(markdown_text, str) and "<" in markdown_text and ">" in markdown_text:
+            candidates.append(markdown_text)
+        for text in gather_strings(raw_events):
+            if not isinstance(text, str):
+                continue
+            if "<" not in text or ">" not in text:
+                continue
+            candidates.append(text)
+        if not candidates:
+            return []
+        for candidate in candidates:
+            links = handler.get_links_from_raw_html(candidate)
+            if links:
+                return links
+        return []
+
     def _normalize_job(
         self,
         url: str,
@@ -2360,6 +2430,35 @@ class SpiderCloudScraper(BaseScraper):
         if handler and handler.supports_listing_api:
             try:
                 listing_job_urls = self._extract_listing_job_urls(handler, raw_events, markdown_text)
+            except Exception:
+                listing_job_urls = []
+        if handler and handler.is_listing_url(url) and not listing_job_urls:
+            try:
+                listing_job_urls = self._extract_listing_job_urls_from_events(
+                    handler,
+                    raw_events,
+                    markdown_text,
+                    base_url=url,
+                )
+            except Exception:
+                listing_job_urls = []
+        if handler and handler.is_listing_url(url) and not listing_job_urls:
+            try:
+                listing_job_urls = self._extract_listing_job_urls_from_events(
+                    handler,
+                    raw_events,
+                    markdown_text,
+                    base_url=url,
+                )
+            except Exception:
+                listing_job_urls = []
+        if handler and handler.is_listing_url(url) and not listing_job_urls:
+            try:
+                listing_job_urls = self._extract_listing_links_from_html(
+                    handler,
+                    raw_events,
+                    markdown_text,
+                )
             except Exception:
                 listing_job_urls = []
         credits_used = max(credit_candidates) if credit_candidates else None

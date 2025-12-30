@@ -71,6 +71,7 @@ def main() -> None:
     totals = {
         "jobsDeleted": 0,
         "scrapesDeleted": 0,
+        "scrapeActivityDeleted": 0,
         "queueDeleted": 0,
         "skippedDeleted": 0,
     }
@@ -92,6 +93,7 @@ def main() -> None:
 
         totals["jobsDeleted"] += int(result.get("jobsDeleted", 0) or 0)
         totals["scrapesDeleted"] += int(result.get("scrapesDeleted", 0) or 0)
+        totals["scrapeActivityDeleted"] += int(result.get("activityDeleted", 0) or 0)
         totals["queueDeleted"] += int(result.get("queueDeleted", 0) or 0)
         totals["skippedDeleted"] += int(result.get("skippedDeleted", 0) or 0)
         last_sites_triggered = int(result.get("sitesTriggered", 0) or 0)

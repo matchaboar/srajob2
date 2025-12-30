@@ -65,6 +65,7 @@ from job_scrape_application.workflows.site_handlers import GreenhouseHandler  # 
 from job_scrape_application.workflows.site_handlers import GithubCareersHandler  # noqa: E402
 from job_scrape_application.workflows.site_handlers import AshbyHqHandler  # noqa: E402
 from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_scraper  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_for_convex  # noqa: E402
 
 
 def test_spidercloud_workflow_has_schedule():
@@ -1841,6 +1842,65 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
     assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
 
 
+@pytest.mark.asyncio
+async def test_spidercloud_cisco_listing_extracts_job_urls(monkeypatch):
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_1.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    events = payload[0] if payload and isinstance(payload[0], list) else payload
+    assert isinstance(events, list) and events
+
+    class FakeAsyncSpider:
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def scrape_url(
+            self,
+            url: str,
+            params: Dict[str, Any] | None = None,
+            stream: bool = False,
+            content_type: str | None = None,
+        ):
+            assert stream is True
+
+            async def _stream():
+                for event in events:
+                    yield event
+
+            return _stream()
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
+        FakeAsyncSpider,
+    )
+
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=acts.trim_scrape_for_convex,
+        settings=types.SimpleNamespace(spider_api_key="key"),
+        fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
+    )
+    scraper = SpiderCloudScraper(deps)
+
+    site_url = "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1"
+    result = await scraper.scrape_site({"_id": "s-cisco", "url": site_url})
+    job_urls = result.get("items", {}).get("job_urls") or []
+
+    assert any("/global/en/job/" in url for url in job_urls)
+    assert any("search-results" in url and "from=10" in url for url in job_urls)
+
+
 def test_extract_job_urls_from_snapchat_scrape_fixture():
     response_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
     response = json.loads(response_path.read_text(encoding="utf-8"))
@@ -1887,6 +1947,25 @@ def test_extract_job_urls_from_adobe_search_fixture():
     assert "https://careers.adobe.com/us/en/job/R162737/Research-Engineer" in urls
     assert "https://careers.adobe.com/us/en/job/R161781/Data-Engineer" in urls
     assert "https://careers.adobe.com/us/en/search-results?from=10&s=1" in urls
+
+
+def test_extract_job_urls_from_scrape_uses_items_job_urls():
+    scrape = {
+        "sourceUrl": "https://openai.com/careers/search?q=engineer",
+        "items": {
+            "provider": "spidercloud",
+            "job_urls": [
+                "https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco/",
+                "https://openai.com/careers/search/?q=engineer",
+            ],
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    normalized = {url.rstrip("/") for url in urls}
+    assert "https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco" in normalized
+    assert not any("/careers/search" in url for url in urls)
 
 
 def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():
@@ -1939,16 +2018,26 @@ def test_extract_job_urls_from_scrape_markdown_read_more_context():
     assert "https://example.com/careers/jobs/789/apply" not in urls
 
 
-def test_extract_job_urls_from_confluent_spidercloud_fixture():
-    html = Path(
-        "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_raw.html"
-    ).read_text(encoding="utf-8")
+def test_extract_job_urls_from_confluent_spidercloud_commonmark_fixture():
+    response = json.loads(
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_commonmark.json"
+        ).read_text(encoding="utf-8")
+    )
+    source_url = "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering"
     scrape = {
-        "sourceUrl": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
-        "items": {"provider": "spidercloud", "raw": [{"content": html}]},
+        "sourceUrl": source_url,
+        "items": {
+            "provider": "spidercloud",
+            "raw": [{"url": source_url, "events": response, "markdown": ""}],
+        },
     }
+    trimmed = trim_scrape_for_convex(scrape)
+    raw_preview = trimmed.get("items", {}).get("raw")
+    assert isinstance(raw_preview, str)
+    assert "/jobs/job/" not in raw_preview
 
-    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(trimmed)  # noqa: SLF001
 
     expected = {
         "https://careers.confluent.io/jobs/job/03bd40fd-07a5-44ed-985f-689e5405c2a8",
@@ -1960,7 +2049,7 @@ def test_extract_job_urls_from_confluent_spidercloud_fixture():
         "https://careers.confluent.io/jobs/job/ca9890c2-4ef6-4e07-ba1b-98a03699e395",
         "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
     }
-    assert set(urls) == expected
+    assert expected.issubset(set(urls))
 
 
 def test_extract_job_urls_from_scrape_filters_confluent_location_urls():

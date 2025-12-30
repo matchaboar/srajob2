@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
+import { countJobs } from "./lib/scrapeCounts";
 
 export const listSuccessfulSites = query({
   args: { limit: v.optional(v.number()) },
@@ -279,22 +280,6 @@ async function collectWithLimit(cursorable: any, maxItems: number = 500, pageSiz
   return [];
 }
 
-function countJobs(items: any): number {
-  if (!items) return 0;
-
-  // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
-  if (Array.isArray(items)) return items.length;
-  if (typeof items === "object") {
-    if (Array.isArray((items).normalized)) return (items).normalized.length;
-    if (Array.isArray((items).items)) return (items).items.length;
-    if (Array.isArray((items).results)) return (items).results.length;
-    if ((items).results && Array.isArray((items).results.items)) {
-      return (items).results.items.length;
-    }
-  }
-  return 0;
-}
-
 const listScrapeActivityHandler = async (ctx: any) => {
   const now = Date.now();
   const runCutoff = now - RUN_LOOKBACK_MS;
@@ -316,11 +301,11 @@ const listScrapeActivityHandler = async (ctx: any) => {
       const scrapes = await collectWithLimit(
         site._id
           ? ctx.db
-            .query("scrapes")
+            .query("scrape_activity")
             .withIndex("by_site_completed", (q: any) => q.eq("siteId", site._id).gte("completedAt", scrapeCutoff))
             .order("desc")
           : ctx.db
-            .query("scrapes")
+            .query("scrape_activity")
             .withIndex("by_source_completed", (q: any) => q.eq("sourceUrl", siteUrl).gte("completedAt", scrapeCutoff))
             .order("desc"),
         SCRAPE_LIMIT,
@@ -333,8 +318,8 @@ const listScrapeActivityHandler = async (ctx: any) => {
       const sortedScrapes = filteredScrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
       const latest = sortedScrapes[0];
 
-      const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + countJobs((s).items), 0);
-      const lastJobsScraped = latest ? countJobs((latest).items) : 0;
+      const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + ((s as any).jobCount ?? 0), 0);
+      const lastJobsScraped = latest ? ((latest as any).jobCount ?? 0) : 0;
 
       const runsForSite = runs
         .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))

@@ -42,7 +42,11 @@ async def convex_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
 
 async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
     client = get_client()
-    return await asyncio.to_thread(client.mutation, name, args)
+    try:
+        return await asyncio.to_thread(client.mutation, name, args)
+    except Exception:
+        print(f"Convex mutation '{name}' failed with args: {args}")
+        raise
 
 
 # Test helper to inject a mock client

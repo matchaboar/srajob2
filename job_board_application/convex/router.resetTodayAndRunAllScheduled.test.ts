@@ -6,6 +6,7 @@ type TableName =
   | "jobs"
   | "job_details"
   | "scrapes"
+  | "scrape_activity"
   | "scrape_url_queue"
   | "ignored_jobs"
   | "sites"
@@ -71,6 +72,22 @@ class FakeQuery<T extends { _id: string } & Record<string, any>> {
       );
     }
     if (this.table === "scrapes" && name === "by_startedAt") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.startedAt === "number" && row.startedAt >= range.lower && row.startedAt < range.upper
+      );
+    }
+    if (this.table === "scrape_activity" && name === "by_completedAt") {
+      const range = buildRange(cb);
+      return new FakeQuery(
+        this.db,
+        this.table,
+        (row) => typeof row.completedAt === "number" && row.completedAt >= range.lower && row.completedAt < range.upper
+      );
+    }
+    if (this.table === "scrape_activity" && name === "by_startedAt") {
       const range = buildRange(cb);
       return new FakeQuery(
         this.db,
@@ -149,6 +166,7 @@ class FakeDb {
       jobs: seed.jobs ? [...seed.jobs] : [],
       job_details: seed.job_details ? [...seed.job_details] : [],
       scrapes: seed.scrapes ? [...seed.scrapes] : [],
+      scrape_activity: seed.scrape_activity ? [...seed.scrape_activity] : [],
       scrape_url_queue: seed.scrape_url_queue ? [...seed.scrape_url_queue] : [],
       ignored_jobs: seed.ignored_jobs ? [...seed.ignored_jobs] : [],
       sites: seed.sites ? [...seed.sites] : [],
@@ -217,6 +235,10 @@ describe("resetTodayAndRunAllScheduled", () => {
         { _id: "scrape-2", startedAt: startOfDay + 3_000, completedAt: endOfDay + 5_000 },
         { _id: "scrape-3", startedAt: endOfDay + 100, completedAt: endOfDay + 500 },
       ],
+      scrape_activity: [
+        { _id: "activity-1", startedAt: startOfDay + 10, completedAt: startOfDay + 20 },
+        { _id: "activity-2", startedAt: endOfDay + 10, completedAt: endOfDay + 20 },
+      ],
       scrape_url_queue: [{ _id: "queue-1" }, { _id: "queue-2" }, { _id: "queue-3" }],
       ignored_jobs: [
         { _id: "ignored-1", createdAt: startOfDay + 4_000 },
@@ -258,6 +280,8 @@ describe("resetTodayAndRunAllScheduled", () => {
     expect(db.getRows("scrapes").some((row) => row._id === "scrape-1")).toBe(false);
     expect(db.getRows("scrapes").some((row) => row._id === "scrape-2")).toBe(false);
     expect(db.getRows("scrapes").some((row) => row._id === "scrape-3")).toBe(true);
+    expect(db.getRows("scrape_activity").some((row) => row._id === "activity-1")).toBe(false);
+    expect(db.getRows("scrape_activity").some((row) => row._id === "activity-2")).toBe(true);
     expect(db.getRows("scrape_url_queue")).toHaveLength(0);
     expect(db.getRows("ignored_jobs").some((row) => row._id === "ignored-1")).toBe(false);
     expect(db.getRows("ignored_jobs").some((row) => row._id === "ignored-2")).toBe(true);

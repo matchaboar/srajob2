@@ -5,6 +5,7 @@ import re
 from typing import Any, Iterable, Sequence
 from urllib.parse import urljoin, urlparse, urlunparse
 
+from .regex_patterns import URL_PATTERN
 
 def _is_nonempty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
@@ -133,6 +134,7 @@ def extract_links_from_payload(
     *,
     link_keys: Sequence[str] = ("links", "page_links"),
     collect_all: bool = False,
+    scan_strings: bool = False,
 ) -> list[str]:
     """Extract link lists from nested payloads (e.g., SpiderCloud responses)."""
 
@@ -157,7 +159,48 @@ def extract_links_from_payload(
                     return True
         return False
 
-    _walk(value)
+    found_structured = _walk(value)
+
+    if scan_strings and (collect_all or not links):
+        url_re = re.compile(URL_PATTERN)
+        job_hint_tokens = (
+            "/job",
+            "/jobs",
+            "/career",
+            "/careers",
+            "/position",
+            "/positions",
+            "/opening",
+            "/openings",
+            "/opportunity",
+            "/opportunities",
+            "/role",
+            "/roles",
+            "/vacancy",
+            "/vacancies",
+            "gh_jid=",
+            "://jobs.",
+            "://careers.",
+        )
+        for text in gather_strings(value):
+            if not _is_nonempty_string(text):
+                continue
+            if "http" not in text:
+                continue
+            for match in url_re.findall(text):
+                if not _is_nonempty_string(match):
+                    continue
+                cleaned = str(match).strip()
+                cleaned = cleaned.rstrip(").,]")
+                cleaned = strip_wrapping_url(cleaned)
+                if not cleaned:
+                    continue
+                match_lower = cleaned.lower()
+                if not any(token in match_lower for token in job_hint_tokens):
+                    continue
+                links.append(cleaned)
+            if links and not collect_all and not found_structured:
+                break
     return links
 
 

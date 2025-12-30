@@ -7,9 +7,11 @@ import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenho
 import { deriveCompanyKey, deriveEngineerFlag } from "./jobs";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
+import { countJobs } from "./lib/scrapeCounts";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
+export const runScrapeActivityBackfill = migrations.runner(internal.migrations.backfillScrapeActivity);
 
 type JobId = Id<"jobs">;
 
@@ -135,6 +137,36 @@ export const backfillScrapeRecords = migrations.define({
     if (Object.keys(update).length > 0) {
       await ctx.db.patch(doc._id, update);
     }
+  },
+});
+
+export const backfillScrapeActivity = migrations.define({
+  table: "scrapes",
+  migrateOne: async (ctx, doc) => {
+    const sourceUrl = (doc as any).sourceUrl;
+    const completedAt = (doc as any).completedAt;
+    const startedAt = (doc as any).startedAt;
+    if (typeof sourceUrl !== "string" || !sourceUrl.trim()) return;
+    if (typeof completedAt !== "number" || typeof startedAt !== "number") return;
+
+    const existing = await ctx.db
+      .query("scrape_activity")
+      .withIndex("by_source_completed", (q: any) => q.eq("sourceUrl", sourceUrl).eq("completedAt", completedAt))
+      .collect();
+
+    const siteId = (doc as any).siteId ?? undefined;
+    const hasMatch = existing.some(
+      (row: any) => row.startedAt === startedAt && (row.siteId ?? null) === (siteId ?? null)
+    );
+    if (hasMatch) return;
+
+    await ctx.db.insert("scrape_activity", {
+      sourceUrl,
+      siteId,
+      startedAt,
+      completedAt,
+      jobCount: countJobs((doc as any).items),
+    });
   },
 });
 
@@ -361,6 +393,7 @@ export const runAll = internalMutation({
       internal.migrations.backfillCompanyKey,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
+      internal.migrations.backfillScrapeActivity,
       internal.migrations.repairJobDetailJobIds,
       internal.migrations.repairApplicationJobIds,
       internal.migrations.syncSiteSchedules,

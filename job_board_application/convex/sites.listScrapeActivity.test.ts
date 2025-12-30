@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { listScrapeActivity } from "./sites";
 import { getHandler } from "./__tests__/getHandler";
 
-type Scrape = { _id: string; siteId?: string; sourceUrl: string; completedAt?: number; items?: any };
+type Scrape = { _id: string; siteId?: string; sourceUrl: string; completedAt?: number; jobCount?: number };
 type Run = { _id: string; siteUrls: string[]; startedAt: number; completedAt?: number; status?: string };
 
 type QueryTracker = { take: number; collect: number; paginate: number };
@@ -24,7 +24,7 @@ class FakeQuery<T extends { [key: string]: any }> {
     };
     cb(builder);
 
-    if (this.table === "scrapes") {
+    if (this.table === "scrape_activity") {
       let filtered = this.rows;
       if (filters.eq) {
         filtered = filtered.filter((r: any) => r[filters.eq!.field] === filters.eq!.value);
@@ -72,14 +72,14 @@ describe("listScrapeActivity", () => {
       siteId: "site-1",
       sourceUrl: "https://example.com",
       completedAt: now - 5 * 24 * 60 * 60 * 1000,
-      items: { items: [1, 2] },
+      jobCount: 2,
     };
     const oldScrape: Scrape = {
       _id: "scrape-old",
       siteId: "site-1",
       sourceUrl: "https://example.com",
       completedAt: now - 90 * 24 * 60 * 60 * 1000,
-      items: { items: [1, 2, 3] },
+      jobCount: 3,
     };
     const recentRun: Run = {
       _id: "run-1",
@@ -96,8 +96,8 @@ describe("listScrapeActivity", () => {
               { _id: "site-1", url: "https://example.com", name: "Site", enabled: true, _creationTime: now },
             ]);
           }
-          if (table === "scrapes") {
-            return new FakeQuery<Scrape>("scrapes", [recentScrape, oldScrape]);
+          if (table === "scrape_activity") {
+            return new FakeQuery<Scrape>("scrape_activity", [recentScrape, oldScrape]);
           }
           if (table === "workflow_runs") {
             return new FakeQuery<Run>("workflow_runs", [recentRun]);
@@ -131,9 +131,9 @@ describe("listScrapeActivity", () => {
               { _id: "site-1", url: "https://example.com", name: "Site", enabled: true, _creationTime: now },
             ], tracker);
           }
-          if (table === "scrapes") {
-            return new FakeQuery<Scrape>("scrapes", [
-              { _id: "scrape-1", siteId: "site-1", sourceUrl: "https://example.com", completedAt: now, items: [] },
+          if (table === "scrape_activity") {
+            return new FakeQuery<Scrape>("scrape_activity", [
+              { _id: "scrape-1", siteId: "site-1", sourceUrl: "https://example.com", completedAt: now, jobCount: 0 },
             ], tracker);
           }
           if (table === "workflow_runs") {

@@ -7,6 +7,7 @@ import { splitLocation, formatLocationLabel, deriveLocationFields } from "./loca
 import { runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
+import { countJobs } from "./lib/scrapeCounts";
 import {
   ashbySlugFromUrl,
   fallbackCompanyNameFromUrl,
@@ -2262,9 +2263,13 @@ export const resetTodayAndRunAllScheduled = mutation({
       return { deleted, hasMore: page.length === batchSize };
     };
 
-    const deleteScrapesByRange = async (indexName: "by_completedAt" | "by_startedAt", field: "completedAt" | "startedAt") => {
+    const deleteScrapesByRange = async (
+      table: "scrapes" | "scrape_activity",
+      indexName: "by_completedAt" | "by_startedAt",
+      field: "completedAt" | "startedAt"
+    ) => {
       const page = await ctx.db
-        .query("scrapes")
+        .query(table)
         .withIndex(indexName, (q: any) => q.gte(field, startOfDay).lt(field, endOfDay))
         .take(batchSize);
 
@@ -2278,11 +2283,14 @@ export const resetTodayAndRunAllScheduled = mutation({
     };
 
     const deleteScrapesToday = async () => {
-      const completed = await deleteScrapesByRange("by_completedAt", "completedAt");
-      const started = await deleteScrapesByRange("by_startedAt", "startedAt");
+      const completed = await deleteScrapesByRange("scrapes", "by_completedAt", "completedAt");
+      const started = await deleteScrapesByRange("scrapes", "by_startedAt", "startedAt");
+      const activityCompleted = await deleteScrapesByRange("scrape_activity", "by_completedAt", "completedAt");
+      const activityStarted = await deleteScrapesByRange("scrape_activity", "by_startedAt", "startedAt");
       return {
         deleted: completed.deleted + started.deleted,
-        hasMore: completed.hasMore || started.hasMore,
+        activityDeleted: activityCompleted.deleted + activityStarted.deleted,
+        hasMore: completed.hasMore || started.hasMore || activityCompleted.hasMore || activityStarted.hasMore,
       };
     };
 
@@ -2994,13 +3002,21 @@ export const insertDummyScrape = mutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    return await ctx.db.insert("scrapes", {
+    const items = { results: { hits: ["https://example.com/jobs"], items: [{ job_title: "N/A" }] } };
+    const scrapeId = await ctx.db.insert("scrapes", {
       sourceUrl: "https://example.com/jobs",
       pattern: "https://example.com/jobs/**",
       startedAt: now,
       completedAt: now,
-      items: { results: { hits: ["https://example.com/jobs"], items: [{ job_title: "N/A" }] } },
+      items,
     });
+    await ctx.db.insert("scrape_activity", {
+      sourceUrl: "https://example.com/jobs",
+      startedAt: now,
+      completedAt: now,
+      jobCount: countJobs(items),
+    });
+    return scrapeId;
   },
 });
 
@@ -3862,6 +3878,13 @@ export const insertScrapeRecord = mutation({
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("scrapes", args);
+    await ctx.db.insert("scrape_activity", {
+      sourceUrl: args.sourceUrl,
+      siteId: args.siteId,
+      startedAt: args.startedAt,
+      completedAt: args.completedAt,
+      jobCount: countJobs(args.items),
+    });
     return id;
   },
 });

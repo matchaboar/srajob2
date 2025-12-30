@@ -3015,9 +3015,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     if isinstance(items, dict):
         link_urls: list[str] = []
+        raw_job_urls = items.get("job_urls") or items.get("jobUrls")
+        if isinstance(raw_job_urls, list):
+            link_urls.extend([link for link in raw_job_urls if isinstance(link, str) and link.strip()])
         raw_links = items.get("links") or items.get("page_links")
         if isinstance(raw_links, list):
-            link_urls = [link for link in raw_links if isinstance(link, str) and link.strip()]
+            link_urls.extend([link for link in raw_links if isinstance(link, str) and link.strip()])
 
         raw_val = items.get("raw")
         raw_links = extract_links_from_payload(raw_val)

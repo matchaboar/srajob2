@@ -6,6 +6,7 @@ type AnyDoc = Record<string, any>;
 type WipeTable =
   | "jobs"
   | "scrapes"
+  | "scrape_activity"
   | "scrape_url_queue"
   | "seen_job_urls"
   | "ignored_jobs"
@@ -24,6 +25,7 @@ export const wipeSiteDataByDomainPage = mutation({
     table: v.union(
       v.literal("jobs"),
       v.literal("scrapes"),
+      v.literal("scrape_activity"),
       v.literal("scrape_url_queue"),
       v.literal("seen_job_urls"),
       v.literal("ignored_jobs"),
@@ -67,6 +69,10 @@ export const wipeSiteDataByDomainPage = mutation({
           return ctx.db
             .query("scrapes")
             .withIndex("by_source", (q) => q.gte("sourceUrl", prefix).lt("sourceUrl", prefixUpper));
+        case "scrape_activity":
+          return ctx.db
+            .query("scrape_activity")
+            .withIndex("by_source_completed", (q) => q.gte("sourceUrl", prefix).lt("sourceUrl", prefixUpper));
         case "scrape_url_queue":
           return ctx.db
             .query("scrape_url_queue")
@@ -103,6 +109,9 @@ export const wipeSiteDataByDomainPage = mutation({
             return true;
           }
           return false;
+        case "scrape_activity":
+          if (row.siteId && siteIds.has(row.siteId)) return true;
+          return matchesUrl(row.sourceUrl);
         case "scrape_url_queue":
           if (row.siteId && siteIds.has(row.siteId)) return true;
           return matchesUrl(row.url) || matchesUrl(row.sourceUrl);

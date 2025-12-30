@@ -141,6 +141,33 @@ async def test_batch_params_use_raw_for_greenhouse_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_openai_listing_scrape_extracts_job_urls(monkeypatch):
+    response_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_openai_careers_listing.json"
+    )
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    if response and isinstance(response[0], list):
+        response = response[0]
+
+    assert isinstance(response, list) and response, "OpenAI fixture should contain at least one event"
+
+    source_url = response[0].get("url")
+    assert isinstance(source_url, str) and source_url, "Fixture missing source URL"
+
+    scraper = _make_scraper()
+    fake_client = _FakeClient(response)
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    payload = await scraper._scrape_urls_batch([source_url], source_url=source_url)
+    items = payload.get("items") or {}
+    job_urls = items.get("job_urls") or []
+
+    assert job_urls
+    assert any("openai.com/careers/" in url for url in job_urls)
+    assert not any("/careers/search" in url for url in job_urls)
+
+
+@pytest.mark.asyncio
 async def test_captcha_failure_emits_posthog_warn(monkeypatch):
     scraper = _make_scraper()
     monkeypatch.setattr(

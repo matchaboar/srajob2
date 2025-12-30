@@ -2038,6 +2038,12 @@ def trim_scrape_for_convex(
     if isinstance(items, dict) and "raw" in items:
         try:
             page_links = extract_links_from_payload(items.get("raw"), collect_all=True)
+            if not page_links:
+                page_links = extract_links_from_payload(
+                    items.get("raw"),
+                    collect_all=True,
+                    scan_strings=True,
+                )
         except Exception:
             page_links = []
         if page_links:
