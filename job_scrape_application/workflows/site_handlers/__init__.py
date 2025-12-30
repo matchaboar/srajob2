@@ -12,6 +12,7 @@ from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
 from .netflix import NetflixHandler
 from .notion_careers import NotionCareersHandler
+from .openai_careers import OpenAICareersHandler
 from .paloalto_networks import PaloAltoNetworksHandler
 from .uber_careers import UberCareersHandler
 from .workday import WorkdayHandler
@@ -26,6 +27,7 @@ _HANDLER_CLASSES = (
     GreenhouseHandler,
     NetflixHandler,
     NotionCareersHandler,
+    OpenAICareersHandler,
     PaloAltoNetworksHandler,
     UberCareersHandler,
     WorkdayHandler,
@@ -66,6 +68,7 @@ __all__ = [
     "GreenhouseHandler",
     "NetflixHandler",
     "NotionCareersHandler",
+    "OpenAICareersHandler",
     "PaloAltoNetworksHandler",
     "UberCareersHandler",
     "WorkdayHandler",

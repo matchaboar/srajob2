@@ -85,6 +85,12 @@ def test_normalize_url_unescapes_html_entities():
     assert normalize_url(url) == "https://careers.adobe.com/us/en/search-results?keywords=engineer&from=70&s=1"
 
 
+def test_normalize_url_strips_backslashes_and_trailing_slashes():
+    url = "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101/////\\\\"
+
+    assert normalize_url(url) == "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101"
+
+
 def test_normalize_url_list_dedupes_and_filters():
     urls = [
         "https://example.com/jobs/1",

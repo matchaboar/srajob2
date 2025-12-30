@@ -168,7 +168,7 @@ def extract_greenhouse_job_urls(
 ) -> list[str]:
     """Return unique, non-empty job URLs from a board response that match title filters."""
 
-    urls = []
+    urls: list[str] = []
     for job in board.jobs:
         if not job.absolute_url:
             continue

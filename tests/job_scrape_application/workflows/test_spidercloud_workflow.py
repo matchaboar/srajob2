@@ -900,6 +900,74 @@ def test_extract_job_urls_from_spidercloud_scrape_raw():
     assert any("boards.greenhouse.io/robinhood/jobs" in u for u in urls)
 
 
+def test_extract_job_urls_from_spidercloud_scrape_strips_slash_noise():
+    fixture = json.loads(
+        Path("tests/fixtures/spidercloud_greenhouse_slash_urls.json").read_text(encoding="utf-8")
+    )
+    scrape_payload = {
+        "sourceUrl": fixture["sourceUrl"],
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "response": fixture,
+        "items": {"provider": "spidercloud", "normalized": [], "raw": []},
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape_payload)
+
+    assert sorted(urls) == sorted(
+        [
+            "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623",
+            "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101",
+        ]
+    )
+    assert all("\\" not in url for url in urls)
+
+
+def test_extract_job_urls_from_spidercloud_scrape_filters_apply_urls_without_handler():
+    scrape_payload = {
+        "sourceUrl": "",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {
+            "provider": "spidercloud",
+            "raw": {
+                "jobs": [
+                    {
+                        "jobUrl": "https://careers.adobe.com/us/en/job/R162038/Support-Pricing-Specialist",
+                        "applyUrl": "https://careers.adobe.com/us/en/apply?jobSeqNo=ADOBUSR162038EXTERNALENUS",
+                    }
+                ]
+            },
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape_payload)
+
+    assert urls == ["https://careers.adobe.com/us/en/job/R162038/Support-Pricing-Specialist"]
+
+
+def test_extract_job_urls_from_spidercloud_scrape_filters_apply_links_list():
+    scrape_payload = {
+        "sourceUrl": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {
+            "provider": "spidercloud",
+            "links": [
+                "https://careers.adobe.com/us/en/apply?jobSeqNo=ADOBUSR162038EXTERNALENUS",
+                "https://careers.adobe.com/us/en/job/R162038/Support-Pricing-Specialist",
+            ],
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape_payload)
+
+    assert urls == ["https://careers.adobe.com/us/en/job/R162038/Support-Pricing-Specialist"]
+
+
 def test_extract_job_urls_from_spidercloud_ashby_html():
     html_fixture = Path("tests/fixtures/lambda-ashbyhq-src.html").read_text(encoding="utf-8")
     scrape_payload = {
@@ -1783,6 +1851,42 @@ def test_extract_job_urls_from_snapchat_scrape_fixture():
     assert "https://careers.snap.com/job?id=R0043314" in urls
     assert "https://careers.snap.com/job?id=R0042985" in urls
     assert "https://careers.snap.com/jobs" not in urls
+
+
+def test_extract_job_urls_from_lambda_ai_careers_fixture():
+    response_path = Path("tests/fixtures/spidercloud_lambda_ai_careers.json")
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    if response and isinstance(response[0], list):
+        response = response[0]
+
+    scrape = {
+        "sourceUrl": "https://lambda.ai/careers",
+        "items": {"raw": response, "provider": "spidercloud"},
+    }
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938" in urls
+    assert "https://jobs.ashbyhq.com/lambda/264f889c-38f4-42a5-9534-064a9512a3fe" in urls
+    assert not any(
+        'jobs.ashbyhq.com/"https:/' in url or "jobs.ashbyhq.com/%22https:/" in url for url in urls
+    )
+
+
+def test_extract_job_urls_from_adobe_search_fixture():
+    response_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_adobe_search_page_1.json"
+    )
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+
+    scrape = {
+        "sourceUrl": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+        "items": {"raw": response, "provider": "spidercloud"},
+    }
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://careers.adobe.com/us/en/job/R162737/Research-Engineer" in urls
+    assert "https://careers.adobe.com/us/en/job/R161781/Data-Engineer" in urls
+    assert "https://careers.adobe.com/us/en/search-results?from=10&s=1" in urls
 
 
 def test_extract_job_urls_from_scrape_parses_html_listing_with_filters():

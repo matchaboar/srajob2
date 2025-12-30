@@ -136,6 +136,17 @@
     startTime: 09:30
     intervalMinutes: 1440.0
     timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/xai/jobs
+  name: xAI
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/twilio/jobs
   name: Twilio
   enabled: true
@@ -258,6 +269,17 @@
   name: Notion
   enabled: true
   type: ashby
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://openai.com/careers/search/?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
+  name: OpenAI
+  enabled: true
+  type: openai
   scrapeProvider: spidercloud
   schedule:
     name: weekdays 9:30am

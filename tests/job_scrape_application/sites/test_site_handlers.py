@@ -71,6 +71,13 @@ def test_greenhouse_handler_builds_api_from_board_job_url():
     assert api_url == "https://boards-api.greenhouse.io/v1/boards/samsara/jobs/1234567"
 
 
+def test_greenhouse_handler_builds_api_from_job_boards_url():
+    handler = GreenhouseHandler()
+    url = "https://job-boards.greenhouse.io/xai/jobs/5012607007"
+    api_url = handler.get_api_uri(url)
+    assert api_url == "https://boards-api.greenhouse.io/v1/boards/xai/jobs/5012607007"
+
+
 def test_github_careers_handler_builds_api_and_links():
     handler = GithubCareersHandler()
     url = "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100"
@@ -342,3 +349,38 @@ def test_base_handler_parses_pre_json_list_payload():
         "]</pre></html>"
     )
     assert handler.get_links_from_raw_html(html) == ["https://example.com/job/2"]
+
+
+def test_base_handler_filters_non_job_detail_urls():
+    handler = _BaseHandlerForTest()
+    urls = [
+        "https://www.linkedin.com/company/adobe",
+        "https://careers.adobe.com/us/en/c/information-technology-jobs",
+        "https://www.adobe.com/creativecloud/buy/students.html",
+        "https://careers.adobe.com/us/en/c/engineering-and-product-jobs",
+        "https://careers.adobe.com/us/en/teams",
+        "https://careers.adobe.com/us/en/apply?jobSeqNo=ADOBUSR162038EXTERNALENUS",
+        "https://bloomberg.avature.net/careers/SaveJob?jobId=14551",
+        "https://www.linkedin.com/company/bloomberg-lp",
+        "https://www.linkedin.com/jobs/view/1234567890/",
+        "https://careers.adobe.com/us/en/job/123456/Senior-Engineer",
+        "https://boards.greenhouse.io/coreweave/jobs/4607747006",
+    ]
+    filtered = handler.filter_job_urls(urls)
+    for blocked in urls[:7]:
+        assert blocked not in filtered
+    assert "https://www.linkedin.com/jobs/view/1234567890/" in filtered
+    assert "https://careers.adobe.com/us/en/job/123456/Senior-Engineer" in filtered
+    assert "https://boards.greenhouse.io/coreweave/jobs/4607747006" in filtered
+
+
+def test_base_handler_keeps_adobe_listing_urls():
+    handler = _BaseHandlerForTest()
+    urls = [
+        "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+        "https://careers.adobe.com/us/en/search-results?from=10&s=1",
+        "https://careers.adobe.com/us/en/job/R162737/Research-Engineer",
+    ]
+    filtered = handler.filter_job_urls(urls)
+    for url in urls:
+        assert url in filtered

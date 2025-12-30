@@ -11,6 +11,7 @@ export const SITE_TYPES = [
   "docusign",
   "notion",
   "paloalto",
+  "openai",
 ] as const;
 
 export type SiteType = (typeof SITE_TYPES)[number];
@@ -27,4 +28,5 @@ export const SPIDER_CLOUD_DEFAULT_SITE_TYPES = new Set<SiteType>([
   "docusign",
   "notion",
   "paloalto",
+  "openai",
 ]);

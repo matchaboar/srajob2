@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import html as html_lib
+import re
 from typing import Any, Iterable, Sequence
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 
 def _is_nonempty_string(value: Any) -> bool:
@@ -23,6 +24,50 @@ def gather_strings(value: Any) -> list[str]:
     return results
 
 
+_SLASH_RUN_RE = re.compile(r"/{2,}")
+_WRAPPER_PAIRS = {
+    '"': '"',
+    "'": "'",
+    "<": ">",
+    "(": ")",
+    "[": "]",
+}
+
+
+def strip_wrapping_url(candidate: str) -> str:
+    cleaned = candidate.strip()
+    while cleaned:
+        closing = _WRAPPER_PAIRS.get(cleaned[0])
+        if not closing or cleaned[-1] != closing:
+            break
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
+def fix_scheme_slashes(candidate: str) -> str:
+    lower = candidate.lower()
+    if lower.startswith("http:/") and not lower.startswith("http://"):
+        return "http://" + candidate[len("http:/") :]
+    if lower.startswith("https:/") and not lower.startswith("https://"):
+        return "https://" + candidate[len("https:/") :]
+    return candidate
+
+
+def _normalize_http_url(candidate: str) -> str:
+    if not candidate.startswith(("http://", "https://")):
+        return candidate
+    try:
+        parsed = urlparse(candidate)
+    except Exception:
+        return candidate
+    if not parsed.scheme or not parsed.netloc:
+        return candidate
+    path = _SLASH_RUN_RE.sub("/", parsed.path or "")
+    if path and path != "/":
+        path = path.rstrip("/")
+    return urlunparse((parsed.scheme, parsed.netloc, path, parsed.params, parsed.query, parsed.fragment))
+
+
 def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None:
     if not isinstance(url, str):
         return None
@@ -32,18 +77,24 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     candidate = html_lib.unescape(candidate).strip()
     if not candidate:
         return None
+    candidate = strip_wrapping_url(candidate)
+    if not candidate:
+        return None
+    candidate = fix_scheme_slashes(candidate)
+    candidate = candidate.replace("\\", "/")
     lower = candidate.lower()
     if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
         return None
     if candidate.startswith(("http://", "https://")):
-        return candidate
+        return _normalize_http_url(candidate)
     if candidate.startswith("//"):
         if not base_url:
             return None
         scheme = urlparse(base_url).scheme or "https"
-        return f"{scheme}:{candidate}"
+        return _normalize_http_url(f"{scheme}:{candidate}")
     if base_url:
-        return urljoin(base_url, candidate)
+        joined = urljoin(base_url, candidate)
+        return _normalize_http_url(joined)
     return None
 
 

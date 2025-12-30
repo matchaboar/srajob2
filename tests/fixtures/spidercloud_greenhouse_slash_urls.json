@@ -1,0 +1,11 @@
+{
+  "sourceUrl": "https://api.greenhouse.io/v1/boards/stubhubinc/jobs",
+  "subUrls": [
+    "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101\\\\",
+    "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101/////\\\\",
+    "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101//\\\\",
+    "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623/////\\\\",
+    "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623//////\\\\",
+    "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623/\\\\"
+  ]
+}

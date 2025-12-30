@@ -18,7 +18,9 @@ from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
     _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
+    _METADATA_LABEL_KEYS,
     _normalize_country_label,
+    _normalize_section_heading,
     _strip_embedded_theme_json,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
@@ -29,9 +31,10 @@ from ..helpers.scrape_utils import (
     looks_like_job_listing_page,
     parse_markdown_hints,
     parse_posted_at,
+    split_description_metadata,
     strip_known_nav_blocks,
 )
-from ..helpers.link_extractors import gather_strings
+from ..helpers.link_extractors import gather_strings, normalize_url
 from ..helpers.regex_patterns import (
     CAPTCHA_PROVIDER_PATTERN,
     CAPTCHA_WORD_PATTERN,
@@ -1386,6 +1389,8 @@ class SpiderCloudScraper(BaseScraper):
             if not line or _looks_like_sentence(line):
                 continue
             if title_matches_required_keywords(line):
+                if self._title_is_metadata_value(markdown, line):
+                    continue
                 return line.strip()
 
         return None
@@ -1434,6 +1439,34 @@ class SpiderCloudScraper(BaseScraper):
             return True
         # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
         return bool(re.fullmatch(MIN_THREE_DIGIT_PATTERN, stripped))
+
+    def _title_is_metadata_value(self, markdown: str, title: str) -> bool:
+        if not markdown or not title:
+            return False
+        _, metadata_block = split_description_metadata(markdown)
+        if not metadata_block:
+            return False
+        target = title.strip().lower()
+        expect_value = False
+        for line in metadata_block.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if ":" in stripped:
+                label, value = stripped.split(":", 1)
+                if _normalize_section_heading(label) in _METADATA_LABEL_KEYS:
+                    if value.strip().lower() == target:
+                        return True
+            normalized = _normalize_section_heading(stripped)
+            if normalized in _METADATA_LABEL_KEYS:
+                expect_value = True
+                continue
+            if expect_value:
+                value = re.sub(r"^[#*\-\u2022]+\s*", "", stripped).strip().lower()
+                if value == target:
+                    return True
+                expect_value = False
+        return False
 
     def _regex_extract_job_urls(self, text: str) -> List[str]:
         """
@@ -1928,6 +1961,7 @@ class SpiderCloudScraper(BaseScraper):
         cleaned_markdown_len = len(cleaned_markdown.strip())
         hints = parse_markdown_hints(cleaned_markdown)
         hint_title = hints.get("title") if isinstance(hints, dict) else None
+        content_title = hint_title or self._title_from_markdown(cleaned_markdown)
 
         event_title = self._title_from_events(events)
         payload_title = parsed_title or structured_title or event_title
@@ -1940,12 +1974,21 @@ class SpiderCloudScraper(BaseScraper):
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
         if not payload_title:
-            payload_title = hint_title or self._title_from_markdown(cleaned_markdown)
+            payload_title = content_title
             if payload_title:
                 title_source = "hint" if hint_title else "markdown"
             from_content = bool(payload_title)
         else:
             from_content = True
+            if (
+                event_title
+                and payload_title == event_title
+                and content_title
+                and content_title != event_title
+                and self._title_is_metadata_value(cleaned_markdown, event_title)
+            ):
+                payload_title = content_title
+                title_source = "hint" if hint_title else "markdown"
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
             title_source = None
@@ -2390,7 +2433,26 @@ class SpiderCloudScraper(BaseScraper):
             except Exception:
                 return None
 
-        urls = urls[:SPIDERCLOUD_BATCH_SIZE]
+        def _sanitize_urls(values: Iterable[str]) -> list[str]:
+            cleaned: list[str] = []
+            seen: set[str] = set()
+            for value in values:
+                if not isinstance(value, str):
+                    continue
+                raw = value.strip()
+                if not raw:
+                    continue
+                candidate = raw.replace("\\", "/")
+                normalized = normalize_url(candidate)
+                if normalized:
+                    candidate = normalized
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                cleaned.append(candidate)
+            return cleaned
+
+        urls = _sanitize_urls(urls)[:SPIDERCLOUD_BATCH_SIZE]
         logger.info(
             "SpiderCloud batch start source=%s urls=%s pattern=%s",
             source_url,

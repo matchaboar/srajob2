@@ -880,6 +880,39 @@ def test_spidercloud_title_prefers_description_over_company_event_title():
     assert normalized["title"] == "Staff Program Manager - Security Compliance Programs"
 
 
+def test_spidercloud_title_ignores_metadata_event_title():
+    scraper = _make_scraper()
+    markdown = textwrap.dedent(
+        """
+        Senior Interaction Designer – Bloomberg Connects
+        - 15242
+        - Bloomberg
+        Senior Interaction Designer – Bloomberg Connects
+        Location
+        New York
+        Business Area
+        Engineering and CTO
+        Ref #
+        10047068
+        Description & Requirements
+        Bloomberg Connects is a rapidly growing, free platform for cultural institutions that helps museums,
+        galleries, and cultural spaces engage audiences worldwide with multimedia content and storytelling.
+        The role partners with product, design, and engineering teams to improve visitor experiences across
+        physical and digital touchpoints.
+        """
+    ).strip()
+
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        "https://bloomberg.avature.net/careers/JobDetail/Senior-Interaction-Designer-Bloomberg-Connects/15242",
+        markdown,
+        [{"title": "Engineering and CTO"}],
+        0,
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Senior Interaction Designer – Bloomberg Connects"
+
+
 def test_spidercloud_title_from_markdown_prefers_description_title_after_bullet_lead():
     scraper = _make_scraper()
     markdown = textwrap.dedent(

@@ -6,7 +6,7 @@ import json
 import logging
 import time
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from html.parser import HTMLParser
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -346,7 +346,16 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
             pass
         raise
     job_urls = listing.get("job_urls") if isinstance(listing, dict) else []
-    urls: list[str] = [u for u in job_urls if isinstance(u, str) and u]
+    urls: list[str] = []
+    seen_urls: set[str] = set()
+    for candidate in job_urls:
+        if not isinstance(candidate, str) or not candidate.strip():
+            continue
+        normalized = normalize_url(candidate)
+        if not normalized or normalized in seen_urls:
+            continue
+        seen_urls.add(normalized)
+        urls.append(normalized)
 
     seen_for_site: list[str] = []
     try:
@@ -2708,10 +2717,15 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     def _looks_like_job_detail_url(url: str) -> bool:
         try:
-            path = urlparse(url).path
+            parsed = urlparse(url)
         except Exception:
             return False
+        host = (parsed.hostname or "").lower()
+        path = parsed.path
         lower = (path or "").lower()
+        if host.endswith("ashbyhq.com"):
+            segments = [seg for seg in lower.split("/") if seg]
+            return len(segments) >= 2
         if not any(token in lower for token in ("/job", "/jobs", "/career", "/careers", "/position", "/positions")):
             return False
         segments = [seg for seg in lower.split("/") if seg]
@@ -2719,6 +2733,13 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if seg in {"job", "jobs", "career", "careers", "position", "positions"}:
                 return idx + 1 < len(segments)
         return False
+
+    def _is_ashby_url(url: str) -> bool:
+        try:
+            host = (urlparse(url).hostname or "").lower()
+        except Exception:
+            return False
+        return host.endswith("ashbyhq.com")
 
     def _looks_like_location_filter_url(url: str) -> bool:
         try:
@@ -2787,11 +2808,23 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 return True
         return False
 
+    def _looks_like_apply_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        if host.endswith("ashbyhq.com"):
+            return False
+        segments = [seg for seg in (parsed.path or "").split("/") if seg]
+        return any(seg in {"apply", "application", "hvhapply"} for seg in segments)
+
     def _should_ignore_url(url: str) -> bool:
         return (
             _looks_like_location_filter_url(url)
             or _looks_like_confluent_listing_url(url)
             or _looks_like_non_job_url(url)
+            or _looks_like_apply_url(url)
         )
 
     def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
@@ -2946,6 +2979,24 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     source_host = urlparse(source_url).hostname if source_url else None
     is_confluent = bool(source_host and source_host.endswith("confluent.io"))
     handler = get_site_handler(source_url) if source_url else None
+    def _normalize_direct_url(value: str) -> str | None:
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        cleaned = cleaned.replace("\\", "/")
+        lower = cleaned.lower()
+        if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
+            return None
+        if cleaned.startswith(("http://", "https://")):
+            return cleaned
+        if cleaned.startswith("//"):
+            if not source_url:
+                return None
+            scheme = urlparse(source_url).scheme or "https"
+            return f"{scheme}:{cleaned}"
+        if source_url:
+            return urljoin(source_url, cleaned)
+        return None
 
     def _extract_handler_links(values: Iterable[str]) -> list[str]:
         if not handler or getattr(handler, "name", "") == "ashby":
@@ -3013,6 +3064,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     urls: list[str] = []
     seen: set[str] = set()
+    blocked: set[str] = set()
     # Direct URL arrays from crawl payloads (e.g., job_urls/rawUrls) should be enqueued even if we haven't parsed titles yet.
     if isinstance(items, dict):
         for key in ("job_urls", "rawUrls", "urls"):
@@ -3020,7 +3072,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if isinstance(url_list, list):
                 for url_val in url_list:
                     if isinstance(url_val, str) and url_val.strip():
-                        normalized_url = normalize_url(url_val, base_url=source_url)
+                        normalized_url = _normalize_direct_url(url_val)
                         if not normalized_url:
                             continue
                         if _should_ignore_url(normalized_url):
@@ -3046,15 +3098,18 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                     json_urls = [url for url in json_urls if not _should_ignore_url(url)]
                     if json_urls:
                         return json_urls
-            for url in _extract_ashby_job_urls(text):
-                normalized_url = normalize_url(url, base_url=source_url)
-                if not normalized_url:
-                    continue
-                if _should_ignore_url(normalized_url):
-                    continue
-                if normalized_url not in seen:
-                    seen.add(normalized_url)
-                    urls.append(normalized_url)
+            ashby_urls = _extract_ashby_job_urls(text)
+            if ashby_urls:
+                for url in ashby_urls:
+                    normalized_url = normalize_url(url, base_url=source_url)
+                    if not normalized_url:
+                        continue
+                    if _should_ignore_url(normalized_url):
+                        continue
+                    if normalized_url not in seen:
+                        seen.add(normalized_url)
+                        urls.append(normalized_url)
+                return urls
             try:
                 parsed = json.loads(
                     _clean_invalid_json_escapes(_strip_code_fences(text))
@@ -3077,7 +3132,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if not title_match and not context_match:
                 continue
             if not title_match:
-                if _looks_like_apply_link(title, normalized_url):
+                if _looks_like_apply_link(title, normalized_url) and not _looks_like_job_detail_url(normalized_url):
                     continue
                 if not _looks_like_job_detail_url(normalized_url):
                     continue
@@ -3090,11 +3145,16 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             normalized_url = normalize_url(url, base_url=source_url)
             if not normalized_url:
                 continue
+            if normalized_url in blocked:
+                continue
             if _should_ignore_url(normalized_url):
                 continue
             title_match = title_matches_required_keywords(title) if title else False
             if not title_match:
-                if _looks_like_apply_link(title, normalized_url):
+                if _is_ashby_url(normalized_url) and title and not _looks_like_apply_link(title, normalized_url):
+                    blocked.add(normalized_url)
+                    continue
+                if _looks_like_apply_link(title, normalized_url) and not _looks_like_job_detail_url(normalized_url):
                     continue
                 if not _looks_like_job_detail_url(normalized_url):
                     continue

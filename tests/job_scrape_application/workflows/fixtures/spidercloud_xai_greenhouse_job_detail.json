@@ -1,0 +1,93 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><meta content=\"light dark\" name=\"color-scheme\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://job-boards.greenhouse.io/xai/jobs/5012607007\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":4573825007,\"location\":{\"name\":\"Palo Alto, CA\"},\"metadata\":[{\"id\":16340689007,\"name\":\"Featured Role\",\"value\":null,\"value_type\":\"yes_no\"}],\"id\":5012607007,\"updated_at\":\"2025-12-29T17:17:22-05:00\",\"requisition_id\":\"658\",\"title\":\"Audio English/Multilingual Tutor\",\"company_name\":\"xAI\",\"first_published\":\"2025-12-29T13:58:52-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;h3\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;About xAI\\u0026lt;/span\\u0026gt;\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;xAI’s mission is to create AI systems that can accurately understand the universe and aid humanity in its pursuit of knowledge. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;Our team is small, highly motivated, and focused on engineering excellence. This organization is for individuals who appreciate challenging themselves and thrive on curiosity. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;We operate with a flat organizational structure. All employees are expected to be hands-on and to contribute directly to the company’s mission. Leadership is given to those who show initiative and consistently deliver excellence. Work ethic and strong prioritization skills are important. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;All engineers are expected to have strong communication skills. They should be able to concisely and accurately share knowledge with their teammates.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;About xAI\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;xAI’s mission is to create AI systems that can accurately understand the universe and aid humanity in its pursuit of knowledge. Our team is small, highly motivated, and focused on engineering excellence. This organization is for individuals who appreciate challenging themselves and thrive on curiosity. We operate with a flat organizational structure. All employees are expected to be hands-on and to contribute directly to the company’s mission. Leadership is given to those who show initiative and consistently deliver excellence. Work ethic and strong prioritization skills are important. All engineers are expected to have strong communication skills. They should be able to concisely and accurately share knowledge with their teammates.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;About the Role\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;As an AI Tutor specialized in multilingual audio capabilities, you will contribute to xAI\\u0026#39;s mission by training and refining Grok to excel in voice interactions, speech recognition, and auditory experiences across diverse languages, accents, and cultural contexts. Your work will focus on curating and annotating high-quality audio data to enhance Grok\\u0026#39;s global accessibility, enabling natural spoken interactions for users worldwide, bridging language barriers through accurate speech processing, and improving the AI\\u0026#39;s handling of multilingual audio nuances.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Responsibilities\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;You will use proprietary software to provide labels, annotations, recordings, and inputs on projects involving multilingual audio clips, voice recordings, speech samples, and auditory elements in various languages. You must support the delivery of high-quality curated audio data that ensures clear, natural spoken output, accurate representation of linguistic and prosodic details (such as intonation, rhythm, and accent), and professional audio standards. In this role, you will collaborate with technical staff to develop tasks that improve AI\\u0026#39;s ability to handle speech modulation, accent variation, noise in real-world recordings, and multilingual audio processing. You’ll also work with technical staff to improve annotation tools for efficient audio workflows.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Required Qualifications\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Native or near-native fluency in English and at least one additional language, with clear, natural vocal delivery and pronunciation suitable for audio recording purposes.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong auditory perception to identify nuances in speech, accents, pronunciation, intonation, and audio quality across languages.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Demonstrated ability to handle multilingual audio content, including evaluating speech accuracy, cultural vocal expressions, and contextual interpretation in spoken form.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Comfort providing high-quality voice recordings and feedback on audio samples in multiple languages.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong comprehension skills and the ability to make independent judgments on ambiguous or varied audio material, including noisy or accented speech.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong communication, interpersonal, analytical, detail-oriented, and organizational skills, with the ability to articulate audio-related feedback effectively.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Commitment to developing AI that masters sophisticated multilingual audio capabilities.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Preferred Qualifications\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Fluency in multiple languages beyond English, with exposure to diverse accents, dialects, or regional variations.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Experience in voice recording, dubbing, podcasting, audiobooks, speech data annotation, translation with audio components, linguistics (especially phonetics/phonology), or roles involving multilingual audio review and optimization.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Portfolio of voice samples or audio work, such as narrated recordings, spoken contributions, or multilingual speech projects.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Familiarity with basic audio recording tools, software, or concepts related to sound quality in spoken content.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Location \\u0026amp;amp; Other Expectations\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;This position is based in Palo Alto, CA, or fully remote.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;The Palo Alto option is an in-office role requiring 5 days per week; remote positions require strong self-motivation.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;If you are based in the US, please note we are unable to hire in the states of Wyoming and Illinois at this time.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;We are unable to provide visa sponsorship.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Team members are expected to work from 9:00am - 5:30pm PST for the first two weeks of training and 9:00am - 5:30pm in their own timezone thereafter.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;For those who will be working from a personal device, please note your computer must be a Chromebook, Mac with MacOS 11.0 or later, or Windows 10 or later.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Compensation\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;$30/hour - $75/hour\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;The posted pay range is intended for U.S.-based candidates and depends on factors including relevant experience, skills, education, geographic location, and qualifications. For international candidates, our recruiting team can provide an estimated pay range for your location.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h3\\u0026gt;\\u0026lt;strong\\u0026gt;Benefits:\\u0026lt;/strong\\u0026gt;\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;Hourly pay is just one part of our total rewards package at xAI. Specific benefits vary by country, depending on your country of residence you may have access to medical benefits. We do not offer benefits for part-time roles.\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;em\\u0026gt;xAI is an equal opportunity employer. For details on data processing, view our\\u0026amp;nbsp;\\u0026lt;/em\\u0026gt;\\u0026lt;em\\u0026gt;\\u0026lt;a href=\\u0026quot;https://x.ai/legal/recruitment-privacy-notice\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;Recruitment Privacy Notice\\u0026lt;/a\\u0026gt;.\\u0026lt;/em\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":4025087007,\"name\":\"Human Data\",\"child_ids\":[],\"parent_id\":null}],\"offices\":[{\"id\":4035106007,\"name\":\"Palo Alto, CA\",\"location\":\"Palo Alto, California, United States\",\"child_ids\":[],\"parent_id\":4022826007},{\"id\":4023161007,\"name\":\"Remote\",\"location\":\"Remote\",\"child_ids\":[],\"parent_id\":null}]}</pre><div class=\"json-formatter-container\"></div></html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 4.092633333333334e-06,
+        "compute_cost_formatted": "0.0000040926333333333332448856",
+        "file_cost": 1.4829000000000002e-05,
+        "file_cost_formatted": "0.0000148290000000000005142553",
+        "total_cost": 1.8921633333333335e-05,
+        "total_cost_formatted": "0.0000189216333333333337591409",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 2161,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "boards-api.greenhouse.io",
+          "extracted_data": null,
+          "file_size": 9860,
+          "final_url": null,
+          "keywords": [
+            "AI Tutor specialized",
+            "Comfort providing high-quality voice recordings",
+            "Palo Alto option",
+            "Recruitment Privacy Notice",
+            "Specific benefits vary",
+            "Strong auditory perception",
+            "Strong comprehension skills",
+            "accurate speech processing",
+            "accurately share knowledge",
+            "annotating high-quality audio data",
+            "articulate audio-related feedback effectively",
+            "audio recording purposes",
+            "basic audio recording tools",
+            "bridging language barriers",
+            "consistently deliver excellence",
+            "create AI systems",
+            "cultural vocal expressions",
+            "efficient audio workflows",
+            "enabling natural spoken interactions",
+            "equal opportunity employer",
+            "estimated pay range",
+            "factors including relevant experience",
+            "flat organizational structure",
+            "handle multilingual audio content",
+            "handle speech modulation",
+            "high-quality curated audio data",
+            "improve annotation tools",
+            "in-office role requiring 5 days",
+            "including evaluating speech accuracy",
+            "make independent judgments",
+            "masters sophisticated multilingual audio capabilities",
+            "multilingual audio capabilities",
+            "multilingual audio nuances",
+            "multilingual audio processing",
+            "multilingual speech projects",
+            "natural spoken output",
+            "natural vocal delivery",
+            "posted pay range",
+            "professional audio standards",
+            "projects involving multilingual audio clips",
+            "provide visa sponsorship",
+            "remote positions require strong self-motivation",
+            "roles involving multilingual audio review",
+            "speech data annotation",
+            "strong prioritization skills",
+            "total rewards package",
+            "varied audio material"
+          ],
+          "og_image": null,
+          "original_url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/5012607007",
+          "pathname": "/v1/boards/xai/jobs/5012607007",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/5012607007"
+    }
+  ]
+]

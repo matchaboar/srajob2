@@ -393,8 +393,11 @@ export function JobBoard() {
   const isLiveTab = activeTab === "live";
   const isIgnoredTab = activeTab === "ignored";
   const isAdmin = useQuery(api.auth.isAdmin);
-  const jobsPageSize = isAdmin ? 500 : 50;
-  const jobsLoadMoreSize = isAdmin ? 500 : 20;
+  const jobsChunkSize = isAdmin ? 50 : 10;
+  const jobsPageSize = jobsChunkSize;
+  const jobsLoadMoreSize = jobsChunkSize;
+  const jobsAutoFillTarget = isAdmin ? 100 : 30;
+  const jobsAutoFillDelayMs = 1000;
   const companyBannerName = useMemo(() => {
     if (filters.companies.length === 1) return filters.companies[0] ?? null;
     if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
@@ -418,6 +421,50 @@ export function JobBoard() {
     } : "skip",
     { initialNumItems: jobsPageSize } // Load more items for the dense list
   );
+
+  const shouldAutoLoadJobs =
+    isJobsTab && status === "CanLoadMore" && results.length > 0 && results.length < jobsAutoFillTarget;
+  const latestJobIdRef = useRef<JobId | null>(null);
+
+  useEffect(() => {
+    if (!shouldAutoLoadJobs) return;
+    const timeoutId = window.setTimeout(() => {
+      loadMore(jobsLoadMoreSize);
+    }, jobsAutoFillDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [shouldAutoLoadJobs, loadMore, jobsLoadMoreSize, jobsAutoFillDelayMs]);
+
+  useEffect(() => {
+    if (!isJobsTab) {
+      latestJobIdRef.current = (results[0]?._id as JobId | undefined) ?? null;
+      return;
+    }
+
+    const newestJobId = (results[0]?._id as JobId | undefined) ?? null;
+    const previousNewest = latestJobIdRef.current;
+    latestJobIdRef.current = newestJobId;
+
+    if (!newestJobId || !previousNewest) return;
+    if (status === "LoadingFirstPage") return;
+
+    const shouldTopUpForNewJobs =
+      previousNewest !== newestJobId && status === "CanLoadMore" && results.length >= jobsAutoFillTarget;
+
+    if (!shouldTopUpForNewJobs) return;
+
+    const timeoutId = window.setTimeout(() => {
+      loadMore(jobsLoadMoreSize);
+    }, jobsAutoFillDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    isJobsTab,
+    results,
+    status,
+    jobsAutoFillTarget,
+    loadMore,
+    jobsLoadMoreSize,
+    jobsAutoFillDelayMs,
+  ]);
 
   const [displayedResults, setDisplayedResults] = useState<ListedJob[]>(results);
   useEffect(() => {

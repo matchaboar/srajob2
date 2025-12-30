@@ -151,7 +151,8 @@ const applicationTables = {
         v.literal("docusign"),
         v.literal("notion"),
         v.literal("paloalto"),
-        v.literal("ashby")
+        v.literal("ashby"),
+        v.literal("openai")
       )
     ),
     scrapeProvider: v.optional(

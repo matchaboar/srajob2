@@ -8,7 +8,7 @@ Utilities for job scraping and application automation.
 
 ## Site handlers
 
-Examples of supported site handlers include Greenhouse, Workday, Avature, Netflix, Uber, Notion (www.notion.com/careers), and Docusign (careers.docusign.com/api/jobs).
+Examples of supported site handlers include Greenhouse (e.g., xAI), Workday, Avature, Netflix, Uber, OpenAI (openai.com/careers), Notion (www.notion.com/careers), and Docusign (careers.docusign.com/api/jobs).
 
 ## Run workers to scrape jobs in temporal 
 

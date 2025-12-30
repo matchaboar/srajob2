@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .base import BaseSiteHandler
+from ..helpers.link_extractors import fix_scheme_slashes, strip_wrapping_url
 from ..helpers.regex_patterns import ASHBY_JOB_URL_PATTERN
 
 
@@ -82,6 +83,47 @@ class AshbyHqHandler(BaseSiteHandler):
                 seen.add(url)
                 urls.append(url)
         return urls
+
+    def filter_job_urls(self, urls: List[str]) -> List[str]:
+        filtered: List[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not isinstance(url, str):
+                continue
+            cleaned = strip_wrapping_url(url)
+            if not cleaned or cleaned in seen:
+                continue
+            cleaned = fix_scheme_slashes(cleaned)
+            lower = cleaned.lower()
+            if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
+                continue
+            if self._looks_like_non_job_detail_url(cleaned):
+                continue
+            seen.add(cleaned)
+            filtered.append(cleaned)
+        return filtered
+
+    @staticmethod
+    def _looks_like_non_job_detail_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        if parsed.scheme and parsed.scheme not in {"http", "https"}:
+            return True
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower()
+        if not host or not path:
+            return False
+        if any(token in path for token in ("http://", "https://", "http:/", "https:/")):
+            return True
+        segments = [seg for seg in path.split("/") if seg]
+        if not host.endswith("ashbyhq.com"):
+            if any(seg in {"apply", "application", "hvhapply"} for seg in segments):
+                return True
+        if host.endswith("linkedin.com") and path.startswith("/company/"):
+            return True
+        return False
 
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):

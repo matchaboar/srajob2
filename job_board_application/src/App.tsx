@@ -9,6 +9,7 @@ import { AdminPage } from "./AdminPage";
 import { JobDetailsPage } from "./JobDetailsPage";
 import { StatusTrackerTest } from "./test/StatusTrackerTest";
 import { useState, useEffect } from "react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { Id } from "../convex/_generated/dataModel";
 
 const parseJobDetailsId = (hash: string) => {
@@ -19,6 +20,7 @@ const parseJobDetailsId = (hash: string) => {
 
 export default function App() {
   const isAdmin = useQuery(api.auth.isAdmin);
+  const [errorResetKey, setErrorResetKey] = useState(0);
   const defaultJobsHref = (() => {
     const url = new URL(window.location.href);
     url.searchParams.delete("company");
@@ -108,22 +110,32 @@ export default function App() {
         </div>
       </header>
       <main className="flex-1 flex flex-col overflow-hidden">
-        {showTestPage ? (
-          <StatusTrackerTest />
-        ) : adminLoading ? (
-          <AdminLoading />
-        ) : adminBlocked ? (
-          <AdminDenied />
-        ) : showAdminPage ? (
-          <AdminPage />
-        ) : jobDetailsId ? (
-          <JobDetailsPage
-            jobId={jobDetailsId as Id<"jobs">}
-            onBack={() => { window.location.hash = "#admin-urlScrapes"; }}
-          />
-        ) : (
-          <Content />
-        )}
+        <ErrorBoundary
+          onRetry={() => setErrorResetKey((value) => value + 1)}
+          onError={(error) => {
+            const message = (error.message || "Unexpected error").slice(0, 160);
+            toast.error(`Job board error: ${message}`);
+          }}
+        >
+          <div className="flex-1 flex flex-col overflow-hidden" key={errorResetKey}>
+            {showTestPage ? (
+              <StatusTrackerTest />
+            ) : adminLoading ? (
+              <AdminLoading />
+            ) : adminBlocked ? (
+              <AdminDenied />
+            ) : showAdminPage ? (
+              <AdminPage />
+            ) : jobDetailsId ? (
+              <JobDetailsPage
+                jobId={jobDetailsId as Id<"jobs">}
+                onBack={() => { window.location.hash = "#admin-urlScrapes"; }}
+              />
+            ) : (
+              <Content />
+            )}
+          </div>
+        </ErrorBoundary>
       </main>
       <Toaster theme="dark" />
     </div>

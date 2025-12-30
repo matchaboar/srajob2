@@ -168,12 +168,12 @@ class GreenhouseHandler(BaseSiteHandler):
             if not isinstance(node, dict):
                 return None
             for key in (
-                "updated_at",
-                "updatedAt",
                 "first_published",
                 "firstPublished",
                 "created_at",
                 "createdAt",
+                "updated_at",
+                "updatedAt",
             ):
                 value = node.get(key)
                 if isinstance(value, str):
