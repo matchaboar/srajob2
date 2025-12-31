@@ -1556,6 +1556,26 @@ def derive_company_from_url(url: str) -> str:
         return ""
 
     hostname = hostname.lower()
+    if hostname.endswith("myworkdayjobs.com"):
+        parts = hostname.split(".")
+        if len(parts) >= 3:
+            subdomains = parts[:-2]
+            for candidate in subdomains:
+                if not candidate:
+                    continue
+                if candidate in {"www", "jobs", "careers", "boards", "board", "apply", "app", "join", "team", "teams", "work"}:
+                    continue
+                if re.fullmatch(r"wd\d+", candidate):
+                    continue
+                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
+                if cleaned:
+                    return cleaned.title()
+            for candidate in reversed(subdomains):
+                if not candidate or re.fullmatch(r"wd\d+", candidate):
+                    continue
+                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
+                if cleaned:
+                    return cleaned.title()
     # Greenhouse boards encode the company slug in the path: /{company}/jobs/...
     if hostname.endswith("greenhouse.io"):
         parts = [p for p in parsed.path.split("/") if p]

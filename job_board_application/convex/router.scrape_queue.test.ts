@@ -26,11 +26,14 @@ class FakeQuery {
   constructor(
     private getRows: () => QueueRow[],
     private filterFields: Record<string, any> = {},
-    private scheduledAtMax: number | null = null
+    private scheduledAtMax: number | null = null,
+    private indexName: string | null = null,
+    private ordered: boolean = false
   ) {}
-  withIndex(_name: string, cb: (q: any) => any) {
+  withIndex(name: string, cb: (q: any) => any) {
     const filterFields = { ...this.filterFields };
     let scheduledAtMax = this.scheduledAtMax;
+    const indexName = name;
     const builder = {
       eq: (field: string, val: string) => {
         filterFields[field] = val;
@@ -42,10 +45,10 @@ class FakeQuery {
       },
     };
     cb(builder);
-    return new FakeQuery(this.getRows, filterFields, scheduledAtMax);
+    return new FakeQuery(this.getRows, filterFields, scheduledAtMax, indexName, this.ordered);
   }
   order() {
-    return this;
+    return new FakeQuery(this.getRows, this.filterFields, this.scheduledAtMax, this.indexName, true);
   }
   private _filterRows(rows: QueueRow[]) {
     let filtered = rows;
@@ -57,6 +60,28 @@ class FakeQuery {
       filtered = filtered.filter((row) => {
         const scheduledAt = row.scheduledAt ?? 0;
         return scheduledAt <= scheduledAtMax;
+      });
+    }
+    if (this.ordered && this.indexName === "by_status_attempts_scheduled_at") {
+      filtered = filtered.slice().sort((a, b) => {
+        const attemptsA = a.attempts ?? 0;
+        const attemptsB = b.attempts ?? 0;
+        if (attemptsA !== attemptsB) return attemptsA - attemptsB;
+        const scheduledA = a.scheduledAt ?? 0;
+        const scheduledB = b.scheduledAt ?? 0;
+        if (scheduledA !== scheduledB) return scheduledA - scheduledB;
+        const createdA = a.createdAt ?? 0;
+        const createdB = b.createdAt ?? 0;
+        return createdA - createdB;
+      });
+    } else if (this.ordered && this.indexName === "by_status_and_scheduled_at") {
+      filtered = filtered.slice().sort((a, b) => {
+        const scheduledA = a.scheduledAt ?? 0;
+        const scheduledB = b.scheduledAt ?? 0;
+        if (scheduledA !== scheduledB) return scheduledA - scheduledB;
+        const createdA = a.createdAt ?? 0;
+        const createdB = b.createdAt ?? 0;
+        return createdA - createdB;
       });
     }
     return filtered;
@@ -76,7 +101,8 @@ class FakeDb {
   constructor(
     private queueRows: QueueRow[],
     private ignoredRows: Array<any> = [],
-    private seenRows: Array<any> = []
+    private seenRows: Array<any> = [],
+    private batchScrapes: Array<any> = []
   ) {}
   query = (table: string) => {
     if (table === "scrape_url_queue") {
@@ -95,6 +121,10 @@ class FakeDb {
     if (table === "seen_job_urls") {
       this.seenRows.push(payload);
       return `seen-${this.seenRows.length}`;
+    }
+    if (table === "batch_scrapes") {
+      this.batchScrapes.push(payload);
+      return `batch-${this.batchScrapes.length}`;
     }
     throw new Error(`Unexpected insert table ${table}`);
   });
@@ -210,6 +240,61 @@ describe("leaseScrapeUrlBatch", () => {
 
     expect(firstUrls.length).toBeGreaterThan(0);
     expect(new Set([...firstUrls, ...secondUrls]).size).toBe(firstUrls.length + secondUrls.length);
+  });
+
+  it("prioritizes lowest attempts when leasing", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-high",
+        url: "https://example.com/job/high",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 2,
+        siteId: "site-1",
+      },
+      {
+        _id: "row-low",
+        url: "https://example.com/job/low",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+        siteId: "site-1",
+      },
+      {
+        _id: "row-mid",
+        url: "https://example.com/job/mid",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 1,
+        siteId: "site-1",
+      },
+    ];
+
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toEqual([
+      "https://example.com/job/low",
+      "https://example.com/job/mid",
+    ]);
   });
 
   it("skips active processing rows to prevent double-leasing", async () => {
@@ -565,7 +650,7 @@ describe("completeScrapeUrls", () => {
         updatedAt: now - 1_000,
         createdAt: now - 5_000,
         provider: "spidercloud",
-        attempts: 2,
+        attempts: 3,
       },
     ];
     const db = new FakeDb(rows);

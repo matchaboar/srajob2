@@ -15,10 +15,17 @@ SCHEDULES_YAML = resolve_config_path("schedules.yaml")
 def _load_ids_from_yaml() -> list[tuple[str, str]]:
     data = yaml.safe_load(SCHEDULES_YAML.read_text()) if SCHEDULES_YAML.exists() else {}
     items = data.get("schedules", []) if isinstance(data, dict) else []
+    firecrawl_workflows = {"SiteLease", "ProcessWebhookScrape", "RecoverMissingFirecrawlWebhook", "ScraperFirecrawl"}
+    fetchfox_workflows = {"FetchfoxSpidercloud", "ScrapeWorkflow"}
     out: list[tuple[str, str]] = []
     for item in items:
         if isinstance(item, dict) and "id" in item and "workflow" in item:
-            out.append((str(item["id"]), str(item["workflow"])))
+            workflow_name = str(item["workflow"])
+            if workflow_name in firecrawl_workflows and not settings.enable_firecrawl:
+                continue
+            if workflow_name in fetchfox_workflows and not settings.enable_fetchfox:
+                continue
+            out.append((str(item["id"]), workflow_name))
     return out
 
 

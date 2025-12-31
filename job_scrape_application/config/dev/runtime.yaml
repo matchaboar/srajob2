@@ -9,7 +9,7 @@ spidercloud_job_details_concurrency: 4
 
 # Minutes after which a leased Spidercloud job-detail URL is considered stale and automatically released from "processing"
 # back to "pending" so the workflow can re-lease it. This prevents stuck rows from blocking future batches.
-spidercloud_job_details_processing_expire_minutes: 20
+spidercloud_job_details_processing_expire_minutes: 5
 
 # Timeout (seconds) for outbound Spidercloud requests. Set to 15 minutes so slow streams don't prematurely fail.
 spidercloud_http_timeout_seconds: 900

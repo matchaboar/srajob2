@@ -16,7 +16,7 @@ import {
   siteCanonicalKey,
 } from "./siteUtils";
 import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
-import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters } from "./jobs";
+import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters, parseMarkdownHints } from "./jobs";
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -248,6 +248,40 @@ const buildShareDescription = (raw: string | null | undefined) => {
   const cleaned = stripEmbeddedJson(cleanScrapedText(raw));
   if (!cleaned) return "Job details available on JobBoard.";
   return truncateText(cleaned, 240);
+};
+const JOB_APPLICATION_TITLE_RE = /^job application for\s+(.+?)(?:\s+at\s+.+)?$/i;
+const extractJobApplicationTitle = (value: string) => {
+  const match = value.match(JOB_APPLICATION_TITLE_RE);
+  if (!match) return null;
+  const trimmed = match[1]?.trim();
+  return trimmed ? trimmed : null;
+};
+export const resolveShareJobTitle = (job: { title?: string | null; description?: string | null; url?: string | null }) => {
+  const rawTitle = typeof job.title === "string" ? job.title.trim() : "";
+  const fallbackTitle = rawTitle || "Job details";
+  const shouldFallback = !rawTitle || looksLikeNoisyTitle(rawTitle) || JOB_APPLICATION_TITLE_RE.test(rawTitle);
+  if (!shouldFallback) return rawTitle;
+
+  const applicationTitle = rawTitle ? extractJobApplicationTitle(rawTitle) : null;
+  if (applicationTitle && !looksLikeNoisyTitle(applicationTitle)) {
+    return applicationTitle;
+  }
+
+  const description = typeof job.description === "string" ? job.description : "";
+  if (description) {
+    const hints = parseMarkdownHints(description);
+    const hintedTitle = typeof hints.title === "string" ? hints.title.trim() : "";
+    if (hintedTitle && !looksLikeNoisyTitle(hintedTitle)) {
+      return hintedTitle;
+    }
+  }
+
+  const urlTitle = typeof job.url === "string" ? deriveTitleFromUrl(job.url) : null;
+  if (urlTitle && !looksLikeNoisyTitle(urlTitle)) {
+    return urlTitle;
+  }
+
+  return fallbackTitle;
 };
 const normalizeCompany = (value: string) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const toTitleCaseSlug = (value: string) => {
@@ -887,7 +921,7 @@ http.route({
     }
 
     const companyName = (job.company ?? "Unknown company").trim() || "Unknown company";
-    const jobTitle = (job.title ?? "Job details").trim() || "Job details";
+    const jobTitle = resolveShareJobTitle(job);
     const shareTitle = companyName ? `${jobTitle} at ${companyName}` : jobTitle;
     const shortDescription = buildShareDescription(job.description);
     const jobBoardLogoUrl = new URL(JOB_BOARD_LOGO_PATH, url).toString();
@@ -1003,7 +1037,7 @@ http.route({
     }
 
     const companyName = (job.company ?? "Unknown company").trim() || "Unknown company";
-    const jobTitle = (job.title ?? "Job details").trim() || "Job details";
+    const jobTitle = resolveShareJobTitle(job);
     const shareTitle = companyName ? `${jobTitle} at ${companyName}` : jobTitle;
     const shortDescription = buildShareDescription(job.description);
     const jobBoardLogoUrl = new URL(JOB_BOARD_LOGO_PATH, url).toString();
@@ -1691,11 +1725,32 @@ const leaseScrapeUrlBatchHandler = async (
     provider?: string;
     limit?: number;
     processingExpiryMs?: number;
+    workerId?: string;
   }
 ) => {
   const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
   const now = Date.now();
-  const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000));
+  const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 5 * 60_000, 24 * 60 * 60_000));
+
+  const insertBatchScrape = async (payload: {
+    urls: string[];
+    retryCounts: number[];
+    skip_reason?: string;
+  }) => {
+    try {
+      const insertPayload: Record<string, any> = {
+        urls: payload.urls,
+        retryCounts: payload.retryCounts,
+        startedAt: now,
+      };
+      if (args.workerId) insertPayload.workerId = args.workerId;
+      if (args.provider) insertPayload.provider = args.provider;
+      if (payload.skip_reason) insertPayload.skip_reason = payload.skip_reason;
+      await ctx.db.insert("batch_scrapes", insertPayload);
+    } catch (err) {
+      console.error("leaseScrapeUrlBatch: failed to record batch scrape", err);
+    }
+  };
 
   const normalizeDomain = (url: string) => {
     try {
@@ -1727,7 +1782,9 @@ const leaseScrapeUrlBatchHandler = async (
 
   const baseQuery = ctx.db
     .query("scrape_url_queue")
-    .withIndex("by_status_and_scheduled_at", (q: any) => q.eq("status", "pending").lte("scheduledAt", now));
+    .withIndex("by_status_attempts_scheduled_at", (q: any) =>
+      q.eq("status", "pending").lte("scheduledAt", now)
+    );
   let rows = await baseQuery.order("asc").take(limit * 3);
   if (rows.length < limit) {
     const legacyRows = await ctx.db
@@ -1737,7 +1794,9 @@ const leaseScrapeUrlBatchHandler = async (
       .take(limit * 2);
     const seenIds = new Set(rows.map((row: any) => row._id));
     for (const row of legacyRows as any[]) {
-      if (!row.scheduledAt && !seenIds.has(row._id)) {
+      const missingScheduled = !row.scheduledAt;
+      const missingAttempts = row.attempts === undefined || row.attempts === null;
+      if ((missingScheduled || missingAttempts) && !seenIds.has(row._id)) {
         rows.push(row);
       }
       if (rows.length >= limit * 3) break;
@@ -1809,15 +1868,91 @@ const leaseScrapeUrlBatchHandler = async (
     }
   }
 
-  if (picked.length === 0) return { urls: [] };
+  if (picked.length === 0) {
+    let shouldLog = false;
+    let skipReason: string | undefined;
+    let sampleUrls: string[] = [];
+    let sampleRetryCounts: number[] = [];
+    try {
+      const sampleLimit = 25;
+      const pendingSample = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q: any) => q.eq("status", "pending"))
+        .take(sampleLimit);
+      const processingSample = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q: any) => q.eq("status", "processing"))
+        .take(sampleLimit);
 
+      const pendingRows = Array.isArray(pendingSample) ? pendingSample : [];
+      const processingRows = Array.isArray(processingSample) ? processingSample : [];
+      const pendingForProvider = args.provider
+        ? pendingRows.filter((row: any) => row.provider === args.provider)
+        : pendingRows;
+
+      if (pendingRows.length > 0 || processingRows.length > 0) {
+        shouldLog = true;
+        if (pendingForProvider.length === 0) {
+          skipReason = pendingRows.length > 0 ? "provider_mismatch" : "all_processing";
+          const sample = pendingRows.length > 0 ? pendingRows : processingRows;
+          const sampleEntries = sample
+            .filter((row: any) => typeof row.url === "string")
+            .map((row: any) => ({
+              url: row.url,
+              retryCount: Math.max(0, (row.attempts ?? 0) - 1),
+            }));
+          sampleUrls = sampleEntries.map((entry) => entry.url);
+          sampleRetryCounts = sampleEntries.map((entry) => entry.retryCount);
+        } else {
+          const hasReady = pendingForProvider.some(
+            (row: any) => (row.scheduledAt ?? 0) <= now
+          );
+          skipReason = hasReady ? "no_eligible_rows" : "scheduled_in_future";
+          const sampleEntries = pendingForProvider
+            .filter((row: any) => typeof row.url === "string")
+            .map((row: any) => ({
+              url: row.url,
+              retryCount: Math.max(0, (row.attempts ?? 0) - 1),
+            }));
+          sampleUrls = sampleEntries.map((entry) => entry.url);
+          sampleRetryCounts = sampleEntries.map((entry) => entry.retryCount);
+        }
+      }
+    } catch (err) {
+      console.error("leaseScrapeUrlBatch: failed to sample queue for skip reason", err);
+    }
+
+    if (shouldLog && skipReason) {
+      await insertBatchScrape({
+        urls: sampleUrls,
+        retryCounts: sampleRetryCounts,
+        skip_reason: skipReason,
+      });
+    }
+
+    return { urls: [] };
+  }
+
+  const batchUrls: string[] = [];
+  const batchRetryCounts: number[] = [];
   for (const row of picked) {
+    const nextAttempts = ((row).attempts ?? 0) + 1;
+    const retryCount = Math.max(0, nextAttempts - 1);
     await ctx.db.patch(row._id, {
       status: "processing",
-      attempts: ((row).attempts ?? 0) + 1,
+      attempts: nextAttempts,
       updatedAt: now,
     });
+    if (typeof row.url === "string") {
+      batchUrls.push(row.url);
+      batchRetryCounts.push(retryCount);
+    }
   }
+
+  await insertBatchScrape({
+    urls: batchUrls,
+    retryCounts: batchRetryCounts,
+  });
 
   return {
     urls: picked.map((r) => ({
@@ -1838,6 +1973,7 @@ export const leaseScrapeUrlBatch = Object.assign(
       provider: v.optional(v.string()),
       limit: v.optional(v.number()),
       processingExpiryMs: v.optional(v.number()),
+      workerId: v.optional(v.string()),
     },
     handler: leaseScrapeUrlBatchHandler,
   }),
@@ -1855,7 +1991,7 @@ export const requeueStaleScrapeUrls = mutation({
     const limit = Math.max(1, Math.min(args.limit ?? 500, 2000));
     const processingExpiryMs = Math.max(
       60_000,
-      Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000)
+      Math.min(args.processingExpiryMs ?? 5 * 60_000, 24 * 60 * 60_000)
     );
     const cutoff = now - processingExpiryMs;
 
@@ -1933,7 +2069,8 @@ const completeScrapeUrlsHandler = async (
     if (!existing) continue;
     await recordSeenJobUrl(ctx, (existing).sourceUrl, url);
 
-    const attempts = ((existing).attempts ?? 0) + 1;
+    // Attempts are incremented when leased; avoid double-increment here.
+    const attempts = (existing).attempts ?? 0;
     const shouldIgnore =
       args.status === "failed" &&
       (attempts >= JOB_DETAIL_MAX_ATTEMPTS || (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
@@ -3892,6 +4029,30 @@ export const listScrapes = query({
       asyncResponse: row.asyncResponse,
       subUrls: row.subUrls ?? row.items?.seedUrls ?? [],
       type: row.items?.kind ?? row.workflowName ?? row.provider,
+    }));
+  },
+});
+
+export const listBatchScrapes = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 100, 500));
+    const rows = await ctx.db
+      .query("batch_scrapes")
+      .withIndex("by_started", (q) => q.gt("startedAt", 0))
+      .order("desc")
+      .take(limit);
+
+    return rows.map((row: any) => ({
+      _id: row._id,
+      urls: row.urls ?? [],
+      retryCounts: row.retryCounts ?? [],
+      startedAt: row.startedAt,
+      workerId: row.workerId,
+      provider: row.provider,
+      skip_reason: row.skip_reason,
     }));
   },
 });

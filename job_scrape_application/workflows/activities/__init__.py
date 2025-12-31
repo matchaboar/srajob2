@@ -171,6 +171,19 @@ def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in payload.items() if v is not None}
 
 
+def _get_activity_worker_id() -> str | None:
+    try:
+        info = activity.info()
+    except Exception:
+        return None
+    worker_identity = getattr(info, "worker_identity", None)
+    if isinstance(worker_identity, str):
+        worker_identity = worker_identity.strip()
+        if worker_identity:
+            return worker_identity
+    return None
+
+
 def _convex_site_id(value: Any) -> Optional[str]:
     """Return a Convex document id if the value looks valid, else None."""
 
@@ -1114,6 +1127,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                     "provider": provider,
                     "limit": limit,
                     "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
+                    "workerId": _get_activity_worker_id(),
                 }
             ),
         )
@@ -1822,448 +1836,406 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
     }
 @activity.defn
 async def store_scrape(scrape: Dict[str, Any]) -> str:
-    from ...services.convex_client import convex_mutation
-
-    # Keep the activity alive during longer Convex/ingestion calls.
     try:
-        activity.heartbeat({"stage": "start"})
-    except Exception:
-        pass
-
-    async def _log_scratchpad(
-        event: str,
-        message: str | None = None,
-        data: Dict[str, Any] | None = None,
-        *,
-        level: str = "info",
-    ):
-        site_url = scrape.get("sourceUrl")
-        if not isinstance(site_url, str):
-            site_url = ""
-        workflow_id = scrape.get("workflowId") or scrape.get("workflow_id")
-        payload = _strip_none_values(
-            {
-                "event": event,
-                "message": message,
-                "data": data,
-                "createdAt": int(time.time() * 1000),
-                "workflowName": scrape.get("workflowName"),
-                "workflowId": workflow_id or "unknown",
-                "runId": scrape.get("runId") or scrape.get("run_id"),
-                "siteUrl": site_url or "",
-                "level": level,
-            }
-        )
-        payload["message"] = _build_scratchpad_message(payload)
+        from ...services.convex_client import convex_mutation
+    
+        # Keep the activity alive during longer Convex/ingestion calls.
         try:
-            telemetry.emit_posthog_log(payload)
+            activity.heartbeat({"stage": "start"})
         except Exception:
-            # best-effort; ignore logging errors
             pass
-
-    async def _apply_job_detail_heuristics_to_jobs(jobs: List[Dict[str, Any]], heuristic_time_ms: int) -> List[Dict[str, Any]]:
-        """Enrich job rows with heuristic parsing before ingestion."""
-
-        try:
-            from ...services.convex_client import convex_query
-        except Exception:
-            convex_query = None  # type: ignore[assignment]
-
-        configs_cache: Dict[str, List[Dict[str, Any]]] = {}
-        enriched: List[Dict[str, Any]] = []
-        for job in jobs:
-            domain = _domain_from_url(job.get("url") or "")
-            configs = configs_cache.get(domain)
-            if configs is None:
-                try:
-                    fetched = await convex_query("router:listJobDetailConfigs", {"domain": domain}) if convex_query else []
-                    configs = fetched if isinstance(fetched, list) else []
-                except Exception:
-                    configs = []
-                configs_cache[domain] = configs
-            patch, records = _build_job_detail_heuristic_patch(job, configs or [], heuristic_time_ms)
-            enriched.append({**job, **patch})
-            for rec in records:
-                try:
-                    await convex_mutation("router:recordJobDetailHeuristic", rec)
-                except Exception:
-                    # best-effort; do not block ingestion
-                    continue
-        return enriched
-
-    payload = trim_scrape_for_convex(scrape)
-    now = int(time.time() * 1000)
-    normalized_count = 0
-    if isinstance(payload.get("items"), dict):
-        normalized_items = payload["items"].get("normalized")
-        if isinstance(normalized_items, list):
-            normalized_count = len(normalized_items)
-    ignored_count = 0
-    if isinstance(payload.get("items"), dict):
-        ignored_items = payload["items"].get("ignored")
-        if isinstance(ignored_items, list):
-            ignored_count = len(ignored_items)
-    failed_count = 0
-    failed_reasons: list[str] = []
-    failed_items = None
-    if isinstance(payload.get("items"), dict):
-        failed_items = payload["items"].get("failed")
-        if isinstance(failed_items, list):
-            failed_count = len(failed_items)
-            for entry in failed_items:
-                if isinstance(entry, dict):
-                    reason = entry.get("reason")
-                    if isinstance(reason, str) and reason:
-                        failed_reasons.append(reason)
-
-    scraped_with = None
-    if isinstance(payload.get("items"), dict):
-        scraped_with = payload["items"].get("provider")
-    scraped_with = scraped_with or payload.get("provider")
-    workflow_name = payload.get("workflowName")
-    cost_milli_cents = payload.get("costMilliCents")
-    if cost_milli_cents is None and isinstance(payload.get("items"), dict):
-        maybe_cost = payload["items"].get("costMilliCents")
-        if isinstance(maybe_cost, (int, float)):
-            cost_milli_cents = int(maybe_cost)
-    # Support costCents fallback
-    if cost_milli_cents is None and payload.get("costCents") is not None:
-        try:
-            cost_milli_cents = int(float(payload["costCents"]) * 1000)
-        except Exception:
-            cost_milli_cents = None
-    response_preview = _shrink_payload(payload.get("response"), 4000)
-    async_response_preview = _shrink_payload(payload.get("asyncResponse"), 4000)
-    items_provider = None
-    if isinstance(payload.get("items"), dict):
-        items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
-    provider_for_log = scraped_with or payload.get("provider") or items_provider
-    invalid_reason = None
-    failure_reason = None
-    if workflow_name == "SpidercloudJobDetails" and normalized_count == 0 and ignored_count == 0:
-        if failed_count:
-            if failed_reasons and all(reason == "captcha_failed" for reason in failed_reasons):
-                failure_reason = "captcha_failed"
+    
+        async def _log_scratchpad(
+            event: str,
+            message: str | None = None,
+            data: Dict[str, Any] | None = None,
+            *,
+            level: str = "info",
+        ):
+            site_url = scrape.get("sourceUrl")
+            if not isinstance(site_url, str):
+                site_url = ""
+            workflow_id = scrape.get("workflowId") or scrape.get("workflow_id")
+            payload = _strip_none_values(
+                {
+                    "event": event,
+                    "message": message,
+                    "data": data,
+                    "createdAt": int(time.time() * 1000),
+                    "workflowName": scrape.get("workflowName"),
+                    "workflowId": workflow_id or "unknown",
+                    "runId": scrape.get("runId") or scrape.get("run_id"),
+                    "siteUrl": site_url or "",
+                    "level": level,
+                }
+            )
+            payload["message"] = _build_scratchpad_message(payload)
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                # best-effort; ignore logging errors
+                pass
+    
+        async def _apply_job_detail_heuristics_to_jobs(jobs: List[Dict[str, Any]], heuristic_time_ms: int) -> List[Dict[str, Any]]:
+            """Enrich job rows with heuristic parsing before ingestion."""
+    
+            try:
+                from ...services.convex_client import convex_query
+            except Exception:
+                convex_query = None  # type: ignore[assignment]
+    
+            configs_cache: Dict[str, List[Dict[str, Any]]] = {}
+            enriched: List[Dict[str, Any]] = []
+            for job in jobs:
+                domain = _domain_from_url(job.get("url") or "")
+                configs = configs_cache.get(domain)
+                if configs is None:
+                    try:
+                        fetched = await convex_query("router:listJobDetailConfigs", {"domain": domain}) if convex_query else []
+                        configs = fetched if isinstance(fetched, list) else []
+                    except Exception:
+                        configs = []
+                    configs_cache[domain] = configs
+                patch, records = _build_job_detail_heuristic_patch(job, configs or [], heuristic_time_ms)
+                enriched.append({**job, **patch})
+                for rec in records:
+                    try:
+                        await convex_mutation("router:recordJobDetailHeuristic", rec)
+                    except Exception:
+                        # best-effort; do not block ingestion
+                        continue
+            return enriched
+    
+        payload = trim_scrape_for_convex(scrape)
+        now = int(time.time() * 1000)
+        normalized_count = 0
+        if isinstance(payload.get("items"), dict):
+            normalized_items = payload["items"].get("normalized")
+            if isinstance(normalized_items, list):
+                normalized_count = len(normalized_items)
+        ignored_count = 0
+        if isinstance(payload.get("items"), dict):
+            ignored_items = payload["items"].get("ignored")
+            if isinstance(ignored_items, list):
+                ignored_count = len(ignored_items)
+        failed_count = 0
+        failed_reasons: list[str] = []
+        failed_items = None
+        if isinstance(payload.get("items"), dict):
+            failed_items = payload["items"].get("failed")
+            if isinstance(failed_items, list):
+                failed_count = len(failed_items)
+                for entry in failed_items:
+                    if isinstance(entry, dict):
+                        reason = entry.get("reason")
+                        if isinstance(reason, str) and reason:
+                            failed_reasons.append(reason)
+    
+        scraped_with = None
+        if isinstance(payload.get("items"), dict):
+            scraped_with = payload["items"].get("provider")
+        scraped_with = scraped_with or payload.get("provider")
+        workflow_name = payload.get("workflowName")
+        cost_milli_cents = payload.get("costMilliCents")
+        if cost_milli_cents is None and isinstance(payload.get("items"), dict):
+            maybe_cost = payload["items"].get("costMilliCents")
+            if isinstance(maybe_cost, (int, float)):
+                cost_milli_cents = int(maybe_cost)
+        # Support costCents fallback
+        if cost_milli_cents is None and payload.get("costCents") is not None:
+            try:
+                cost_milli_cents = int(float(payload["costCents"]) * 1000)
+            except Exception:
+                cost_milli_cents = None
+        response_preview = _shrink_payload(payload.get("response"), 4000)
+        async_response_preview = _shrink_payload(payload.get("asyncResponse"), 4000)
+        items_provider = None
+        if isinstance(payload.get("items"), dict):
+            items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
+        provider_for_log = scraped_with or payload.get("provider") or items_provider
+        invalid_reason = None
+        failure_reason = None
+        if workflow_name == "SpidercloudJobDetails" and normalized_count == 0 and ignored_count == 0:
+            if failed_count:
+                if failed_reasons and all(reason == "captcha_failed" for reason in failed_reasons):
+                    failure_reason = "captcha_failed"
+                else:
+                    failure_reason = "scrape_failed"
             else:
-                failure_reason = "scrape_failed"
-        else:
-            invalid_reason = "no_normalized_jobs"
-    if invalid_reason or failure_reason:
-        try:
-            telemetry.emit_posthog_exception(
-                ValueError(f"Scrape payload invalid: {invalid_reason or failure_reason}"),
-                properties={
-                    "event": "scrape.invalid_payload" if invalid_reason else "scrape.failed_payload",
-                    "siteUrl": payload.get("sourceUrl") or "",
-                    "provider": provider_for_log,
-                    "workflowName": workflow_name,
-                    "normalizedCount": normalized_count,
-                    "ignoredCount": ignored_count,
-                    "failedCount": failed_count,
-                    "reason": invalid_reason or failure_reason,
-                },
-            )
-        except Exception:
-            pass
-
-    await _log_scratchpad(
-        "scrape.received",
-        message=(
-            f"Scrape payload received for {payload.get('sourceUrl') or 'unknown site'} "
-            f"via {provider_for_log or 'unknown provider'}"
-        ),
-        data={
-            "workflowId": payload.get("workflowId"),
-            "provider": provider_for_log,
-            "normalizedCount": normalized_count,
-            "ignoredCount": ignored_count or None,
-            "siteId": payload.get("siteId"),
-        },
-    )
-    if failed_count:
+                invalid_reason = "no_normalized_jobs"
+        if invalid_reason or failure_reason:
+            try:
+                telemetry.emit_posthog_exception(
+                    ValueError(f"Scrape payload invalid: {invalid_reason or failure_reason}"),
+                    properties={
+                        "event": "scrape.invalid_payload" if invalid_reason else "scrape.failed_payload",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                        "normalizedCount": normalized_count,
+                        "ignoredCount": ignored_count,
+                        "failedCount": failed_count,
+                        "reason": invalid_reason or failure_reason,
+                    },
+                )
+            except Exception:
+                pass
+    
         await _log_scratchpad(
-            "scrape.failed_urls",
-            message="Scrape payload contained failed URLs",
-            data={
-                "workflowId": payload.get("workflowId"),
-                "provider": provider_for_log,
-                "failedCount": failed_count,
-                "failedSample": failed_items[:10] if isinstance(failed_items, list) else None,
-                "siteId": payload.get("siteId"),
-            },
-            level="warning",
-        )
-
-    # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
-    try:
-        if provider_for_log and str(provider_for_log).startswith("fetchfox"):
-            items_block = scrape.get("items") if isinstance(scrape.get("items"), dict) else {}
-            raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
-            normalized = items_block.get("normalized") if isinstance(items_block, dict) else None
-
-            raw_urls: List[str] = []
-            if isinstance(raw_block, dict):
-                urls_field = raw_block.get("urls")
-                if isinstance(urls_field, list):
-                    raw_urls = [u for u in urls_field if isinstance(u, str)]
-                items_field = raw_block.get("items")
-                if not raw_urls and isinstance(items_field, list):
-                    for entry in items_field:
-                        if isinstance(entry, dict):
-                            url_val = entry.get("url") or entry.get("link")
-                            if isinstance(url_val, str):
-                                raw_urls.append(url_val)
-                data_field = raw_block.get("data")
-                if not raw_urls and isinstance(data_field, list):
-                    for entry in data_field:
-                        if isinstance(entry, dict):
-                            url_val = entry.get("url") or entry.get("link")
-                            if isinstance(url_val, str):
-                                raw_urls.append(url_val)
-
-            await _log_scratchpad(
-                "scrape.fetchfox.raw",
-                message="Captured FetchFox raw payload",
-                data={
-                    "pattern": payload.get("pattern"),
-                    "rawUrlCount": len(raw_urls) if raw_urls else None,
-                    "rawUrlSample": raw_urls[:20] if raw_urls else None,
-                    "normalizedCount": len(normalized) if isinstance(normalized, list) else None,
-                    "rawPreview": _shrink_payload(raw_block, 20000),
-                },
-            )
-    except Exception:
-        # Best-effort; do not block on debug logging
-        pass
-
-    def _resolve_source_url(data: Dict[str, Any]) -> str:
-        """Best-effort source URL extraction that tolerates missing fields."""
-
-        for key in ("sourceUrl", "sourceURL", "source_url", "siteUrl", "url"):
-            val = data.get(key)
-            if isinstance(val, str) and val.strip():
-                return val
-
-        request_block = data.get("request")
-        if isinstance(request_block, dict):
-            req_url = request_block.get("url")
-            if isinstance(req_url, str) and req_url.strip():
-                return req_url
-
-        provider_request = data.get("providerRequest")
-        if isinstance(provider_request, dict):
-            req_url = provider_request.get("url")
-            if isinstance(req_url, str) and req_url.strip():
-                return req_url
-
-        return ""
-
-    def _base_payload(data: Dict[str, Any]) -> Dict[str, Any]:
-        source_url = _resolve_source_url(data)
-        body = {
-            "sourceUrl": source_url,
-            "startedAt": data.get("startedAt", now),
-            "completedAt": data.get("completedAt", now),
-            "items": data.get("items"),
-        }
-        if data.get("siteId") is not None:
-            body["siteId"] = data.get("siteId")
-        provider_value = scraped_with
-        if provider_value is None:
-            provider_value = data.get("provider")
-        if provider_value is None and isinstance(data.get("items"), dict):
-            provider_value = data["items"].get("provider")
-        if provider_value is not None:
-            body["provider"] = str(provider_value)
-        workflow_value = data.get("workflowName")
-        if workflow_value is None:
-            workflow_value = workflow_name
-        if workflow_value is not None:
-            body["workflowName"] = str(workflow_value)
-        pattern = data.get("pattern")
-        if pattern is not None:
-            body["pattern"] = pattern
-        if data.get("request") is not None:
-            body["request"] = data.get("request")
-        if data.get("providerRequest") is not None:
-            body["providerRequest"] = data.get("providerRequest")
-        if cost_milli_cents is not None:
-            body["costMilliCents"] = cost_milli_cents
-        if response_preview is not None:
-            body["response"] = response_preview
-        if async_response_preview is not None:
-            body["asyncResponse"] = async_response_preview
-        if data.get("asyncState") is not None:
-            body["asyncState"] = data.get("asyncState")
-        if data.get("batchId") is not None:
-            body["batchId"] = data.get("batchId")
-        if data.get("workflowId") is not None:
-            body["workflowId"] = data.get("workflowId")
-        if data.get("workflowType") is not None:
-            body["workflowType"] = data.get("workflowType")
-        if data.get("jobBoardJobId") is not None:
-            body["jobBoardJobId"] = data.get("jobBoardJobId")
-        if data.get("subUrls") is not None:
-            body["subUrls"] = data.get("subUrls")
-        return body
-
-    def _build_invalid_context() -> Dict[str, Any]:
-        items_block = scrape.get("items") if isinstance(scrape, dict) else {}
-        raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
-        raw_items: List[Any] = []
-        if isinstance(raw_block, list):
-            raw_items = raw_block
-        elif isinstance(raw_block, dict):
-            raw_items = [raw_block]
-
-        markdown_samples: List[Any] = []
-        html_samples: List[Any] = []
-        event_samples: List[Any] = []
-        link_samples: List[Any] = []
-        markdown_lengths: List[int] = []
-        event_counts: List[int] = []
-        link_counts: List[int] = []
-
-        def _add_markdown(value: Any) -> None:
-            if isinstance(value, str) and value.strip():
-                markdown_samples.append(_shrink_payload(value, 12000))
-
-        def _add_html(value: Any) -> None:
-            if isinstance(value, str) and value.strip():
-                html_samples.append(_shrink_payload(value, 12000))
-
-        for raw in raw_items[:2]:
-            if not isinstance(raw, dict):
-                continue
-            markdown_val = raw.get("markdown") or raw.get("commonmark") or raw.get("content")
-            _add_markdown(markdown_val)
-            if isinstance(markdown_val, str):
-                markdown_lengths.append(len(markdown_val))
-            _add_html(raw.get("raw_html") or raw.get("html"))
-            events_val = raw.get("events")
-            if events_val is not None:
-                event_samples.append(_shrink_payload(events_val, 6000))
-                if isinstance(events_val, list):
-                    event_counts.append(len(events_val))
-            job_urls = raw.get("job_urls") or raw.get("links")
-            if isinstance(job_urls, list) and job_urls:
-                link_samples.append(job_urls[:50])
-                link_counts.append(len(job_urls))
-
-        if isinstance(items_block, dict):
-            markdown_val = items_block.get("markdown") or items_block.get("commonmark") or items_block.get("content")
-            _add_markdown(markdown_val)
-            if isinstance(markdown_val, str):
-                markdown_lengths.append(len(markdown_val))
-            _add_html(items_block.get("raw_html") or items_block.get("html"))
-            if isinstance(items_block.get("job_urls"), list):
-                job_urls = items_block.get("job_urls")
-                link_samples.append(job_urls[:50])
-                link_counts.append(len(job_urls))
-            if isinstance(items_block.get("seedUrls"), list):
-                seed_urls = items_block.get("seedUrls")
-                link_samples.append(seed_urls[:50])
-                link_counts.append(len(seed_urls))
-
-        response_preview = _shrink_payload(scrape.get("response"), 12000)
-        async_response_preview = _shrink_payload(scrape.get("asyncResponse"), 12000)
-        provider_request_preview = _shrink_payload(scrape.get("providerRequest"), 6000)
-        request_preview = _shrink_payload(scrape.get("request"), 6000)
-
-        sub_urls = scrape.get("subUrls")
-        sub_url_sample = sub_urls[:20] if isinstance(sub_urls, list) else None
-        failed_entries: list[Any] = []
-        failed_count_local = 0
-        if isinstance(items_block, dict):
-            failed_items_local = items_block.get("failed")
-            if isinstance(failed_items_local, list):
-                failed_entries = failed_items_local[:10]
-                failed_count_local = len(failed_items_local)
-
-        return _strip_none_values(
-            {
-                "reason": invalid_reason or failure_reason,
-                "normalizedCount": normalized_count,
-                "ignoredCount": ignored_count,
-                "failedCount": failed_count_local,
-                "provider": provider_for_log,
-                "workflowName": workflow_name,
-                "siteId": payload.get("siteId"),
-                "sourceUrl": payload.get("sourceUrl"),
-                "pattern": payload.get("pattern"),
-                "subUrlsSample": sub_url_sample,
-                "failedSamples": failed_entries or None,
-                "rawItemsCount": len(raw_items),
-                "markdownLengths": markdown_lengths or None,
-                "eventCounts": event_counts or None,
-                "linkCounts": link_counts or None,
-                "requestedFormat": items_block.get("requestedFormat") if isinstance(items_block, dict) else None,
-                "markdownSamples": markdown_samples or None,
-                "htmlSamples": html_samples or None,
-                "eventSamples": event_samples or None,
-                "linkSamples": link_samples or None,
-                "response": response_preview,
-                "asyncResponse": async_response_preview,
-                "providerRequest": provider_request_preview,
-                "request": request_preview,
-            }
-        )
-
-    scrape_id: str | None = None
-    try:
-        scrape_id = await convex_mutation(
-            "router:insertScrapeRecord",
-            _base_payload(payload),
-        )
-        await _log_scratchpad(
-            "scrape.persisted",
+            "scrape.received",
             message=(
-                f"Persisted scrape with {normalized_count} normalized jobs "
-                f"({provider_for_log or 'unknown provider'})"
+                f"Scrape payload received for {payload.get('sourceUrl') or 'unknown site'} "
+                f"via {provider_for_log or 'unknown provider'}"
             ),
             data={
-                "scrapeId": scrape_id,
                 "workflowId": payload.get("workflowId"),
-                "normalizedCount": normalized_count,
                 "provider": provider_for_log,
+                "normalizedCount": normalized_count,
+                "ignoredCount": ignored_count or None,
                 "siteId": payload.get("siteId"),
             },
         )
+        if failed_count:
+            await _log_scratchpad(
+                "scrape.failed_urls",
+                message="Scrape payload contained failed URLs",
+                data={
+                    "workflowId": payload.get("workflowId"),
+                    "provider": provider_for_log,
+                    "failedCount": failed_count,
+                    "failedSample": failed_items[:10] if isinstance(failed_items, list) else None,
+                    "siteId": payload.get("siteId"),
+                },
+                level="warning",
+            )
+    
+        # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
         try:
-            activity.heartbeat({"stage": "persisted", "scrapeId": scrape_id})
+            if provider_for_log and str(provider_for_log).startswith("fetchfox"):
+                items_block = scrape.get("items") if isinstance(scrape.get("items"), dict) else {}
+                raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
+                normalized = items_block.get("normalized") if isinstance(items_block, dict) else None
+    
+                raw_urls: List[str] = []
+                if isinstance(raw_block, dict):
+                    urls_field = raw_block.get("urls")
+                    if isinstance(urls_field, list):
+                        raw_urls = [u for u in urls_field if isinstance(u, str)]
+                    items_field = raw_block.get("items")
+                    if not raw_urls and isinstance(items_field, list):
+                        for entry in items_field:
+                            if isinstance(entry, dict):
+                                url_val = entry.get("url") or entry.get("link")
+                                if isinstance(url_val, str):
+                                    raw_urls.append(url_val)
+                    data_field = raw_block.get("data")
+                    if not raw_urls and isinstance(data_field, list):
+                        for entry in data_field:
+                            if isinstance(entry, dict):
+                                url_val = entry.get("url") or entry.get("link")
+                                if isinstance(url_val, str):
+                                    raw_urls.append(url_val)
+    
+                await _log_scratchpad(
+                    "scrape.fetchfox.raw",
+                    message="Captured FetchFox raw payload",
+                    data={
+                        "pattern": payload.get("pattern"),
+                        "rawUrlCount": len(raw_urls) if raw_urls else None,
+                        "rawUrlSample": raw_urls[:20] if raw_urls else None,
+                        "normalizedCount": len(normalized) if isinstance(normalized, list) else None,
+                        "rawPreview": _shrink_payload(raw_block, 20000),
+                    },
+                )
         except Exception:
+            # Best-effort; do not block on debug logging
             pass
-    except Exception as exc:
-        logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
-        try:
-            telemetry.emit_posthog_exception(
-                exc,
-                properties={
-                    "event": "scrape.persist_failed",
-                    "siteUrl": payload.get("sourceUrl") or "",
+    
+        def _resolve_source_url(data: Dict[str, Any]) -> str:
+            """Best-effort source URL extraction that tolerates missing fields."""
+    
+            for key in ("sourceUrl", "sourceURL", "source_url", "siteUrl", "url"):
+                val = data.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val
+    
+            request_block = data.get("request")
+            if isinstance(request_block, dict):
+                req_url = request_block.get("url")
+                if isinstance(req_url, str) and req_url.strip():
+                    return req_url
+    
+            provider_request = data.get("providerRequest")
+            if isinstance(provider_request, dict):
+                req_url = provider_request.get("url")
+                if isinstance(req_url, str) and req_url.strip():
+                    return req_url
+    
+            return ""
+    
+        def _base_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+            source_url = _resolve_source_url(data)
+            body = {
+                "sourceUrl": source_url,
+                "startedAt": data.get("startedAt", now),
+                "completedAt": data.get("completedAt", now),
+                "items": data.get("items"),
+            }
+            if data.get("siteId") is not None:
+                body["siteId"] = data.get("siteId")
+            provider_value = scraped_with
+            if provider_value is None:
+                provider_value = data.get("provider")
+            if provider_value is None and isinstance(data.get("items"), dict):
+                provider_value = data["items"].get("provider")
+            if provider_value is not None:
+                body["provider"] = str(provider_value)
+            workflow_value = data.get("workflowName")
+            if workflow_value is None:
+                workflow_value = workflow_name
+            if workflow_value is not None:
+                body["workflowName"] = str(workflow_value)
+            pattern = data.get("pattern")
+            if pattern is not None:
+                body["pattern"] = pattern
+            if data.get("request") is not None:
+                body["request"] = data.get("request")
+            if data.get("providerRequest") is not None:
+                body["providerRequest"] = data.get("providerRequest")
+            if cost_milli_cents is not None:
+                body["costMilliCents"] = cost_milli_cents
+            if response_preview is not None:
+                body["response"] = response_preview
+            if async_response_preview is not None:
+                body["asyncResponse"] = async_response_preview
+            if data.get("asyncState") is not None:
+                body["asyncState"] = data.get("asyncState")
+            if data.get("batchId") is not None:
+                body["batchId"] = data.get("batchId")
+            if data.get("workflowId") is not None:
+                body["workflowId"] = data.get("workflowId")
+            if data.get("workflowType") is not None:
+                body["workflowType"] = data.get("workflowType")
+            if data.get("jobBoardJobId") is not None:
+                body["jobBoardJobId"] = data.get("jobBoardJobId")
+            if data.get("subUrls") is not None:
+                body["subUrls"] = data.get("subUrls")
+            return body
+    
+        def _build_invalid_context() -> Dict[str, Any]:
+            items_block = scrape.get("items") if isinstance(scrape, dict) else {}
+            raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
+            raw_items: List[Any] = []
+            if isinstance(raw_block, list):
+                raw_items = raw_block
+            elif isinstance(raw_block, dict):
+                raw_items = [raw_block]
+    
+            markdown_samples: List[Any] = []
+            html_samples: List[Any] = []
+            event_samples: List[Any] = []
+            link_samples: List[Any] = []
+            markdown_lengths: List[int] = []
+            event_counts: List[int] = []
+            link_counts: List[int] = []
+    
+            def _add_markdown(value: Any) -> None:
+                if isinstance(value, str) and value.strip():
+                    markdown_samples.append(_shrink_payload(value, 12000))
+    
+            def _add_html(value: Any) -> None:
+                if isinstance(value, str) and value.strip():
+                    html_samples.append(_shrink_payload(value, 12000))
+    
+            for raw in raw_items[:2]:
+                if not isinstance(raw, dict):
+                    continue
+                markdown_val = raw.get("markdown") or raw.get("commonmark") or raw.get("content")
+                _add_markdown(markdown_val)
+                if isinstance(markdown_val, str):
+                    markdown_lengths.append(len(markdown_val))
+                _add_html(raw.get("raw_html") or raw.get("html"))
+                events_val = raw.get("events")
+                if events_val is not None:
+                    event_samples.append(_shrink_payload(events_val, 6000))
+                    if isinstance(events_val, list):
+                        event_counts.append(len(events_val))
+                job_urls = raw.get("job_urls") or raw.get("links")
+                if isinstance(job_urls, list) and job_urls:
+                    link_samples.append(job_urls[:50])
+                    link_counts.append(len(job_urls))
+    
+            if isinstance(items_block, dict):
+                markdown_val = items_block.get("markdown") or items_block.get("commonmark") or items_block.get("content")
+                _add_markdown(markdown_val)
+                if isinstance(markdown_val, str):
+                    markdown_lengths.append(len(markdown_val))
+                _add_html(items_block.get("raw_html") or items_block.get("html"))
+                if isinstance(items_block.get("job_urls"), list):
+                    job_urls = items_block.get("job_urls")
+                    link_samples.append(job_urls[:50])
+                    link_counts.append(len(job_urls))
+                if isinstance(items_block.get("seedUrls"), list):
+                    seed_urls = items_block.get("seedUrls")
+                    link_samples.append(seed_urls[:50])
+                    link_counts.append(len(seed_urls))
+    
+            response_preview = _shrink_payload(scrape.get("response"), 12000)
+            async_response_preview = _shrink_payload(scrape.get("asyncResponse"), 12000)
+            provider_request_preview = _shrink_payload(scrape.get("providerRequest"), 6000)
+            request_preview = _shrink_payload(scrape.get("request"), 6000)
+    
+            sub_urls = scrape.get("subUrls")
+            sub_url_sample = sub_urls[:20] if isinstance(sub_urls, list) else None
+            failed_entries: list[Any] = []
+            failed_count_local = 0
+            if isinstance(items_block, dict):
+                failed_items_local = items_block.get("failed")
+                if isinstance(failed_items_local, list):
+                    failed_entries = failed_items_local[:10]
+                    failed_count_local = len(failed_items_local)
+    
+            return _strip_none_values(
+                {
+                    "reason": invalid_reason or failure_reason,
+                    "normalizedCount": normalized_count,
+                    "ignoredCount": ignored_count,
+                    "failedCount": failed_count_local,
                     "provider": provider_for_log,
                     "workflowName": workflow_name,
-                },
+                    "siteId": payload.get("siteId"),
+                    "sourceUrl": payload.get("sourceUrl"),
+                    "pattern": payload.get("pattern"),
+                    "subUrlsSample": sub_url_sample,
+                    "failedSamples": failed_entries or None,
+                    "rawItemsCount": len(raw_items),
+                    "markdownLengths": markdown_lengths or None,
+                    "eventCounts": event_counts or None,
+                    "linkCounts": link_counts or None,
+                    "requestedFormat": items_block.get("requestedFormat") if isinstance(items_block, dict) else None,
+                    "markdownSamples": markdown_samples or None,
+                    "htmlSamples": html_samples or None,
+                    "eventSamples": event_samples or None,
+                    "linkSamples": link_samples or None,
+                    "response": response_preview,
+                    "asyncResponse": async_response_preview,
+                    "providerRequest": provider_request_preview,
+                    "request": request_preview,
+                }
             )
-        except Exception:
-            pass
-        # Fallback: aggressively trim and retry once so we still record the run
-        fallback = trim_scrape_for_convex(
-            scrape,
-            max_items=100,
-            max_description=400,
-            raw_preview_chars=0,
-        )
-        if isinstance(fallback.get("items"), dict):
-            fallback["items"]["truncated"] = True
+    
+        scrape_id: str | None = None
         try:
             scrape_id = await convex_mutation(
                 "router:insertScrapeRecord",
-                _base_payload(fallback),
+                _base_payload(payload),
             )
             await _log_scratchpad(
-                "scrape.persisted.fallback",
-                message=f"Persisted fallback scrape after initial failure ({provider_for_log or 'unknown provider'})",
+                "scrape.persisted",
+                message=(
+                    f"Persisted scrape with {normalized_count} normalized jobs "
+                    f"({provider_for_log or 'unknown provider'})"
+                ),
                 data={
                     "scrapeId": scrape_id,
                     "workflowId": payload.get("workflowId"),
@@ -2273,20 +2245,16 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 },
             )
             try:
-                activity.heartbeat({"stage": "persisted_fallback", "scrapeId": scrape_id})
+                activity.heartbeat({"stage": "persisted", "scrapeId": scrape_id})
             except Exception:
                 pass
-        except Exception as fallback_exc:
-            logger.error(
-                "Failed to persist scrape after fallback: %s",
-                fallback_exc,
-                exc_info=fallback_exc,
-            )
+        except Exception as exc:
+            logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
             try:
                 telemetry.emit_posthog_exception(
-                    fallback_exc,
+                    exc,
                     properties={
-                        "event": "scrape.persist_failed.final",
+                        "event": "scrape.persist_failed",
                         "siteUrl": payload.get("sourceUrl") or "",
                         "provider": provider_for_log,
                         "workflowName": workflow_name,
@@ -2294,337 +2262,433 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 )
             except Exception:
                 pass
-            error_id = f"store-error:{int(time.time() * 1000)}"
-            raise ApplicationError(
-                f"Failed to persist scrape after fallback ({error_id})",
-                type="store_scrape_failed",
-            ) from fallback_exc
-
-    # Best-effort job ingestion (mimics router.ts behavior)
-    try:
-        # Ingest jobs from the original (untrimmed) scrape items so long descriptions are preserved.
-        # Still cap the number of jobs we attempt to ingest to avoid unbounded payloads.
-        MAX_JOBS_TO_INGEST = 400
-        items_for_jobs = scrape.get("items") if isinstance(scrape, dict) else None
-        if isinstance(items_for_jobs, dict):
-            normalized = items_for_jobs.get("normalized")
-            if isinstance(normalized, list):
-                items_for_jobs = {**items_for_jobs, "normalized": normalized[:MAX_JOBS_TO_INGEST]}
-        else:
-            items_for_jobs = payload.get("items")
-
-        jobs = _jobs_from_scrape_items(
-            items_for_jobs,
-            default_posted_at=now,
-            scraped_at=payload.get("completedAt", now),
-            scraped_with=scraped_with,
-            workflow_name=workflow_name,
-            scraped_cost_milli_cents=(
-                int(cost_milli_cents / max(len(payload.get("items", {}).get("normalized") or []) or 1, 1))
-                if isinstance(cost_milli_cents, (int, float))
-                else None
-            ),
-        )
-        if jobs:
+            # Fallback: aggressively trim and retry once so we still record the run
+            fallback = trim_scrape_for_convex(
+                scrape,
+                max_items=100,
+                max_description=400,
+                raw_preview_chars=0,
+            )
+            if isinstance(fallback.get("items"), dict):
+                fallback["items"]["truncated"] = True
             try:
-                jobs = await _apply_job_detail_heuristics_to_jobs(jobs, now)
-            except Exception:
-                # Heuristics are best-effort; continue with raw jobs if parsing fails.
-                pass
-            ingest_payload: Dict[str, Any] = {"jobs": jobs}
-            if payload.get("siteId") is not None:
-                ingest_payload["siteId"] = payload.get("siteId")
-            await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
-            await _log_scratchpad(
-                "ingest.jobs",
-                message=(
-                    f"Ingested {len(jobs)} jobs into Convex "
-                    f"from {payload.get('sourceUrl') or 'unknown site'}"
-                ),
-                data={
-                    "count": len(jobs),
-                    "workflowId": payload.get("workflowId"),
-                    "siteId": payload.get("siteId"),
-                    "provider": provider_for_log,
-                },
-            )
-            try:
-                activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
-            except Exception:
-                pass
-    except Exception as exc:
-        try:
-            telemetry.emit_posthog_exception(
-                exc,
-                properties={
-                    "event": "ingest.jobs_failed",
-                    "siteUrl": payload.get("sourceUrl") or "",
-                    "provider": provider_for_log,
-                    "workflowName": workflow_name,
-                    "normalizedCount": normalized_count,
-                },
-            )
-        except Exception:
-            pass
-        # Non-fatal: ingestion failures shouldn't block scrape recording
-        pass
-
-    # Record ignored entries (e.g., filtered by keyword) so future crawls can skip quickly.
-    try:
-        ignored_entries = []
-        ignored_recorded = 0
-        if isinstance(payload.get("items"), dict):
-            ignored_entries = payload["items"].get("ignored") or []
-        if isinstance(ignored_entries, list):
-            for entry in ignored_entries:
-                if not isinstance(entry, dict):
-                    continue
-                url_val = entry.get("url")
-                if not isinstance(url_val, str) or not url_val.strip():
-                    continue
-                title_val = entry.get("title")
-                desc_val = entry.get("description")
-                if not isinstance(title_val, str) or not title_val.strip():
-                    title_val = "Unknown"
-                if isinstance(desc_val, str) and len(desc_val) > 4000:
-                    desc_val = desc_val[:4000]
-                await convex_mutation(
-                    "router:insertIgnoredJob",
-                    {
-                        "url": url_val.strip(),
-                        "sourceUrl": payload.get("sourceUrl") or payload.get("pattern"),
-                        "reason": entry.get("reason") or "filtered",
-                        "provider": scraped_with or payload.get("provider"),
-                        "workflowName": payload.get("workflowName"),
-                        "details": _shrink_payload(entry, 4000),
-                    "title": title_val,
-                    "description": desc_val,
-                },
-            )
-                ignored_recorded += 1
-        if ignored_recorded:
-            await _log_scratchpad(
-                "scrape.ignored_jobs",
-                message=f"Recorded {ignored_recorded} ignored jobs for {payload.get('sourceUrl') or 'unknown'}",
-                data={
-                    "count": ignored_recorded,
-                    "workflowId": payload.get("workflowId"),
-                    "siteId": payload.get("siteId"),
-                    "provider": provider_for_log,
-                },
-            )
-    except Exception as exc:
-        try:
-            telemetry.emit_posthog_exception(
-                exc,
-                properties={
-                    "event": "ignored_jobs.record_failed",
-                    "siteUrl": payload.get("sourceUrl") or "",
-                    "provider": provider_for_log,
-                    "workflowName": workflow_name,
-                    "ignoredCount": ignored_count,
-                },
-            )
-        except Exception:
-            pass
-        # Best-effort; ignore failures
-        pass
-
-    # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
-    try:
-        urls_from_raw = _extract_job_urls_from_scrape(scrape)
-        await _log_scratchpad(
-            "scrape.url_extraction.raw",
-            message="Attempted URL extraction from raw scrape payload",
-            data={"urls": len(urls_from_raw or []), "sourceUrl": payload.get("sourceUrl")},
-        )
-
-        urls_from_trimmed = _extract_job_urls_from_scrape(payload) if not urls_from_raw else []
-        if not urls_from_raw:
-            await _log_scratchpad(
-                "scrape.url_extraction.trimmed",
-                message="Attempted URL extraction from trimmed payload",
-                data={"urls": len(urls_from_trimmed or []), "sourceUrl": payload.get("sourceUrl")},
-            )
-
-        urls = urls_from_raw or urls_from_trimmed or []
-        source_url = payload.get("sourceUrl")
-        handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
-        delays_ms: list[int] | None = None
-        job_urls: list[str] = []
-        listing_urls: list[str] = []
-        if urls:
-            for url in urls:
-                if handler and handler.is_listing_url(url):
-                    listing_urls.append(url)
-                else:
-                    job_urls.append(url)
-            if listing_urls and isinstance(source_url, str) and source_url:
-                seen_listing: set[str] = set()
+                scrape_id = await convex_mutation(
+                    "router:insertScrapeRecord",
+                    _base_payload(fallback),
+                )
+                await _log_scratchpad(
+                    "scrape.persisted.fallback",
+                    message=f"Persisted fallback scrape after initial failure ({provider_for_log or 'unknown provider'})",
+                    data={
+                        "scrapeId": scrape_id,
+                        "workflowId": payload.get("workflowId"),
+                        "normalizedCount": normalized_count,
+                        "provider": provider_for_log,
+                        "siteId": payload.get("siteId"),
+                    },
+                )
                 try:
-                    seen_listing = set(
-                        u
-                        for u in await fetch_seen_urls_for_site(source_url, payload.get("pattern"))
-                        if isinstance(u, str)
+                    activity.heartbeat({"stage": "persisted_fallback", "scrapeId": scrape_id})
+                except Exception:
+                    pass
+            except Exception as fallback_exc:
+                logger.error(
+                    "Failed to persist scrape after fallback: %s",
+                    fallback_exc,
+                    exc_info=fallback_exc,
+                )
+                try:
+                    telemetry.emit_posthog_exception(
+                        fallback_exc,
+                        properties={
+                            "event": "scrape.persist_failed.final",
+                            "siteUrl": payload.get("sourceUrl") or "",
+                            "provider": provider_for_log,
+                            "workflowName": workflow_name,
+                        },
                     )
                 except Exception:
-                    seen_listing = set()
-                if seen_listing:
-                    filtered_listing_urls = [u for u in listing_urls if u not in seen_listing]
-                    if len(filtered_listing_urls) != len(listing_urls):
-                        listing_urls = filtered_listing_urls
-                        urls = [
-                            u
-                            for u in urls
-                            if not (
-                                handler
-                                and handler.is_listing_url(u)
-                                and isinstance(u, str)
-                                and u in seen_listing
-                            )
-                        ]
-            if listing_urls:
-                delay_map: Dict[str, int] = {}
-                delay_idx = 1
-                for url in urls:
-                    if handler and handler.is_listing_url(url):
-                        delay_map[url] = delay_idx * PAGINATION_ENQUEUE_STAGGER_MS
-                        delay_idx += 1
-                if delay_map:
-                    delays_ms = [delay_map.get(url, 0) for url in urls]
-                    if not any(delays_ms):
-                        delays_ms = None
-            await _log_scratchpad(
-                "scrape.url_split",
-                message="Split scrape URLs into job and listing groups",
-                data={
-                    "sourceUrl": source_url or "",
-                    "jobUrlsCount": len(job_urls),
-                    "listingUrlsCount": len(listing_urls),
-                    "jobUrlsSample": job_urls[:3],
-                    "listingUrlsSample": listing_urls[:3],
-                },
+                    pass
+                error_id = f"store-error:{int(time.time() * 1000)}"
+                raise ApplicationError(
+                    f"Failed to persist scrape after fallback ({error_id})",
+                    type="store_scrape_failed",
+                ) from fallback_exc
+    
+        # Best-effort job ingestion (mimics router.ts behavior)
+        try:
+            # Ingest jobs from the original (untrimmed) scrape items so long descriptions are preserved.
+            # Still cap the number of jobs we attempt to ingest to avoid unbounded payloads.
+            MAX_JOBS_TO_INGEST = 400
+            items_for_jobs = scrape.get("items") if isinstance(scrape, dict) else None
+            if isinstance(items_for_jobs, dict):
+                normalized = items_for_jobs.get("normalized")
+                if isinstance(normalized, list):
+                    items_for_jobs = {**items_for_jobs, "normalized": normalized[:MAX_JOBS_TO_INGEST]}
+            else:
+                items_for_jobs = payload.get("items")
+    
+            jobs = _jobs_from_scrape_items(
+                items_for_jobs,
+                default_posted_at=now,
+                scraped_at=payload.get("completedAt", now),
+                scraped_with=scraped_with,
+                workflow_name=workflow_name,
+                scraped_cost_milli_cents=(
+                    int(cost_milli_cents / max(len(payload.get("items", {}).get("normalized") or []) or 1, 1))
+                    if isinstance(cost_milli_cents, (int, float))
+                    else None
+                ),
             )
-        if not job_urls and normalized_count == 0:
-            company_name = None
-            for key in ("company", "companyName"):
-                val = payload.get(key)
-                if isinstance(val, str) and val.strip():
-                    company_name = val.strip()
-                    break
-            if not company_name and isinstance(source_url, str) and source_url:
-                derived_company = derive_company_from_url(source_url)
-                if derived_company:
-                    company_name = derived_company
-
-            await _log_scratchpad(
-                "scrape.job_urls.none",
-                message="No job URLs extracted from job site scrape",
-                data=_strip_none_values(
-                    {
-                        "companyName": company_name or "Unknown",
-                        "details": _strip_none_values(
-                            {
-                                "sourceUrl": source_url or "",
+            if jobs:
+                try:
+                    jobs = await _apply_job_detail_heuristics_to_jobs(jobs, now)
+                except asyncio.CancelledError as exc:
+                    try:
+                        telemetry.emit_posthog_exception(
+                            exc,
+                            properties={
+                                "event": "ingest.job_heuristics_cancelled",
+                                "siteUrl": payload.get("sourceUrl") or "",
                                 "provider": provider_for_log,
                                 "workflowName": workflow_name,
-                                "pattern": payload.get("pattern"),
-                                "siteId": payload.get("siteId"),
+                                "workflowId": payload.get("workflowId"),
+                                "runId": payload.get("runId"),
                                 "normalizedCount": normalized_count,
-                                "ignoredCount": ignored_count,
-                                "failedCount": failed_count,
-                                "totalUrlsCount": len(urls),
-                                "jobUrlsCount": len(job_urls),
-                                "listingUrlsCount": len(listing_urls),
-                                "urlsSample": urls[:5] if urls else None,
-                                "listingUrlsSample": listing_urls[:5] if listing_urls else None,
-                            }
-                        ),
-                    }
-                ),
+                            },
+                        )
+                    except Exception:
+                        pass
+                    raise
+                except Exception as exc:
+                    try:
+                        telemetry.emit_posthog_exception(
+                            exc,
+                            properties={
+                                "event": "ingest.job_heuristics_failed",
+                                "siteUrl": payload.get("sourceUrl") or "",
+                                "provider": provider_for_log,
+                                "workflowName": workflow_name,
+                                "workflowId": payload.get("workflowId"),
+                                "runId": payload.get("runId"),
+                                "normalizedCount": normalized_count,
+                            },
+                        )
+                    except Exception:
+                        pass
+                    # Heuristics are best-effort; continue with raw jobs if parsing fails.
+                    pass
+                ingest_payload: Dict[str, Any] = {"jobs": jobs}
+                if payload.get("siteId") is not None:
+                    ingest_payload["siteId"] = payload.get("siteId")
+                await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
+                await _log_scratchpad(
+                    "ingest.jobs",
+                    message=(
+                        f"Ingested {len(jobs)} jobs into Convex "
+                        f"from {payload.get('sourceUrl') or 'unknown site'}"
+                    ),
+                    data={
+                        "count": len(jobs),
+                        "workflowId": payload.get("workflowId"),
+                        "siteId": payload.get("siteId"),
+                        "provider": provider_for_log,
+                    },
+                )
+                try:
+                    activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
+                except Exception:
+                    pass
+        except Exception as exc:
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "ingest.jobs_failed",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                        "normalizedCount": normalized_count,
+                    },
+                )
+            except Exception:
+                pass
+            # Non-fatal: ingestion failures shouldn't block scrape recording
+            pass
+    
+        # Record ignored entries (e.g., filtered by keyword) so future crawls can skip quickly.
+        try:
+            ignored_entries = []
+            ignored_recorded = 0
+            if isinstance(payload.get("items"), dict):
+                ignored_entries = payload["items"].get("ignored") or []
+            if isinstance(ignored_entries, list):
+                for entry in ignored_entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    url_val = entry.get("url")
+                    if not isinstance(url_val, str) or not url_val.strip():
+                        continue
+                    title_val = entry.get("title")
+                    desc_val = entry.get("description")
+                    if not isinstance(title_val, str) or not title_val.strip():
+                        title_val = "Unknown"
+                    if isinstance(desc_val, str) and len(desc_val) > 4000:
+                        desc_val = desc_val[:4000]
+                    await convex_mutation(
+                        "router:insertIgnoredJob",
+                        {
+                            "url": url_val.strip(),
+                            "sourceUrl": payload.get("sourceUrl") or payload.get("pattern"),
+                            "reason": entry.get("reason") or "filtered",
+                            "provider": scraped_with or payload.get("provider"),
+                            "workflowName": payload.get("workflowName"),
+                            "details": _shrink_payload(entry, 4000),
+                        "title": title_val,
+                        "description": desc_val,
+                    },
+                )
+                    ignored_recorded += 1
+            if ignored_recorded:
+                await _log_scratchpad(
+                    "scrape.ignored_jobs",
+                    message=f"Recorded {ignored_recorded} ignored jobs for {payload.get('sourceUrl') or 'unknown'}",
+                    data={
+                        "count": ignored_recorded,
+                        "workflowId": payload.get("workflowId"),
+                        "siteId": payload.get("siteId"),
+                        "provider": provider_for_log,
+                    },
+                )
+        except Exception as exc:
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "ignored_jobs.record_failed",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                        "ignoredCount": ignored_count,
+                    },
+                )
+            except Exception:
+                pass
+            # Best-effort; ignore failures
+            pass
+    
+        # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
+        try:
+            urls_from_raw = _extract_job_urls_from_scrape(scrape)
+            await _log_scratchpad(
+                "scrape.url_extraction.raw",
+                message="Attempted URL extraction from raw scrape payload",
+                data={"urls": len(urls_from_raw or []), "sourceUrl": payload.get("sourceUrl")},
+            )
+    
+            urls_from_trimmed = _extract_job_urls_from_scrape(payload) if not urls_from_raw else []
+            if not urls_from_raw:
+                await _log_scratchpad(
+                    "scrape.url_extraction.trimmed",
+                    message="Attempted URL extraction from trimmed payload",
+                    data={"urls": len(urls_from_trimmed or []), "sourceUrl": payload.get("sourceUrl")},
+                )
+    
+            urls = urls_from_raw or urls_from_trimmed or []
+            source_url = payload.get("sourceUrl")
+            handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
+            delays_ms: list[int] | None = None
+            job_urls: list[str] = []
+            listing_urls: list[str] = []
+            if urls:
+                for url in urls:
+                    if handler and handler.is_listing_url(url):
+                        listing_urls.append(url)
+                    else:
+                        job_urls.append(url)
+                if listing_urls and isinstance(source_url, str) and source_url:
+                    seen_listing: set[str] = set()
+                    try:
+                        seen_listing = set(
+                            u
+                            for u in await fetch_seen_urls_for_site(source_url, payload.get("pattern"))
+                            if isinstance(u, str)
+                        )
+                    except Exception:
+                        seen_listing = set()
+                    if seen_listing:
+                        filtered_listing_urls = [u for u in listing_urls if u not in seen_listing]
+                        if len(filtered_listing_urls) != len(listing_urls):
+                            listing_urls = filtered_listing_urls
+                            urls = [
+                                u
+                                for u in urls
+                                if not (
+                                    handler
+                                    and handler.is_listing_url(u)
+                                    and isinstance(u, str)
+                                    and u in seen_listing
+                                )
+                            ]
+                if listing_urls:
+                    delay_map: Dict[str, int] = {}
+                    delay_idx = 1
+                    for url in urls:
+                        if handler and handler.is_listing_url(url):
+                            delay_map[url] = delay_idx * PAGINATION_ENQUEUE_STAGGER_MS
+                            delay_idx += 1
+                    if delay_map:
+                        delays_ms = [delay_map.get(url, 0) for url in urls]
+                        if not any(delays_ms):
+                            delays_ms = None
+                await _log_scratchpad(
+                    "scrape.url_split",
+                    message="Split scrape URLs into job and listing groups",
+                    data={
+                        "sourceUrl": source_url or "",
+                        "jobUrlsCount": len(job_urls),
+                        "listingUrlsCount": len(listing_urls),
+                        "jobUrlsSample": job_urls[:3],
+                        "listingUrlsSample": listing_urls[:3],
+                    },
+                )
+            if not job_urls and normalized_count == 0:
+                company_name = None
+                for key in ("company", "companyName"):
+                    val = payload.get(key)
+                    if isinstance(val, str) and val.strip():
+                        company_name = val.strip()
+                        break
+                if not company_name and isinstance(source_url, str) and source_url:
+                    derived_company = derive_company_from_url(source_url)
+                    if derived_company:
+                        company_name = derived_company
+    
+                await _log_scratchpad(
+                    "scrape.job_urls.none",
+                    message="No job URLs extracted from job site scrape",
+                    data=_strip_none_values(
+                        {
+                            "companyName": company_name or "Unknown",
+                            "details": _strip_none_values(
+                                {
+                                    "sourceUrl": source_url or "",
+                                    "provider": provider_for_log,
+                                    "workflowName": workflow_name,
+                                    "pattern": payload.get("pattern"),
+                                    "siteId": payload.get("siteId"),
+                                    "normalizedCount": normalized_count,
+                                    "ignoredCount": ignored_count,
+                                    "failedCount": failed_count,
+                                    "totalUrlsCount": len(urls),
+                                    "jobUrlsCount": len(job_urls),
+                                    "listingUrlsCount": len(listing_urls),
+                                    "urlsSample": urls[:5] if urls else None,
+                                    "listingUrlsSample": listing_urls[:5] if listing_urls else None,
+                                }
+                            ),
+                        }
+                    ),
+                    level="error",
+                )
+            if urls:
+                logger.info(
+                    "Scrape URL extraction source=%s count=%s",
+                    source_url,
+                    len(urls),
+                )
+                for idx, url in enumerate(urls, start=1):
+                    logger.info(
+                        "Scrape URL %s/%s source=%s url=%s",
+                        idx,
+                        len(urls),
+                        source_url,
+                        url,
+                    )
+            else:
+                logger.info("Scrape URL extraction source=%s count=0", source_url)
+            if urls:
+                site_id = _convex_site_id(payload.get("siteId"))
+                await convex_mutation(
+                    "router:enqueueScrapeUrls",
+                    _strip_none_values(
+                        {
+                            "urls": urls,
+                            "sourceUrl": payload.get("sourceUrl") or "",
+                            "provider": scraped_with or payload.get("provider") or "",
+                            "siteId": site_id,
+                            "pattern": payload.get("pattern"),
+                            "delaysMs": delays_ms,
+                        }
+                    ),
+                )
+                await _log_scratchpad(
+                    "scrape.url_enqueue",
+                    message="Enqueued URLs from scrape payload",
+                    data={"urls": len(urls), "sourceUrl": payload.get("sourceUrl")},
+                )
+            else:
+                await _log_scratchpad(
+                    "scrape.url_extraction.none",
+                    message="No URLs extracted from scrape payload",
+                    data={"sourceUrl": payload.get("sourceUrl")},
+                )
+            try:
+                activity.heartbeat({"stage": "urls_processed", "urls": len(urls or [])})
+            except Exception:
+                pass
+        except Exception as exc:
+            await _log_scratchpad(
+                "scrape.url_extraction.error",
+                message="Failed to enqueue URLs from scrape payload",
+                data={"error": str(exc), "sourceUrl": payload.get("sourceUrl")},
+            )
+            # Non-fatal
+    
+        if invalid_reason:
+            await _log_scratchpad(
+                "scrape.invalid",
+                message=f"Invalid scrape: {invalid_reason}",
+                data=_build_invalid_context(),
                 level="error",
             )
-        if urls:
-            logger.info(
-                "Scrape URL extraction source=%s count=%s",
-                source_url,
-                len(urls),
+            raise ApplicationError(
+                f"Invalid scrape: {invalid_reason}",
+                non_retryable=True,
+                type="invalid_scrape",
             )
-            for idx, url in enumerate(urls, start=1):
-                logger.info(
-                    "Scrape URL %s/%s source=%s url=%s",
-                    idx,
-                    len(urls),
-                    source_url,
-                    url,
-                )
-        else:
-            logger.info("Scrape URL extraction source=%s count=0", source_url)
-        if urls:
-            site_id = _convex_site_id(payload.get("siteId"))
-            await convex_mutation(
-                "router:enqueueScrapeUrls",
-                _strip_none_values(
-                    {
-                        "urls": urls,
-                        "sourceUrl": payload.get("sourceUrl") or "",
-                        "provider": scraped_with or payload.get("provider") or "",
-                        "siteId": site_id,
-                        "pattern": payload.get("pattern"),
-                        "delaysMs": delays_ms,
-                    }
-                ),
-            )
+    
+        if failure_reason:
             await _log_scratchpad(
-                "scrape.url_enqueue",
-                message="Enqueued URLs from scrape payload",
-                data={"urls": len(urls), "sourceUrl": payload.get("sourceUrl")},
+                "scrape.failed",
+                message=f"Scrape failed: {failure_reason}",
+                data=_build_invalid_context(),
+                level="error",
             )
-        else:
-            await _log_scratchpad(
-                "scrape.url_extraction.none",
-                message="No URLs extracted from scrape payload",
-                data={"sourceUrl": payload.get("sourceUrl")},
+            raise ApplicationError(
+                f"Scrape failed: {failure_reason}",
+                type=failure_reason,
             )
+    
+        return str(scrape_id)
+    
+    
+    except asyncio.CancelledError as exc:
         try:
-            activity.heartbeat({"stage": "urls_processed", "urls": len(urls or [])})
+            props = {}
+            if isinstance(scrape, dict):
+                props = {
+                    "event": "scrape.store_scrape_cancelled",
+                    "siteUrl": scrape.get("sourceUrl") or "",
+                    "workflowName": scrape.get("workflowName"),
+                    "workflowId": scrape.get("workflowId") or scrape.get("workflow_id"),
+                    "runId": scrape.get("runId") or scrape.get("run_id"),
+                    "provider": scrape.get("provider"),
+                }
+            telemetry.emit_posthog_exception(exc, properties=_strip_none_values(props))
         except Exception:
             pass
-    except Exception as exc:
-        await _log_scratchpad(
-            "scrape.url_extraction.error",
-            message="Failed to enqueue URLs from scrape payload",
-            data={"error": str(exc), "sourceUrl": payload.get("sourceUrl")},
-        )
-        # Non-fatal
-
-    if invalid_reason:
-        await _log_scratchpad(
-            "scrape.invalid",
-            message=f"Invalid scrape: {invalid_reason}",
-            data=_build_invalid_context(),
-            level="error",
-        )
-        raise ApplicationError(
-            f"Invalid scrape: {invalid_reason}",
-            non_retryable=True,
-            type="invalid_scrape",
-        )
-
-    if failure_reason:
-        await _log_scratchpad(
-            "scrape.failed",
-            message=f"Scrape failed: {failure_reason}",
-            data=_build_invalid_context(),
-            level="error",
-        )
-        raise ApplicationError(
-            f"Scrape failed: {failure_reason}",
-            type=failure_reason,
-        )
-
-    return str(scrape_id)
-
+        raise
 
 @activity.defn
 async def complete_site(site_id: str) -> None:

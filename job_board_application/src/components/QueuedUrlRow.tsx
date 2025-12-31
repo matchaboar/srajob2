@@ -121,6 +121,7 @@ const extractCompanyLabel = (urlValue?: string) => {
         for (let i = subdomains.length - 1; i >= 0; i -= 1) {
           const candidate = subdomains[i];
           if (!candidate || COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
+          if (/^wd\d+$/i.test(candidate)) continue;
           return candidate;
         }
       }
@@ -136,6 +137,7 @@ const extractCompanyLabel = (urlValue?: string) => {
       for (let i = subdomains.length - 1; i >= 0; i -= 1) {
         const candidate = subdomains[i];
         if (!candidate || COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
+        if (/^wd\d+$/i.test(candidate)) continue;
         return candidate;
       }
     }

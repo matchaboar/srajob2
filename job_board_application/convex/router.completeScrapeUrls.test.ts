@@ -19,7 +19,7 @@ describe("completeScrapeUrls", () => {
       _id: "q1",
       url: "https://example.com/job/1",
       status: "processing",
-      attempts: 2,
+      attempts: 3,
       sourceUrl: "https://example.com/jobs",
       provider: "spidercloud",
       siteId: "s1",

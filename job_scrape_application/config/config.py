@@ -32,6 +32,8 @@ class Settings:
     webhook_wait_logger_interval_seconds: int = int(
         os.getenv("WEBHOOK_WAIT_LOG_INTERVAL_SECONDS", "60")
     )
+    enable_firecrawl: bool = _env_flag("ENABLE_FIRECRAWL", "true")
+    enable_fetchfox: bool = _env_flag("ENABLE_FETCHFOX", "true")
     schedule_audit_verbose: bool = _env_flag("SCHEDULE_AUDIT_VERBOSE", "false")
     monitor_rpc_timeout_seconds: int = int(
         os.getenv("TEMPORAL_MONITOR_RPC_TIMEOUT_SECONDS", "10")

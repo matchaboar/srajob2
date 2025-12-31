@@ -217,6 +217,7 @@ const extractCompanySlugFromHost = (host: string, hostedDomain: string) => {
         const candidate = subdomains[i]?.toLowerCase() ?? "";
         if (!candidate) continue;
         if (COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
+        if (/^wd\d+$/i.test(candidate)) continue;
         if (!/^[a-z0-9-]+$/.test(candidate)) continue;
         return candidate;
     }

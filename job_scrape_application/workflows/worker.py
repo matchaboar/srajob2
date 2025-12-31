@@ -70,6 +70,26 @@ ACTIVITY_FUNCTIONS = [
     activities.complete_scrape_urls,
 ]
 
+FIRECRAWL_WORKFLOWS = {
+    FirecrawlScrapeWorkflow,
+    SiteLeaseWorkflow,
+    ProcessWebhookIngestWorkflow,
+    RecoverMissingFirecrawlWebhookWorkflow,
+}
+FETCHFOX_WORKFLOWS = {ScrapeWorkflow, FetchfoxSpidercloudWorkflow}
+FIRECRAWL_ACTIVITIES = {
+    activities.scrape_site_firecrawl,
+    activities.start_firecrawl_webhook_scrape,
+    activities.fetch_pending_firecrawl_webhooks,
+    activities.get_firecrawl_webhook_status,
+    activities.mark_firecrawl_webhook_processed,
+    activities.collect_firecrawl_job_result,
+}
+FETCHFOX_ACTIVITIES = {
+    activities.scrape_site_fetchfox,
+    activities.crawl_site_fetchfox,
+}
+
 JOB_DETAILS_WORKFLOWS = [SpidercloudJobDetailsWorkflow]
 JOB_DETAILS_ACTIVITIES = [
     activities.record_scratchpad,
@@ -86,7 +106,15 @@ def _select_worker_config() -> tuple[str, list[type], list]:
     if role in {"job-details", "spidercloud-job-details"}:
         queue = settings.job_details_task_queue or settings.task_queue
         return queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES
-    return settings.task_queue, WORKFLOW_CLASSES, ACTIVITY_FUNCTIONS
+    workflows = list(WORKFLOW_CLASSES)
+    activities_list = list(ACTIVITY_FUNCTIONS)
+    if not settings.enable_firecrawl:
+        workflows = [wf for wf in workflows if wf not in FIRECRAWL_WORKFLOWS]
+        activities_list = [act for act in activities_list if act not in FIRECRAWL_ACTIVITIES]
+    if not settings.enable_fetchfox:
+        workflows = [wf for wf in workflows if wf not in FETCHFOX_WORKFLOWS]
+        activities_list = [act for act in activities_list if act not in FETCHFOX_ACTIVITIES]
+    return settings.task_queue, workflows, activities_list
 
 
 class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):

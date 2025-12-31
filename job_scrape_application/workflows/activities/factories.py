@@ -114,10 +114,13 @@ async def select_scraper_for_site(
     preferred = (site.get("scrapeProvider") or "").lower()
     if site_type in {"greenhouse", "avature"} and not preferred:
         preferred = "spidercloud"
+    firecrawl_enabled = settings.enable_firecrawl and bool(settings.firecrawl_api_key)
+    fetchfox_enabled = settings.enable_fetchfox and bool(settings.fetchfox_api_key)
+
     if not preferred:
         if settings.spider_api_key:
             preferred = "spidercloud"
-        elif settings.firecrawl_api_key:
+        elif firecrawl_enabled:
             preferred = "firecrawl"
         else:
             preferred = "fetchfox"
@@ -135,24 +138,24 @@ async def select_scraper_for_site(
     if preferred == "spidercloud":
         if settings.spider_api_key:
             return factories["spidercloud"](), None
-        if settings.firecrawl_api_key:
+        if firecrawl_enabled:
             skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
             return factories["firecrawl"](), skip_urls
         preferred = "fetchfox"
 
     if preferred == "firecrawl":
-        if settings.firecrawl_api_key:
+        if firecrawl_enabled:
             skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
             return factories["firecrawl"](), skip_urls
         # Fall back to fetchfox if no Firecrawl key
         preferred = "fetchfox"
 
     scraper = factories[preferred]()
-    if preferred == "fetchfox" and settings.fetchfox_api_key:
+    if preferred == "fetchfox" and fetchfox_enabled:
         return scraper, None
-    if preferred == "fetchfox" and not settings.fetchfox_api_key and settings.spider_api_key:
+    if preferred == "fetchfox" and not fetchfox_enabled and settings.spider_api_key:
         return factories["spidercloud"](), None
-    if preferred == "fetchfox" and not settings.fetchfox_api_key and settings.firecrawl_api_key:
+    if preferred == "fetchfox" and not fetchfox_enabled and firecrawl_enabled:
         skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
         return factories["firecrawl"](), skip_urls
 

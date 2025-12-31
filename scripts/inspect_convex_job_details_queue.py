@@ -94,7 +94,12 @@ def main() -> None:
         )
         queue_by_status[status] = rows if isinstance(rows, list) else []
 
-    rate_limits = _safe_query(client, "router:listJobDetailRateLimits", {})
+    rate_limits_error: Optional[str] = None
+    try:
+        rate_limits = _safe_query(client, "router:listJobDetailRateLimits", {})
+    except Exception as exc:  # noqa: BLE001
+        rate_limits_error = str(exc)
+        rate_limits = []
     rate_limits = rate_limits if isinstance(rate_limits, list) else []
 
     active_workers = _safe_query(client, "temporal:getActiveWorkers", {})
@@ -122,6 +127,8 @@ def main() -> None:
             for row in active_workers
         ],
     }
+    if rate_limits_error:
+        summary["rate_limits_error"] = rate_limits_error
 
     github_domain = "www.github.careers"
     summary["github_samples"] = {

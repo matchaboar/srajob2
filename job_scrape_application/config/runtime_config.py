@@ -59,7 +59,7 @@ runtime_config = RuntimeConfig(
     spidercloud_job_details_processing_expire_minutes=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_processing_expire_minutes",
-        20,
+        5,
     ),
     spidercloud_http_timeout_seconds=_coerce_int(
         _raw_runtime_config,

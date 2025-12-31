@@ -14,6 +14,7 @@ type Tables = {
   scrape_url_queue: Row[];
   ignored_jobs: Row[];
   seen_job_urls: Row[];
+  batch_scrapes: Row[];
   jobs: Row[];
   job_details: Row[];
   domain_aliases: Row[];
@@ -65,6 +66,7 @@ class FakeDb {
       scrape_url_queue: seed?.scrape_url_queue ?? [],
       ignored_jobs: seed?.ignored_jobs ?? [],
       seen_job_urls: seed?.seen_job_urls ?? [],
+      batch_scrapes: seed?.batch_scrapes ?? [],
       jobs: seed?.jobs ?? [],
       job_details: seed?.job_details ?? [],
       domain_aliases: seed?.domain_aliases ?? [],

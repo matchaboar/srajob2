@@ -56,6 +56,8 @@ def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
     data = yaml.safe_load(path.read_text()) if path.exists() else {}
     items = data.get("schedules", []) if isinstance(data, dict) else []
     configs: List[ScheduleConfig] = []
+    firecrawl_workflows = {"SiteLease", "ProcessWebhookScrape", "RecoverMissingFirecrawlWebhook", "ScraperFirecrawl"}
+    fetchfox_workflows = {"FetchfoxSpidercloud", "ScrapeWorkflow"}
     for item in items:
         if not isinstance(item, dict):
             continue
@@ -65,15 +67,28 @@ def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
             count = 1
         for idx in range(1, count + 1):
             schedule_id = base_id if idx == 1 else f"{base_id}-{idx}"
+            cfg = ScheduleConfig(
+                id=schedule_id,
+                workflow=str(item["workflow"]),
+                interval_seconds=int(item.get("interval_seconds", 15)),
+                task_queue=item.get("task_queue"),
+                catchup_window_hours=int(item.get("catchup_window_hours", 12)),
+                overlap=str(item.get("overlap", "skip")).lower(),
+                count=count,
+            )
+            if cfg.workflow in firecrawl_workflows and not settings.enable_firecrawl:
+                continue
+            if cfg.workflow in fetchfox_workflows and not settings.enable_fetchfox:
+                continue
             configs.append(
                 ScheduleConfig(
-                    id=schedule_id,
-                    workflow=str(item["workflow"]),
-                    interval_seconds=int(item.get("interval_seconds", 15)),
-                    task_queue=item.get("task_queue"),
-                    catchup_window_hours=int(item.get("catchup_window_hours", 12)),
-                    overlap=str(item.get("overlap", "skip")).lower(),
-                    count=count,
+                    id=cfg.id,
+                    workflow=cfg.workflow,
+                    interval_seconds=cfg.interval_seconds,
+                    task_queue=cfg.task_queue,
+                    catchup_window_hours=cfg.catchup_window_hours,
+                    overlap=cfg.overlap,
+                    count=cfg.count,
                 )
             )
     return configs
