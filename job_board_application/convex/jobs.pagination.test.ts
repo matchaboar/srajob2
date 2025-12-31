@@ -19,6 +19,7 @@ type Job = {
   compensationUnknown?: boolean;
   url: string;
   postedAt: number;
+  postedAtUnknown?: boolean;
   scrapedAt?: number;
   engineer: boolean;
 };
@@ -45,7 +46,9 @@ class FakeJobsQuery {
       name !== "by_company_key" &&
       name !== "by_company_key_posted" &&
       name !== "by_scraped_posted" &&
-      name !== "by_engineer_scraped_posted"
+      name !== "by_posted_scraped" &&
+      name !== "by_engineer_scraped_posted" &&
+      name !== "by_engineer_posted_scraped"
     ) {
       throw new Error(`unexpected jobs index ${name}`);
     }
@@ -106,7 +109,8 @@ const buildJob = (
   postedAt: number,
   scrapedAt: number | undefined = postedAt,
   title = "Software Engineer",
-  engineer = true
+  engineer = true,
+  postedAtUnknown?: boolean
 ): Job => ({
   _id: id,
   title,
@@ -118,6 +122,7 @@ const buildJob = (
   compensationUnknown: false,
   url: `https://example.com/jobs/${id}`,
   postedAt,
+  postedAtUnknown,
   scrapedAt,
   engineer,
 });
@@ -167,7 +172,7 @@ describe("listJobs pagination", () => {
     expect(tracker.totalPaginateCalls).toBe(1);
   });
 
-  it("uses the scraped+posted index by default", async () => {
+  it("uses the posted+scraped index by default", async () => {
     const page1: Page = {
       page: [buildJob("job-1", 100)],
       isDone: true,
@@ -182,14 +187,15 @@ describe("listJobs pagination", () => {
       paginationOpts: { cursor: null, numItems: 2 },
     });
 
-    expect(tracker.lastIndexName).toBe("by_scraped_posted");
+    expect(tracker.lastIndexName).toBe("by_posted_scraped");
   });
 
-  it("orders results by scrapedAt then postedAt", async () => {
+  it("orders results by postedAt then scrapedAt", async () => {
     const page1: Page = {
       page: [
-        buildJob("job-1", 500, 100, "Engineer A"),
+        buildJob("job-1", 1000, 100, "Engineer A"),
         buildJob("job-2", 1000, 200, "Engineer B"),
+        buildJob("job-3", 500, 999, "Engineer C"),
       ],
       isDone: true,
       continueCursor: null,
@@ -205,6 +211,31 @@ describe("listJobs pagination", () => {
 
     expect(result.page[0]._id).toBe("job-2");
     expect(result.page[1]._id).toBe("job-1");
+    expect(result.page[2]._id).toBe("job-3");
+  });
+
+  it("puts unknown postedAt after known when scrapedAt matches", async () => {
+    const page1: Page = {
+      page: [
+        buildJob("job-1", 1000, 1000, "Engineer A", true, true),
+        buildJob("job-2", 500, 1000, "Engineer B", true, false),
+        buildJob("job-3", 800, 1000, "Engineer C", true, false),
+      ],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    const result = await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 2 },
+    });
+
+    expect(result.page[0]._id).toBe("job-3");
+    expect(result.page[1]._id).toBe("job-2");
+    expect(result.page[2]._id).toBe("job-1");
   });
 
   it("uses the company key+posted index when a single company filter is set", async () => {

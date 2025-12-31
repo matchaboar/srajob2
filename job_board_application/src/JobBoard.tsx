@@ -320,6 +320,7 @@ export function JobBoard() {
   // Selection state for keyboard navigation
   const [selectedJobId, setSelectedJobId] = useState<SelectionId | null>(null);
   const [queuedView, setQueuedView] = useState<"pending" | "processing">("pending");
+  const [processingLimit, setProcessingLimit] = useState<number>(20);
   const defaultFilterRequestedRef = useRef(false);
   const applyingSavedFilterRef = useRef(false);
   const pendingSelectionClearRef = useRef(false);
@@ -388,7 +389,6 @@ export function JobBoard() {
       setQueuedCutoff(Date.now());
     }
   }, [activeTab]);
-
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -420,10 +420,15 @@ export function JobBoard() {
   const jobsLoadMoreSize = jobsChunkSize;
   const jobsAutoFillTarget = isAdmin ? 100 : 30;
   const jobsAutoFillDelayMs = 1000;
-  const queuedPageSize = 10;
-  const queuedLoadMoreSize = 10;
-  const queuedAutoFillTarget = 500;
+  const queuedPageSize = 20;
+  const queuedLoadMoreSize = 20;
+  const queuedAutoFillTarget = queuedPageSize;
   const queuedAutoFillDelayMs = 1000;
+  useEffect(() => {
+    if (queuedView === "processing") {
+      setProcessingLimit(queuedPageSize);
+    }
+  }, [queuedView, queuedPageSize]);
   const companyBannerName = useMemo(() => {
     if (filters.companies.length === 1) return filters.companies[0] ?? null;
     if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
@@ -505,11 +510,17 @@ export function JobBoard() {
   ]);
 
   const [displayedResults, setDisplayedResults] = useState<ListedJob[]>(results);
+  const isSameJobList = useCallback((next: ListedJob[], prev: ListedJob[]) => {
+    if (next === prev) return true;
+    if (next.length !== prev.length) return false;
+    return next.every((job, index) => job._id === prev[index]?._id);
+  }, []);
   useEffect(() => {
     // Keep showing the previous page while a new filter set is loading.
     if (status === "LoadingFirstPage") return;
+    if (isSameJobList(results, displayedResults)) return;
     setDisplayedResults(results);
-  }, [results, status]);
+  }, [results, status, displayedResults, isSameJobList]);
 
   const companySuggestions = useQuery(
     api.jobs.searchCompanies,
@@ -554,7 +565,7 @@ export function JobBoard() {
   const processingQueued = useQuery(
     api.router.listQueuedScrapeUrls,
     isQueuedTab && queuedView === "processing"
-      ? { status: "processing", limit: 200 }
+      ? { status: "processing", limit: processingLimit }
       : "skip"
   ) as QueuedScrapeUrlItem[] | undefined;
   const applyToJob = useMutation(api.jobs.applyToJob);
@@ -578,6 +589,8 @@ export function JobBoard() {
     }
     return (queuedResults ?? []).filter(Boolean) as QueuedQueueRow[];
   }, [queuedResults, processingQueued, queuedView]);
+  const canLoadMoreProcessing =
+    queuedView === "processing" && (processingQueued?.length ?? 0) >= processingLimit;
   const shouldAutoLoadQueued =
     isQueuedTab &&
     queuedView === "pending" &&
@@ -629,6 +642,51 @@ export function JobBoard() {
     () => (selectedAppliedJob ? { ...selectedAppliedJob, ...(selectedAppliedJobDetails ?? {}) } : null),
     [selectedAppliedJob, selectedAppliedJobDetails]
   );
+  const formatDurationLabel = useCallback((ms: number) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  }, []);
+  const queueDurationInfos = useMemo(() => {
+    const entries = (selectedJobFull as { scrapeQueueInfo?: Array<any> } | null)?.scrapeQueueInfo ?? [];
+    if (!Array.isArray(entries) || entries.length === 0) return [];
+    const now = Date.now();
+    return entries
+      .map((entry) => {
+        const createdAt = typeof entry?.createdAt === "number" ? entry.createdAt : null;
+        if (!createdAt) return null;
+        const status = typeof entry?.status === "string" ? entry.status : null;
+        const completedAt = typeof entry?.completedAt === "number" ? entry.completedAt : null;
+        const updatedAt = typeof entry?.updatedAt === "number" ? entry.updatedAt : null;
+        const endAt = status === "pending" || status === "processing"
+          ? now
+          : (completedAt ?? updatedAt ?? now);
+        const durationMs = Math.max(0, endAt - createdAt);
+        const url = typeof entry?.url === "string" ? entry.url : "";
+        let hostname = "";
+        if (url) {
+          try {
+            hostname = new URL(url).hostname.replace(/^www\./, "");
+          } catch {
+            hostname = url;
+          }
+        }
+        return {
+          key: `${url}-${createdAt}`,
+          status,
+          durationLabel: formatDurationLabel(durationMs),
+          hostname,
+        };
+      })
+      .filter(Boolean) as Array<{ key: string; status: string | null; durationLabel: string; hostname: string }>;
+  }, [selectedJobFull, formatDurationLabel]);
   const selectedQueuedItem = useMemo(() => {
     if (activeTab !== "queued") return null;
     return queuedList.find((item) => item._id === selectedJobId) ?? null;
@@ -643,6 +701,14 @@ export function JobBoard() {
     const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return `${dateLabel} • ${days}d ago`;
   }, []);
+  const formatPostedDisplay = useCallback(
+    (timestamp: number, unknown?: boolean) => `${formatPostedLabel(timestamp)}${unknown ? "?" : ""}`,
+    [formatPostedLabel]
+  );
+  const postedAtClassName = useCallback(
+    (unknown?: boolean) => (unknown ? "text-slate-300" : "text-emerald-300"),
+    []
+  );
   const formatQueueTimestamp = useCallback((timestamp?: number | null) => {
     if (typeof timestamp !== "number") return "—";
     return new Date(timestamp).toLocaleString();
@@ -2242,7 +2308,9 @@ export function JobBoard() {
                           )}
                           {typeof selectedJobFull.postedAt === "number" && (
                             <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              Posted {formatPostedLabel(selectedJobFull.postedAt)}
+                              <span className={postedAtClassName(selectedJobFull.postedAtUnknown)}>
+                                Posted {formatPostedDisplay(selectedJobFull.postedAt, selectedJobFull.postedAtUnknown)}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -2410,6 +2478,20 @@ export function JobBoard() {
                               <span className="font-semibold text-slate-100 break-words">None</span>
                             )}
                           </div>
+                          {queueDurationInfos.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm text-slate-200">
+                              <span className="w-28 text-slate-500">Queued</span>
+                              <div className="flex flex-col gap-1">
+                                {queueDurationInfos.map((info) => (
+                                  <span key={info.key} className="font-semibold text-slate-100 break-words">
+                                    {info.durationLabel}
+                                    {info.status ? ` • ${info.status}` : ""}
+                                    {info.hostname ? ` • ${info.hostname}` : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
@@ -2715,7 +2797,9 @@ export function JobBoard() {
                         )}
                         {typeof selectedAppliedJobFull.postedAt === "number" && (
                           <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            Posted {formatPostedLabel(selectedAppliedJobFull.postedAt)}
+                            <span className={postedAtClassName(selectedAppliedJobFull.postedAtUnknown)}>
+                              Posted {formatPostedDisplay(selectedAppliedJobFull.postedAt, selectedAppliedJobFull.postedAtUnknown)}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -2882,7 +2966,9 @@ export function JobBoard() {
                           )}
                           {typeof selectedRejectedJob.postedAt === "number" && (
                             <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              Posted {formatPostedLabel(selectedRejectedJob.postedAt)}
+                              <span className={postedAtClassName(selectedRejectedJob.postedAtUnknown)}>
+                                Posted {formatPostedDisplay(selectedRejectedJob.postedAt, selectedRejectedJob.postedAtUnknown)}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -3021,8 +3107,9 @@ export function JobBoard() {
                 <div className="sticky top-0 z-20 relative">
                   <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <div className="w-1" />
-                    <div className="flex-1 grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-2 sm:gap-3 items-center">
+                    <div className="flex-1 grid grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-2 sm:gap-3 items-center">
                       <div className="text-right">#</div>
+                      <div className="w-7" />
                       <div>URL</div>
                       <div className="hidden sm:block">Provider</div>
                       <div className="hidden sm:block">Scheduled</div>
@@ -3051,6 +3138,16 @@ export function JobBoard() {
                     <div className="p-4 flex justify-center border-t border-slate-800">
                       <button
                         onClick={() => loadMoreQueued(queuedLoadMoreSize)}
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
+                      >
+                        Load More
+                      </button>
+                    </div>
+                  )}
+                  {queuedView === "processing" && canLoadMoreProcessing && (
+                    <div className="p-4 flex justify-center border-t border-slate-800">
+                      <button
+                        onClick={() => setProcessingLimit((prev) => prev + queuedLoadMoreSize)}
                         className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
                       >
                         Load More

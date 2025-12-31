@@ -39,6 +39,7 @@ const applicationTables = {
     .index("by_posted_at", ["postedAt"])
     .index("by_scraped_at", ["scrapedAt"])
     .index("by_scraped_posted", ["scrapedAt", "postedAt"])
+    .index("by_posted_scraped", ["postedAt", "scrapedAt"])
     .index("by_company", ["company"])
     .index("by_company_key", ["companyKey"])
     .index("by_state_posted", ["state", "postedAt"])
@@ -48,6 +49,7 @@ const applicationTables = {
     .index("by_title_posted", ["title", "postedAt"])
     .index("by_url", ["url"])
     .index("by_engineer_scraped_posted", ["engineer", "scrapedAt", "postedAt"])
+    .index("by_engineer_posted_scraped", ["engineer", "postedAt", "scrapedAt"])
     .searchIndex("search_locations", {
       searchField: "locationSearch",
       filterFields: ["remote", "level", "state", "engineer"],

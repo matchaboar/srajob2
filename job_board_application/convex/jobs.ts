@@ -61,12 +61,20 @@ const normalizeSortTimestamp = (value: unknown) =>
 const compareNewestJobs = (a: any, b: any) => {
   const aScraped = normalizeSortTimestamp(a.scrapedAt);
   const bScraped = normalizeSortTimestamp(b.scrapedAt);
-  if (aScraped !== bScraped) {
-    return bScraped - aScraped;
+  if (aScraped === bScraped) {
+    const aUnknown = a.postedAtUnknown === true;
+    const bUnknown = b.postedAtUnknown === true;
+    if (aUnknown !== bUnknown) {
+      return aUnknown ? 1 : -1;
+    }
   }
+
   const aPosted = normalizeSortTimestamp(a.postedAt);
   const bPosted = normalizeSortTimestamp(b.postedAt);
-  return bPosted - aPosted;
+  if (aPosted !== bPosted) {
+    return bPosted - aPosted;
+  }
+  return bScraped - aScraped;
 };
 
 const toTitleCase = (value: string) => {
@@ -896,7 +904,7 @@ export const listJobs = query({
 
       const fallbackCandidates = await ctx.db
         .query("jobs")
-        .withIndex("by_scraped_posted")
+        .withIndex("by_posted_scraped")
         .order("desc")
         .take(SEARCH_LIMIT);
       const combined = new Map<string, any>();
@@ -931,9 +939,9 @@ export const listJobs = query({
         } else if (singleCompanyKey) {
           query = query.withIndex("by_company_key_posted", (q: any) => q.eq("companyKey", singleCompanyKey));
         } else if (wantsEngineer) {
-          query = query.withIndex("by_engineer_scraped_posted", (q: any) => q.eq("engineer", true));
+          query = query.withIndex("by_engineer_posted_scraped", (q: any) => q.eq("engineer", true));
         } else {
-          query = query.withIndex("by_scraped_posted");
+          query = query.withIndex("by_posted_scraped");
         }
 
         query = query.order("desc");
@@ -1015,7 +1023,8 @@ export const listJobs = query({
       }
     }
 
-    // Ensure descending order by scrapedAt then postedAt for all paths.
+    // Ensure descending order by postedAt then scrapedAt for all paths,
+    // with unknown postedAt entries pushed after known ones when scrapedAt matches.
     const orderedPage = [...jobs.page].sort(compareNewestJobs);
 
     // Filter out applied/rejected jobs and apply compensation filters
@@ -1099,7 +1108,7 @@ export const searchCompanies = query({
       ? ctx.db
           .query("jobs")
           .withSearchIndex("search_company", (q) => q.search("company", searchTerm))
-      : ctx.db.query("jobs").withIndex("by_scraped_posted").order("desc");
+      : ctx.db.query("jobs").withIndex("by_posted_scraped").order("desc");
 
     const matches = await baseQuery.take(200);
     const counts = new Map<string, { name: string; count: number }>();
@@ -1431,7 +1440,7 @@ export const getRecentJobs = query({
     // because Convex queries are reactive by default
     const jobs = await ctx.db
       .query("jobs")
-      .withIndex("by_scraped_posted")
+      .withIndex("by_posted_scraped")
       .order("desc")
       .take(20); // Increased from 10 to show more recent jobs
 
@@ -1496,7 +1505,7 @@ export const listQueuedJobs = query({
 
     const paginationOpts = {
       ...args.paginationOpts,
-      numItems: Math.min(args.paginationOpts.numItems ?? 10, 10),
+      numItems: Math.min(args.paginationOpts.numItems ?? 20, 20),
     };
     const page = await query.order("asc").paginate(paginationOpts);
     const rows = page.page.map((row: any) => ({
@@ -1515,7 +1524,11 @@ export const listQueuedJobs = query({
       scheduledAt: row.scheduledAt,
     }));
 
-    return { ...page, page: rows };
+    return {
+      page: rows,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor ?? null,
+    };
   },
 });
 
@@ -1623,22 +1636,52 @@ export const getJobDetails = query({
   },
   handler: async (ctx, args) => {
     if (!args.jobId) return null;
+    const job = await ctx.db.get(args.jobId);
     const details = await getJobDetailsByJobId(ctx, args.jobId);
     const jobIds = args.groupedJobIds && args.groupedJobIds.length > 0 ? args.groupedJobIds : [args.jobId];
     const applicationCount = await countAppliedApplications(ctx, jobIds);
+    const queueUrls = new Set<string>();
+    if (job?.url) queueUrls.add(job.url);
+    if (Array.isArray((job as any)?.alternateUrls)) {
+      for (const url of (job as any).alternateUrls as any[]) {
+        if (typeof url === "string" && url) queueUrls.add(url);
+      }
+    }
+    const scrapeUrlCandidate = (details as any)?.scrapeUrl ?? (job as any)?.scrapeUrl;
+    if (typeof scrapeUrlCandidate === "string" && scrapeUrlCandidate) {
+      queueUrls.add(scrapeUrlCandidate);
+    }
+    const scrapeQueueInfo = (
+      await Promise.all(
+        Array.from(queueUrls).map(async (url) => {
+          const row = await ctx.db
+            .query("scrape_url_queue")
+            .withIndex("by_url", (q: any) => q.eq("url", url))
+            .first();
+          if (!row) return null;
+          return {
+            url: row.url,
+            status: row.status,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            completedAt: row.completedAt,
+            scheduledAt: row.scheduledAt,
+          };
+        })
+      )
+    ).filter(Boolean);
+
     if (!details) {
-      const job = await ctx.db.get(args.jobId);
       const fallbackDescription = typeof job?.description === "string" ? job.description : undefined;
-      return { description: fallbackDescription, applicationCount };
+      return { description: fallbackDescription, applicationCount, scrapeQueueInfo };
     }
     const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
     if (!detailFields.description) {
-      const job = await ctx.db.get(args.jobId);
       if (typeof job?.description === "string") {
         detailFields.description = job.description;
       }
     }
-    return { ...detailFields, applicationCount };
+    return { ...detailFields, applicationCount, scrapeQueueInfo };
   },
 });
 
