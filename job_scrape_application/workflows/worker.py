@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -100,6 +101,13 @@ JOB_DETAILS_ACTIVITIES = [
     activities.complete_scrape_urls,
 ]
 
+@dataclass(frozen=True)
+class WorkerConfig:
+    task_queue: str
+    workflows: list[type]
+    activities: list
+    role: str
+
 
 def _select_worker_config() -> tuple[str, list[type], list]:
     role = (settings.worker_role or "all").strip().lower()
@@ -115,6 +123,22 @@ def _select_worker_config() -> tuple[str, list[type], list]:
         workflows = [wf for wf in workflows if wf not in FETCHFOX_WORKFLOWS]
         activities_list = [act for act in activities_list if act not in FETCHFOX_ACTIVITIES]
     return settings.task_queue, workflows, activities_list
+
+
+def _select_worker_configs() -> list[WorkerConfig]:
+    role = (settings.worker_role or "all").strip().lower()
+    if role in {"job-details", "spidercloud-job-details"}:
+        queue = settings.job_details_task_queue or settings.task_queue
+        return [WorkerConfig(queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES, role)]
+
+    task_queue, workflows, activities_list = _select_worker_config()
+    configs = [WorkerConfig(task_queue, workflows, activities_list, role)]
+    job_details_queue = settings.job_details_task_queue
+    if role == "all" and job_details_queue and job_details_queue != task_queue:
+        configs.append(
+            WorkerConfig(job_details_queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES, "job-details")
+        )
+    return configs
 
 
 class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
@@ -367,30 +391,36 @@ async def main() -> None:
     hostname = socket.gethostname()
     worker_id = f"{hostname}-{os.getpid()}"
 
-    task_queue, workflows, activities_list = _select_worker_config()
-
-    worker = Worker(
-        client,
-        task_queue=task_queue,
-        workflows=workflows,
-        activities=activities_list,
-        interceptors=[WorkflowLoggingInterceptor()],
-    )
+    configs = _select_worker_configs()
+    workers = [
+        Worker(
+            client,
+            task_queue=cfg.task_queue,
+            workflows=cfg.workflows,
+            activities=cfg.activities,
+            interceptors=[WorkflowLoggingInterceptor()],
+        )
+        for cfg in configs
+    ]
 
     # Start the monitor loop in the background
     monitor_task = asyncio.create_task(monitor_loop(client, worker_id))
     webhook_log_task = asyncio.create_task(webhook_wait_logger())
     schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
 
+    queue_summary = ", ".join(
+        f"{cfg.task_queue}({cfg.role})" for cfg in configs
+    )
     logger.info(
-        "Worker started. Namespace=%s Address=%s TaskQueue=%s Role=%s",
+        "Worker started. Namespace=%s Address=%s TaskQueues=%s Role=%s",
         settings.temporal_namespace,
         settings.temporal_address,
-        task_queue,
+        queue_summary,
         settings.worker_role or "all",
     )
     try:
-        await worker.run()
+        run_tasks = [asyncio.create_task(worker.run()) for worker in workers]
+        await asyncio.gather(*run_tasks)
     except asyncio.CancelledError:
         logger.info("Worker cancelled; shutting down...")
         return

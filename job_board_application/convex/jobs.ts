@@ -10,6 +10,7 @@ import {
   isUnknownLocationValue,
   normalizeLocations,
   deriveLocationFields,
+  inferCountryFromLocation,
 } from "./location";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -20,7 +21,7 @@ const LOCATION_RE =
   /\b(?:location|office|based\s+in)\s*[:\-–]\s*(?<location>[^\n,;]+(?:,\s*[^\n,;]+)?)/i;
 const SIMPLE_LOCATION_LINE_RE = /^[ \t]*(?<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$/m;
 const SALARY_RE =
-  /\$\s*(?<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*\$?\s*(?<high>\d{2,3}(?:[.,]\d{3})*))?\s*(?<period>per\s+year|per\s+annum|annual|yr|year|\/year|per\s+hour|hr|hour)?/i;
+  /\$\s*(?<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*(?:USD|US\$)?\s*\$?\s*(?<high>\d{2,3}(?:[.,]\d{3})*))?\s*(?<period>per\s+year|per\s+annum|annual|yr|year|\/year|per\s+hour|hr|hour)?/i;
 const SALARY_K_RE =
   /(?<currency>[$£€])?\s*(?<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?<high>\d{2,3})\s*[kK])?\s*(?<code>USD|EUR|GBP)?/i;
 const REMOTE_RE = /\b(remote(-first)?|hybrid|onsite|on-site)\b/i;
@@ -52,7 +53,8 @@ export const deriveEngineerFlag = (title?: string | null) => {
 const isVersionLabel = (value?: string | null) => /^v\d+$/i.test((value || "").trim());
 const shouldOverrideCompany = (value?: string | null) => {
   const trimmed = (value || "").trim();
-  return isUnknownLabel(value) || trimmed === "Greenhouse" || isVersionLabel(trimmed);
+  const normalized = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return isUnknownLabel(value) || trimmed === "Greenhouse" || isVersionLabel(trimmed) || normalized === "ashbyhq";
 };
 
 const normalizeSortTimestamp = (value: unknown) =>
@@ -86,6 +88,43 @@ const toTitleCase = (value: string) => {
     .join(" ");
 };
 
+const WORKDAY_HOST_SUFFIX = "myworkdayjobs.com";
+const WORKDAY_SKIP_SUBDOMAINS = new Set([
+  "www",
+  "jobs",
+  "careers",
+  "boards",
+  "board",
+  "apply",
+  "app",
+  "join",
+  "team",
+  "teams",
+  "work",
+]);
+
+const deriveWorkdayCompany = (hostname: string): string => {
+  if (!hostname.endsWith(WORKDAY_HOST_SUFFIX)) return "";
+  const parts = hostname.split(".").filter(Boolean);
+  if (parts.length < 3) return "";
+  const subdomains = parts.slice(0, -2);
+  for (const candidate of subdomains) {
+    if (!candidate) continue;
+    if (WORKDAY_SKIP_SUBDOMAINS.has(candidate)) continue;
+    if (/^wd\d+$/i.test(candidate)) continue;
+    const cleaned = toTitleCase(candidate);
+    if (cleaned) return cleaned;
+  }
+  for (let i = subdomains.length - 1; i >= 0; i -= 1) {
+    const candidate = subdomains[i];
+    if (!candidate) continue;
+    if (/^wd\d+$/i.test(candidate)) continue;
+    const cleaned = toTitleCase(candidate);
+    if (cleaned) return cleaned;
+  }
+  return "";
+};
+
 export const deriveCompanyFromUrl = (url: string): string => {
   try {
     const greenhouseSlug = greenhouseSlugFromUrl(url);
@@ -94,8 +133,16 @@ export const deriveCompanyFromUrl = (url: string): string => {
       if (greenhouseName) return greenhouseName;
     }
 
+    const ashbySlug = ashbySlugFromUrl(url);
+    if (ashbySlug) {
+      const ashbyName = toTitleCase(ashbySlug);
+      if (ashbyName) return ashbyName;
+    }
+
     const parsed = new URL(url);
     const hostname = (parsed.hostname || "").toLowerCase();
+    const workdayCompany = deriveWorkdayCompany(hostname);
+    if (workdayCompany) return workdayCompany;
     if (hostname.endsWith("greenhouse.io")) {
       const parts = parsed.pathname.split("/").filter(Boolean);
       if (parts.length > 0) {
@@ -158,6 +205,21 @@ export const parseMarkdownHints = (markdown: string) => {
 
   // Location: prefer a short line beneath the header that looks like "City, State".
   const lines = markdown.split(/\r?\n/);
+  const remoteCountry = (() => {
+    for (const line of lines) {
+      const match = line.match(/remote\s*[,–-]\s*([A-Za-z][A-Za-z .'-]+)/i);
+      if (!match?.[1]) continue;
+      const cleaned = match[1]
+        .split(/\s+(?:or|and)\s+|\/|\||;/i)[0]
+        .replace(/[).,;]+$/g, "")
+        .trim();
+      if (!cleaned) continue;
+      const inferred = inferCountryFromLocation(cleaned);
+      if (inferred) return inferred;
+    }
+    return null;
+  })();
+
   for (const line of lines) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
@@ -170,6 +232,13 @@ export const parseMarkdownHints = (markdown: string) => {
       if (/^[A-Za-z].*,/.test(candidate)) {
         locationCandidates.push(candidate);
       }
+    }
+  }
+  if (remoteCountry) {
+    hints.remoteCountry = remoteCountry;
+    hints.remote = true;
+    if (locationCandidates.length === 0) {
+      locationCandidates.push("Remote");
     }
   }
   if (!locationCandidates.length) {
@@ -305,6 +374,25 @@ export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
     }
     if ((isUnknownLocationValue(job.city) || !job.city) && locationInfo.city) updates.city = locationInfo.city;
     if ((isUnknownLocationValue(job.state) || !job.state) && locationInfo.state) updates.state = locationInfo.state;
+  }
+
+  const remoteCountry = typeof hints.remoteCountry === "string" ? hints.remoteCountry.trim() : "";
+  if (remoteCountry) {
+    const hasOnlyRemoteLocation =
+      normalizedLocations.length === 0 ||
+      (normalizedLocations.length === 1 && normalizedLocations[0].toLowerCase() === "remote");
+    if (hasOnlyRemoteLocation) {
+      const nextLocations = normalizedLocations.length ? normalizedLocations : ["Remote"];
+      if (!arraysEqual(job.locations, nextLocations)) updates.locations = nextLocations;
+      const nextLocationStates = ["Remote"];
+      if (!arraysEqual(job.locationStates, nextLocationStates)) updates.locationStates = nextLocationStates;
+      if (job.location !== "Remote") updates.location = "Remote";
+      const nextCountries = [remoteCountry];
+      if (!arraysEqual(job.countries, nextCountries)) updates.countries = nextCountries;
+      if (job.country !== remoteCountry) updates.country = remoteCountry;
+      const nextLocationSearch = `Remote ${remoteCountry}`.trim();
+      if (job.locationSearch !== nextLocationSearch) updates.locationSearch = nextLocationSearch;
+    }
   }
 
   if (hints.level) {
@@ -617,6 +705,7 @@ const normalizeDomainInput = (value: string): string => {
   try {
     const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
     const host = parsed.hostname.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
     const ashbySlug = ashbySlugFromUrl(parsed.href);
@@ -625,6 +714,7 @@ const normalizeDomainInput = (value: string): string => {
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
     const host = hostOnly.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(host);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
     const ashbySlug = ashbySlugFromUrl(trimmed);

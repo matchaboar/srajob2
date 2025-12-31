@@ -24,11 +24,15 @@ from ..helpers.scrape_utils import (
     _strip_embedded_theme_json,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
+    apply_company_hint,
     coerce_level,
     coerce_remote,
     derive_company_from_url,
+    is_generic_company_name,
     looks_like_error_landing,
     looks_like_job_listing_page,
+    normalize_company_hint,
+    normalize_title_from_bar,
     parse_markdown_hints,
     parse_posted_at,
     parse_posted_at_with_unknown,
@@ -87,6 +91,11 @@ STRUCTURED_DESCRIPTION_CHROME_MARKERS = (
     "view all of our available opportunities",
     "view all jobs",
     "cookie settings",
+    "job_description.share",
+    "job_description.share.html",
+    "loginorregister",
+    "mail_outline",
+    "get future jobs matching this search",
 )
 MAX_TITLE_CHARS = 500
 UUID_LIKE_RE = re.compile(
@@ -917,6 +926,17 @@ class SpiderCloudScraper(BaseScraper):
             return True
         return not any(marker in lower for marker in JOB_DETAIL_MARKERS)
 
+    def _posted_at_from_job_posting(self, payload: Dict[str, Any]) -> Any | None:
+        if not isinstance(payload, dict):
+            return None
+        for key in ("datePosted", "dateCreated", "dateModified", "validThrough"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            if isinstance(value, (int, float)):
+                return value
+        return None
+
     def _location_from_job_posting(self, payload: Dict[str, Any]) -> Optional[str]:
         def _normalize_part(value: Any) -> Optional[str]:
             if isinstance(value, dict):
@@ -967,6 +987,40 @@ class SpiderCloudScraper(BaseScraper):
         if locations:
             return locations[0]
         return None
+
+    def _company_from_structured_payload(self, payload: Dict[str, Any]) -> Optional[str]:
+        def _extract_name(value: Any) -> Optional[str]:
+            if isinstance(value, dict):
+                value = value.get("name") or value.get("legalName") or value.get("alternateName")
+            if not isinstance(value, str):
+                return None
+            cleaned = value.strip()
+            if not cleaned:
+                return None
+            normalized = normalize_company_hint(cleaned)
+            return normalized or cleaned
+
+        candidates = (
+            payload.get("hiringOrganization")
+            or payload.get("employmentUnit")
+            or payload.get("organization")
+            or payload.get("company")
+        )
+        if isinstance(candidates, list):
+            for entry in candidates:
+                name = _extract_name(entry)
+                if name and not is_generic_company_name(name):
+                    return name
+            for entry in candidates:
+                name = _extract_name(entry)
+                if name:
+                    return name
+            return None
+
+        name = _extract_name(candidates)
+        if name and not is_generic_company_name(name):
+            return name
+        return name
 
     def _title_from_events(self, events: List[Any]) -> Optional[str]:
         def _looks_like_sentence_title(value: str) -> bool:
@@ -1385,9 +1439,18 @@ class SpiderCloudScraper(BaseScraper):
                 return True
             return False
 
+        prev_metadata_label = False
         for raw_line in markdown.splitlines():
             line = raw_line.strip()
             if not line:
+                prev_metadata_label = False
+                continue
+            normalized_label = _normalize_section_heading(line)
+            if normalized_label in _METADATA_LABEL_KEYS:
+                prev_metadata_label = True
+                continue
+            if prev_metadata_label:
+                prev_metadata_label = False
                 continue
             if line.startswith(("http://", "https://")):
                 continue
@@ -2011,6 +2074,7 @@ class SpiderCloudScraper(BaseScraper):
         structured_title = None
         structured_location = None
         structured_description = None
+        structured_company = None
         structured_present = False
         if structured_payload:
             structured_present = True
@@ -2021,6 +2085,7 @@ class SpiderCloudScraper(BaseScraper):
             if isinstance(raw_description, str) and raw_description.strip():
                 structured_description = raw_description.strip()
             structured_location = self._location_from_job_posting(structured_payload)
+            structured_company = self._company_from_structured_payload(structured_payload)
         if structured_description and not structured_present:
             structured_present = True
 
@@ -2064,15 +2129,21 @@ class SpiderCloudScraper(BaseScraper):
             from_content = bool(payload_title)
         else:
             from_content = True
-            if (
-                event_title
-                and payload_title == event_title
-                and content_title
-                and content_title != event_title
-                and self._title_is_metadata_value(cleaned_markdown, event_title)
-            ):
-                payload_title = content_title
-                title_source = "hint" if hint_title else "markdown"
+            if event_title and payload_title == event_title and content_title and content_title != event_title:
+                if self._title_is_metadata_value(cleaned_markdown, event_title):
+                    payload_title = content_title
+                    title_source = "hint" if hint_title else "markdown"
+                else:
+                    normalized_event = event_title.lower()
+                    normalized_content = content_title.lower()
+                    if (
+                        len(normalized_content.split()) >= 2
+                        and len(normalized_content) >= 8
+                        and normalized_content in normalized_event
+                        and any(token in normalized_event for token in (" | ", " in ", " @ "))
+                    ):
+                        payload_title = content_title
+                        title_source = "hint" if hint_title else "markdown"
         if payload_title and self._is_placeholder_title(payload_title):
             payload_title = None
             title_source = None
@@ -2135,6 +2206,8 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         title = payload_title or self._title_from_url(url)
+        if isinstance(title, str):
+            title = normalize_title_from_bar(title)
         if isinstance(title, str) and hint_title:
             normalized_title = title.strip()
             if normalized_title.lower().startswith("job application for"):
@@ -2162,7 +2235,9 @@ class SpiderCloudScraper(BaseScraper):
             keyword_title = self._title_with_required_keyword(cleaned_markdown)
             can_replace_title = title_source in {None, "hint", "markdown", "event"}
             if keyword_title and can_replace_title:
-                title = keyword_title
+                weak_title = self._is_placeholder_title(title) or len(title.split()) <= 3
+                if weak_title:
+                    title = keyword_title
         if from_content and not title_matches_required_keywords(title):
             logger.info(
                 "SpiderCloud dropping job due to missing required keyword url=%s title=%s",
@@ -2177,7 +2252,8 @@ class SpiderCloudScraper(BaseScraper):
                     "description": cleaned_markdown,
                 }
                 return None
-        company = derive_company_from_url(url) or "Unknown"
+        company = structured_company or derive_company_from_url(url) or "Unknown"
+        company = apply_company_hint(company, hints) if isinstance(hints, dict) else company
         location_hint = hints.get("location") if isinstance(hints, dict) else None
         handler_location = None
         if handler:
@@ -2186,7 +2262,17 @@ class SpiderCloudScraper(BaseScraper):
         if handler and handler.name == "greenhouse":
             greenhouse_location = self._extract_greenhouse_location_from_events(events)
         location = structured_location or greenhouse_location or handler_location or location_hint
-        remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", f"{title}\n{cleaned_markdown}")
+        if structured_location and location_hint:
+            structured_label = structured_location.strip()
+            hint_label = location_hint.strip()
+            structured_country = _normalize_country_label(structured_label)
+            if structured_country and structured_label.lower() == structured_country.lower():
+                location = hint_label
+            elif "remote" in hint_label.lower() and "remote" not in structured_label.lower():
+                location = hint_label
+            elif "remote" in structured_label.lower() and "remote" not in hint_label.lower():
+                location = hint_label
+        remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", title or "")
         level = coerce_level(hints.get("level") if isinstance(hints, dict) else None, title)
         description = cleaned_markdown or ""
         if not description.strip() and (raw_markdown or structured_description):
@@ -2205,6 +2291,7 @@ class SpiderCloudScraper(BaseScraper):
 
         posted_at = started_at
         posted_at_unknown = True
+        raw_posted_at: Any | None = None
         if handler:
             extractor = getattr(handler, "extract_posted_at", None)
             if callable(extractor):
@@ -2226,9 +2313,20 @@ class SpiderCloudScraper(BaseScraper):
                             candidate_payload = self._try_parse_json(fence_match.group(1))
                     if isinstance(candidate_payload, dict):
                         raw_posted_at = extractor(candidate_payload, url)
-                if raw_posted_at is not None:
-                    if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
-                        posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
+        if raw_posted_at is None and structured_payload is not None:
+            raw_posted_at = self._posted_at_from_job_posting(structured_payload)
+        if raw_posted_at is not None:
+            if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
+                posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
+        if posted_at_unknown and structured_payload:
+            raw_posted_at = (
+                structured_payload.get("datePosted")
+                or structured_payload.get("date_posted")
+                or structured_payload.get("postedAt")
+                or structured_payload.get("posted_at")
+            )
+            if raw_posted_at is not None and (not isinstance(raw_posted_at, str) or raw_posted_at.strip()):
+                posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
 
         self._last_ignored_job = None
         return {

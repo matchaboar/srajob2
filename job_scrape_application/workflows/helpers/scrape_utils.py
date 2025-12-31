@@ -39,6 +39,7 @@ from .regex_patterns import (
     _NAV_MENU_SEQUENCE,
     _REMOTE_RE,
     _SALARY_BETWEEN_RE,
+    _SALARY_HOURLY_RANGE_RE,
     _SALARY_K_RE,
     _SALARY_RANGE_LABEL_RE,
     _SALARY_RE,
@@ -46,12 +47,14 @@ from .regex_patterns import (
     _TITLE_RE,
     _TITLE_BAR_RE,
     _TITLE_IN_BAR_RE,
+    _TITLE_IN_BAR_COMPANY_RE,
     _TITLE_LOCATION_PAREN_RE,
     _WORK_FROM_RE,
 )
 DEFAULT_TOTAL_COMPENSATION = 0
 MIN_TOTAL_COMPENSATION = 30_000
 MAX_TOTAL_COMPENSATION = 5_000_000
+HOURLY_TO_ANNUAL_MULTIPLIER = 2080
 # Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
 MAX_SCRAPE_DESCRIPTION_CHARS = 8000
 # Higher ceiling for the actual job documents so the UI can render full descriptions.
@@ -83,6 +86,39 @@ _EMBEDDED_JSON_BLOB_MARKERS = (
     '"micrositeConfig"',
     '"i18n_overrides_master"',
 )
+_JIBEAPPLY_DROP_LINES = {
+    "back",
+    "carousel_paragraph",
+    "get future jobs matching this search",
+    "job_description.share.html",
+    "loginorregister",
+    "mail_outline",
+}
+_JUNK_UPPER_LINE_RE = re.compile(r"^[A-Z0-9_.]{8,}$")
+_COMPANY_SUFFIX_RE = re.compile(
+    r"(,?\s*(inc|inc\.|llc|ltd|limited|corp|corporation|co|company)\.?)$",
+    flags=re.IGNORECASE,
+)
+_GENERIC_COMPANY_HINTS = {
+    "careers",
+    "career",
+    "jobs",
+    "job",
+    "careers home",
+    "job description",
+}
+_JOB_BOARD_COMPANY_TOKENS = {
+    "ashby",
+    "avature",
+    "brassring",
+    "greenhouse",
+    "icims",
+    "jibeapply",
+    "lever",
+    "smartrecruiters",
+    "taleo",
+    "workday",
+}
 _EMBEDDED_JSON_MIN_LEN = 200
 _EMBEDDED_JSON_HUGE_LEN = 1200
 _DESCRIPTION_SECTION_MARKERS = {
@@ -423,6 +459,7 @@ def strip_known_nav_blocks(markdown: str) -> str:
     cleaned = _strip_avature_tail(cleaned)
     cleaned = _strip_embedded_json_blobs(cleaned)
     cleaned = _strip_empty_link_lines(cleaned)
+    cleaned = _strip_platform_tokens(cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -467,13 +504,14 @@ def _strip_empty_link_lines(markdown: str) -> str:
     def _is_empty_link_line(value: str) -> bool:
         if not value:
             return False
-        if value == "[":
+        stripped = value.strip()
+        if stripped in {"[", "* [", "- [", "• ["}:
             return True
-        if re.fullmatch(r"\[\s*\]", value):
+        if re.fullmatch(r"[\*\-•]?\s*\[\s*\]", stripped):
             return True
-        if re.fullmatch(r"\]\(\s*#?\s*\)", value):
+        if re.fullmatch(r"\]\(\s*#?\s*\)", stripped):
             return True
-        if re.fullmatch(r"\[\s*\]\(\s*#?\s*\)", value):
+        if re.fullmatch(r"\[\s*\]\(\s*#?\s*\)", stripped):
             return True
         return False
 
@@ -483,6 +521,28 @@ def _strip_empty_link_lines(markdown: str) -> str:
             continue
         lines.append(line)
     return "\n".join(lines)
+
+
+def _strip_platform_tokens(markdown: str) -> str:
+    if not markdown:
+        return markdown
+
+    jibe_substrings = [token for token in _JIBEAPPLY_DROP_LINES if token != "back"]
+    cleaned_lines: List[str] = []
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            cleaned_lines.append(line)
+            continue
+        normalized = re.sub(WHITESPACE_PATTERN, " ", stripped).strip().lower()
+        if any(token in normalized for token in jibe_substrings):
+            continue
+        if normalized in _JIBEAPPLY_DROP_LINES:
+            continue
+        if _JUNK_UPPER_LINE_RE.fullmatch(stripped):
+            continue
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines)
 
 
 def _is_separator_line(line: str) -> bool:
@@ -769,6 +829,38 @@ def _strip_avature_tail(markdown: str) -> str:
     if not markdown:
         return markdown
     lines = markdown.splitlines()
+    lower_lines = [line.strip().lower() for line in lines]
+
+    action_link_idx = None
+    action_tokens = ("/careers/login", "/careers/savejob", "/careers/searchjobs")
+    for idx, line in enumerate(lower_lines):
+        if any(token in line for token in action_tokens):
+            action_link_idx = idx
+            break
+
+    if action_link_idx is not None:
+        min_idx = max(8, int(len(lines) * 0.2))
+        if action_link_idx >= min_idx:
+            start_idx = action_link_idx
+            bracket_tokens = {"[", "* [", "- [", "• ["}
+            label_tokens = {"apply now", "save this job", "back to job search"}
+
+            if lower_lines[action_link_idx] in label_tokens:
+                start_idx = action_link_idx
+            elif action_link_idx > 0 and lower_lines[action_link_idx - 1] in label_tokens:
+                start_idx = action_link_idx - 1
+                if action_link_idx > 1 and lower_lines[action_link_idx - 2] in bracket_tokens:
+                    start_idx = action_link_idx - 2
+            elif action_link_idx > 1 and lower_lines[action_link_idx - 2] in label_tokens:
+                start_idx = action_link_idx - 2
+                if lower_lines[action_link_idx - 1] in bracket_tokens:
+                    start_idx = action_link_idx - 2
+            elif action_link_idx > 0 and lower_lines[action_link_idx - 1] in bracket_tokens:
+                start_idx = action_link_idx - 1
+
+            trimmed = "\n".join(lines[:start_idx]).strip("\n")
+            if trimmed:
+                return trimmed
     for idx, line in enumerate(lines):
         lower = line.strip().lower()
         if not lower:
@@ -1153,6 +1245,9 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
     normalized = _normalize_location_key(value)
     if not normalized:
         return None
+    country_label = _normalize_country_label(value)
+    if country_label:
+        return {"city": None, "state": None, "country": country_label}
 
     direct = _LOCATION_DICTIONARY.get(normalized)
     if direct and (allow_remote or not direct.get("remoteOnly")):
@@ -1195,9 +1290,71 @@ def _normalize_country_label(value: str) -> Optional[str]:
     return _COUNTRY_KEY_TO_LABEL.get(key)
 
 
+def normalize_company_hint(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    cleaned = cleaned.replace("\u200b", "").replace("\ufeff", "").strip()
+    cleaned = re.sub(r"^[#*\-\u2022]+", "", cleaned).strip()
+    cleaned = re.sub(r"^[*_`]+", "", cleaned).strip()
+    cleaned = re.sub(r"[*_`]+$", "", cleaned).strip()
+    cleaned = cleaned.strip("[](){}<>\"'")
+    cleaned = cleaned.strip(" ,;:-–—")
+    cleaned = _COMPANY_SUFFIX_RE.sub("", cleaned).strip(" ,")
+    lowered = cleaned.lower()
+    if " at " in lowered:
+        cleaned = cleaned.rsplit(" at ", 1)[-1].strip()
+        cleaned = _COMPANY_SUFFIX_RE.sub("", cleaned).strip(" ,")
+    if not cleaned:
+        return None
+    normalized_key = re.sub(NON_ALNUM_PATTERN, " ", cleaned).strip().lower()
+    if not normalized_key or normalized_key in _GENERIC_COMPANY_HINTS:
+        return None
+    return cleaned
+
+
+def normalize_title_from_bar(title: str) -> str:
+    if not isinstance(title, str) or not title.strip():
+        return title
+    match = _TITLE_IN_BAR_COMPANY_RE.match(title) or _TITLE_IN_BAR_RE.match(title) or _TITLE_BAR_RE.match(title)
+    if match:
+        cleaned = stringify(match.group("title"))
+        return cleaned or title
+    return title
+
+
+def is_generic_company_name(value: str | None) -> bool:
+    if not value:
+        return True
+    normalized = re.sub(NON_ALNUM_PATTERN, "", value.lower())
+    if not normalized:
+        return True
+    if normalized in {"unknown", "unknowncompany"}:
+        return True
+    return normalized in _JOB_BOARD_COMPANY_TOKENS
+
+
+def apply_company_hint(company: str, hints: Dict[str, Any]) -> str:
+    hint = normalize_company_hint(hints.get("company"))
+    if hint and is_generic_company_name(company):
+        return hint
+    return company
+
+
 def _to_int(value: str) -> Optional[int]:
     try:
-        digits = value.replace(",", "").replace(".", "")
+        cleaned = value.strip()
+        if "." in cleaned:
+            head, tail = cleaned.rsplit(".", 1)
+            if tail.isdigit() and len(tail) == 2:
+                cleaned = head
+        if "," in cleaned and "." not in cleaned:
+            head, tail = cleaned.rsplit(",", 1)
+            if tail.isdigit() and len(tail) == 2:
+                cleaned = head
+        digits = cleaned.replace(",", "").replace(".", "")
         return int(digits)
     except Exception:
         return None
@@ -1306,14 +1463,25 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     def _is_generic_heading_title(value: str) -> bool:
         lower = value.strip().lower().rstrip(":.")
+        lower = lower.replace("&amp;", "&").replace("&", "and")
         return lower in {
             "job description",
             "description",
+            "description and requirements",
             "stay in the loop",
         }
 
     title_lower = ""
     title_location_hint: Optional[str] = None
+    company_hint: Optional[str] = None
+
+    def _record_company(value: Optional[str]) -> None:
+        nonlocal company_hint
+        if not value or company_hint:
+            return
+        cleaned = normalize_company_hint(value)
+        if cleaned:
+            company_hint = cleaned
 
     def _looks_like_title_location(value: str) -> bool:
         if not value:
@@ -1329,27 +1497,91 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return True
         return False
 
-    def _extract_title_and_location_from_line(line: str) -> tuple[Optional[str], Optional[str]]:
+    def _looks_like_title_line(value: str) -> bool:
+        lowered = value.strip().lower()
+        if not lowered:
+            return False
+        if lowered in {
+            "location",
+            "locations",
+            "business area",
+            "ref #",
+            "ref#",
+            "description",
+            "description & requirements",
+            "requirements",
+        }:
+            return False
+        if lowered.startswith(("location", "business area", "ref #", "ref#", "description")):
+            return False
+        if any(token in lowered for token in ("apply", "direct apply", "apply with ai", "apply now", "back to job search", "save this job")):
+            return False
+        if any(token in lowered for token in ("cookie", "privacy", "consent")):
+            return False
+        if "posted" in lowered and ("ago" in lowered or re.search(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", lowered)):
+            return False
+        if re.fullmatch(r"\d+\s+words?", lowered):
+            return False
+        if lowered.endswith((".", "!", "?")):
+            return False
+        if len(lowered.split()) < 2:
+            return False
+        if len(lowered.split()) > 12:
+            return False
+        if len(lowered) > 120:
+            return False
+        title_keywords = (
+            "engineer",
+            "developer",
+            "manager",
+            "designer",
+            "product",
+            "software",
+            "data",
+            "security",
+            "analyst",
+            "program",
+            "director",
+            "lead",
+            "specialist",
+            "architect",
+            "scientist",
+        )
+        if _looks_like_title_location(value) and not any(keyword in lowered for keyword in title_keywords):
+            return False
+        return True
+
+    def _extract_title_and_location_from_line(
+        line: str,
+    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         if not line:
-            return None, None
+            return None, None, None
+        company = None
+        bar_company_match = _TITLE_IN_BAR_COMPANY_RE.match(line)
+        if bar_company_match:
+            title = stringify(bar_company_match.group("title"))
+            location = stringify(bar_company_match.group("location"))
+            company = stringify(bar_company_match.group("company"))
+            return title, location, company
         bar_match = _TITLE_IN_BAR_RE.match(line) or _TITLE_BAR_RE.match(line)
         if bar_match:
             title = stringify(bar_match.group("title"))
             location = stringify(bar_match.groupdict().get("location")) if bar_match.groupdict() else None
-            return title, location
+            return title, location, None
         paren_match = _TITLE_LOCATION_PAREN_RE.match(line)
         if paren_match:
-            return stringify(paren_match.group(1)), stringify(paren_match.group(2))
-        return None, None
+            return stringify(paren_match.group(1)), stringify(paren_match.group(2)), None
+        return None, None, None
 
     for match in _TITLE_RE.finditer(markdown):
         raw_title = stringify(match.group("title"))
         if not raw_title or _is_generic_heading_title(raw_title):
             continue
-        title, location = _extract_title_and_location_from_line(raw_title)
+        title, location, parsed_company = _extract_title_and_location_from_line(raw_title)
         title = title or raw_title
         hints["title"] = title
         title_lower = title.lower()
+        _record_company(parsed_company)
         if location and _looks_like_title_location(location):
             title_location_hint = location
         elif " in " in title and not title_location_hint:
@@ -1360,6 +1592,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 title_location_hint = tail
         break
     if "title" not in hints:
+        label_markers = {
+            "location",
+            "locations",
+            "business area",
+            "ref #",
+            "ref#",
+        }
+        prev_label: Optional[str] = None
         for line in markdown.splitlines()[:12]:
             t = line.strip()
             if not t:
@@ -1369,16 +1609,42 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 continue
             if lower.startswith(("back", "[ back")):
                 continue
+            if lower in label_markers:
+                prev_label = lower
+                continue
             if t.startswith(("#", "*", "-", "•")):
                 continue
-            candidate_title, candidate_location = _extract_title_and_location_from_line(t)
+            if prev_label:
+                prev_label = None
+                continue
+            candidate_title, candidate_location, parsed_company = _extract_title_and_location_from_line(t)
             if not candidate_title:
+                if _looks_like_title_line(t):
+                    hints["title"] = t
+                    title_lower = t.lower()
+                    break
                 continue
             hints["title"] = candidate_title
             title_lower = candidate_title.lower()
+            _record_company(parsed_company)
             if candidate_location and _looks_like_title_location(candidate_location):
                 title_location_hint = candidate_location
             break
+    if not company_hint:
+        for line in markdown.splitlines()[:40]:
+            t = line.strip()
+            if not t:
+                continue
+            cleaned = re.sub(r"^[#*\-\u2022]+", "", t).strip()
+            lower = cleaned.lower()
+            if lower.startswith("about "):
+                _record_company(cleaned[6:].strip())
+            elif lower.startswith("about:"):
+                _record_company(cleaned.split(":", 1)[-1].strip())
+            if company_hint:
+                break
+    if company_hint:
+        hints["company"] = company_hint
 
     if m := _LEVEL_RE.search(markdown):
         lvl = stringify(m.group("level")).lower()
@@ -1461,7 +1727,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 normalized_locations.append(fallback_label)
     if normalized_locations:
         hints["locations"] = normalized_locations
-        hints["location"] = normalized_locations[0]
+        preferred_location = normalized_locations[0]
+        for loc in normalized_locations:
+            if "remote" not in loc.lower():
+                preferred_location = loc
+                break
+        hints["location"] = preferred_location
 
     has_physical_location = any("remote" not in loc.lower() for loc in normalized_locations)
     remote_match = _REMOTE_RE.search(markdown)
@@ -1532,6 +1803,20 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if high_val:
             high_val *= 1000
         _record_comp_range(low_val, high_val)
+    for salary_match in _SALARY_HOURLY_RANGE_RE.finditer(markdown):
+        low_raw = salary_match.group("low")
+        high_raw = salary_match.group("high")
+        try:
+            low_val = float(low_raw.replace(",", "")) if low_raw else None
+        except Exception:
+            low_val = None
+        try:
+            high_val = float(high_raw.replace(",", "")) if high_raw else None
+        except Exception:
+            high_val = None
+        annual_low = int(round(low_val * HOURLY_TO_ANNUAL_MULTIPLIER)) if low_val is not None else None
+        annual_high = int(round(high_val * HOURLY_TO_ANNUAL_MULTIPLIER)) if high_val is not None else None
+        _record_comp_range(annual_low, annual_high, prefer_high=True)
     comp_val = max(comp_candidates, default=None)
     if comp_val is not None:
         hints["compensation"] = comp_val
@@ -1611,6 +1896,8 @@ def coerce_remote(value: Any, location: str, title: str) -> bool:
             return True
     loc_lower = (location or "").lower()
     title_lower = (title or "").lower()
+    if loc_lower and loc_lower not in {"unknown"} and "remote" not in loc_lower:
+        return False
     return "remote" in loc_lower or "remote" in title_lower
 
 
@@ -1682,11 +1969,15 @@ def parse_posted_at(value: Any) -> int:
         return now_ms
 
     if isinstance(value, str):
-        try:
-            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            return int(dt.timestamp() * 1000)
-        except Exception:
-            pass
+        cleaned = value.strip()
+        if cleaned:
+            if re.search(r"[+-]\d{4}$", cleaned):
+                cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
+            try:
+                dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+                return int(dt.timestamp() * 1000)
+            except Exception:
+                pass
 
     return now_ms
 
@@ -1707,6 +1998,8 @@ def parse_posted_at_with_unknown(value: Any) -> tuple[int, bool]:
         cleaned = value.strip()
         if not cleaned:
             return now_ms, True
+        if re.search(r"[+-]\d{4}$", cleaned):
+            cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
         try:
             dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
             return int(dt.timestamp() * 1000), False
@@ -1761,8 +2054,13 @@ class _DefaultJobHintApplier(_JobHintApplier):
     ) -> _JobHintState:
         title = state.title
         hinted_title = hints.get("title")
-        if hinted_title and title.lower().startswith(config.title_prefix):
-            title = hinted_title
+        if hinted_title:
+            title_lowered = title.lower()
+            hinted_lower = hinted_title.lower()
+            if title_lowered.startswith(config.title_prefix) or (
+                hinted_lower in title_lowered and ("|" in title or " in " in title_lowered)
+            ):
+                title = hinted_title
 
         location = state.location or ""
         hinted_location = hints.get("location")
@@ -1862,7 +2160,9 @@ class _JobRowNormalizer:
     def normalize_row(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         raw_title_value = row.get("job_title") or row.get("title")
         raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
-        title = raw_title or stringify(row.get("job_title") or row.get("title") or "Untitled")
+        title = normalize_title_from_bar(raw_title) if raw_title else ""
+        if not title:
+            title = stringify(row.get("job_title") or row.get("title") or "Untitled")
 
         preferred_url = prefer_apply_url(row)
         url = stringify(preferred_url) if preferred_url is not None else ""
@@ -1895,6 +2195,7 @@ class _JobRowNormalizer:
             description = description[: self.max_description_chars]
 
         hints = parse_markdown_hints(description)
+        company = apply_company_hint(company, hints)
         total_comp, used_default_comp = parse_compensation(
             row.get("total_compensation") or row.get("salary") or row.get("compensation"),
             with_meta=True,
@@ -2090,6 +2391,7 @@ def trim_scrape_for_convex(
     max_title_chars: int = MAX_TITLE_CHARS,
     raw_preview_chars: int = 8000,
     request_max_chars: int = 4000,
+    collect_page_links: bool = True,
 ) -> Dict[str, Any]:
     items = scrape.get("items", {})
     normalized: list[Dict[str, Any]] = []
@@ -2133,15 +2435,13 @@ def trim_scrape_for_convex(
             raw_preview = None
 
     trimmed_items: Dict[str, Any] = {"normalized": normalized}
-    if isinstance(items, dict) and "raw" in items:
+    if collect_page_links and isinstance(items, dict) and "raw" in items:
         try:
-            page_links = extract_links_from_payload(items.get("raw"), collect_all=True)
-            if not page_links:
-                page_links = extract_links_from_payload(
-                    items.get("raw"),
-                    collect_all=True,
-                    scan_strings=True,
-                )
+            page_links = extract_links_from_payload(
+                items.get("raw"),
+                collect_all=True,
+                scan_strings=True,
+            )
         except Exception:
             page_links = []
         if page_links:
@@ -2174,9 +2474,19 @@ def trim_scrape_for_convex(
 
     if isinstance(items, dict):
         for key, value in items.items():
-            if key in {"normalized", "raw"}:
+            if key in {"normalized", "raw", "ignored", "failed"}:
                 continue
             _copy_meta(key, value)
+        raw_job_urls = items.get("job_urls") if "job_urls" in items else items.get("jobUrls")
+        if isinstance(raw_job_urls, list):
+            deduped_job_urls = dedupe_str_list(raw_job_urls, limit=2000)
+            if deduped_job_urls:
+                trimmed_items["job_urls"] = deduped_job_urls
+
+    if page_links:
+        existing_job_urls = trimmed_items.get("job_urls") if isinstance(trimmed_items, dict) else None
+        if not isinstance(existing_job_urls, list) or not existing_job_urls:
+            trimmed_items["job_urls"] = dedupe_str_list(page_links, limit=2000)
 
     if raw_preview:
         if truncated:
@@ -2187,18 +2497,20 @@ def trim_scrape_for_convex(
     trimmed: Dict[str, Any] = {k: v for k, v in scrape.items() if k not in {"items", "response", "asyncResponse"}}
     trimmed["items"] = trimmed_items
 
-    if provider_request is not None:
-        trimmed["providerRequest"] = _shrink_payload(provider_request, request_max_chars)
-    if request_payload is not None:
-        trimmed_request = _trim_request_snapshot(request_payload, request_max_chars)
-        trimmed["request"] = trimmed_request
-        # Mirror request into items for downstream expectations (tests/UI)
-        if isinstance(trimmed_items, dict) and trimmed_request is not None:
-            trimmed_items["request"] = trimmed_request
-    if scrape.get("response") is not None:
-        trimmed["response"] = _shrink_payload(scrape.get("response"), raw_preview_chars)
-    if scrape.get("asyncResponse") is not None:
-        trimmed["asyncResponse"] = _shrink_payload(scrape.get("asyncResponse"), raw_preview_chars)
+    if request_max_chars > 0:
+        if provider_request is not None:
+            trimmed["providerRequest"] = _shrink_payload(provider_request, request_max_chars)
+        if request_payload is not None:
+            trimmed_request = _trim_request_snapshot(request_payload, request_max_chars)
+            trimmed["request"] = trimmed_request
+            # Mirror request into items for downstream expectations (tests/UI)
+            if isinstance(trimmed_items, dict) and trimmed_request is not None:
+                trimmed_items["request"] = trimmed_request
+    if raw_preview_chars > 0:
+        if scrape.get("response") is not None:
+            trimmed["response"] = _shrink_payload(scrape.get("response"), raw_preview_chars)
+        if scrape.get("asyncResponse") is not None:
+            trimmed["asyncResponse"] = _shrink_payload(scrape.get("asyncResponse"), raw_preview_chars)
 
     return trimmed
 

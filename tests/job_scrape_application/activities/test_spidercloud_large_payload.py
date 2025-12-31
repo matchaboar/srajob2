@@ -70,3 +70,46 @@ async def test_spidercloud_job_batch_total_payload_is_reasonably_capped(monkeypa
 
     # Expect total batch payloads to remain small enough for Temporal history limits.
     assert total_size <= 1_000_000
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_batch_only_converts_greenhouse_urls(monkeypatch):
+    captured: Dict[str, Any] = {}
+
+    class _CaptureScraper:
+        async def scrape_greenhouse_jobs(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+            captured["urls"] = payload["urls"]
+            return {
+                "scrape": {
+                    "provider": "spidercloud",
+                    "sourceUrl": payload.get("source_url"),
+                    "items": {"normalized": [], "raw": [], "provider": "spidercloud"},
+                }
+            }
+
+    monkeypatch.setattr(activities, "_make_spidercloud_scraper", lambda: _CaptureScraper())
+
+    batch = {
+        "urls": [
+            {
+                "url": "https://boards.greenhouse.io/robinhood/jobs/7278362?t=gh_src=&gh_jid=7278362",
+                "sourceUrl": "https://example.com/listing",
+            },
+            {
+                "url": "https://www.github.careers/careers-home/jobs/4797?lang=en-us",
+                "sourceUrl": "https://example.com/listing",
+            },
+            {
+                "url": "https://careers-githubinc.icims.com/jobs/4797/login",
+                "sourceUrl": "https://example.com/listing",
+            },
+        ]
+    }
+
+    await activities.process_spidercloud_job_batch(batch)
+
+    assert captured["urls"] == [
+        "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7278362",
+        "https://www.github.careers/careers-home/jobs/4797?lang=en-us",
+        "https://careers-githubinc.icims.com/jobs/4797/login",
+    ]

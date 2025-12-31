@@ -225,6 +225,42 @@ describe("scrape queue end-to-end", () => {
     expect(db.tables.scrape_url_queue.map((row) => row.url)).toEqual([allowedUrl]);
   });
 
+  it("skips enqueueing URLs that already exist as jobs", async () => {
+    const sourceUrl = "https://example.com/jobs";
+    const storedUrl = "https://example.com/jobs/123";
+    const incomingUrl = "https://example.com/jobs/123/";
+    const db = new FakeDb({
+      jobs: [
+        {
+          _id: "job-1",
+          url: storedUrl,
+          title: "Engineer",
+          company: "ExampleCo",
+          description: "Role",
+          location: "Remote",
+          remote: true,
+          level: "mid",
+          totalCompensation: 123,
+          postedAt: Date.now(),
+        },
+      ],
+    });
+    const ctx: any = { db };
+
+    const enqueueHandler = getHandler(enqueueScrapeUrls);
+    const res = await enqueueHandler(ctx, {
+      urls: [incomingUrl],
+      sourceUrl,
+      provider: "spidercloud",
+    });
+
+    expect(res.queued).toEqual([]);
+    expect(db.tables.scrape_url_queue).toHaveLength(0);
+    expect(db.tables.seen_job_urls).toEqual([
+      expect.objectContaining({ sourceUrl, url: storedUrl }),
+    ]);
+  });
+
   it("respects scheduledAt, updates queue state, and records seen URLs across batches", async () => {
     const now = new Date("2024-01-01T00:00:00Z");
     vi.useFakeTimers();

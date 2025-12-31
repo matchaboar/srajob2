@@ -10,6 +10,8 @@ MULTI_SPACE_PATTERN = r"\s+"
 NON_ALNUM_PATTERN = r"[^a-z0-9]+"
 NON_ALNUM_SPACE_PATTERN = r"[^a-z0-9 ]+"
 NUMBER_TOKEN_PATTERN = r"[0-9][0-9,\.]+"
+SALARY_NUMBER_PATTERN = r"(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})(?:\.\d{2})?"
+HOURLY_NUMBER_PATTERN = r"\d{1,3}(?:\.\d{1,2})?"
 PARENTHETICAL_PATTERN = r"\(.*?\)"
 
 # Code fences and JSON cleanup
@@ -41,6 +43,7 @@ TITLE_PATTERN = r"^[ \t]*#{1,6}\s+(?P<title>.+)$"
 TITLE_LOCATION_PAREN_PATTERN = r"(.+?)[\[(]\s*(.+?)\s*[\)\]]$"
 TITLE_BAR_PATTERN = r"^(?P<title>.+?)\s+\|\s+.+$"
 TITLE_IN_BAR_PATTERN = r"^(?P<title>.+?)\s+in\s+(?P<location>.+?)\s+\|\s+.+$"
+TITLE_IN_BAR_COMPANY_PATTERN = r"^(?P<title>.+?)\s+in\s+(?P<location>.+?)\s+\|\s+(?P<company>.+)$"
 LEVEL_PATTERN = (
     r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|"
     r"cto|chief technology officer)\b"
@@ -64,21 +67,28 @@ COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 ERROR_404_PATTERN = r"\b404\b"
 
 SALARY_PATTERN = (
-    r"\$\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
+    r"\$\s*(?P<low>" + SALARY_NUMBER_PATTERN + r")"
+    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*(?:(?:USD|EUR|GBP)\s*)?\$?\s*"
+    r"(?P<high>" + SALARY_NUMBER_PATTERN + r"))?"
     r"\s*(?P<period>per\s+year|per\s+annum|annual|yr|year|/year|per\s+hour|hr|hour)?"
+)
+SALARY_HOURLY_RANGE_PATTERN = (
+    r"(?:(?:USD|US\$)\s*)?\$\s*(?P<low>" + HOURLY_NUMBER_PATTERN + r")"
+    r"\s*(?:[-–—]|to)\s*"
+    r"(?:(?:USD|US\$)\s*)?\$?\s*(?P<high>" + HOURLY_NUMBER_PATTERN + r")"
+    r"\s*(?:/\s*hr|/\s*hour|per\s*hour|hourly|hr\b)"
 )
 SALARY_RANGE_LABEL_PATTERN = (
     r"(?:salary|compensation|pay)\s+range\s*[:=\-–—]\s*"
-    r"(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
-    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6})))?"
+    r"(?P<low>" + SALARY_NUMBER_PATTERN + r")"
+    r"(?:\s*(?:[-–—]|&ndash;|&mdash;)\s*(?P<high>" + SALARY_NUMBER_PATTERN + r"))?"
     r"(?:\s*(?P<code>USD|EUR|GBP))?"
 )
 SALARY_BETWEEN_PATTERN = (
     r"(?:between|from)\s+"
-    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<low>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<low>" + SALARY_NUMBER_PATTERN + r")"
     r"(?:\s*[^\d$]{0,80}?)?\s*(?:and|to)\s*"
-    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<high>(?:\d{2,3}(?:[.,]\d{3})+|\d{4,6}))"
+    r"(?:(?:USD|EUR|GBP)\s*)?\$?\s*(?P<high>" + SALARY_NUMBER_PATTERN + r")"
 )
 SALARY_K_PATTERN = (
     r"(?P<currency>[$£€])?\s*(?P<low>\d{2,3})\s*[kK]"
@@ -187,12 +197,14 @@ _NAV_BLOCK_REGEX = re.compile(NAV_BLOCK_PATTERN, flags=re.IGNORECASE)
 _TITLE_RE = re.compile(TITLE_PATTERN, flags=re.IGNORECASE | re.MULTILINE)
 _TITLE_BAR_RE = re.compile(TITLE_BAR_PATTERN, flags=re.IGNORECASE)
 _TITLE_IN_BAR_RE = re.compile(TITLE_IN_BAR_PATTERN, flags=re.IGNORECASE)
+_TITLE_IN_BAR_COMPANY_RE = re.compile(TITLE_IN_BAR_COMPANY_PATTERN, flags=re.IGNORECASE)
 _TITLE_LOCATION_PAREN_RE = re.compile(TITLE_LOCATION_PAREN_PATTERN, flags=re.IGNORECASE)
 _LEVEL_RE = re.compile(LEVEL_PATTERN, flags=re.IGNORECASE)
 _LOCATION_RE = re.compile(LOCATION_PATTERN, flags=re.IGNORECASE)
 _SIMPLE_LOCATION_LINE_RE = re.compile(SIMPLE_LOCATION_LINE_PATTERN, flags=re.MULTILINE)
 _WORK_FROM_RE = re.compile(WORK_FROM_PATTERN, flags=re.IGNORECASE)
 _SALARY_RE = re.compile(SALARY_PATTERN, flags=re.IGNORECASE)
+_SALARY_HOURLY_RANGE_RE = re.compile(SALARY_HOURLY_RANGE_PATTERN, flags=re.IGNORECASE)
 _SALARY_RANGE_LABEL_RE = re.compile(SALARY_RANGE_LABEL_PATTERN, flags=re.IGNORECASE)
 _SALARY_BETWEEN_RE = re.compile(SALARY_BETWEEN_PATTERN, flags=re.IGNORECASE)
 _SALARY_K_RE = re.compile(SALARY_K_PATTERN, flags=re.IGNORECASE)
@@ -211,9 +223,14 @@ AVATURE_JOB_DETAIL_PATH_PATTERN = r"/careers/JobDetail/[^\"'\s>]+"
 AVATURE_JOB_DETAIL_PATH_RE = re.compile(AVATURE_JOB_DETAIL_PATH_PATTERN, re.IGNORECASE)
 AVATURE_JOB_DETAIL_URL_PATTERN = r"https?://[^\"'\s>]+/careers/JobDetail/[^\"'\s>]+"
 AVATURE_JOB_DETAIL_URL_RE = re.compile(AVATURE_JOB_DETAIL_URL_PATTERN, re.IGNORECASE)
-AVATURE_PAGINATION_PATH_PATTERN = r"/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+"
+AVATURE_PAGINATION_PATH_PATTERN = (
+    r"/careers/(?:SearchJobs|SearchJobsData)(?:/[^\"'\s>]*)?[?&][^\"'\s>]*jobOffset=\d+"
+)
 AVATURE_PAGINATION_PATH_RE = re.compile(AVATURE_PAGINATION_PATH_PATTERN, re.IGNORECASE)
-AVATURE_PAGINATION_URL_PATTERN = r"https?://[^\"'\s>]+/careers/SearchJobs/[^\"'\s>]*?jobOffset=\d+"
+AVATURE_PAGINATION_URL_PATTERN = (
+    r"https?://[^\"'\s>]+/careers/(?:SearchJobs|SearchJobsData)"
+    r"(?:/[^\"'\s>]*)?[?&][^\"'\s>]*jobOffset=\d+"
+)
 AVATURE_PAGINATION_URL_RE = re.compile(AVATURE_PAGINATION_URL_PATTERN, re.IGNORECASE)
 AVATURE_BASE_URL_PATTERN = r"https?://[^\"'\s>]+/careers/[^\"'\s>]*"
 AVATURE_BASE_URL_RE = re.compile(AVATURE_BASE_URL_PATTERN, re.IGNORECASE)

@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from convex import ConvexClient
 
 from ..config import settings
+from . import telemetry
 
 _client: ConvexClient | None = None
 
@@ -45,7 +46,16 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
     try:
         return await asyncio.to_thread(client.mutation, name, args)
     except Exception:
-        print(f"Convex mutation '{name}' failed with args: {args}")
+        try:
+            payload = {
+                "event": "convex.mutation_failed",
+                "name": name,
+            }
+            if isinstance(args, Mapping):
+                payload["argKeys"] = list(args.keys())
+            telemetry.emit_posthog_log(payload)
+        except Exception:
+            pass
         raise
 
 

@@ -1772,6 +1772,8 @@ async def test_spidercloud_job_details_splits_cost_per_url(monkeypatch):
         assert scrape["provider"] == "spidercloud"
 
 
+
+
 def test_robinhood_greenhouse_fixture_parses_urls():
     fixture_path = Path("tests/fixtures/robinhood_greenhouse_board.json")
     payload_text = fixture_path.read_text(encoding="utf-8")
@@ -2113,6 +2115,162 @@ async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
     payload = calls[0]
     assert payload["status"] == "failed"
     assert "https://example.com/job/123" in payload["urls"]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(monkeypatch):
+    """Ensure partial successes remove completed URLs without failing the whole batch."""
+
+    calls: dict[str, list[Dict[str, Any]]] = {"complete": [], "runs": []}
+    state = {"leased": False}
+    ok_url = "https://example.com/job/ok"
+    bad_url = "https://example.com/job/bad"
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": ok_url}, {"url": bad_url}]}
+        if activity is acts.process_spidercloud_job_batch:
+            return {
+                "scrapes": [
+                    {
+                        "sourceUrl": ok_url,
+                        "subUrls": [ok_url],
+                        "items": {"normalized": [{"url": ok_url}]},
+                    },
+                    {
+                        "sourceUrl": bad_url,
+                        "subUrls": [bad_url],
+                        "items": {"normalized": [{"url": bad_url}]},
+                    },
+                ]
+            }
+        if activity is acts.complete_scrape_urls:
+            payload = args[0] if args else kwargs.get("args", [])[0]
+            calls["complete"].append(payload)
+            return {"updated": len(payload.get("urls", []))}
+        if activity is acts.record_workflow_run:
+            payload = args[0] if args else kwargs.get("args", [])[0]
+            calls["runs"].append(payload)
+            return None
+        if activity is acts.record_scratchpad:
+            return None
+        raise RuntimeError(f"Unexpected activity {activity}")
+
+    async def fake_start_activity(activity, *args, **kwargs):
+        if activity is acts.store_scrape:
+            scrape = args[0] if args else kwargs.get("args", [])[0]
+            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
+            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
+            if url_val == ok_url:
+                return "scrape-ok"
+            raise RuntimeError("store failed")
+        raise RuntimeError(f"Unexpected start_activity {activity}")
+
+    class _Info:
+        run_id = "run-partial"
+        workflow_id = "wf-partial"
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "start_activity", fake_start_activity)
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    summary = await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
+
+    assert summary.site_count == 1
+    assert summary.scrape_ids == ["scrape-ok"]
+    completed_payload = next(p for p in calls["complete"] if p.get("status") == "completed")
+    failed_payload = next(p for p in calls["complete"] if p.get("status") == "failed")
+    assert ok_url in completed_payload.get("urls", [])
+    assert bad_url in failed_payload.get("urls", [])
+    assert failed_payload.get("error") == "store_scrape_failed"
+    assert calls["runs"] and calls["runs"][0].get("status") == "completed"
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch):
+    """Failed URLs can be retried in a subsequent run after being reset to pending."""
+
+    batch_size = sw.SPIDERCLOUD_BATCH_SIZE
+    urls = [f"https://example.com/job/{idx}" for idx in range(batch_size)]
+    success_url = urls[0]
+    queue = [{"url": url, "status": "pending"} for url in urls]
+    leased_batches: list[list[str]] = []
+    run_state = {"run": 1}
+
+    def _pending_rows():
+        return [row for row in queue if row.get("status") == "pending"]
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            pending = _pending_rows()
+            batch = pending[:batch_size]
+            for row in batch:
+                row["status"] = "processing"
+            leased = [row["url"] for row in batch if isinstance(row.get("url"), str)]
+            leased_batches.append(leased)
+            return {"urls": [{"url": url} for url in leased]}
+        if activity is acts.process_spidercloud_job_batch:
+            payload = args[0] if args else kwargs.get("args", [])[0]
+            raw_urls = payload.get("urls") if isinstance(payload, dict) else []
+            urls_for_scrape = [
+                entry.get("url") for entry in raw_urls if isinstance(entry, dict) and isinstance(entry.get("url"), str)
+            ]
+            return {
+                "scrapes": [
+                    {"sourceUrl": url, "subUrls": [url], "items": {"normalized": [{"url": url}]}}
+                    for url in urls_for_scrape
+                ]
+            }
+        if activity is acts.complete_scrape_urls:
+            payload = args[0] if args else kwargs.get("args", [])[0]
+            status = payload.get("status")
+            for url in payload.get("urls", []):
+                for row in queue:
+                    if row.get("url") == url:
+                        row["status"] = status
+                        break
+            return {"updated": len(payload.get("urls", []))}
+        if activity in (acts.record_scratchpad, acts.record_workflow_run):
+            return None
+        raise RuntimeError(f"Unexpected activity {activity}")
+
+    async def fake_start_activity(activity, *args, **kwargs):
+        if activity is acts.store_scrape:
+            scrape = args[0] if args else kwargs.get("args", [])[0]
+            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
+            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
+            if run_state["run"] == 1 and url_val != success_url:
+                raise RuntimeError("store failed")
+            return f"scrape-{url_val}"
+        raise RuntimeError(f"Unexpected start_activity {activity}")
+
+    class _Info:
+        run_id = "run-retry"
+        workflow_id = "wf-retry"
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "start_activity", fake_start_activity)
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
+
+    # Simulate external reset (e.g., resetScrapeUrlsByStatus) plus a new pending URL.
+    for row in queue:
+        if row.get("status") == "failed":
+            row["status"] = "pending"
+    new_url = "https://example.com/job/new"
+    queue.append({"url": new_url, "status": "pending"})
+    run_state["run"] = 2
+
+    await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
+
+    assert len(leased_batches) >= 2
+    second_batch = leased_batches[-1]
+    assert len(second_batch) == batch_size
+    assert set(second_batch) == set(urls[1:] + [new_url])
 
 
 @pytest.mark.asyncio

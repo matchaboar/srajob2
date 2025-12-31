@@ -156,6 +156,7 @@ COMP_MAGNITUDE_SUFFIX_RE = re.compile(COMP_MAGNITUDE_SUFFIX_PATTERN, flags=re.IG
 PAGINATION_ENQUEUE_STAGGER_MS = 30_000
 
 SCRAPE_URL_QUEUE_TTL_MS = 48 * 60 * 60 * 1000
+SCRAPE_URL_QUEUE_MAX_ATTEMPTS = 3
 SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
 SCRAPE_URL_QUEUE_LIST_LIMIT = 500
 TEMPORAL_PAYLOAD_MAX_CHARS = 10 * 1024 * 1024
@@ -184,6 +185,31 @@ def _get_activity_worker_id() -> str | None:
     return None
 
 
+def _looks_like_auth_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    path = (parsed.path or "").lower()
+    if not path:
+        return False
+    segments = [seg for seg in path.split("/") if seg]
+    auth_segments = {
+        "login",
+        "signin",
+        "sign-in",
+        "sign_in",
+        "logout",
+        "signout",
+        "sign-out",
+        "sign_out",
+        "register",
+        "signup",
+        "sign-up",
+    }
+    return any(seg in auth_segments for seg in segments)
+
+
 def _convex_site_id(value: Any) -> Optional[str]:
     """Return a Convex document id if the value looks valid, else None."""
 
@@ -193,14 +219,31 @@ def _convex_site_id(value: Any) -> Optional[str]:
     return None
 
 
-def _safe_activity_heartbeat(details: Dict[str, Any]) -> None:
-    """Send a Temporal heartbeat when running in an activity context."""
+def _activity_cancellation_payload() -> Dict[str, Any]:
+    """Best-effort capture of Temporal cancellation details for logging."""
 
+    payload: Dict[str, Any] = {}
     try:
-        activity.heartbeat(details)
-    except RuntimeError:
-        # Not running inside a Temporal activity (e.g., unit tests); ignore.
-        return
+        details = activity.cancellation_details()
+    except Exception:
+        details = None
+    if details is not None:
+        payload.update(
+            {
+                "cancelNotFound": details.not_found,
+                "cancelRequested": details.cancel_requested,
+                "cancelPaused": details.paused,
+                "cancelTimedOut": details.timed_out,
+                "cancelWorkerShutdown": details.worker_shutdown,
+            }
+        )
+    try:
+        is_cancelled = activity.is_cancelled()
+    except Exception:
+        is_cancelled = None
+    if is_cancelled is not None:
+        payload["cancelled"] = bool(is_cancelled)
+    return payload
 
 
 def _make_fetchfox_scraper() -> FetchfoxScraper:
@@ -1140,12 +1183,25 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
 
         filtered: list[Dict[str, Any]] = []
         skipped_round: list[str] = []
+        max_attempts_round: list[str] = []
+        auth_url_round: list[str] = []
 
         for entry in raw_urls:
             if not isinstance(entry, dict):
                 continue
             url_val = entry.get("url")
             if not isinstance(url_val, str) or not url_val.strip():
+                continue
+            attempts_raw = entry.get("attempts")
+            try:
+                attempts = int(attempts_raw)
+            except Exception:
+                attempts = 0
+            if attempts > SCRAPE_URL_QUEUE_MAX_ATTEMPTS:
+                max_attempts_round.append(url_val)
+                continue
+            if _looks_like_auth_url(url_val):
+                auth_url_round.append(url_val)
                 continue
             source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
             pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
@@ -1170,6 +1226,24 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 )
             except Exception as skip_err:
                 logger.warning("Failed to mark skipped URLs as failed: %s", skip_err, exc_info=skip_err)
+        if max_attempts_round:
+            skipped.extend(max_attempts_round)
+            try:
+                await convex_mutation(
+                    "router:completeScrapeUrls",
+                    {"urls": max_attempts_round, "status": "failed", "error": "max_attempts_exceeded"},
+                )
+            except Exception as exc:
+                logger.warning("Failed to mark max-attempt URLs as failed: %s", exc, exc_info=exc)
+        if auth_url_round:
+            skipped.extend(auth_url_round)
+            try:
+                await convex_mutation(
+                    "router:completeScrapeUrls",
+                    {"urls": auth_url_round, "status": "failed", "error": "auth_url"},
+                )
+            except Exception as exc:
+                logger.warning("Failed to mark auth URLs as failed: %s", exc, exc_info=exc)
 
         if filtered:
             return _build_lease_response(filtered, skipped)
@@ -1187,7 +1261,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         into the canonical boards-api.greenhouse.io detail URL. This ensures the
         SpiderCloud scraper hits the JSON API instead of the marketing site.
         """
-        handler = get_site_handler(url, "greenhouse")
+        handler = get_site_handler(url)
         if not handler or handler.name != "greenhouse":
             return url
         api_url = handler.get_api_uri(url)
@@ -1472,12 +1546,26 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
         data_items,
         status_link,
     )
-    print(
-        "\x1b[35m[WEBHOOK] fetch status "
-        f"job_id={job_id} kind={kind} url={source_url} site_id={site_id} pattern={pattern} "
-        f"age_ms={age_ms} status_url={status_endpoint or 'n/a'} "
-        f"data_items={data_items} metadata_keys={metadata_keys} mock_provider={use_mock_provider}\x1b[0m"
-    )
+    try:
+        telemetry.emit_posthog_log(
+            _strip_none_values(
+                {
+                    "event": "firecrawl.webhook.status_fetch",
+                    "jobId": job_id,
+                    "kind": kind,
+                    "siteId": site_id,
+                    "siteUrl": source_url,
+                    "pattern": pattern,
+                    "ageMs": age_ms,
+                    "statusUrl": status_endpoint or "n/a",
+                    "dataItems": data_items,
+                    "metadataKeys": metadata_keys,
+                    "mockProvider": use_mock_provider,
+                }
+            )
+        )
+    except Exception:
+        pass
     raw_url_candidates = (
         metadata.get("urls")
         or metadata.get("seedUrls")
@@ -1773,11 +1861,22 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
             len(job_urls),
             status_link,
         )
-        print(
-            "\x1b[35m[WEBHOOK] status "
-            f"job_id={job_id} kind={FirecrawlJobKind.GREENHOUSE_LISTING} status={status_value} "
-            f"urls={len(job_urls)} http={http_status} status_url={status_link or 'n/a'}\x1b[0m"
-        )
+        try:
+            telemetry.emit_posthog_log(
+                _strip_none_values(
+                    {
+                        "event": "firecrawl.webhook.status",
+                        "jobId": job_id,
+                        "kind": FirecrawlJobKind.GREENHOUSE_LISTING,
+                        "status": status_value,
+                        "urls": len(job_urls),
+                        "httpStatus": http_status,
+                        "statusUrl": status_link or "n/a",
+                    }
+                )
+            )
+        except Exception:
+            pass
         return {
             "kind": FirecrawlJobKind.GREENHOUSE_LISTING,
             "siteId": site_id,
@@ -1800,11 +1899,22 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
         else status
     )
     normalized_items = normalize_firecrawl_items(raw_payload)
-    print(
-        "\x1b[35m[WEBHOOK] status "
-        f"job_id={job_id} kind={kind} status={status_value} items={len(normalized_items)} "
-        f"http={http_status} status_url={status_link or 'n/a'}\x1b[0m"
-    )
+    try:
+        telemetry.emit_posthog_log(
+            _strip_none_values(
+                {
+                    "event": "firecrawl.webhook.status",
+                    "jobId": job_id,
+                    "kind": kind,
+                    "status": status_value,
+                    "items": len(normalized_items),
+                    "httpStatus": http_status,
+                    "statusUrl": status_link or "n/a",
+                }
+            )
+        )
+    except Exception:
+        pass
 
     scrape_payload = {
         "sourceUrl": source_url or "",
@@ -1838,13 +1948,7 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
 async def store_scrape(scrape: Dict[str, Any]) -> str:
     try:
         from ...services.convex_client import convex_mutation
-    
-        # Keep the activity alive during longer Convex/ingestion calls.
-        try:
-            activity.heartbeat({"stage": "start"})
-        except Exception:
-            pass
-    
+
         async def _log_scratchpad(
             event: str,
             message: str | None = None,
@@ -1944,31 +2048,45 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         # best-effort; do not block ingestion
                         continue
             return enriched
-    
-        payload = trim_scrape_for_convex(scrape)
+
+        payload = trim_scrape_for_convex(
+            scrape,
+            max_description=2000,
+            max_title_chars=200,
+            raw_preview_chars=0,
+            request_max_chars=1000,
+            collect_page_links=False,
+        )
+        raw_items_block = scrape.get("items") if isinstance(scrape, dict) else None
         now = int(time.time() * 1000)
         normalized_count = 0
-        if isinstance(payload.get("items"), dict):
+        normalized_items = None
+        if isinstance(raw_items_block, dict):
+            normalized_items = raw_items_block.get("normalized")
+        if isinstance(normalized_items, list):
+            normalized_count = len(normalized_items)
+        elif isinstance(payload.get("items"), dict):
             normalized_items = payload["items"].get("normalized")
             if isinstance(normalized_items, list):
                 normalized_count = len(normalized_items)
         ignored_count = 0
-        if isinstance(payload.get("items"), dict):
-            ignored_items = payload["items"].get("ignored")
-            if isinstance(ignored_items, list):
-                ignored_count = len(ignored_items)
+        ignored_items = None
+        if isinstance(raw_items_block, dict):
+            ignored_items = raw_items_block.get("ignored")
+        if isinstance(ignored_items, list):
+            ignored_count = len(ignored_items)
         failed_count = 0
         failed_reasons: list[str] = []
         failed_items = None
-        if isinstance(payload.get("items"), dict):
-            failed_items = payload["items"].get("failed")
-            if isinstance(failed_items, list):
-                failed_count = len(failed_items)
-                for entry in failed_items:
-                    if isinstance(entry, dict):
-                        reason = entry.get("reason")
-                        if isinstance(reason, str) and reason:
-                            failed_reasons.append(reason)
+        if isinstance(raw_items_block, dict):
+            failed_items = raw_items_block.get("failed")
+        if isinstance(failed_items, list):
+            failed_count = len(failed_items)
+            for entry in failed_items:
+                if isinstance(entry, dict):
+                    reason = entry.get("reason")
+                    if isinstance(reason, str) and reason:
+                        failed_reasons.append(reason)
     
         scraped_with = None
         if isinstance(payload.get("items"), dict):
@@ -1986,8 +2104,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 cost_milli_cents = int(float(payload["costCents"]) * 1000)
             except Exception:
                 cost_milli_cents = None
-        response_preview = _shrink_payload(payload.get("response"), 4000)
-        async_response_preview = _shrink_payload(payload.get("asyncResponse"), 4000)
+        response_preview = None
+        async_response_preview = None
         items_provider = None
         if isinstance(payload.get("items"), dict):
             items_provider = payload["items"].get("provider") or payload["items"].get("crawlProvider")
@@ -2047,48 +2165,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 },
                 level="warning",
             )
-    
-        # Capture richer FetchFox payload details into scratchpad so we can debug provider responses.
-        try:
-            if provider_for_log and str(provider_for_log).startswith("fetchfox"):
-                items_block = scrape.get("items") if isinstance(scrape.get("items"), dict) else {}
-                raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
-                normalized = items_block.get("normalized") if isinstance(items_block, dict) else None
-    
-                raw_urls: List[str] = []
-                if isinstance(raw_block, dict):
-                    urls_field = raw_block.get("urls")
-                    if isinstance(urls_field, list):
-                        raw_urls = [u for u in urls_field if isinstance(u, str)]
-                    items_field = raw_block.get("items")
-                    if not raw_urls and isinstance(items_field, list):
-                        for entry in items_field:
-                            if isinstance(entry, dict):
-                                url_val = entry.get("url") or entry.get("link")
-                                if isinstance(url_val, str):
-                                    raw_urls.append(url_val)
-                    data_field = raw_block.get("data")
-                    if not raw_urls and isinstance(data_field, list):
-                        for entry in data_field:
-                            if isinstance(entry, dict):
-                                url_val = entry.get("url") or entry.get("link")
-                                if isinstance(url_val, str):
-                                    raw_urls.append(url_val)
-    
-                await _log_scratchpad(
-                    "scrape.fetchfox.raw",
-                    message="Captured FetchFox raw payload",
-                    data={
-                        "pattern": payload.get("pattern"),
-                        "rawUrlCount": len(raw_urls) if raw_urls else None,
-                        "rawUrlSample": raw_urls[:20] if raw_urls else None,
-                        "normalizedCount": len(normalized) if isinstance(normalized, list) else None,
-                        "rawPreview": _shrink_payload(raw_block, 20000),
-                    },
-                )
-        except Exception:
-            # Best-effort; do not block on debug logging
-            pass
     
         def _resolve_source_url(data: Dict[str, Any]) -> str:
             """Best-effort source URL extraction that tolerates missing fields."""
@@ -2250,7 +2326,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "rawItemsCount": len(raw_items),
                     "markdownLengths": markdown_lengths or None,
                     "eventCounts": event_counts or None,
-                    "linkCounts": link_counts or None,
+                    "linkCounts": [int(count) for count in link_counts] if len(link_counts) else None,
                     "requestedFormat": items_block.get("requestedFormat") if isinstance(items_block, dict) else None,
                     "markdownSamples": markdown_samples or None,
                     "htmlSamples": html_samples or None,
@@ -2283,10 +2359,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "siteId": payload.get("siteId"),
                 },
             )
-            try:
-                activity.heartbeat({"stage": "persisted", "scrapeId": scrape_id})
-            except Exception:
-                pass
         except Exception as exc:
             logger.warning("insertScrapeRecord failed; retrying with trimmed payload: %s", exc, exc_info=exc)
             try:
@@ -2307,6 +2379,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 max_items=100,
                 max_description=400,
                 raw_preview_chars=0,
+                request_max_chars=500,
+                collect_page_links=False,
             )
             if isinstance(fallback.get("items"), dict):
                 fallback["items"]["truncated"] = True
@@ -2326,10 +2400,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         "siteId": payload.get("siteId"),
                     },
                 )
-                try:
-                    activity.heartbeat({"stage": "persisted_fallback", "scrapeId": scrape_id})
-                except Exception:
-                    pass
             except Exception as fallback_exc:
                 logger.error(
                     "Failed to persist scrape after fallback: %s",
@@ -2443,10 +2513,26 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         "provider": provider_for_log,
                     },
                 )
-                try:
-                    activity.heartbeat({"stage": "ingested_jobs", "count": len(jobs)})
-                except Exception:
-                    pass
+        except asyncio.CancelledError as exc:
+            try:
+                telemetry.emit_posthog_exception(
+                    exc,
+                    properties={
+                        "event": "ingest.jobs_cancelled",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                        "normalizedCount": normalized_count,
+                        **_activity_cancellation_payload(),
+                    },
+                )
+            except Exception:
+                pass
+            is_cancelled = getattr(activity, "is_cancelled", None)
+            if callable(is_cancelled) and is_cancelled():
+                raise
+            # Non-fatal: ingestion failures shouldn't block scrape recording
+            pass
         except Exception as exc:
             try:
                 telemetry.emit_posthog_exception(
@@ -2468,8 +2554,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         try:
             ignored_entries = []
             ignored_recorded = 0
-            if isinstance(payload.get("items"), dict):
-                ignored_entries = payload["items"].get("ignored") or []
+            if isinstance(raw_items_block, dict):
+                ignored_entries = raw_items_block.get("ignored") or []
             if isinstance(ignored_entries, list):
                 for entry in ignored_entries:
                     if not isinstance(entry, dict):
@@ -2611,10 +2697,35 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     derived_company = derive_company_from_url(source_url)
                     if derived_company:
                         company_name = derived_company
-    
+                already_saved_urls: list[str] = []
+                for items_block in (raw_items_block, payload.get("items")):
+                    if not isinstance(items_block, dict):
+                        continue
+                    for key in (
+                        "existing",
+                        "alreadySaved",
+                        "already_saved",
+                        "alreadySavedUrls",
+                        "already_saved_urls",
+                    ):
+                        candidates = items_block.get(key)
+                        if not isinstance(candidates, list):
+                            continue
+                        for candidate in candidates:
+                            if isinstance(candidate, str) and candidate.strip():
+                                already_saved_urls.append(candidate.strip())
+                        break
+                already_saved_count = len(already_saved_urls)
+                already_saved_note = (
+                    f" (alreadySavedUrlCount={already_saved_count}; "
+                    "job detail URLs already saved in jobs table)"
+                    if already_saved_count
+                    else ""
+                )
+
                 await _log_scratchpad(
                     "scrape.job_urls.none",
-                    message="No job URLs extracted from job site scrape",
+                    message=f"No job URLs extracted from job site scrape{already_saved_note}",
                     data=_strip_none_values(
                         {
                             "companyName": company_name or "Unknown",
@@ -2631,6 +2742,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                                     "totalUrlsCount": len(urls),
                                     "jobUrlsCount": len(job_urls),
                                     "listingUrlsCount": len(listing_urls),
+                                    "alreadySavedUrlCount": already_saved_count or None,
+                                    "alreadySavedUrlSample": (
+                                        already_saved_urls[:5] if already_saved_urls else None
+                                    ),
                                     "urlsSample": urls[:5] if urls else None,
                                     "listingUrlsSample": listing_urls[:5] if listing_urls else None,
                                 }
@@ -2639,22 +2754,15 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     ),
                     level="error",
                 )
-            if urls:
-                logger.info(
-                    "Scrape URL extraction source=%s count=%s",
-                    source_url,
-                    len(urls),
-                )
-                for idx, url in enumerate(urls, start=1):
-                    logger.info(
-                        "Scrape URL %s/%s source=%s url=%s",
-                        idx,
-                        len(urls),
-                        source_url,
-                        url,
-                    )
-            else:
-                logger.info("Scrape URL extraction source=%s count=0", source_url)
+            await _log_scratchpad(
+                "scrape.url_extraction.summary",
+                message="Scrape URL extraction summary",
+                data={
+                    "sourceUrl": source_url or "",
+                    "urlCount": len(urls),
+                    "urlSample": urls[:5] if urls else None,
+                },
+            )
             if urls:
                 site_id = _convex_site_id(payload.get("siteId"))
                 await convex_mutation(
@@ -2681,10 +2789,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     message="No URLs extracted from scrape payload",
                     data={"sourceUrl": payload.get("sourceUrl")},
                 )
-            try:
-                activity.heartbeat({"stage": "urls_processed", "urls": len(urls or [])})
-            except Exception:
-                pass
         except Exception as exc:
             await _log_scratchpad(
                 "scrape.url_extraction.error",
@@ -2732,12 +2836,12 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "workflowId": scrape.get("workflowId") or scrape.get("workflow_id"),
                     "runId": scrape.get("runId") or scrape.get("run_id"),
                     "provider": scrape.get("provider"),
+                    **_activity_cancellation_payload(),
                 }
             telemetry.emit_posthog_exception(exc, properties=_strip_none_values(props))
         except Exception:
             pass
         raise
-
 @activity.defn
 async def complete_site(site_id: str) -> None:
     from ...services.convex_client import convex_mutation
@@ -3021,6 +3125,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             or _looks_like_confluent_listing_url(url)
             or _looks_like_non_job_url(url)
             or _looks_like_apply_url(url)
+            or _looks_like_auth_url(url)
         )
 
     def _looks_like_apply_link(title_text: str | None, url: str) -> bool:
@@ -3999,8 +4104,6 @@ async def process_pending_job_details_batch(limit: int = 25) -> Dict[str, Any]:
     for idx, row in enumerate(pending):
         current_op = "row:init"
         try:
-            # Heartbeat regularly so the activity isn't cancelled while processing a large batch.
-            _safe_activity_heartbeat({"processed": processed, "index": idx, "total": total})
             job_id = row.get("jobId") or row.get("_id")
             title = (str(row.get("title") or row.get("jobTitle") or "")).strip() or "<untitled>"
             logger.info("heuristic.view job id=%s title=%s", job_id or "<missing>", title)

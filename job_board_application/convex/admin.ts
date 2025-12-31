@@ -239,3 +239,47 @@ export const listCompanySalaryMaxima = query({
     };
   },
 });
+
+export const wipeScrapeQueueByStatus = mutation({
+  args: {
+    statuses: v.optional(
+      v.array(v.union(v.literal("pending"), v.literal("processing")))
+    ),
+    limit: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const statuses: Array<"pending" | "processing"> = args.statuses?.length
+      ? args.statuses
+      : ["pending", "processing"];
+    const limit = Math.max(1, Math.min(args.limit ?? 1000, 5000));
+    const dryRun = args.dryRun ?? false;
+    const deletedByStatus: Record<string, number> = {};
+    let hasMore = false;
+
+    for (const status of statuses) {
+      const rows = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .take(limit);
+
+      deletedByStatus[status] = rows.length;
+      if (rows.length >= limit) {
+        hasMore = true;
+      }
+      if (dryRun) continue;
+      for (const row of rows as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
+    return {
+      statuses,
+      limit,
+      dryRun,
+      deletedByStatus,
+      deleted: Object.values(deletedByStatus).reduce((sum, val) => sum + val, 0),
+      hasMore,
+    };
+  },
+});

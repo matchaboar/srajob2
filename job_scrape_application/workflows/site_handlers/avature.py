@@ -102,9 +102,17 @@ class AvatureHandler(BaseSiteHandler):
                 _add(urljoin(base_url, match))
             for match in AVATURE_PAGINATION_PATH_RE.findall(html):
                 _add(urljoin(base_url, match))
+        else:
+            for match in AVATURE_JOB_DETAIL_PATH_RE.findall(html):
+                _add(match)
+            for match in AVATURE_PAGINATION_PATH_RE.findall(html):
+                _add(match)
 
-        if base_url and "/careers/searchjobs" in base_url.lower():
-            urls.extend(self._augment_pagination_urls(base_url, html, urls))
+        pagination_base = base_url if base_url and "/careers/searchjobs" in base_url.lower() else None
+        if not pagination_base:
+            pagination_base = self._infer_pagination_base_url(html, urls)
+        if pagination_base and "/careers/searchjobs" in pagination_base.lower():
+            urls.extend(self._augment_pagination_urls(pagination_base, html, urls))
 
         return self.filter_job_urls(urls)
 
@@ -193,6 +201,28 @@ class AvatureHandler(BaseSiteHandler):
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    def _infer_pagination_base_url(self, html: str, urls: List[str]) -> Optional[str]:
+        if not self._has_pagination_signals(html):
+            return None
+        for url in urls:
+            if self.is_listing_url(url):
+                return url
+        for url in urls:
+            parsed = urlparse(url)
+            if parsed.scheme and parsed.netloc:
+                return urlunparse(
+                    parsed._replace(path="/careers/SearchJobs", params="", query="", fragment="")
+                )
+        return "/careers/SearchJobs"
+
+    @staticmethod
+    def _has_pagination_signals(html: str) -> bool:
+        return bool(
+            AVATURE_PAGE_RANGE_RE.search(html)
+            or AVATURE_RESULTS_ARIA_RE.search(html)
+            or AVATURE_JOB_RECORDS_PER_PAGE_RE.search(html)
+        )
 
     @staticmethod
     def _extract_base_url(html: str) -> Optional[str]:

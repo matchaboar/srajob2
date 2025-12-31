@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
-import logging
-
 from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
@@ -29,9 +27,6 @@ with workflow.unsafe.imports_passed_through():
 
 from .scratchpad_utils import extract_http_exchange
 from ..config import runtime_config
-
-
-logger = logging.getLogger("temporal.worker.scrape")
 
 
 @dataclass
@@ -91,14 +86,16 @@ async def _run_scrape_workflow(
     failure_reasons: List[str] = []
     run_info = workflow.info()
 
+    wf_logger = workflow.logger  # type: ignore[attr-defined]
+
     def _emit(event: str, *, level: str = "info", **payload: Any) -> None:
         msg = f"{workflow_name} | event={event} | {payload}"
         if level == "error":
-            logger.error(msg)
+            wf_logger.error(msg)
         elif level == "warn" or level == "warning":
-            logger.warning(msg)
+            wf_logger.warning(msg)
         else:
-            logger.info(msg)
+            wf_logger.info(msg)
 
     async def _log(
         event: str,
@@ -211,7 +208,6 @@ async def _run_scrape_workflow(
                     args=[res],
                     schedule_to_close_timeout=timedelta(minutes=3),
                     start_to_close_timeout=timedelta(minutes=3),
-                    heartbeat_timeout=timedelta(seconds=30),
                 )
                 scrape_ids.append(scrape_id)
 
@@ -433,7 +429,6 @@ class SpidercloudJobDetailsWorkflow:
                                 store_scrape,
                                 args=[scrape],
                                 start_to_close_timeout=timedelta(minutes=3),
-                                heartbeat_timeout=timedelta(seconds=30),
                             ),
                         )
                     )

@@ -1,4 +1,33 @@
 const COMMON_SUBDOMAIN_PREFIXES = ["www", "jobs", "careers", "boards", "app", "apply"];
+const WORKDAY_HOST_SUFFIX = "myworkdayjobs.com";
+const WORKDAY_SKIP_SUBDOMAINS = new Set([
+  ...COMMON_SUBDOMAIN_PREFIXES,
+  "board",
+  "join",
+  "team",
+  "teams",
+  "work",
+]);
+
+const extractWorkdayTenant = (hostname: string): string | null => {
+  if (!hostname.endsWith(WORKDAY_HOST_SUFFIX)) return null;
+  const parts = hostname.split(".").filter(Boolean);
+  if (parts.length < 3) return null;
+  const subdomains = parts.slice(0, -2);
+  for (const candidate of subdomains) {
+    if (!candidate) continue;
+    if (WORKDAY_SKIP_SUBDOMAINS.has(candidate)) continue;
+    if (/^wd\d+$/i.test(candidate)) continue;
+    return candidate;
+  }
+  for (let i = subdomains.length - 1; i >= 0; i -= 1) {
+    const candidate = subdomains[i];
+    if (!candidate) continue;
+    if (/^wd\d+$/i.test(candidate)) continue;
+    return candidate;
+  }
+  return null;
+};
 
 const cleanPathname = (pathname: string) => {
   if (!pathname) return "/";
@@ -81,6 +110,8 @@ export const fallbackCompanyNameFromUrl = (url: string): string => {
   if (ashbySlug) return ashbySlug;
   try {
     const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+    const workdayTenant = extractWorkdayTenant(parsed.hostname.toLowerCase());
+    if (workdayTenant) return workdayTenant;
     const hostParts = parsed.hostname
       .toLowerCase()
       .split(".")

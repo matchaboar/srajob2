@@ -116,6 +116,7 @@ const hostFromUrl = (url: string) => {
     return "";
   }
 };
+const WORKDAY_HOST_SUFFIX = "myworkdayjobs.com";
 const baseDomainFromHost = (host: string): string => {
   const parts = host.split(".").filter(Boolean);
   if (parts.length <= 1) return host;
@@ -298,6 +299,9 @@ const fallbackCompanyName = (name: string | undefined | null, url: string | unde
   if (trimmed) return trimmed;
   const host = hostFromUrl(url ?? "");
   if (host) {
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) {
+      return fallbackCompanyNameFromUrl(url ?? "");
+    }
     const base = baseDomainFromHost(host);
     const parts = base.split(".");
     if (parts.length > 1) return parts[0];
@@ -335,6 +339,7 @@ const normalizeDomainInput = (value: string): string => {
   try {
     const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
     const host = parsed.hostname.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
     const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
     if (greenhouse) return greenhouse;
@@ -345,6 +350,7 @@ const normalizeDomainInput = (value: string): string => {
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
     const host = hostOnly.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(host);
     const greenhouse = greenhouseSlug ? `${greenhouseSlug}.greenhouse.io` : null;
     if (greenhouse) return greenhouse;
@@ -423,7 +429,15 @@ const resolveCompanyForUrl = async (
   const trimmedCurrent = (currentCompany ?? "").trim();
   const greenhouseSlug = greenhouseSlugFromUrl(url);
   const greenhouseName = greenhouseSlug ? toTitleCaseSlug(greenhouseSlug) : "";
-  const safeCurrent = greenhouseSlug && isVersionLabel(trimmedCurrent) ? "" : trimmedCurrent;
+  const ashbySlug = ashbySlugFromUrl(url);
+  const ashbyName = ashbySlug ? toTitleCaseSlug(ashbySlug) : "";
+  const normalizedCurrent = trimmedCurrent.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const safeCurrent =
+    greenhouseSlug && isVersionLabel(trimmedCurrent)
+      ? ""
+      : ashbySlug && (normalizedCurrent === "ashbyhq" || normalizedCurrent === "ashby")
+        ? ""
+        : trimmedCurrent;
 
   if (domain) {
     if (aliasCache.has(domain)) {
@@ -438,7 +452,7 @@ const resolveCompanyForUrl = async (
     }
   }
 
-  const chosen = alias ?? siteName ?? (safeCurrent || greenhouseName);
+  const chosen = alias ?? siteName ?? (safeCurrent || greenhouseName || ashbyName);
   return chosen?.trim() || fallbackCompanyName(safeCurrent, url);
 };
 const upsertCompanyProfile = async (
@@ -1243,6 +1257,31 @@ const recordSeenJobUrl = async (ctx: any, sourceUrl?: string, url?: string) => {
   });
 };
 
+const buildJobUrlCandidates = (rawUrl: string, sourceUrl?: string) => {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const pushCandidate = (value?: string | null) => {
+    if (typeof value !== "string") return;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    candidates.push(trimmed);
+  };
+
+  const cleaned = (rawUrl ?? "").trim();
+  if (!cleaned) return candidates;
+  pushCandidate(cleaned);
+  pushCandidate(cleaned.replace(/\/+$/, ""));
+
+  const normalized = normalizeScrapedUrl(cleaned, sourceUrl);
+  if (normalized) {
+    pushCandidate(normalized);
+    pushCandidate(normalized.replace(/\/+$/, ""));
+  }
+
+  return candidates;
+};
+
 // Gather previously seen job URLs for a site (from seen + ignored) so scrapers can skip them
 export const listSeenJobUrlsForSite = query({
   args: {
@@ -1665,6 +1704,25 @@ export const enqueueScrapeUrls = mutation({
     const now = Date.now();
     const queued: string[] = [];
     const seen = new Set<string>();
+    const jobCache = new Map<string, boolean>();
+
+    const findExistingJobMatch = async (rawUrl: string) => {
+      const candidates = buildJobUrlCandidates(rawUrl, args.sourceUrl);
+      for (const candidate of candidates) {
+        if (jobCache.has(candidate)) {
+          if (jobCache.get(candidate)) return candidate;
+          continue;
+        }
+        const dup = await ctx.db
+          .query("jobs")
+          .withIndex("by_url", (q: any) => q.eq("url", candidate))
+          .first();
+        const exists = Boolean(dup);
+        jobCache.set(candidate, exists);
+        if (exists) return candidate;
+      }
+      return null;
+    };
 
     for (const [index, rawUrl] of args.urls.entries()) {
       const url = (rawUrl || "").trim();
@@ -1675,6 +1733,13 @@ export const enqueueScrapeUrls = mutation({
         .withIndex("by_url", (q: any) => q.eq("url", url))
         .first();
       if (ignored) continue;
+
+      const existingJobUrl = await findExistingJobMatch(url);
+      if (existingJobUrl) {
+        await recordSeenJobUrl(ctx, args.sourceUrl, existingJobUrl);
+        continue;
+      }
+
       const delayMs = args.delaysMs?.[index];
       const postedAtValue = args.postedAts?.[index];
       const postedAt =
@@ -2400,6 +2465,55 @@ export const resetScrapeUrlProcessing = mutation({
       updated += 1;
     }
     return { updated };
+  },
+});
+
+export const failScrapeUrlsOverAttempts = mutation({
+  args: {
+    status: v.optional(v.union(v.literal("pending"), v.literal("processing"))),
+    provider: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    maxAttempts: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const maxAttempts = Math.max(0, args.maxAttempts ?? JOB_DETAIL_MAX_ATTEMPTS);
+    const limit = Math.max(1, Math.min(args.limit ?? 1000, 5000));
+    const statuses: Array<"pending" | "processing"> = args.status ? [args.status] : ["processing", "pending"];
+    const now = Date.now();
+    const sampleUrls: string[] = [];
+    let updated = 0;
+
+    for (const status of statuses) {
+      const rows = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status_attempts_scheduled_at", (q: any) =>
+          q.eq("status", status).gte("attempts", maxAttempts + 1)
+        )
+        .take(limit);
+
+      for (const row of rows as any[]) {
+        if (args.provider && row.provider !== args.provider) continue;
+        updated += 1;
+        if (sampleUrls.length < 25 && typeof row.url === "string") {
+          sampleUrls.push(row.url);
+        }
+        if (args.dryRun) continue;
+        await ctx.db.patch(row._id, {
+          status: "failed",
+          lastError: "max_attempts_exceeded",
+          updatedAt: now,
+        });
+      }
+    }
+
+    return {
+      updated,
+      dryRun: args.dryRun ?? false,
+      maxAttempts,
+      statuses,
+      sampleUrls,
+    };
   },
 });
 
@@ -3229,13 +3343,31 @@ export const findExistingJobUrls = query({
   handler: async (ctx, args) => {
     const existing: string[] = [];
     const unique = Array.from(new Set(args.urls));
+    const cachedMatches = new Map<string, boolean>();
 
     for (const url of unique) {
-      const dup = await ctx.db
-        .query("jobs")
-        .withIndex("by_url", (q) => q.eq("url", url))
-        .first();
-      if (dup) existing.push(url);
+      const candidates = buildJobUrlCandidates(url);
+      let found = false;
+      for (const candidate of candidates) {
+        if (cachedMatches.has(candidate)) {
+          if (cachedMatches.get(candidate)) {
+            found = true;
+            break;
+          }
+          continue;
+        }
+        const dup = await ctx.db
+          .query("jobs")
+          .withIndex("by_url", (q: any) => q.eq("url", candidate))
+          .first();
+        const exists = Boolean(dup);
+        cachedMatches.set(candidate, exists);
+        if (exists) {
+          found = true;
+          break;
+        }
+      }
+      if (found) existing.push(url);
     }
 
     return { existing };
@@ -4501,7 +4633,7 @@ const parseUrlSafe = (value: string, base?: string): URL | null => {
 const isAshbyHost = (host: string) => host.endsWith("ashbyhq.com");
 const isAvatureHost = (host: string) => host.endsWith("avature.net") || host.endsWith("avature.com");
 
-const normalizeScrapedUrl = (rawUrl: string, sourceUrl?: string): string | null => {
+function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null {
   if (typeof rawUrl !== "string") return null;
   let cleaned = rawUrl.trim();
   if (!cleaned) return null;
@@ -4534,7 +4666,7 @@ const normalizeScrapedUrl = (rawUrl: string, sourceUrl?: string): string | null 
   let normalized = parsed.toString();
   if (path !== "/" && normalized.endsWith("/")) normalized = normalized.slice(0, -1);
   return normalized;
-};
+}
 
 const titleFromSlug = (value: string) => {
   if (!value) return "";

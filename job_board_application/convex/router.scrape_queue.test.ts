@@ -138,6 +138,9 @@ class FakeDb {
     if (table === "seen_job_urls") {
       return new FakeQuery(() => this.seenRows, {}, null, null, false, this.tracker);
     }
+    if (table === "domain_aliases") {
+      return new FakeQuery(() => [] as QueueRow[], {}, null, null, false, this.tracker);
+    }
     throw new Error(`Unexpected table ${table}`);
   };
   insert = vi.fn((table: string, payload: any) => {
@@ -639,7 +642,7 @@ describe("completeScrapeUrls", () => {
         updatedAt: now - 1_000,
         createdAt: now - 5_000,
         provider: "spidercloud",
-        attempts: 0,
+        attempts: 1,
       },
     ];
     const db = new FakeDb(rows);

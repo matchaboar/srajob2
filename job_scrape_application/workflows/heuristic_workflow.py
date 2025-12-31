@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -74,11 +73,8 @@ class HeuristicJobDetailsWorkflow:
         workflow_start = workflow.now()
         iterator.mark_start(workflow_start)
         batch_limit = BATCH_LIMIT_DEFAULT
-        # workflow.logger is provided by Temporal; fallback to stdlib in tests or if unavailable.
-        try:
-            logger = workflow.logger  # type: ignore[attr-defined]
-        except Exception:
-            logger = logging.getLogger("workflow.HeuristicJobDetails")
+        # workflow.logger is provided by Temporal and is safe in workflow code.
+        logger = workflow.logger  # type: ignore[attr-defined]
         try:
             while True:
                 now = workflow.now()

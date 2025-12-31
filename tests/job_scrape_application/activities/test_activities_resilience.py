@@ -67,6 +67,43 @@ def test_trim_scrape_for_convex_truncates_and_strips_raw():
     assert "rawPreview" in items  # preview retained instead of raw blob
 
 
+def test_trim_scrape_for_convex_scans_strings_for_links():
+    scrape = {
+        "sourceUrl": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+        "items": {
+            "normalized": [],
+            "raw": {
+                "text": "Open roles: https://careers.confluent.io/jobs/job/12345678",
+            },
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape, raw_preview_chars=0)
+
+    items = trimmed["items"]
+    assert items["page_links"] == ["https://careers.confluent.io/jobs/job/12345678"]
+    assert items["job_urls"] == ["https://careers.confluent.io/jobs/job/12345678"]
+
+
+def test_trim_scrape_for_convex_preserves_job_urls_over_page_links():
+    scrape = {
+        "sourceUrl": "https://example.com/careers",
+        "items": {
+            "normalized": [],
+            "job_urls": ["https://example.com/jobs/1", "https://example.com/jobs/1"],
+            "raw": {
+                "text": "See https://example.com/jobs/2 for more roles.",
+            },
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape, raw_preview_chars=0)
+
+    items = trimmed["items"]
+    assert items["job_urls"] == ["https://example.com/jobs/1"]
+    assert "https://example.com/jobs/2" in items["page_links"]
+
+
 def test_jobs_from_scrape_items_filters_and_defaults():
     items = {
         "normalized": [

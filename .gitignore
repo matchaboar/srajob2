@@ -13,3 +13,4 @@ job_board_application/.env.production
 *.log
 tmp
 logs
+.xdg_cache

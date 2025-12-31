@@ -38,6 +38,7 @@ const normalizeUrlKey = (url?: string | null) => {
   if (!trimmed) return "";
   return trimmed.replace(/\/+$/, "");
 };
+const normalizeCompanyLabel = (value?: string | null) => (value ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const baseDomainFromHost = (host: string): string => {
   const parts = host.split(".").filter(Boolean);
@@ -50,6 +51,14 @@ const baseDomainFromHost = (host: string): string => {
   }
   return parts.slice(-2).join(".");
 };
+const WORKDAY_HOST_SUFFIX = "myworkdayjobs.com";
+const hostFromUrl = (url: string): string => {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+};
 
 const normalizeIgnoredDomainInput = (value: string): string => {
   const trimmed = (value || "").trim();
@@ -58,6 +67,7 @@ const normalizeIgnoredDomainInput = (value: string): string => {
   try {
     const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
     const host = parsed.hostname.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
     const ashbySlug = ashbySlugFromUrl(parsed.href);
@@ -66,6 +76,7 @@ const normalizeIgnoredDomainInput = (value: string): string => {
   } catch {
     const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
     const host = hostOnly.toLowerCase();
+    if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(host);
     if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
     const ashbySlug = ashbySlugFromUrl(trimmed);
@@ -427,6 +438,104 @@ export const dedupeSites = migrations.define({
   })(),
 });
 
+const isWorkdayHost = (host: string) => host.endsWith(WORKDAY_HOST_SUFFIX);
+
+export const fixWorkdayDomainAliases = migrations.define({
+  table: "domain_aliases",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx) => {
+      if (ran) return;
+      ran = true;
+
+      const aliasRows = await ctx.db.query("domain_aliases").collect();
+      const baseRow = (aliasRows as any[]).find((row) => (row)?.domain === WORKDAY_HOST_SUFFIX);
+      if (!baseRow) return;
+
+      const sites = await ctx.db.query("sites").collect();
+      const workdaySites = (sites as any[]).filter((site) => {
+        const url = (site as any).url;
+        return typeof url === "string" && isWorkdayHost(hostFromUrl(url));
+      });
+
+      if (workdaySites.length === 0) return;
+
+      const now = Date.now();
+      for (const site of workdaySites) {
+        const url = (site as any).url as string;
+        const host = hostFromUrl(url);
+        const domain = host;
+        if (!domain) continue;
+
+        const siteName = typeof (site as any).name === "string" ? (site as any).name.trim() : "";
+        const alias = siteName || ((baseRow as any).alias ?? "").trim();
+        if (!alias) continue;
+
+        const derivedName = fallbackCompanyNameFromUrl(url) || alias;
+        const existing = await ctx.db
+          .query("domain_aliases")
+          .withIndex("by_domain", (q: any) => q.eq("domain", domain))
+          .first();
+
+        if (existing) {
+          const patch: Record<string, any> = {};
+          if ((existing as any).alias !== alias) patch.alias = alias;
+          if (derivedName && (existing as any).derivedName !== derivedName) patch.derivedName = derivedName;
+          if (Object.keys(patch).length > 0) {
+            patch.updatedAt = now;
+            await ctx.db.patch(existing._id, patch);
+          }
+        } else {
+          await ctx.db.insert("domain_aliases", {
+            domain,
+            alias,
+            derivedName,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      }
+
+      await ctx.db.delete(baseRow._id);
+    };
+  })(),
+});
+
+export const retagWorkdayJobsImpl = async (ctx: any) => {
+  const aliasRows = await ctx.db.query("domain_aliases").collect();
+  const aliasMap = new Map<string, string>();
+  for (const row of aliasRows as any[]) {
+    const domain = (row)?.domain?.trim?.().toLowerCase?.() ?? "";
+    const alias = (row)?.alias?.trim?.() ?? "";
+    if (!domain || !alias) continue;
+    if (!domain.endsWith(WORKDAY_HOST_SUFFIX) || domain === WORKDAY_HOST_SUFFIX) continue;
+    aliasMap.set(domain, alias);
+  }
+
+  const jobs = await ctx.db.query("jobs").collect();
+  for (const job of jobs as any[]) {
+    if (!job.url || typeof job.url !== "string") continue;
+    const host = hostFromUrl(job.url);
+    if (!isWorkdayHost(host) || host === WORKDAY_HOST_SUFFIX) continue;
+    const desired = aliasMap.get(host) ?? deriveCompanyFromUrl(job.url);
+    if (desired && desired !== job.company) {
+      await ctx.db.patch(job._id, { company: desired, companyKey: deriveCompanyKey(desired) });
+    }
+  }
+};
+
+export const retagWorkdayJobs = migrations.define({
+  table: "jobs",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx) => {
+      if (ran) return;
+      ran = true;
+      await retagWorkdayJobsImpl(ctx);
+    };
+  })(),
+});
+
 export const retagGreenhouseJobsImpl = async (ctx: any) => {
   const aliasRows = await ctx.db.query("domain_aliases").collect();
   const aliasMap = new Map<string, string>();
@@ -457,6 +566,42 @@ export const retagGreenhouseJobs = migrations.define({
       if (ran) return;
       ran = true;
       await retagGreenhouseJobsImpl(ctx);
+    };
+  })(),
+});
+
+export const retagAshbyJobsImpl = async (ctx: any) => {
+  const aliasRows = await ctx.db.query("domain_aliases").collect();
+  const aliasMap = new Map<string, string>();
+  for (const row of aliasRows as any[]) {
+    if (typeof row.domain === "string" && typeof row.alias === "string") {
+      aliasMap.set(row.domain, row.alias);
+    }
+  }
+
+  const jobs = await ctx.db.query("jobs").collect();
+  for (const job of jobs as any[]) {
+    if (!job.url || typeof job.url !== "string") continue;
+    const slug = ashbySlugFromUrl(job.url);
+    if (!slug) continue;
+    const normalizedCompany = normalizeCompanyLabel(job.company);
+    if (normalizedCompany !== "ashbyhq" && normalizedCompany !== "ashby") continue;
+    const domain = `${slug}.ashbyhq.com`;
+    const desired = aliasMap.get(domain) ?? deriveCompanyFromUrl(job.url);
+    if (desired && desired !== job.company) {
+      await ctx.db.patch(job._id, { company: desired, companyKey: deriveCompanyKey(desired) });
+    }
+  }
+};
+
+export const retagAshbyJobs = migrations.define({
+  table: "jobs",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx) => {
+      if (ran) return;
+      ran = true;
+      await retagAshbyJobsImpl(ctx);
     };
   })(),
 });
@@ -523,7 +668,10 @@ export const runAll = internalMutation({
       internal.migrations.repairApplicationJobIds,
       internal.migrations.syncSiteSchedules,
       internal.migrations.dedupeSites,
+      internal.migrations.fixWorkdayDomainAliases,
+      internal.migrations.retagWorkdayJobs,
       internal.migrations.retagGreenhouseJobs,
+      internal.migrations.retagAshbyJobs,
     ]);
   },
 });

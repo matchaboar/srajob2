@@ -7,16 +7,9 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from ...config import settings
+from ...services import telemetry
 
 logger = logging.getLogger("temporal.worker.activities")
-
-
-def _safe_print(line: str) -> None:
-    try:
-        print(line)
-    except (BrokenPipeError, OSError):
-        # stdout may be closed when workers run under detached shells.
-        pass
 
 
 def build_provider_status_url(
@@ -55,15 +48,26 @@ def build_provider_status_url(
 
 
 def log_provider_dispatch(provider: str, url: str, **context: Any) -> None:
-    """Emit a colored stdout log when dispatching a scrape request to a provider."""
+    """Emit a structured PostHog log when dispatching a scrape request."""
 
     context_parts = [f"{k}={v}" for k, v in context.items() if v is not None]
     context_str = " ".join(context_parts)
     msg = f"[SCRAPE DISPATCH] provider={provider} url={url}"
     if context_str:
         msg = f"{msg} {context_str}"
-    _safe_print(f"\x1b[36m{msg}\x1b[0m")
-    logger.info(msg)
+    try:
+        telemetry.emit_posthog_log(
+            {
+                "event": "scrape.dispatch",
+                "message": msg,
+                "provider": provider,
+                "url": url,
+                "data": context or None,
+            }
+        )
+    except Exception:
+        pass
+    logger.debug(msg)
 
 
 def mask_secret(secret: str | None) -> str | None:
@@ -146,7 +150,7 @@ def log_sync_response(
     metadata: Dict[str, Any] | None = None,
     response: Any | None = None,
 ) -> None:
-    """Print a synchronous provider response to stdout for quick debugging."""
+    """Emit a structured PostHog log for synchronous provider responses."""
 
     link = build_provider_status_url(provider, job_id, status_url=status_url, kind=kind)
 
@@ -169,6 +173,7 @@ def log_sync_response(
         if meta_bits:
             parts.append(" ".join(meta_bits))
 
+    response_preview = None
     if response is not None:
         try:
             serialized = json.dumps(response, default=str)
@@ -180,10 +185,28 @@ def log_sync_response(
             serialized = f"{serialized[:max_len]}...(+{len(serialized) - max_len} chars)"
 
         parts.append(f"response={serialized}")
+        response_preview = serialized
 
     msg = f"[SCRAPE RESPONSE] {' '.join(parts)}"
-    _safe_print(f"\x1b[33m{msg}\x1b[0m")
-    logger.info(msg)
+    try:
+        telemetry.emit_posthog_log(
+            {
+                "event": "scrape.response",
+                "message": msg,
+                "provider": provider,
+                "action": action,
+                "url": url,
+                "kind": kind,
+                "jobId": job_id,
+                "statusUrl": link,
+                "summary": summary,
+                "metadata": metadata,
+                "responsePreview": response_preview,
+            }
+        )
+    except Exception:
+        pass
+    logger.debug(msg)
 
 
 __all__ = [

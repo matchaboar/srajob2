@@ -154,7 +154,6 @@ class GreenhouseScraperWorkflow:
                                 args=[scrape_payload],
                                 schedule_to_close_timeout=timedelta(minutes=3),
                                 start_to_close_timeout=timedelta(minutes=3),
-                                heartbeat_timeout=timedelta(seconds=30),
                             )
                             scrape_ids.append(scrape_id)
 

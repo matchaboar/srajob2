@@ -15,7 +15,10 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.activities import store_scrape  # noqa: E402
-from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
+    _resolve_location_from_dictionary,
+    parse_markdown_hints,
+)
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
     SpiderCloudScraper,
     SpidercloudDependencies,
@@ -58,6 +61,9 @@ NETFLIX_LISTING_COMMONMARK_FIXTURE = (
 NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
 NETFLIX_RAW_HTML_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_raw_html.json"
 BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_commonmark.json"
+BLOOMBERG_EMPLOYEE_ENGAGEMENT_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_15349_commonmark.json"
+)
 OKTA_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_okta_greenhouse_job_detail_commonmark.json"
 NEXHEALTH_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_nexhealth_greenhouse_job_detail.json"
@@ -620,6 +626,58 @@ def test_spidercloud_bloomberg_avature_job_detail_commonmark_normalizes_descript
     assert "Infrastructure Automation Engineer" in normalized["title"]
     assert len(normalized["description"]) > 200
     assert "Bloomberg" in normalized["description"]
+
+
+def test_spidercloud_bloomberg_avature_employee_engagement_normalizes_fields():
+    payload = _load_fixture(BLOOMBERG_EMPLOYEE_ENGAGEMENT_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 1_700_000_000_000)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Team Lead/Product Manager - Employee Engagement Systems"
+    assert normalized["company"] == "Bloomberg"
+    assert normalized["location"] == "New York, NY"
+    assert normalized["remote"] is False
+    assert normalized["posted_at"] == 1_700_000_000_000
+    assert normalized["posted_at_unknown"] is True
+
+    description = normalized["description"] or ""
+    assert len(description) > 200
+    assert "Employee Engagement Systems" in description
+    for junk in (
+        "Accept All",
+        "Apply Now",
+        "Back to Job Search",
+        "Cookie Preferences",
+        "How do Bloomberg Communities",
+        "More Videos",
+        "Reject All",
+        "Save this Job",
+        "Similar jobs",
+        "Transcript",
+    ):
+        assert junk not in description
+
+
+def test_spidercloud_bloomberg_avature_employee_engagement_parses_location_and_salary():
+    payload = _load_fixture(BLOOMBERG_EMPLOYEE_ENGAGEMENT_FIXTURE)
+    normalized = _extract_normalized_from_commonmark(payload)
+    hints = parse_markdown_hints(normalized.get("description") or "")
+
+    assert hints.get("location") == "New York, NY"
+    resolved = _resolve_location_from_dictionary(hints.get("location") or "")
+    assert resolved is not None
+    assert resolved.get("city") == "New York"
+    assert resolved.get("state") == "New York"
+    assert resolved.get("country") == "United States"
+
+    comp_range = hints.get("compensation_range") or {}
+    assert comp_range.get("low") == 180000
+    assert comp_range.get("high") == 350000
+    assert hints.get("compensation") == 350000
 
 
 @pytest.mark.parametrize("fixture_path", WORKDAY_DETAIL_FIXTURES)

@@ -102,6 +102,36 @@ New York, NY
     expect(hints.locations?.[1]).toBe("Madrid, Spain");
   });
 
+  it("extracts remote country from remote-only lines", () => {
+    const markdown = `
+Job Application for Engineer at DemoCo
+# Engineer
+In this role you can work from Remote, United Kingdom
+`;
+    const job = {
+      _id: "job4",
+      title: "Engineer",
+      location: "Remote",
+      locations: ["Remote"],
+      locationStates: ["Remote"],
+      locationSearch: "Remote United States",
+      countries: ["United States"],
+      country: "United States",
+      city: "Remote",
+      state: "Remote",
+      remote: true,
+      totalCompensation: 0,
+      description: markdown,
+    };
+    const hints = parseMarkdownHints(markdown);
+    const updates = buildUpdatesFromHints(job, hints);
+
+    expect(updates.location ?? job.location).toBe("Remote");
+    expect(updates.countries).toEqual(["United Kingdom"]);
+    expect(updates.country).toBe("United Kingdom");
+    expect(updates.locationSearch).toBe("Remote United Kingdom");
+  });
+
   it("overrides existing unknown city/state values when re-parsed", () => {
     const job = {
       _id: "job3",
@@ -148,10 +178,12 @@ New York, NY
     expect(updates.compensationReason).toBe("parsed from description");
   });
 
-  it("derives company from greenhouse URL slug", () => {
+  it("derives company from greenhouse and ashby URL slugs", () => {
     expect(deriveCompanyFromUrl("https://boards.greenhouse.io/robinhood/jobs/123")).toBe("Robinhood");
     expect(deriveCompanyFromUrl("https://boards-api.greenhouse.io/v1/boards/mithril/jobs/4419565007")).toBe("Mithril");
     expect(deriveCompanyFromUrl("https://api.greenhouse.io/v1/boards/mithril/jobs")).toBe("Mithril");
     expect(deriveCompanyFromUrl("https://careers.databricks.com/open-roles")).toBe("Databricks");
+    expect(deriveCompanyFromUrl("https://jobs.ashbyhq.com/notion/5703a1d4-e1a2-4286-af10-a48c65fd4114")).toBe("Notion");
+    expect(deriveCompanyFromUrl("https://api.ashbyhq.com/posting-api/job-board/Serval")).toBe("Serval");
   });
 });

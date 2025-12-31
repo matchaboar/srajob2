@@ -1,27 +1,91 @@
 from __future__ import annotations
 
-import json
+from itertools import islice
 from typing import Any, Dict, Optional
 
 
-def _shrink_for_log(value: Any, max_chars: int = 400) -> Any:
-    """Return a compact preview while keeping structured data when small enough."""
+def _shrink_for_log(
+    value: Any,
+    max_chars: int = 400,
+    *,
+    max_items: int = 6,
+    max_depth: int = 2,
+) -> Any:
+    """Return a compact preview without expensive serialization in workflow code."""
 
     if value is None:
         return None
 
-    try:
-        serialized = json.dumps(value, ensure_ascii=False)
-    except Exception:
-        try:
-            serialized = str(value)
-        except Exception:
-            return None
-
-    if len(serialized) <= max_chars:
+    if isinstance(value, (int, float, bool)):
         return value
 
-    return f"{serialized[:max_chars]}... (+{len(serialized) - max_chars} chars)"
+    if isinstance(value, str):
+        if len(value) <= max_chars:
+            return value
+        return f"{value[:max_chars]}... (+{len(value) - max_chars} chars)"
+
+    if isinstance(value, bytes):
+        return f"<{len(value)} bytes>"
+
+    if isinstance(value, dict):
+        size = len(value)
+        if size == 0:
+            return {}
+        if max_depth <= 0:
+            return f"<dict size={size}>"
+        if size <= max_items:
+            preview: Dict[str, Any] = {}
+            for key, child in value.items():
+                preview[str(key)] = _shrink_for_log(
+                    child,
+                    max_chars=max_chars,
+                    max_items=max_items,
+                    max_depth=max_depth - 1,
+                )
+            return preview
+        sample_keys = [str(key) for key in islice(value.keys(), max_items)]
+        return {"_type": "dict", "size": size, "keys": sample_keys}
+
+    if isinstance(value, (list, tuple)):
+        size = len(value)
+        if max_depth <= 0:
+            return f"<{type(value).__name__} size={size}>"
+        if size <= max_items:
+            return [
+                _shrink_for_log(
+                    child,
+                    max_chars=max_chars,
+                    max_items=max_items,
+                    max_depth=max_depth - 1,
+                )
+                for child in value
+            ]
+        return {
+            "_type": type(value).__name__,
+            "size": size,
+            "sample": [
+                _shrink_for_log(
+                    child,
+                    max_chars=max_chars,
+                    max_items=max_items,
+                    max_depth=max_depth - 1,
+                )
+                for child in value[:max_items]
+            ],
+        }
+
+    if isinstance(value, set):
+        return f"<set size={len(value)}>"
+
+    try:
+        text = str(value)
+    except Exception:
+        return f"<{type(value).__name__}>"
+
+    if len(text) <= max_chars:
+        return text
+
+    return f"{text[:max_chars]}... (+{len(text) - max_chars} chars)"
 
 
 def extract_http_exchange(scrape_result: Any) -> Optional[Dict[str, Any]]:
