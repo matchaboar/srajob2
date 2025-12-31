@@ -19,6 +19,7 @@ import type * as formFiller from "../formFiller.js";
 import type * as http from "../http.js";
 import type * as jobRecords from "../jobRecords.js";
 import type * as jobs from "../jobs.js";
+import type * as lib_scrapeCounts from "../lib/scrapeCounts.js";
 import type * as location from "../location.js";
 import type * as middleware_firecrawlCors from "../middleware/firecrawlCors.js";
 import type * as migrations from "../migrations.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   jobRecords: typeof jobRecords;
   jobs: typeof jobs;
+  "lib/scrapeCounts": typeof lib_scrapeCounts;
   location: typeof location;
   "middleware/firecrawlCors": typeof middleware_firecrawlCors;
   migrations: typeof migrations;

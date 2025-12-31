@@ -1675,13 +1675,11 @@ const leaseScrapeUrlBatchHandler = async (
   args: {
     provider?: string;
     limit?: number;
-    maxPerMinuteDefault?: number;
     processingExpiryMs?: number;
   }
 ) => {
   const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
   const now = Date.now();
-  const maxPerMinuteDefault = Math.max(1, Math.min(args.maxPerMinuteDefault ?? 50, 1000));
   const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 20 * 60_000, 24 * 60 * 60_000));
 
   const normalizeDomain = (url: string) => {
@@ -1691,56 +1689,6 @@ const leaseScrapeUrlBatchHandler = async (
     } catch {
       return "";
     }
-  };
-
-  const rateLimits = new Map<string, any>();
-  const rateRows = await ctx.db.query("job_detail_rate_limits").collect();
-  for (const row of rateRows as any[]) {
-    const domain = (row.domain || "").toLowerCase();
-    if (!domain) continue;
-    rateLimits.set(domain, row);
-  }
-
-  const applyRateLimit = async (domain: string) => {
-    const nowTs = Date.now();
-    const existing = rateLimits.get(domain);
-    const maxPerMinute = existing?.maxPerMinute ?? maxPerMinuteDefault;
-    const windowStart = existing?.lastWindowStart ?? nowTs;
-    const sent = existing?.sentInWindow ?? 0;
-    const windowMs = 60_000;
-    let newWindowStart = windowStart;
-    let newSent = sent;
-    if (nowTs - windowStart >= windowMs) {
-      newWindowStart = nowTs;
-      newSent = 0;
-    }
-    if (newSent >= maxPerMinute) {
-      return { allowed: false, maxPerMinute };
-    }
-    newSent += 1;
-    let upsertId = existing?._id;
-    if (existing && existing._id) {
-      await ctx.db.patch(existing._id, {
-        lastWindowStart: newWindowStart,
-        sentInWindow: newSent,
-      });
-    } else {
-      const insertedId = await ctx.db.insert("job_detail_rate_limits", {
-        domain,
-        maxPerMinute,
-        lastWindowStart: newWindowStart,
-        sentInWindow: newSent,
-      });
-      upsertId = insertedId;
-    }
-    rateLimits.set(domain, {
-      _id: upsertId,
-      domain,
-      maxPerMinute,
-      lastWindowStart: newWindowStart,
-      sentInWindow: newSent,
-    });
-    return { allowed: true, maxPerMinute };
   };
 
   // Release stale processing rows back to pending so they can be retried.
@@ -1780,11 +1728,18 @@ const leaseScrapeUrlBatchHandler = async (
       if (rows.length >= limit * 3) break;
     }
   }
-  const picked: any[] = [];
+  const siteKeyForRow = (row: any) => {
+    if (row.siteId) return `site:${row.siteId}`;
+    if (row.sourceUrl) return `source:${row.sourceUrl}`;
+    const domain = normalizeDomain(row.url);
+    if (domain) return `domain:${domain}`;
+    return `row:${row._id}`;
+  };
+
+  const buckets = new Map<string, any[]>();
   for (const row of rows as any[]) {
-    if (picked.length >= limit) break;
     if (args.provider && row.provider !== args.provider) continue;
-    const createdAt = (row).createdAt ?? 0;
+    const createdAt = row.createdAt ?? 0;
     if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
       // Skip stale (>7d) entries; mark ignored
       await ctx.db.patch(row._id, {
@@ -1808,14 +1763,35 @@ const leaseScrapeUrlBatchHandler = async (
       }
       continue;
     }
-    const scheduledAt = (row).scheduledAt ?? 0;
+    const scheduledAt = row.scheduledAt ?? 0;
     if (scheduledAt && scheduledAt > now) {
       continue;
     }
-    const domain = normalizeDomain(row.url);
-    const rate = await applyRateLimit(domain || "default");
-    if (!rate.allowed) continue;
-    picked.push(row);
+    const key = siteKeyForRow(row);
+    const bucket = buckets.get(key);
+    if (bucket) {
+      bucket.push(row);
+    } else {
+      buckets.set(key, [row]);
+    }
+  }
+
+  const picked: any[] = [];
+  const bucketKeys = Array.from(buckets.keys());
+  let madeProgress = true;
+  while (picked.length < limit && madeProgress) {
+    madeProgress = false;
+    for (const key of bucketKeys) {
+      if (picked.length >= limit) break;
+      const bucket = buckets.get(key);
+      if (!bucket || bucket.length === 0) continue;
+      while (bucket.length > 0) {
+        const row = bucket.shift();
+        picked.push(row);
+        madeProgress = true;
+        break; // one per bucket per pass
+      }
+    }
   }
 
   if (picked.length === 0) return { urls: [] };
@@ -1845,7 +1821,6 @@ export const leaseScrapeUrlBatch = Object.assign(
     args: {
       provider: v.optional(v.string()),
       limit: v.optional(v.number()),
-      maxPerMinuteDefault: v.optional(v.number()),
       processingExpiryMs: v.optional(v.number()),
     },
     handler: leaseScrapeUrlBatchHandler,
@@ -2173,6 +2148,40 @@ export const clearStaleScrapeQueue = internalMutation({
   },
 });
 
+export const purgeJobDetailRateLimits = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    try {
+      const page = await (ctx.db.query("job_detail_rate_limits" as any) as any).paginate({
+        cursor: args.cursor ?? null,
+        numItems: batchSize,
+      });
+      let deleted = 0;
+      for (const row of page.page as any[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+      return {
+        deleted,
+        hasMore: !page.isDone,
+        cursor: page.continueCursor ?? null,
+      };
+    } catch (err) {
+      console.error("purgeJobDetailRateLimits: failed", err);
+      return {
+        deleted: 0,
+        hasMore: false,
+        cursor: null,
+        error: String(err),
+      };
+    }
+  },
+});
+
 export const resetScrapeUrlProcessing = mutation({
   args: {
     provider: v.optional(v.string()),
@@ -2376,56 +2385,6 @@ export const resetTodayAndRunAllScheduled = mutation({
       windowStart: startOfDay,
       windowEnd: endOfDay,
     };
-  },
-});
-
-export const listJobDetailRateLimits = query({
-  args: {},
-  handler: async (ctx) => {
-    const rows = await ctx.db.query("job_detail_rate_limits").order("asc").take(200);
-    return rows.map((row: any) => ({
-      _id: row._id,
-      domain: row.domain,
-      maxPerMinute: row.maxPerMinute,
-      lastWindowStart: row.lastWindowStart,
-      sentInWindow: row.sentInWindow,
-    }));
-  },
-});
-
-export const upsertJobDetailRateLimit = mutation({
-  args: {
-    domain: v.string(),
-    maxPerMinute: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const domain = args.domain.trim().toLowerCase();
-    if (!domain) throw new Error("domain is required");
-    const existing = await ctx.db.query("job_detail_rate_limits").withIndex("by_domain", (q) => q.eq("domain", domain)).first();
-    const now = Date.now();
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        maxPerMinute: args.maxPerMinute,
-        lastWindowStart: existing.lastWindowStart ?? now,
-        sentInWindow: existing.sentInWindow ?? 0,
-      });
-      return { updated: true };
-    }
-    await ctx.db.insert("job_detail_rate_limits", {
-      domain,
-      maxPerMinute: args.maxPerMinute,
-      lastWindowStart: now,
-      sentInWindow: 0,
-    });
-    return { created: true };
-  },
-});
-
-export const deleteJobDetailRateLimit = mutation({
-  args: { id: v.id("job_detail_rate_limits") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
-    return { deleted: true };
   },
 });
 

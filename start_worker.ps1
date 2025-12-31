@@ -10,6 +10,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
+$script:StartWorkerEntryPoint = $false
+$script:ResetProcessingQueueWasSpecified = $PSBoundParameters.ContainsKey("ResetProcessingQueue")
 $script:TemporalContainerStartedByScript = $false
 $script:TemporalContainerName = ""
 $script:TemporalCmd = ""
@@ -622,6 +624,11 @@ function Stop-ExistingWorkers {
 }
 
 function Start-WorkerMain {
+    if (-not $script:ResetProcessingQueueWasSpecified -and $script:StartWorkerEntryPoint) {
+        $script:ResetProcessingQueue = $true
+        Write-Host "ResetProcessingQueue not specified; defaulting to reset processing scrape_url_queue rows on startup." -ForegroundColor Yellow
+    }
+
     $errorLogPath = Join-Path "logs" "worker-errors.log"
     if (-not (Test-Path (Split-Path $errorLogPath -Parent))) {
         New-Item -ItemType Directory -Force -Path (Split-Path $errorLogPath -Parent) | Out-Null
@@ -1014,5 +1021,6 @@ function Start-WorkerMain {
 }
 
 if ($env:SKIP_START_WORKER_MAIN -ne "1") {
+    $script:StartWorkerEntryPoint = $true
     Start-WorkerMain
 }

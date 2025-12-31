@@ -348,7 +348,13 @@ type DbJob = Omit<
 
 type JobDetailDoc = Doc<"job_details">;
 type JobDetailFields = Omit<JobDetailDoc, "jobId" | "_id">;
-type JobWithDetails = DbJob & Partial<JobDetailFields>;
+type ScrapeQueueInfo = {
+  scrapeQueueCreatedAt?: number;
+  scrapeQueueCompletedAt?: number;
+  scrapeQueueStatus?: string;
+};
+
+type JobWithDetails = DbJob & Partial<JobDetailFields> & ScrapeQueueInfo;
 
 const ensureLocationFields = async (
   ctx: any,
@@ -403,6 +409,14 @@ const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">): Promise<JobDet
     .query("job_details")
     .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
     .first()) as JobDetailDoc | null;
+};
+
+const getScrapeQueueByUrl = async (ctx: any, url?: string | null) => {
+  if (!url) return null;
+  return await ctx.db
+    .query("scrape_url_queue")
+    .withIndex("by_url", (q: any) => q.eq("url", url))
+    .first();
 };
 
 const countAppliedApplications = async (ctx: any, jobIds: Array<Id<"jobs"> | string>) => {
@@ -1418,6 +1432,63 @@ export const getRecentJobs = query({
   },
 });
 
+export const listQueuedJobs = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    status: v.optional(v.union(v.literal("pending"), v.literal("processing"))),
+    scheduledBefore: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const now = Date.now();
+    const scheduledBefore = typeof args.scheduledBefore === "number" ? args.scheduledBefore : now;
+    const status = args.status ?? "pending";
+
+    let query: any = ctx.db.query("scrape_url_queue");
+    if (status === "pending") {
+      query = query
+        .withIndex("by_status", (q: any) => q.eq("status", "pending"))
+        .filter((q: any) =>
+          q.or(q.lte(q.field("scheduledAt"), scheduledBefore), q.eq(q.field("scheduledAt"), null))
+        );
+    } else {
+      query = query.withIndex("by_status", (q: any) => q.eq("status", "processing"));
+    }
+
+    const paginationOpts = {
+      ...args.paginationOpts,
+      numItems: Math.min(args.paginationOpts.numItems ?? 10, 10),
+    };
+    const page = await query.order("asc").paginate(paginationOpts);
+    const jobs = (
+      await Promise.all(
+        page.page.map(async (row: any) => {
+          const job = await ctx.db
+            .query("jobs")
+            .withIndex("by_url", (q: any) => q.eq("url", row.url))
+            .first();
+          if (!job) return null;
+          const normalized = await ensureLocationFields(ctx, job as any);
+          return {
+            ...normalized,
+            queueId: row._id,
+            queueCreatedAt: row.createdAt,
+            queueUpdatedAt: row.updatedAt,
+            queueScheduledAt: row.scheduledAt,
+            queueStatus: row.status,
+          };
+        })
+      )
+    ).filter(Boolean);
+
+    return { ...page, page: jobs };
+  },
+});
+
 export const getAppliedJobs = query({
   args: {},
   handler: async (ctx) => {
@@ -1504,7 +1575,14 @@ export const getJobById = query({
 
     const normalized = await ensureLocationFields(ctx, job as any);
     const details = await getJobDetailsByJobId(ctx, args.id);
-    return mergeJobDetails(normalized, details);
+    const scrapeQueueRow = await getScrapeQueueByUrl(ctx, normalized.url ?? job.url);
+    const merged = mergeJobDetails(normalized, details);
+    return {
+      ...merged,
+      scrapeQueueCreatedAt: (scrapeQueueRow as any)?.createdAt,
+      scrapeQueueCompletedAt: (scrapeQueueRow as any)?.completedAt,
+      scrapeQueueStatus: (scrapeQueueRow as any)?.status,
+    };
   },
 });
 

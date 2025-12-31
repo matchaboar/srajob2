@@ -2284,11 +2284,6 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
       const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
       const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
       const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
-      const rateLimits = useQuery(api.router.listJobDetailRateLimits, { });
-      const upsertRateLimit = useMutation(api.router.upsertJobDetailRateLimit);
-      const deleteRateLimit = useMutation(api.router.deleteJobDetailRateLimit);
-      const [rateDomain, setRateDomain] = useState("");
-      const [rateValue, setRateValue] = useState("50");
       const scrapeErrors = useQuery(api.router.listScrapeErrors, {limit: 25 });
 
       const rows: any[] = [];
@@ -2319,10 +2314,6 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
               <p className="text-[11px] text-slate-500">
                 <span className="text-blue-200 font-semibold">Retry processing</span> replays existing scraped data for
                 the site (no new scrape) and re-ingests jobs, while also clearing failures.
-              </p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                <span className="text-cyan-200 font-semibold">Job detail rate limits</span> control batch scraping for
-                individual job URLs (default 50/min per domain). Configure per-domain overrides below.
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
                 Use <span className="text-emerald-200 font-semibold">Reset processing</span> to move any stuck job-detail
@@ -2453,45 +2444,10 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
         <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-white">Job detail rate limits</h3>
-              <p className="text-[11px] text-slate-500">
-                Default is 50/minute per domain. Override specific domains here (SpiderCloud job-detail batches).
-              </p>
+              <h3 className="text-sm font-semibold text-white">Job detail queue controls</h3>
+              <p className="text-[11px] text-slate-500">Manually reset stuck or completed job-detail URLs.</p>
             </div>
             <div className="flex items-center gap-2">
-              <input
-                value={rateDomain}
-                onChange={(e) => setRateDomain(e.target.value)}
-                placeholder="domain (e.g., boards.greenhouse.io)"
-                className="bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-700"
-              />
-              <input
-                value={rateValue}
-                onChange={(e) => setRateValue(e.target.value)}
-                placeholder="50"
-                type="number"
-                min={1}
-                className="bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-700 w-20"
-              />
-              <button
-                onClick={() => {
-                  void (async () => {
-                    const domain = rateDomain.trim();
-                    const val = Number(rateValue);
-                    if (!domain || !val) return toast.error("Domain and rate are required");
-                    try {
-                      await upsertRateLimit({ domain, maxPerMinute: val });
-                      toast.success("Rate limit saved");
-                      setRateDomain("");
-                    } catch (err: any) {
-                      toast.error(err?.message ?? "Failed to save rate limit");
-                    }
-                  })();
-                }}
-                className="text-[11px] px-2 py-1 rounded border border-cyan-700 bg-cyan-900/30 text-cyan-200 hover:bg-cyan-800/40 transition-colors"
-              >
-                Save
-              </button>
               <button
                 onClick={() => {
                   void (async () => {
@@ -2523,38 +2479,6 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
                 Reset completed
               </button>
             </div>
-          </div>
-          <div className="divide-y divide-slate-800">
-            {(rateLimits as any[] | undefined)?.length ? (
-              (rateLimits as any[]).map((row: any) => (
-                <div key={row._id} className="flex items-center justify-between px-4 py-2 text-xs text-slate-200">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-[11px] text-slate-300">{row.domain}</span>
-                    <span className="text-slate-400">{row.maxPerMinute}/min</span>
-                    <span className="text-slate-500 text-[11px]">
-                      window sent: {row.sentInWindow ?? 0} (started {new Date(row.lastWindowStart).toLocaleTimeString()})
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          await deleteRateLimit({ id: row._id });
-                          toast.success("Rate limit removed");
-                        } catch {
-                          toast.error("Failed to delete rate limit");
-                        }
-                      })();
-                    }}
-                    className="text-[11px] px-2 py-1 rounded border border-red-700 bg-red-900/30 text-red-200 hover:bg-red-800/40 transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-[11px] text-slate-500">No overrides configured (using defaults).</div>
-            )}
           </div>
         </div>
 

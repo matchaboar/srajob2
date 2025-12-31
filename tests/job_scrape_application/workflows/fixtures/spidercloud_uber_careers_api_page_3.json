@@ -1,0 +1,7 @@
+[
+  {
+    "content": {
+      "raw": "<html><pre>{\"results\":[{\"id\":\"105\",\"title\":\"Engineering Manager\"}],\"totalResults\":{\"low\":5},\"page\":2,\"limit\":2,\"__source_url\":\"https://www.uber.com/us/en/careers/list/?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington&page=2\"}</pre></html>"
+    }
+  }
+]

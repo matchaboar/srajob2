@@ -59,7 +59,6 @@ async def test_lease_scrape_url_batch_payload_types(monkeypatch):
     payload = captured["payload"]
     assert "provider" not in payload  # None should be stripped
     assert payload["limit"] == 5
-    assert isinstance(payload["maxPerMinuteDefault"], int)
     assert isinstance(payload["processingExpiryMs"], int)
     assert res["urls"] == [{"url": "https://example.com/job/1"}]
     assert res.get("skippedUrls") == []

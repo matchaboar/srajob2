@@ -12,7 +12,6 @@ type Row = Record<string, any>;
 
 type Tables = {
   scrape_url_queue: Row[];
-  job_detail_rate_limits: Row[];
   ignored_jobs: Row[];
   seen_job_urls: Row[];
   jobs: Row[];
@@ -64,7 +63,6 @@ class FakeDb {
   constructor(seed?: Partial<Tables>) {
     this.tables = {
       scrape_url_queue: seed?.scrape_url_queue ?? [],
-      job_detail_rate_limits: seed?.job_detail_rate_limits ?? [],
       ignored_jobs: seed?.ignored_jobs ?? [],
       seen_job_urls: seed?.seen_job_urls ?? [],
       jobs: seed?.jobs ?? [],

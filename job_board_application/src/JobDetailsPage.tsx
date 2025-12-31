@@ -9,6 +9,20 @@ const formatDateTime = (value?: number) => {
   return new Date(value).toLocaleString();
 };
 
+const formatDuration = (start?: number | null, end?: number | null) => {
+  if (typeof start !== "number" || typeof end !== "number") return "—";
+  const diff = Math.max(0, end - start);
+  const totalSeconds = Math.floor(diff / 1000);
+  if (totalSeconds <= 0) return "0s";
+  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${totalSeconds % 60}s`;
+  return `${totalSeconds}s`;
+};
+
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });
   const compensationMeta = useMemo(() => buildCompensationMeta(job), [job]);
@@ -41,6 +55,17 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
       },
     []
   );
+  const scrapedAt = toOptionalNumber(job?.scrapedAt);
+  const scrapeQueueCreatedAt = toOptionalNumber((job as { scrapeQueueCreatedAt?: number } | null)?.scrapeQueueCreatedAt);
+  const scrapeQueueCompletedAt = toOptionalNumber(
+    (job as { scrapeQueueCompletedAt?: number } | null)?.scrapeQueueCompletedAt
+  );
+  const scrapeQueueWait =
+    typeof scrapeQueueCreatedAt === "number"
+      ? typeof (scrapedAt ?? scrapeQueueCompletedAt) === "number"
+        ? formatDuration(scrapeQueueCreatedAt, scrapedAt ?? scrapeQueueCompletedAt)
+        : "Pending"
+      : "—";
 
   const description = useMemo(() => {
     if (!job?.description) return "No description provided.";
@@ -55,7 +80,6 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
   const parsingSteps = useMemo(() => {
     const workflowName = toOptionalString(job?.workflowName);
     const scrapedWith = toOptionalString(job?.scrapedWith) || workflowName;
-    const scrapedAt = toOptionalNumber(job?.scrapedAt);
     const heuristicAttempts = toOptionalNumber(job?.heuristicAttempts) ?? 0;
     const heuristicLastTried = toOptionalNumber(job?.heuristicLastTried);
     const heuristicVersion = toOptionalNumber(job?.heuristicVersion);
@@ -101,7 +125,7 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
         note: "Optional enrichment (not requested)",
       },
     ];
-  }, [formatRelativeTime, job]);
+  }, [formatRelativeTime, job, scrapedAt, toOptionalNumber, toOptionalString]);
 
   const handleBack = () => {
     if (onBack) {
@@ -196,6 +220,13 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
               </span>
               <span>
                 <span className="text-slate-500">Scraped:</span> {formatDateTime(job.scrapedAt)}
+              </span>
+              <span>
+                <span className="text-slate-500">Queued:</span>{" "}
+                {formatRelativeTime(scrapeQueueCreatedAt) ?? formatDateTime(scrapeQueueCreatedAt)}
+              </span>
+              <span>
+                <span className="text-slate-500">Queue wait:</span> {scrapeQueueWait}
               </span>
               <span>
                 <span className="text-slate-500">Workflow:</span> {job.workflowName || "—"}

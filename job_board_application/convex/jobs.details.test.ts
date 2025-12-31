@@ -5,16 +5,19 @@ import { getHandler } from "./__tests__/getHandler";
 type JobRow = { _id: string; url: string; location?: string; remote?: boolean; totalCompensation?: number };
 type DetailRow = { _id: string; jobId: string; description?: string; metadata?: string };
 type ApplicationRow = { _id?: string; jobId: string; status: "applied" | "rejected" };
+type QueueRow = { _id: string; url: string; createdAt?: number; completedAt?: number; status?: string };
 
 class FakeDb {
   private job: JobRow | null;
   private detail: DetailRow | null;
   private applications: ApplicationRow[];
+  private queue: QueueRow | null;
 
-  constructor(job: JobRow | null, detail: DetailRow | null, applications: ApplicationRow[] = []) {
+  constructor(job: JobRow | null, detail: DetailRow | null, applications: ApplicationRow[] = [], queue: QueueRow | null = null) {
     this.job = job ? { ...job } : null;
     this.detail = detail ? { ...detail } : null;
     this.applications = applications.map((app) => ({ ...app }));
+    this.queue = queue ? { ...queue } : null;
   }
 
   get(id: string) {
@@ -67,6 +70,18 @@ class FakeDb {
         },
       };
     }
+    if (table === "scrape_url_queue") {
+      const queue = this.queue;
+      return {
+        withIndex(_name: string, cb: (q: any) => any) {
+          const url = cb({ eq: (_field: string, value: string) => value });
+          const match = queue && queue.url === url ? queue : null;
+          return {
+            first: async () => match,
+          };
+        },
+      };
+    }
     throw new Error(`Unexpected table ${table}`);
   }
 }
@@ -94,7 +109,9 @@ describe("getJobById", () => {
     const ctx: any = {
       db: new FakeDb(
         { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
-        { _id: "detail-1", jobId: "job-1", description: "Details", metadata: "Location\nRemote" }
+        { _id: "detail-1", jobId: "job-1", description: "Details", metadata: "Location\nRemote" },
+        [],
+        { _id: "queue-1", url: "https://example.com/job/1", createdAt: 1234, completedAt: 2345, status: "completed" }
       ),
     };
 
@@ -104,6 +121,9 @@ describe("getJobById", () => {
     expect(result?._id).toBe("job-1");
     expect(result?.description).toBe("Details");
     expect(result?.metadata).toBe("Location\nRemote");
+    expect(result?.scrapeQueueCreatedAt).toBe(1234);
+    expect(result?.scrapeQueueCompletedAt).toBe(2345);
+    expect(result?.scrapeQueueStatus).toBe("completed");
   });
 });
 

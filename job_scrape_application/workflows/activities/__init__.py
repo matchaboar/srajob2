@@ -1095,7 +1095,6 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 {
                     "provider": provider,
                     "limit": limit,
-                    "maxPerMinuteDefault": SPIDERCLOUD_BATCH_SIZE,
                     "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
                 }
             ),
@@ -1177,79 +1176,93 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
             request_max_chars=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
         )
 
-    urls: list[str] = []
-    source_url = ""
-    pattern = None
+    groups: dict[tuple[str, str | None], list[str]] = {}
+    source_url_hint = ""
     for row in batch.get("urls", []):
-        if isinstance(row, dict):
-            url_val = row.get("url")
-            if isinstance(url_val, str) and url_val.strip():
-                urls.append(_to_greenhouse_api_url(url_val))
-            if not source_url and isinstance(row.get("sourceUrl"), str):
-                source_url = row["sourceUrl"]
-            if pattern is None and isinstance(row.get("pattern"), str):
-                pattern = row["pattern"]
+        if not isinstance(row, dict):
+            continue
+        url_val = row.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        source_val = row.get("sourceUrl") if isinstance(row.get("sourceUrl"), str) else ""
+        pattern_val = row.get("pattern") if isinstance(row.get("pattern"), str) else None
+        if source_val and not source_url_hint:
+            source_url_hint = source_val
+        key = (source_val, pattern_val)
+        groups.setdefault(key, []).append(_to_greenhouse_api_url(url_val))
 
-    if not urls:
-        return {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url}
+    if not groups:
+        return {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
 
     scraper = _make_spidercloud_scraper()
-    payload = {"urls": urls, "source_url": source_url, "pattern": pattern}
-    result = await scraper.scrape_greenhouse_jobs(payload) or {}
 
-    # Unwrap and split into per-URL scrape payloads so they can be stored independently.
-    base_payload: Dict[str, Any] | None = None
-    if isinstance(result, dict):
-        base_payload = result.get("scrape") if isinstance(result.get("scrape"), dict) else result  # support direct payload
+    async def _scrape_group(urls: list[str], source_url: str, pattern: str | None) -> list[Dict[str, Any]]:
+        payload = {"urls": urls, "source_url": source_url or (urls[0] if urls else ""), "pattern": pattern}
+        result = await scraper.scrape_greenhouse_jobs(payload) or {}
 
-    if not isinstance(base_payload, dict):
-        return {"scrapes": [], "sourceUrl": source_url}
+        # Unwrap and split into per-URL scrape payloads so they can be stored independently.
+        base_payload: Dict[str, Any] | None = None
+        if isinstance(result, dict):
+            base_payload = (
+                result.get("scrape") if isinstance(result.get("scrape"), dict) else result  # support direct payload
+            )
 
-    base_payload.setdefault("provider", "spidercloud")
-    base_payload.setdefault("workflowName", "SpidercloudJobDetails")
+        if not isinstance(base_payload, dict):
+            return []
+
+        base_payload.setdefault("provider", "spidercloud")
+        base_payload.setdefault("workflowName", "SpidercloudJobDetails")
+
+        scrapes: list[Dict[str, Any]] = []
+        items = base_payload.get("items") if isinstance(base_payload, dict) else {}
+        normalized = items.get("normalized") if isinstance(items, dict) else []
+        raw_items = items.get("raw") if isinstance(items, dict) else []
+        cost_milli_cents_total: float | None = None
+        if isinstance(base_payload.get("costMilliCents"), (int, float)):
+            cost_milli_cents_total = float(base_payload["costMilliCents"])
+        elif isinstance(items, dict) and isinstance(items.get("costMilliCents"), (int, float)):
+            cost_milli_cents_total = float(items["costMilliCents"])
+
+        url_count = len(urls) if urls else (len(normalized) if isinstance(normalized, list) else 0)
+        per_url_cost = (
+            int(cost_milli_cents_total / max(url_count, 1))
+            if cost_milli_cents_total is not None and url_count
+            else None
+        )
+
+        if isinstance(normalized, list) and normalized:
+            for idx, row in enumerate(normalized):
+                if not isinstance(row, dict):
+                    continue
+                marketing_url = _to_greenhouse_marketing_url(
+                    row.get("url") or row.get("job_url") or row.get("absolute_url") or ""
+                )
+                if marketing_url and not row.get("apply_url"):
+                    row["apply_url"] = marketing_url
+
+                single_items: Dict[str, Any] = {"normalized": [row]}
+                if isinstance(raw_items, list) and idx < len(raw_items):
+                    single_items["raw"] = raw_items[idx]
+                per_url_payload = dict(base_payload)
+                per_url_payload["items"] = single_items
+                # Track the specific URL we processed for easier diagnostics.
+                per_url_payload["subUrls"] = [
+                    row.get("url") or row.get("job_url") or row.get("absolute_url") or source_url
+                ]
+                if per_url_cost is not None:
+                    per_url_payload["costMilliCents"] = per_url_cost
+                    per_url_payload["items"]["costMilliCents"] = per_url_cost
+                scrapes.append(_shrink_for_activity(per_url_payload))
+        else:
+            scrapes.append(_shrink_for_activity(base_payload))
+
+        return scrapes
 
     scrapes: list[Dict[str, Any]] = []
-    items = base_payload.get("items") if isinstance(base_payload, dict) else {}
-    normalized = items.get("normalized") if isinstance(items, dict) else []
-    raw_items = items.get("raw") if isinstance(items, dict) else []
-    cost_milli_cents_total: float | None = None
-    if isinstance(base_payload.get("costMilliCents"), (int, float)):
-        cost_milli_cents_total = float(base_payload["costMilliCents"])
-    elif isinstance(items, dict) and isinstance(items.get("costMilliCents"), (int, float)):
-        cost_milli_cents_total = float(items["costMilliCents"])
+    for (source_url, pattern), urls in groups.items():
+        scrapes.extend(await _scrape_group(urls, source_url, pattern))
 
-    url_count = len(urls) if urls else (len(normalized) if isinstance(normalized, list) else 0)
-    per_url_cost = (
-        int(cost_milli_cents_total / max(url_count, 1))
-        if cost_milli_cents_total is not None and url_count
-        else None
-    )
-
-    if isinstance(normalized, list) and normalized:
-        for idx, row in enumerate(normalized):
-            if not isinstance(row, dict):
-                continue
-            marketing_url = _to_greenhouse_marketing_url(
-                row.get("url") or row.get("job_url") or row.get("absolute_url") or ""
-            )
-            if marketing_url and not row.get("apply_url"):
-                row["apply_url"] = marketing_url
-
-            single_items: Dict[str, Any] = {"normalized": [row]}
-            if isinstance(raw_items, list) and idx < len(raw_items):
-                single_items["raw"] = raw_items[idx]
-            per_url_payload = dict(base_payload)
-            per_url_payload["items"] = single_items
-            # Track the specific URL we processed for easier diagnostics.
-            per_url_payload["subUrls"] = [row.get("url") or row.get("job_url") or row.get("absolute_url") or source_url]
-            if per_url_cost is not None:
-                per_url_payload["costMilliCents"] = per_url_cost
-                per_url_payload["items"]["costMilliCents"] = per_url_cost
-            scrapes.append(_shrink_for_activity(per_url_payload))
-    else:
-        scrapes.append(_shrink_for_activity(base_payload))
-
-    return {"scrapes": scrapes, "sourceUrl": source_url}
+    return {"scrapes": scrapes, "sourceUrl": source_url_hint}
 
 
 @activity.defn
@@ -2979,6 +2992,19 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     source_host = urlparse(source_url).hostname if source_url else None
     is_confluent = bool(source_host and source_host.endswith("confluent.io"))
     handler = get_site_handler(source_url) if source_url else None
+
+    def _dedupe_raw_urls(values: Iterable[Any]) -> list[str]:
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            if not isinstance(value, str):
+                continue
+            cleaned = value.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            deduped.append(cleaned)
+        return deduped
     def _normalize_direct_url(value: str) -> str | None:
         cleaned = value.strip()
         if not cleaned:
@@ -2997,6 +3023,29 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if source_url:
             return urljoin(source_url, cleaned)
         return None
+
+    is_fetchfox_crawl = False
+    if isinstance(items, dict):
+        crawl_provider = items.get("crawlProvider")
+        if isinstance(crawl_provider, str) and crawl_provider.lower().startswith("fetchfox"):
+            is_fetchfox_crawl = True
+    if not is_fetchfox_crawl and isinstance(scrape, dict):
+        provider_val = scrape.get("provider")
+        if isinstance(provider_val, str) and provider_val.lower() == "fetchfox-crawl":
+            is_fetchfox_crawl = True
+
+    if is_fetchfox_crawl and isinstance(items, dict):
+        job_urls_val = items.get("job_urls")
+        if not isinstance(job_urls_val, list):
+            job_urls_val = items.get("jobUrls")
+        if isinstance(job_urls_val, list):
+            return _dedupe_raw_urls(job_urls_val)
+        raw_urls_val = items.get("rawUrls")
+        if isinstance(raw_urls_val, list):
+            return _dedupe_raw_urls(raw_urls_val)
+        urls_val = items.get("urls")
+        if isinstance(urls_val, list):
+            return _dedupe_raw_urls(urls_val)
 
     def _extract_handler_links(values: Iterable[str]) -> list[str]:
         if not handler or getattr(handler, "name", "") == "ashby":

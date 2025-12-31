@@ -353,13 +353,6 @@ const applicationTables = {
     .index("by_domain", ["domain"])
     .index("by_domain_field", ["domain", "field"]),
 
-  job_detail_rate_limits: defineTable({
-    domain: v.string(),
-    maxPerMinute: v.number(),
-    lastWindowStart: v.number(),
-    sentInWindow: v.number(),
-  }).index("by_domain", ["domain"]),
-
   seen_job_urls: defineTable({
     sourceUrl: v.string(),
     url: v.string(),

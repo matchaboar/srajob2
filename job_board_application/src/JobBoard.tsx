@@ -28,6 +28,12 @@ type CompanySummariesResult = FunctionReturnType<typeof api.jobs.listCompanySumm
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type CompanySummary = CompanySummariesResult extends Array<infer Item> ? NonNullable<Item> : never;
+type QueuedJob = ListedJob & {
+  queueCreatedAt?: number;
+  queueUpdatedAt?: number;
+  queueScheduledAt?: number;
+  queueStatus?: string;
+};
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
 
 interface Filters {
@@ -220,9 +226,13 @@ const DeleteXIcon = ({ className }: { className?: string }) => (
 
 export function JobBoard() {
   // Use URL hash to persist active tab across refreshes
-  const [activeTab, setActiveTab] = useState<"jobs" | "companies" | "applied" | "rejected" | "live" | "ignored">(() => {
+  const [activeTab, setActiveTab] = useState<
+    "jobs" | "companies" | "applied" | "rejected" | "live" | "queued" | "ignored"
+  >(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "companies" || hash === "applied" || hash === "rejected" || hash === "live" || hash === "ignored") return hash as any;
+    if (hash === "companies" || hash === "applied" || hash === "rejected" || hash === "live" || hash === "queued" || hash === "ignored") {
+      return hash as any;
+    }
     return "jobs";
   });
   const ignoredReasonDetails: Record<string, string> = {
@@ -258,6 +268,7 @@ export function JobBoard() {
   const [keyboardNavActive, setKeyboardNavActive] = useState(false);
   const [keyboardTopIndex, setKeyboardTopIndex] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [queuedCutoff, setQueuedCutoff] = useState<number>(() => Date.now());
   const jobListRef = useRef<HTMLDivElement | null>(null);
   const companyBlurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const buildCompanyJobsUrl = useCallback((companyName: string) => {
@@ -369,6 +380,12 @@ export function JobBoard() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (activeTab === "queued") {
+      setQueuedCutoff(Date.now());
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
         setFiltersOpen(false);
@@ -391,6 +408,7 @@ export function JobBoard() {
   const isAppliedTab = activeTab === "applied";
   const isRejectedTab = activeTab === "rejected";
   const isLiveTab = activeTab === "live";
+  const isQueuedTab = activeTab === "queued";
   const isIgnoredTab = activeTab === "ignored";
   const isAdmin = useQuery(api.auth.isAdmin);
   const jobsChunkSize = isAdmin ? 50 : 10;
@@ -398,6 +416,10 @@ export function JobBoard() {
   const jobsLoadMoreSize = jobsChunkSize;
   const jobsAutoFillTarget = isAdmin ? 100 : 30;
   const jobsAutoFillDelayMs = 1000;
+  const queuedPageSize = 10;
+  const queuedLoadMoreSize = 10;
+  const queuedAutoFillTarget = 500;
+  const queuedAutoFillDelayMs = 1000;
   const companyBannerName = useMemo(() => {
     if (filters.companies.length === 1) return filters.companies[0] ?? null;
     if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
@@ -513,6 +535,15 @@ export function JobBoard() {
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
   const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
+  const {
+    results: queuedResults,
+    status: queuedStatus,
+    loadMore: loadMoreQueued,
+  } = usePaginatedQuery(
+    (api as any).jobs.listQueuedJobs,
+    isQueuedTab ? { status: "pending", scheduledBefore: queuedCutoff } : "skip",
+    { initialNumItems: queuedPageSize }
+  );
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
 
@@ -528,6 +559,17 @@ export function JobBoard() {
     (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job)._id)
   );
   const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean);
+  const queuedList: QueuedJob[] = (queuedResults ?? []).filter(Boolean);
+  const shouldAutoLoadQueued =
+    isQueuedTab && queuedStatus === "CanLoadMore" && queuedList.length > 0 && queuedList.length < queuedAutoFillTarget;
+
+  useEffect(() => {
+    if (!shouldAutoLoadQueued) return;
+    const timeoutId = window.setTimeout(() => {
+      loadMoreQueued(queuedLoadMoreSize);
+    }, queuedAutoFillDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [shouldAutoLoadQueued, loadMoreQueued, queuedLoadMoreSize, queuedAutoFillDelayMs]);
   const selectedJob =
     filteredResults.find((job) => job._id === selectedJobId) ??
     displayedResults.find((job) => job._id === selectedJobId) ??
@@ -590,7 +632,7 @@ export function JobBoard() {
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
   const selectedCompColorClass = selectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
-  const groupedLocationsLabel = useCallback((job: ListedJob) => {
+  const groupedLocationsLabel = useCallback((job: ListedJob | QueuedJob) => {
     const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
     if (locs.length === 0) return job.location || "Unknown";
     if (locs.length === 1) return locs[0];
@@ -1244,6 +1286,18 @@ export function JobBoard() {
     }
   }, [activeTab, appliedList, selectedJobId]);
 
+  useEffect(() => {
+    if (activeTab !== "queued") return;
+    if (queuedList.length === 0) {
+      setSelectedJobId(null);
+      return;
+    }
+    const stillVisible = queuedList.some((job) => job._id === selectedJobId);
+    if (!selectedJobId || !stillVisible) {
+      setSelectedJobId(queuedList[0]._id);
+    }
+  }, [activeTab, queuedList, selectedJobId]);
+
   const handleSelectJob = useCallback((jobId: JobId) => {
     setSelectedJobId(jobId);
     setShowJobDetails(true);
@@ -1257,9 +1311,10 @@ export function JobBoard() {
     setExitingJobs(prev => ({ ...prev, [jobId]: "apply" }));
 
     // Move selection to next job immediately if possible
-    const currentIndex = filteredResults.findIndex(j => j._id === jobId);
-    if (currentIndex !== -1 && currentIndex < filteredResults.length - 1) {
-      setSelectedJobId(filteredResults[currentIndex + 1]._id);
+    const selectionList = activeTab === "queued" ? queuedList : filteredResults;
+    const currentIndex = selectionList.findIndex(j => j._id === jobId);
+    if (currentIndex !== -1 && currentIndex < selectionList.length - 1) {
+      setSelectedJobId(selectionList[currentIndex + 1]._id);
     }
 
     setTimeout(() => {
@@ -1291,7 +1346,7 @@ export function JobBoard() {
       });
       toast.error("Failed to apply");
     }
-  }, [applyToJob, exitingJobs, filteredResults]);
+  }, [applyToJob, exitingJobs, filteredResults, activeTab, queuedList]);
 
   const handleReject = useCallback(async (jobId: JobId) => {
     if (exitingJobs[jobId]) return;
@@ -1299,9 +1354,10 @@ export function JobBoard() {
     setExitingJobs(prev => ({ ...prev, [jobId]: "reject" }));
 
     // Move selection to next job
-    const currentIndex = filteredResults.findIndex(j => j._id === jobId);
-    if (currentIndex !== -1 && currentIndex < filteredResults.length - 1) {
-      setSelectedJobId(filteredResults[currentIndex + 1]._id);
+    const selectionList = activeTab === "queued" ? queuedList : filteredResults;
+    const currentIndex = selectionList.findIndex(j => j._id === jobId);
+    if (currentIndex !== -1 && currentIndex < selectionList.length - 1) {
+      setSelectedJobId(selectionList[currentIndex + 1]._id);
     }
 
     setTimeout(() => {
@@ -1329,7 +1385,7 @@ export function JobBoard() {
       });
       toast.error("Failed to reject");
     }
-  }, [rejectJob, exitingJobs, filteredResults]);
+  }, [rejectJob, exitingJobs, filteredResults, activeTab, queuedList]);
 
   const buildJobDetailsLink = useCallback((jobId: JobId) => {
     const shareBase = resolveShareBaseUrl();
@@ -1386,7 +1442,7 @@ export function JobBoard() {
         }
       }
 
-      if (!["jobs", "applied", "rejected"].includes(activeTab)) return;
+      if (!["jobs", "applied", "rejected", "queued"].includes(activeTab)) return;
 
       // Ignore keyboard shortcuts if Ctrl, Cmd, or Alt is pressed
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1395,7 +1451,14 @@ export function JobBoard() {
       const typingTarget = target?.closest("input, textarea, select, button, [role='textbox']");
       if (target?.isContentEditable || typingTarget) return;
 
-      const currentList: any[] = activeTab === "jobs" ? filteredResults : activeTab === "applied" ? appliedList : rejectedList;
+      const currentList: any[] =
+        activeTab === "jobs"
+          ? filteredResults
+          : activeTab === "applied"
+            ? appliedList
+            : activeTab === "rejected"
+              ? rejectedList
+              : queuedList;
       if (!selectedJobId || currentList.length === 0) return;
 
       const currentIndex = currentList.findIndex(j => j._id === selectedJobId);
@@ -1414,6 +1477,8 @@ export function JobBoard() {
             scrollToJob(nextId, currentIndex + 1 >= 3);
           } else if (activeTab === "jobs" && status === "CanLoadMore") {
             loadMore(jobsLoadMoreSize);
+          } else if (activeTab === "queued" && queuedStatus === "CanLoadMore") {
+            loadMoreQueued(queuedLoadMoreSize);
           }
           break;
         case "ArrowUp":
@@ -1454,7 +1519,21 @@ export function JobBoard() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTab, selectedJobId, filteredResults, handleApply, handleReject, status, loadMore, showShortcuts, showJobDetails, scrollToJob]);
+  }, [
+    activeTab,
+    selectedJobId,
+    filteredResults,
+    handleApply,
+    handleReject,
+    status,
+    loadMore,
+    queuedStatus,
+    loadMoreQueued,
+    queuedList,
+    showShortcuts,
+    showJobDetails,
+    scrollToJob,
+  ]);
 
 
   return (
@@ -1474,7 +1553,7 @@ export function JobBoard() {
             </div>
           )}
           <div className="flex space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
-            {(["jobs", "companies", "applied", "rejected", "live", "ignored"] as const).map((tab) => (
+            {(["jobs", "companies", "applied", "rejected", "live", "queued", "ignored"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -2807,6 +2886,69 @@ export function JobBoard() {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "queued" && (
+          <div className="flex-1 flex bg-slate-950 overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950/60">
+                <h2 className="text-lg font-semibold text-white">Queued</h2>
+                <span className="text-xs text-slate-400">
+                  {queuedList.length.toLocaleString()} jobs
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto relative" ref={jobListRef}>
+                <div className="sticky top-0 z-20 relative">
+                  <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="w-1" />
+                    <div className="flex-1 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr] gap-2 sm:gap-3 items-center">
+                      <div className="w-8 h-8" />
+                      <div>Job</div>
+                      <div className="hidden sm:block">Location(s)</div>
+                      <div className="text-right">Salary</div>
+                      <div className="text-right hidden sm:block">Queued</div>
+                      <div className="text-right hidden sm:block">Scraped</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="min-h-full">
+                  <AnimatePresence initial={false}>
+                    {queuedList.map((job, idx) => (
+                      <JobRow
+                        key={job._id}
+                        job={job}
+                        groupedLabel={groupedLocationsLabel(job)}
+                        isSelected={selectedJobId === job._id}
+                        onSelect={() => handleSelectJob(job._id)}
+                        keyboardBlur={idx > blurFromIndex}
+                        getCompanyJobsUrl={buildCompanyJobsUrl}
+                        queuedAt={job.queueCreatedAt}
+                        showQueuedSince
+                      />
+                    ))}
+                  </AnimatePresence>
+
+                  {queuedStatus === "CanLoadMore" && (
+                    <div className="p-4 flex justify-center border-t border-slate-800">
+                      <button
+                        onClick={() => loadMoreQueued(queuedLoadMoreSize)}
+                        className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
+                      >
+                        Load More
+                      </button>
+                    </div>
+                  )}
+
+                  {queuedList.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+                      <p>No queued jobs right now.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

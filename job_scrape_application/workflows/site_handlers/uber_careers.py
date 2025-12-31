@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
+import json
 import math
 import re
 from typing import Any, Dict, List, Optional
@@ -66,10 +67,12 @@ class UberCareersHandler(BaseSiteHandler):
             "preserve_host": True,
         }
         if self.is_listing_url(uri):
+            payload = self._build_listing_payload(uri)
             base_config["return_format"] = ["raw_html"]
+            base_config["execution_scripts"] = {"*": self._build_execution_script(payload)}
             base_config["wait_for"] = {
                 "selector": {
-                    "selector": "a[href*='/careers/list/']",
+                    "selector": "#uber-jobs",
                     "timeout": {"secs": 20, "nanos": 0},
                 },
                 "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
@@ -81,6 +84,12 @@ class UberCareersHandler(BaseSiteHandler):
     def get_links_from_raw_html(self, html: str) -> List[str]:
         if not html:
             return []
+
+        payload = self._extract_results_payload(html)
+        if payload:
+            urls = self.get_links_from_json(payload)
+            urls.extend(self.get_pagination_urls_from_json(payload))
+            return self.filter_job_urls(urls)
 
         job_links = self._extract_job_links(html)
         page_links = self._build_pagination_urls(html, len(job_links))
@@ -112,6 +121,80 @@ class UberCareersHandler(BaseSiteHandler):
                 filtered.append(cleaned)
         return filtered
 
+    def get_links_from_json(self, payload: Any) -> List[str]:
+        urls: List[str] = []
+        seen: set[str] = set()
+
+        def _add(url: str) -> None:
+            cleaned = url.strip()
+            if not cleaned or cleaned in seen:
+                return
+            seen.add(cleaned)
+            urls.append(cleaned)
+
+        for url in super().get_links_from_json(payload):
+            _add(url)
+
+        if isinstance(payload, dict):
+            results = payload.get("results")
+            if isinstance(results, list):
+                for item in results:
+                    if not isinstance(item, dict):
+                        continue
+                    job_id = (
+                        item.get("id")
+                        or item.get("jobId")
+                        or item.get("job_id")
+                        or item.get("jobReqId")
+                    )
+                    if job_id is None:
+                        continue
+                    job_id_str = str(job_id).strip()
+                    if not job_id_str:
+                        continue
+                    _add(urljoin(UBER_BASE_URL, f"{CAREERS_LIST_TOKEN}/{job_id_str}"))
+        return urls
+
+    def get_pagination_urls_from_json(
+        self,
+        payload: Any,
+        source_url: str | None = None,
+    ) -> List[str]:
+        if not isinstance(payload, dict):
+            return []
+        total = self._extract_total_results(payload)
+        results = payload.get("results") if isinstance(payload.get("results"), list) else []
+        page_size = len(results) if results else payload.get("limit") or payload.get("__limit") or DEFAULT_PAGE_SIZE
+        if not isinstance(page_size, int) or page_size <= 0:
+            page_size = DEFAULT_PAGE_SIZE
+        if not isinstance(total, int) or total <= page_size:
+            return []
+
+        base_url = source_url or payload.get("__source_url")
+        if not isinstance(base_url, str) or not base_url.strip():
+            return []
+        base_url = self._strip_page_param(base_url)
+
+        current_page = payload.get("page") if isinstance(payload.get("page"), int) else None
+        if current_page is None:
+            try:
+                parsed = urlparse(base_url)
+                params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                current_page = int(params.get("page") or 0)
+            except Exception:
+                current_page = 0
+
+        total_pages = max(1, math.ceil(total / page_size))
+        urls: List[str] = []
+        for page in range(total_pages):
+            if page == current_page:
+                continue
+            if page == 0:
+                urls.append(base_url)
+            else:
+                urls.append(self._set_page_param(base_url, page))
+        return urls
+
     def _extract_job_links(self, html: str) -> List[str]:
         urls: List[str] = []
         seen: set[str] = set()
@@ -133,6 +216,116 @@ class UberCareersHandler(BaseSiteHandler):
             seen.add(absolute)
             urls.append(absolute)
         return urls
+
+    def _extract_results_payload(self, html: str) -> Optional[Dict[str, Any]]:
+        match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html, flags=re.IGNORECASE | re.DOTALL)
+        if not match:
+            return None
+        content = html_lib.unescape(match.group("content")).strip()
+        if not content:
+            return None
+        try:
+            payload = json.loads(content)
+        except Exception:
+            return None
+        if isinstance(payload, dict) and isinstance(payload.get("results"), list):
+            return payload
+        return None
+
+    def _extract_total_results(self, payload: Dict[str, Any]) -> Optional[int]:
+        total = payload.get("totalResults")
+        if isinstance(total, dict):
+            low = total.get("low")
+            if isinstance(low, int):
+                return low
+            if isinstance(total.get("value"), int):
+                return total.get("value")
+        if isinstance(total, int):
+            return total
+        for key in ("total", "count", "totalCount"):
+            value = payload.get(key)
+            if isinstance(value, int):
+                return value
+        return None
+
+    def _build_listing_payload(self, uri: str) -> Dict[str, Any]:
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return {"limit": DEFAULT_PAGE_SIZE, "page": 0, "params": {}}
+        query_params = parse_qsl(parsed.query, keep_blank_values=True)
+        query = ""
+        locations: List[Dict[str, str]] = []
+        page = 0
+        for key, value in query_params:
+            if key == "query":
+                query = value.strip()
+            elif key == "location":
+                parsed_loc = self._parse_location(value)
+                if parsed_loc:
+                    locations.append(parsed_loc)
+            elif key == "page":
+                try:
+                    page = int(value)
+                except Exception:
+                    page = 0
+        params: Dict[str, Any] = {}
+        if query:
+            params["query"] = query
+        if locations:
+            params["location"] = locations
+        return {"limit": DEFAULT_PAGE_SIZE, "page": page, "params": params}
+
+    def _parse_location(self, value: str) -> Optional[Dict[str, str]]:
+        if not value:
+            return None
+        parts = [part.strip() for part in value.split("-") if part.strip()]
+        if not parts:
+            return None
+        location: Dict[str, str] = {}
+        if len(parts) >= 1:
+            location["country"] = parts[0]
+        if len(parts) >= 2:
+            location["region"] = parts[1]
+        if len(parts) >= 3:
+            location["city"] = "-".join(parts[2:])
+        return location
+
+    def _build_execution_script(self, payload: Dict[str, Any]) -> str:
+        payload_json = json.dumps(payload, separators=(",", ":"))
+        return f"""
+(function() {{
+  const payload = {payload_json};
+  fetch("/api/loadSearchJobsResults", {{
+    method: "POST",
+    headers: {{
+      "content-type": "application/json",
+      "accept": "application/json",
+      "x-csrf-token": "x"
+    }},
+    credentials: "include",
+    body: JSON.stringify(payload)
+  }})
+    .then((res) => res.json())
+    .then((data) => {{
+      data.__source_url = window.location.href;
+      data.__page = payload.page;
+      data.__limit = payload.limit;
+      const pre = document.createElement("pre");
+      pre.id = "uber-jobs";
+      pre.textContent = JSON.stringify(data);
+      document.body.innerHTML = "";
+      document.body.appendChild(pre);
+    }})
+    .catch((err) => {{
+      const pre = document.createElement("pre");
+      pre.id = "uber-jobs";
+      pre.textContent = JSON.stringify({{error: String(err)}});
+      document.body.innerHTML = "";
+      document.body.appendChild(pre);
+    }});
+}})();
+"""
 
     def _build_pagination_urls(self, html: str, page_size: int) -> List[str]:
         total = self._extract_open_roles(html)

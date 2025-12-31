@@ -19,6 +19,8 @@ interface JobRowProps {
     keyboardBlur?: boolean;
     variant?: JobRowVariant;
     getCompanyJobsUrl?: (companyName: string) => string;
+    queuedAt?: number | null;
+    showQueuedSince?: boolean;
 }
 
 export function JobRow({
@@ -29,7 +31,9 @@ export function JobRow({
     isExiting,
     keyboardBlur,
     variant = 'default',
-    getCompanyJobsUrl
+    getCompanyJobsUrl,
+    queuedAt,
+    showQueuedSince
 }: JobRowProps) {
     const compensationMeta = buildCompensationMeta(job);
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
@@ -145,15 +149,31 @@ export function JobRow({
                 <div className={`hidden sm:block text-right min-w-0 ${variant === 'applied' ? 'order-6' : 'order-5'}`}>
                     <div className="flex flex-col items-end gap-0.5">
                         {variant === 'default' && (
-                            postedAt ? (
-                                <span className="text-[10px] text-slate-500 font-medium truncate">
-                                    {new Date(postedAt).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        day: "numeric",
-                                    })}
-                                </span>
+                            showQueuedSince ? (
+                                queuedAt ? (
+                                    <LiveTimer
+                                        startTime={queuedAt}
+                                        colorize={isSelected}
+                                        warnAfterMs={6 * 60 * 60 * 1000}
+                                        dangerAfterMs={24 * 60 * 60 * 1000}
+                                        showAgo
+                                        showSeconds={isSelected}
+                                        className="text-[10px] font-mono text-slate-400 truncate"
+                                    />
+                                ) : (
+                                    <span className="text-[11px] text-slate-600">Unknown</span>
+                                )
                             ) : (
-                                <span className="text-[11px] text-slate-600">Unknown</span>
+                                postedAt ? (
+                                    <span className="text-[10px] text-slate-500 font-medium truncate">
+                                        {new Date(postedAt).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                        })}
+                                    </span>
+                                ) : (
+                                    <span className="text-[11px] text-slate-600">Unknown</span>
+                                )
                             )
                         )}
                         {variant === 'applied' && appliedAt && (

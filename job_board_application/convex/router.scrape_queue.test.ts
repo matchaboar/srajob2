@@ -17,6 +17,7 @@ type QueueRow = {
   provider?: string;
   attempts?: number;
   sourceUrl?: string;
+  siteId?: string;
   lastError?: string;
   completedAt?: number;
 };
@@ -74,16 +75,12 @@ class FakeQuery {
 class FakeDb {
   constructor(
     private queueRows: QueueRow[],
-    private rateLimitRows: Array<any> = [],
     private ignoredRows: Array<any> = [],
     private seenRows: Array<any> = []
   ) {}
   query = (table: string) => {
     if (table === "scrape_url_queue") {
       return new FakeQuery(() => this.queueRows);
-    }
-    if (table === "job_detail_rate_limits") {
-      return new FakeQuery(() => this.rateLimitRows);
     }
     if (table === "seen_job_urls") {
       return new FakeQuery(() => this.seenRows);
@@ -99,21 +96,12 @@ class FakeDb {
       this.seenRows.push(payload);
       return `seen-${this.seenRows.length}`;
     }
-    if (table === "job_detail_rate_limits") {
-      this.rateLimitRows.push({ _id: `rl-${this.rateLimitRows.length + 1}`, ...payload });
-      return this.rateLimitRows[this.rateLimitRows.length - 1]._id;
-    }
     throw new Error(`Unexpected insert table ${table}`);
   });
   patch = vi.fn((id: string, updates: any) => {
     const row = this.queueRows.find((r) => r._id === id);
     if (row) {
       Object.assign(row, updates);
-      return;
-    }
-    const rate = this.rateLimitRows.find((r) => r._id === id);
-    if (rate) {
-      Object.assign(rate, updates);
       return;
     }
     throw new Error(`Unknown id ${id}`);
@@ -442,45 +430,53 @@ describe("leaseScrapeUrlBatch", () => {
     expect(rows[0].attempts).toBe(1);
   });
 
-  it("skips rows when domain rate limit window is exhausted", async () => {
+  it("round-robins across site buckets when leasing", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
       {
-        _id: "netflix-1",
-        url: "https://explore.jobs.netflix.net/careers/job/790313345439",
+        _id: "site-a-1",
+        url: "https://site-a.example/job/1",
         status: "pending",
         updatedAt: now - 1_000,
         createdAt: now - 5_000,
-        scheduledAt: now - 1_000,
         provider: "spidercloud",
         attempts: 0,
+        siteId: "site-a",
       },
-    ];
-    const rateLimits = [
       {
-        _id: "rl-1",
-        domain: "explore.jobs.netflix.net",
-        maxPerMinute: 1,
-        lastWindowStart: now,
-        sentInWindow: 1,
+        _id: "site-a-2",
+        url: "https://site-a.example/job/2",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        siteId: "site-a",
+      },
+      {
+        _id: "site-b-1",
+        url: "https://site-b.example/job/1",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        siteId: "site-b",
       },
     ];
-    const db = new FakeDb(rows, rateLimits);
+    const db = new FakeDb(rows);
     const ctx: any = { db };
     const handler = getHandler(leaseScrapeUrlBatch);
 
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
     const res = await handler(ctx, {
       provider: "spidercloud",
-      limit: 1,
+      limit: 3,
       processingExpiryMs: 15 * 60 * 1000,
     });
-    nowSpy.mockRestore();
 
-    expect(res.urls).toEqual([]);
-    expect(rows[0].status).toBe("pending");
-    expect(rows[0].attempts).toBe(0);
-    expect(rateLimits[0].sentInWindow).toBe(1);
+    const leasedSiteIds = res.urls.map((u: any) => u.siteId);
+    expect(leasedSiteIds).toContain("site-a");
+    expect(leasedSiteIds).toContain("site-b");
   });
 });
 
