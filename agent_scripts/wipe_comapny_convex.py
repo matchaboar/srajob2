@@ -13,6 +13,16 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONVEX_DIR = REPO_ROOT / "job_board_application"
 DEFAULT_DOMAIN = "bloomberg.avature.net"
+GREENHOUSE_API_HOST = "api.greenhouse.io"
+GREENHOUSE_BOARD_HOST = "boards.greenhouse.io"
+GREENHOUSE_BOARD_TABLES: Tuple[str, ...] = (
+    "jobs",
+    "scrapes",
+    "scrape_activity",
+    "scrape_url_queue",
+    "seen_job_urls",
+    "ignored_jobs",
+)
 TABLES: Tuple[str, ...] = (
     "jobs",
     "scrapes",
@@ -40,18 +50,27 @@ def _run_convex(
     *,
     env: Dict[str, str],
 ) -> Any:
-    result = subprocess.run(
-        args,
-        cwd=str(CONVEX_DIR),
-        env=env,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    stdout = result.stdout.strip()
-    if not stdout:
+    try:
+        result = subprocess.run(
+            args,
+            cwd=str(CONVEX_DIR),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        stdout = result.stdout.strip()
+        if not stdout:
+            return None
+        return json.loads(stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running convex command: {' '.join(args)}")
+        if e.stderr:
+            print(f"Error: {e.stderr.strip()}")
         return None
-    return json.loads(stdout)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON output from convex command: {e}")
+        return None
 
 
 def _build_convex_run_args(env: str, function_name: str, payload: Dict[str, Any]) -> List[str]:
@@ -87,8 +106,21 @@ def _find_sites_by_company(sites: List[Dict[str, Any]], company: str) -> List[Di
     return matched
 
 
-def _site_prefixes(sites: List[Dict[str, Any]]) -> Dict[str, str]:
-    prefixes: Dict[str, str] = {}
+def _extract_greenhouse_board_slug(parsed: Any) -> str | None:
+    if not parsed or not parsed.hostname:
+        return None
+    if parsed.hostname.lower() != GREENHOUSE_API_HOST:
+        return None
+    path = (parsed.path or "").strip("/")
+    parts = [part for part in path.split("/") if part]
+    if len(parts) >= 3 and parts[0] == "v1" and parts[1] == "boards":
+        return parts[2]
+    return None
+
+
+def _site_wipe_targets(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    targets: List[Dict[str, Any]] = []
+    seen: set[tuple[str, str, Tuple[str, ...]]] = set()
     for site in sites:
         url = site.get("url")
         if not isinstance(url, str) or not url.strip():
@@ -98,8 +130,25 @@ def _site_prefixes(sites: List[Dict[str, Any]]) -> Dict[str, str]:
             continue
         host = parsed.hostname.lower()
         prefix = f"{parsed.scheme}://{host}"
-        prefixes.setdefault(host, prefix)
-    return prefixes
+        key = (host, prefix, TABLES)
+        if key not in seen:
+            seen.add(key)
+            targets.append({"domain": host, "prefix": prefix, "tables": TABLES})
+
+        board_slug = _extract_greenhouse_board_slug(parsed)
+        if board_slug:
+            board_prefix = f"https://{GREENHOUSE_BOARD_HOST}/{board_slug}"
+            board_key = (GREENHOUSE_BOARD_HOST, board_prefix, GREENHOUSE_BOARD_TABLES)
+            if board_key not in seen:
+                seen.add(board_key)
+                targets.append(
+                    {
+                        "domain": GREENHOUSE_BOARD_HOST,
+                        "prefix": board_prefix,
+                        "tables": GREENHOUSE_BOARD_TABLES,
+                    }
+                )
+    return targets
 
 
 def main() -> None:
@@ -110,6 +159,7 @@ def main() -> None:
     parser.add_argument("--domain", help="Match sites by domain (e.g. bloomberg.avature.net)")
     parser.add_argument("--company", help="Match sites by company name (substring, case-insensitive)")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--skip-run", action="store_true", help="Skip triggering runSiteNow after wipe")
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument("--max-pages", type=int, default=50)
     args = parser.parse_args()
@@ -127,14 +177,17 @@ def main() -> None:
         matched_sites = _find_sites_by_company(sites_result or [], args.company)
     else:
         matched_sites = _find_sites_by_domain(sites_result or [], args.domain or DEFAULT_DOMAIN)
-    prefixes = _site_prefixes(matched_sites)
+    wipe_targets = _site_wipe_targets(matched_sites)
     wipe_results: Dict[str, Any] = {}
-    if not prefixes:
+    if not wipe_targets:
         print("No matching sites found for wipe; skipping.")
     else:
-        for host, prefix in prefixes.items():
-            wipe_results[host] = {}
-            for table in TABLES:
+        for target in wipe_targets:
+            host = target["domain"]
+            prefix = target["prefix"]
+            tables = target["tables"]
+            wipe_results.setdefault(host, {})
+            for table in tables:
                 cursor = None
                 pages = 0
                 total_deleted = 0
@@ -173,12 +226,17 @@ def main() -> None:
                     "pages": pages,
                     "hasMore": last_has_more,
                     "cursor": last_cursor,
+                    "prefix": prefix,
                 }
         print(json.dumps({"wipe": wipe_results}, indent=2))
 
     if not matched_sites:
         label = args.company or args.domain or DEFAULT_DOMAIN
         print(f"No sites matched {label}; skipping run-now trigger.")
+        return
+
+    if args.skip_run:
+        print(json.dumps({"runNow": []}, indent=2))
         return
 
     triggered: List[Dict[str, Any]] = []

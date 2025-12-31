@@ -40,6 +40,8 @@ export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
   const state = seedState ?? locationInfo.state;
   const locationLabel = formatLocationLabel(city, state, locationInfo.primaryLocation);
   const postedAtValue = postedAt ?? now;
+  const postedAtUnknown =
+    typeof (rest as any).postedAtUnknown === "boolean" ? (rest as any).postedAtUnknown : postedAt === undefined;
 
   const base: JobInsert = {
     ...rest,
@@ -54,6 +56,7 @@ export const buildJobInsert = (seed: JobSeed, now = Date.now()): JobInsert => {
     city,
     state,
     postedAt: postedAtValue,
+    postedAtUnknown,
   };
 
   // Default scrapedAt to the publish time when it is not provided.

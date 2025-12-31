@@ -5,6 +5,7 @@ import { components } from "./_generated/api.js";
 import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 import { deriveCompanyKey, deriveEngineerFlag } from "./jobs";
+import { extractJobs } from "./router";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 import { countJobs } from "./lib/scrapeCounts";
@@ -12,6 +13,7 @@ import { countJobs } from "./lib/scrapeCounts";
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
 export const runScrapeActivityBackfill = migrations.runner(internal.migrations.backfillScrapeActivity);
+export const runJobDetailScrapeUrlBackfill = migrations.runner(internal.migrations.backfillJobDetailScrapeUrl);
 
 type JobId = Id<"jobs">;
 
@@ -27,6 +29,13 @@ const resolveJobId = async (ctx: any, candidate: string): Promise<JobId | null> 
     if (isJobRow(nested)) return (direct).jobId as JobId;
   }
   return null;
+};
+
+const normalizeUrlKey = (url?: string | null) => {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return trimmed.replace(/\/+$/, "");
 };
 
 export const fixJobLocations = migrations.define({
@@ -167,6 +176,45 @@ export const backfillScrapeActivity = migrations.define({
       completedAt,
       jobCount: countJobs((doc as any).items),
     });
+  },
+});
+
+export const backfillJobDetailScrapeUrl = migrations.define({
+  table: "scrapes",
+  migrateOne: async (ctx, doc) => {
+    const scrape: any = doc as any;
+    if (!scrape?.items) return;
+    const parsedJobs = extractJobs(scrape.items, { sourceUrl: scrape.sourceUrl });
+    if (parsedJobs.length === 0) return;
+
+    for (const parsed of parsedJobs) {
+      if (!parsed.scrapeUrl) continue;
+      const key = normalizeUrlKey(parsed.url);
+      if (!key) continue;
+      const candidates = [key];
+      const trimmed = key.replace(/\/+$/, "");
+      if (trimmed && trimmed !== key) candidates.push(trimmed);
+
+      let job: any = null;
+      for (const candidate of candidates) {
+        job = await ctx.db.query("jobs").withIndex("by_url", (q: any) => q.eq("url", candidate)).first();
+        if (job) break;
+      }
+      if (!job) continue;
+
+      const existing = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+        .first();
+      if (existing) {
+        const current = (existing as any).scrapeUrl;
+        if (current === undefined || current === null || current === "") {
+          await ctx.db.patch(existing._id, { scrapeUrl: parsed.scrapeUrl });
+        }
+      } else {
+        await ctx.db.insert("job_details", { jobId: job._id, scrapeUrl: parsed.scrapeUrl });
+      }
+    }
   },
 });
 

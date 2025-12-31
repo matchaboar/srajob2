@@ -31,6 +31,7 @@ from ..helpers.scrape_utils import (
     looks_like_job_listing_page,
     parse_markdown_hints,
     parse_posted_at,
+    parse_posted_at_with_unknown,
     split_description_metadata,
     strip_known_nav_blocks,
 )
@@ -77,6 +78,16 @@ if TYPE_CHECKING:
 SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
 CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
+STRUCTURED_DESCRIPTION_CHROME_MARKERS = (
+    "saved jobs",
+    "recently viewed jobs",
+    "job alerts",
+    "sign up for job alerts",
+    "join our talent community",
+    "view all of our available opportunities",
+    "view all jobs",
+    "cookie settings",
+)
 MAX_TITLE_CHARS = 500
 UUID_LIKE_RE = re.compile(
     r"[0-9a-f]{8}([-\s]?[0-9a-f]{4}){3}[-\s]?[0-9a-f]{12}",
@@ -901,6 +912,9 @@ class SpiderCloudScraper(BaseScraper):
         if len(cleaned) < 200:
             return True
         lower = cleaned.lower()
+        chrome_hits = sum(1 for marker in STRUCTURED_DESCRIPTION_CHROME_MARKERS if marker in lower)
+        if chrome_hits >= 2:
+            return True
         return not any(marker in lower for marker in JOB_DETAIL_MARKERS)
 
     def _location_from_job_posting(self, payload: Dict[str, Any]) -> Optional[str]:
@@ -2190,6 +2204,7 @@ class SpiderCloudScraper(BaseScraper):
             )
 
         posted_at = started_at
+        posted_at_unknown = True
         if handler:
             extractor = getattr(handler, "extract_posted_at", None)
             if callable(extractor):
@@ -2213,7 +2228,7 @@ class SpiderCloudScraper(BaseScraper):
                         raw_posted_at = extractor(candidate_payload, url)
                 if raw_posted_at is not None:
                     if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
-                        posted_at = parse_posted_at(raw_posted_at)
+                        posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
 
         self._last_ignored_job = None
         return {
@@ -2230,6 +2245,7 @@ class SpiderCloudScraper(BaseScraper):
             "compensation_reason": UNKNOWN_COMPENSATION_REASON,
             "url": url,
             "posted_at": posted_at,
+            "posted_at_unknown": posted_at_unknown,
         }
 
     def _consume_chunk(self, chunk: Any, buffer: str) -> Tuple[str, List[Any]]:
@@ -2525,6 +2541,7 @@ class SpiderCloudScraper(BaseScraper):
         *,
         source_url: str,
         pattern: Optional[str] = None,
+        posted_at_by_url: Optional[Dict[str, int]] = None,
     ) -> Dict[str, Any]:
         def _safe_json_size(payload: Any) -> Optional[int]:
             try:
@@ -2552,6 +2569,15 @@ class SpiderCloudScraper(BaseScraper):
             return cleaned
 
         urls = _sanitize_urls(urls)[:SPIDERCLOUD_BATCH_SIZE]
+        posted_at_lookup: Dict[str, int] = {}
+        if isinstance(posted_at_by_url, dict):
+            for key, value in posted_at_by_url.items():
+                if not isinstance(key, str):
+                    continue
+                if not isinstance(value, (int, float)):
+                    continue
+                normalized_key = normalize_url(key) or key
+                posted_at_lookup[normalized_key] = int(value)
         logger.info(
             "SpiderCloud batch start source=%s urls=%s pattern=%s",
             source_url,
@@ -2733,6 +2759,15 @@ class SpiderCloudScraper(BaseScraper):
                         normalized_block = result.get("normalized")
                         if isinstance(normalized_block, dict) and not normalized_block.get("apply_url"):
                             normalized_block["apply_url"] = marketing_url
+                    if posted_at_lookup and isinstance(result, dict):
+                        normalized_block = result.get("normalized")
+                        if isinstance(normalized_block, dict):
+                            override = posted_at_lookup.get(url)
+                            if override is None:
+                                override = posted_at_lookup.get(normalize_url(url) or url)
+                            if override is not None:
+                                normalized_block["posted_at"] = int(override)
+                                normalized_block["posted_at_unknown"] = False
 
                     return idx, url, result
 
@@ -3137,6 +3172,53 @@ class SpiderCloudScraper(BaseScraper):
                 regex_urls = self._regex_extract_job_urls_from_events(raw_text, raw_events)
                 if regex_urls:
                     job_urls = regex_urls
+
+            posted_at_by_url: Dict[str, int] = {}
+
+            def _add_posted_at(candidate_url: str | None, posted_at: int) -> None:
+                if not candidate_url:
+                    return
+                normalized = normalize_url(candidate_url) or candidate_url
+                posted_at_by_url[normalized] = posted_at
+
+            def _pick_job_timestamp(job: Any) -> Any | None:
+                for value in (getattr(job, "updated_at", None), getattr(job, "first_published", None)):
+                    if isinstance(value, str):
+                        cleaned = value.strip()
+                        if cleaned:
+                            return cleaned
+                    elif isinstance(value, (int, float)):
+                        return value
+                extra = getattr(job, "model_extra", None) or {}
+                if isinstance(extra, dict):
+                    for key in (
+                        "updated_at",
+                        "updatedAt",
+                        "first_published",
+                        "firstPublished",
+                        "created_at",
+                        "createdAt",
+                    ):
+                        val = extra.get(key)
+                        if isinstance(val, str):
+                            cleaned = val.strip()
+                            if cleaned:
+                                return cleaned
+                        elif isinstance(val, (int, float)):
+                            return val
+                return None
+
+            if board.jobs:
+                for job in board.jobs:
+                    raw_date = _pick_job_timestamp(job)
+                    if raw_date is None:
+                        continue
+                    posted_at = parse_posted_at(raw_date)
+                    _add_posted_at(getattr(job, "absolute_url", None), posted_at)
+                    job_id = getattr(job, "id", None)
+                    if slug and job_id is not None:
+                        api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                        _add_posted_at(api_url, posted_at)
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud greenhouse listing parse error url=%s error=%s", api_url, exc)
             regex_urls = self._regex_extract_job_urls_from_events(raw_text, raw_events)
@@ -3208,6 +3290,7 @@ class SpiderCloudScraper(BaseScraper):
         return {
             "raw": raw_text,
             "job_urls": job_urls,
+            "posted_at_by_url": posted_at_by_url if posted_at_by_url else None,
             "startedAt": started_at,
             "completedAt": completed_at,
         }
@@ -3240,10 +3323,14 @@ class SpiderCloudScraper(BaseScraper):
             kind="greenhouse_jobs",
             urls=len(urls),
         )
+        posted_at_by_url = payload.get("posted_at_by_url")
+        if not isinstance(posted_at_by_url, dict):
+            posted_at_by_url = None
         scrape_payload = await self._scrape_urls_batch(
             urls,
             source_url=source_url,
             pattern=None,
+            posted_at_by_url=posted_at_by_url,
         )
         items = scrape_payload.get("items") if isinstance(scrape_payload, dict) else {}
         normalized = items.get("normalized") if isinstance(items, dict) else []

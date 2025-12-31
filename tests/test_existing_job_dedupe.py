@@ -59,3 +59,50 @@ def test_greenhouse_listing_skips_existing_jobs_when_seen_urls_empty(monkeypatch
     assert new_url not in result["items"]["existing"]
     assert result["items"]["queuedCount"] == 1
     assert enqueued_payloads[0]["urls"] == [new_url]
+
+
+def test_filter_existing_job_urls_returns_only_known_job_urls(monkeypatch):
+    urls = [
+        "https://boards.greenhouse.io/acme/jobs/123",
+        "https://boards.greenhouse.io/acme/jobs/456",
+    ]
+    captured: dict[str, object] = {}
+
+    async def fake_convex_query(name, args):
+        captured["name"] = name
+        captured["args"] = args
+        return {"existing": [urls[0], None, 123]}
+
+    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+
+    result = asyncio.run(activities.filter_existing_job_urls(urls))
+
+    assert result == [urls[0]]
+    assert captured["name"] == "router:findExistingJobUrls"
+    assert captured["args"] == {"urls": urls}
+
+
+def test_filter_existing_job_urls_ignores_malformed_payloads(monkeypatch):
+    async def fake_convex_query(_name, _args):
+        return {"existing": "not-a-list"}
+
+    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+
+    result = asyncio.run(
+        activities.filter_existing_job_urls(["https://boards.greenhouse.io/acme/jobs/789"])
+    )
+
+    assert result == []
+
+
+def test_filter_existing_job_urls_returns_empty_on_error(monkeypatch):
+    async def fake_convex_query(_name, _args):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+
+    result = asyncio.run(
+        activities.filter_existing_job_urls(["https://boards.greenhouse.io/acme/jobs/000"])
+    )
+
+    assert result == []

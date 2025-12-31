@@ -45,7 +45,7 @@ LEVEL_PATTERN = (
     r"\b(?P<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|"
     r"cto|chief technology officer)\b"
 )
-LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\s*[:\-–]\s*(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)"
+LOCATION_PATTERN = r"\b(?:location|office|based\s+in)\b\s*(?:[:\-–]\s*|\s+)(?P<location>[^\n,;]+(?:,\s*[^\n,;]+)?)"
 SIMPLE_LOCATION_LINE_PATTERN = r"^[ \t]*(?P<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$"
 WORK_FROM_PATTERN = r"\bwork(?:ing)?\s+from\s+(?P<location>.+)$"
 REMOTE_PATTERN = r"\b(remote(-first)?|hybrid|onsite|on-site)\b"

@@ -102,6 +102,11 @@ class GreenhouseScraperWorkflow:
                     )
 
                     job_urls: List[str] = listing.get("job_urls", []) if isinstance(listing, dict) else []
+                    posted_at_by_url = (
+                        listing.get("posted_at_by_url")
+                        if isinstance(listing, dict) and isinstance(listing.get("posted_at_by_url"), dict)
+                        else None
+                    )
                     existing = await workflow.execute_activity(
                         filter_existing_job_urls,
                         args=[job_urls],
@@ -121,9 +126,12 @@ class GreenhouseScraperWorkflow:
                     )
 
                     if urls_to_scrape:
+                        scrape_payload: Dict[str, Any] = {"urls": urls_to_scrape, "source_url": site["url"]}
+                        if posted_at_by_url:
+                            scrape_payload["posted_at_by_url"] = posted_at_by_url
                         scrape_res = await workflow.execute_activity(
                             scrape_greenhouse_jobs,
-                            args=[{"urls": urls_to_scrape, "source_url": site["url"]}],
+                            args=[scrape_payload],
                             start_to_close_timeout=timedelta(minutes=30),
                         )
                         scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None

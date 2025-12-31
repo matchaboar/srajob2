@@ -162,6 +162,39 @@ describe("scrape queue end-to-end", () => {
     expect(seen.urls).toContain(jobUrl);
   });
 
+  it("stores and returns postedAt when enqueuing Greenhouse listing jobs", async () => {
+    const sourceUrl = "https://api.greenhouse.io/v1/boards/acme/jobs";
+    const site = { _id: "site-1", url: sourceUrl, name: "Acme" };
+    const db = new FakeDb({ sites: [site] });
+    const ctx: any = { db };
+
+    const jobUrlA = "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123";
+    const jobUrlB = "https://boards-api.greenhouse.io/v1/boards/acme/jobs/456";
+    const postedAtA = Date.now() - 5 * 60 * 1000;
+
+    const enqueueHandler = getHandler(enqueueScrapeUrls);
+    await enqueueHandler(ctx, {
+      urls: [jobUrlA, jobUrlB],
+      sourceUrl,
+      provider: "spidercloud",
+      siteId: site._id,
+      pattern: null,
+      postedAts: [postedAtA, null],
+    });
+
+    const queuedRows = db.tables.scrape_url_queue;
+    expect(queuedRows).toHaveLength(2);
+    const rowA = queuedRows.find((row) => row.url === jobUrlA);
+    const rowB = queuedRows.find((row) => row.url === jobUrlB);
+    expect(rowA?.postedAt).toBe(postedAtA);
+    expect(rowB?.postedAt).toBeUndefined();
+
+    const leaseHandler = getHandler(leaseScrapeUrlBatch);
+    const leaseRes = await leaseHandler(ctx, { provider: "spidercloud", limit: 2 });
+    const leasedA = leaseRes.urls.find((row: any) => row.url === jobUrlA);
+    expect(leasedA?.postedAt).toBe(postedAtA);
+  });
+
   it("respects scheduledAt, updates queue state, and records seen URLs across batches", async () => {
     const now = new Date("2024-01-01T00:00:00Z");
     vi.useFakeTimers();

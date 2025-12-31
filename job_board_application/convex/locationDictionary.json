@@ -1,152 +1,8393 @@
-[
-  { "city": "New York", "state": "New York", "country": "United States", "aliases": ["nyc", "new york city"] },
-  { "city": "San Francisco", "state": "California", "country": "United States", "aliases": ["sf", "bay area"] },
-  { "city": "San Jose", "state": "California", "country": "United States", "aliases": ["silicon valley"] },
-  { "city": "Oakland", "state": "California", "country": "United States" },
-  { "city": "Palo Alto", "state": "California", "country": "United States" },
-  { "city": "Mountain View", "state": "California", "country": "United States" },
-  { "city": "Sunnyvale", "state": "California", "country": "United States" },
-  { "city": "Cupertino", "state": "California", "country": "United States" },
-  { "city": "Redwood City", "state": "California", "country": "United States" },
-  { "city": "Menlo Park", "state": "California", "country": "United States" },
-  { "city": "Los Angeles", "state": "California", "country": "United States", "aliases": ["la"] },
-  { "city": "San Diego", "state": "California", "country": "United States" },
-  { "city": "Sacramento", "state": "California", "country": "United States" },
-  { "city": "Seattle", "state": "Washington", "country": "United States" },
-  { "city": "Bellevue", "state": "Washington", "country": "United States" },
-  { "city": "Redmond", "state": "Washington", "country": "United States" },
-  { "city": "Portland", "state": "Oregon", "country": "United States" },
-  { "city": "Austin", "state": "Texas", "country": "United States" },
-  { "city": "Dallas", "state": "Texas", "country": "United States" },
-  { "city": "Houston", "state": "Texas", "country": "United States" },
-  { "city": "San Antonio", "state": "Texas", "country": "United States" },
-  { "city": "Denver", "state": "Colorado", "country": "United States" },
-  { "city": "Boulder", "state": "Colorado", "country": "United States" },
-  { "city": "Colorado Springs", "state": "Colorado", "country": "United States" },
-  { "city": "Chicago", "state": "Illinois", "country": "United States" },
-  { "city": "Boston", "state": "Massachusetts", "country": "United States" },
-  { "city": "Cambridge", "state": "Massachusetts", "country": "United States" },
-  { "city": "Atlanta", "state": "Georgia", "country": "United States" },
-  { "city": "Miami", "state": "Florida", "country": "United States" },
-  { "city": "Orlando", "state": "Florida", "country": "United States" },
-  { "city": "Tampa", "state": "Florida", "country": "United States" },
-  { "city": "Jacksonville", "state": "Florida", "country": "United States" },
-  { "city": "Raleigh", "state": "North Carolina", "country": "United States" },
-  { "city": "Durham", "state": "North Carolina", "country": "United States" },
-  { "city": "Charlotte", "state": "North Carolina", "country": "United States" },
-  { "city": "Washington", "state": "District of Columbia", "country": "United States", "aliases": ["washington dc", "dc", "washington, dc"] },
-  { "city": "Arlington", "state": "Virginia", "country": "United States" },
-  { "city": "Richmond", "state": "Virginia", "country": "United States" },
-  { "city": "Philadelphia", "state": "Pennsylvania", "country": "United States" },
-  { "city": "Pittsburgh", "state": "Pennsylvania", "country": "United States" },
-  { "city": "Columbus", "state": "Ohio", "country": "United States" },
-  { "city": "Cincinnati", "state": "Ohio", "country": "United States" },
-  { "city": "Cleveland", "state": "Ohio", "country": "United States" },
-  { "city": "Detroit", "state": "Michigan", "country": "United States" },
-  { "city": "Ann Arbor", "state": "Michigan", "country": "United States" },
-  { "city": "Minneapolis", "state": "Minnesota", "country": "United States" },
-  { "city": "St. Louis", "state": "Missouri", "country": "United States" },
-  { "city": "Kansas City", "state": "Missouri", "country": "United States" },
-  { "city": "Nashville", "state": "Tennessee", "country": "United States" },
-  { "city": "Salt Lake City", "state": "Utah", "country": "United States" },
-  { "city": "Provo", "state": "Utah", "country": "United States" },
-  { "city": "Phoenix", "state": "Arizona", "country": "United States" },
-  { "city": "Scottsdale", "state": "Arizona", "country": "United States" },
-  { "city": "Tempe", "state": "Arizona", "country": "United States" },
-  { "city": "Indianapolis", "state": "Indiana", "country": "United States" },
-  { "city": "Madison", "state": "Wisconsin", "country": "United States" },
-  { "city": "Milwaukee", "state": "Wisconsin", "country": "United States" },
-  { "city": "Baltimore", "state": "Maryland", "country": "United States" },
-  { "city": "Newark", "state": "New Jersey", "country": "United States" },
-  { "city": "Jersey City", "state": "New Jersey", "country": "United States" },
-  { "city": "Providence", "state": "Rhode Island", "country": "United States" },
-  { "city": "Hartford", "state": "Connecticut", "country": "United States" },
-  { "city": "Toronto", "state": "Canada", "country": "Canada" },
-  { "city": "Vancouver", "state": "Canada", "country": "Canada" },
-  { "city": "Montreal", "state": "Canada", "country": "Canada" },
-  { "city": "Ottawa", "state": "Canada", "country": "Canada" },
-  { "city": "Calgary", "state": "Canada", "country": "Canada" },
-  { "city": "Edmonton", "state": "Canada", "country": "Canada" },
-  { "city": "Waterloo", "state": "Canada", "country": "Canada" },
-  { "city": "London", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Manchester", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Edinburgh", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Cambridge", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Oxford", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Bristol", "state": "United Kingdom", "country": "United Kingdom" },
-  { "city": "Dublin", "state": "Ireland", "country": "Ireland" },
-  { "city": "Paris", "state": "France", "country": "France" },
-  { "city": "Lyon", "state": "France", "country": "France" },
-  { "city": "Berlin", "state": "Germany", "country": "Germany" },
-  { "city": "Munich", "state": "Germany", "country": "Germany" },
-  { "city": "Frankfurt", "state": "Germany", "country": "Germany" },
-  { "city": "Hamburg", "state": "Germany", "country": "Germany" },
-  { "city": "Stuttgart", "state": "Germany", "country": "Germany" },
-  { "city": "Zurich", "state": "Switzerland", "country": "Switzerland" },
-  { "city": "Geneva", "state": "Switzerland", "country": "Switzerland" },
-  { "city": "Amsterdam", "state": "Netherlands", "country": "Netherlands" },
-  { "city": "Rotterdam", "state": "Netherlands", "country": "Netherlands" },
-  { "city": "Madrid", "state": "Spain", "country": "Spain" },
-  { "city": "Barcelona", "state": "Spain", "country": "Spain" },
-  { "city": "Valencia", "state": "Spain", "country": "Spain" },
-  { "city": "Lisbon", "state": "Portugal", "country": "Portugal" },
-  { "city": "Porto", "state": "Portugal", "country": "Portugal" },
-  { "city": "Brussels", "state": "Belgium", "country": "Belgium" },
-  { "city": "Copenhagen", "state": "Denmark", "country": "Denmark" },
-  { "city": "Stockholm", "state": "Sweden", "country": "Sweden" },
-  { "city": "Gothenburg", "state": "Sweden", "country": "Sweden" },
-  { "city": "Oslo", "state": "Norway", "country": "Norway" },
-  { "city": "Helsinki", "state": "Finland", "country": "Finland" },
-  { "city": "Rome", "state": "Italy", "country": "Italy" },
-  { "city": "Milan", "state": "Italy", "country": "Italy" },
-  { "city": "Warsaw", "state": "Poland", "country": "Poland" },
-  { "city": "Prague", "state": "Czech Republic", "country": "Czech Republic" },
-  { "city": "Vienna", "state": "Austria", "country": "Austria" },
-  { "city": "Budapest", "state": "Hungary", "country": "Hungary" },
-  { "city": "Bucharest", "state": "Romania", "country": "Romania", "aliases": ["bucuresti"] },
-  { "city": "Singapore", "state": "Singapore", "country": "Singapore" },
-  { "city": "Hong Kong", "state": "Hong Kong", "country": "Hong Kong" },
-  { "city": "Tokyo", "state": "Japan", "country": "Japan" },
-  { "city": "Osaka", "state": "Japan", "country": "Japan" },
-  { "city": "Kyoto", "state": "Japan", "country": "Japan" },
-  { "city": "Yokohama", "state": "Japan", "country": "Japan" },
-  { "city": "Seoul", "state": "South Korea", "country": "South Korea" },
-  { "city": "Busan", "state": "South Korea", "country": "South Korea" },
-  { "city": "Incheon", "state": "South Korea", "country": "South Korea" },
-  { "city": "Daejeon", "state": "South Korea", "country": "South Korea" },
-  { "city": "Shanghai", "state": "China", "country": "China" },
-  { "city": "Beijing", "state": "China", "country": "China" },
-  { "city": "Shenzhen", "state": "China", "country": "China" },
-  { "city": "Guangzhou", "state": "China", "country": "China" },
-  { "city": "Bangalore", "state": "India", "country": "India", "aliases": ["bengaluru"] },
-  { "city": "Hyderabad", "state": "India", "country": "India" },
-  { "city": "Chennai", "state": "India", "country": "India" },
-  { "city": "Mumbai", "state": "India", "country": "India", "aliases": ["bombay"] },
-  { "city": "Pune", "state": "India", "country": "India" },
-  { "city": "Delhi", "state": "India", "country": "India" },
-  { "city": "Gurugram", "state": "India", "country": "India", "aliases": ["gurgaon"] },
-  { "city": "Noida", "state": "India", "country": "India" },
-  { "city": "Tel Aviv", "state": "Israel", "country": "Israel" },
-  { "city": "Dubai", "state": "United Arab Emirates", "country": "United Arab Emirates" },
-  { "city": "Abu Dhabi", "state": "United Arab Emirates", "country": "United Arab Emirates" },
-  { "city": "Sydney", "state": "Australia", "country": "Australia" },
-  { "city": "Melbourne", "state": "Australia", "country": "Australia" },
-  { "city": "Brisbane", "state": "Australia", "country": "Australia" },
-  { "city": "Perth", "state": "Australia", "country": "Australia" },
-  { "city": "Auckland", "state": "New Zealand", "country": "New Zealand" },
-  { "city": "Wellington", "state": "New Zealand", "country": "New Zealand" },
-  { "city": "Sao Paulo", "state": "Brazil", "country": "Brazil" },
-  { "city": "Rio de Janeiro", "state": "Brazil", "country": "Brazil" },
-  { "city": "Brasilia", "state": "Brazil", "country": "Brazil" },
-  { "city": "Buenos Aires", "state": "Argentina", "country": "Argentina" },
-  { "city": "Santiago", "state": "Chile", "country": "Chile" },
-  { "city": "Bogota", "state": "Colombia", "country": "Colombia" },
-  { "city": "Medellin", "state": "Colombia", "country": "Colombia" },
-  { "city": "Mexico City", "state": "Mexico", "country": "Mexico", "aliases": ["cdmx"] },
-  { "city": "Guadalajara", "state": "Mexico", "country": "Mexico" },
-  { "city": "Monterrey", "state": "Mexico", "country": "Mexico" },
-  { "city": "Lima", "state": "Peru", "country": "Peru" },
-  { "city": "Montevideo", "state": "Uruguay", "country": "Uruguay" },
-  { "city": "Doha", "state": "Qatar", "country": "Qatar" },
-  { "city": "Remote", "state": "Remote", "country": "United States", "aliases": ["remote only", "fully remote", "remote - us only", "remote, us", "remote (us only)", "remote us", "us remote", "remote usa", "remote united states", "remote (us)", "remote - usa"], "remoteOnly": true }
-]
+{
+  "Aba": [
+    {
+      "city": "Aba",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1160000
+    }
+  ],
+  "Abeokuta": [
+    {
+      "city": "Abeokuta",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 735000
+    }
+  ],
+  "Abidjan": [
+    {
+      "city": "Abidjan",
+      "state": "Ivory Coast",
+      "country": "Ivory Coast",
+      "population": 6321017
+    }
+  ],
+  "Abobo": [
+    {
+      "city": "Abobo",
+      "state": "Ivory Coast",
+      "country": "Ivory Coast",
+      "population": 1340083
+    }
+  ],
+  "Abu Dhabi": [
+    {
+      "city": "Abu Dhabi",
+      "state": "United Arab Emirates",
+      "country": "United Arab Emirates",
+      "population": 1807000
+    }
+  ],
+  "Abu Ghurayb": [
+    {
+      "city": "Abu Ghurayb",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 900000
+    }
+  ],
+  "Abuja": [
+    {
+      "city": "Abuja",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 2690000
+    }
+  ],
+  "Acapulco de Juarez": [
+    {
+      "city": "Acapulco de Juarez",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 658609
+    }
+  ],
+  "Accra": [
+    {
+      "city": "Accra",
+      "state": "Ghana",
+      "country": "Ghana",
+      "population": 1963264
+    }
+  ],
+  "Adachi": [
+    {
+      "city": "Adachi",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 695043
+    }
+  ],
+  "Adana": [
+    {
+      "city": "Adana",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 1816750
+    }
+  ],
+  "Addis Ababa": [
+    {
+      "city": "Addis Ababa",
+      "state": "Ethiopia",
+      "country": "Ethiopia",
+      "population": 3860000
+    }
+  ],
+  "Adelaide": [
+    {
+      "city": "Adelaide",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 1469163
+    }
+  ],
+  "Aden": [
+    {
+      "city": "Aden",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 1079670
+    }
+  ],
+  "Agadir": [
+    {
+      "city": "Agadir",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 698310
+    }
+  ],
+  "Agra": [
+    {
+      "city": "Agra",
+      "state": "India",
+      "country": "India",
+      "population": 1430055
+    }
+  ],
+  "Aguascalientes": [
+    {
+      "city": "Aguascalientes",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 722250
+    }
+  ],
+  "Ahmedabad": [
+    {
+      "city": "Ahmedabad",
+      "state": "India",
+      "country": "India",
+      "population": 6357693
+    }
+  ],
+  "Ahvaz": [
+    {
+      "city": "Ahvaz",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 841145
+    }
+  ],
+  "Aihara": [
+    {
+      "city": "Aihara",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 725493
+    }
+  ],
+  "Akure": [
+    {
+      "city": "Akure",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 730000
+    }
+  ],
+  "Al Ahmadi": [
+    {
+      "city": "Al Ahmadi",
+      "state": "Kuwait",
+      "country": "Kuwait",
+      "population": 637411
+    }
+  ],
+  "Al Ain City": [
+    {
+      "city": "Al Ain City",
+      "state": "United Arab Emirates",
+      "country": "United Arab Emirates",
+      "population": 846747
+    }
+  ],
+  "Al Basrah al Qadimah": [
+    {
+      "city": "Al Basrah al Qadimah",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 2015483
+    }
+  ],
+  "Al Hudaydah": [
+    {
+      "city": "Al Hudaydah",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 734699
+    }
+  ],
+  "Al Mahallah al Kubra": [
+    {
+      "city": "Al Mahallah al Kubra",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 592573
+    }
+  ],
+  "Al Mansurah": [
+    {
+      "city": "Al Mansurah",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 621953
+    }
+  ],
+  "Al Mawsil al Jadidah": [
+    {
+      "city": "Al Mawsil al Jadidah",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 2065597
+    }
+  ],
+  "Albuquerque": [
+    {
+      "city": "Albuquerque",
+      "state": "New Mexico",
+      "country": "United States",
+      "population": 564559
+    }
+  ],
+  "Aleppo": [
+    {
+      "city": "Aleppo",
+      "state": "Syria",
+      "country": "Syria",
+      "population": 2098210
+    }
+  ],
+  "Alexandria": [
+    {
+      "city": "Alexandria",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 5263542
+    }
+  ],
+  "Algiers": [
+    {
+      "city": "Algiers",
+      "state": "Algeria",
+      "country": "Algeria",
+      "population": 2364230
+    }
+  ],
+  "Aligarh": [
+    {
+      "city": "Aligarh",
+      "state": "India",
+      "country": "India",
+      "population": 753207
+    }
+  ],
+  "Almaty": [
+    {
+      "city": "Almaty",
+      "state": "Kazakhstan",
+      "country": "Kazakhstan",
+      "population": 1977011
+    }
+  ],
+  "Alvaro Obregon": [
+    {
+      "city": "Alvaro Obregon",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 726664
+    }
+  ],
+  "Amman": [
+    {
+      "city": "Amman",
+      "state": "Jordan",
+      "country": "Jordan",
+      "population": 1275857
+    }
+  ],
+  "Amravati": [
+    {
+      "city": "Amravati",
+      "state": "India",
+      "country": "India",
+      "population": 647057
+    }
+  ],
+  "Amritsar": [
+    {
+      "city": "Amritsar",
+      "state": "India",
+      "country": "India",
+      "population": 1159227
+    }
+  ],
+  "Amsterdam": [
+    {
+      "city": "Amsterdam",
+      "state": "Netherlands",
+      "country": "Netherlands"
+    },
+    {
+      "city": "Amsterdam",
+      "state": "The Netherlands",
+      "country": "The Netherlands",
+      "population": 741636
+    }
+  ],
+  "Andijon": [
+    {
+      "city": "Andijon",
+      "state": "Uzbekistan",
+      "country": "Uzbekistan",
+      "population": 747800
+    }
+  ],
+  "Ankang": [
+    {
+      "city": "Ankang",
+      "state": "China",
+      "country": "China",
+      "population": 870126
+    }
+  ],
+  "Ankara": [
+    {
+      "city": "Ankara",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 3517182
+    }
+  ],
+  "Ann Arbor": [
+    {
+      "city": "Ann Arbor",
+      "state": "Michigan",
+      "country": "United States"
+    }
+  ],
+  "Anqing": [
+    {
+      "city": "Anqing",
+      "state": "China",
+      "country": "China",
+      "population": 804493
+    }
+  ],
+  "Ansan-si": [
+    {
+      "city": "Ansan-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 623256
+    }
+  ],
+  "Anshan": [
+    {
+      "city": "Anshan",
+      "state": "China",
+      "country": "China",
+      "population": 1450000
+    }
+  ],
+  "Anshun": [
+    {
+      "city": "Anshun",
+      "state": "China",
+      "country": "China",
+      "population": 765313
+    }
+  ],
+  "Antalya": [
+    {
+      "city": "Antalya",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 1344000
+    }
+  ],
+  "Antananarivo": [
+    {
+      "city": "Antananarivo",
+      "state": "Madagascar",
+      "country": "Madagascar",
+      "population": 1349501
+    }
+  ],
+  "Antipolo": [
+    {
+      "city": "Antipolo",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 913712
+    }
+  ],
+  "Anyang": [
+    {
+      "city": "Anyang",
+      "state": "China",
+      "country": "China",
+      "population": 1146839
+    }
+  ],
+  "Anyang-si": [
+    {
+      "city": "Anyang-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 595644
+    }
+  ],
+  "Aracaju": [
+    {
+      "city": "Aracaju",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 664908
+    }
+  ],
+  "Arequipa": [
+    {
+      "city": "Arequipa",
+      "state": "Peru",
+      "country": "Peru",
+      "population": 1008290
+    }
+  ],
+  "Arlington": [
+    {
+      "city": "Arlington",
+      "state": "Virginia",
+      "country": "United States"
+    }
+  ],
+  "Arusha": [
+    {
+      "city": "Arusha",
+      "state": "Tanzania",
+      "country": "Tanzania",
+      "population": 617631
+    }
+  ],
+  "Ashgabat": [
+    {
+      "city": "Ashgabat",
+      "state": "Turkmenistan",
+      "country": "Turkmenistan",
+      "population": 727700
+    }
+  ],
+  "Asmara": [
+    {
+      "city": "Asmara",
+      "state": "Eritrea",
+      "country": "Eritrea",
+      "population": 563930
+    }
+  ],
+  "Asuncion": [
+    {
+      "city": "Asuncion",
+      "state": "Paraguay",
+      "country": "Paraguay",
+      "population": 1482200
+    }
+  ],
+  "Athens": [
+    {
+      "city": "Athens",
+      "state": "Greece",
+      "country": "Greece",
+      "population": 664046
+    }
+  ],
+  "Atlanta": [
+    {
+      "city": "Atlanta",
+      "state": "Georgia",
+      "country": "United States"
+    }
+  ],
+  "Auckland": [
+    {
+      "city": "Auckland",
+      "state": "New Zealand",
+      "country": "New Zealand",
+      "population": 1530500
+    }
+  ],
+  "Aurangabad": [
+    {
+      "city": "Aurangabad",
+      "state": "India",
+      "country": "India",
+      "population": 1175116
+    }
+  ],
+  "Austin": [
+    {
+      "city": "Austin",
+      "state": "Texas",
+      "country": "United States",
+      "population": 974447
+    }
+  ],
+  "Bagcilar": [
+    {
+      "city": "Bagcilar",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 749024
+    }
+  ],
+  "Baghdad": [
+    {
+      "city": "Baghdad",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 7216000
+    }
+  ],
+  "Bahawalpur": [
+    {
+      "city": "Bahawalpur",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 903795
+    }
+  ],
+  "Bahcelievler": [
+    {
+      "city": "Bahcelievler",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 576799
+    }
+  ],
+  "Baise": [
+    {
+      "city": "Baise",
+      "state": "China",
+      "country": "China",
+      "population": 686078
+    }
+  ],
+  "Baku": [
+    {
+      "city": "Baku",
+      "state": "Azerbaijan",
+      "country": "Azerbaijan",
+      "population": 1116513
+    }
+  ],
+  "Balikpapan": [
+    {
+      "city": "Balikpapan",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 695287
+    }
+  ],
+  "Baltimore": [
+    {
+      "city": "Baltimore",
+      "state": "Maryland",
+      "country": "United States",
+      "population": 585708
+    }
+  ],
+  "Bamako": [
+    {
+      "city": "Bamako",
+      "state": "Mali",
+      "country": "Mali",
+      "population": 4227569
+    }
+  ],
+  "Bandar Lampung": [
+    {
+      "city": "Bandar Lampung",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1166066
+    }
+  ],
+  "Bandung": [
+    {
+      "city": "Bandung",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 2444160
+    }
+  ],
+  "Bangalore": [
+    {
+      "city": "Bangalore",
+      "state": "India",
+      "country": "India",
+      "aliases": [
+        "bengaluru"
+      ]
+    }
+  ],
+  "Bangkok": [
+    {
+      "city": "Bangkok",
+      "state": "Thailand",
+      "country": "Thailand",
+      "population": 5104476
+    }
+  ],
+  "Bangui": [
+    {
+      "city": "Bangui",
+      "state": "Central African Republic",
+      "country": "Central African Republic",
+      "population": 812407
+    }
+  ],
+  "Banjarmasin": [
+    {
+      "city": "Banjarmasin",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 657663
+    }
+  ],
+  "Bannu": [
+    {
+      "city": "Bannu",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 1357890
+    }
+  ],
+  "Bao'an": [
+    {
+      "city": "Bao'an",
+      "state": "China",
+      "country": "China",
+      "population": 4476554
+    }
+  ],
+  "Baoding": [
+    {
+      "city": "Baoding",
+      "state": "China",
+      "country": "China",
+      "population": 2739887
+    }
+  ],
+  "Baoji": [
+    {
+      "city": "Baoji",
+      "state": "China",
+      "country": "China",
+      "population": 1437802
+    }
+  ],
+  "Baoshan": [
+    {
+      "city": "Baoshan",
+      "state": "China",
+      "country": "China",
+      "population": 935618
+    }
+  ],
+  "Baotou": [
+    {
+      "city": "Baotou",
+      "state": "China",
+      "country": "China",
+      "population": 2150000
+    }
+  ],
+  "Barcelona": [
+    {
+      "city": "Barcelona",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 1686208
+    },
+    {
+      "city": "Barcelona",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 815141
+    }
+  ],
+  "Bareilly": [
+    {
+      "city": "Bareilly",
+      "state": "India",
+      "country": "India",
+      "population": 745435
+    }
+  ],
+  "Barnaul": [
+    {
+      "city": "Barnaul",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 632372
+    }
+  ],
+  "Barquisimeto": [
+    {
+      "city": "Barquisimeto",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 1240714
+    }
+  ],
+  "Barranquilla": [
+    {
+      "city": "Barranquilla",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 1206319
+    }
+  ],
+  "Basrah": [
+    {
+      "city": "Basrah",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 1326564
+    }
+  ],
+  "Batam": [
+    {
+      "city": "Batam",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1164352
+    }
+  ],
+  "Battagram": [
+    {
+      "city": "Battagram",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 700000
+    }
+  ],
+  "Bauchi": [
+    {
+      "city": "Bauchi",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 693700
+    }
+  ],
+  "Bayan Nur": [
+    {
+      "city": "Bayan Nur",
+      "state": "China",
+      "country": "China",
+      "population": 1760000
+    }
+  ],
+  "Beijing": [
+    {
+      "city": "Beijing",
+      "state": "China",
+      "country": "China",
+      "population": 18960744
+    }
+  ],
+  "Beira": [
+    {
+      "city": "Beira",
+      "state": "Mozambique",
+      "country": "Mozambique",
+      "population": 687764
+    }
+  ],
+  "Beirut": [
+    {
+      "city": "Beirut",
+      "state": "Lebanon",
+      "country": "Lebanon",
+      "population": 1916100
+    }
+  ],
+  "Bekasi": [
+    {
+      "city": "Bekasi",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 2564940
+    }
+  ],
+  "Belem": [
+    {
+      "city": "Belem",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1499641
+    }
+  ],
+  "Belgrade": [
+    {
+      "city": "Belgrade",
+      "state": "Serbia",
+      "country": "Serbia",
+      "population": 1273651
+    }
+  ],
+  "Bellevue": [
+    {
+      "city": "Bellevue",
+      "state": "Washington",
+      "country": "United States"
+    }
+  ],
+  "Belo Horizonte": [
+    {
+      "city": "Belo Horizonte",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 2721564
+    }
+  ],
+  "Bengaluru": [
+    {
+      "city": "Bengaluru",
+      "state": "India",
+      "country": "India",
+      "population": 8495492
+    }
+  ],
+  "Bengbu": [
+    {
+      "city": "Bengbu",
+      "state": "China",
+      "country": "China",
+      "population": 972784
+    }
+  ],
+  "Benghazi": [
+    {
+      "city": "Benghazi",
+      "state": "Libya",
+      "country": "Libya",
+      "population": 757490
+    }
+  ],
+  "Benguela": [
+    {
+      "city": "Benguela",
+      "state": "Angola",
+      "country": "Angola",
+      "population": 555124
+    }
+  ],
+  "Benin City": [
+    {
+      "city": "Benin City",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1782000
+    }
+  ],
+  "Benoni": [
+    {
+      "city": "Benoni",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 605344
+    }
+  ],
+  "Benxi": [
+    {
+      "city": "Benxi",
+      "state": "China",
+      "country": "China",
+      "population": 987717
+    }
+  ],
+  "Berlin": [
+    {
+      "city": "Berlin",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 3426354
+    }
+  ],
+  "Bhavnagar": [
+    {
+      "city": "Bhavnagar",
+      "state": "India",
+      "country": "India",
+      "population": 605882
+    }
+  ],
+  "Bhayandar": [
+    {
+      "city": "Bhayandar",
+      "state": "India",
+      "country": "India",
+      "population": 809378
+    }
+  ],
+  "Bhilai": [
+    {
+      "city": "Bhilai",
+      "state": "India",
+      "country": "India",
+      "population": 627734
+    }
+  ],
+  "Bhiwandi": [
+    {
+      "city": "Bhiwandi",
+      "state": "India",
+      "country": "India",
+      "population": 874032
+    }
+  ],
+  "Bhopal": [
+    {
+      "city": "Bhopal",
+      "state": "India",
+      "country": "India",
+      "population": 1798218
+    }
+  ],
+  "Bhubaneswar": [
+    {
+      "city": "Bhubaneswar",
+      "state": "India",
+      "country": "India",
+      "population": 885363
+    }
+  ],
+  "Bien Hoa": [
+    {
+      "city": "Bien Hoa",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 1272235
+    }
+  ],
+  "Bijie": [
+    {
+      "city": "Bijie",
+      "state": "China",
+      "country": "China",
+      "population": 1137383
+    }
+  ],
+  "Bikaner": [
+    {
+      "city": "Bikaner",
+      "state": "India",
+      "country": "India",
+      "population": 644406
+    }
+  ],
+  "Binh Thanh": [
+    {
+      "city": "Binh Thanh",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 552164
+    }
+  ],
+  "Binzhou": [
+    {
+      "city": "Binzhou",
+      "state": "China",
+      "country": "China",
+      "population": 682717
+    }
+  ],
+  "Birmingham": [
+    {
+      "city": "Birmingham",
+      "state": "United Kingdom",
+      "country": "United Kingdom",
+      "population": 1157603
+    }
+  ],
+  "Bishkek": [
+    {
+      "city": "Bishkek",
+      "state": "Kyrgyzstan",
+      "country": "Kyrgyzstan",
+      "population": 900000
+    }
+  ],
+  "Blantyre": [
+    {
+      "city": "Blantyre",
+      "state": "Malawi",
+      "country": "Malawi",
+      "population": 902588
+    }
+  ],
+  "Bloemfontein": [
+    {
+      "city": "Bloemfontein",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 556637
+    }
+  ],
+  "Bobo-Dioulasso": [
+    {
+      "city": "Bobo-Dioulasso",
+      "state": "Burkina Faso",
+      "country": "Burkina Faso",
+      "population": 904920
+    }
+  ],
+  "Bogor": [
+    {
+      "city": "Bogor",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1127408
+    }
+  ],
+  "Bogota": [
+    {
+      "city": "Bogota",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 7674366
+    }
+  ],
+  "Bokaro": [
+    {
+      "city": "Bokaro",
+      "state": "India",
+      "country": "India",
+      "population": 564319
+    }
+  ],
+  "Borama": [
+    {
+      "city": "Borama",
+      "state": "Somalia",
+      "country": "Somalia",
+      "population": 597842
+    }
+  ],
+  "Borivli": [
+    {
+      "city": "Borivli",
+      "state": "India",
+      "country": "India",
+      "population": 609617
+    }
+  ],
+  "Boston": [
+    {
+      "city": "Boston",
+      "state": "Massachusetts",
+      "country": "United States",
+      "population": 653833
+    }
+  ],
+  "Bouake": [
+    {
+      "city": "Bouake",
+      "state": "Ivory Coast",
+      "country": "Ivory Coast",
+      "population": 832371
+    }
+  ],
+  "Boulder": [
+    {
+      "city": "Boulder",
+      "state": "Colorado",
+      "country": "United States"
+    }
+  ],
+  "Bozhou": [
+    {
+      "city": "Bozhou",
+      "state": "China",
+      "country": "China",
+      "population": 1409436
+    }
+  ],
+  "Brampton": [
+    {
+      "city": "Brampton",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 656480
+    }
+  ],
+  "Brasilia": [
+    {
+      "city": "Brasilia",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 2207718
+    }
+  ],
+  "Brazzaville": [
+    {
+      "city": "Brazzaville",
+      "state": "Republic of the Congo",
+      "country": "Republic of the Congo",
+      "population": 1982000
+    }
+  ],
+  "Brisbane": [
+    {
+      "city": "Brisbane",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 2780063
+    }
+  ],
+  "Bristol": [
+    {
+      "city": "Bristol",
+      "state": "United Kingdom",
+      "country": "United Kingdom"
+    }
+  ],
+  "Brooklyn": [
+    {
+      "city": "Brooklyn",
+      "state": "New York",
+      "country": "United States",
+      "population": 2736074
+    }
+  ],
+  "Brussels": [
+    {
+      "city": "Brussels",
+      "state": "Belgium",
+      "country": "Belgium",
+      "population": 1019022
+    }
+  ],
+  "Bucaramanga": [
+    {
+      "city": "Bucaramanga",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 581130
+    }
+  ],
+  "Bucharest": [
+    {
+      "city": "Bucharest",
+      "state": "Romania",
+      "country": "Romania",
+      "aliases": [
+        "bucuresti"
+      ],
+      "population": 1877155
+    }
+  ],
+  "Bucheon-si": [
+    {
+      "city": "Bucheon-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 850731
+    }
+  ],
+  "Budapest": [
+    {
+      "city": "Budapest",
+      "state": "Hungary",
+      "country": "Hungary",
+      "population": 1741041
+    }
+  ],
+  "Budta": [
+    {
+      "city": "Budta",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1273715
+    }
+  ],
+  "Buenos Aires": [
+    {
+      "city": "Buenos Aires",
+      "state": "Argentina",
+      "country": "Argentina",
+      "population": 2891082
+    }
+  ],
+  "Bujumbura": [
+    {
+      "city": "Bujumbura",
+      "state": "Burundi",
+      "country": "Burundi",
+      "population": 769317
+    }
+  ],
+  "Bukavu": [
+    {
+      "city": "Bukavu",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 816811
+    }
+  ],
+  "Bukit Rahman Putra": [
+    {
+      "city": "Bukit Rahman Putra",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 607000
+    }
+  ],
+  "Bulawayo": [
+    {
+      "city": "Bulawayo",
+      "state": "Zimbabwe",
+      "country": "Zimbabwe",
+      "population": 665952
+    }
+  ],
+  "Buraydah": [
+    {
+      "city": "Buraydah",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 745353
+    }
+  ],
+  "Bursa": [
+    {
+      "city": "Bursa",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 3101833
+    }
+  ],
+  "Busan": [
+    {
+      "city": "Busan",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 3343903
+    }
+  ],
+  "Cagayan de Oro": [
+    {
+      "city": "Cagayan de Oro",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 741617
+    }
+  ],
+  "Cairo": [
+    {
+      "city": "Cairo",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 9606916
+    }
+  ],
+  "Calamba": [
+    {
+      "city": "Calamba",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 575046
+    }
+  ],
+  "Calgary": [
+    {
+      "city": "Calgary",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 1306784
+    }
+  ],
+  "Cali": [
+    {
+      "city": "Cali",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 2392877
+    }
+  ],
+  "Callao": [
+    {
+      "city": "Callao",
+      "state": "Peru",
+      "country": "Peru",
+      "population": 1300000
+    }
+  ],
+  "Caloocan City": [
+    {
+      "city": "Caloocan City",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1712945
+    }
+  ],
+  "Camayenne": [
+    {
+      "city": "Camayenne",
+      "state": "Guinea",
+      "country": "Guinea",
+      "population": 1871242
+    }
+  ],
+  "Cambridge": [
+    {
+      "city": "Cambridge",
+      "state": "Massachusetts",
+      "country": "United States"
+    },
+    {
+      "city": "Cambridge",
+      "state": "United Kingdom",
+      "country": "United Kingdom"
+    }
+  ],
+  "Campinas": [
+    {
+      "city": "Campinas",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1031554
+    }
+  ],
+  "Campo Grande": [
+    {
+      "city": "Campo Grande",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 906092
+    }
+  ],
+  "Can Tho": [
+    {
+      "city": "Can Tho",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 1507187
+    }
+  ],
+  "Cancun": [
+    {
+      "city": "Cancun",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 888797
+    }
+  ],
+  "Cankaya": [
+    {
+      "city": "Cankaya",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 792189
+    }
+  ],
+  "Cape Town": [
+    {
+      "city": "Cape Town",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 4772846
+    }
+  ],
+  "Caracas": [
+    {
+      "city": "Caracas",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 3000000
+    }
+  ],
+  "Cartagena": [
+    {
+      "city": "Cartagena",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 914552
+    }
+  ],
+  "Casablanca": [
+    {
+      "city": "Casablanca",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 3665954
+    }
+  ],
+  "Cebu City": [
+    {
+      "city": "Cebu City",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 965332
+    }
+  ],
+  "Chandigarh": [
+    {
+      "city": "Chandigarh",
+      "state": "India",
+      "country": "India",
+      "population": 970602
+    }
+  ],
+  "Changchun": [
+    {
+      "city": "Changchun",
+      "state": "China",
+      "country": "China",
+      "population": 4714996
+    }
+  ],
+  "Changde": [
+    {
+      "city": "Changde",
+      "state": "China",
+      "country": "China",
+      "population": 1457419
+    }
+  ],
+  "Changsha": [
+    {
+      "city": "Changsha",
+      "state": "China",
+      "country": "China",
+      "population": 3093980
+    }
+  ],
+  "Changshu": [
+    {
+      "city": "Changshu",
+      "state": "China",
+      "country": "China",
+      "population": 1677050
+    }
+  ],
+  "Changwon": [
+    {
+      "city": "Changwon",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1025702
+    }
+  ],
+  "Changzhi": [
+    {
+      "city": "Changzhi",
+      "state": "China",
+      "country": "China",
+      "population": 1214940
+    }
+  ],
+  "Changzhou": [
+    {
+      "city": "Changzhou",
+      "state": "China",
+      "country": "China",
+      "population": 3290918
+    }
+  ],
+  "Chaozhou": [
+    {
+      "city": "Chaozhou",
+      "state": "China",
+      "country": "China",
+      "population": 1750945
+    }
+  ],
+  "Charlotte": [
+    {
+      "city": "Charlotte",
+      "state": "North Carolina",
+      "country": "United States",
+      "population": 911311
+    }
+  ],
+  "Chattogram": [
+    {
+      "city": "Chattogram",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 3920222
+    }
+  ],
+  "Chelyabinsk": [
+    {
+      "city": "Chelyabinsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1202371
+    }
+  ],
+  "Chengdu": [
+    {
+      "city": "Chengdu",
+      "state": "China",
+      "country": "China",
+      "population": 13568357
+    }
+  ],
+  "Chennai": [
+    {
+      "city": "Chennai",
+      "state": "India",
+      "country": "India",
+      "population": 4681087
+    }
+  ],
+  "Chenzhou": [
+    {
+      "city": "Chenzhou",
+      "state": "China",
+      "country": "China",
+      "population": 822534
+    }
+  ],
+  "Cheonan": [
+    {
+      "city": "Cheonan",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 658831
+    }
+  ],
+  "Cheongju-si": [
+    {
+      "city": "Cheongju-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 853938
+    }
+  ],
+  "Chiba": [
+    {
+      "city": "Chiba",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 979768
+    }
+  ],
+  "Chicago": [
+    {
+      "city": "Chicago",
+      "state": "Illinois",
+      "country": "United States",
+      "population": 2664452
+    }
+  ],
+  "Chiclayo": [
+    {
+      "city": "Chiclayo",
+      "state": "Peru",
+      "country": "Peru",
+      "population": 552508
+    }
+  ],
+  "Chihuahua": [
+    {
+      "city": "Chihuahua",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 925762
+    }
+  ],
+  "Chisinau": [
+    {
+      "city": "Chisinau",
+      "state": "Moldova",
+      "country": "Moldova",
+      "population": 635994
+    }
+  ],
+  "Chizhou": [
+    {
+      "city": "Chizhou",
+      "state": "China",
+      "country": "China",
+      "population": 615274
+    }
+  ],
+  "Cho Lon": [
+    {
+      "city": "Cho Lon",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 561000
+    }
+  ],
+  "Chongqing": [
+    {
+      "city": "Chongqing",
+      "state": "China",
+      "country": "China",
+      "population": 7457599
+    }
+  ],
+  "Chuxiong": [
+    {
+      "city": "Chuxiong",
+      "state": "China",
+      "country": "China",
+      "population": 555081
+    }
+  ],
+  "Chuzhou": [
+    {
+      "city": "Chuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 782671
+    }
+  ],
+  "Cimahi": [
+    {
+      "city": "Cimahi",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 590782
+    }
+  ],
+  "Cincinnati": [
+    {
+      "city": "Cincinnati",
+      "state": "Ohio",
+      "country": "United States"
+    }
+  ],
+  "Ciudad Guayana": [
+    {
+      "city": "Ciudad Guayana",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 978202
+    }
+  ],
+  "Ciudad Juarez": [
+    {
+      "city": "Ciudad Juarez",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1512450
+    }
+  ],
+  "Ciudad Nezahualcoyotl": [
+    {
+      "city": "Ciudad Nezahualcoyotl",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1077208
+    }
+  ],
+  "Cixi": [
+    {
+      "city": "Cixi",
+      "state": "China",
+      "country": "China",
+      "population": 1457510
+    }
+  ],
+  "Cleveland": [
+    {
+      "city": "Cleveland",
+      "state": "Ohio",
+      "country": "United States"
+    }
+  ],
+  "Cochabamba": [
+    {
+      "city": "Cochabamba",
+      "state": "Bolivia",
+      "country": "Bolivia",
+      "population": 841276
+    }
+  ],
+  "Coimbatore": [
+    {
+      "city": "Coimbatore",
+      "state": "India",
+      "country": "India",
+      "population": 2136916
+    }
+  ],
+  "Colombo": [
+    {
+      "city": "Colombo",
+      "state": "Sri Lanka",
+      "country": "Sri Lanka",
+      "population": 648034
+    }
+  ],
+  "Colorado Springs": [
+    {
+      "city": "Colorado Springs",
+      "state": "Colorado",
+      "country": "United States"
+    }
+  ],
+  "Columbus": [
+    {
+      "city": "Columbus",
+      "state": "Ohio",
+      "country": "United States",
+      "population": 913175
+    }
+  ],
+  "Comilla": [
+    {
+      "city": "Comilla",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 1030000
+    }
+  ],
+  "Conakry": [
+    {
+      "city": "Conakry",
+      "state": "Guinea",
+      "country": "Guinea",
+      "population": 1928389
+    }
+  ],
+  "Contagem": [
+    {
+      "city": "Contagem",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 627123
+    }
+  ],
+  "Copenhagen": [
+    {
+      "city": "Copenhagen",
+      "state": "Denmark",
+      "country": "Denmark",
+      "population": 1153615
+    }
+  ],
+  "Cordoba": [
+    {
+      "city": "Cordoba",
+      "state": "Argentina",
+      "country": "Argentina",
+      "population": 2106734
+    }
+  ],
+  "Cotonou": [
+    {
+      "city": "Cotonou",
+      "state": "Benin",
+      "country": "Benin",
+      "population": 679012
+    }
+  ],
+  "Coyoacan": [
+    {
+      "city": "Coyoacan",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 614447
+    }
+  ],
+  "Cuautitlan Izcalli": [
+    {
+      "city": "Cuautitlan Izcalli",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 555163
+    }
+  ],
+  "Cucuta": [
+    {
+      "city": "Cucuta",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 777106
+    }
+  ],
+  "Cuenca": [
+    {
+      "city": "Cuenca",
+      "state": "Ecuador",
+      "country": "Ecuador",
+      "population": 636996
+    }
+  ],
+  "Cuiaba": [
+    {
+      "city": "Cuiaba",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 618124
+    }
+  ],
+  "Culiacan": [
+    {
+      "city": "Culiacan",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 808416
+    }
+  ],
+  "Cupertino": [
+    {
+      "city": "Cupertino",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Curitiba": [
+    {
+      "city": "Curitiba",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1948626
+    }
+  ],
+  "Cuttack": [
+    {
+      "city": "Cuttack",
+      "state": "India",
+      "country": "India",
+      "population": 610189
+    }
+  ],
+  "Da Nang": [
+    {
+      "city": "Da Nang",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 1276000
+    }
+  ],
+  "Daegu": [
+    {
+      "city": "Daegu",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 2365523
+    }
+  ],
+  "Daejeon": [
+    {
+      "city": "Daejeon",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1470336
+    }
+  ],
+  "Dakar": [
+    {
+      "city": "Dakar",
+      "state": "Senegal",
+      "country": "Senegal",
+      "population": 2646503
+    }
+  ],
+  "Dalian": [
+    {
+      "city": "Dalian",
+      "state": "China",
+      "country": "China",
+      "population": 4913879
+    }
+  ],
+  "Dallas": [
+    {
+      "city": "Dallas",
+      "state": "Texas",
+      "country": "United States",
+      "population": 1326087
+    }
+  ],
+  "Damascus": [
+    {
+      "city": "Damascus",
+      "state": "Syria",
+      "country": "Syria",
+      "population": 1569394
+    }
+  ],
+  "Dammam": [
+    {
+      "city": "Dammam",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 1252523
+    }
+  ],
+  "Dandong": [
+    {
+      "city": "Dandong",
+      "state": "China",
+      "country": "China",
+      "population": 631973
+    }
+  ],
+  "Daqing": [
+    {
+      "city": "Daqing",
+      "state": "China",
+      "country": "China",
+      "population": 1604027
+    }
+  ],
+  "Dar es Salaam": [
+    {
+      "city": "Dar es Salaam",
+      "state": "Tanzania",
+      "country": "Tanzania",
+      "population": 5383728
+    }
+  ],
+  "Datong": [
+    {
+      "city": "Datong",
+      "state": "China",
+      "country": "China",
+      "population": 1850000
+    }
+  ],
+  "Davao": [
+    {
+      "city": "Davao",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1848947
+    }
+  ],
+  "Dazhou": [
+    {
+      "city": "Dazhou",
+      "state": "China",
+      "country": "China",
+      "population": 1589435
+    }
+  ],
+  "Delhi": [
+    {
+      "city": "Delhi",
+      "state": "India",
+      "country": "India",
+      "population": 11034555
+    }
+  ],
+  "Denpasar": [
+    {
+      "city": "Denpasar",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 725314
+    }
+  ],
+  "Denver": [
+    {
+      "city": "Denver",
+      "state": "Colorado",
+      "country": "United States",
+      "population": 729019
+    }
+  ],
+  "Depok": [
+    {
+      "city": "Depok",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 2145400
+    }
+  ],
+  "Dera Ismail Khan": [
+    {
+      "city": "Dera Ismail Khan",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 763195
+    }
+  ],
+  "Detroit": [
+    {
+      "city": "Detroit",
+      "state": "Michigan",
+      "country": "United States",
+      "population": 645705
+    }
+  ],
+  "Deyang": [
+    {
+      "city": "Deyang",
+      "state": "China",
+      "country": "China",
+      "population": 735070
+    }
+  ],
+  "Dezhou": [
+    {
+      "city": "Dezhou",
+      "state": "China",
+      "country": "China",
+      "population": 679535
+    }
+  ],
+  "Dhaka": [
+    {
+      "city": "Dhaka",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 10356500
+    }
+  ],
+  "Dhanbad": [
+    {
+      "city": "Dhanbad",
+      "state": "India",
+      "country": "India",
+      "population": 1196214
+    }
+  ],
+  "Diyarbakir": [
+    {
+      "city": "Diyarbakir",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 1791373
+    }
+  ],
+  "Djibouti": [
+    {
+      "city": "Djibouti",
+      "state": "Djibouti",
+      "country": "Djibouti",
+      "population": 626512
+    }
+  ],
+  "Dnipro": [
+    {
+      "city": "Dnipro",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 968502
+    }
+  ],
+  "Dodoma": [
+    {
+      "city": "Dodoma",
+      "state": "Tanzania",
+      "country": "Tanzania",
+      "population": 765179
+    }
+  ],
+  "Doha": [
+    {
+      "city": "Doha",
+      "state": "Qatar",
+      "country": "Qatar"
+    }
+  ],
+  "Dombivali": [
+    {
+      "city": "Dombivali",
+      "state": "India",
+      "country": "India",
+      "population": 1247327
+    }
+  ],
+  "Donetsk": [
+    {
+      "city": "Donetsk",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 901645
+    }
+  ],
+  "Dongguan": [
+    {
+      "city": "Dongguan",
+      "state": "China",
+      "country": "China",
+      "population": 9644871
+    }
+  ],
+  "Dongying": [
+    {
+      "city": "Dongying",
+      "state": "China",
+      "country": "China",
+      "population": 998968
+    }
+  ],
+  "Dortmund": [
+    {
+      "city": "Dortmund",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 588462
+    }
+  ],
+  "Douala": [
+    {
+      "city": "Douala",
+      "state": "Cameroon",
+      "country": "Cameroon",
+      "population": 1338082
+    }
+  ],
+  "Dresden": [
+    {
+      "city": "Dresden",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 556227
+    }
+  ],
+  "Dubai": [
+    {
+      "city": "Dubai",
+      "state": "United Arab Emirates",
+      "country": "United Arab Emirates",
+      "population": 3790000
+    }
+  ],
+  "Dublin": [
+    {
+      "city": "Dublin",
+      "state": "Ireland",
+      "country": "Ireland",
+      "population": 1024027
+    }
+  ],
+  "Duesseldorf": [
+    {
+      "city": "Duesseldorf",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 620523
+    }
+  ],
+  "Duque de Caxias": [
+    {
+      "city": "Duque de Caxias",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 818329
+    }
+  ],
+  "Durban": [
+    {
+      "city": "Durban",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 3338026
+    }
+  ],
+  "Durham": [
+    {
+      "city": "Durham",
+      "state": "North Carolina",
+      "country": "United States"
+    }
+  ],
+  "Dushanbe": [
+    {
+      "city": "Dushanbe",
+      "state": "Tajikistan",
+      "country": "Tajikistan",
+      "population": 679400
+    }
+  ],
+  "E'zhou": [
+    {
+      "city": "E'zhou",
+      "state": "China",
+      "country": "China",
+      "population": 668727
+    }
+  ],
+  "Ecatepec de Morelos": [
+    {
+      "city": "Ecatepec de Morelos",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1645352
+    }
+  ],
+  "Edinburgh": [
+    {
+      "city": "Edinburgh",
+      "state": "United Kingdom",
+      "country": "United Kingdom"
+    }
+  ],
+  "Edmonton": [
+    {
+      "city": "Edmonton",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 1010899
+    }
+  ],
+  "Edogawe": [
+    {
+      "city": "Edogawe",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 697932
+    }
+  ],
+  "El Paso": [
+    {
+      "city": "El Paso",
+      "state": "Texas",
+      "country": "United States",
+      "population": 678815
+    }
+  ],
+  "Enugu": [
+    {
+      "city": "Enugu",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 950000
+    }
+  ],
+  "Erbil": [
+    {
+      "city": "Erbil",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 1612700
+    }
+  ],
+  "Erzurum": [
+    {
+      "city": "Erzurum",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 767848
+    }
+  ],
+  "Eskisehir": [
+    {
+      "city": "Eskisehir",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 789023
+    }
+  ],
+  "Essen": [
+    {
+      "city": "Essen",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 593085
+    }
+  ],
+  "Evaton": [
+    {
+      "city": "Evaton",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 725468
+    }
+  ],
+  "Faisalabad": [
+    {
+      "city": "Faisalabad",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 3800193
+    }
+  ],
+  "Faridabad": [
+    {
+      "city": "Faridabad",
+      "state": "India",
+      "country": "India",
+      "population": 1414050
+    }
+  ],
+  "Feira de Santana": [
+    {
+      "city": "Feira de Santana",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 619609
+    }
+  ],
+  "Fes": [
+    {
+      "city": "Fes",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 1191905
+    }
+  ],
+  "Fort Worth": [
+    {
+      "city": "Fort Worth",
+      "state": "Texas",
+      "country": "United States",
+      "population": 1008106
+    }
+  ],
+  "Fortaleza": [
+    {
+      "city": "Fortaleza",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 2400000
+    }
+  ],
+  "Foshan": [
+    {
+      "city": "Foshan",
+      "state": "China",
+      "country": "China",
+      "population": 9042509
+    }
+  ],
+  "Frankfurt": [
+    {
+      "city": "Frankfurt",
+      "state": "Germany",
+      "country": "Germany"
+    }
+  ],
+  "Frankfurt am Main": [
+    {
+      "city": "Frankfurt am Main",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 650000
+    }
+  ],
+  "Freetown": [
+    {
+      "city": "Freetown",
+      "state": "Sierra Leone",
+      "country": "Sierra Leone",
+      "population": 802639
+    }
+  ],
+  "Fukuoka": [
+    {
+      "city": "Fukuoka",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1612392
+    }
+  ],
+  "Fushun": [
+    {
+      "city": "Fushun",
+      "state": "China",
+      "country": "China",
+      "population": 1400646
+    }
+  ],
+  "Fuxin": [
+    {
+      "city": "Fuxin",
+      "state": "China",
+      "country": "China",
+      "population": 689050
+    }
+  ],
+  "Fuyang": [
+    {
+      "city": "Fuyang",
+      "state": "China",
+      "country": "China",
+      "population": 1768947
+    }
+  ],
+  "Fuzhou": [
+    {
+      "city": "Fuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 3740000
+    }
+  ],
+  "Ganzhou": [
+    {
+      "city": "Ganzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1977253
+    }
+  ],
+  "Gaziantep": [
+    {
+      "city": "Gaziantep",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 2130432
+    }
+  ],
+  "Gazipur": [
+    {
+      "city": "Gazipur",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 2674697
+    }
+  ],
+  "General Santos": [
+    {
+      "city": "General Santos",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 722059
+    }
+  ],
+  "Geneva": [
+    {
+      "city": "Geneva",
+      "state": "Switzerland",
+      "country": "Switzerland"
+    }
+  ],
+  "Genoa": [
+    {
+      "city": "Genoa",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 580097
+    }
+  ],
+  "Ghaziabad": [
+    {
+      "city": "Ghaziabad",
+      "state": "India",
+      "country": "India",
+      "population": 1199191
+    }
+  ],
+  "Giza": [
+    {
+      "city": "Giza",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 4367343
+    }
+  ],
+  "Glasgow": [
+    {
+      "city": "Glasgow",
+      "state": "United Kingdom",
+      "country": "United Kingdom",
+      "population": 626410
+    }
+  ],
+  "Goeteborg": [
+    {
+      "city": "Goeteborg",
+      "state": "Sweden",
+      "country": "Sweden",
+      "population": 608462
+    }
+  ],
+  "Goiania": [
+    {
+      "city": "Goiania",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1536097
+    }
+  ],
+  "Gold Coast": [
+    {
+      "city": "Gold Coast",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 640778
+    }
+  ],
+  "Gombe": [
+    {
+      "city": "Gombe",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 560000
+    }
+  ],
+  "Gorakhpur": [
+    {
+      "city": "Gorakhpur",
+      "state": "India",
+      "country": "India",
+      "population": 1324570
+    }
+  ],
+  "Gothenburg": [
+    {
+      "city": "Gothenburg",
+      "state": "Sweden",
+      "country": "Sweden"
+    }
+  ],
+  "Goyang-si": [
+    {
+      "city": "Goyang-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1061752
+    }
+  ],
+  "Gqeberha": [
+    {
+      "city": "Gqeberha",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 1050078
+    }
+  ],
+  "Guadalajara": [
+    {
+      "city": "Guadalajara",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1385629
+    }
+  ],
+  "Guadalupe": [
+    {
+      "city": "Guadalupe",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 673616
+    }
+  ],
+  "Guang'an": [
+    {
+      "city": "Guang'an",
+      "state": "China",
+      "country": "China",
+      "population": 858159
+    }
+  ],
+  "Guangzhou": [
+    {
+      "city": "Guangzhou",
+      "state": "China",
+      "country": "China",
+      "population": 16096724
+    }
+  ],
+  "Guankou": [
+    {
+      "city": "Guankou",
+      "state": "China",
+      "country": "China",
+      "population": 1380000
+    }
+  ],
+  "Guarulhos": [
+    {
+      "city": "Guarulhos",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1169577
+    }
+  ],
+  "Guatemala City": [
+    {
+      "city": "Guatemala City",
+      "state": "Guatemala",
+      "country": "Guatemala",
+      "population": 994938
+    }
+  ],
+  "Guayaquil": [
+    {
+      "city": "Guayaquil",
+      "state": "Ecuador",
+      "country": "Ecuador",
+      "population": 2723665
+    }
+  ],
+  "Guigang": [
+    {
+      "city": "Guigang",
+      "state": "China",
+      "country": "China",
+      "population": 1086327
+    }
+  ],
+  "Guilin": [
+    {
+      "city": "Guilin",
+      "state": "China",
+      "country": "China",
+      "population": 1572300
+    }
+  ],
+  "Guiyang": [
+    {
+      "city": "Guiyang",
+      "state": "China",
+      "country": "China",
+      "population": 3037159
+    }
+  ],
+  "Gujranwala": [
+    {
+      "city": "Gujranwala",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 2511118
+    }
+  ],
+  "Gujrat": [
+    {
+      "city": "Gujrat",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 574240
+    }
+  ],
+  "Guntur": [
+    {
+      "city": "Guntur",
+      "state": "India",
+      "country": "India",
+      "population": 670073
+    }
+  ],
+  "Gurugram": [
+    {
+      "city": "Gurugram",
+      "state": "India",
+      "country": "India",
+      "aliases": [
+        "gurgaon"
+      ],
+      "population": 886519
+    }
+  ],
+  "Gustavo Adolfo Madero": [
+    {
+      "city": "Gustavo Adolfo Madero",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1185772
+    }
+  ],
+  "Guwahati": [
+    {
+      "city": "Guwahati",
+      "state": "India",
+      "country": "India",
+      "population": 962334
+    }
+  ],
+  "Gwalior": [
+    {
+      "city": "Gwalior",
+      "state": "India",
+      "country": "India",
+      "population": 1054420
+    }
+  ],
+  "Gwangju": [
+    {
+      "city": "Gwangju",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1398538
+    }
+  ],
+  "Ha'il": [
+    {
+      "city": "Ha'il",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 605930
+    }
+  ],
+  "Hachioji": [
+    {
+      "city": "Hachioji",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 579355
+    }
+  ],
+  "Haikou": [
+    {
+      "city": "Haikou",
+      "state": "China",
+      "country": "China",
+      "population": 2873358
+    }
+  ],
+  "Haiphong": [
+    {
+      "city": "Haiphong",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 2625200
+    }
+  ],
+  "Hamamatsu": [
+    {
+      "city": "Hamamatsu",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 791707
+    }
+  ],
+  "Hamburg": [
+    {
+      "city": "Hamburg",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 1845229
+    }
+  ],
+  "Hamhung": [
+    {
+      "city": "Hamhung",
+      "state": "North Korea",
+      "country": "North Korea",
+      "population": 559056
+    }
+  ],
+  "Hamilton": [
+    {
+      "city": "Hamilton",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 569353
+    }
+  ],
+  "Handan": [
+    {
+      "city": "Handan",
+      "state": "China",
+      "country": "China",
+      "population": 1358318
+    }
+  ],
+  "Hangzhou": [
+    {
+      "city": "Hangzhou",
+      "state": "China",
+      "country": "China",
+      "population": 9236032
+    }
+  ],
+  "Hanoi": [
+    {
+      "city": "Hanoi",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 8053663
+    }
+  ],
+  "Hanzhong": [
+    {
+      "city": "Hanzhong",
+      "state": "China",
+      "country": "China",
+      "population": 1006557
+    }
+  ],
+  "Harare": [
+    {
+      "city": "Harare",
+      "state": "Zimbabwe",
+      "country": "Zimbabwe",
+      "population": 1542813
+    }
+  ],
+  "Harbin": [
+    {
+      "city": "Harbin",
+      "state": "China",
+      "country": "China",
+      "population": 5242897
+    }
+  ],
+  "Hartford": [
+    {
+      "city": "Hartford",
+      "state": "Connecticut",
+      "country": "United States"
+    }
+  ],
+  "Havana": [
+    {
+      "city": "Havana",
+      "state": "Cuba",
+      "country": "Cuba",
+      "population": 2163824
+    }
+  ],
+  "Hebi": [
+    {
+      "city": "Hebi",
+      "state": "China",
+      "country": "China",
+      "population": 634721
+    }
+  ],
+  "Hefei": [
+    {
+      "city": "Hefei",
+      "state": "China",
+      "country": "China",
+      "population": 5050000
+    }
+  ],
+  "Hegang": [
+    {
+      "city": "Hegang",
+      "state": "China",
+      "country": "China",
+      "population": 743307
+    }
+  ],
+  "Helsinki": [
+    {
+      "city": "Helsinki",
+      "state": "Finland",
+      "country": "Finland",
+      "population": 658864
+    }
+  ],
+  "Hengyang": [
+    {
+      "city": "Hengyang",
+      "state": "China",
+      "country": "China",
+      "population": 1075516
+    }
+  ],
+  "Herat": [
+    {
+      "city": "Herat",
+      "state": "Afghanistan",
+      "country": "Afghanistan",
+      "population": 574300
+    }
+  ],
+  "Hermosillo": [
+    {
+      "city": "Hermosillo",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 812229
+    }
+  ],
+  "Heshan": [
+    {
+      "city": "Heshan",
+      "state": "China",
+      "country": "China",
+      "population": 1249807
+    }
+  ],
+  "Heze": [
+    {
+      "city": "Heze",
+      "state": "China",
+      "country": "China",
+      "population": 1346717
+    }
+  ],
+  "Hezhou": [
+    {
+      "city": "Hezhou",
+      "state": "China",
+      "country": "China",
+      "population": 1005490
+    }
+  ],
+  "Hiroshima": [
+    {
+      "city": "Hiroshima",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1200754
+    }
+  ],
+  "Hlaingthaya Township": [
+    {
+      "city": "Hlaingthaya Township",
+      "state": "Myanmar",
+      "country": "Myanmar",
+      "population": 687867
+    }
+  ],
+  "Ho Chi Minh City": [
+    {
+      "city": "Ho Chi Minh City",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 14002598
+    }
+  ],
+  "Hohhot": [
+    {
+      "city": "Hohhot",
+      "state": "China",
+      "country": "China",
+      "population": 2350000
+    }
+  ],
+  "Homs": [
+    {
+      "city": "Homs",
+      "state": "Syria",
+      "country": "Syria",
+      "population": 775404
+    }
+  ],
+  "Honcho": [
+    {
+      "city": "Honcho",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 644668
+    }
+  ],
+  "Hong Kong": [
+    {
+      "city": "Hong Kong",
+      "state": "Hong Kong",
+      "country": "Hong Kong",
+      "population": 7396076
+    }
+  ],
+  "Hong Kong Island": [
+    {
+      "city": "Hong Kong Island",
+      "state": "Hong Kong",
+      "country": "Hong Kong",
+      "population": 1195529
+    }
+  ],
+  "Houston": [
+    {
+      "city": "Houston",
+      "state": "Texas",
+      "country": "United States",
+      "population": 2314157
+    }
+  ],
+  "Howrah": [
+    {
+      "city": "Howrah",
+      "state": "India",
+      "country": "India",
+      "population": 1027672
+    }
+  ],
+  "Huai'an": [
+    {
+      "city": "Huai'an",
+      "state": "China",
+      "country": "China",
+      "population": 2494013
+    }
+  ],
+  "Huaibei": [
+    {
+      "city": "Huaibei",
+      "state": "China",
+      "country": "China",
+      "population": 1113321
+    }
+  ],
+  "Huaihua": [
+    {
+      "city": "Huaihua",
+      "state": "China",
+      "country": "China",
+      "population": 552622
+    }
+  ],
+  "Huainan": [
+    {
+      "city": "Huainan",
+      "state": "China",
+      "country": "China",
+      "population": 1666826
+    }
+  ],
+  "Huambo": [
+    {
+      "city": "Huambo",
+      "state": "Angola",
+      "country": "Angola",
+      "population": 595304
+    }
+  ],
+  "Huangshi": [
+    {
+      "city": "Huangshi",
+      "state": "China",
+      "country": "China",
+      "population": 688090
+    }
+  ],
+  "Hubballi": [
+    {
+      "city": "Hubballi",
+      "state": "India",
+      "country": "India",
+      "population": 943788
+    }
+  ],
+  "Hue": [
+    {
+      "city": "Hue",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 1380000
+    }
+  ],
+  "Huizhou": [
+    {
+      "city": "Huizhou",
+      "state": "China",
+      "country": "China",
+      "population": 2900113
+    }
+  ],
+  "Huludao": [
+    {
+      "city": "Huludao",
+      "state": "China",
+      "country": "China",
+      "population": 944495
+    }
+  ],
+  "Huzhou": [
+    {
+      "city": "Huzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1015937
+    }
+  ],
+  "Hwaseong-si": [
+    {
+      "city": "Hwaseong-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 640890
+    }
+  ],
+  "Hyderabad": [
+    {
+      "city": "Hyderabad",
+      "state": "India",
+      "country": "India",
+      "population": 6993262
+    },
+    {
+      "city": "Hyderabad",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 1921275
+    }
+  ],
+  "Ibadan": [
+    {
+      "city": "Ibadan",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 3649000
+    }
+  ],
+  "Ibb": [
+    {
+      "city": "Ibb",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 771514
+    }
+  ],
+  "Ile-Ife": [
+    {
+      "city": "Ile-Ife",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 560000
+    }
+  ],
+  "Ilorin": [
+    {
+      "city": "Ilorin",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1080000
+    }
+  ],
+  "Incheon": [
+    {
+      "city": "Incheon",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 3039450
+    }
+  ],
+  "Indianapolis": [
+    {
+      "city": "Indianapolis",
+      "state": "Indiana",
+      "country": "United States",
+      "population": 887642
+    }
+  ],
+  "Indore": [
+    {
+      "city": "Indore",
+      "state": "India",
+      "country": "India",
+      "population": 1994397
+    }
+  ],
+  "Ipoh": [
+    {
+      "city": "Ipoh",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 759952
+    }
+  ],
+  "Irbid": [
+    {
+      "city": "Irbid",
+      "state": "Jordan",
+      "country": "Jordan",
+      "population": 569068
+    }
+  ],
+  "Irkutsk": [
+    {
+      "city": "Irkutsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 623869
+    }
+  ],
+  "Isfahan": [
+    {
+      "city": "Isfahan",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 1547164
+    }
+  ],
+  "Iskandar Puteri": [
+    {
+      "city": "Iskandar Puteri",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 575977
+    }
+  ],
+  "Islamabad": [
+    {
+      "city": "Islamabad",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 601600
+    }
+  ],
+  "Istanbul": [
+    {
+      "city": "Istanbul",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 15701602
+    }
+  ],
+  "Itabashi": [
+    {
+      "city": "Itabashi",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 584483
+    }
+  ],
+  "Izhevsk": [
+    {
+      "city": "Izhevsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 648213
+    }
+  ],
+  "Izmir": [
+    {
+      "city": "Izmir",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 2938292
+    }
+  ],
+  "Iztapalapa": [
+    {
+      "city": "Iztapalapa",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1835486
+    }
+  ],
+  "Jabalpur": [
+    {
+      "city": "Jabalpur",
+      "state": "India",
+      "country": "India",
+      "population": 1081677
+    }
+  ],
+  "Jaboatao": [
+    {
+      "city": "Jaboatao",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 702621
+    }
+  ],
+  "Jaboatao dos Guararapes": [
+    {
+      "city": "Jaboatao dos Guararapes",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 644037
+    }
+  ],
+  "Jacksonville": [
+    {
+      "city": "Jacksonville",
+      "state": "Florida",
+      "country": "United States",
+      "population": 1009833
+    }
+  ],
+  "Jaipur": [
+    {
+      "city": "Jaipur",
+      "state": "India",
+      "country": "India",
+      "population": 3046163
+    }
+  ],
+  "Jakarta": [
+    {
+      "city": "Jakarta",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 8540121
+    }
+  ],
+  "Jalandhar": [
+    {
+      "city": "Jalandhar",
+      "state": "India",
+      "country": "India",
+      "population": 868929
+    }
+  ],
+  "Jambi City": [
+    {
+      "city": "Jambi City",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 606200
+    }
+  ],
+  "Jammu": [
+    {
+      "city": "Jammu",
+      "state": "India",
+      "country": "India",
+      "population": 576198
+    }
+  ],
+  "Jamnagar": [
+    {
+      "city": "Jamnagar",
+      "state": "India",
+      "country": "India",
+      "population": 600943
+    }
+  ],
+  "Jamshedpur": [
+    {
+      "city": "Jamshedpur",
+      "state": "India",
+      "country": "India",
+      "population": 1339438
+    }
+  ],
+  "Jeddah": [
+    {
+      "city": "Jeddah",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 4697000
+    }
+  ],
+  "Jeonju": [
+    {
+      "city": "Jeonju",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 629618
+    }
+  ],
+  "Jepara": [
+    {
+      "city": "Jepara",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1257912
+    }
+  ],
+  "Jersey City": [
+    {
+      "city": "Jersey City",
+      "state": "New Jersey",
+      "country": "United States"
+    }
+  ],
+  "Jerusalem": [
+    {
+      "city": "Jerusalem",
+      "state": "Israel",
+      "country": "Israel",
+      "population": 971800
+    }
+  ],
+  "Jiangmen": [
+    {
+      "city": "Jiangmen",
+      "state": "China",
+      "country": "China",
+      "population": 1795459
+    }
+  ],
+  "Jiangyin": [
+    {
+      "city": "Jiangyin",
+      "state": "China",
+      "country": "China",
+      "population": 1779515
+    }
+  ],
+  "Jiaozhou": [
+    {
+      "city": "Jiaozhou",
+      "state": "China",
+      "country": "China",
+      "population": 619266
+    }
+  ],
+  "Jiaozuo": [
+    {
+      "city": "Jiaozuo",
+      "state": "China",
+      "country": "China",
+      "population": 865413
+    }
+  ],
+  "Jiaxing": [
+    {
+      "city": "Jiaxing",
+      "state": "China",
+      "country": "China",
+      "population": 1180000
+    }
+  ],
+  "Jieyang": [
+    {
+      "city": "Jieyang",
+      "state": "China",
+      "country": "China",
+      "population": 1899394
+    }
+  ],
+  "Jilin": [
+    {
+      "city": "Jilin",
+      "state": "China",
+      "country": "China",
+      "population": 1895865
+    }
+  ],
+  "Jinan": [
+    {
+      "city": "Jinan",
+      "state": "China",
+      "country": "China",
+      "population": 4335989
+    }
+  ],
+  "Jingmen": [
+    {
+      "city": "Jingmen",
+      "state": "China",
+      "country": "China",
+      "population": 632954
+    }
+  ],
+  "Jingzhou": [
+    {
+      "city": "Jingzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1052282
+    }
+  ],
+  "Jinhua": [
+    {
+      "city": "Jinhua",
+      "state": "China",
+      "country": "China",
+      "population": 1463990
+    }
+  ],
+  "Jining": [
+    {
+      "city": "Jining",
+      "state": "China",
+      "country": "China",
+      "population": 1241012
+    }
+  ],
+  "Jinjiang": [
+    {
+      "city": "Jinjiang",
+      "state": "China",
+      "country": "China",
+      "population": 1416151
+    }
+  ],
+  "Jinzhong": [
+    {
+      "city": "Jinzhong",
+      "state": "China",
+      "country": "China",
+      "population": 1226617
+    }
+  ],
+  "Jinzhou": [
+    {
+      "city": "Jinzhou",
+      "state": "China",
+      "country": "China",
+      "population": 604269
+    }
+  ],
+  "Jiujiang": [
+    {
+      "city": "Jiujiang",
+      "state": "China",
+      "country": "China",
+      "population": 1164268
+    }
+  ],
+  "Joao Pessoa": [
+    {
+      "city": "Joao Pessoa",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 817511
+    }
+  ],
+  "Jodhpur": [
+    {
+      "city": "Jodhpur",
+      "state": "India",
+      "country": "India",
+      "population": 1056191
+    }
+  ],
+  "Johannesburg": [
+    {
+      "city": "Johannesburg",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 9418183
+    }
+  ],
+  "Johor Bahru": [
+    {
+      "city": "Johor Bahru",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 858118
+    }
+  ],
+  "Jos": [
+    {
+      "city": "Jos",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1040000
+    }
+  ],
+  "Juiz de Fora": [
+    {
+      "city": "Juiz de Fora",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 573285
+    }
+  ],
+  "Kabul": [
+    {
+      "city": "Kabul",
+      "state": "Afghanistan",
+      "country": "Afghanistan",
+      "population": 4434550
+    }
+  ],
+  "Kaduna": [
+    {
+      "city": "Kaduna",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1850000
+    }
+  ],
+  "Kagoshima": [
+    {
+      "city": "Kagoshima",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 595049
+    }
+  ],
+  "Kaifeng": [
+    {
+      "city": "Kaifeng",
+      "state": "China",
+      "country": "China",
+      "population": 1451741
+    }
+  ],
+  "Kakamega": [
+    {
+      "city": "Kakamega",
+      "state": "Kenya",
+      "country": "Kenya",
+      "population": 1867579
+    }
+  ],
+  "Kallakurichi": [
+    {
+      "city": "Kallakurichi",
+      "state": "India",
+      "country": "India",
+      "population": 1682687
+    }
+  ],
+  "Kalyan": [
+    {
+      "city": "Kalyan",
+      "state": "India",
+      "country": "India",
+      "population": 1262255
+    }
+  ],
+  "Kampala": [
+    {
+      "city": "Kampala",
+      "state": "Uganda",
+      "country": "Uganda",
+      "population": 1680600
+    }
+  ],
+  "Kampung Baru Subang": [
+    {
+      "city": "Kampung Baru Subang",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 833571
+    }
+  ],
+  "Kananga": [
+    {
+      "city": "Kananga",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 1247168
+    }
+  ],
+  "Kanayannur": [
+    {
+      "city": "Kanayannur",
+      "state": "India",
+      "country": "India",
+      "population": 851406
+    }
+  ],
+  "Kano": [
+    {
+      "city": "Kano",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 4910000
+    }
+  ],
+  "Kanpur": [
+    {
+      "city": "Kanpur",
+      "state": "India",
+      "country": "India",
+      "population": 2823249
+    }
+  ],
+  "Kansas City": [
+    {
+      "city": "Kansas City",
+      "state": "Missouri",
+      "country": "United States"
+    }
+  ],
+  "Kaohsiung": [
+    {
+      "city": "Kaohsiung",
+      "state": "Taiwan",
+      "country": "Taiwan",
+      "population": 2737660
+    }
+  ],
+  "Karachi": [
+    {
+      "city": "Karachi",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 11624219
+    }
+  ],
+  "Karaj": [
+    {
+      "city": "Karaj",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 1448075
+    }
+  ],
+  "Karbala": [
+    {
+      "city": "Karbala",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 1218732
+    }
+  ],
+  "Kathmandu": [
+    {
+      "city": "Kathmandu",
+      "state": "Nepal",
+      "country": "Nepal",
+      "population": 1442271
+    }
+  ],
+  "Katsina": [
+    {
+      "city": "Katsina",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 670000
+    }
+  ],
+  "Kawaguchi": [
+    {
+      "city": "Kawaguchi",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 607373
+    }
+  ],
+  "Kawasaki": [
+    {
+      "city": "Kawasaki",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1538262
+    }
+  ],
+  "Kayseri": [
+    {
+      "city": "Kayseri",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 1434357
+    }
+  ],
+  "Kazan": [
+    {
+      "city": "Kazan",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1243500
+    }
+  ],
+  "Kemerovo": [
+    {
+      "city": "Kemerovo",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 558973
+    }
+  ],
+  "Kerman": [
+    {
+      "city": "Kerman",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 577514
+    }
+  ],
+  "Kermanshah": [
+    {
+      "city": "Kermanshah",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 621100
+    }
+  ],
+  "Khabarovsk": [
+    {
+      "city": "Khabarovsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 618150
+    }
+  ],
+  "Khabarovsk Vtoroy": [
+    {
+      "city": "Khabarovsk Vtoroy",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 578303
+    }
+  ],
+  "Kharkiv": [
+    {
+      "city": "Kharkiv",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 1433886
+    }
+  ],
+  "Khartoum": [
+    {
+      "city": "Khartoum",
+      "state": "Sudan",
+      "country": "Sudan",
+      "population": 1974647
+    }
+  ],
+  "Khartoum North": [
+    {
+      "city": "Khartoum North",
+      "state": "Sudan",
+      "country": "Sudan",
+      "population": 1012211
+    }
+  ],
+  "Khulna": [
+    {
+      "city": "Khulna",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 1500689
+    }
+  ],
+  "Kigali": [
+    {
+      "city": "Kigali",
+      "state": "Rwanda",
+      "country": "Rwanda",
+      "population": 1132686
+    }
+  ],
+  "Kingston": [
+    {
+      "city": "Kingston",
+      "state": "Jamaica",
+      "country": "Jamaica",
+      "population": 937700
+    }
+  ],
+  "Kinshasa": [
+    {
+      "city": "Kinshasa",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 16000000
+    }
+  ],
+  "Kirkuk": [
+    {
+      "city": "Kirkuk",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 1031000
+    }
+  ],
+  "Kisangani": [
+    {
+      "city": "Kisangani",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 1181788
+    }
+  ],
+  "Kitakyushu": [
+    {
+      "city": "Kitakyushu",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 940978
+    }
+  ],
+  "Kitwe": [
+    {
+      "city": "Kitwe",
+      "state": "Zambia",
+      "country": "Zambia",
+      "population": 665961
+    }
+  ],
+  "Kobe": [
+    {
+      "city": "Kobe",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1525152
+    }
+  ],
+  "Kochi": [
+    {
+      "city": "Kochi",
+      "state": "India",
+      "country": "India",
+      "population": 633553
+    }
+  ],
+  "Koeln": [
+    {
+      "city": "Koeln",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 963395
+    }
+  ],
+  "Kolkata": [
+    {
+      "city": "Kolkata",
+      "state": "India",
+      "country": "India",
+      "population": 4631392
+    }
+  ],
+  "Kolwezi": [
+    {
+      "city": "Kolwezi",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 790248
+    }
+  ],
+  "Konya": [
+    {
+      "city": "Konya",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 1433861
+    }
+  ],
+  "Kota": [
+    {
+      "city": "Kota",
+      "state": "India",
+      "country": "India",
+      "population": 1001694
+    }
+  ],
+  "Kota Bharu": [
+    {
+      "city": "Kota Bharu",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 568900
+    }
+  ],
+  "Kowloon": [
+    {
+      "city": "Kowloon",
+      "state": "Hong Kong",
+      "country": "Hong Kong",
+      "population": 2232339
+    }
+  ],
+  "Krakow": [
+    {
+      "city": "Krakow",
+      "state": "Poland",
+      "country": "Poland",
+      "population": 804237
+    }
+  ],
+  "Krasnodar": [
+    {
+      "city": "Krasnodar",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 899541
+    }
+  ],
+  "Krasnoyarsk": [
+    {
+      "city": "Krasnoyarsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1090811
+    }
+  ],
+  "Kryvyy Rih": [
+    {
+      "city": "Kryvyy Rih",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 603904
+    }
+  ],
+  "Kuala Lumpur": [
+    {
+      "city": "Kuala Lumpur",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 1453975
+    }
+  ],
+  "Kumamoto": [
+    {
+      "city": "Kumamoto",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 738907
+    }
+  ],
+  "Kumasi": [
+    {
+      "city": "Kumasi",
+      "state": "Ghana",
+      "country": "Ghana",
+      "population": 2544530
+    }
+  ],
+  "Kunming": [
+    {
+      "city": "Kunming",
+      "state": "China",
+      "country": "China",
+      "population": 3855346
+    }
+  ],
+  "Kunshan": [
+    {
+      "city": "Kunshan",
+      "state": "China",
+      "country": "China",
+      "population": 2092496
+    }
+  ],
+  "Kyiv": [
+    {
+      "city": "Kyiv",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 2797553
+    }
+  ],
+  "Kyoto": [
+    {
+      "city": "Kyoto",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1463723
+    }
+  ],
+  "La Paz": [
+    {
+      "city": "La Paz",
+      "state": "Bolivia",
+      "country": "Bolivia",
+      "population": 2004652
+    }
+  ],
+  "Lagos": [
+    {
+      "city": "Lagos",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 15388000
+    }
+  ],
+  "Lahore": [
+    {
+      "city": "Lahore",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 13004135
+    }
+  ],
+  "Laibin": [
+    {
+      "city": "Laibin",
+      "state": "China",
+      "country": "China",
+      "population": 910282
+    }
+  ],
+  "Laiwu": [
+    {
+      "city": "Laiwu",
+      "state": "China",
+      "country": "China",
+      "population": 989535
+    }
+  ],
+  "Langfang": [
+    {
+      "city": "Langfang",
+      "state": "China",
+      "country": "China",
+      "population": 868066
+    }
+  ],
+  "Lanzhou": [
+    {
+      "city": "Lanzhou",
+      "state": "China",
+      "country": "China",
+      "population": 3000000
+    }
+  ],
+  "Las Pinas": [
+    {
+      "city": "Las Pinas",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 615549
+    }
+  ],
+  "Las Vegas": [
+    {
+      "city": "Las Vegas",
+      "state": "Nevada",
+      "country": "United States",
+      "population": 641903
+    }
+  ],
+  "Latakia": [
+    {
+      "city": "Latakia",
+      "state": "Syria",
+      "country": "Syria",
+      "population": 709000
+    }
+  ],
+  "Leon de los Aldama": [
+    {
+      "city": "Leon de los Aldama",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1579803
+    }
+  ],
+  "Leshan": [
+    {
+      "city": "Leshan",
+      "state": "China",
+      "country": "China",
+      "population": 662814
+    }
+  ],
+  "Lianyungang": [
+    {
+      "city": "Lianyungang",
+      "state": "China",
+      "country": "China",
+      "population": 2001009
+    }
+  ],
+  "Liaocheng": [
+    {
+      "city": "Liaocheng",
+      "state": "China",
+      "country": "China",
+      "population": 1229768
+    }
+  ],
+  "Liaoyang": [
+    {
+      "city": "Liaoyang",
+      "state": "China",
+      "country": "China",
+      "population": 687890
+    }
+  ],
+  "Libreville": [
+    {
+      "city": "Libreville",
+      "state": "Gabon",
+      "country": "Gabon",
+      "population": 846090
+    }
+  ],
+  "Likasi": [
+    {
+      "city": "Likasi",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 635768
+    }
+  ],
+  "Lilongwe": [
+    {
+      "city": "Lilongwe",
+      "state": "Malawi",
+      "country": "Malawi",
+      "population": 1115815
+    }
+  ],
+  "Lima": [
+    {
+      "city": "Lima",
+      "state": "Peru",
+      "country": "Peru",
+      "population": 7737002
+    }
+  ],
+  "Linfen": [
+    {
+      "city": "Linfen",
+      "state": "China",
+      "country": "China",
+      "population": 959198
+    }
+  ],
+  "Linyi": [
+    {
+      "city": "Linyi",
+      "state": "China",
+      "country": "China",
+      "population": 2743843
+    }
+  ],
+  "Lisbon": [
+    {
+      "city": "Lisbon",
+      "state": "Portugal",
+      "country": "Portugal"
+    }
+  ],
+  "Liupanshui": [
+    {
+      "city": "Liupanshui",
+      "state": "China",
+      "country": "China",
+      "population": 1320825
+    }
+  ],
+  "Liuzhou": [
+    {
+      "city": "Liuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1436599
+    }
+  ],
+  "Lodz": [
+    {
+      "city": "Lodz",
+      "state": "Poland",
+      "country": "Poland",
+      "population": 645693
+    }
+  ],
+  "Lome": [
+    {
+      "city": "Lome",
+      "state": "Togo",
+      "country": "Togo",
+      "population": 2188376
+    }
+  ],
+  "London": [
+    {
+      "city": "London",
+      "state": "United Kingdom",
+      "country": "United Kingdom",
+      "population": 8961989
+    }
+  ],
+  "Londrina": [
+    {
+      "city": "Londrina",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 588125
+    }
+  ],
+  "Longyan": [
+    {
+      "city": "Longyan",
+      "state": "China",
+      "country": "China",
+      "population": 1025087
+    }
+  ],
+  "Los Angeles": [
+    {
+      "city": "Los Angeles",
+      "state": "California",
+      "country": "United States",
+      "aliases": [
+        "la"
+      ],
+      "population": 3820914
+    }
+  ],
+  "Louisville": [
+    {
+      "city": "Louisville",
+      "state": "Kentucky",
+      "country": "United States",
+      "population": 624444
+    }
+  ],
+  "Lu'an": [
+    {
+      "city": "Lu'an",
+      "state": "China",
+      "country": "China",
+      "population": 1644344
+    }
+  ],
+  "Luancheng": [
+    {
+      "city": "Luancheng",
+      "state": "China",
+      "country": "China",
+      "population": 597130
+    }
+  ],
+  "Luanda": [
+    {
+      "city": "Luanda",
+      "state": "Angola",
+      "country": "Angola",
+      "population": 2776168
+    }
+  ],
+  "Lubango": [
+    {
+      "city": "Lubango",
+      "state": "Angola",
+      "country": "Angola",
+      "population": 600751
+    }
+  ],
+  "Lubumbashi": [
+    {
+      "city": "Lubumbashi",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 2221925
+    }
+  ],
+  "Lucknow": [
+    {
+      "city": "Lucknow",
+      "state": "India",
+      "country": "India",
+      "population": 2472011
+    }
+  ],
+  "Ludhiana": [
+    {
+      "city": "Ludhiana",
+      "state": "India",
+      "country": "India",
+      "population": 1618879
+    }
+  ],
+  "Lueliang": [
+    {
+      "city": "Lueliang",
+      "state": "China",
+      "country": "China",
+      "population": 3346500
+    }
+  ],
+  "Luohe": [
+    {
+      "city": "Luohe",
+      "state": "China",
+      "country": "China",
+      "population": 1294974
+    }
+  ],
+  "Luohu District": [
+    {
+      "city": "Luohu District",
+      "state": "China",
+      "country": "China",
+      "population": 1143801
+    }
+  ],
+  "Luoyang": [
+    {
+      "city": "Luoyang",
+      "state": "China",
+      "country": "China",
+      "population": 1390581
+    }
+  ],
+  "Lusaka": [
+    {
+      "city": "Lusaka",
+      "state": "Zambia",
+      "country": "Zambia",
+      "population": 2212301
+    }
+  ],
+  "Luzhou": [
+    {
+      "city": "Luzhou",
+      "state": "China",
+      "country": "China",
+      "population": 998900
+    }
+  ],
+  "Lviv": [
+    {
+      "city": "Lviv",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 717273
+    }
+  ],
+  "Lyon": [
+    {
+      "city": "Lyon",
+      "state": "France",
+      "country": "France"
+    }
+  ],
+  "Ma'anshan": [
+    {
+      "city": "Ma'anshan",
+      "state": "China",
+      "country": "China",
+      "population": 741531
+    }
+  ],
+  "Macau": [
+    {
+      "city": "Macau",
+      "state": "Macao",
+      "country": "Macao",
+      "population": 649335
+    }
+  ],
+  "Maceio": [
+    {
+      "city": "Maceio",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1031597
+    }
+  ],
+  "Madinah": [
+    {
+      "city": "Madinah",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 1300000
+    }
+  ],
+  "Madinat an Nasr": [
+    {
+      "city": "Madinat an Nasr",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 668413
+    }
+  ],
+  "Madison": [
+    {
+      "city": "Madison",
+      "state": "Wisconsin",
+      "country": "United States"
+    }
+  ],
+  "Madrid": [
+    {
+      "city": "Madrid",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 3255944
+    }
+  ],
+  "Madurai": [
+    {
+      "city": "Madurai",
+      "state": "India",
+      "country": "India",
+      "population": 1465625
+    }
+  ],
+  "Maiduguri": [
+    {
+      "city": "Maiduguri",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1110000
+    }
+  ],
+  "Makassar": [
+    {
+      "city": "Makassar",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1423877
+    }
+  ],
+  "Makhachkala": [
+    {
+      "city": "Makhachkala",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 596356
+    }
+  ],
+  "Makkah": [
+    {
+      "city": "Makkah",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 1578722
+    }
+  ],
+  "Malacca": [
+    {
+      "city": "Malacca",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 579000
+    }
+  ],
+  "Malaga": [
+    {
+      "city": "Malaga",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 591637
+    }
+  ],
+  "Malang": [
+    {
+      "city": "Malang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 847182
+    }
+  ],
+  "Malatya": [
+    {
+      "city": "Malatya",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 806156
+    }
+  ],
+  "Malingao": [
+    {
+      "city": "Malingao",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1121974
+    }
+  ],
+  "Managua": [
+    {
+      "city": "Managua",
+      "state": "Nicaragua",
+      "country": "Nicaragua",
+      "population": 973087
+    }
+  ],
+  "Manaus": [
+    {
+      "city": "Manaus",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 2219580
+    }
+  ],
+  "Manchester": [
+    {
+      "city": "Manchester",
+      "state": "United Kingdom",
+      "country": "United Kingdom",
+      "population": 568996
+    }
+  ],
+  "Mandalay": [
+    {
+      "city": "Mandalay",
+      "state": "Myanmar",
+      "country": "Myanmar",
+      "population": 1208099
+    }
+  ],
+  "Manhattan": [
+    {
+      "city": "Manhattan",
+      "state": "New York",
+      "country": "United States",
+      "population": 1487536
+    }
+  ],
+  "Manila": [
+    {
+      "city": "Manila",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1600000
+    }
+  ],
+  "Maoming": [
+    {
+      "city": "Maoming",
+      "state": "China",
+      "country": "China",
+      "population": 1307802
+    }
+  ],
+  "Maputo": [
+    {
+      "city": "Maputo",
+      "state": "Mozambique",
+      "country": "Mozambique",
+      "population": 1254837
+    }
+  ],
+  "Mar del Plata": [
+    {
+      "city": "Mar del Plata",
+      "state": "Argentina",
+      "country": "Argentina",
+      "population": 593337
+    }
+  ],
+  "Maracaibo": [
+    {
+      "city": "Maracaibo",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 1752602
+    }
+  ],
+  "Marrakesh": [
+    {
+      "city": "Marrakesh",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 995871
+    }
+  ],
+  "Marseille": [
+    {
+      "city": "Marseille",
+      "state": "France",
+      "country": "France",
+      "population": 877215
+    }
+  ],
+  "Mashhad": [
+    {
+      "city": "Mashhad",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 2307177
+    }
+  ],
+  "Matola": [
+    {
+      "city": "Matola",
+      "state": "Mozambique",
+      "country": "Mozambique",
+      "population": 1198988
+    }
+  ],
+  "Maturin": [
+    {
+      "city": "Maturin",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 647459
+    }
+  ],
+  "Mbuji-Mayi": [
+    {
+      "city": "Mbuji-Mayi",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 2101332
+    }
+  ],
+  "Medan": [
+    {
+      "city": "Medan",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 2435252
+    }
+  ],
+  "Medellin": [
+    {
+      "city": "Medellin",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 1999979
+    }
+  ],
+  "Meerut": [
+    {
+      "city": "Meerut",
+      "state": "India",
+      "country": "India",
+      "population": 1223184
+    }
+  ],
+  "Meishan": [
+    {
+      "city": "Meishan",
+      "state": "China",
+      "country": "China",
+      "population": 1107742
+    }
+  ],
+  "Meizhou": [
+    {
+      "city": "Meizhou",
+      "state": "China",
+      "country": "China",
+      "population": 992351
+    }
+  ],
+  "Meknes": [
+    {
+      "city": "Meknes",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 568295
+    }
+  ],
+  "Melbourne": [
+    {
+      "city": "Melbourne",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 5350705
+    }
+  ],
+  "Memphis": [
+    {
+      "city": "Memphis",
+      "state": "Tennessee",
+      "country": "United States",
+      "population": 633104
+    }
+  ],
+  "Mengzi": [
+    {
+      "city": "Mengzi",
+      "state": "China",
+      "country": "China",
+      "population": 595100
+    }
+  ],
+  "Menlo Park": [
+    {
+      "city": "Menlo Park",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Merida": [
+    {
+      "city": "Merida",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1201000
+    }
+  ],
+  "Mexicali": [
+    {
+      "city": "Mexicali",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1032686
+    }
+  ],
+  "Mexico City": [
+    {
+      "city": "Mexico City",
+      "state": "Mexico",
+      "country": "Mexico",
+      "aliases": [
+        "cdmx"
+      ],
+      "population": 12294193
+    }
+  ],
+  "Miami": [
+    {
+      "city": "Miami",
+      "state": "Florida",
+      "country": "United States"
+    }
+  ],
+  "Mianyang": [
+    {
+      "city": "Mianyang",
+      "state": "China",
+      "country": "China",
+      "population": 1550000
+    }
+  ],
+  "Milan": [
+    {
+      "city": "Milan",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 1371498
+    }
+  ],
+  "Milwaukee": [
+    {
+      "city": "Milwaukee",
+      "state": "Wisconsin",
+      "country": "United States",
+      "population": 563531
+    }
+  ],
+  "Minneapolis": [
+    {
+      "city": "Minneapolis",
+      "state": "Minnesota",
+      "country": "United States"
+    }
+  ],
+  "Minsk": [
+    {
+      "city": "Minsk",
+      "state": "Belarus",
+      "country": "Belarus",
+      "population": 1742124
+    }
+  ],
+  "Mississauga": [
+    {
+      "city": "Mississauga",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 717961
+    }
+  ],
+  "Mogadishu": [
+    {
+      "city": "Mogadishu",
+      "state": "Somalia",
+      "country": "Somalia",
+      "population": 2587183
+    }
+  ],
+  "Mombasa": [
+    {
+      "city": "Mombasa",
+      "state": "Kenya",
+      "country": "Kenya",
+      "population": 1208333
+    }
+  ],
+  "Monrovia": [
+    {
+      "city": "Monrovia",
+      "state": "Liberia",
+      "country": "Liberia",
+      "population": 1542549
+    }
+  ],
+  "Monterrey": [
+    {
+      "city": "Monterrey",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1135512
+    }
+  ],
+  "Montevideo": [
+    {
+      "city": "Montevideo",
+      "state": "Uruguay",
+      "country": "Uruguay",
+      "population": 1270737
+    }
+  ],
+  "Montreal": [
+    {
+      "city": "Montreal",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 1762949
+    }
+  ],
+  "Moradabad": [
+    {
+      "city": "Moradabad",
+      "state": "India",
+      "country": "India",
+      "population": 721139
+    }
+  ],
+  "Morelia": [
+    {
+      "city": "Morelia",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 743275
+    }
+  ],
+  "Moscow": [
+    {
+      "city": "Moscow",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 10381222
+    }
+  ],
+  "Mosul": [
+    {
+      "city": "Mosul",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 1683000
+    }
+  ],
+  "Mountain View": [
+    {
+      "city": "Mountain View",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Mudanjiang": [
+    {
+      "city": "Mudanjiang",
+      "state": "China",
+      "country": "China",
+      "population": 665915
+    }
+  ],
+  "Mukalla": [
+    {
+      "city": "Mukalla",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 594951
+    }
+  ],
+  "Multan": [
+    {
+      "city": "Multan",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 2169915
+    }
+  ],
+  "Mumbai": [
+    {
+      "city": "Mumbai",
+      "state": "India",
+      "country": "India",
+      "aliases": [
+        "bombay"
+      ],
+      "population": 12691836
+    }
+  ],
+  "Munich": [
+    {
+      "city": "Munich",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 1260391
+    }
+  ],
+  "Muscat": [
+    {
+      "city": "Muscat",
+      "state": "Oman",
+      "country": "Oman",
+      "population": 797000
+    }
+  ],
+  "Muzaffarabad": [
+    {
+      "city": "Muzaffarabad",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 725000
+    }
+  ],
+  "Mwanza": [
+    {
+      "city": "Mwanza",
+      "state": "Tanzania",
+      "country": "Tanzania",
+      "population": 1104521
+    }
+  ],
+  "Mysuru": [
+    {
+      "city": "Mysuru",
+      "state": "India",
+      "country": "India",
+      "population": 920550
+    }
+  ],
+  "N'Djamena": [
+    {
+      "city": "N'Djamena",
+      "state": "Chad",
+      "country": "Chad",
+      "population": 1359526
+    }
+  ],
+  "Nagoya": [
+    {
+      "city": "Nagoya",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 2332176
+    }
+  ],
+  "Nagpur": [
+    {
+      "city": "Nagpur",
+      "state": "India",
+      "country": "India",
+      "population": 2405665
+    }
+  ],
+  "Nairobi": [
+    {
+      "city": "Nairobi",
+      "state": "Kenya",
+      "country": "Kenya",
+      "population": 4397073
+    }
+  ],
+  "Najafgarh": [
+    {
+      "city": "Najafgarh",
+      "state": "India",
+      "country": "India",
+      "population": 1365000
+    }
+  ],
+  "Nakuru": [
+    {
+      "city": "Nakuru",
+      "state": "Kenya",
+      "country": "Kenya",
+      "population": 570674
+    }
+  ],
+  "Namangan": [
+    {
+      "city": "Namangan",
+      "state": "Uzbekistan",
+      "country": "Uzbekistan",
+      "population": 713220
+    }
+  ],
+  "Nampula": [
+    {
+      "city": "Nampula",
+      "state": "Mozambique",
+      "country": "Mozambique",
+      "population": 770379
+    }
+  ],
+  "Nanchang": [
+    {
+      "city": "Nanchang",
+      "state": "China",
+      "country": "China",
+      "population": 2357839
+    }
+  ],
+  "Nanchong": [
+    {
+      "city": "Nanchong",
+      "state": "China",
+      "country": "China",
+      "population": 1858875
+    }
+  ],
+  "Nanjing": [
+    {
+      "city": "Nanjing",
+      "state": "China",
+      "country": "China",
+      "population": 9314685
+    }
+  ],
+  "Nanning": [
+    {
+      "city": "Nanning",
+      "state": "China",
+      "country": "China",
+      "population": 3839800
+    }
+  ],
+  "Nantong": [
+    {
+      "city": "Nantong",
+      "state": "China",
+      "country": "China",
+      "population": 2273326
+    }
+  ],
+  "Nanyang": [
+    {
+      "city": "Nanyang",
+      "state": "China",
+      "country": "China",
+      "population": 1811812
+    }
+  ],
+  "Naples": [
+    {
+      "city": "Naples",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 909048
+    }
+  ],
+  "Narela": [
+    {
+      "city": "Narela",
+      "state": "India",
+      "country": "India",
+      "population": 800000
+    }
+  ],
+  "Nashik": [
+    {
+      "city": "Nashik",
+      "state": "India",
+      "country": "India",
+      "population": 1486053
+    }
+  ],
+  "Nashville": [
+    {
+      "city": "Nashville",
+      "state": "Tennessee",
+      "country": "United States",
+      "population": 689447
+    }
+  ],
+  "Nasiriyah": [
+    {
+      "city": "Nasiriyah",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 558400
+    }
+  ],
+  "Natal": [
+    {
+      "city": "Natal",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 896708
+    }
+  ],
+  "Naucalpan de Juarez": [
+    {
+      "city": "Naucalpan de Juarez",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 834434
+    }
+  ],
+  "Navi Mumbai": [
+    {
+      "city": "Navi Mumbai",
+      "state": "India",
+      "country": "India",
+      "population": 2600000
+    }
+  ],
+  "Nay Pyi Taw": [
+    {
+      "city": "Nay Pyi Taw",
+      "state": "Myanmar",
+      "country": "Myanmar",
+      "population": 925000
+    }
+  ],
+  "Ndola": [
+    {
+      "city": "Ndola",
+      "state": "Zambia",
+      "country": "Zambia",
+      "population": 627503
+    }
+  ],
+  "Neijiang": [
+    {
+      "city": "Neijiang",
+      "state": "China",
+      "country": "China",
+      "population": 1251095
+    }
+  ],
+  "New Kingston": [
+    {
+      "city": "New Kingston",
+      "state": "Jamaica",
+      "country": "Jamaica",
+      "population": 583958
+    }
+  ],
+  "New South Memphis": [
+    {
+      "city": "New South Memphis",
+      "state": "Tennessee",
+      "country": "United States",
+      "population": 641608
+    }
+  ],
+  "New Taipei City": [
+    {
+      "city": "New Taipei City",
+      "state": "Taiwan",
+      "country": "Taiwan",
+      "population": 4004367
+    }
+  ],
+  "New Territories": [
+    {
+      "city": "New Territories",
+      "state": "Hong Kong",
+      "country": "Hong Kong",
+      "population": 3984077
+    }
+  ],
+  "New York": [
+    {
+      "city": "New York",
+      "state": "New York",
+      "country": "United States",
+      "aliases": [
+        "nyc",
+        "new york city"
+      ]
+    }
+  ],
+  "New York City": [
+    {
+      "city": "New York City",
+      "state": "New York",
+      "country": "United States",
+      "population": 8804190
+    }
+  ],
+  "Newark": [
+    {
+      "city": "Newark",
+      "state": "New Jersey",
+      "country": "United States"
+    }
+  ],
+  "Nha Trang": [
+    {
+      "city": "Nha Trang",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 579000
+    }
+  ],
+  "Niamey": [
+    {
+      "city": "Niamey",
+      "state": "Niger",
+      "country": "Niger",
+      "population": 1323691
+    }
+  ],
+  "Niigata": [
+    {
+      "city": "Niigata",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 797591
+    }
+  ],
+  "Ningbo": [
+    {
+      "city": "Ningbo",
+      "state": "China",
+      "country": "China",
+      "population": 3731203
+    }
+  ],
+  "Nizhniy Novgorod": [
+    {
+      "city": "Nizhniy Novgorod",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1259013
+    }
+  ],
+  "Noida": [
+    {
+      "city": "Noida",
+      "state": "India",
+      "country": "India"
+    }
+  ],
+  "Nouakchott": [
+    {
+      "city": "Nouakchott",
+      "state": "Mauritania",
+      "country": "Mauritania",
+      "population": 1184530
+    }
+  ],
+  "Nova Iguacu": [
+    {
+      "city": "Nova Iguacu",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 823302
+    }
+  ],
+  "Novosibirsk": [
+    {
+      "city": "Novosibirsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1612833
+    }
+  ],
+  "Nowrangapur": [
+    {
+      "city": "Nowrangapur",
+      "state": "India",
+      "country": "India",
+      "population": 1220946
+    }
+  ],
+  "Nyala": [
+    {
+      "city": "Nyala",
+      "state": "Sudan",
+      "country": "Sudan",
+      "population": 565734
+    }
+  ],
+  "Oakland": [
+    {
+      "city": "Oakland",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Odesa": [
+    {
+      "city": "Odesa",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 1015826
+    }
+  ],
+  "Okayama": [
+    {
+      "city": "Okayama",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 724691
+    }
+  ],
+  "Oklahoma City": [
+    {
+      "city": "Oklahoma City",
+      "state": "Oklahoma",
+      "country": "United States",
+      "population": 681054
+    }
+  ],
+  "Omdurman": [
+    {
+      "city": "Omdurman",
+      "state": "Sudan",
+      "country": "Sudan",
+      "population": 1849659
+    }
+  ],
+  "Omsk": [
+    {
+      "city": "Omsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1172070
+    }
+  ],
+  "Onitsha": [
+    {
+      "city": "Onitsha",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1553000
+    }
+  ],
+  "Oran": [
+    {
+      "city": "Oran",
+      "state": "Algeria",
+      "country": "Algeria",
+      "population": 803329
+    }
+  ],
+  "Ordos": [
+    {
+      "city": "Ordos",
+      "state": "China",
+      "country": "China",
+      "population": 1940653
+    }
+  ],
+  "Orenburg": [
+    {
+      "city": "Orenburg",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 564773
+    }
+  ],
+  "Orlando": [
+    {
+      "city": "Orlando",
+      "state": "Florida",
+      "country": "United States"
+    }
+  ],
+  "Orumiyeh": [
+    {
+      "city": "Orumiyeh",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 577307
+    }
+  ],
+  "Osaka": [
+    {
+      "city": "Osaka",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 2753862
+    }
+  ],
+  "Osasco": [
+    {
+      "city": "Osasco",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 728615
+    }
+  ],
+  "Oslo": [
+    {
+      "city": "Oslo",
+      "state": "Norway",
+      "country": "Norway",
+      "population": 1082575
+    }
+  ],
+  "Osogbo": [
+    {
+      "city": "Osogbo",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 645000
+    }
+  ],
+  "Ota": [
+    {
+      "city": "Ota",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 748081
+    }
+  ],
+  "Ottawa": [
+    {
+      "city": "Ottawa",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 1017449
+    }
+  ],
+  "Ouagadougou": [
+    {
+      "city": "Ouagadougou",
+      "state": "Burkina Faso",
+      "country": "Burkina Faso",
+      "population": 2415266
+    }
+  ],
+  "Oxford": [
+    {
+      "city": "Oxford",
+      "state": "United Kingdom",
+      "country": "United Kingdom"
+    }
+  ],
+  "Oyo": [
+    {
+      "city": "Oyo",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 736072
+    }
+  ],
+  "Padang": [
+    {
+      "city": "Padang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 909040
+    }
+  ],
+  "Palembang": [
+    {
+      "city": "Palembang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1668848
+    }
+  ],
+  "Palermo": [
+    {
+      "city": "Palermo",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 648260
+    }
+  ],
+  "Pallabi": [
+    {
+      "city": "Pallabi",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 597574
+    }
+  ],
+  "Palo Alto": [
+    {
+      "city": "Palo Alto",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Panshan": [
+    {
+      "city": "Panshan",
+      "state": "China",
+      "country": "China",
+      "population": 625040
+    }
+  ],
+  "Panzhihua": [
+    {
+      "city": "Panzhihua",
+      "state": "China",
+      "country": "China",
+      "population": 787177
+    }
+  ],
+  "Paranaque City": [
+    {
+      "city": "Paranaque City",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 703245
+    }
+  ],
+  "Paris": [
+    {
+      "city": "Paris",
+      "state": "France",
+      "country": "France",
+      "population": 2138551
+    }
+  ],
+  "Pasig City": [
+    {
+      "city": "Pasig City",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 853050
+    }
+  ],
+  "Patna": [
+    {
+      "city": "Patna",
+      "state": "India",
+      "country": "India",
+      "population": 1684297
+    }
+  ],
+  "Pekanbaru": [
+    {
+      "city": "Pekanbaru",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1085000
+    }
+  ],
+  "Pelentong": [
+    {
+      "city": "Pelentong",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 583640
+    }
+  ],
+  "Perm": [
+    {
+      "city": "Perm",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 982419
+    }
+  ],
+  "Perth": [
+    {
+      "city": "Perth",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 2309338
+    }
+  ],
+  "Peshawar": [
+    {
+      "city": "Peshawar",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 4758762
+    }
+  ],
+  "Petaling Jaya": [
+    {
+      "city": "Petaling Jaya",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 807879
+    }
+  ],
+  "Philadelphia": [
+    {
+      "city": "Philadelphia",
+      "state": "Pennsylvania",
+      "country": "United States",
+      "population": 1573916
+    }
+  ],
+  "Phnom Penh": [
+    {
+      "city": "Phnom Penh",
+      "state": "Cambodia",
+      "country": "Cambodia",
+      "population": 1573544
+    }
+  ],
+  "Phoenix": [
+    {
+      "city": "Phoenix",
+      "state": "Arizona",
+      "country": "United States",
+      "population": 1650070
+    }
+  ],
+  "Pietermaritzburg": [
+    {
+      "city": "Pietermaritzburg",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 839327
+    }
+  ],
+  "Pikine": [
+    {
+      "city": "Pikine",
+      "state": "Senegal",
+      "country": "Senegal",
+      "population": 874062
+    }
+  ],
+  "Pimpri": [
+    {
+      "city": "Pimpri",
+      "state": "India",
+      "country": "India",
+      "population": 1284606
+    }
+  ],
+  "Pimpri-Chinchwad": [
+    {
+      "city": "Pimpri-Chinchwad",
+      "state": "India",
+      "country": "India",
+      "population": 1727692
+    }
+  ],
+  "Pingdingshan": [
+    {
+      "city": "Pingdingshan",
+      "state": "China",
+      "country": "China",
+      "population": 979130
+    }
+  ],
+  "Pingxiang": [
+    {
+      "city": "Pingxiang",
+      "state": "China",
+      "country": "China",
+      "population": 893550
+    }
+  ],
+  "Pittsburgh": [
+    {
+      "city": "Pittsburgh",
+      "state": "Pennsylvania",
+      "country": "United States"
+    }
+  ],
+  "Pointe-Noire": [
+    {
+      "city": "Pointe-Noire",
+      "state": "Republic of the Congo",
+      "country": "Republic of the Congo",
+      "population": 1032000
+    }
+  ],
+  "Pokhara": [
+    {
+      "city": "Pokhara",
+      "state": "Nepal",
+      "country": "Nepal",
+      "population": 600051
+    }
+  ],
+  "Pontianak": [
+    {
+      "city": "Pontianak",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 658685
+    }
+  ],
+  "Port Harcourt": [
+    {
+      "city": "Port Harcourt",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 2120000
+    }
+  ],
+  "Port Said": [
+    {
+      "city": "Port Said",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 780515
+    }
+  ],
+  "Port-au-Prince": [
+    {
+      "city": "Port-au-Prince",
+      "state": "Haiti",
+      "country": "Haiti",
+      "population": 1234742
+    }
+  ],
+  "Portland": [
+    {
+      "city": "Portland",
+      "state": "Oregon",
+      "country": "United States",
+      "population": 652503
+    }
+  ],
+  "Porto": [
+    {
+      "city": "Porto",
+      "state": "Portugal",
+      "country": "Portugal"
+    }
+  ],
+  "Porto Alegre": [
+    {
+      "city": "Porto Alegre",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1488252
+    }
+  ],
+  "Prague": [
+    {
+      "city": "Prague",
+      "state": "Czech Republic",
+      "country": "Czech Republic"
+    },
+    {
+      "city": "Prague",
+      "state": "Czechia",
+      "country": "Czechia",
+      "population": 1165581
+    }
+  ],
+  "Prayagraj": [
+    {
+      "city": "Prayagraj",
+      "state": "India",
+      "country": "India",
+      "population": 1073438
+    }
+  ],
+  "Pretoria": [
+    {
+      "city": "Pretoria",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 2112693
+    }
+  ],
+  "Providence": [
+    {
+      "city": "Providence",
+      "state": "Rhode Island",
+      "country": "United States"
+    }
+  ],
+  "Provo": [
+    {
+      "city": "Provo",
+      "state": "Utah",
+      "country": "United States"
+    }
+  ],
+  "Puducherry": [
+    {
+      "city": "Puducherry",
+      "state": "India",
+      "country": "India",
+      "population": 657209
+    }
+  ],
+  "Puebla": [
+    {
+      "city": "Puebla",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1692181
+    }
+  ],
+  "Puente Alto": [
+    {
+      "city": "Puente Alto",
+      "state": "Chile",
+      "country": "Chile",
+      "population": 568106
+    }
+  ],
+  "Pune": [
+    {
+      "city": "Pune",
+      "state": "India",
+      "country": "India",
+      "population": 3124458
+    }
+  ],
+  "Puning": [
+    {
+      "city": "Puning",
+      "state": "China",
+      "country": "China",
+      "population": 874954
+    }
+  ],
+  "Putian": [
+    {
+      "city": "Putian",
+      "state": "China",
+      "country": "China",
+      "population": 1539389
+    }
+  ],
+  "Puyang": [
+    {
+      "city": "Puyang",
+      "state": "China",
+      "country": "China",
+      "population": 3590000
+    }
+  ],
+  "Pyongyang": [
+    {
+      "city": "Pyongyang",
+      "state": "North Korea",
+      "country": "North Korea",
+      "population": 3222000
+    }
+  ],
+  "Qingdao": [
+    {
+      "city": "Qingdao",
+      "state": "China",
+      "country": "China",
+      "population": 7172451
+    }
+  ],
+  "Qingyang": [
+    {
+      "city": "Qingyang",
+      "state": "China",
+      "country": "China",
+      "population": 2125400
+    }
+  ],
+  "Qingyuan": [
+    {
+      "city": "Qingyuan",
+      "state": "China",
+      "country": "China",
+      "population": 1738424
+    }
+  ],
+  "Qinhuangdao": [
+    {
+      "city": "Qinhuangdao",
+      "state": "China",
+      "country": "China",
+      "population": 759718
+    }
+  ],
+  "Qinzhou": [
+    {
+      "city": "Qinzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1296300
+    }
+  ],
+  "Qiqihar": [
+    {
+      "city": "Qiqihar",
+      "state": "China",
+      "country": "China",
+      "population": 882364
+    }
+  ],
+  "Qom": [
+    {
+      "city": "Qom",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 900000
+    }
+  ],
+  "Quanzhou": [
+    {
+      "city": "Quanzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1469157
+    }
+  ],
+  "Queens": [
+    {
+      "city": "Queens",
+      "state": "New York",
+      "country": "United States",
+      "population": 2316841
+    }
+  ],
+  "Quetta": [
+    {
+      "city": "Quetta",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 1565546
+    }
+  ],
+  "Quezon City": [
+    {
+      "city": "Quezon City",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 3084270
+    }
+  ],
+  "Quito": [
+    {
+      "city": "Quito",
+      "state": "Ecuador",
+      "country": "Ecuador",
+      "population": 2781641
+    }
+  ],
+  "Qujing": [
+    {
+      "city": "Qujing",
+      "state": "China",
+      "country": "China",
+      "population": 1408500
+    }
+  ],
+  "Quzhou": [
+    {
+      "city": "Quzhou",
+      "state": "China",
+      "country": "China",
+      "population": 902767
+    }
+  ],
+  "Ra's Bayrut": [
+    {
+      "city": "Ra's Bayrut",
+      "state": "Lebanon",
+      "country": "Lebanon",
+      "population": 1251739
+    }
+  ],
+  "Rabat": [
+    {
+      "city": "Rabat",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 1655753
+    }
+  ],
+  "Raipur": [
+    {
+      "city": "Raipur",
+      "state": "India",
+      "country": "India",
+      "population": 1027264
+    }
+  ],
+  "Rajkot": [
+    {
+      "city": "Rajkot",
+      "state": "India",
+      "country": "India",
+      "population": 1390640
+    }
+  ],
+  "Rajshahi": [
+    {
+      "city": "Rajshahi",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 763580
+    }
+  ],
+  "Raleigh": [
+    {
+      "city": "Raleigh",
+      "state": "North Carolina",
+      "country": "United States"
+    }
+  ],
+  "Ranchi": [
+    {
+      "city": "Ranchi",
+      "state": "India",
+      "country": "India",
+      "population": 1120374
+    }
+  ],
+  "Rangpur": [
+    {
+      "city": "Rangpur",
+      "state": "Bangladesh",
+      "country": "Bangladesh",
+      "population": 1031388
+    }
+  ],
+  "Rasapudipalem": [
+    {
+      "city": "Rasapudipalem",
+      "state": "India",
+      "country": "India",
+      "population": 1728128
+    }
+  ],
+  "Rasht": [
+    {
+      "city": "Rasht",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 594590
+    }
+  ],
+  "Rawalpindi": [
+    {
+      "city": "Rawalpindi",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 3357612
+    }
+  ],
+  "Recife": [
+    {
+      "city": "Recife",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 1653461
+    }
+  ],
+  "Redmond": [
+    {
+      "city": "Redmond",
+      "state": "Washington",
+      "country": "United States"
+    }
+  ],
+  "Redwood City": [
+    {
+      "city": "Redwood City",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Remote": [
+    {
+      "city": "Remote",
+      "state": "Remote",
+      "country": "United States",
+      "aliases": [
+        "remote only",
+        "fully remote",
+        "remote - us only",
+        "remote, us",
+        "remote (us only)",
+        "remote us",
+        "us remote",
+        "remote usa",
+        "remote united states",
+        "remote (us)",
+        "remote - usa"
+      ],
+      "remoteOnly": true
+    }
+  ],
+  "Reynosa": [
+    {
+      "city": "Reynosa",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 589466
+    }
+  ],
+  "Ribeirao Preto": [
+    {
+      "city": "Ribeirao Preto",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 711825
+    }
+  ],
+  "Richmond": [
+    {
+      "city": "Richmond",
+      "state": "Virginia",
+      "country": "United States"
+    }
+  ],
+  "Riga": [
+    {
+      "city": "Riga",
+      "state": "Latvia",
+      "country": "Latvia",
+      "population": 742572
+    }
+  ],
+  "Rio de Janeiro": [
+    {
+      "city": "Rio de Janeiro",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 6747815
+    }
+  ],
+  "Riyadh": [
+    {
+      "city": "Riyadh",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 4205961
+    }
+  ],
+  "Rizhao": [
+    {
+      "city": "Rizhao",
+      "state": "China",
+      "country": "China",
+      "population": 661943
+    }
+  ],
+  "Rohini": [
+    {
+      "city": "Rohini",
+      "state": "India",
+      "country": "India",
+      "population": 860000
+    }
+  ],
+  "Rome": [
+    {
+      "city": "Rome",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 2318895
+    }
+  ],
+  "Rosario": [
+    {
+      "city": "Rosario",
+      "state": "Argentina",
+      "country": "Argentina",
+      "population": 948312
+    }
+  ],
+  "Rostov-na-Donu": [
+    {
+      "city": "Rostov-na-Donu",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1130305
+    }
+  ],
+  "Rotterdam": [
+    {
+      "city": "Rotterdam",
+      "state": "Netherlands",
+      "country": "Netherlands"
+    },
+    {
+      "city": "Rotterdam",
+      "state": "The Netherlands",
+      "country": "The Netherlands",
+      "population": 868135
+    }
+  ],
+  "Rui'an": [
+    {
+      "city": "Rui'an",
+      "state": "China",
+      "country": "China",
+      "population": 927383
+    }
+  ],
+  "Sacramento": [
+    {
+      "city": "Sacramento",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Sagamihara": [
+    {
+      "city": "Sagamihara",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 720780
+    }
+  ],
+  "Saint Petersburg": [
+    {
+      "city": "Saint Petersburg",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 5351935
+    }
+  ],
+  "Saitama": [
+    {
+      "city": "Saitama",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1324854
+    }
+  ],
+  "Sakai": [
+    {
+      "city": "Sakai",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 826161
+    }
+  ],
+  "Sale": [
+    {
+      "city": "Sale",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 972299
+    }
+  ],
+  "Salem": [
+    {
+      "city": "Salem",
+      "state": "India",
+      "country": "India",
+      "population": 917414
+    }
+  ],
+  "Salt Lake City": [
+    {
+      "city": "Salt Lake City",
+      "state": "Utah",
+      "country": "United States"
+    }
+  ],
+  "Saltillo": [
+    {
+      "city": "Saltillo",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 709671
+    }
+  ],
+  "Salvador": [
+    {
+      "city": "Salvador",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 2711840
+    }
+  ],
+  "Samara": [
+    {
+      "city": "Samara",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1163399
+    }
+  ],
+  "Samarinda": [
+    {
+      "city": "Samarinda",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 831460
+    }
+  ],
+  "Samarkand": [
+    {
+      "city": "Samarkand",
+      "state": "Uzbekistan",
+      "country": "Uzbekistan",
+      "population": 595200
+    }
+  ],
+  "San Antonio": [
+    {
+      "city": "San Antonio",
+      "state": "Texas",
+      "country": "United States",
+      "population": 1526656
+    }
+  ],
+  "San Diego": [
+    {
+      "city": "San Diego",
+      "state": "California",
+      "country": "United States",
+      "population": 1404452
+    }
+  ],
+  "San Francisco": [
+    {
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States",
+      "aliases": [
+        "bay area",
+        "sf"
+      ],
+      "population": 827526
+    }
+  ],
+  "San Jose": [
+    {
+      "city": "San Jose",
+      "state": "California",
+      "country": "United States",
+      "aliases": [
+        "silicon valley"
+      ],
+      "population": 997368
+    }
+  ],
+  "San Luis Potosi": [
+    {
+      "city": "San Luis Potosi",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 722772
+    }
+  ],
+  "San Pedro Sula": [
+    {
+      "city": "San Pedro Sula",
+      "state": "Honduras",
+      "country": "Honduras",
+      "population": 801259
+    }
+  ],
+  "Sanaa": [
+    {
+      "city": "Sanaa",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 1937451
+    }
+  ],
+  "Sangli": [
+    {
+      "city": "Sangli",
+      "state": "India",
+      "country": "India",
+      "population": 601214
+    }
+  ],
+  "Sanhe": [
+    {
+      "city": "Sanhe",
+      "state": "China",
+      "country": "China",
+      "population": 965075
+    }
+  ],
+  "Sanmenxia": [
+    {
+      "city": "Sanmenxia",
+      "state": "China",
+      "country": "China",
+      "population": 669307
+    }
+  ],
+  "Sanming": [
+    {
+      "city": "Sanming",
+      "state": "China",
+      "country": "China",
+      "population": 602166
+    }
+  ],
+  "Santa Cruz de la Sierra": [
+    {
+      "city": "Santa Cruz de la Sierra",
+      "state": "Bolivia",
+      "country": "Bolivia",
+      "population": 1831434
+    }
+  ],
+  "Santiago": [
+    {
+      "city": "Santiago",
+      "state": "Chile",
+      "country": "Chile",
+      "population": 4837295
+    }
+  ],
+  "Santiago de Cuba": [
+    {
+      "city": "Santiago de Cuba",
+      "state": "Cuba",
+      "country": "Cuba",
+      "population": 555865
+    }
+  ],
+  "Santiago de los Caballeros": [
+    {
+      "city": "Santiago de los Caballeros",
+      "state": "Dominican Republic",
+      "country": "Dominican Republic",
+      "population": 1200000
+    }
+  ],
+  "Santiago de Queretaro": [
+    {
+      "city": "Santiago de Queretaro",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1594212
+    }
+  ],
+  "Santo Andre": [
+    {
+      "city": "Santo Andre",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 662373
+    }
+  ],
+  "Santo Domingo": [
+    {
+      "city": "Santo Domingo",
+      "state": "Dominican Republic",
+      "country": "Dominican Republic",
+      "population": 2201941
+    }
+  ],
+  "Santo Domingo Este": [
+    {
+      "city": "Santo Domingo Este",
+      "state": "Dominican Republic",
+      "country": "Dominican Republic",
+      "population": 700000
+    }
+  ],
+  "Santo Domingo Oeste": [
+    {
+      "city": "Santo Domingo Oeste",
+      "state": "Dominican Republic",
+      "country": "Dominican Republic",
+      "population": 701269
+    }
+  ],
+  "Sanya": [
+    {
+      "city": "Sanya",
+      "state": "China",
+      "country": "China",
+      "population": 1031396
+    }
+  ],
+  "Sao Bernardo do Campo": [
+    {
+      "city": "Sao Bernardo do Campo",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 743372
+    }
+  ],
+  "Sao Jose dos Campos": [
+    {
+      "city": "Sao Jose dos Campos",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 729737
+    }
+  ],
+  "Sao Luis": [
+    {
+      "city": "Sao Luis",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 917237
+    }
+  ],
+  "Sao Paulo": [
+    {
+      "city": "Sao Paulo",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 12400232
+    }
+  ],
+  "Sapporo": [
+    {
+      "city": "Sapporo",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1973832
+    }
+  ],
+  "Sarajevo": [
+    {
+      "city": "Sarajevo",
+      "state": "Bosnia and Herzegovina",
+      "country": "Bosnia and Herzegovina",
+      "population": 696731
+    }
+  ],
+  "Saratov": [
+    {
+      "city": "Saratov",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 844858
+    }
+  ],
+  "Sargodha": [
+    {
+      "city": "Sargodha",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 975886
+    }
+  ],
+  "Scottsdale": [
+    {
+      "city": "Scottsdale",
+      "state": "Arizona",
+      "country": "United States"
+    }
+  ],
+  "Seattle": [
+    {
+      "city": "Seattle",
+      "state": "Washington",
+      "country": "United States",
+      "population": 780995
+    }
+  ],
+  "Semarang": [
+    {
+      "city": "Semarang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1653524
+    }
+  ],
+  "Sendai": [
+    {
+      "city": "Sendai",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 1096704
+    }
+  ],
+  "Seongnam-si": [
+    {
+      "city": "Seongnam-si",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 914832
+    }
+  ],
+  "Seoul": [
+    {
+      "city": "Seoul",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 10349312
+    }
+  ],
+  "Serang": [
+    {
+      "city": "Serang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 692101
+    }
+  ],
+  "Setagaya": [
+    {
+      "city": "Setagaya",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 940071
+    }
+  ],
+  "Sevilla": [
+    {
+      "city": "Sevilla",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 686741
+    }
+  ],
+  "Shah Alam": [
+    {
+      "city": "Shah Alam",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 740750
+    }
+  ],
+  "Shanghai": [
+    {
+      "city": "Shanghai",
+      "state": "China",
+      "country": "China",
+      "population": 24874500
+    }
+  ],
+  "Shangqiu": [
+    {
+      "city": "Shangqiu",
+      "state": "China",
+      "country": "China",
+      "population": 1536392
+    }
+  ],
+  "Shangrao": [
+    {
+      "city": "Shangrao",
+      "state": "China",
+      "country": "China",
+      "population": 1116486
+    }
+  ],
+  "Shangyu": [
+    {
+      "city": "Shangyu",
+      "state": "China",
+      "country": "China",
+      "population": 770000
+    }
+  ],
+  "Shantou": [
+    {
+      "city": "Shantou",
+      "state": "China",
+      "country": "China",
+      "population": 3838900
+    }
+  ],
+  "Shaoguan": [
+    {
+      "city": "Shaoguan",
+      "state": "China",
+      "country": "China",
+      "population": 1028460
+    }
+  ],
+  "Shaoxing": [
+    {
+      "city": "Shaoxing",
+      "state": "China",
+      "country": "China",
+      "population": 2300000
+    }
+  ],
+  "Shaoyang": [
+    {
+      "city": "Shaoyang",
+      "state": "China",
+      "country": "China",
+      "population": 753194
+    }
+  ],
+  "Sharjah": [
+    {
+      "city": "Sharjah",
+      "state": "United Arab Emirates",
+      "country": "United Arab Emirates",
+      "population": 1800000
+    }
+  ],
+  "Sheffield": [
+    {
+      "city": "Sheffield",
+      "state": "United Kingdom",
+      "country": "United Kingdom",
+      "population": 556500
+    }
+  ],
+  "Shekhupura": [
+    {
+      "city": "Shekhupura",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 591424
+    }
+  ],
+  "Shenyang": [
+    {
+      "city": "Shenyang",
+      "state": "China",
+      "country": "China",
+      "population": 7050000
+    }
+  ],
+  "Shenzhen": [
+    {
+      "city": "Shenzhen",
+      "state": "China",
+      "country": "China",
+      "population": 17494398
+    }
+  ],
+  "Shihezi": [
+    {
+      "city": "Shihezi",
+      "state": "China",
+      "country": "China",
+      "population": 572772
+    }
+  ],
+  "Shijiazhuang": [
+    {
+      "city": "Shijiazhuang",
+      "state": "China",
+      "country": "China",
+      "population": 3938513
+    }
+  ],
+  "Shiraz": [
+    {
+      "city": "Shiraz",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 1249942
+    }
+  ],
+  "Shivaji Nagar": [
+    {
+      "city": "Shivaji Nagar",
+      "state": "India",
+      "country": "India",
+      "population": 1000000
+    }
+  ],
+  "Shiyan": [
+    {
+      "city": "Shiyan",
+      "state": "China",
+      "country": "China",
+      "population": 3460000
+    }
+  ],
+  "Shizuishan": [
+    {
+      "city": "Shizuishan",
+      "state": "China",
+      "country": "China",
+      "population": 739400
+    }
+  ],
+  "Shizuoka": [
+    {
+      "city": "Shizuoka",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 693389
+    }
+  ],
+  "Sholapur": [
+    {
+      "city": "Sholapur",
+      "state": "India",
+      "country": "India",
+      "population": 997281
+    }
+  ],
+  "Shuangyashan": [
+    {
+      "city": "Shuangyashan",
+      "state": "China",
+      "country": "China",
+      "population": 600000
+    }
+  ],
+  "Shubra al Khaymah": [
+    {
+      "city": "Shubra al Khaymah",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 1240289
+    }
+  ],
+  "Shymkent": [
+    {
+      "city": "Shymkent",
+      "state": "Kazakhstan",
+      "country": "Kazakhstan",
+      "population": 1200000
+    }
+  ],
+  "Sialkot": [
+    {
+      "city": "Sialkot",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 911817
+    }
+  ],
+  "Singapore": [
+    {
+      "city": "Singapore",
+      "state": "Singapore",
+      "country": "Singapore",
+      "population": 5638700
+    }
+  ],
+  "Siping": [
+    {
+      "city": "Siping",
+      "state": "China",
+      "country": "China",
+      "population": 555609
+    }
+  ],
+  "Situbondo": [
+    {
+      "city": "Situbondo",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 685967
+    }
+  ],
+  "Soacha": [
+    {
+      "city": "Soacha",
+      "state": "Colombia",
+      "country": "Colombia",
+      "population": 655025
+    }
+  ],
+  "Sofia": [
+    {
+      "city": "Sofia",
+      "state": "Bulgaria",
+      "country": "Bulgaria",
+      "population": 1152556
+    }
+  ],
+  "Sokoto": [
+    {
+      "city": "Sokoto",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 1040000
+    }
+  ],
+  "Sorocaba": [
+    {
+      "city": "Sorocaba",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 687357
+    }
+  ],
+  "Soshanguve": [
+    {
+      "city": "Soshanguve",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 872309
+    }
+  ],
+  "South Boston": [
+    {
+      "city": "South Boston",
+      "state": "Massachusetts",
+      "country": "United States",
+      "population": 571281
+    }
+  ],
+  "South Tangerang": [
+    {
+      "city": "South Tangerang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1404785
+    }
+  ],
+  "Soweto": [
+    {
+      "city": "Soweto",
+      "state": "South Africa",
+      "country": "South Africa",
+      "population": 1695047
+    }
+  ],
+  "Srinagar": [
+    {
+      "city": "Srinagar",
+      "state": "India",
+      "country": "India",
+      "population": 1206419
+    }
+  ],
+  "St. Louis": [
+    {
+      "city": "St. Louis",
+      "state": "Missouri",
+      "country": "United States"
+    }
+  ],
+  "Stockholm": [
+    {
+      "city": "Stockholm",
+      "state": "Sweden",
+      "country": "Sweden",
+      "population": 1515017
+    }
+  ],
+  "Stuttgart": [
+    {
+      "city": "Stuttgart",
+      "state": "Germany",
+      "country": "Germany",
+      "population": 630305
+    }
+  ],
+  "Subang Jaya": [
+    {
+      "city": "Subang Jaya",
+      "state": "Malaysia",
+      "country": "Malaysia",
+      "population": 708296
+    }
+  ],
+  "Suez": [
+    {
+      "city": "Suez",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 699541
+    }
+  ],
+  "Suginami": [
+    {
+      "city": "Suginami",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 588354
+    }
+  ],
+  "Suining": [
+    {
+      "city": "Suining",
+      "state": "China",
+      "country": "China",
+      "population": 656760
+    }
+  ],
+  "Suizhou": [
+    {
+      "city": "Suizhou",
+      "state": "China",
+      "country": "China",
+      "population": 618582
+    }
+  ],
+  "Sukkur": [
+    {
+      "city": "Sukkur",
+      "state": "Pakistan",
+      "country": "Pakistan",
+      "population": 563851
+    }
+  ],
+  "Sulaymaniyah": [
+    {
+      "city": "Sulaymaniyah",
+      "state": "Iraq",
+      "country": "Iraq",
+      "population": 878146
+    }
+  ],
+  "Sultanah": [
+    {
+      "city": "Sultanah",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 946697
+    }
+  ],
+  "Sunnyvale": [
+    {
+      "city": "Sunnyvale",
+      "state": "California",
+      "country": "United States"
+    }
+  ],
+  "Suqian": [
+    {
+      "city": "Suqian",
+      "state": "China",
+      "country": "China",
+      "population": 1437685
+    }
+  ],
+  "Surabaya": [
+    {
+      "city": "Surabaya",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 2874314
+    }
+  ],
+  "Surat": [
+    {
+      "city": "Surat",
+      "state": "India",
+      "country": "India",
+      "population": 4591246
+    }
+  ],
+  "Surrey": [
+    {
+      "city": "Surrey",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 568322
+    }
+  ],
+  "Suwon": [
+    {
+      "city": "Suwon",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1191063
+    }
+  ],
+  "Suzhou": [
+    {
+      "city": "Suzhou",
+      "state": "China",
+      "country": "China",
+      "population": 6715559
+    }
+  ],
+  "Sydney": [
+    {
+      "city": "Sydney",
+      "state": "Australia",
+      "country": "Australia",
+      "population": 5557233
+    }
+  ],
+  "Ta'if": [
+    {
+      "city": "Ta'if",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 688693
+    }
+  ],
+  "Tabriz": [
+    {
+      "city": "Tabriz",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 1424641
+    }
+  ],
+  "Tabuk": [
+    {
+      "city": "Tabuk",
+      "state": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "population": 667000
+    }
+  ],
+  "Taguig": [
+    {
+      "city": "Taguig",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1308085
+    }
+  ],
+  "Tai'an": [
+    {
+      "city": "Tai'an",
+      "state": "China",
+      "country": "China",
+      "population": 1735425
+    }
+  ],
+  "Taicang": [
+    {
+      "city": "Taicang",
+      "state": "China",
+      "country": "China",
+      "population": 831113
+    }
+  ],
+  "Taichung": [
+    {
+      "city": "Taichung",
+      "state": "Taiwan",
+      "country": "Taiwan",
+      "population": 2850285
+    }
+  ],
+  "Tainan": [
+    {
+      "city": "Tainan",
+      "state": "Taiwan",
+      "country": "Taiwan",
+      "population": 1856642
+    }
+  ],
+  "Taipei": [
+    {
+      "city": "Taipei",
+      "state": "Taiwan",
+      "country": "Taiwan",
+      "population": 7871900
+    }
+  ],
+  "Taiyuan": [
+    {
+      "city": "Taiyuan",
+      "state": "China",
+      "country": "China",
+      "population": 4303673
+    }
+  ],
+  "Taiz": [
+    {
+      "city": "Taiz",
+      "state": "Yemen",
+      "country": "Yemen",
+      "population": 940600
+    }
+  ],
+  "Taizhou": [
+    {
+      "city": "Taizhou",
+      "state": "China",
+      "country": "China",
+      "population": 1607108
+    }
+  ],
+  "Takeo": [
+    {
+      "city": "Takeo",
+      "state": "Cambodia",
+      "country": "Cambodia",
+      "population": 843931
+    }
+  ],
+  "Tampa": [
+    {
+      "city": "Tampa",
+      "state": "Florida",
+      "country": "United States"
+    }
+  ],
+  "Tangerang": [
+    {
+      "city": "Tangerang",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 1912679
+    }
+  ],
+  "Tangier": [
+    {
+      "city": "Tangier",
+      "state": "Morocco",
+      "country": "Morocco",
+      "population": 1035141
+    }
+  ],
+  "Tangshan": [
+    {
+      "city": "Tangshan",
+      "state": "China",
+      "country": "China",
+      "population": 3372102
+    }
+  ],
+  "Tanta": [
+    {
+      "city": "Tanta",
+      "state": "Egypt",
+      "country": "Egypt",
+      "population": 576648
+    }
+  ],
+  "Tashkent": [
+    {
+      "city": "Tashkent",
+      "state": "Uzbekistan",
+      "country": "Uzbekistan",
+      "population": 1978028
+    }
+  ],
+  "Tasikmalaya": [
+    {
+      "city": "Tasikmalaya",
+      "state": "Indonesia",
+      "country": "Indonesia",
+      "population": 741760
+    }
+  ],
+  "Tbilisi": [
+    {
+      "city": "Tbilisi",
+      "state": "Georgia",
+      "country": "Georgia",
+      "population": 1049498
+    }
+  ],
+  "Tegucigalpa": [
+    {
+      "city": "Tegucigalpa",
+      "state": "Honduras",
+      "country": "Honduras",
+      "population": 850848
+    }
+  ],
+  "Tehran": [
+    {
+      "city": "Tehran",
+      "state": "Iran",
+      "country": "Iran",
+      "population": 7153309
+    }
+  ],
+  "Tel Aviv": [
+    {
+      "city": "Tel Aviv",
+      "state": "Israel",
+      "country": "Israel"
+    }
+  ],
+  "Tempe": [
+    {
+      "city": "Tempe",
+      "state": "Arizona",
+      "country": "United States"
+    }
+  ],
+  "Teni": [
+    {
+      "city": "Teni",
+      "state": "India",
+      "country": "India",
+      "population": 1034724
+    }
+  ],
+  "Teresina": [
+    {
+      "city": "Teresina",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 871126
+    }
+  ],
+  "Thane": [
+    {
+      "city": "Thane",
+      "state": "India",
+      "country": "India",
+      "population": 1841488
+    }
+  ],
+  "Thanh Hoa": [
+    {
+      "city": "Thanh Hoa",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 850000
+    }
+  ],
+  "The Bronx": [
+    {
+      "city": "The Bronx",
+      "state": "New York",
+      "country": "United States",
+      "population": 1385108
+    }
+  ],
+  "Thiruvananthapuram": [
+    {
+      "city": "Thiruvananthapuram",
+      "state": "India",
+      "country": "India",
+      "population": 788271
+    }
+  ],
+  "Thuan An": [
+    {
+      "city": "Thuan An",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 588616
+    }
+  ],
+  "Tianjin": [
+    {
+      "city": "Tianjin",
+      "state": "China",
+      "country": "China",
+      "population": 11090314
+    }
+  ],
+  "Tianshui": [
+    {
+      "city": "Tianshui",
+      "state": "China",
+      "country": "China",
+      "population": 1212791
+    }
+  ],
+  "Tijuana": [
+    {
+      "city": "Tijuana",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1922523
+    }
+  ],
+  "Tiruchirappalli": [
+    {
+      "city": "Tiruchirappalli",
+      "state": "India",
+      "country": "India",
+      "population": 1022518
+    }
+  ],
+  "Tirunelveli": [
+    {
+      "city": "Tirunelveli",
+      "state": "India",
+      "country": "India",
+      "population": 1435844
+    }
+  ],
+  "Tiruppur": [
+    {
+      "city": "Tiruppur",
+      "state": "India",
+      "country": "India",
+      "population": 963173
+    }
+  ],
+  "Tlalnepantla": [
+    {
+      "city": "Tlalnepantla",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 653410
+    }
+  ],
+  "Tlalpan": [
+    {
+      "city": "Tlalpan",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 574577
+    }
+  ],
+  "Tlaquepaque": [
+    {
+      "city": "Tlaquepaque",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 650123
+    }
+  ],
+  "Tokyo": [
+    {
+      "city": "Tokyo",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 9733276
+    }
+  ],
+  "Tolyatti": [
+    {
+      "city": "Tolyatti",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 702879
+    }
+  ],
+  "Tomsk": [
+    {
+      "city": "Tomsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 574002
+    }
+  ],
+  "Toronto": [
+    {
+      "city": "Toronto",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 2794356
+    }
+  ],
+  "Torreon": [
+    {
+      "city": "Torreon",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 735340
+    }
+  ],
+  "Touba": [
+    {
+      "city": "Touba",
+      "state": "Senegal",
+      "country": "Senegal",
+      "population": 1120824
+    }
+  ],
+  "Tripoli": [
+    {
+      "city": "Tripoli",
+      "state": "Libya",
+      "country": "Libya",
+      "population": 1302947
+    }
+  ],
+  "Trujillo": [
+    {
+      "city": "Trujillo",
+      "state": "Peru",
+      "country": "Peru",
+      "population": 919899
+    }
+  ],
+  "Tshikapa": [
+    {
+      "city": "Tshikapa",
+      "state": "Democratic Republic of the Congo",
+      "country": "Democratic Republic of the Congo",
+      "population": 634529
+    }
+  ],
+  "Tunis": [
+    {
+      "city": "Tunis",
+      "state": "Tunisia",
+      "country": "Tunisia",
+      "population": 693210
+    }
+  ],
+  "Turin": [
+    {
+      "city": "Turin",
+      "state": "Italy",
+      "country": "Italy",
+      "population": 847287
+    }
+  ],
+  "Tuxtla": [
+    {
+      "city": "Tuxtla",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 604147
+    }
+  ],
+  "Tyumen": [
+    {
+      "city": "Tyumen",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 768358
+    }
+  ],
+  "Uberlandia": [
+    {
+      "city": "Uberlandia",
+      "state": "Brazil",
+      "country": "Brazil",
+      "population": 563536
+    }
+  ],
+  "UEruemqi": [
+    {
+      "city": "UEruemqi",
+      "state": "China",
+      "country": "China",
+      "population": 3029372
+    }
+  ],
+  "Ufa": [
+    {
+      "city": "Ufa",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1120547
+    }
+  ],
+  "Ulan Bator": [
+    {
+      "city": "Ulan Bator",
+      "state": "Mongolia",
+      "country": "Mongolia",
+      "population": 844818
+    }
+  ],
+  "Ulsan": [
+    {
+      "city": "Ulsan",
+      "state": "South Korea",
+      "country": "South Korea",
+      "population": 1095014
+    }
+  ],
+  "Ulyanovsk": [
+    {
+      "city": "Ulyanovsk",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 626540
+    }
+  ],
+  "Umraniye": [
+    {
+      "city": "Umraniye",
+      "state": "Turkey",
+      "country": "Turkey",
+      "population": 573265
+    }
+  ],
+  "Vadodara": [
+    {
+      "city": "Vadodara",
+      "state": "India",
+      "country": "India",
+      "population": 1822221
+    }
+  ],
+  "Valencia": [
+    {
+      "city": "Valencia",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 824340
+    },
+    {
+      "city": "Valencia",
+      "state": "Venezuela",
+      "country": "Venezuela",
+      "population": 1619470
+    }
+  ],
+  "Valenzuela": [
+    {
+      "city": "Valenzuela",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 725173
+    }
+  ],
+  "Vancouver": [
+    {
+      "city": "Vancouver",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 662248
+    }
+  ],
+  "Varanasi": [
+    {
+      "city": "Varanasi",
+      "state": "India",
+      "country": "India",
+      "population": 1164404
+    }
+  ],
+  "Victoria": [
+    {
+      "city": "Victoria",
+      "state": "Hong Kong",
+      "country": "Hong Kong",
+      "population": 956800
+    }
+  ],
+  "Vienna": [
+    {
+      "city": "Vienna",
+      "state": "Austria",
+      "country": "Austria",
+      "population": 1691468
+    }
+  ],
+  "Vijayawada": [
+    {
+      "city": "Vijayawada",
+      "state": "India",
+      "country": "India",
+      "population": 1143232
+    }
+  ],
+  "Villa Nueva": [
+    {
+      "city": "Villa Nueva",
+      "state": "Guatemala",
+      "country": "Guatemala",
+      "population": 618397
+    }
+  ],
+  "Vinh": [
+    {
+      "city": "Vinh",
+      "state": "Vietnam",
+      "country": "Vietnam",
+      "population": 790000
+    }
+  ],
+  "Virar": [
+    {
+      "city": "Virar",
+      "state": "India",
+      "country": "India",
+      "population": 1222390
+    }
+  ],
+  "Visakhapatnam": [
+    {
+      "city": "Visakhapatnam",
+      "state": "India",
+      "country": "India",
+      "population": 1063178
+    }
+  ],
+  "Vladivostok": [
+    {
+      "city": "Vladivostok",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 604901
+    }
+  ],
+  "Volgograd": [
+    {
+      "city": "Volgograd",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1013533
+    }
+  ],
+  "Voronezh": [
+    {
+      "city": "Voronezh",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1047549
+    }
+  ],
+  "Wanxian": [
+    {
+      "city": "Wanxian",
+      "state": "China",
+      "country": "China",
+      "population": 859662
+    }
+  ],
+  "Wanzhou": [
+    {
+      "city": "Wanzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1545900
+    }
+  ],
+  "Warangal": [
+    {
+      "city": "Warangal",
+      "state": "India",
+      "country": "India",
+      "population": 704570
+    }
+  ],
+  "Warri": [
+    {
+      "city": "Warri",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 910000
+    }
+  ],
+  "Warsaw": [
+    {
+      "city": "Warsaw",
+      "state": "Poland",
+      "country": "Poland",
+      "population": 1702139
+    }
+  ],
+  "Washington": [
+    {
+      "city": "Washington",
+      "state": "District of Columbia",
+      "country": "United States",
+      "aliases": [
+        "dc",
+        "washington dc",
+        "washington, dc"
+      ],
+      "population": 689545
+    }
+  ],
+  "Waterloo": [
+    {
+      "city": "Waterloo",
+      "state": "Canada",
+      "country": "Canada"
+    }
+  ],
+  "Weifang": [
+    {
+      "city": "Weifang",
+      "state": "China",
+      "country": "China",
+      "population": 2044028
+    }
+  ],
+  "Weihai": [
+    {
+      "city": "Weihai",
+      "state": "China",
+      "country": "China",
+      "population": 844310
+    }
+  ],
+  "Weinan": [
+    {
+      "city": "Weinan",
+      "state": "China",
+      "country": "China",
+      "population": 1199290
+    }
+  ],
+  "Wellington": [
+    {
+      "city": "Wellington",
+      "state": "New Zealand",
+      "country": "New Zealand"
+    }
+  ],
+  "Wenchang": [
+    {
+      "city": "Wenchang",
+      "state": "China",
+      "country": "China",
+      "population": 560894
+    }
+  ],
+  "Wenzhou": [
+    {
+      "city": "Wenzhou",
+      "state": "China",
+      "country": "China",
+      "population": 2650000
+    }
+  ],
+  "Winnipeg": [
+    {
+      "city": "Winnipeg",
+      "state": "Canada",
+      "country": "Canada",
+      "population": 749607
+    }
+  ],
+  "Wroclaw": [
+    {
+      "city": "Wroclaw",
+      "state": "Poland",
+      "country": "Poland",
+      "population": 672545
+    }
+  ],
+  "Wuhan": [
+    {
+      "city": "Wuhan",
+      "state": "China",
+      "country": "China",
+      "population": 10392693
+    }
+  ],
+  "Wuhu": [
+    {
+      "city": "Wuhu",
+      "state": "China",
+      "country": "China",
+      "population": 1598165
+    }
+  ],
+  "Wuwei": [
+    {
+      "city": "Wuwei",
+      "state": "China",
+      "country": "China",
+      "population": 1010295
+    }
+  ],
+  "Wuxi": [
+    {
+      "city": "Wuxi",
+      "state": "China",
+      "country": "China",
+      "population": 4396835
+    }
+  ],
+  "Wuzhou": [
+    {
+      "city": "Wuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 761948
+    }
+  ],
+  "Xi'an": [
+    {
+      "city": "Xi'an",
+      "state": "China",
+      "country": "China",
+      "population": 9600000
+    }
+  ],
+  "Xiamen": [
+    {
+      "city": "Xiamen",
+      "state": "China",
+      "country": "China",
+      "population": 4617251
+    }
+  ],
+  "Xiangtan": [
+    {
+      "city": "Xiangtan",
+      "state": "China",
+      "country": "China",
+      "population": 959303
+    }
+  ],
+  "Xiangyang": [
+    {
+      "city": "Xiangyang",
+      "state": "China",
+      "country": "China",
+      "population": 1294733
+    }
+  ],
+  "Xianyang": [
+    {
+      "city": "Xianyang",
+      "state": "China",
+      "country": "China",
+      "population": 1034081
+    }
+  ],
+  "Xiaogan": [
+    {
+      "city": "Xiaogan",
+      "state": "China",
+      "country": "China",
+      "population": 908266
+    }
+  ],
+  "Xingtai": [
+    {
+      "city": "Xingtai",
+      "state": "China",
+      "country": "China",
+      "population": 798770
+    }
+  ],
+  "Xining": [
+    {
+      "city": "Xining",
+      "state": "China",
+      "country": "China",
+      "population": 1677177
+    }
+  ],
+  "Xinxiang": [
+    {
+      "city": "Xinxiang",
+      "state": "China",
+      "country": "China",
+      "population": 1047088
+    }
+  ],
+  "Xinyang": [
+    {
+      "city": "Xinyang",
+      "state": "China",
+      "country": "China",
+      "population": 1230042
+    }
+  ],
+  "Xinyu": [
+    {
+      "city": "Xinyu",
+      "state": "China",
+      "country": "China",
+      "population": 839488
+    }
+  ],
+  "Xuancheng": [
+    {
+      "city": "Xuancheng",
+      "state": "China",
+      "country": "China",
+      "population": 774332
+    }
+  ],
+  "Xuchang": [
+    {
+      "city": "Xuchang",
+      "state": "China",
+      "country": "China",
+      "population": 1265536
+    }
+  ],
+  "Xuzhou": [
+    {
+      "city": "Xuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1253991
+    }
+  ],
+  "Ya'an": [
+    {
+      "city": "Ya'an",
+      "state": "China",
+      "country": "China",
+      "population": 612056
+    }
+  ],
+  "Yancheng": [
+    {
+      "city": "Yancheng",
+      "state": "China",
+      "country": "China",
+      "population": 1615717
+    }
+  ],
+  "Yangjiang": [
+    {
+      "city": "Yangjiang",
+      "state": "China",
+      "country": "China",
+      "population": 1292987
+    }
+  ],
+  "Yangon": [
+    {
+      "city": "Yangon",
+      "state": "Myanmar",
+      "country": "Myanmar",
+      "population": 4477638
+    }
+  ],
+  "Yangquan": [
+    {
+      "city": "Yangquan",
+      "state": "China",
+      "country": "China",
+      "population": 731228
+    }
+  ],
+  "Yangzhou": [
+    {
+      "city": "Yangzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1584237
+    }
+  ],
+  "Yantai": [
+    {
+      "city": "Yantai",
+      "state": "China",
+      "country": "China",
+      "population": 2227733
+    }
+  ],
+  "Yaounde": [
+    {
+      "city": "Yaounde",
+      "state": "Cameroon",
+      "country": "Cameroon",
+      "population": 1299369
+    }
+  ],
+  "Yaroslavl": [
+    {
+      "city": "Yaroslavl",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 608722
+    }
+  ],
+  "Yekaterinburg": [
+    {
+      "city": "Yekaterinburg",
+      "state": "Russia",
+      "country": "Russia",
+      "population": 1495066
+    }
+  ],
+  "Yerevan": [
+    {
+      "city": "Yerevan",
+      "state": "Armenia",
+      "country": "Armenia",
+      "population": 1144700
+    }
+  ],
+  "Yibin": [
+    {
+      "city": "Yibin",
+      "state": "China",
+      "country": "China",
+      "population": 836340
+    }
+  ],
+  "Yichang": [
+    {
+      "city": "Yichang",
+      "state": "China",
+      "country": "China",
+      "population": 1350150
+    }
+  ],
+  "Yichun": [
+    {
+      "city": "Yichun",
+      "state": "China",
+      "country": "China",
+      "population": 1045952
+    }
+  ],
+  "Yinchuan": [
+    {
+      "city": "Yinchuan",
+      "state": "China",
+      "country": "China",
+      "population": 1487579
+    }
+  ],
+  "Yingkou": [
+    {
+      "city": "Yingkou",
+      "state": "China",
+      "country": "China",
+      "population": 591159
+    }
+  ],
+  "Yiwu": [
+    {
+      "city": "Yiwu",
+      "state": "China",
+      "country": "China",
+      "population": 1481384
+    }
+  ],
+  "Yixing": [
+    {
+      "city": "Yixing",
+      "state": "China",
+      "country": "China",
+      "population": 1285785
+    }
+  ],
+  "Yokohama": [
+    {
+      "city": "Yokohama",
+      "state": "Japan",
+      "country": "Japan",
+      "population": 3777491
+    }
+  ],
+  "Yongzhou": [
+    {
+      "city": "Yongzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1020715
+    }
+  ],
+  "Yueyang": [
+    {
+      "city": "Yueyang",
+      "state": "China",
+      "country": "China",
+      "population": 991465
+    }
+  ],
+  "Yulin": [
+    {
+      "city": "Yulin",
+      "state": "China",
+      "country": "China",
+      "population": 1056743
+    }
+  ],
+  "Yuncheng": [
+    {
+      "city": "Yuncheng",
+      "state": "China",
+      "country": "China",
+      "population": 680036
+    }
+  ],
+  "Yunfu": [
+    {
+      "city": "Yunfu",
+      "state": "China",
+      "country": "China",
+      "population": 2612800
+    }
+  ],
+  "Zagreb": [
+    {
+      "city": "Zagreb",
+      "state": "Croatia",
+      "country": "Croatia",
+      "population": 663592
+    }
+  ],
+  "Zamboanga": [
+    {
+      "city": "Zamboanga",
+      "state": "Philippines",
+      "country": "Philippines",
+      "population": 1018849
+    }
+  ],
+  "Zanzibar": [
+    {
+      "city": "Zanzibar",
+      "state": "Tanzania",
+      "country": "Tanzania",
+      "population": 709809
+    }
+  ],
+  "Zaozhuang": [
+    {
+      "city": "Zaozhuang",
+      "state": "China",
+      "country": "China",
+      "population": 899753
+    }
+  ],
+  "Zapopan": [
+    {
+      "city": "Zapopan",
+      "state": "Mexico",
+      "country": "Mexico",
+      "population": 1476491
+    }
+  ],
+  "Zaporizhzhya": [
+    {
+      "city": "Zaporizhzhya",
+      "state": "Ukraine",
+      "country": "Ukraine",
+      "population": 710052
+    }
+  ],
+  "Zaragoza": [
+    {
+      "city": "Zaragoza",
+      "state": "Spain",
+      "country": "Spain",
+      "population": 686986
+    }
+  ],
+  "Zaria": [
+    {
+      "city": "Zaria",
+      "state": "Nigeria",
+      "country": "Nigeria",
+      "population": 980000
+    }
+  ],
+  "Zarqa": [
+    {
+      "city": "Zarqa",
+      "state": "Jordan",
+      "country": "Jordan",
+      "population": 792665
+    }
+  ],
+  "Zhabei": [
+    {
+      "city": "Zhabei",
+      "state": "China",
+      "country": "China",
+      "population": 840000
+    }
+  ],
+  "Zhangjiagang": [
+    {
+      "city": "Zhangjiagang",
+      "state": "China",
+      "country": "China",
+      "population": 1432044
+    }
+  ],
+  "Zhangjiakou": [
+    {
+      "city": "Zhangjiakou",
+      "state": "China",
+      "country": "China",
+      "population": 692602
+    }
+  ],
+  "Zhangzhou": [
+    {
+      "city": "Zhangzhou",
+      "state": "China",
+      "country": "China",
+      "population": 589831
+    }
+  ],
+  "Zhanjiang": [
+    {
+      "city": "Zhanjiang",
+      "state": "China",
+      "country": "China",
+      "population": 1400709
+    }
+  ],
+  "Zhaoqing": [
+    {
+      "city": "Zhaoqing",
+      "state": "China",
+      "country": "China",
+      "population": 1553109
+    }
+  ],
+  "Zhaotong": [
+    {
+      "city": "Zhaotong",
+      "state": "China",
+      "country": "China",
+      "population": 787845
+    }
+  ],
+  "Zhengzhou": [
+    {
+      "city": "Zhengzhou",
+      "state": "China",
+      "country": "China",
+      "population": 4253913
+    }
+  ],
+  "Zhenjiang": [
+    {
+      "city": "Zhenjiang",
+      "state": "China",
+      "country": "China",
+      "population": 950516
+    }
+  ],
+  "Zhongshan": [
+    {
+      "city": "Zhongshan",
+      "state": "China",
+      "country": "China",
+      "population": 3841873
+    }
+  ],
+  "Zhoushan": [
+    {
+      "city": "Zhoushan",
+      "state": "China",
+      "country": "China",
+      "population": 882932
+    }
+  ],
+  "Zhu Cheng City": [
+    {
+      "city": "Zhu Cheng City",
+      "state": "China",
+      "country": "China",
+      "population": 1000000
+    }
+  ],
+  "Zhuhai": [
+    {
+      "city": "Zhuhai",
+      "state": "China",
+      "country": "China",
+      "population": 2207090
+    }
+  ],
+  "Zhumadian": [
+    {
+      "city": "Zhumadian",
+      "state": "China",
+      "country": "China",
+      "population": 721670
+    }
+  ],
+  "Zhuzhou": [
+    {
+      "city": "Zhuzhou",
+      "state": "China",
+      "country": "China",
+      "population": 1129687
+    }
+  ],
+  "Zibo": [
+    {
+      "city": "Zibo",
+      "state": "China",
+      "country": "China",
+      "population": 3129228
+    }
+  ],
+  "Zigong": [
+    {
+      "city": "Zigong",
+      "state": "China",
+      "country": "China",
+      "population": 1262064
+    }
+  ],
+  "Ziyang": [
+    {
+      "city": "Ziyang",
+      "state": "China",
+      "country": "China",
+      "population": 905729
+    }
+  ],
+  "Zunyi": [
+    {
+      "city": "Zunyi",
+      "state": "China",
+      "country": "China",
+      "population": 2037775
+    }
+  ],
+  "Zurich": [
+    {
+      "city": "Zurich",
+      "state": "Switzerland",
+      "country": "Switzerland"
+    }
+  ]
+}

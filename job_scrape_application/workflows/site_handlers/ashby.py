@@ -94,6 +94,22 @@ class AshbyHqHandler(BaseSiteHandler):
             if not cleaned or cleaned in seen:
                 continue
             cleaned = fix_scheme_slashes(cleaned)
+            try:
+                parsed = urlparse(cleaned)
+            except Exception:
+                parsed = None
+            host = (parsed.hostname or "").lower() if parsed else ""
+            path = parsed.path or "" if parsed else ""
+            if host:
+                if not host.endswith("ashbyhq.com"):
+                    continue
+                if host.startswith("api."):
+                    continue
+            segments = [seg for seg in path.split("/") if seg]
+            if segments and segments[0].lower() == "posting-api":
+                continue
+            if len(segments) < 2:
+                continue
             lower = cleaned.lower()
             if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
                 continue

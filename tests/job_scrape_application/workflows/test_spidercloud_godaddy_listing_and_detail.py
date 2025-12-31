@@ -75,6 +75,9 @@ TOGETHERAI_DETAIL_FIXTURE = (
 STRIPE_DETAIL_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_stripe_greenhouse_job_7313002_commonmark.json"
 )
+STRIPE_DUBLIN_DETAIL_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_stripe_job_6717520_commonmark.json"
+)
 COUPANG_QUALIFICATION_MARKDOWN_FIXTURE = (
     FIXTURE_DIR / "markdown_coupang_qualification_title.md"
 )
@@ -993,6 +996,14 @@ def test_spidercloud_event_sentence_title_falls_back_to_metadata_title():
 
     assert normalized is not None
     assert normalized["title"] == "Fraud Operations Manager"
+
+
+def test_spidercloud_stripe_office_locations_hint():
+    payload = _load_fixture(STRIPE_DUBLIN_DETAIL_COMMONMARK_FIXTURE)
+    commonmark = _extract_commonmark(payload)
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("location") == "Dublin, Ireland"
 
 
 def test_spidercloud_title_from_markdown_skips_stay_in_the_loop():

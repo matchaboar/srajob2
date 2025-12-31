@@ -76,3 +76,28 @@ def test_paloalto_job_detail_uses_structured_description_and_location():
     assert "Santa Clara" in normalized["location"]
     assert "Our Mission" in normalized["description"]
     assert "Key Responsibilities" in normalized["description"]
+
+
+def test_paloalto_job_detail_prefers_structured_description_when_markdown_has_chrome():
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_paloalto_networks_job_detail_tools_platforms_raw_html.json"
+    )
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    event = payload[0][0]
+
+    scraper = _make_scraper()
+    markdown = scraper._extract_markdown(event)
+    assert markdown, "expected markdown extracted from raw HTML fixture"
+
+    normalized = scraper._normalize_job(
+        "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-software-engineer-tools-and-platforms-cortex/47263/85461897024",
+        markdown,
+        [event],
+        0,
+        require_keywords=False,
+    )
+
+    assert normalized is not None
+    assert "Our Mission" in normalized["description"]
+    assert "Saved Jobs" not in normalized["description"]
+    assert "Job Alerts" not in normalized["description"]

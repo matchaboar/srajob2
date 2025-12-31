@@ -54,7 +54,11 @@ def test_extract_job_urls_from_ashby_api_fixture_prefers_listing_api():
         "sourceUrl": "https://jobs.ashbyhq.com/lambda",
         "startedAt": 1,
         "completedAt": 2,
-        "items": {"raw": payload, "provider": "spidercloud"},
+        "items": {
+            "raw": payload,
+            "provider": "spidercloud",
+            "page_links": ["https://lambda.ai/careers"],
+        },
         "provider": "spidercloud",
         "workflowName": "ScraperSpidercloud",
     }
@@ -63,6 +67,7 @@ def test_extract_job_urls_from_ashby_api_fixture_prefers_listing_api():
 
     assert len(urls) == ASHBY_API_URL_COUNT
     assert any(url.endswith("/application") for url in urls)
+    assert all(url.startswith("https://jobs.ashbyhq.com/lambda/") for url in urls)
 
 
 @pytest.mark.asyncio

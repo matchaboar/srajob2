@@ -1556,6 +1556,7 @@ export const listQueuedScrapeUrls = query({
         updatedAt: row.updatedAt,
         completedAt: row.completedAt,
         scheduledAt: row.scheduledAt,
+        postedAt: row.postedAt,
       }));
   },
 });
@@ -1602,6 +1603,7 @@ export const enqueueScrapeUrls = mutation({
     siteId: v.optional(v.id("sites")),
     pattern: v.optional(v.union(v.string(), v.null())),
     delaysMs: v.optional(v.array(v.number())),
+    postedAts: v.optional(v.array(v.union(v.number(), v.null()))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -1613,6 +1615,11 @@ export const enqueueScrapeUrls = mutation({
       if (!url || seen.has(url)) continue;
       seen.add(url);
       const delayMs = args.delaysMs?.[index];
+      const postedAtValue = args.postedAts?.[index];
+      const postedAt =
+        typeof postedAtValue === "number" && Number.isFinite(postedAtValue)
+          ? Math.floor(postedAtValue)
+          : undefined;
       const scheduledAt =
         typeof delayMs === "number" && Number.isFinite(delayMs) && delayMs > 0
           ? now + Math.floor(delayMs)
@@ -1634,7 +1641,7 @@ export const enqueueScrapeUrls = mutation({
           isStale || status === "failed" || status === "completed" || status === "invalid";
 
         if (shouldRequeue) {
-          await ctx.db.patch(existing._id, {
+          const patch: any = {
             sourceUrl: args.sourceUrl,
             provider: args.provider,
             siteId: args.siteId,
@@ -1645,13 +1652,17 @@ export const enqueueScrapeUrls = mutation({
             completedAt: undefined,
             updatedAt: now,
             scheduledAt,
-          });
+          };
+          if (postedAt !== undefined) {
+            patch.postedAt = postedAt;
+          }
+          await ctx.db.patch(existing._id, patch);
           queued.push(url);
         }
         continue;
       }
 
-      await ctx.db.insert("scrape_url_queue", {
+      const insertPayload: any = {
         url,
         sourceUrl: args.sourceUrl,
         provider: args.provider,
@@ -1662,7 +1673,11 @@ export const enqueueScrapeUrls = mutation({
         createdAt: now,
         updatedAt: now,
         scheduledAt,
-      });
+      };
+      if (postedAt !== undefined) {
+        insertPayload.postedAt = postedAt;
+      }
+      await ctx.db.insert("scrape_url_queue", insertPayload);
       queued.push(url);
     }
 
@@ -1812,6 +1827,7 @@ const leaseScrapeUrlBatchHandler = async (
       siteId: r.siteId,
       pattern: r.pattern,
       _id: r._id,
+      postedAt: r.postedAt,
     })),
   };
 };
@@ -3931,6 +3947,7 @@ export const ingestJobsFromScrape = mutation({
         engineer: v.optional(v.boolean()),
         url: v.string(),
         postedAt: v.number(),
+        postedAtUnknown: v.optional(v.boolean()),
         scrapedAt: v.optional(v.number()),
         scrapedWith: v.optional(v.string()),
         workflowName: v.optional(v.string()),
@@ -3941,6 +3958,7 @@ export const ingestJobsFromScrape = mutation({
         heuristicAttempts: v.optional(v.number()),
         heuristicLastTried: v.optional(v.number()),
         heuristicVersion: v.optional(v.number()),
+        scrapeUrl: v.optional(v.string()),
       })
     ),
     siteId: v.optional(v.id("sites")),
@@ -3998,6 +4016,7 @@ export const ingestJobsFromScrape = mutation({
         heuristicAttempts,
         heuristicLastTried,
         heuristicVersion,
+        scrapeUrl,
         engineer: jobEngineer,
         ...jobFields
       } = job;
@@ -4018,10 +4037,12 @@ export const ingestJobsFromScrape = mutation({
         scrapedAt: job.scrapedAt ?? Date.now(),
         compensationUnknown,
         compensationReason,
+        postedAtUnknown: job.postedAtUnknown,
       });
       const detailRow: any = { jobId };
       if (description !== undefined) detailRow.description = description;
       if (metadata !== undefined) detailRow.metadata = metadata;
+      if (scrapeUrl !== undefined) detailRow.scrapeUrl = scrapeUrl;
       if (scrapedWith !== undefined) detailRow.scrapedWith = scrapedWith;
       if (workflowName !== undefined) detailRow.workflowName = workflowName;
       if (scrapedCostMilliCents !== undefined) detailRow.scrapedCostMilliCents = scrapedCostMilliCents;
@@ -4427,7 +4448,9 @@ export function extractJobs(
   compensationUnknown?: boolean;
   compensationReason?: string;
   url: string;
+  scrapeUrl?: string;
   postedAt?: number;
+  postedAtUnknown?: boolean;
 }[] {
   const rawList: any[] = [];
   const seedUrlKeys = collectSeedUrlKeys(items);
@@ -4518,16 +4541,17 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
     }
     return { value: DEFAULT_TOTAL_COMPENSATION, unknown: true };
   };
-  const parsePostedAt = (val: any, fallback: number): number => {
+  const parsePostedAt = (val: any, fallback: number): { value: number; unknown: boolean } => {
     if (typeof val === "number" && Number.isFinite(val)) {
-      if (val > 1e12) return val;
-      if (val > 1e9) return Math.floor(val * 1000);
+      if (val > 1e12) return { value: val, unknown: false };
+      if (val > 1e9) return { value: Math.floor(val * 1000), unknown: false };
     }
     if (typeof val === "string") {
+      if (!val.trim()) return { value: fallback, unknown: true };
       const parsed = Date.parse(val);
-      if (!Number.isNaN(parsed)) return parsed;
+      if (!Number.isNaN(parsed)) return { value: parsed, unknown: false };
     }
-    return fallback;
+    return { value: fallback, unknown: true };
   };
 
   const jobs = rawList
@@ -4550,6 +4574,15 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
       const rawUrl = String(row?.url || row?.link || row?.href || row?.absolute_url || "").trim();
       const normalizedUrl = normalizeScrapedUrl(rawUrl, options?.sourceUrl);
       if (!normalizedUrl) return null;
+      const resolvedScrapeUrl = (() => {
+        const parsed = parseUrlSafe(rawUrl, options?.sourceUrl);
+        if (parsed) {
+          parsed.hash = "";
+          return parsed.toString();
+        }
+        return rawUrl || normalizedUrl;
+      })();
+      const scrapeUrl = resolvedScrapeUrl.trim() || undefined;
 
       const hintedTitle = extractTitleFromListingBlob(rawTitle);
       let title = normalizeTitle(hintedTitle ?? rawTitle);
@@ -4623,7 +4656,10 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
           (row).salary ??
           (row).compensation
       );
-      const postedAt = parsePostedAt((row).postedAt ?? (row).posted_at, Date.now());
+      const { value: postedAt, unknown: postedAtUnknown } = parsePostedAt(
+        (row).postedAt ?? (row).posted_at,
+        Date.now()
+      );
       const compensationReason =
         typeof (row).compensationReason === "string" && (row).compensationReason.trim()
           ? (row).compensationReason.trim()
@@ -4648,7 +4684,9 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
         compensationUnknown,
         compensationReason,
         url: normalizedUrl,
+        scrapeUrl,
         postedAt,
+        postedAtUnknown,
       };
     })
     .filter((j): j is NonNullable<typeof j> => Boolean(j)); // require a URL + title to keep signal
@@ -4861,6 +4899,9 @@ export const reparseRecentCompanyJobs = mutation({
       const detailPatch: Record<string, any> = {};
       if (typeof parsed.description === "string" && parsed.description.trim()) {
         detailPatch.description = parsed.description;
+      }
+      if (parsed.scrapeUrl) {
+        detailPatch.scrapeUrl = parsed.scrapeUrl;
       }
       if (scrapedWith) detailPatch.scrapedWith = scrapedWith;
       if (scrape.workflowName) detailPatch.workflowName = scrape.workflowName;

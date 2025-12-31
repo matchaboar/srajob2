@@ -12,8 +12,31 @@ import {
 
 const readFixture = (filename: string) =>
   readFileSync(path.resolve(process.cwd(), "..", "tests/fixtures", filename), "utf8");
+const readLocationDictionary = () =>
+  JSON.parse(readFileSync(path.resolve(process.cwd(), "convex/locationDictionary.json"), "utf8"));
+
+type LocationDictionaryEntry = {
+  city: string;
+  state: string;
+  country: string;
+  aliases?: string[];
+  remoteOnly?: boolean;
+  population?: number;
+};
+
+type LocationDictionaryValue = LocationDictionaryEntry | LocationDictionaryEntry[];
 
 describe("location dictionary coverage", () => {
+  it("stores city-keyed dictionary entries with at least 1,000 rows", () => {
+    const dictionary = readLocationDictionary() as Record<string, LocationDictionaryValue>;
+    const totalEntries = Object.values(dictionary).reduce((count, value) => {
+      if (Array.isArray(value)) return count + value.length;
+      return count + 1;
+    }, 0);
+    expect(totalEntries).toBeGreaterThanOrEqual(1000);
+    expect(dictionary["Boston"]).toBeTruthy();
+  });
+
   it("resolves international cities with country labels", () => {
     const madrid = splitLocation("Madrid, Spain");
     expect(madrid.city).toBe("Madrid");
@@ -38,6 +61,16 @@ describe("location dictionary coverage", () => {
     const match = findCityInText(markdown);
     expect(match?.city).toBe("Seoul");
     expect(match?.state).toBe("South Korea");
+  });
+
+  it("handles cities that share the same name across countries", () => {
+    const cambridgeUs = splitLocation("Cambridge, MA");
+    expect(cambridgeUs.city).toBe("Cambridge");
+    expect(cambridgeUs.state).toBe("Massachusetts");
+
+    const cambridgeUk = splitLocation("Cambridge, United Kingdom");
+    expect(cambridgeUk.city).toBe("Cambridge");
+    expect(cambridgeUk.state).toBe("United Kingdom");
   });
 
   it("only treats explicit remote-only phrases as remote locations", () => {

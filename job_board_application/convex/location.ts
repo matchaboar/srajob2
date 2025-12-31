@@ -6,6 +6,7 @@ type LocationDictionaryEntry = {
   country: string;
   aliases?: string[];
   remoteOnly?: boolean;
+  population?: number;
 };
 
 export type CityState = { city: string; state: string; country?: string; remoteOnly?: boolean };
@@ -85,13 +86,22 @@ const containsWholePhrase = (haystack: string, needle: string) => {
   return pattern.test(haystack);
 };
 
-const normalizedEntries: LocationDictionaryEntry[] = (locationDictionary as LocationDictionaryEntry[]).map((entry) => ({
-  city: entry.city.trim(),
-  state: entry.state.trim(),
-  country: entry.country.trim(),
-  aliases: (entry.aliases ?? []).map((alias) => alias.trim()).filter(Boolean),
-  remoteOnly: Boolean(entry.remoteOnly),
-}));
+type LocationDictionaryValue = LocationDictionaryEntry | LocationDictionaryEntry[];
+type LocationDictionary = Record<string, LocationDictionaryValue>;
+
+const normalizedEntries: LocationDictionaryEntry[] = Object.entries(locationDictionary as LocationDictionary).flatMap(
+  ([cityKey, value]) => {
+    const entries = Array.isArray(value) ? value : [value];
+    return entries.map((entry) => ({
+      city: (entry.city || cityKey).trim(),
+      state: (entry.state || "Unknown").trim(),
+      country: (entry.country || "Unknown").trim(),
+      aliases: (entry.aliases ?? []).map((alias) => alias.trim()).filter(Boolean),
+      remoteOnly: Boolean(entry.remoteOnly),
+      population: typeof entry.population === "number" && entry.population > 0 ? entry.population : undefined,
+    }));
+  }
+);
 
 const STATE_ABBR_BY_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(STATE_NAME_BY_ABBR).map(([abbr, name]) => [name, abbr])

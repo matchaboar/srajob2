@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, TYPE_CHECKING
@@ -11,7 +12,9 @@ from firecrawl.v2.utils.error_handler import PaymentRequiredError, RequestTimeou
 from temporalio.exceptions import ApplicationError
 
 from ...components.models import GreenhouseBoardResponse
-from ..helpers.scrape_utils import MAX_JOB_DESCRIPTION_CHARS
+from ..helpers.scrape_utils import MAX_JOB_DESCRIPTION_CHARS, parse_posted_at
+from ..helpers.link_extractors import normalize_url
+from ..helpers.regex_patterns import GREENHOUSE_BOARDS_PATH_PATTERN
 from ..exceptions import (
     NonRetryableWorkflowError,
     PaymentRequiredWorkflowError,
@@ -293,6 +296,60 @@ class FirecrawlScraper(BaseScraper):
                 pass
             raise ApplicationError(f"Unable to parse Greenhouse board payload (Firecrawl): {exc}") from exc
 
+        slug = ""
+        site_url = site.get("url") or ""
+        if site_url:
+            match = re.search(GREENHOUSE_BOARDS_PATH_PATTERN, site_url)
+            if match:
+                slug = match.group(1)
+
+        posted_at_by_url: Dict[str, int] = {}
+
+        def _add_posted_at(candidate_url: str | None, posted_at: int) -> None:
+            if not candidate_url:
+                return
+            normalized = normalize_url(candidate_url) or candidate_url
+            posted_at_by_url[normalized] = posted_at
+
+        def _pick_job_timestamp(job: Any) -> Any | None:
+            for value in (getattr(job, "updated_at", None), getattr(job, "first_published", None)):
+                if isinstance(value, str):
+                    cleaned = value.strip()
+                    if cleaned:
+                        return cleaned
+                elif isinstance(value, (int, float)):
+                    return value
+            extra = getattr(job, "model_extra", None) or {}
+            if isinstance(extra, dict):
+                for key in (
+                    "updated_at",
+                    "updatedAt",
+                    "first_published",
+                    "firstPublished",
+                    "created_at",
+                    "createdAt",
+                ):
+                    val = extra.get(key)
+                    if isinstance(val, str):
+                        cleaned = val.strip()
+                        if cleaned:
+                            return cleaned
+                    elif isinstance(val, (int, float)):
+                        return val
+            return None
+
+        if board.jobs:
+            for job in board.jobs:
+                raw_date = _pick_job_timestamp(job)
+                if raw_date is None:
+                    continue
+                posted_at = parse_posted_at(raw_date)
+                _add_posted_at(getattr(job, "absolute_url", None), posted_at)
+                job_id = getattr(job, "id", None)
+                if slug and job_id is not None:
+                    api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                    _add_posted_at(api_url, posted_at)
+
         self.deps.log_sync_response(
             self.provider,
             action="greenhouse_board",
@@ -308,6 +365,7 @@ class FirecrawlScraper(BaseScraper):
         return {
             "raw": raw_text,
             "job_urls": job_urls,
+            "posted_at_by_url": posted_at_by_url if posted_at_by_url else None,
             "startedAt": started_at,
             "completedAt": int(time.time() * 1000),
         }
@@ -316,6 +374,16 @@ class FirecrawlScraper(BaseScraper):
         urls: List[str] = [u for u in payload.get("urls", []) if isinstance(u, str) and u.strip()]
         source_url: str = payload.get("source_url") or (urls[0] if urls else "")
         idempotency_key: Optional[str] = payload.get("idempotency_key") or payload.get("webhook_id")
+        posted_at_by_url: Dict[str, int] = {}
+        raw_posted = payload.get("posted_at_by_url")
+        if isinstance(raw_posted, dict):
+            for key, value in raw_posted.items():
+                if not isinstance(key, str):
+                    continue
+                if not isinstance(value, (int, float)):
+                    continue
+                normalized_key = normalize_url(key) or key
+                posted_at_by_url[normalized_key] = int(value)
 
         if not urls:
             return {"scrape": None, "jobsScraped": 0}
@@ -402,6 +470,18 @@ class FirecrawlScraper(BaseScraper):
             batch_id = idempotency_key
 
         normalized_items = self.deps.normalize_firecrawl_items(raw_payload)
+        if posted_at_by_url and isinstance(normalized_items, list):
+            for row in normalized_items:
+                if not isinstance(row, dict):
+                    continue
+                url_val = row.get("url") or row.get("job_url") or row.get("absolute_url")
+                if not isinstance(url_val, str) or not url_val.strip():
+                    continue
+                normalized_key = normalize_url(url_val) or url_val
+                override = posted_at_by_url.get(normalized_key)
+                if override is not None:
+                    row["posted_at"] = int(override)
+                    row["posted_at_unknown"] = False
         completed_at = int(time.time() * 1000)
 
         request_payload = {

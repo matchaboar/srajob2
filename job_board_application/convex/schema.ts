@@ -31,6 +31,7 @@ const applicationTables = {
     engineer: v.optional(v.boolean()),
     url: v.string(),
     postedAt: v.number(),
+    postedAtUnknown: v.optional(v.boolean()),
     scrapedAt: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
@@ -63,6 +64,7 @@ const applicationTables = {
     jobId: v.id("jobs"),
     description: v.optional(v.string()),
     metadata: v.optional(v.string()),
+    scrapeUrl: v.optional(v.string()),
     scrapedWith: v.optional(v.string()),
     workflowName: v.optional(v.string()),
     scrapedCostMilliCents: v.optional(v.number()),
@@ -336,6 +338,7 @@ const applicationTables = {
     updatedAt: v.number(),
     completedAt: v.optional(v.number()),
     scheduledAt: v.optional(v.number()),
+    postedAt: v.optional(v.number()),
   })
     .index("by_url", ["url"])
     .index("by_status", ["status"])

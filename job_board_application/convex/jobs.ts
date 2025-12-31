@@ -443,10 +443,10 @@ const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetai
   return { ...job, ...detailFields };
 };
 
-export const computeJobCountry = (job: DbJob) => {
-  const locationInfo = deriveLocationFields(job);
-  const locationCountries = locationInfo.countries ?? [];
-  const locationStates = locationInfo.locationStates ?? [];
+export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof deriveLocationFields>) => {
+  const resolvedLocation = locationInfo ?? deriveLocationFields(job);
+  const locationCountries = resolvedLocation.countries ?? [];
+  const locationStates = resolvedLocation.locationStates ?? [];
   const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
 
   const explicitCountry = job.country?.trim();
@@ -800,16 +800,6 @@ export const listJobs = query({
         return false;
       }
 
-      const locationInfo = deriveLocationFields(job);
-      const jobCountry = computeJobCountry(job);
-
-      if (hasCountryFilter && !matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
-        return false;
-      }
-      if (stateFilter) {
-        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
-        if (!statesForFilter.includes(stateFilter)) return false;
-      }
       if (args.includeRemote === false && job.remote) {
         return false;
       }
@@ -834,6 +824,23 @@ export const listJobs = query({
       }
       if (args.maxCompensation !== undefined && !compensationUnknown && compValue > args.maxCompensation) {
         return false;
+      }
+
+      if (!stateFilter && !hasCountryFilter) {
+        return true;
+      }
+
+      const locationInfo = deriveLocationFields(job);
+
+      if (stateFilter) {
+        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        if (!statesForFilter.includes(stateFilter)) return false;
+      }
+      if (hasCountryFilter) {
+        const jobCountry = computeJobCountry(job, locationInfo);
+        if (!matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
+          return false;
+        }
       }
       return true;
     };
@@ -1032,6 +1039,7 @@ export const listJobs = query({
         // Pick a representative job for compensation display
         const compJob = pickBestCompJob(members as any) || base;
         const normalizedBase = await ensureLocationFields(ctx, base);
+        const { description: _description, locationSearch: _locationSearch, ...listBase } = normalizedBase;
 
         const allLocations = mergeStrings(
           normalizedBase.locations,
@@ -1051,7 +1059,7 @@ export const listJobs = query({
         const urls = Array.from(new Set(members.map((m) => (m).url).filter(Boolean)));
 
         return {
-          ...normalizedBase,
+          ...listBase,
           totalCompensation: compJob.totalCompensation,
           compensationUnknown: compJob.compensationUnknown,
           compensationReason: compJob.compensationReason,
@@ -1438,6 +1446,33 @@ export const listQueuedJobs = query({
     status: v.optional(v.union(v.literal("pending"), v.literal("processing"))),
     scheduledBefore: v.optional(v.number()),
   },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("scrape_url_queue"),
+        url: v.string(),
+        sourceUrl: v.string(),
+        provider: v.optional(v.string()),
+        siteId: v.optional(v.id("sites")),
+        pattern: v.optional(v.string()),
+        status: v.union(
+          v.literal("pending"),
+          v.literal("processing"),
+          v.literal("completed"),
+          v.literal("failed"),
+          v.literal("invalid")
+        ),
+        attempts: v.optional(v.number()),
+        lastError: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        completedAt: v.optional(v.number()),
+        scheduledAt: v.optional(v.number()),
+      })
+    ),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -1464,28 +1499,23 @@ export const listQueuedJobs = query({
       numItems: Math.min(args.paginationOpts.numItems ?? 10, 10),
     };
     const page = await query.order("asc").paginate(paginationOpts);
-    const jobs = (
-      await Promise.all(
-        page.page.map(async (row: any) => {
-          const job = await ctx.db
-            .query("jobs")
-            .withIndex("by_url", (q: any) => q.eq("url", row.url))
-            .first();
-          if (!job) return null;
-          const normalized = await ensureLocationFields(ctx, job as any);
-          return {
-            ...normalized,
-            queueId: row._id,
-            queueCreatedAt: row.createdAt,
-            queueUpdatedAt: row.updatedAt,
-            queueScheduledAt: row.scheduledAt,
-            queueStatus: row.status,
-          };
-        })
-      )
-    ).filter(Boolean);
+    const rows = page.page.map((row: any) => ({
+      _id: row._id,
+      url: row.url,
+      sourceUrl: row.sourceUrl,
+      provider: row.provider,
+      siteId: row.siteId,
+      pattern: row.pattern,
+      status: row.status,
+      attempts: row.attempts,
+      lastError: row.lastError,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      completedAt: row.completedAt,
+      scheduledAt: row.scheduledAt,
+    }));
 
-    return { ...page, page: jobs };
+    return { ...page, page: rows };
   },
 });
 
@@ -1597,9 +1627,17 @@ export const getJobDetails = query({
     const jobIds = args.groupedJobIds && args.groupedJobIds.length > 0 ? args.groupedJobIds : [args.jobId];
     const applicationCount = await countAppliedApplications(ctx, jobIds);
     if (!details) {
-      return { applicationCount };
+      const job = await ctx.db.get(args.jobId);
+      const fallbackDescription = typeof job?.description === "string" ? job.description : undefined;
+      return { description: fallbackDescription, applicationCount };
     }
     const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
+    if (!detailFields.description) {
+      const job = await ctx.db.get(args.jobId);
+      if (typeof job?.description === "string") {
+        detailFields.description = job.description;
+      }
+    }
     return { ...detailFields, applicationCount };
   },
 });

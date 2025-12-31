@@ -397,6 +397,11 @@ async def _ingest_firecrawl_result(
 
     if result.get("kind") == "greenhouse_listing":
         job_urls = [u for u in result.get("job_urls", []) if isinstance(u, str)]
+        posted_at_by_url = (
+            result.get("posted_at_by_url")
+            if isinstance(result.get("posted_at_by_url"), dict)
+            else None
+        )
         urls_to_scrape: List[str] = []
         if job_urls:
             existing = await workflow.execute_activity(
@@ -420,16 +425,17 @@ async def _ingest_firecrawl_result(
             )
 
         if urls_to_scrape:
+            scrape_payload: Dict[str, Any] = {
+                "urls": urls_to_scrape,
+                "source_url": site_url,
+                "idempotency_key": event_id,
+                "webhook_id": event_id,
+            }
+            if posted_at_by_url:
+                scrape_payload["posted_at_by_url"] = posted_at_by_url
             scrape_res = await workflow.execute_activity(
                 scrape_greenhouse_jobs,
-                args=[
-                    {
-                        "urls": urls_to_scrape,
-                        "source_url": site_url,
-                        "idempotency_key": event_id,
-                        "webhook_id": event_id,
-                    }
-                ],
+                args=[scrape_payload],
                 start_to_close_timeout=timedelta(minutes=10),
             )
             jobs_scraped += int(scrape_res.get("jobsScraped") or 0) if isinstance(scrape_res, dict) else 0

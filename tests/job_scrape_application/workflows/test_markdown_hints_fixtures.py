@@ -59,6 +59,14 @@ def test_markdown_hints_bloomberg_avature_commonmark_fixture():
     assert hints.get("compensation_range") == {"low": 160000, "high": 240000}
 
 
+def test_markdown_hints_based_in_fixture():
+    markdown = (FIXTURES / "markdown_based_in_location.md").read_text(encoding="utf-8")
+    hints = parse_markdown_hints(markdown)
+
+    assert hints["title"] == "Construction Manager"
+    assert hints["location"] == "Memphis, TN"
+
+
 def test_markdown_hints_skips_stay_in_the_loop():
     markdown = "\n".join(
         [

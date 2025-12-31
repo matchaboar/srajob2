@@ -14,26 +14,29 @@ import { StatusTracker } from "./components/StatusTracker";
 import { LiveTimer } from "./components/LiveTimer";
 import { Keycap } from "./components/Keycap";
 import { DiagonalFraction } from "./components/DiagonalFraction";
+import { QueuedUrlRow } from "./components/QueuedUrlRow";
+import { CountdownTimer } from "./components/CountdownTimer";
 import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "./lib/compensation";
 
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
+const SCRAPE_QUEUE_PROCESSING_EXPIRY_MS = 20 * 60 * 1000;
 type TargetState = (typeof TARGET_STATES)[number];
 type JobId = Id<"jobs">;
+type QueueId = Id<"scrape_url_queue">;
+type SelectionId = JobId | QueueId;
 type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
+type QueuedScrapeUrl = PaginatedQueryItem<typeof api.jobs.listQueuedJobs>;
+type QueuedScrapeUrlList = FunctionReturnType<typeof api.router.listQueuedScrapeUrls>;
+type QueuedScrapeUrlItem = QueuedScrapeUrlList extends Array<infer Item> ? NonNullable<Item> : never;
+type QueuedQueueRow = QueuedScrapeUrl | QueuedScrapeUrlItem;
 type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
 type CompanySummariesResult = FunctionReturnType<typeof api.jobs.listCompanySummaries>;
 type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
 type CompanySummary = CompanySummariesResult extends Array<infer Item> ? NonNullable<Item> : never;
-type QueuedJob = ListedJob & {
-  queueCreatedAt?: number;
-  queueUpdatedAt?: number;
-  queueScheduledAt?: number;
-  queueStatus?: string;
-};
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
 
 interface Filters {
@@ -315,7 +318,8 @@ export function JobBoard() {
   const [locallyWithdrawnJobs] = useState<Set<JobId>>(new Set());
 
   // Selection state for keyboard navigation
-  const [selectedJobId, setSelectedJobId] = useState<JobId | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<SelectionId | null>(null);
+  const [queuedView, setQueuedView] = useState<"pending" | "processing">("pending");
   const defaultFilterRequestedRef = useRef(false);
   const applyingSavedFilterRef = useRef(false);
   const pendingSelectionClearRef = useRef(false);
@@ -427,6 +431,18 @@ export function JobBoard() {
   }, [companyFilterFromUrl, filters.companies, filtersReady]);
   const shouldFetchCompanySuggestions = isJobsTab && companyInputFocused && !!debouncedCompanyInput.trim();
 
+  const {
+    results: queuedResults,
+    status: queuedStatus,
+    loadMore: loadMoreQueued,
+  } = usePaginatedQuery(
+    (api as any).jobs.listQueuedJobs,
+    isQueuedTab && queuedView === "pending"
+      ? { status: "pending", scheduledBefore: queuedCutoff }
+      : "skip",
+    { initialNumItems: queuedPageSize }
+  );
+
   const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
     api.jobs.listJobs,
     isJobsTab ? {
@@ -535,15 +551,12 @@ export function JobBoard() {
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
   const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
-  const {
-    results: queuedResults,
-    status: queuedStatus,
-    loadMore: loadMoreQueued,
-  } = usePaginatedQuery(
-    (api as any).jobs.listQueuedJobs,
-    isQueuedTab ? { status: "pending", scheduledBefore: queuedCutoff } : "skip",
-    { initialNumItems: queuedPageSize }
-  );
+  const processingQueued = useQuery(
+    api.router.listQueuedScrapeUrls,
+    isQueuedTab && queuedView === "processing"
+      ? { status: "processing", limit: 200 }
+      : "skip"
+  ) as QueuedScrapeUrlItem[] | undefined;
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
 
@@ -559,9 +572,18 @@ export function JobBoard() {
     (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job)._id)
   );
   const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean);
-  const queuedList: QueuedJob[] = (queuedResults ?? []).filter(Boolean);
+  const queuedList: QueuedQueueRow[] = useMemo(() => {
+    if (queuedView === "processing") {
+      return (processingQueued ?? []).filter(Boolean) as QueuedQueueRow[];
+    }
+    return (queuedResults ?? []).filter(Boolean) as QueuedQueueRow[];
+  }, [queuedResults, processingQueued, queuedView]);
   const shouldAutoLoadQueued =
-    isQueuedTab && queuedStatus === "CanLoadMore" && queuedList.length > 0 && queuedList.length < queuedAutoFillTarget;
+    isQueuedTab &&
+    queuedView === "pending" &&
+    queuedStatus === "CanLoadMore" &&
+    queuedList.length > 0 &&
+    queuedList.length < queuedAutoFillTarget;
 
   useEffect(() => {
     if (!shouldAutoLoadQueued) return;
@@ -607,10 +629,23 @@ export function JobBoard() {
     () => (selectedAppliedJob ? { ...selectedAppliedJob, ...(selectedAppliedJobDetails ?? {}) } : null),
     [selectedAppliedJob, selectedAppliedJobDetails]
   );
+  const selectedQueuedItem = useMemo(() => {
+    if (activeTab !== "queued") return null;
+    return queuedList.find((item) => item._id === selectedJobId) ?? null;
+  }, [activeTab, queuedList, selectedJobId]);
+  const queuedLeaseExpiresAt = useMemo(() => {
+    if (!selectedQueuedItem || selectedQueuedItem.status !== "processing") return null;
+    const base = typeof selectedQueuedItem.updatedAt === "number" ? selectedQueuedItem.updatedAt : selectedQueuedItem.createdAt;
+    return base + SCRAPE_QUEUE_PROCESSING_EXPIRY_MS;
+  }, [selectedQueuedItem]);
   const formatPostedLabel = useCallback((timestamp: number) => {
     const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
     const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return `${dateLabel} • ${days}d ago`;
+  }, []);
+  const formatQueueTimestamp = useCallback((timestamp?: number | null) => {
+    if (typeof timestamp !== "number") return "—";
+    return new Date(timestamp).toLocaleString();
   }, []);
   const formatCompanySalary = useCallback((summary: CompanySummary) => {
     const currencyCode = summary.currencyCode || "USD";
@@ -632,7 +667,7 @@ export function JobBoard() {
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
   const selectedCompColorClass = selectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
-  const groupedLocationsLabel = useCallback((job: ListedJob | QueuedJob) => {
+  const groupedLocationsLabel = useCallback((job: ListedJob) => {
     const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
     if (locs.length === 0) return job.location || "Unknown";
     if (locs.length === 1) return locs[0];
@@ -703,6 +738,21 @@ export function JobBoard() {
     }
     const absolute = new Date(timestamp).toLocaleString();
     return `${relative} • ${absolute}`;
+  }, []);
+  const resolveQueueStatusClass = useCallback((status?: string) => {
+    switch (status) {
+      case "processing":
+        return "bg-blue-500/10 text-blue-300 border-blue-500/20";
+      case "failed":
+        return "bg-red-500/10 text-red-300 border-red-500/20";
+      case "invalid":
+        return "bg-slate-700/50 text-slate-300 border-slate-600/50";
+      case "completed":
+        return "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
+      case "pending":
+      default:
+        return "bg-amber-500/10 text-amber-300 border-amber-500/20";
+    }
   }, []);
   const renderScrapeCost = useCallback((mc: number) => {
     if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
@@ -842,6 +892,7 @@ export function JobBoard() {
     if (!trimmed) return "";
     return normalizeMarkdown(trimmed);
   }, [selectedJobFull]);
+  const scrapeUrl = (selectedJobFull as { scrapeUrl?: string } | null)?.scrapeUrl;
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
@@ -863,7 +914,7 @@ export function JobBoard() {
   const blurFromIndex =
     keyboardNavActive && keyboardTopIndex !== null ? keyboardTopIndex + 3 : Infinity;
   const scrollToJob = useCallback(
-    (jobId: JobId, alignToFloor: boolean) => {
+    (jobId: SelectionId, alignToFloor: boolean) => {
       const container = jobListRef.current;
       if (!container) return;
       const row = container.querySelector<HTMLElement>(`[data-job-id="${jobId}"]`);
@@ -935,8 +986,20 @@ export function JobBoard() {
   const updateFilters = useCallback((partial: Partial<Filters>, opts?: { forceImmediate?: boolean }) => {
     if (opts?.forceImmediate) {
       lastThrottleRef.current = 0;
+      setFilterUpdatePending(false);
+      setFilterCountdownMs(0);
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current);
+        throttleTimeoutRef.current = null;
+      }
     }
-    setFilters((prev) => ({ ...prev, ...partial }));
+    setFilters((prev) => {
+      const next = { ...prev, ...partial };
+      if (opts?.forceImmediate) {
+        setThrottledFilters(next);
+      }
+      return next;
+    });
     if (selectedSavedFilterId && !applyingSavedFilterRef.current) {
       clearSavedSelection();
     }
@@ -1028,8 +1091,8 @@ export function JobBoard() {
       }
     };
   }, []);
-  const commitMinCompensation = useCallback(() => {
-    const parsed = parseCompensationInput(minCompensationInput, { max: MAX_SALARY });
+  const commitMinCompensation = useCallback((rawValue?: string) => {
+    const parsed = parseCompensationInput(rawValue ?? minCompensationInput, { max: MAX_SALARY });
     setMinCompensationInput(parsed === null ? "" : formatCompensationDisplay(parsed));
     setSliderValue(clampToSliderRange(parsed ?? DEFAULT_SLIDER_VALUE));
     updateFilters({ minCompensation: parsed }, { forceImmediate: true });
@@ -1305,6 +1368,13 @@ export function JobBoard() {
     setKeyboardTopIndex(null);
   }, []);
 
+  const handleSelectQueued = useCallback((queueId: QueueId) => {
+    setSelectedJobId(queueId);
+    setShowJobDetails(true);
+    setKeyboardNavActive(false);
+    setKeyboardTopIndex(null);
+  }, []);
+
   const handleApply = useCallback(async (jobId: JobId, type: "ai" | "manual", url?: string) => {
     if (exitingJobs[jobId]) return;
 
@@ -1477,7 +1547,7 @@ export function JobBoard() {
             scrollToJob(nextId, currentIndex + 1 >= 3);
           } else if (activeTab === "jobs" && status === "CanLoadMore") {
             loadMore(jobsLoadMoreSize);
-          } else if (activeTab === "queued" && queuedStatus === "CanLoadMore") {
+          } else if (activeTab === "queued" && queuedView === "pending" && queuedStatus === "CanLoadMore") {
             loadMoreQueued(queuedLoadMoreSize);
           }
           break;
@@ -1501,18 +1571,22 @@ export function JobBoard() {
           break;
         case "a": {
           e.preventDefault();
+          if (activeTab !== "jobs") break;
           const jobToApply = currentList[currentIndex];
           void handleApply(jobToApply._id, "manual", jobToApply.url);
           break;
         }
         case "r": {
           e.preventDefault();
+          if (activeTab !== "jobs") break;
           void handleReject(currentList[currentIndex]._id);
           break;
         }
         case "Enter":
           e.preventDefault();
-          setShowJobDetails(true);
+          if (activeTab === "jobs" || activeTab === "queued") {
+            setShowJobDetails(true);
+          }
           break;
       }
     };
@@ -1528,6 +1602,7 @@ export function JobBoard() {
     status,
     loadMore,
     queuedStatus,
+    queuedView,
     loadMoreQueued,
     queuedList,
     showShortcuts,
@@ -1919,15 +1994,15 @@ export function JobBoard() {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         minCompInputFocusedRef.current = false;
-                        commitMinCompensation();
+                        commitMinCompensation((e.currentTarget as HTMLInputElement).value);
                       }
                     }}
                     onFocus={() => {
                       minCompInputFocusedRef.current = true;
                     }}
-                    onBlur={() => {
+                    onBlur={(e) => {
                       minCompInputFocusedRef.current = false;
-                      commitMinCompensation();
+                      commitMinCompensation(e.currentTarget.value);
                     }}
                     placeholder="$50k"
                     className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-600"
@@ -2319,6 +2394,21 @@ export function JobBoard() {
                                 })()
                                 : "None"}
                             </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm text-slate-200">
+                            <span className="w-28 text-slate-500">scrape_url</span>
+                            {scrapeUrl ? (
+                              <a
+                                href={scrapeUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-mono text-xs text-blue-300 hover:text-blue-200 break-all"
+                              >
+                                {scrapeUrl}
+                              </a>
+                            ) : (
+                              <span className="font-semibold text-slate-100 break-words">None</span>
+                            )}
                           </div>
                         </div>
 
@@ -2894,44 +2984,70 @@ export function JobBoard() {
           <div className="flex-1 flex bg-slate-950 overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950/60">
-                <h2 className="text-lg font-semibold text-white">Queued</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-white">Queued</h2>
+                  <div className="inline-flex rounded-lg border border-slate-800 overflow-hidden text-[11px] font-semibold uppercase tracking-wider">
+                    <button
+                      type="button"
+                      onClick={() => setQueuedView("pending")}
+                      className={
+                        "px-3 py-1.5 transition-colors " +
+                        (queuedView === "pending"
+                          ? "bg-amber-400 text-slate-900"
+                          : "bg-slate-900 text-slate-300 hover:text-white")
+                      }
+                    >
+                      Pending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQueuedView("processing")}
+                      className={
+                        "px-3 py-1.5 transition-colors " +
+                        (queuedView === "processing"
+                          ? "bg-blue-400 text-slate-900"
+                          : "bg-slate-900 text-slate-300 hover:text-white")
+                      }
+                    >
+                      Processing
+                    </button>
+                  </div>
+                </div>
                 <span className="text-xs text-slate-400">
-                  {queuedList.length.toLocaleString()} jobs
+                  {queuedList.length.toLocaleString()} {queuedView} urls
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto relative" ref={jobListRef}>
                 <div className="sticky top-0 z-20 relative">
                   <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <div className="w-1" />
-                    <div className="flex-1 grid grid-cols-[auto_6fr_3fr] sm:grid-cols-[auto_8fr_3fr_2fr_2fr_2fr] gap-2 sm:gap-3 items-center">
-                      <div className="w-8 h-8" />
-                      <div>Job</div>
-                      <div className="hidden sm:block">Location(s)</div>
-                      <div className="text-right">Salary</div>
+                    <div className="flex-1 grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-2 sm:gap-3 items-center">
+                      <div className="text-right">#</div>
+                      <div>URL</div>
+                      <div className="hidden sm:block">Provider</div>
+                      <div className="hidden sm:block">Scheduled</div>
+                      <div className="hidden sm:block text-right">Attempts</div>
+                      <div className="text-right">Status</div>
                       <div className="text-right hidden sm:block">Queued</div>
-                      <div className="text-right hidden sm:block">Scraped</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="min-h-full">
                   <AnimatePresence initial={false}>
-                    {queuedList.map((job, idx) => (
-                      <JobRow
-                        key={job._id}
-                        job={job}
-                        groupedLabel={groupedLocationsLabel(job)}
-                        isSelected={selectedJobId === job._id}
-                        onSelect={() => handleSelectJob(job._id)}
+                    {queuedList.map((item, idx) => (
+                      <QueuedUrlRow
+                        key={item._id}
+                        item={item}
+                        index={idx}
+                        isSelected={selectedJobId === item._id}
+                        onSelect={() => handleSelectQueued(item._id)}
                         keyboardBlur={idx > blurFromIndex}
-                        getCompanyJobsUrl={buildCompanyJobsUrl}
-                        queuedAt={job.queueCreatedAt}
-                        showQueuedSince
                       />
                     ))}
                   </AnimatePresence>
 
-                  {queuedStatus === "CanLoadMore" && (
+                  {queuedView === "pending" && queuedStatus === "CanLoadMore" && (
                     <div className="p-4 flex justify-center border-t border-slate-800">
                       <button
                         onClick={() => loadMoreQueued(queuedLoadMoreSize)}
@@ -2944,12 +3060,124 @@ export function JobBoard() {
 
                   {queuedList.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                      <p>No queued jobs right now.</p>
+                      <p>No {queuedView} URLs right now.</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
+            <AnimatePresence>
+              {showJobDetails && selectedQueuedItem && (
+                <div className="w-full sm:w-[32rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
+                  <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
+                    <div className="min-w-0 pr-4">
+                      <h2 className="text-lg font-semibold text-white leading-tight mb-1.5">Queued URL</h2>
+                      <div className="text-[11px] text-slate-400 break-all">{selectedQueuedItem.url}</div>
+                    </div>
+                    <button
+                      onClick={() => setShowJobDetails(false)}
+                      className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      aria-label="Close queued details"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="p-4 space-y-3">
+                      <div className="flex gap-2">
+                        {selectedQueuedItem.url && (
+                          <button
+                            onClick={() => window.open(selectedQueuedItem.url, "_blank")}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-amber-400 hover:bg-amber-300 border border-amber-500 shadow-lg shadow-amber-900/30 transition-transform active:scale-[0.99]"
+                          >
+                            Open URL
+                          </button>
+                        )}
+                        {selectedQueuedItem.sourceUrl && (
+                          <button
+                            onClick={() => window.open(selectedQueuedItem.sourceUrl, "_blank")}
+                            className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-transform active:scale-[0.99]"
+                          >
+                            Open Source
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Status</div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${resolveQueueStatusClass(selectedQueuedItem.status)}`}>
+                            {selectedQueuedItem.status}
+                          </span>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Provider</div>
+                          <div className="text-sm text-slate-200">{selectedQueuedItem.provider ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Scheduled</div>
+                          <div className="text-sm text-slate-200">{formatQueueTimestamp(selectedQueuedItem.scheduledAt)}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Attempts</div>
+                          <div className="text-sm text-slate-200">{selectedQueuedItem.attempts ?? 0}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Queued</div>
+                          <div className="text-sm text-slate-200">{formatQueueTimestamp(selectedQueuedItem.createdAt)}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Updated</div>
+                          <div className="text-sm text-slate-200">{formatQueueTimestamp(selectedQueuedItem.updatedAt)}</div>
+                        </div>
+                      </div>
+
+                      {selectedQueuedItem.status === "processing" && queuedLeaseExpiresAt && (
+                        <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-blue-200">Processing lease</div>
+                          <div className="flex items-center gap-2 text-sm text-blue-100">
+                            <span className="text-[11px] text-blue-200/80">Resets in</span>
+                            <CountdownTimer targetTime={queuedLeaseExpiresAt} className="font-mono font-semibold text-blue-100" />
+                          </div>
+                          <div className="text-[11px] text-blue-200/70">
+                            Resets at {new Date(queuedLeaseExpiresAt).toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-blue-200/60">
+                            Assumes 20m idle lease window.
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedQueuedItem.lastError && (
+                        <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-rose-200">Last error</div>
+                          <div className="text-xs text-rose-100 break-words">{selectedQueuedItem.lastError}</div>
+                        </div>
+                      )}
+
+                      <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-3 space-y-2">
+                        <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Source URL</div>
+                        {selectedQueuedItem.sourceUrl ? (
+                          <a
+                            href={selectedQueuedItem.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-blue-300 hover:text-blue-200 underline break-all"
+                          >
+                            {selectedQueuedItem.sourceUrl}
+                          </a>
+                        ) : (
+                          <div className="text-sm text-slate-400">No source URL available</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>

@@ -55,6 +55,7 @@ from ..helpers.scrape_utils import (
     derive_company_from_url,
     normalize_compensation_value,
     parse_markdown_hints,
+    parse_posted_at,
     split_description_metadata,
     strip_known_nav_blocks,
     fetch_seen_urls_for_site,
@@ -346,6 +347,17 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
             pass
         raise
     job_urls = listing.get("job_urls") if isinstance(listing, dict) else []
+    posted_at_by_url: Dict[str, int] = {}
+    if isinstance(listing, dict):
+        raw_posted = listing.get("posted_at_by_url")
+        if isinstance(raw_posted, dict):
+            for key, value in raw_posted.items():
+                if not isinstance(key, str):
+                    continue
+                if not isinstance(value, (int, float)):
+                    continue
+                normalized_key = normalize_url(key) or key
+                posted_at_by_url[normalized_key] = int(value)
     urls: list[str] = []
     seen_urls: set[str] = set()
     for candidate in job_urls:
@@ -393,6 +405,11 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
     existing = await filter_existing_job_urls(pending_urls)
     existing_set = set(existing) | skip_set
     urls_to_scrape = [u for u in urls if u not in existing_set]
+    posted_ats_to_enqueue: list[int | None] | None = None
+    if posted_at_by_url and urls_to_scrape:
+        posted_ats_to_enqueue = [posted_at_by_url.get(url) for url in urls_to_scrape]
+        if not any(isinstance(val, (int, float)) for val in posted_ats_to_enqueue):
+            posted_ats_to_enqueue = None
     logger.info(
         "SpiderCloud greenhouse urls total=%s pending=%s existing=%s to_scrape=%s",
         len(urls),
@@ -412,6 +429,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
                     "provider": scraper.provider,
                     "siteId": site_id,
                     "pattern": site.get("pattern"),
+                    "postedAts": posted_ats_to_enqueue,
                 }
             ),
         )
@@ -1177,6 +1195,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         )
 
     groups: dict[tuple[str, str | None], list[str]] = {}
+    posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
@@ -1189,7 +1208,12 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         if source_val and not source_url_hint:
             source_url_hint = source_val
         key = (source_val, pattern_val)
-        groups.setdefault(key, []).append(_to_greenhouse_api_url(url_val))
+        normalized_url = _to_greenhouse_api_url(url_val)
+        groups.setdefault(key, []).append(normalized_url)
+        posted_at_val = row.get("postedAt")
+        if isinstance(posted_at_val, (int, float)):
+            mapping = posted_at_groups.setdefault(key, {})
+            mapping[normalize_url(normalized_url) or normalized_url] = int(posted_at_val)
 
     if not groups:
         return {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
@@ -1197,7 +1221,14 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
     scraper = _make_spidercloud_scraper()
 
     async def _scrape_group(urls: list[str], source_url: str, pattern: str | None) -> list[Dict[str, Any]]:
-        payload = {"urls": urls, "source_url": source_url or (urls[0] if urls else ""), "pattern": pattern}
+        payload: Dict[str, Any] = {
+            "urls": urls,
+            "source_url": source_url or (urls[0] if urls else ""),
+            "pattern": pattern,
+        }
+        posted_at_by_url = posted_at_groups.get((source_url, pattern))
+        if posted_at_by_url:
+            payload["posted_at_by_url"] = posted_at_by_url
         result = await scraper.scrape_greenhouse_jobs(payload) or {}
 
         # Unwrap and split into per-URL scrape payloads so they can be stored independently.
@@ -1651,6 +1682,45 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
         try:
             board: GreenhouseBoardResponse = load_greenhouse_board(raw_text or json_payload)
             job_urls = extract_greenhouse_job_urls(board, required_keywords=())
+            posted_at_by_url: Dict[str, int] = {}
+
+            def _pick_job_timestamp(job: Any) -> Any | None:
+                for value in (getattr(job, "updated_at", None), getattr(job, "first_published", None)):
+                    if isinstance(value, str):
+                        cleaned = value.strip()
+                        if cleaned:
+                            return cleaned
+                    elif isinstance(value, (int, float)):
+                        return value
+                extra = getattr(job, "model_extra", None) or {}
+                if isinstance(extra, dict):
+                    for key in (
+                        "updated_at",
+                        "updatedAt",
+                        "first_published",
+                        "firstPublished",
+                        "created_at",
+                        "createdAt",
+                    ):
+                        val = extra.get(key)
+                        if isinstance(val, str):
+                            cleaned = val.strip()
+                            if cleaned:
+                                return cleaned
+                        elif isinstance(val, (int, float)):
+                            return val
+                return None
+
+            if board.jobs:
+                for job in board.jobs:
+                    raw_date = _pick_job_timestamp(job)
+                    if raw_date is None:
+                        continue
+                    posted_at = parse_posted_at(raw_date)
+                    absolute_url = getattr(job, "absolute_url", None)
+                    if isinstance(absolute_url, str) and absolute_url.strip():
+                        normalized = normalize_url(absolute_url) or absolute_url
+                        posted_at_by_url[normalized] = posted_at
         except Exception as exc:  # noqa: BLE001
             payload = {
                 "event": "scrape.greenhouse_listing.webhook_parse_failed",
@@ -1706,6 +1776,7 @@ async def collect_firecrawl_job_result(event: FirecrawlWebhookEvent) -> Dict[str
             "itemsCount": len(job_urls),
             "jobsScraped": len(job_urls),
             "job_urls": job_urls,
+            "posted_at_by_url": posted_at_by_url if posted_at_by_url else None,
             "raw": raw_text,
         }
 

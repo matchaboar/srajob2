@@ -80,3 +80,20 @@ def test_adobe_apply_page_commonmark_includes_job_detail_link():
     )
 
     assert "https://careers.adobe.com/us/en/job/R162038/Support-Pricing-Specialist" in markdown
+
+
+def test_adobe_job_detail_location_from_commonmark_fixture():
+    event, markdown = _load_event(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_adobe_job_detail_r162922_commonmark.json"
+    )
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(
+        "https://careers.adobe.com/us/en/job/R162922/Software-Development-Engineer",
+        markdown,
+        [event],
+        0,
+        require_keywords=False,
+    )
+
+    assert normalized is not None
+    assert normalized["location"] == "Yerevan, Armenia"

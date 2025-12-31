@@ -56,6 +56,8 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
     []
   );
   const scrapedAt = toOptionalNumber(job?.scrapedAt);
+  const postedAtUnknown = (job as { postedAtUnknown?: boolean } | null)?.postedAtUnknown ?? false;
+  const postedAtLabel = postedAtUnknown ? "Unknown" : formatDateTime(job?.postedAt);
   const scrapeQueueCreatedAt = toOptionalNumber((job as { scrapeQueueCreatedAt?: number } | null)?.scrapeQueueCreatedAt);
   const scrapeQueueCompletedAt = toOptionalNumber(
     (job as { scrapeQueueCompletedAt?: number } | null)?.scrapeQueueCompletedAt
@@ -216,7 +218,10 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
                 </span>
               )}
               <span>
-                <span className="text-slate-500">Posted:</span> {formatDateTime(job.postedAt)}
+                <span className="text-slate-500">Posted:</span>{" "}
+                <span className={postedAtUnknown ? "text-slate-600" : "text-emerald-300"}>
+                  {postedAtLabel}
+                </span>
               </span>
               <span>
                 <span className="text-slate-500">Scraped:</span> {formatDateTime(job.scrapedAt)}

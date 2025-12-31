@@ -1,0 +1,14 @@
+The example job id in convex prod does not get the location extracted. 
+Please fix python/workflow code if possible with unit tests and test fixtures. 
+Query the database with agent_scripts to get more info about the job id, and if needed get fixtures with agent_scripts from spidercloud.
+
+k1751ca0g0e8pzm53ewyev54s57ya6ft
+k174ngyp1z8ma63a87jhsafwb17ybrwa
+k172aak58p5pcnwzmwfw22d9v17ya2r1
+k172g1ezkdxjw7dbs42y6y4abd7yag3e
+k17da62e6hz8pfqrzp31cnswnx7yb8yc
+
+Please modify this dictionary. The key should be city. Value can still be the same data. Ensure that code is modified to support this change. 
+Add unit tests that verify no code broken by the change moving forwards.
+Once that is done, add the 1,000 most populated cities of the world to this file with supporting data.
+job_board_application/convex/locationDictionary.json

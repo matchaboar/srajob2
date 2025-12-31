@@ -1037,6 +1037,29 @@ _STATE_NAME_BY_ABBR: dict[str, str] = {
     "WY": "Wyoming",
 }
 _STATE_ABBR_BY_NAME: dict[str, str] = {name: abbr for abbr, name in _STATE_NAME_BY_ABBR.items()}
+_STATE_ABBR_BY_KEY: dict[str, str] = {
+    _normalize_location_key(name): abbr for name, abbr in _STATE_ABBR_BY_NAME.items()
+}
+
+
+def _normalize_us_city_state(value: str) -> Optional[str]:
+    if "," not in value:
+        return None
+    parts = [part.strip() for part in value.split(",") if part.strip()]
+    if len(parts) != 2:
+        return None
+    city, state_raw = parts
+    if not city or city.lower() == "remote":
+        return None
+    state_key = _normalize_location_key(state_raw)
+    state_abbr = _STATE_ABBR_BY_KEY.get(state_key)
+    if not state_abbr:
+        state_upper = state_raw.strip().upper()
+        if state_upper in _STATE_NAME_BY_ABBR:
+            state_abbr = state_upper
+    if not state_abbr:
+        return None
+    return f"{city}, {state_abbr}"
 
 
 def _format_location_label(city: str | None, state: str | None, country: str | None = None) -> str:
@@ -1067,9 +1090,25 @@ def _format_location_label(city: str | None, state: str | None, country: str | N
 
 _LOCATION_DICT_PATH = Path(__file__).resolve().parents[3] / "job_board_application" / "convex" / "locationDictionary.json"
 try:
-    _LOCATION_ENTRIES: list[dict[str, Any]] = json.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
+    _raw_location_entries = json.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
 except FileNotFoundError:
-    _LOCATION_ENTRIES = []
+    _raw_location_entries = []
+
+_LOCATION_ENTRIES: list[dict[str, Any]] = []
+if isinstance(_raw_location_entries, list):
+    _LOCATION_ENTRIES = [entry for entry in _raw_location_entries if isinstance(entry, dict)]
+elif isinstance(_raw_location_entries, dict):
+    for city_key, value in _raw_location_entries.items():
+        if isinstance(value, list):
+            for entry in value:
+                if isinstance(entry, dict):
+                    if "city" not in entry:
+                        entry = {**entry, "city": city_key}
+                    _LOCATION_ENTRIES.append(entry)
+        elif isinstance(value, dict):
+            if "city" not in value:
+                value = {**value, "city": city_key}
+            _LOCATION_ENTRIES.append(value)
 
 _LOCATION_DICTIONARY: dict[str, dict[str, Any]] = {}
 _CITY_KEYWORDS: dict[str, dict[str, Any]] = {}
@@ -1181,6 +1220,11 @@ def _normalize_locations(locations: List[str]) -> List[str]:
                 continue
             resolved = _resolve_location_from_dictionary(candidate)
             if not resolved:
+                us_city_state = _normalize_us_city_state(candidate)
+                if us_city_state and us_city_state not in seen:
+                    seen.add(us_city_state)
+                    normalized.append(us_city_state)
+                    continue
                 country_label = _normalize_country_label(candidate)
                 if country_label and country_label not in seen:
                     seen.add(country_label)
@@ -1370,7 +1414,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if not t or t.startswith("#"):
             continue
         lower = t.lower()
-        if lower == "locations":
+        if lower in {"locations", "office location", "office locations"}:
             location_section = True
             continue
         if location_section:
@@ -1627,6 +1671,30 @@ def parse_posted_at(value: Any) -> int:
     return now_ms
 
 
+def parse_posted_at_with_unknown(value: Any) -> tuple[int, bool]:
+    now_ms = int(time.time() * 1000)
+    if value is None:
+        return now_ms, True
+
+    if isinstance(value, (int, float)):
+        if value > 1e12:
+            return int(value), False
+        if value > 1e9:
+            return int(value * 1000), False
+        return now_ms, True
+
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if not cleaned:
+            return now_ms, True
+        try:
+            dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000), False
+        except Exception:
+            return now_ms, True
+
+    return now_ms, True
+
 @dataclass(frozen=True)
 class _HintApplicationConfig:
     apply_location_when_empty: bool
@@ -1830,9 +1898,14 @@ class _JobRowNormalizer:
             config=self.normalized_hint_config,
         )
 
-        posted_at = parse_posted_at(
-            row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
-        )
+        raw_posted_value = row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
+        posted_at_unknown = row.get("posted_at_unknown") if isinstance(row, dict) else None
+        if posted_at_unknown is None:
+            posted_at_unknown = row.get("postedAtUnknown") if isinstance(row, dict) else None
+        if isinstance(posted_at_unknown, bool):
+            posted_at = parse_posted_at(raw_posted_value)
+        else:
+            posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_value)
         normalized_row: Dict[str, Any] = {
             "job_title": state.title,
             "title": state.title,
@@ -1844,6 +1917,7 @@ class _JobRowNormalizer:
             "url": url,
             "description": description,
             "posted_at": posted_at,
+            "posted_at_unknown": bool(posted_at_unknown),
         }
         if state.compensation_reason:
             normalized_row["compensation_reason"] = state.compensation_reason
@@ -1898,6 +1972,9 @@ class _JobRowNormalizer:
         if not url:
             return None
 
+        posted_at_unknown = row.get("posted_at_unknown") if isinstance(row, dict) else None
+        if posted_at_unknown is None:
+            posted_at_unknown = row.get("postedAtUnknown") if isinstance(row, dict) else None
         job = {
             "title": state.title,
             "company": company_val,
@@ -1908,6 +1985,7 @@ class _JobRowNormalizer:
             "totalCompensation": int(state.total_compensation or 0),
             "url": url,
             "postedAt": int(row.get("posted_at") or context.default_posted_at),
+            "postedAtUnknown": bool(posted_at_unknown),
         }
         if context.scraped_at:
             job["scrapedAt"] = context.scraped_at
@@ -2270,6 +2348,7 @@ __all__ = [
     "normalize_single_row",
     "parse_compensation",
     "parse_posted_at",
+    "parse_posted_at_with_unknown",
     "prefer_apply_url",
     "split_description_metadata",
     "stringify",
