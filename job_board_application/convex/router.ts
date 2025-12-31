@@ -1420,6 +1420,7 @@ export const insertIgnoredJob = mutation({
   args: {
     url: v.string(),
     sourceUrl: v.optional(v.string()),
+    company: v.optional(v.string()),
     reason: v.optional(v.string()),
     provider: v.optional(v.string()),
     workflowName: v.optional(v.string()),
@@ -1430,9 +1431,14 @@ export const insertIgnoredJob = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     await recordSeenJobUrl(ctx, args.sourceUrl, args.url);
+    const resolvedCompany =
+      (args.company ?? "").trim() ||
+      (await resolveCompanyForUrl(ctx, args.url, "", undefined)).trim() ||
+      fallbackCompanyName(undefined, args.url);
     return await ctx.db.insert("ignored_jobs", {
       url: args.url,
       sourceUrl: args.sourceUrl,
+      company: resolvedCompany || undefined,
       reason: args.reason,
       provider: args.provider,
       workflowName: args.workflowName,
@@ -1450,11 +1456,27 @@ export const listIgnoredJobs = query({
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 200, 400));
+    const aliasRows = await ctx.db.query("domain_aliases").collect();
+    const aliasLookup = new Map<string, string>();
+    for (const row of aliasRows as any[]) {
+      const domain = (row)?.domain?.trim?.() ?? "";
+      const alias = (row)?.alias?.trim?.() ?? "";
+      if (domain && alias) {
+        aliasLookup.set(domain, alias);
+      }
+    }
     const rows = await ctx.db.query("ignored_jobs").order("desc").take(limit);
     return rows.map((row: any) => ({
       _id: row._id,
       url: row.url,
       sourceUrl: row.sourceUrl,
+      company: (() => {
+        const existing = typeof row.company === "string" ? row.company.trim() : "";
+        if (existing) return existing;
+        const domain = normalizeDomainInput(row.url || row.sourceUrl || "");
+        const alias = domain ? aliasLookup.get(domain) : undefined;
+        return (alias ?? "").trim() || fallbackCompanyName(undefined, row.url || row.sourceUrl || "");
+      })(),
       reason: row.reason,
       provider: row.provider,
       workflowName: row.workflowName,
@@ -1648,6 +1670,11 @@ export const enqueueScrapeUrls = mutation({
       const url = (rawUrl || "").trim();
       if (!url || seen.has(url)) continue;
       seen.add(url);
+      const ignored = await ctx.db
+        .query("ignored_jobs")
+        .withIndex("by_url", (q: any) => q.eq("url", url))
+        .first();
+      if (ignored) continue;
       const delayMs = args.delaysMs?.[index];
       const postedAtValue = args.postedAts?.[index];
       const postedAt =
@@ -1731,6 +1758,7 @@ const leaseScrapeUrlBatchHandler = async (
   const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
   const now = Date.now();
   const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 5 * 60_000, 24 * 60 * 60_000));
+  const aliasCache = new Map<string, string | null>();
 
   const insertBatchScrape = async (payload: {
     urls: string[];
@@ -1780,12 +1808,24 @@ const leaseScrapeUrlBatchHandler = async (
     console.error("leaseScrapeUrlBatch: failed releasing stale processing", err);
   }
 
+  // Use the scheduledAt index here; the attempts index requires attempts to be constrained first.
   const baseQuery = ctx.db
     .query("scrape_url_queue")
-    .withIndex("by_status_attempts_scheduled_at", (q: any) =>
+    .withIndex("by_status_and_scheduled_at", (q: any) =>
       q.eq("status", "pending").lte("scheduledAt", now)
     );
   let rows = await baseQuery.order("asc").take(limit * 3);
+  rows = rows.slice().sort((a: any, b: any) => {
+    const attemptsA = a.attempts ?? 0;
+    const attemptsB = b.attempts ?? 0;
+    if (attemptsA !== attemptsB) return attemptsA - attemptsB;
+    const scheduledA = a.scheduledAt ?? 0;
+    const scheduledB = b.scheduledAt ?? 0;
+    if (scheduledA !== scheduledB) return scheduledA - scheduledB;
+    const createdA = a.createdAt ?? 0;
+    const createdB = b.createdAt ?? 0;
+    return createdA - createdB;
+  });
   if (rows.length < limit) {
     const legacyRows = await ctx.db
       .query("scrape_url_queue")
@@ -1816,6 +1856,9 @@ const leaseScrapeUrlBatchHandler = async (
     const createdAt = row.createdAt ?? 0;
     if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
       // Skip stale (>7d) entries; mark ignored
+      const resolvedCompany =
+        (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
+        fallbackCompanyName(undefined, row.url);
       await ctx.db.patch(row._id, {
         status: "failed",
         lastError: "stale (>7d)",
@@ -1826,6 +1869,7 @@ const leaseScrapeUrlBatchHandler = async (
         await ctx.db.insert("ignored_jobs", {
           url: row.url,
           sourceUrl: row.sourceUrl ?? "",
+          company: resolvedCompany || undefined,
           provider: row.provider,
           workflowName: "leaseScrapeUrlBatch",
           reason: "stale_scrape_queue_entry",
@@ -2058,6 +2102,7 @@ const completeScrapeUrlsHandler = async (
   args: { urls: string[]; status: "completed" | "failed" | "invalid"; error?: string }
 ) => {
   const now = Date.now();
+  const aliasCache = new Map<string, string | null>();
   for (const rawUrl of args.urls) {
     const url = (rawUrl || "").trim();
     if (!url) continue;
@@ -2076,10 +2121,14 @@ const completeScrapeUrlsHandler = async (
       (attempts >= JOB_DETAIL_MAX_ATTEMPTS || (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
 
     if (shouldIgnore) {
+      const resolvedCompany =
+        (await resolveCompanyForUrl(ctx, url, "", undefined, aliasCache)).trim() ||
+        fallbackCompanyName(undefined, url);
       try {
         await ctx.db.insert("ignored_jobs", {
           url,
           sourceUrl: (existing).sourceUrl ?? "",
+          company: resolvedCompany || undefined,
           provider: (existing).provider,
           workflowName: "leaseScrapeUrlBatch",
           reason:

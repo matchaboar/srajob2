@@ -27,6 +27,8 @@ async def test_scrape_site_prefers_fetchfox_when_set(monkeypatch):
 
     monkeypatch.setattr(acts.FirecrawlScraper, "scrape_site", fake_fire)
     monkeypatch.setattr(acts.FetchfoxScraper, "scrape_site", fake_fetch)
+    monkeypatch.setattr(acts.settings, "enable_firecrawl", True)
+    monkeypatch.setattr(acts.settings, "enable_fetchfox", True)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-test-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "ff-test-key")
 
@@ -57,6 +59,7 @@ async def test_scrape_site_uses_firecrawl_provider(monkeypatch):
     monkeypatch.setattr(acts.FirecrawlScraper, "scrape_site", fake_fire)
     monkeypatch.setattr(acts.FetchfoxScraper, "scrape_site", fake_fetch)
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
+    monkeypatch.setattr(acts.settings, "enable_firecrawl", True)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-test-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "ff-test-key")
 

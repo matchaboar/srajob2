@@ -22,13 +22,20 @@ type QueueRow = {
   completedAt?: number;
 };
 
+type IndexCall = {
+  indexName: string | null;
+  scheduledAtMax: number | null;
+  filterFields: Record<string, any>;
+};
+
 class FakeQuery {
   constructor(
     private getRows: () => QueueRow[],
     private filterFields: Record<string, any> = {},
     private scheduledAtMax: number | null = null,
     private indexName: string | null = null,
-    private ordered: boolean = false
+    private ordered: boolean = false,
+    private tracker?: { indexCalls: IndexCall[] }
   ) {}
   withIndex(name: string, cb: (q: any) => any) {
     const filterFields = { ...this.filterFields };
@@ -40,15 +47,34 @@ class FakeQuery {
         return builder;
       },
       lte: (field: string, val: number) => {
-        if (field === "scheduledAt") scheduledAtMax = val;
+        if (field === "scheduledAt") {
+          if (indexName === "by_status_attempts_scheduled_at" && filterFields.attempts === undefined) {
+            throw new Error("Index order violation: attempts must be constrained before scheduledAt");
+          }
+          scheduledAtMax = val;
+        }
         return builder;
       },
     };
     cb(builder);
-    return new FakeQuery(this.getRows, filterFields, scheduledAtMax, indexName, this.ordered);
+    if (this.tracker) {
+      this.tracker.indexCalls.push({
+        indexName,
+        scheduledAtMax,
+        filterFields: { ...filterFields },
+      });
+    }
+    return new FakeQuery(this.getRows, filterFields, scheduledAtMax, indexName, this.ordered, this.tracker);
   }
   order() {
-    return new FakeQuery(this.getRows, this.filterFields, this.scheduledAtMax, this.indexName, true);
+    return new FakeQuery(
+      this.getRows,
+      this.filterFields,
+      this.scheduledAtMax,
+      this.indexName,
+      true,
+      this.tracker
+    );
   }
   private _filterRows(rows: QueueRow[]) {
     let filtered = rows;
@@ -102,14 +128,15 @@ class FakeDb {
     private queueRows: QueueRow[],
     private ignoredRows: Array<any> = [],
     private seenRows: Array<any> = [],
-    private batchScrapes: Array<any> = []
+    private batchScrapes: Array<any> = [],
+    private tracker?: { indexCalls: IndexCall[] }
   ) {}
   query = (table: string) => {
     if (table === "scrape_url_queue") {
-      return new FakeQuery(() => this.queueRows);
+      return new FakeQuery(() => this.queueRows, {}, null, null, false, this.tracker);
     }
     if (table === "seen_job_urls") {
-      return new FakeQuery(() => this.seenRows);
+      return new FakeQuery(() => this.seenRows, {}, null, null, false, this.tracker);
     }
     throw new Error(`Unexpected table ${table}`);
   };
@@ -153,6 +180,40 @@ class FakeDb {
 }
 
 describe("leaseScrapeUrlBatch", () => {
+  it("avoids querying scheduledAt against the attempts index out of order", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-1",
+        url: "https://example.com/job/1",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 10_000,
+        scheduledAt: now - 500,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const tracker = { indexCalls: [] as IndexCall[] };
+    const db = new FakeDb(rows, [], [], [], tracker);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const invalidIndexCall = tracker.indexCalls.some(
+      (call) =>
+        call.indexName === "by_status_attempts_scheduled_at" &&
+        call.scheduledAtMax !== null &&
+        call.filterFields.attempts === undefined
+    );
+    expect(invalidIndexCall).toBe(false);
+  });
+
   it("releases stale processing rows before leasing pending ones", async () => {
     const now = Date.now();
     const stale: QueueRow = {

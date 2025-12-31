@@ -197,6 +197,34 @@ describe("scrape queue end-to-end", () => {
     expect(leasedA?.postedAt).toBe(postedAtA);
   });
 
+  it("skips enqueueing URLs that are already ignored", async () => {
+    const sourceUrl = "https://example.com/jobs";
+    const ignoredUrl = "https://example.com/jobs/ignored";
+    const allowedUrl = "https://example.com/jobs/allowed";
+    const db = new FakeDb({
+      ignored_jobs: [
+        {
+          _id: "ignored-1",
+          url: ignoredUrl,
+          sourceUrl,
+          reason: "missing_required_keyword",
+          createdAt: Date.now(),
+        },
+      ],
+    });
+    const ctx: any = { db };
+
+    const enqueueHandler = getHandler(enqueueScrapeUrls);
+    const res = await enqueueHandler(ctx, {
+      urls: [ignoredUrl, allowedUrl],
+      sourceUrl,
+      provider: "spidercloud",
+    });
+
+    expect(res.queued).toEqual([allowedUrl]);
+    expect(db.tables.scrape_url_queue.map((row) => row.url)).toEqual([allowedUrl]);
+  });
+
   it("respects scheduledAt, updates queue state, and records seen URLs across batches", async () => {
     const now = new Date("2024-01-01T00:00:00Z");
     vi.useFakeTimers();

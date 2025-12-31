@@ -780,6 +780,10 @@ export const listJobs = query({
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
     const singleCompanyFilter = companyFilters.length === 1 ? companyFilters[0] : null;
     const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
+    const requestedPageSize = args.paginationOpts.numItems ?? 50;
+    const maxPageSize = hasCompanyFilter ? 25 : 50;
+    const pageSize = Math.max(1, Math.min(requestedPageSize, maxPageSize));
+    const paginationOpts = { ...args.paginationOpts, numItems: pageSize };
 
     // Get user's applied/rejected jobs first
     const userApplications = await ctx.db
@@ -971,11 +975,10 @@ export const listJobs = query({
         args.maxCompensation !== undefined;
 
       if (!needsFilteredPagination) {
-        jobs = await buildBaseQuery().paginate(args.paginationOpts);
+        jobs = await buildBaseQuery().paginate(paginationOpts);
       } else {
-        const pageSize = args.paginationOpts.numItems ?? 50;
         const { rawCursor: initialRawCursor, carryIds, rawIsDone: initialRawIsDone } = parseFilterCursor(
-          args.paginationOpts.cursor
+          paginationOpts.cursor
         );
         let rawCursor = initialRawCursor;
         let rawIsDone = initialRawIsDone;
@@ -993,7 +996,7 @@ export const listJobs = query({
         if (!rawIsDone && filteredBuffer.length < pageSize) {
           const expandedSize = Math.min(pageSize * 4, 200);
           const page = await buildBaseQuery().paginate({
-            ...args.paginationOpts,
+            ...paginationOpts,
             cursor: rawCursor,
             numItems: expandedSize,
           });

@@ -1293,6 +1293,7 @@ async def test_select_scraper_defaults_to_spidercloud_when_key_present(monkeypat
 @pytest.mark.asyncio
 async def test_select_scraper_falls_back_to_firecrawl(monkeypatch):
     monkeypatch.setattr(acts.settings, "spider_api_key", None)
+    monkeypatch.setattr(acts.settings, "enable_firecrawl", True)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", None)
 

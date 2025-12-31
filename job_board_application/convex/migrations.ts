@@ -3,8 +3,8 @@ import { formatLocationLabel, deriveLocationFields } from "./location";
 import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import { DataModel, Id } from "./_generated/dataModel.js";
-import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
-import { deriveCompanyKey, deriveEngineerFlag } from "./jobs";
+import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, ashbySlugFromUrl } from "./siteUtils";
+import { deriveCompanyKey, deriveEngineerFlag, deriveCompanyFromUrl } from "./jobs";
 import { extractJobs } from "./router";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
@@ -14,6 +14,7 @@ export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
 export const runScrapeActivityBackfill = migrations.runner(internal.migrations.backfillScrapeActivity);
 export const runJobDetailScrapeUrlBackfill = migrations.runner(internal.migrations.backfillJobDetailScrapeUrl);
+export const runIgnoredJobCompanyBackfill = migrations.runner(internal.migrations.backfillIgnoredJobCompanies);
 
 type JobId = Id<"jobs">;
 
@@ -36,6 +37,56 @@ const normalizeUrlKey = (url?: string | null) => {
   const trimmed = url.trim();
   if (!trimmed) return "";
   return trimmed.replace(/\/+$/, "");
+};
+
+const baseDomainFromHost = (host: string): string => {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 1) return host;
+  const last = parts[parts.length - 1];
+  const secondLast = parts[parts.length - 2];
+  const shouldUseThree = secondLast.length === 2 || last.length === 2;
+  if (shouldUseThree && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+};
+
+const normalizeIgnoredDomainInput = (value: string): string => {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    const host = parsed.hostname.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
+    if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    const ashbySlug = ashbySlugFromUrl(parsed.href);
+    if (ashbySlug) return `${ashbySlug}.ashbyhq.com`;
+    return baseDomainFromHost(host);
+  } catch {
+    const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
+    const host = hostOnly.toLowerCase();
+    const greenhouseSlug = greenhouseSlugFromUrl(host);
+    if (greenhouseSlug) return `${greenhouseSlug}.greenhouse.io`;
+    const ashbySlug = ashbySlugFromUrl(trimmed);
+    if (ashbySlug) return `${ashbySlug}.ashbyhq.com`;
+    return baseDomainFromHost(host);
+  }
+};
+
+const resolveIgnoredCompany = (
+  row: { url?: string | null; sourceUrl?: string | null; company?: string | null },
+  aliasLookup: Map<string, string>
+) => {
+  const existing = (row.company ?? "").trim();
+  if (existing) return existing;
+  const urlValue = row.url || row.sourceUrl || "";
+  const domain = normalizeIgnoredDomainInput(urlValue);
+  const alias = domain ? (aliasLookup.get(domain) ?? "").trim() : "";
+  if (alias) return alias;
+  const derived = deriveCompanyFromUrl(urlValue);
+  if (derived) return derived;
+  return fallbackCompanyNameFromUrl(urlValue);
 };
 
 export const fixJobLocations = migrations.define({
@@ -419,6 +470,31 @@ export const backfillCompanyKey = migrations.define({
   },
 });
 
+export const backfillIgnoredJobCompanies = migrations.define({
+  table: "ignored_jobs",
+  migrateOne: (() => {
+    let aliasLookup: Map<string, string> | null = null;
+    return async (ctx, doc) => {
+      const current = (doc as any).company;
+      if (typeof current === "string" && current.trim()) return;
+      if (!aliasLookup) {
+        aliasLookup = new Map<string, string>();
+        const aliasRows = await ctx.db.query("domain_aliases").collect();
+        for (const row of aliasRows as any[]) {
+          const domain = (row)?.domain?.trim?.() ?? "";
+          const alias = (row)?.alias?.trim?.() ?? "";
+          if (domain && alias) {
+            aliasLookup.set(domain, alias);
+          }
+        }
+      }
+      const resolved = resolveIgnoredCompany(doc as any, aliasLookup);
+      if (!resolved) return;
+      await ctx.db.patch(doc._id, { company: resolved });
+    };
+  })(),
+});
+
 export const syncSiteSchedules = migrations.define({
   table: "sites",
   migrateOne: (() => {
@@ -439,6 +515,7 @@ export const runAll = internalMutation({
       internal.migrations.backfillScrapeMetadata,
       internal.migrations.backfillEngineerFlag,
       internal.migrations.backfillCompanyKey,
+      internal.migrations.backfillIgnoredJobCompanies,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
       internal.migrations.backfillScrapeActivity,

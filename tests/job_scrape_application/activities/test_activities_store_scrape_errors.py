@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import sys
@@ -337,3 +338,62 @@ async def test_store_scrape_applies_heuristics_before_ingest(monkeypatch):
     assert job.get("heuristicVersion") == acts.HEURISTIC_VERSION
     assert job.get("heuristicAttempts") == 1
     assert any(rec.get("field") == "compensation" for rec in recorded)
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_heuristic_cancellation_logs_and_continues(monkeypatch):
+    payload = {
+        "sourceUrl": "https://example.com",
+        "workflowName": "SpidercloudJobDetails",
+        "workflowId": "wf-123",
+        "runId": "run-456",
+        "items": {
+            "normalized": [
+                {
+                    "title": "Heuristic Engineer",
+                    "company": "ExampleCo",
+                    "description": "Location: Austin, TX\n$150k",
+                    "url": "https://example.com/jobs/123",
+                }
+            ]
+        },
+    }
+
+    emitted: list[Dict[str, Any]] = []
+
+    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:listJobDetailConfigs":
+            raise asyncio.CancelledError()
+        return []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:recordJobDetailHeuristic":
+            raise asyncio.CancelledError()
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": len(args.get("jobs") or [])}
+        return None
+
+    def fake_emit_posthog_log(payload: Dict[str, Any]) -> None:
+        emitted.append(payload)
+
+    monkeypatch.setattr(acts, "trim_scrape_for_convex", lambda x, **kwargs: x)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_log", fake_emit_posthog_log)
+
+    res = await acts.store_scrape(payload)
+
+    assert res == "scrape-id"
+
+    events = {entry.get("event") for entry in emitted}
+    assert "heuristic.list_configs_cancelled" in events
+    assert "heuristic.record_cancelled" in events
+
+    for event in ("heuristic.list_configs_cancelled", "heuristic.record_cancelled"):
+        entry = next(item for item in emitted if item.get("event") == event)
+        assert entry.get("workflowId") == payload["workflowId"]
+        assert entry.get("workflowName") == payload["workflowName"]
+        assert entry.get("runId") == payload["runId"]
+        assert entry.get("siteUrl") == payload["sourceUrl"]

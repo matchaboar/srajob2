@@ -1876,14 +1876,19 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 # best-effort; ignore logging errors
                 pass
     
-        async def _apply_job_detail_heuristics_to_jobs(jobs: List[Dict[str, Any]], heuristic_time_ms: int) -> List[Dict[str, Any]]:
+        async def _apply_job_detail_heuristics_to_jobs(
+            jobs: List[Dict[str, Any]],
+            heuristic_time_ms: int,
+            context: Dict[str, Any] | None = None,
+        ) -> List[Dict[str, Any]]:
             """Enrich job rows with heuristic parsing before ingestion."""
-    
+
             try:
                 from ...services.convex_client import convex_query
             except Exception:
                 convex_query = None  # type: ignore[assignment]
-    
+
+            context_payload = _strip_none_values(context or {})
             configs_cache: Dict[str, List[Dict[str, Any]]] = {}
             enriched: List[Dict[str, Any]] = []
             for job in jobs:
@@ -1893,6 +1898,23 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     try:
                         fetched = await convex_query("router:listJobDetailConfigs", {"domain": domain}) if convex_query else []
                         configs = fetched if isinstance(fetched, list) else []
+                    except asyncio.CancelledError:
+                        # Best-effort heuristics; ignore cancellation from auxiliary Convex calls.
+                        try:
+                            telemetry.emit_posthog_log(
+                                _strip_none_values(
+                                    {
+                                        "event": "heuristic.list_configs_cancelled",
+                                        "level": "warning",
+                                        "domain": domain,
+                                        "url": job.get("url"),
+                                        **context_payload,
+                                    }
+                                )
+                            )
+                        except Exception:
+                            pass
+                        configs = []
                     except Exception:
                         configs = []
                     configs_cache[domain] = configs
@@ -1901,6 +1923,23 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 for rec in records:
                     try:
                         await convex_mutation("router:recordJobDetailHeuristic", rec)
+                    except asyncio.CancelledError:
+                        # Best-effort; do not fail ingestion on cancelled heuristic logging.
+                        try:
+                            telemetry.emit_posthog_log(
+                                _strip_none_values(
+                                    {
+                                        "event": "heuristic.record_cancelled",
+                                        "level": "warning",
+                                        "url": job.get("url")
+                                        or (rec.get("jobUrl") if isinstance(rec, dict) else None),
+                                        **context_payload,
+                                    }
+                                )
+                            )
+                        except Exception:
+                            pass
+                        continue
                     except Exception:
                         # best-effort; do not block ingestion
                         continue
@@ -2342,7 +2381,16 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             )
             if jobs:
                 try:
-                    jobs = await _apply_job_detail_heuristics_to_jobs(jobs, now)
+                    jobs = await _apply_job_detail_heuristics_to_jobs(
+                        jobs,
+                        now,
+                        {
+                            "workflowId": payload.get("workflowId"),
+                            "workflowName": workflow_name,
+                            "runId": payload.get("runId") or payload.get("run_id"),
+                            "siteUrl": payload.get("sourceUrl"),
+                        },
+                    )
                 except asyncio.CancelledError as exc:
                     try:
                         telemetry.emit_posthog_exception(

@@ -379,6 +379,7 @@ const applicationTables = {
   ignored_jobs: defineTable({
     url: v.string(),
     sourceUrl: v.optional(v.string()),
+    company: v.optional(v.string()),
     reason: v.optional(v.string()),
     provider: v.optional(v.string()),
     workflowName: v.optional(v.string()),

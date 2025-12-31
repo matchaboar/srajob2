@@ -33,7 +33,11 @@ type Page = {
 class FakeJobsQuery {
   constructor(
     private readonly pagesByCursor: Map<string | null, Page>,
-    private readonly tracker: { totalPaginateCalls: number; lastIndexName: string | null }
+    private readonly tracker: {
+      totalPaginateCalls: number;
+      lastIndexName: string | null;
+      lastPaginateNumItems: number | null;
+    }
   ) {}
 
   withIndex(name: string, cb?: (q: any) => any) {
@@ -66,8 +70,9 @@ class FakeJobsQuery {
     return this;
   }
 
-  paginate(opts: { cursor?: string | null }) {
+  paginate(opts: { cursor?: string | null; numItems?: number }) {
     this.tracker.totalPaginateCalls += 1;
+    this.tracker.lastPaginateNumItems = opts?.numItems ?? null;
     if (this.tracker.totalPaginateCalls > 1) {
       throw new Error("paginate called more than once in a single handler");
     }
@@ -134,7 +139,11 @@ const buildJobWithCompany = (id: string, postedAt: number, company: string): Job
 
 const buildCtx = (
   pagesByCursor: Map<string | null, Page>,
-  tracker: { totalPaginateCalls: number; lastIndexName: string | null }
+  tracker: {
+    totalPaginateCalls: number;
+    lastIndexName: string | null;
+    lastPaginateNumItems: number | null;
+  }
 ) => ({
   db: {
     query: (table: string) => {
@@ -158,7 +167,7 @@ describe("listJobs pagination", () => {
     const pagesByCursor = new Map<string | null, Page>([
       [null, page1],
     ]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -179,7 +188,7 @@ describe("listJobs pagination", () => {
       continueCursor: null,
     };
     const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -201,7 +210,7 @@ describe("listJobs pagination", () => {
       continueCursor: null,
     };
     const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -225,7 +234,7 @@ describe("listJobs pagination", () => {
       continueCursor: null,
     };
     const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -247,7 +256,7 @@ describe("listJobs pagination", () => {
     const pagesByCursor = new Map<string | null, Page>([
       [null, page1],
     ]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -271,7 +280,7 @@ describe("listJobs pagination", () => {
     const pagesByCursor = new Map<string | null, Page>([
       [null, page1],
     ]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -285,6 +294,25 @@ describe("listJobs pagination", () => {
     expect(tracker.lastIndexName).toBe("by_company_key_posted");
   });
 
+  it("clamps company filter pagination size to keep queries bounded", async () => {
+    const page1: Page = {
+      page: [buildJobWithCompany("job-1", 100, "bloomberg")],
+      isDone: true,
+      continueCursor: null,
+    };
+    const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
+    const ctx = buildCtx(pagesByCursor, tracker);
+    const handler = getHandler(listJobs);
+
+    await handler(ctx, {
+      paginationOpts: { cursor: null, numItems: 200 },
+      companies: ["Bloomberg"],
+    });
+
+    expect(tracker.lastPaginateNumItems).toBe(100);
+  });
+
   it("matches company filters case-insensitively", async () => {
     const job1 = { ...buildJob("job-1", 200), company: "Lambda" };
     const job2 = { ...buildJob("job-2", 100), company: "Other Co" };
@@ -294,7 +322,7 @@ describe("listJobs pagination", () => {
       continueCursor: null,
     };
     const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 
@@ -316,7 +344,7 @@ describe("listJobs pagination", () => {
       continueCursor: null,
     };
     const pagesByCursor = new Map<string | null, Page>([[null, page1]]);
-    const tracker = { totalPaginateCalls: 0, lastIndexName: null };
+    const tracker = { totalPaginateCalls: 0, lastIndexName: null, lastPaginateNumItems: null };
     const ctx = buildCtx(pagesByCursor, tracker);
     const handler = getHandler(listJobs);
 

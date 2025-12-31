@@ -52,12 +52,18 @@ def _coerce_int(value: object, default: int) -> int:
     return default
 
 
-def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
+def load_schedule_configs(
+    path: Path = SCHEDULES_YAML,
+    *,
+    apply_feature_flags: bool | None = None,
+) -> List[ScheduleConfig]:
     data = yaml.safe_load(path.read_text()) if path.exists() else {}
     items = data.get("schedules", []) if isinstance(data, dict) else []
     configs: List[ScheduleConfig] = []
     firecrawl_workflows = {"SiteLease", "ProcessWebhookScrape", "RecoverMissingFirecrawlWebhook", "ScraperFirecrawl"}
     fetchfox_workflows = {"FetchfoxSpidercloud", "ScrapeWorkflow"}
+    if apply_feature_flags is None:
+        apply_feature_flags = path == SCHEDULES_YAML
     for item in items:
         if not isinstance(item, dict):
             continue
@@ -76,10 +82,11 @@ def load_schedule_configs(path: Path = SCHEDULES_YAML) -> List[ScheduleConfig]:
                 overlap=str(item.get("overlap", "skip")).lower(),
                 count=count,
             )
-            if cfg.workflow in firecrawl_workflows and not settings.enable_firecrawl:
-                continue
-            if cfg.workflow in fetchfox_workflows and not settings.enable_fetchfox:
-                continue
+            if apply_feature_flags:
+                if cfg.workflow in firecrawl_workflows and not settings.enable_firecrawl:
+                    continue
+                if cfg.workflow in fetchfox_workflows and not settings.enable_fetchfox:
+                    continue
             configs.append(
                 ScheduleConfig(
                     id=cfg.id,
