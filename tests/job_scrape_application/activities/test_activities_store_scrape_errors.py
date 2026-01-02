@@ -164,6 +164,45 @@ async def test_store_scrape_marks_spidercloud_captcha_failed(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_store_scrape_all_jobs_skipped_logs_debug(monkeypatch):
+    payload = {
+        "sourceUrl": "https://example.com/list",
+        "workflowName": "SpidercloudJobDetails",
+        "provider": "spidercloud",
+        "items": {
+            "normalized": [],
+            "job_urls": [
+                "https://example.com/jobs/1",
+                "https://example.com/jobs/2",
+            ],
+        },
+    }
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        return {}
+
+    async def fake_filter_existing(urls: list[str]):
+        return urls
+
+    emitted: list[Dict[str, Any]] = []
+
+    def fake_emit_log(payload: Dict[str, Any]) -> None:
+        emitted.append(payload)
+
+    monkeypatch.setattr(acts, "trim_scrape_for_convex", lambda x, **kwargs: x)
+    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(acts.telemetry, "emit_posthog_log", fake_emit_log)
+
+    res = await acts.store_scrape(payload)
+
+    assert res == "scrape-id"
+    assert any(entry.get("event") == "scrape.jobs_skipped" and entry.get("level") == "debug" for entry in emitted)
+
+
+@pytest.mark.asyncio
 async def test_store_scrape_retries_on_failure(monkeypatch):
     payload = {
         "sourceUrl": "https://example.com",

@@ -128,7 +128,6 @@ class FakeDb {
     private queueRows: QueueRow[],
     private ignoredRows: Array<any> = [],
     private seenRows: Array<any> = [],
-    private batchScrapes: Array<any> = [],
     private tracker?: { indexCalls: IndexCall[] }
   ) {}
   query = (table: string) => {
@@ -151,10 +150,6 @@ class FakeDb {
     if (table === "seen_job_urls") {
       this.seenRows.push(payload);
       return `seen-${this.seenRows.length}`;
-    }
-    if (table === "batch_scrapes") {
-      this.batchScrapes.push(payload);
-      return `batch-${this.batchScrapes.length}`;
     }
     throw new Error(`Unexpected insert table ${table}`);
   });
@@ -198,7 +193,7 @@ describe("leaseScrapeUrlBatch", () => {
       },
     ];
     const tracker = { indexCalls: [] as IndexCall[] };
-    const db = new FakeDb(rows, [], [], [], tracker);
+    const db = new FakeDb(rows, [], [], tracker);
     const ctx: any = { db };
     const handler = getHandler(leaseScrapeUrlBatch);
 

@@ -214,9 +214,10 @@ def _strip_ashby_application_url(url: str) -> str:
     if not host.endswith("ashbyhq.com"):
         return url
     path = parsed.path or ""
-    if not path.endswith("/application"):
+    stripped_path = path.rstrip("/")
+    if not stripped_path.endswith("/application"):
         return url
-    trimmed = path[: -len("/application")] or "/"
+    trimmed = stripped_path[: -len("/application")] or "/"
     return parsed._replace(path=trimmed).geturl()
 
 
@@ -1468,8 +1469,37 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "job description",
             "description",
             "description and requirements",
+            "what's in it for you",
+            "whats in it for you",
+            "why this matters",
+            "we'll trust you to",
+            "well trust you to",
+            "you'll need to have",
+            "youll need to have",
+            "we'd love to see",
+            "wed love to see",
+            "why join us",
             "stay in the loop",
         }
+
+    def _looks_like_sentence(value: str) -> bool:
+        trimmed = value.strip()
+        if not trimmed:
+            return False
+        check_text = trimmed
+        if " | " in trimmed:
+            check_text = trimmed.split(" | ", 1)[0].strip()
+        lowered = trimmed.lower()
+        check_lower = check_text.lower()
+        if check_lower.endswith((".", "!", "?")):
+            return True
+        if re.search(r"\b(?:we|our|you|your|you'll|you\u2019ll|join us)\b", lowered):
+            return True
+        if len(lowered.split()) > 20:
+            return True
+        if len(lowered.split()) > 14 and any(token in lowered for token in (",", ";")):
+            return True
+        return False
 
     title_lower = ""
     title_location_hint: Optional[str] = None
@@ -1498,9 +1528,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         return False
 
     def _looks_like_title_line(value: str) -> bool:
-        lowered = value.strip().lower()
+        trimmed = value.strip()
+        lowered = trimmed.lower()
         if not lowered:
             return False
+        check_text = trimmed
+        if " | " in trimmed:
+            check_text = trimmed.split(" | ", 1)[0].strip()
+        check_lower = check_text.lower()
         if lowered in {
             "location",
             "locations",
@@ -1514,6 +1549,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return False
         if lowered.startswith(("location", "business area", "ref #", "ref#", "description")):
             return False
+        if "salary" in lowered or "compensation" in lowered:
+            return False
+        if _SALARY_RE.search(value) or _SALARY_K_RE.search(value):
+            return False
+        if _SALARY_RANGE_LABEL_RE.search(value) or _SALARY_BETWEEN_RE.search(value):
+            return False
         if any(token in lowered for token in ("apply", "direct apply", "apply with ai", "apply now", "back to job search", "save this job")):
             return False
         if any(token in lowered for token in ("cookie", "privacy", "consent")):
@@ -1522,13 +1563,13 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return False
         if re.fullmatch(r"\d+\s+words?", lowered):
             return False
-        if lowered.endswith((".", "!", "?")):
+        if check_lower.endswith((".", "!", "?")):
             return False
-        if len(lowered.split()) < 2:
+        if len(check_lower.split()) < 2:
             return False
-        if len(lowered.split()) > 12:
+        if len(check_lower.split()) > 12:
             return False
-        if len(lowered) > 120:
+        if len(check_lower) > 120:
             return False
         title_keywords = (
             "engineer",
@@ -1575,7 +1616,13 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     for match in _TITLE_RE.finditer(markdown):
         raw_title = stringify(match.group("title"))
-        if not raw_title or _is_generic_heading_title(raw_title):
+        if not raw_title:
+            continue
+        if not raw_title.strip().strip("#"):
+            continue
+        if _is_generic_heading_title(raw_title) or _looks_like_sentence(raw_title):
+            continue
+        if not _looks_like_title_line(raw_title):
             continue
         title, location, parsed_company = _extract_title_and_location_from_line(raw_title)
         title = title or raw_title
@@ -1659,6 +1706,30 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     location_candidates: List[str] = []
     location_section = False
 
+    def _trim_inline_location(value: str) -> str:
+        cleaned = stringify(value)
+        if not cleaned:
+            return ""
+        cleaned = re.sub(WHITESPACE_PATTERN, " ", cleaned).strip()
+        if not cleaned:
+            return ""
+        for marker in (
+            "Overview",
+            "About",
+            "Responsibilities",
+            "Qualifications",
+            "Compensation",
+            "Benefits",
+            "Summary",
+            "Description",
+            "Job Description",
+        ):
+            idx = cleaned.find(marker)
+            if idx > 0:
+                cleaned = cleaned[:idx].strip()
+                break
+        return cleaned
+
     def _add_location_candidate(raw: str) -> None:
         candidate = stringify(raw)
         if not candidate:
@@ -1688,7 +1759,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             _add_location_candidate(t)
             continue
         if work_match := _WORK_FROM_RE.search(t):
-            _add_location_candidate(work_match.group("location"))
+            location_text = _trim_inline_location(work_match.group("location"))
+            _add_location_candidate(location_text)
             continue
         if lower.startswith("job application for"):
             continue
@@ -1718,6 +1790,19 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         loc_match = _LOCATION_RE.search(markdown) or _SIMPLE_LOCATION_LINE_RE.search(markdown)
         if loc_match:
             location_candidates.append(stringify(loc_match.group("location")))
+    for candidate in location_candidates:
+        candidate_text = stringify(candidate)
+        if not candidate_text or not _is_plausible_location(candidate_text):
+            continue
+        resolved = _resolve_location_from_dictionary(candidate_text)
+        if not resolved:
+            country_label = _normalize_country_label(candidate_text)
+            if not country_label:
+                continue
+            candidate_text = country_label
+            resolved = _resolve_location_from_dictionary(candidate_text)
+        break
+
     normalized_locations = _normalize_locations(location_candidates)
     if not normalized_locations:
         city_hit = _find_city_in_text(markdown)
@@ -1727,12 +1812,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 normalized_locations.append(fallback_label)
     if normalized_locations:
         hints["locations"] = normalized_locations
-        preferred_location = normalized_locations[0]
-        for loc in normalized_locations:
-            if "remote" not in loc.lower():
-                preferred_location = loc
-                break
-        hints["location"] = preferred_location
+        non_remote_locations = [loc for loc in normalized_locations if "remote" not in loc.lower()]
+        hints["location"] = non_remote_locations[0] if non_remote_locations else normalized_locations[0]
 
     has_physical_location = any("remote" not in loc.lower() for loc in normalized_locations)
     remote_match = _REMOTE_RE.search(markdown)
@@ -1841,6 +1922,28 @@ def derive_company_from_url(url: str) -> str:
         return ""
 
     hostname = hostname.lower()
+    generic_subdomains = {
+        "www",
+        "jobs",
+        "careers",
+        "boards",
+        "board",
+        "apply",
+        "app",
+        "join",
+        "team",
+        "teams",
+        "work",
+    }
+    if hostname.endswith(("avature.net", "avature.com")):
+        parts = hostname.split(".")
+        if len(parts) >= 3:
+            for candidate in parts[:-2]:
+                if not candidate or candidate in generic_subdomains:
+                    continue
+                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
+                if cleaned:
+                    return cleaned.title()
     if hostname.endswith("myworkdayjobs.com"):
         parts = hostname.split(".")
         if len(parts) >= 3:
@@ -1848,7 +1951,7 @@ def derive_company_from_url(url: str) -> str:
             for candidate in subdomains:
                 if not candidate:
                     continue
-                if candidate in {"www", "jobs", "careers", "boards", "board", "apply", "app", "join", "team", "teams", "work"}:
+                if candidate in generic_subdomains:
                     continue
                 if re.fullmatch(r"wd\d+", candidate):
                     continue
@@ -2395,6 +2498,8 @@ def trim_scrape_for_convex(
 ) -> Dict[str, Any]:
     items = scrape.get("items", {})
     normalized: list[Dict[str, Any]] = []
+    ignored_items: list[Any] = []
+    failed_items: list[Any] = []
     page_links: list[str] = []
 
     if isinstance(items, dict):
@@ -2423,6 +2528,12 @@ def trim_scrape_for_convex(
                 normalized.append(new_row)
         else:
             truncated = False
+        raw_ignored = items.get("ignored")
+        if isinstance(raw_ignored, list):
+            ignored_items = raw_ignored
+        raw_failed = items.get("failed")
+        if isinstance(raw_failed, list):
+            failed_items = raw_failed
     else:
         truncated = False
 
@@ -2482,6 +2593,17 @@ def trim_scrape_for_convex(
             deduped_job_urls = dedupe_str_list(raw_job_urls, limit=2000)
             if deduped_job_urls:
                 trimmed_items["job_urls"] = deduped_job_urls
+        aux_limit = min(max_items, 50)
+        if ignored_items:
+            trimmed_items["ignored"] = ignored_items[:aux_limit]
+            trimmed_items["ignoredCount"] = len(ignored_items)
+        elif isinstance(items.get("ignoredCount"), int):
+            trimmed_items["ignoredCount"] = items.get("ignoredCount")
+        if failed_items:
+            trimmed_items["failed"] = failed_items[:aux_limit]
+            trimmed_items["failedCount"] = len(failed_items)
+        elif isinstance(items.get("failedCount"), int):
+            trimmed_items["failedCount"] = items.get("failedCount")
 
     if page_links:
         existing_job_urls = trimmed_items.get("job_urls") if isinstance(trimmed_items, dict) else None

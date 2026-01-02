@@ -53,6 +53,17 @@ describe("CompanyIcon custom logos", () => {
     expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/bloomberg.com");
   });
 
+  it("falls back to the company domain when the host is an opaque UUID", async () => {
+    render(
+      <CompanyIcon
+        company="Voltage Park"
+        url="https://c93c2f7d-f00d-409f-b288-8956f84976dd.com/jobs/role/123"
+      />,
+    );
+    const img = await screen.findByRole("img", { name: /voltage park logo/i });
+    expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/voltagepark.com");
+  });
+
   it("uses the brandfetch domain override for Serval", async () => {
     render(<CompanyIcon company="Serval" url="https://serval.ai/careers" />);
     const img = await screen.findByRole("img", { name: /serval logo/i });

@@ -126,6 +126,8 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
 
     @activity.defn
     async def store_scrape(scrape: Dict[str, Any]):
+        if not isinstance(scrape, dict):
+            return None
         stored_scrapes.append(scrape)
         return f"scrape-{len(stored_scrapes)}"
 

@@ -135,7 +135,7 @@ async def test_spidercloud_workflow_leases_manual_trigger(monkeypatch):
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "now", lambda: now)
     monkeypatch.setattr(sw.workflow, "info", lambda: type("Info", (), {"run_id": "r", "workflow_id": "wf"})())
-    monkeypatch.setattr(sw, "logger", _Log())
+    monkeypatch.setattr(sw.workflow, "logger", _Log(), raising=False)
 
     summary = await sw._run_scrape_workflow(  # noqa: SLF001
         acts.scrape_site,
@@ -176,6 +176,16 @@ async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(
+        sw.workflow,
+        "logger",
+        types.SimpleNamespace(
+            info=lambda *_a, **_k: None,
+            warning=lambda *_a, **_k: None,
+            error=lambda *_a, **_k: None,
+        ),
+        raising=False,
+    )
 
     class _Info:
         run_id = "run-1"
@@ -2147,6 +2157,13 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
                     },
                 ]
             }
+        if activity is acts.store_scrape:
+            scrape = args[0] if args else kwargs.get("args", [])[0]
+            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
+            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
+            if url_val == ok_url:
+                return "scrape-ok"
+            raise RuntimeError("store failed")
         if activity is acts.complete_scrape_urls:
             payload = args[0] if args else kwargs.get("args", [])[0]
             calls["complete"].append(payload)
@@ -2159,22 +2176,11 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
             return None
         raise RuntimeError(f"Unexpected activity {activity}")
 
-    async def fake_start_activity(activity, *args, **kwargs):
-        if activity is acts.store_scrape:
-            scrape = args[0] if args else kwargs.get("args", [])[0]
-            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
-            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
-            if url_val == ok_url:
-                return "scrape-ok"
-            raise RuntimeError("store failed")
-        raise RuntimeError(f"Unexpected start_activity {activity}")
-
     class _Info:
         run_id = "run-partial"
         workflow_id = "wf-partial"
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
-    monkeypatch.setattr(sw.workflow, "start_activity", fake_start_activity)
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
 
     summary = await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
@@ -2224,6 +2230,13 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
                     for url in urls_for_scrape
                 ]
             }
+        if activity is acts.store_scrape:
+            scrape = args[0] if args else kwargs.get("args", [])[0]
+            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
+            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
+            if run_state["run"] == 1 and url_val != success_url:
+                raise RuntimeError("store failed")
+            return f"scrape-{url_val}"
         if activity is acts.complete_scrape_urls:
             payload = args[0] if args else kwargs.get("args", [])[0]
             status = payload.get("status")
@@ -2237,22 +2250,11 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
             return None
         raise RuntimeError(f"Unexpected activity {activity}")
 
-    async def fake_start_activity(activity, *args, **kwargs):
-        if activity is acts.store_scrape:
-            scrape = args[0] if args else kwargs.get("args", [])[0]
-            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
-            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
-            if run_state["run"] == 1 and url_val != success_url:
-                raise RuntimeError("store failed")
-            return f"scrape-{url_val}"
-        raise RuntimeError(f"Unexpected start_activity {activity}")
-
     class _Info:
         run_id = "run-retry"
         workflow_id = "wf-retry"
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
-    monkeypatch.setattr(sw.workflow, "start_activity", fake_start_activity)
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
 
     await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]

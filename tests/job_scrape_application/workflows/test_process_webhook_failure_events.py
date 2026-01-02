@@ -38,6 +38,14 @@ async def test_process_webhook_handles_fail_event(monkeypatch):
             }
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            cleaned = [u for u in (args[0] or []) if isinstance(u, str) and u.strip()]
+            existing_set = {u for u in (args[1] or []) if isinstance(u, str)} if len(args) > 1 else set()
+            return {
+                "urlsToScrape": [u for u in cleaned if u not in existing_set],
+                "existingCount": len(existing_set),
+                "totalCount": len(cleaned),
+            }
         if fn is wf.store_scrape:
             return None
         if fn is wf.complete_site:

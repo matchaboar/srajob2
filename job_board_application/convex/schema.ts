@@ -348,15 +348,6 @@ const applicationTables = {
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
     .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"]),
 
-  batch_scrapes: defineTable({
-    urls: v.array(v.string()),
-    retryCounts: v.array(v.number()),
-    startedAt: v.number(),
-    workerId: v.optional(v.string()),
-    provider: v.optional(v.string()),
-    skip_reason: v.optional(v.string()),
-  }).index("by_started", ["startedAt"]),
-
   job_detail_configs: defineTable({
     domain: v.string(),
     field: v.string(),

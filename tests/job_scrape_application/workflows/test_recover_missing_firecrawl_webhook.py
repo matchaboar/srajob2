@@ -301,6 +301,16 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
         return []
 
     @activity.defn
+    async def compute_urls_to_scrape(job_urls: List[str], existing_urls: List[str] | None = None):
+        cleaned = [u for u in job_urls if isinstance(u, str) and u.strip()]
+        existing_set = {u for u in (existing_urls or []) if isinstance(u, str)}
+        return {
+            "urlsToScrape": [u for u in cleaned if u not in existing_set],
+            "existingCount": len(existing_set),
+            "totalCount": len(cleaned),
+        }
+
+    @activity.defn
     async def scrape_greenhouse_jobs(payload: Dict[str, Any]):
         scraped_payloads.append(payload)
         return {"scrape": None, "jobsScraped": len(payload.get("urls", []))}
@@ -340,6 +350,7 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
     monkeypatch.setattr(wf, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
     monkeypatch.setattr(wf, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
+    monkeypatch.setattr(wf, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
     monkeypatch.setattr(wf, "mark_firecrawl_webhook_processed", mark_firecrawl_webhook_processed, raising=False)
     monkeypatch.setattr(wf, "get_firecrawl_webhook_status", get_firecrawl_webhook_status, raising=False)
@@ -371,6 +382,7 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,
@@ -389,6 +401,7 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,

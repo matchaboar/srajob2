@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import types
 from datetime import datetime, timedelta
 
 import pytest
@@ -60,6 +61,16 @@ async def test_scrape_workflow_uses_args_kw(monkeypatch):
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(
+        sw.workflow,
+        "logger",
+        types.SimpleNamespace(
+            info=lambda *_a, **_k: None,
+            warning=lambda *_a, **_k: None,
+            error=lambda *_a, **_k: None,
+        ),
+        raising=False,
+    )
 
     class _Info:
         run_id = "run-1"
@@ -101,6 +112,16 @@ async def test_scrape_workflow_handles_no_sites(monkeypatch):
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(
+        sw.workflow,
+        "logger",
+        types.SimpleNamespace(
+            info=lambda *_a, **_k: None,
+            warning=lambda *_a, **_k: None,
+            error=lambda *_a, **_k: None,
+        ),
+        raising=False,
+    )
 
     class _Info:
         run_id = "run-1"

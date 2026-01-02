@@ -16,7 +16,7 @@ from job_scrape_application.workflows import activities as acts  # noqa: E402
 FIXTURE_PATH = Path("tests/fixtures/ashby_lambda_spidercloud_raw.html")
 API_FIXTURE_PATH = Path("tests/fixtures/ashby_lambda_spidercloud_api.json")
 ASHBY_RAW_HTML_URL_COUNT = 41
-ASHBY_API_URL_COUNT = 186
+ASHBY_API_URL_COUNT = 93
 
 
 def _load_html() -> str:
@@ -66,7 +66,7 @@ def test_extract_job_urls_from_ashby_api_fixture_prefers_listing_api():
     urls = acts._extract_job_urls_from_scrape(scrape)
 
     assert len(urls) == ASHBY_API_URL_COUNT
-    assert any(url.endswith("/application") for url in urls)
+    assert not any(url.endswith("/application") for url in urls)
     assert all(url.startswith("https://jobs.ashbyhq.com/lambda/") for url in urls)
 
 

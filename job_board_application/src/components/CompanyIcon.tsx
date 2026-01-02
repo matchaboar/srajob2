@@ -189,6 +189,10 @@ const baseDomainFromHost = (host: string) => {
     }
     return parts.slice(-2).join(".");
 };
+const UUID_LABEL_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LONG_HEX_LABEL_REGEX = /^[0-9a-f]{24,}$/i;
+const isOpaqueDomainLabel = (label: string) =>
+    UUID_LABEL_REGEX.test(label) || LONG_HEX_LABEL_REGEX.test(label);
 
 const extractCompanySlug = (pathname: string) => {
     const parts = pathname.split("/").filter(Boolean);
@@ -262,7 +266,13 @@ const deriveBrandfetchDomain = (company: string, url?: string) => {
                     return companyFallback;
                 }
             }
-            return baseDomainFromHost(host);
+            const baseDomain = baseDomainFromHost(host);
+            const baseLabel = baseDomain.split(".")[0] ?? "";
+            const companyFallback = fallbackCompanyDomain();
+            if (companyFallback && isOpaqueDomainLabel(baseLabel)) {
+                return companyFallback;
+            }
+            return baseDomain;
         } catch {
             // fall through to company fallback
         }

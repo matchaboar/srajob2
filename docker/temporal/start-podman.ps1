@@ -133,10 +133,10 @@ if (-not (podman ps -a --format '{{.Names}}' | Select-String -SimpleMatch '^temp
   podman run -d --network $net --name temporalite -p 7233:7233 -p 8233:8233 temporal-dev:local | Out-Null
 }
 
-Wait-Port 127.0.0.1 7233
+Wait-Port localhost 7233
 
-Write-Host "Temporal UI: http://127.0.0.1:8233"
-Write-Host "Temporal Frontend (Temporal Dev): 127.0.0.1:7233"
+Write-Host "Temporal UI: http://localhost:8233 (use localhost; 127.0.0.1 may not work)"
+Write-Host "Temporal Frontend (Temporal Dev): localhost:7233"
 
 # Optionally open Temporal UI in default browser (skip on CI/headless)
 $isHeadless = $false
@@ -144,8 +144,8 @@ if ($env:CI -in @('true','1') -or $env:GITHUB_ACTIONS -in @('true','1') -or $env
 if (-not $SkipOpenUI) {
   if (-not $isHeadless) {
     try {
-      Wait-Port 127.0.0.1 8233 60 1
-      Start-Process "http://127.0.0.1:8233" | Out-Null
+      Wait-Port localhost 8233 60 1
+      Start-Process "http://localhost:8233" | Out-Null
     } catch {
       Write-Warning "Could not open Temporal UI automatically: $($_.Exception.Message)"
     }

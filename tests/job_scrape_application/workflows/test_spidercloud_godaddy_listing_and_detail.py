@@ -64,6 +64,13 @@ BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_deta
 BLOOMBERG_EMPLOYEE_ENGAGEMENT_FIXTURE = (
     FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_15349_commonmark.json"
 )
+BLOOMBERG_GENAI_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_16054_commonmark.json"
+)
+BLOOMBERG_IDENTITY_SERVICES_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_12789_commonmark.json"
+)
+BLOOMBERG_IDENTITY_SERVICES_POSTED_AT = 1_767_204_312_240
 OKTA_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_okta_greenhouse_job_detail_commonmark.json"
 NEXHEALTH_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_nexhealth_greenhouse_job_detail.json"
@@ -678,6 +685,120 @@ def test_spidercloud_bloomberg_avature_employee_engagement_parses_location_and_s
     assert comp_range.get("low") == 180000
     assert comp_range.get("high") == 350000
     assert hints.get("compensation") == 350000
+
+
+def test_spidercloud_bloomberg_avature_genai_normalizes_fields():
+    payload = _load_fixture(BLOOMBERG_GENAI_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 1_700_000_000_000)  # noqa: SLF001
+
+    assert normalized is not None
+    title = normalized.get("title") or ""
+    assert title.startswith("Technical Product Manager")
+    assert "CTO Office" in title
+    assert normalized.get("company") == "Bloomberg"
+    assert normalized.get("location") == "New York, NY"
+    assert normalized.get("remote") is False
+    assert normalized.get("posted_at") == 1_700_000_000_000
+    assert normalized.get("posted_at_unknown") is True
+
+
+def test_spidercloud_bloomberg_avature_genai_parses_location_and_salary():
+    payload = _load_fixture(BLOOMBERG_GENAI_FIXTURE)
+    normalized = _extract_normalized_from_commonmark(payload)
+    hints = parse_markdown_hints(normalized.get("description") or "")
+
+    assert hints.get("location") == "New York, NY"
+    resolved = _resolve_location_from_dictionary(hints.get("location") or "")
+    assert resolved is not None
+    assert resolved.get("city") == "New York"
+    assert resolved.get("state") == "New York"
+    assert resolved.get("country") == "United States"
+    assert resolved.get("remoteOnly") is False
+
+    comp_range = hints.get("compensation_range") or {}
+    assert comp_range.get("low") == 140000
+    assert comp_range.get("high") == 295000
+    assert hints.get("compensation") == 295000
+
+
+def test_spidercloud_bloomberg_avature_genai_description_has_no_junk():
+    payload = _load_fixture(BLOOMBERG_GENAI_FIXTURE)
+    normalized = _extract_normalized_from_commonmark(payload)
+    description = normalized.get("description") or ""
+
+    assert len(description) > 200
+    for junk in (
+        "Accept All",
+        "Apply Now",
+        "Back to Job Search",
+        "Cookie Preferences",
+        "Reject All",
+        "Save and Close",
+        "Save this Job",
+        "Similar jobs",
+    ):
+        assert junk not in description
+
+
+def test_spidercloud_bloomberg_avature_identity_services_normalizes_fields():
+    payload = _load_fixture(BLOOMBERG_IDENTITY_SERVICES_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url,
+        commonmark,
+        [],
+        BLOOMBERG_IDENTITY_SERVICES_POSTED_AT,
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Identity Services Technical Product Manager - CTO Office"
+    assert normalized["company"] == "Bloomberg"
+    assert normalized["location"] == "New York, NY"
+    assert normalized["remote"] is False
+    assert normalized["posted_at"] == BLOOMBERG_IDENTITY_SERVICES_POSTED_AT
+    assert normalized["posted_at_unknown"] is True
+
+    description = normalized["description"] or ""
+    assert len(description) > 200
+    assert "Identity Platforms evolve" in description
+    for junk in (
+        "Accept All",
+        "Apply Now",
+        "Back to Job Search",
+        "Cookie Preferences",
+        "How can engineers further their growth and development?",
+        "More Videos",
+        "Reject All",
+        "Save this Job",
+        "Similar jobs",
+        "Transcript",
+    ):
+        assert junk not in description
+
+
+def test_spidercloud_bloomberg_avature_identity_services_parses_location_and_salary():
+    payload = _load_fixture(BLOOMBERG_IDENTITY_SERVICES_FIXTURE)
+    normalized = _extract_normalized_from_commonmark(payload)
+    hints = parse_markdown_hints(normalized.get("description") or "")
+
+    assert hints.get("location") == "New York, NY"
+    resolved = _resolve_location_from_dictionary(hints.get("location") or "")
+    assert resolved is not None
+    assert resolved.get("city") == "New York"
+    assert resolved.get("state") == "New York"
+    assert resolved.get("country") == "United States"
+
+    comp_range = hints.get("compensation_range") or {}
+    assert comp_range.get("low") == 240000
+    assert comp_range.get("high") == 330000
+    assert hints.get("compensation") == 330000
 
 
 @pytest.mark.parametrize("fixture_path", WORKDAY_DETAIL_FIXTURES)

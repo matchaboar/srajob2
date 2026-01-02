@@ -93,20 +93,12 @@ _sync_settings_flags()
 
 def pytest_collection_modifyitems(config, items) -> None:  # noqa: ARG001
     skip_marker = pytest.mark.skip(reason="firecrawl/fetchfox workers are disabled")
-    file_cache: dict[Path, bool] = {}
+    skip_tokens = ("firecrawl", "fetchfox")
 
     for item in items:
         path = Path(str(item.fspath))
         if path.suffix != ".py":
             continue
-        matched = file_cache.get(path)
-        if matched is None:
-            try:
-                contents = path.read_text(encoding="utf-8")
-            except OSError:
-                matched = False
-            else:
-                matched = "firecrawl" in contents or "fetchfox" in contents
-            file_cache[path] = matched
-        if matched:
+        lowered_parts = [part.lower() for part in path.parts]
+        if any(token in part for part in lowered_parts for token in skip_tokens):
             item.add_marker(skip_marker)

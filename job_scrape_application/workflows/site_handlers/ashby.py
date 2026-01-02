@@ -94,6 +94,7 @@ class AshbyHqHandler(BaseSiteHandler):
             if not cleaned or cleaned in seen:
                 continue
             cleaned = fix_scheme_slashes(cleaned)
+            cleaned = self._strip_application_suffix(cleaned)
             try:
                 parsed = urlparse(cleaned)
             except Exception:
@@ -118,6 +119,22 @@ class AshbyHqHandler(BaseSiteHandler):
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    @staticmethod
+    def _strip_application_suffix(url: str) -> str:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return url
+        host = (parsed.hostname or "").lower()
+        if not host.endswith("ashbyhq.com"):
+            return url
+        path = parsed.path or ""
+        stripped_path = path.rstrip("/")
+        if not stripped_path.endswith("/application"):
+            return url
+        trimmed = stripped_path[: -len("/application")] or "/"
+        return parsed._replace(path=trimmed).geturl()
 
     @staticmethod
     def _looks_like_non_job_detail_url(url: str) -> bool:

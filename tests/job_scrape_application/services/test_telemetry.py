@@ -101,6 +101,8 @@ def reset_logger_state(monkeypatch):
     monkeypatch.setattr(telemetry, "_logger", None)
     monkeypatch.setattr(telemetry, "_logger_provider", None)
     monkeypatch.setattr(telemetry, "_posthog_client", None)
+    monkeypatch.setattr(telemetry, "_posthog_log_handler", None)
+    monkeypatch.setattr(telemetry, "_posthog_log_configured", False)
 
 
 def test_resolve_endpoint_prefers_explicit_override(monkeypatch):

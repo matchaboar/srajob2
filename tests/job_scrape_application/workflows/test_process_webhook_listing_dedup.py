@@ -27,6 +27,21 @@ def _listing_event(job_urls: List[str], event_id: str = "wh-list-1") -> Dict[str
     }
 
 
+def _compute_urls_to_scrape(job_urls: List[str], existing_urls: List[str] | None = None) -> Dict[str, Any]:
+    cleaned = [u for u in job_urls if isinstance(u, str) and u.strip()]
+    existing_set = {u for u in (existing_urls or []) if isinstance(u, str)}
+    return {
+        "urlsToScrape": [u for u in cleaned if u not in existing_set],
+        "existingCount": len(existing_set),
+        "totalCount": len(cleaned),
+    }
+
+
+@activity.defn
+async def compute_urls_to_scrape(job_urls: List[str], existing_urls: List[str] | None = None) -> Dict[str, Any]:
+    return _compute_urls_to_scrape(job_urls, existing_urls)
+
+
 @pytest.mark.asyncio
 async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
     # Simulate worker cold start; dedup derives from Convex existing URLs
@@ -94,6 +109,7 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
     monkeypatch.setattr(wf_mod, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
+    monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
     monkeypatch.setattr(wf_mod, "complete_site", complete_site, raising=False)
     monkeypatch.setattr(wf_mod, "fail_site", fail_site, raising=False)
@@ -112,6 +128,7 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 complete_site,
                 fail_site,
@@ -152,6 +169,7 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls_second,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 complete_site,
                 fail_site,
@@ -239,6 +257,7 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
     monkeypatch.setattr(wf_mod, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
+    monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
     monkeypatch.setattr(wf_mod, "mark_firecrawl_webhook_processed", mark_firecrawl_webhook_processed, raising=False)
     monkeypatch.setattr(wf_mod, "complete_site", complete_site, raising=False)
@@ -257,6 +276,7 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,
@@ -299,6 +319,7 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls_existing,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,
@@ -387,6 +408,7 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
     monkeypatch.setattr(wf_mod, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls_first, raising=False)
+    monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
     monkeypatch.setattr(wf_mod, "mark_firecrawl_webhook_processed", mark_firecrawl_webhook_processed, raising=False)
     monkeypatch.setattr(wf_mod, "complete_site", complete_site, raising=False)
@@ -405,6 +427,7 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls_first,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,
@@ -428,6 +451,7 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
     events_queue = [_listing_event(["https://example.com/job-unique"], event_id="wh-single-2")]
     scraped_urls.clear()
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls_second, raising=False)
+    monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
@@ -440,6 +464,7 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
                 fetch_pending_firecrawl_webhooks,
                 collect_firecrawl_job_result,
                 filter_existing_job_urls_second,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
                 mark_firecrawl_webhook_processed,
                 complete_site,

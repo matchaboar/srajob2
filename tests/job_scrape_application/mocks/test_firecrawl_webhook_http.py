@@ -111,6 +111,16 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
         return []
 
     @activity.defn
+    async def compute_urls_to_scrape(job_urls: List[str], existing_urls: List[str] | None = None):
+        cleaned = [u for u in job_urls if isinstance(u, str) and u.strip()]
+        existing_set = {u for u in (existing_urls or []) if isinstance(u, str)}
+        return {
+            "urlsToScrape": [u for u in cleaned if u not in existing_set],
+            "existingCount": len(existing_set),
+            "totalCount": len(cleaned),
+        }
+
+    @activity.defn
     async def scrape_greenhouse_jobs(payload: Dict[str, Any]):
         return {"scrape": None, "jobsScraped": 0}
 
@@ -125,6 +135,7 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
     monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
+    monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
@@ -143,6 +154,7 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
                 record_workflow_run,
                 record_scratchpad,
                 filter_existing_job_urls,
+                compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
             ],
         )

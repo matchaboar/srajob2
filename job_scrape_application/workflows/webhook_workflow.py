@@ -19,11 +19,11 @@ with workflow.unsafe.imports_passed_through():
         fail_site,
         fetch_pending_firecrawl_webhooks,
         filter_existing_job_urls,
+        compute_urls_to_scrape,
         get_firecrawl_webhook_status,
         lease_site,
         mark_firecrawl_webhook_processed,
         record_workflow_run,
-        record_scratchpad,
         scrape_greenhouse_jobs,
         start_firecrawl_webhook_scrape,
         store_scrape,
@@ -34,6 +34,13 @@ DEFAULT_LOCK_SECONDS = 1800
 HTTP_RETRY_BASE_SECONDS = 30
 FIRECRAWL_WEBHOOK_RECHECK = timedelta(hours=settings.firecrawl_webhook_recheck_hours)
 FIRECRAWL_WEBHOOK_TIMEOUT = timedelta(hours=settings.firecrawl_webhook_timeout_hours)
+
+
+async def _yield_if_needed(iteration: int, *, every: int = 500) -> None:
+    """Cooperatively yield so large in-memory loops don't block workflow progress."""
+
+    if iteration > 0 and iteration % every == 0:
+        await workflow.sleep(0)
 
 
 def _summarize_scrape_payload(scrape_payload: Any, *, max_samples: int = 5) -> Dict[str, Any]:
@@ -89,6 +96,7 @@ class SiteLeaseWorkflow:
         status = "completed"
         started_at = int(workflow.now().timestamp() * 1000)
         run_info = workflow.info()
+        wf_logger = workflow.logger  # type: ignore[attr-defined]
 
         async def _log(
             event: str,
@@ -98,26 +106,13 @@ class SiteLeaseWorkflow:
             site_url: str | None = None,
             level: str = "info",
         ) -> None:
-            try:
-                await workflow.execute_activity(
-                    record_scratchpad,
-                    args=[
-                        {
-                            "runId": run_info.run_id,
-                            "workflowId": run_info.workflow_id,
-                            "workflowName": "SiteLease",
-                            "siteUrl": site_url,
-                            "event": event,
-                            "message": message,
-                            "data": data,
-                            "level": level,
-                            "createdAt": int(workflow.now().timestamp() * 1000),
-                        }
-                    ],
-                    schedule_to_close_timeout=timedelta(seconds=60),
-                )
-            except Exception:
-                pass
+            msg = f"SiteLease | event={event} | siteUrl={site_url} | message={message} | data={data}"
+            if level == "error":
+                wf_logger.error(msg)
+            elif level in {"warn", "warning"}:
+                wf_logger.warning(msg)
+            else:
+                wf_logger.info(msg)
 
         await _log("workflow.start", message="SiteLease started")
 
@@ -395,7 +390,9 @@ async def _ingest_firecrawl_result(
         return stored, jobs_scraped, site_urls
 
     if result.get("kind") == "greenhouse_listing":
-        job_urls = [u for u in result.get("job_urls", []) if isinstance(u, str)]
+        raw_job_urls = result.get("job_urls") if isinstance(result, dict) else None
+        job_urls: List[str] = raw_job_urls if isinstance(raw_job_urls, list) else []
+
         posted_at_by_url = (
             result.get("posted_at_by_url")
             if isinstance(result.get("posted_at_by_url"), dict)
@@ -408,16 +405,33 @@ async def _ingest_firecrawl_result(
                 args=[job_urls],
                 schedule_to_close_timeout=timedelta(seconds=30),
             )
-            existing_set: Set[str] = set(existing)
-            urls_to_scrape = [u for u in job_urls if u not in existing_set]
+            diff = await workflow.execute_activity(
+                compute_urls_to_scrape,
+                args=[job_urls, existing],
+                schedule_to_close_timeout=timedelta(seconds=30),
+            )
+            if isinstance(diff, dict):
+                candidate = diff.get("urlsToScrape")
+                if isinstance(candidate, list):
+                    urls_to_scrape = candidate
+                else:
+                    urls_to_scrape = [u for u in job_urls if isinstance(u, str)]
+            else:
+                urls_to_scrape = [u for u in job_urls if isinstance(u, str)]
+            existing_count = diff.get("existingCount") if isinstance(diff, dict) else None
+            if not isinstance(existing_count, int):
+                existing_count = len({u for u in existing if isinstance(u, str)})
+            total_count = diff.get("totalCount") if isinstance(diff, dict) else None
+            if not isinstance(total_count, int):
+                total_count = len(job_urls)
             await log(
                 "webhook.listing.urls",
                 site_url=site_url,
                 data={
                     "eventId": event_id,
                     "jobId": job_id,
-                    "totalUrls": len(job_urls),
-                    "deduped": len(existing_set),
+                    "totalUrls": total_count,
+                    "deduped": existing_count,
                     "toScrape": len(urls_to_scrape),
                     "sampleNew": urls_to_scrape[:5],
                 },
@@ -587,7 +601,7 @@ class ProcessWebhookIngestWorkflow:
         failure_reasons: List[str] = []
         site_urls: List[str] = []
         started_at = int(workflow.now().timestamp() * 1000)
-        run_info = workflow.info()
+        wf_logger = workflow.logger  # type: ignore[attr-defined]
 
         async def _log(
             event: str,
@@ -597,26 +611,15 @@ class ProcessWebhookIngestWorkflow:
             site_url: str | None = None,
             level: str = "info",
         ) -> None:
-            try:
-                await workflow.execute_activity(
-                    record_scratchpad,
-                    args=[
-                        {
-                            "runId": run_info.run_id,
-                            "workflowId": run_info.workflow_id,
-                            "workflowName": "ProcessWebhookScrape",
-                            "siteUrl": site_url,
-                            "event": event,
-                            "message": message,
-                            "data": data,
-                            "level": level,
-                            "createdAt": int(workflow.now().timestamp() * 1000),
-                        }
-                    ],
-                    schedule_to_close_timeout=timedelta(seconds=60),
-                )
-            except Exception:
-                pass
+            msg = (
+                f"ProcessWebhookScrape | event={event} | siteUrl={site_url} | message={message} | data={data}"
+            )
+            if level == "error":
+                wf_logger.error(msg)
+            elif level in {"warn", "warning"}:
+                wf_logger.warning(msg)
+            else:
+                wf_logger.info(msg)
 
         await _log("workflow.start", message="ProcessWebhookScrape started")
 
@@ -882,7 +885,7 @@ class RecoverMissingFirecrawlWebhookWorkflow:
         started_at = int(workflow.now().timestamp() * 1000)
         site_urls: List[str] = []
         jobs_scraped = 0
-        run_info = workflow.info()
+        wf_logger = workflow.logger  # type: ignore[attr-defined]
 
         async def _log(
             event: str,
@@ -892,26 +895,16 @@ class RecoverMissingFirecrawlWebhookWorkflow:
             site_url: str | None = None,
             level: str = "info",
         ) -> None:
-            try:
-                await workflow.execute_activity(
-                    record_scratchpad,
-                    args=[
-                        {
-                            "runId": run_info.run_id,
-                            "workflowId": run_info.workflow_id,
-                            "workflowName": "RecoverMissingFirecrawlWebhook",
-                            "siteUrl": site_url,
-                            "event": event,
-                            "message": message,
-                            "data": data,
-                            "level": level,
-                            "createdAt": int(workflow.now().timestamp() * 1000),
-                        }
-                    ],
-                    schedule_to_close_timeout=timedelta(seconds=60),
-                )
-            except Exception:
-                pass
+            msg = (
+                "RecoverMissingFirecrawlWebhook"
+                f" | event={event} | siteUrl={site_url} | message={message} | data={data}"
+            )
+            if level == "error":
+                wf_logger.error(msg)
+            elif level in {"warn", "warning"}:
+                wf_logger.warning(msg)
+            else:
+                wf_logger.info(msg)
 
         await _log(
             "workflow.start",

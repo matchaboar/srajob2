@@ -1216,7 +1216,8 @@ class SpiderCloudScraper(BaseScraper):
                 return True
             if re.search(r"\b(?:you|your|we|our|will|you'll|you\u2019ll|join us)\b", lowered):
                 return True
-            if len(lowered.split()) > 12:
+            word_tokens = [token for token in re.findall(r"[a-z0-9]+", lowered) if token != "amp"]
+            if len(word_tokens) > 12:
                 return True
             return False
 
@@ -2103,12 +2104,33 @@ class SpiderCloudScraper(BaseScraper):
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
         cleaned_markdown = _strip_embedded_theme_json(cleaned_markdown)
+        raw_cleaned_markdown = strip_known_nav_blocks(raw_markdown or "")
+        raw_cleaned_markdown = _strip_embedded_theme_json(raw_cleaned_markdown)
         if len(cleaned_markdown.strip()) < 200:
             meta_description = self._extract_meta_description_from_events(events)
             if meta_description and len(meta_description) > len(cleaned_markdown.strip()):
                 cleaned_markdown = meta_description
         cleaned_markdown_len = len(cleaned_markdown.strip())
         hints = parse_markdown_hints(cleaned_markdown)
+        structured_hints: Dict[str, Any] = {}
+        if structured_markdown:
+            structured_hints = parse_markdown_hints(structured_markdown)
+
+            def _should_fill_hint(key: str) -> bool:
+                if key not in hints:
+                    return True
+                existing = hints.get(key)
+                if existing is None:
+                    return True
+                if isinstance(existing, str):
+                    return not existing.strip()
+                if isinstance(existing, (list, dict)):
+                    return not existing
+                return False
+
+            for key, value in structured_hints.items():
+                if _should_fill_hint(key):
+                    hints[key] = value
         hint_title = hints.get("title") if isinstance(hints, dict) else None
         content_title = hint_title or self._title_from_markdown(cleaned_markdown)
 
@@ -2236,8 +2258,9 @@ class SpiderCloudScraper(BaseScraper):
             can_replace_title = title_source in {None, "hint", "markdown", "event"}
             if keyword_title and can_replace_title:
                 weak_title = self._is_placeholder_title(title) or len(title.split()) <= 3
-                if weak_title:
+                if weak_title or title_source == "event":
                     title = keyword_title
+                    title_source = "markdown"
         if from_content and not title_matches_required_keywords(title):
             logger.info(
                 "SpiderCloud dropping job due to missing required keyword url=%s title=%s",
@@ -2252,9 +2275,33 @@ class SpiderCloudScraper(BaseScraper):
                     "description": cleaned_markdown,
                 }
                 return None
-        company = structured_company or derive_company_from_url(url) or "Unknown"
+        derived_company = derive_company_from_url(url)
+        if structured_company and is_generic_company_name(structured_company) and derived_company:
+            company = derived_company
+        else:
+            company = structured_company or derived_company or "Unknown"
         company = apply_company_hint(company, hints) if isinstance(hints, dict) else company
         location_hint = hints.get("location") if isinstance(hints, dict) else None
+        structured_location_hint = structured_hints.get("location") if structured_hints else None
+        if structured_location_hint:
+            if not location_hint:
+                location_hint = structured_location_hint
+            elif "remote" in location_hint.lower() and "remote" not in structured_location_hint.lower():
+                location_hint = structured_location_hint
+        raw_hints = parse_markdown_hints(raw_cleaned_markdown) if raw_cleaned_markdown.strip() else {}
+        raw_location_hint = raw_hints.get("location") if isinstance(raw_hints, dict) else None
+        if raw_location_hint:
+            if not location_hint:
+                location_hint = raw_location_hint
+            elif "remote" in location_hint.lower() and "remote" not in raw_location_hint.lower():
+                raw_country = _normalize_country_label(raw_location_hint.strip())
+                if not (raw_country and raw_location_hint.strip().lower() == raw_country.lower()):
+                    location_hint = raw_location_hint
+            if isinstance(hints, dict):
+                hints["location"] = location_hint
+                raw_locations = raw_hints.get("locations") if isinstance(raw_hints, dict) else None
+                if raw_locations and isinstance(raw_locations, list):
+                    hints["locations"] = raw_locations
         handler_location = None
         if handler:
             handler_location = handler.extract_location_hint(raw_markdown)
@@ -2273,6 +2320,14 @@ class SpiderCloudScraper(BaseScraper):
             elif "remote" in structured_label.lower() and "remote" not in hint_label.lower():
                 location = hint_label
         remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", title or "")
+        if remote and isinstance(hints, dict):
+            raw_locations = hints.get("locations")
+            if isinstance(raw_locations, list):
+                non_remote_locations = [
+                    loc for loc in raw_locations if isinstance(loc, str) and "remote" not in loc.lower()
+                ]
+                if non_remote_locations and (not location or "remote" in location.lower()):
+                    location = non_remote_locations[0]
         level = coerce_level(hints.get("level") if isinstance(hints, dict) else None, title)
         description = cleaned_markdown or ""
         if not description.strip() and (raw_markdown or structured_description):
@@ -2468,26 +2523,7 @@ class SpiderCloudScraper(BaseScraper):
                     markdown_parts.append(parsed)
 
             if not markdown_parts:
-                logger.debug("SpiderCloud stream empty; falling back to non-stream fetch url=%s", url)
-                async for resp in self._iterate_scrape_response(
-                    scrape_fn(  # type: ignore[call-arg]
-                        request_url,
-                        params=local_params,
-                        stream=False,
-                        content_type="application/json",
-                    )
-                ):
-                    raw_events.append(resp)
-                    if isinstance(resp, dict):
-                        credit_value = self._extract_credits(resp)
-                        cost_value = self._extract_cost_usd(resp)
-                        if credit_value is not None:
-                            credit_candidates.append(credit_value)
-                        if cost_value is not None:
-                            cost_candidates_usd.append(cost_value)
-                        text = self._extract_markdown(resp)
-                        if text:
-                            markdown_parts.append(text)
+                logger.debug("SpiderCloud stream empty for url=%s (no fallback request)", url)
         except CaptchaDetectedError:
             # Surface captcha markers to the batch loop so it can retry with proxies.
             raise

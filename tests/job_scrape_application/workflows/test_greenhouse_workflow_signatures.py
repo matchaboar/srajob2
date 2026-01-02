@@ -26,6 +26,12 @@ async def test_greenhouse_workflow_uses_args_kw(monkeypatch):
             return {"job_urls": ["https://example.com/job/1"]}
         if activity is gh.filter_existing_job_urls:
             return []
+        if activity is gh.compute_urls_to_scrape:
+            return {
+                "urlsToScrape": ["https://example.com/job/1"],
+                "existingCount": 0,
+                "totalCount": 1,
+            }
         if activity is gh.scrape_greenhouse_jobs:
             return {
                 "scrape": {"items": {"normalized": [{"url": "https://example.com/job/1"}]}},
@@ -65,6 +71,8 @@ async def test_greenhouse_workflow_uses_args_kw(monkeypatch):
             assert kwargs["args"] == [{"_id": "site1", "url": "https://example.com"}]
         if activity is gh.filter_existing_job_urls:
             assert kwargs["args"] == [["https://example.com/job/1"]]
+        if activity is gh.compute_urls_to_scrape:
+            assert kwargs["args"] == [["https://example.com/job/1"], []]
         if activity is gh.scrape_greenhouse_jobs:
             assert kwargs["args"][0]["urls"] == ["https://example.com/job/1"]
         if activity is gh.complete_site:

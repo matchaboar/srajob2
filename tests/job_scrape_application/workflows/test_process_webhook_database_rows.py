@@ -12,6 +12,16 @@ sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import webhook_workflow as wf  # noqa: E402
 
 
+def _compute_urls_to_scrape(job_urls, existing):
+    cleaned = [u for u in (job_urls or []) if isinstance(u, str) and u.strip()]
+    existing_set = {u for u in (existing or []) if isinstance(u, str)}
+    return {
+        "urlsToScrape": [u for u in cleaned if u not in existing_set],
+        "existingCount": len(existing_set),
+        "totalCount": len(cleaned),
+    }
+
+
 @pytest.mark.asyncio
 async def test_process_webhook_marks_invalid_job_id_processed(monkeypatch):
     # Mirrors row md7e106pyvt7xad8719bd18vp97w30ke (invalid job id, completed event)
@@ -49,6 +59,8 @@ async def test_process_webhook_marks_invalid_job_id_processed(monkeypatch):
 
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 0, "scrape": None}
         if fn is wf.store_scrape:
@@ -125,6 +137,8 @@ async def test_process_webhook_handles_batch_scrape_completed_greenhouse(monkeyp
 
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 1, "scrape": {"items": {"normalized": [{"title": "Role"}]}}}
         if fn is wf.store_scrape:
@@ -198,6 +212,8 @@ async def test_greenhouse_listing_with_no_jobs_still_stores_raw(monkeypatch):
             }
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 0, "scrape": None}
         if fn is wf.store_scrape:
@@ -265,6 +281,8 @@ async def test_pending_webhook_retries_on_429(monkeypatch):
             return None
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 0, "scrape": None}
         if fn is wf.store_scrape:

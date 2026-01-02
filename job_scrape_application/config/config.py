@@ -38,6 +38,8 @@ class Settings:
     monitor_rpc_timeout_seconds: int = int(
         os.getenv("TEMPORAL_MONITOR_RPC_TIMEOUT_SECONDS", "10")
     )
+    workflow_task_debug_log_ms: int = int(os.getenv("WORKFLOW_TASK_DEBUG_LOG_MS", "1500"))
+    workflow_task_debug_log_all: bool = _env_flag("WORKFLOW_TASK_DEBUG_LOG_ALL", "false")
 
     # Convex deployment URL for the ConvexClient (e.g., https://your-app.convex.cloud)
     convex_url: str | None = os.getenv("CONVEX_URL")

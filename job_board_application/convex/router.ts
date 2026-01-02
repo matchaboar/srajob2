@@ -128,6 +128,10 @@ const baseDomainFromHost = (host: string): string => {
   }
   return parts.slice(-2).join(".");
 };
+const UUID_LABEL_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LONG_HEX_LABEL_REGEX = /^[0-9a-f]{24,}$/i;
+const isOpaqueDomainLabel = (label: string) =>
+  UUID_LABEL_REGEX.test(label) || LONG_HEX_LABEL_REGEX.test(label);
 const toLogoSlug = (company: string) => {
   const lowered = (company || "").toLowerCase();
   const replaced = lowered.replace(/[+.&đħıĸŀłßŧø]/g, (char) => LOGO_SLUG_CHAR_MAP[char] ?? "");
@@ -196,14 +200,20 @@ const deriveBrandfetchDomain = (company: string, url?: string | null) => {
           return fallback;
         }
       }
-      return baseDomainFromHost(host);
+      const baseDomain = baseDomainFromHost(host);
+      const baseLabel = baseDomain.split(".")[0] ?? "";
+      const fallback = fallbackCompanyDomain();
+      if (fallback && isOpaqueDomainLabel(baseLabel)) {
+        return fallback;
+      }
+      return baseDomain;
     } catch {
       // fall through to company fallback
     }
   }
   return fallbackCompanyDomain();
 };
-const resolveCompanyLogoUrl = (company: string, url: string | null | undefined, fallbackLogoUrl: string) => {
+export const resolveCompanyLogoUrl = (company: string, url: string | null | undefined, fallbackLogoUrl: string) => {
   const slug = toLogoSlug(company);
   if (slug && BRANDFETCH_LOGO_OVERRIDES[slug]) {
     return BRANDFETCH_LOGO_OVERRIDES[slug] as string;
@@ -1825,26 +1835,6 @@ const leaseScrapeUrlBatchHandler = async (
   const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 5 * 60_000, 24 * 60 * 60_000));
   const aliasCache = new Map<string, string | null>();
 
-  const insertBatchScrape = async (payload: {
-    urls: string[];
-    retryCounts: number[];
-    skip_reason?: string;
-  }) => {
-    try {
-      const insertPayload: Record<string, any> = {
-        urls: payload.urls,
-        retryCounts: payload.retryCounts,
-        startedAt: now,
-      };
-      if (args.workerId) insertPayload.workerId = args.workerId;
-      if (args.provider) insertPayload.provider = args.provider;
-      if (payload.skip_reason) insertPayload.skip_reason = payload.skip_reason;
-      await ctx.db.insert("batch_scrapes", insertPayload);
-    } catch (err) {
-      console.error("leaseScrapeUrlBatch: failed to record batch scrape", err);
-    }
-  };
-
   const normalizeDomain = (url: string) => {
     try {
       const u = new URL(url);
@@ -1978,90 +1968,16 @@ const leaseScrapeUrlBatchHandler = async (
   }
 
   if (picked.length === 0) {
-    let shouldLog = false;
-    let skipReason: string | undefined;
-    let sampleUrls: string[] = [];
-    let sampleRetryCounts: number[] = [];
-    try {
-      const sampleLimit = 25;
-      const pendingSample = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status", (q: any) => q.eq("status", "pending"))
-        .take(sampleLimit);
-      const processingSample = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status", (q: any) => q.eq("status", "processing"))
-        .take(sampleLimit);
-
-      const pendingRows = Array.isArray(pendingSample) ? pendingSample : [];
-      const processingRows = Array.isArray(processingSample) ? processingSample : [];
-      const pendingForProvider = args.provider
-        ? pendingRows.filter((row: any) => row.provider === args.provider)
-        : pendingRows;
-
-      if (pendingRows.length > 0 || processingRows.length > 0) {
-        shouldLog = true;
-        if (pendingForProvider.length === 0) {
-          skipReason = pendingRows.length > 0 ? "provider_mismatch" : "all_processing";
-          const sample = pendingRows.length > 0 ? pendingRows : processingRows;
-          const sampleEntries = sample
-            .filter((row: any) => typeof row.url === "string")
-            .map((row: any) => ({
-              url: row.url,
-              retryCount: Math.max(0, (row.attempts ?? 0) - 1),
-            }));
-          sampleUrls = sampleEntries.map((entry) => entry.url);
-          sampleRetryCounts = sampleEntries.map((entry) => entry.retryCount);
-        } else {
-          const hasReady = pendingForProvider.some(
-            (row: any) => (row.scheduledAt ?? 0) <= now
-          );
-          skipReason = hasReady ? "no_eligible_rows" : "scheduled_in_future";
-          const sampleEntries = pendingForProvider
-            .filter((row: any) => typeof row.url === "string")
-            .map((row: any) => ({
-              url: row.url,
-              retryCount: Math.max(0, (row.attempts ?? 0) - 1),
-            }));
-          sampleUrls = sampleEntries.map((entry) => entry.url);
-          sampleRetryCounts = sampleEntries.map((entry) => entry.retryCount);
-        }
-      }
-    } catch (err) {
-      console.error("leaseScrapeUrlBatch: failed to sample queue for skip reason", err);
-    }
-
-    if (shouldLog && skipReason) {
-      await insertBatchScrape({
-        urls: sampleUrls,
-        retryCounts: sampleRetryCounts,
-        skip_reason: skipReason,
-      });
-    }
-
     return { urls: [] };
   }
-
-  const batchUrls: string[] = [];
-  const batchRetryCounts: number[] = [];
   for (const row of picked) {
     const nextAttempts = ((row).attempts ?? 0) + 1;
-    const retryCount = Math.max(0, nextAttempts - 1);
     await ctx.db.patch(row._id, {
       status: "processing",
       attempts: nextAttempts,
       updatedAt: now,
     });
-    if (typeof row.url === "string") {
-      batchUrls.push(row.url);
-      batchRetryCounts.push(retryCount);
-    }
   }
-
-  await insertBatchScrape({
-    urls: batchUrls,
-    retryCounts: batchRetryCounts,
-  });
 
   return {
     urls: picked.map((r) => ({
@@ -4210,30 +4126,6 @@ export const listScrapes = query({
       asyncResponse: row.asyncResponse,
       subUrls: row.subUrls ?? row.items?.seedUrls ?? [],
       type: row.items?.kind ?? row.workflowName ?? row.provider,
-    }));
-  },
-});
-
-export const listBatchScrapes = query({
-  args: {
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(args.limit ?? 100, 500));
-    const rows = await ctx.db
-      .query("batch_scrapes")
-      .withIndex("by_started", (q) => q.gt("startedAt", 0))
-      .order("desc")
-      .take(limit);
-
-    return rows.map((row: any) => ({
-      _id: row._id,
-      urls: row.urls ?? [],
-      retryCounts: row.retryCounts ?? [],
-      startedAt: row.startedAt,
-      workerId: row.workerId,
-      provider: row.provider,
-      skip_reason: row.skip_reason,
     }));
   },
 });

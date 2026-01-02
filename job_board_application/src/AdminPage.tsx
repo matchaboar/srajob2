@@ -9,7 +9,7 @@ import { LiveTimer } from "./components/LiveTimer";
 import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
 import type { Id } from "../convex/_generated/dataModel";
 
-type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "urlScrapes" | "companyNames" | "batchScrapes";
+type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "urlScrapes" | "companyNames";
 type AdminSectionExtended = AdminSection | "pending";
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
@@ -704,119 +704,13 @@ function UrlScrapeListSection() {
   );
 }
 
-function BatchScrapesSection() {
-  const batches = useQuery(api.router.listBatchScrapes, { limit: 200 });
-  const MAX_URLS_DISPLAY = 30;
-
-  if (batches === undefined) {
-    return <div className="text-slate-400 p-4">Loading batch scrapes...</div>;
-  }
-
-  if (!batches?.length) {
-    return (
-      <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
-        No batch scrapes recorded yet.
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Batch scrapes</h2>
-          <p className="text-xs text-slate-400">Track leased URL batches and skipped batch reasons.</p>
-        </div>
-      </div>
-      <div className="overflow-x-auto border border-slate-800 rounded">
-        <table className="w-full text-left text-xs text-slate-300">
-          <thead className="text-[10px] uppercase bg-slate-950 text-slate-400">
-            <tr>
-              <th className="px-3 py-2 border-b border-slate-800">Started</th>
-              <th className="px-3 py-2 border-b border-slate-800">Worker</th>
-              <th className="px-3 py-2 border-b border-slate-800">Provider</th>
-              <th className="px-3 py-2 border-b border-slate-800">URLs</th>
-              <th className="px-3 py-2 border-b border-slate-800">Skip reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {batches.map((batch: any) => {
-              const urls = Array.isArray(batch.urls) ? batch.urls : [];
-              const retryCounts = Array.isArray(batch.retryCounts) ? batch.retryCounts : [];
-              const entries = urls.map((url: string, idx: number) => ({
-                url,
-                retryCount: retryCounts[idx] ?? 0,
-              }));
-              const displayed = entries.slice(0, MAX_URLS_DISPLAY);
-              const remaining = entries.length - displayed.length;
-              return (
-                <tr key={batch._id} className="border-b border-slate-800 hover:bg-slate-900/60">
-                  <td className="px-3 py-2 align-top whitespace-nowrap">
-                    {typeof batch.startedAt === "number"
-                      ? new Date(batch.startedAt).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    <span className="font-mono text-[11px] text-slate-300">
-                      {batch.workerId || "—"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 align-top">{batch.provider || "—"}</td>
-                  <td className="px-3 py-2 align-top">
-                    {entries.length === 0 ? (
-                      <span className="text-slate-500">—</span>
-                    ) : (
-                      <details className="group">
-                        <summary className="cursor-pointer text-blue-300 hover:text-blue-200">
-                          View {entries.length}
-                        </summary>
-                        <div className="mt-2 space-y-1 max-w-2xl">
-                          {displayed.map((entry, idx) => (
-                            <div key={`${batch._id}-${idx}`} className="flex items-center gap-2">
-                              <span
-                                className="px-1.5 py-0.5 rounded border border-slate-800 bg-slate-950 text-[10px] text-slate-300"
-                                title="Retry count"
-                              >
-                                {entry.retryCount}
-                              </span>
-                              <span className="font-mono text-[11px] text-slate-300 break-all">
-                                {entry.url}
-                              </span>
-                            </div>
-                          ))}
-                          {remaining > 0 && (
-                            <div className="text-[10px] text-slate-500">+{remaining} more</div>
-                          )}
-                        </div>
-                      </details>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    {batch.skip_reason ? (
-                      <span className="px-2 py-1 rounded text-[10px] font-semibold uppercase bg-amber-900/40 text-amber-200 border border-amber-800">
-                        {batch.skip_reason}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 export function AdminPage() {
   // Use URL hash to persist active section across refreshes
   const parseHash = () => {
     const raw = window.location.hash.replace("#admin-", "");
     const [section, query] = raw.split("?");
     const urlParam = new URLSearchParams(query || "").get("url");
-    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "urlScrapes", "companyNames", "batchScrapes"] as const;
+    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "urlScrapes", "companyNames"] as const;
     const sec = allowed.includes(section as any) ? (section as AdminSectionExtended) : "scraper";
     return { section: sec, urlParam };
   };
@@ -892,11 +786,6 @@ export function AdminPage() {
             onClick={() => setNavState({ section: "urlScrapes", runsUrl: null })}
           />
           <SidebarItem
-            label="Batch scrapes"
-            active={section === "batchScrapes"}
-            onClick={() => setNavState({ section: "batchScrapes", runsUrl: null })}
-          />
-          <SidebarItem
             label="Temporal Status"
             active={section === "temporal"}
             onClick={() => setNavState({ section: "temporal", runsUrl: null })}
@@ -908,13 +797,13 @@ export function AdminPage() {
       <main
         className={clsx(
           "flex-1 ml-60 overflow-y-auto",
-          section === "activity" || section === "urlScrapes" || section === "batchScrapes" ? "p-0" : "p-8"
+          section === "activity" || section === "urlScrapes" ? "p-0" : "p-8"
         )}
       >
         <div
           className={clsx(
             "w-full",
-            section === "activity" || section === "urlScrapes" || section === "batchScrapes" ? "max-w-none" : "max-w-5xl mx-auto"
+            section === "activity" || section === "urlScrapes" ? "max-w-none" : "max-w-5xl mx-auto"
           )}
         >
           {section === "scraper" && (
@@ -927,7 +816,6 @@ export function AdminPage() {
           {section === "pending" && <PendingRequestsSection />}
           {section === "database" && <DatabaseSection />}
           {section === "urlScrapes" && <UrlScrapeListSection />}
-          {section === "batchScrapes" && <BatchScrapesSection />}
           {section === "temporal" && <TemporalStatusSection />}
         </div>
       </main>

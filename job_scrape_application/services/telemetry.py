@@ -24,6 +24,8 @@ DEFAULT_POSTHOG_ENDPOINT = "https://us.i.posthog.com/i/v1/logs"
 _logger_provider: LoggerProvider | None = None
 _logger: logging.Logger | None = None
 _posthog_client: Posthog | None = None  # type: ignore[valid-type]
+_posthog_log_handler: LoggingHandler | None = None
+_posthog_log_configured: bool = False
 
 
 def _resolve_endpoint() -> str:
@@ -106,8 +108,40 @@ def _ensure_posthog_client() -> Posthog | None:  # type: ignore[valid-type]
     return _posthog_client
 
 
+def _configure_posthog_logger(token: str) -> LoggerProvider:
+    global _logger_provider, _posthog_log_configured
+
+    if _logger_provider is None:
+        _logger_provider = LoggerProvider()
+        logs.set_logger_provider(_logger_provider)
+
+    if not _posthog_log_configured:
+        endpoint = _resolve_endpoint()
+        exporter = _build_otlp_exporter(endpoint, token)
+        _logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+        _posthog_log_configured = True
+
+    return _logger_provider
+
+
+def build_posthog_log_handler(level: int = logging.INFO) -> LoggingHandler | None:
+    """Return a LoggingHandler that ships records to PostHog via OTLP."""
+    global _posthog_log_handler
+
+    if _posthog_log_handler is not None:
+        return _posthog_log_handler
+
+    token = settings.posthog_project_api_key
+    if not token:
+        return None
+
+    provider = _configure_posthog_logger(token)
+    _posthog_log_handler = LoggingHandler(level=level, logger_provider=provider)
+    return _posthog_log_handler
+
+
 def _ensure_logger() -> logging.Logger:
-    global _logger, _logger_provider
+    global _logger
 
     if _logger:
         return _logger
@@ -116,14 +150,7 @@ def _ensure_logger() -> logging.Logger:
     if not token:
         raise RuntimeError("POSTHOG_PROJECT_API_KEY is not configured")
 
-    endpoint = _resolve_endpoint()
-
-    provider = LoggerProvider()
-    logs.set_logger_provider(provider)
-
-    exporter = _build_otlp_exporter(endpoint, token)
-    provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
-
+    provider = _configure_posthog_logger(token)
     handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
     logger = logging.getLogger("scratchpad")
     logger.setLevel(logging.INFO)

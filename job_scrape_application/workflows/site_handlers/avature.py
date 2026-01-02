@@ -137,7 +137,7 @@ class AvatureHandler(BaseSiteHandler):
                 except Exception:
                     base_offset = None
 
-        def _infer_page_data() -> tuple[int | None, int | None, int | None]:
+        def _infer_page_data() -> tuple[int | None, int | None, int | None, bool]:
             match = AVATURE_PAGE_RANGE_RE.search(html)
             if match:
                 start = int(match.group("start"))
@@ -145,7 +145,7 @@ class AvatureHandler(BaseSiteHandler):
                 total = int(match.group("total"))
                 page_size = max(end - start + 1, 1)
                 current_offset = max(start - 1, 0)
-                return current_offset, page_size, total
+                return current_offset, page_size, total, True
 
             page_size = None
             total = None
@@ -156,17 +156,17 @@ class AvatureHandler(BaseSiteHandler):
             if match:
                 total = int(match.group("count"))
             default_offset = base_offset if base_offset is not None else 0
-            return default_offset, page_size, total
+            return default_offset, page_size, total, total is not None
 
         augmented: List[str] = []
-        current_offset, page_size, total = _infer_page_data()
+        current_offset, page_size, total, has_total = _infer_page_data()
         if base_offset is not None:
             current_offset = base_offset
         should_add_zero = (not base_has_offset) or (current_offset == 0)
         if should_add_zero and not any("joboffset=0" in url.lower() for url in urls):
             augmented.append(_with_job_offset(base_url, 0))
 
-        if page_size and current_offset is not None:
+        if page_size and current_offset is not None and has_total:
             next_offset = current_offset + page_size
             if total is None or next_offset < total:
                 next_token = f"joboffset={next_offset}"

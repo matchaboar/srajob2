@@ -16,9 +16,9 @@ with workflow.unsafe.imports_passed_through():
         fail_site,
         fetch_greenhouse_listing,
         filter_existing_job_urls,
+        compute_urls_to_scrape,
         lease_site,
         record_workflow_run,
-        record_scratchpad,
         scrape_greenhouse_jobs,
         store_scrape,
     )
@@ -43,6 +43,7 @@ class GreenhouseScraperWorkflow:
         status = "completed"
         started_at = int(workflow.now().timestamp() * 1000)
         run_info = workflow.info()
+        wf_logger = workflow.logger  # type: ignore[attr-defined]
 
         async def _log(
             event: str,
@@ -52,26 +53,16 @@ class GreenhouseScraperWorkflow:
             site_url: str | None = None,
             level: str = "info",
         ) -> None:
-            try:
-                await workflow.execute_activity(
-                    record_scratchpad,
-                    args=[
-                        {
-                            "runId": run_info.run_id,
-                            "workflowId": run_info.workflow_id,
-                            "workflowName": "GreenhouseScraperWorkflow",
-                            "siteUrl": site_url,
-                            "event": event,
-                            "message": message,
-                            "data": data,
-                            "level": level,
-                            "createdAt": int(workflow.now().timestamp() * 1000),
-                        }
-                    ],
-                    schedule_to_close_timeout=timedelta(seconds=60),
-                )
-            except Exception:
-                pass
+            msg = (
+                "GreenhouseScraperWorkflow"
+                f" | event={event} | siteUrl={site_url} | message={message} | data={data}"
+            )
+            if level == "error":
+                wf_logger.error(msg)
+            elif level in {"warn", "warning"}:
+                wf_logger.warning(msg)
+            else:
+                wf_logger.info(msg)
 
         await _log("workflow.start", message="Greenhouse workflow started")
 
@@ -112,15 +103,24 @@ class GreenhouseScraperWorkflow:
                         args=[job_urls],
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
-                    existing_set = set(existing)
-                    urls_to_scrape = [u for u in job_urls if u not in existing_set]
+                    diff = await workflow.execute_activity(
+                        compute_urls_to_scrape,
+                        args=[job_urls, existing],
+                        schedule_to_close_timeout=timedelta(seconds=30),
+                    )
+                    urls_to_scrape = diff.get("urlsToScrape") if isinstance(diff, dict) else None
+                    if not isinstance(urls_to_scrape, list):
+                        urls_to_scrape = [u for u in job_urls if isinstance(u, str)]
+                    existing_count = diff.get("existingCount") if isinstance(diff, dict) else None
+                    if not isinstance(existing_count, int):
+                        existing_count = len({u for u in existing if isinstance(u, str)})
 
                     await _log(
                         "greenhouse.listing",
                         site_url=site["url"],
                         data={
                             "jobUrls": len(job_urls),
-                            "existing": len(existing_set),
+                            "existing": existing_count,
                             "toScrape": len(urls_to_scrape),
                         },
                     )

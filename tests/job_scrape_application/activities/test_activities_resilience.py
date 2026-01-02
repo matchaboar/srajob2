@@ -104,6 +104,29 @@ def test_trim_scrape_for_convex_preserves_job_urls_over_page_links():
     assert "https://example.com/jobs/2" in items["page_links"]
 
 
+def test_trim_scrape_for_convex_preserves_ignored_and_failed():
+    scrape = {
+        "sourceUrl": "https://example.com/careers",
+        "items": {
+            "normalized": [],
+            "ignored": [
+                {"url": "https://example.com/jobs/ignored", "reason": "listing_page"},
+            ],
+            "failed": [
+                {"url": "https://example.com/jobs/failed", "reason": "timeout"},
+            ],
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape)
+
+    items = trimmed["items"]
+    assert items["ignored"][0]["url"] == "https://example.com/jobs/ignored"
+    assert items["ignoredCount"] == 1
+    assert items["failed"][0]["url"] == "https://example.com/jobs/failed"
+    assert items["failedCount"] == 1
+
+
 def test_jobs_from_scrape_items_filters_and_defaults():
     items = {
         "normalized": [

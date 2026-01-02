@@ -63,7 +63,7 @@ def test_github_jibe_job_detail_uses_structured_description():
     normalized = _normalize_job()
     assert normalized["title"] == "Staff Applied Researcher, AI Quality"
     assert normalized["company"] == "GitHub"
-    assert normalized["location"] == "Remote"
+    assert normalized["location"] == "United States"
     assert normalized["remote"] is True
     description = normalized["description"]
     assert "About GitHub" in description
@@ -79,8 +79,8 @@ def test_github_jibe_job_detail_compensation_range_and_location_fields():
     assert hints.get("compensation_range") == {"low": 140400, "high": 372300}
     resolved = _resolve_location_from_dictionary(normalized["location"])
     assert resolved is not None
-    assert resolved.get("city") == "Remote"
-    assert resolved.get("state") == "Remote"
+    assert resolved.get("city") is None
+    assert resolved.get("state") is None
     assert resolved.get("country") == "United States"
 
 

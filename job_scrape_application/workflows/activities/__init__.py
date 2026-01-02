@@ -51,6 +51,7 @@ from ..helpers.provider import (
 from ..helpers.scrape_utils import (
     _jobs_from_scrape_items,
     _shrink_payload,
+    _strip_ashby_application_url,
     build_firecrawl_schema,
     derive_company_from_url,
     normalize_compensation_value,
@@ -68,7 +69,6 @@ from ..helpers.link_extractors import (
     extract_job_urls_from_json_payload,
     extract_links_from_payload,
     normalize_url,
-    normalize_url_list,
 )
 from ..helpers.regex_patterns import (
     APPLY_WORD_PATTERN,
@@ -208,6 +208,34 @@ def _looks_like_auth_url(url: str) -> bool:
         "sign-up",
     }
     return any(seg in auth_segments for seg in segments)
+
+
+def _is_spidercloud_listing_url(url: str, source_url: str | None = None) -> bool:
+    handler = get_site_handler(url) or (get_site_handler(source_url) if source_url else None)
+    if handler and handler.is_listing_url(url):
+        return True
+    if handler and handler.name == "greenhouse":
+        # Allow explicit detail endpoints, skip listing/board URLs.
+        if handler.is_api_detail_url(url):
+            return False
+        if handler.get_api_uri(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower().rstrip("/")
+        parts = [p for p in path.split("/") if p]
+        if host.endswith("greenhouse.io") and path.endswith("/jobs"):
+            if len(parts) == 4 and parts[0] == "v1" and parts[1] == "boards" and parts[3] == "jobs":
+                return True
+            if host.endswith("boards.greenhouse.io") and len(parts) <= 2:
+                return True
+            return True
+        if host.endswith("boards.greenhouse.io") and len(parts) == 1 and parts[0]:
+            return True
+    return False
 
 
 def _convex_site_id(value: Any) -> Optional[str]:
@@ -1123,12 +1151,13 @@ async def fetch_greenhouse_listing_firecrawl(site: Site) -> Dict[str, Any]:
 async def filter_existing_job_urls(urls: List[str]) -> List[str]:
     """Return the subset of URLs that already exist in Convex jobs table."""
 
-    if not urls:
+    cleaned = [u for u in urls if isinstance(u, str) and u.strip()]
+    if not cleaned:
         return []
     from ...services.convex_client import convex_query
 
     try:
-        data = await convex_query("router:findExistingJobUrls", {"urls": urls})
+        data = await convex_query("router:findExistingJobUrls", {"urls": cleaned})
     except Exception:
         return []
 
@@ -1137,6 +1166,25 @@ async def filter_existing_job_urls(urls: List[str]) -> List[str]:
         return []
 
     return [u for u in existing if isinstance(u, str)]
+
+
+@activity.defn
+async def compute_urls_to_scrape(
+    job_urls: List[Any],
+    existing_urls: List[str] | None = None,
+) -> Dict[str, Any]:
+    """Filter and diff URL lists to keep workflow CPU usage minimal."""
+
+    cleaned = [u for u in job_urls if isinstance(u, str) and u.strip()]
+    existing_list = [u for u in (existing_urls or []) if isinstance(u, str)]
+    existing_set = set(existing_list)
+    urls_to_scrape = [u for u in cleaned if u not in existing_set]
+
+    return {
+        "totalCount": len(cleaned),
+        "existingCount": len(existing_set),
+        "urlsToScrape": urls_to_scrape,
+    }
 
 
 @activity.defn
@@ -1285,6 +1333,7 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
+    skipped_listing_urls: list[str] = []
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
             continue
@@ -1295,6 +1344,9 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         pattern_val = row.get("pattern") if isinstance(row.get("pattern"), str) else None
         if source_val and not source_url_hint:
             source_url_hint = source_val
+        if _is_spidercloud_listing_url(url_val, source_val or None):
+            skipped_listing_urls.append(url_val)
+            continue
         key = (source_val, pattern_val)
         normalized_url = _to_greenhouse_api_url(url_val)
         groups.setdefault(key, []).append(normalized_url)
@@ -1303,8 +1355,35 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
             mapping = posted_at_groups.setdefault(key, {})
             mapping[normalize_url(normalized_url) or normalized_url] = int(posted_at_val)
 
+    if skipped_listing_urls:
+        seen_listing: set[str] = set()
+        deduped_listing: list[str] = []
+        for url in skipped_listing_urls:
+            if url in seen_listing:
+                continue
+            seen_listing.add(url)
+            deduped_listing.append(url)
+        skipped_listing_urls = deduped_listing
+        logger.info(
+            "SpiderCloud prefilter skipped listing urls count=%s sample=%s",
+            len(skipped_listing_urls),
+            skipped_listing_urls[:10],
+        )
+        try:
+            from ...services.convex_client import convex_mutation
+
+            await convex_mutation(
+                "router:completeScrapeUrls",
+                {"urls": skipped_listing_urls, "status": "failed", "error": "listing_url"},
+            )
+        except Exception:
+            pass
+
     if not groups:
-        return {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
+        response = {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
+        if skipped_listing_urls:
+            response["skippedUrls"] = skipped_listing_urls
+        return response
 
     scraper = _make_spidercloud_scraper()
 
@@ -2075,6 +2154,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             ignored_items = raw_items_block.get("ignored")
         if isinstance(ignored_items, list):
             ignored_count = len(ignored_items)
+        if not ignored_count and isinstance(raw_items_block, dict):
+            ignored_meta = raw_items_block.get("ignoredCount")
+            if isinstance(ignored_meta, int):
+                ignored_count = ignored_meta
         failed_count = 0
         failed_reasons: list[str] = []
         failed_items = None
@@ -2087,6 +2170,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     reason = entry.get("reason")
                     if isinstance(reason, str) and reason:
                         failed_reasons.append(reason)
+        if not failed_count and isinstance(raw_items_block, dict):
+            failed_meta = raw_items_block.get("failedCount")
+            if isinstance(failed_meta, int):
+                failed_count = failed_meta
     
         scraped_with = None
         if isinstance(payload.get("items"), dict):
@@ -2120,23 +2207,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     failure_reason = "scrape_failed"
             else:
                 invalid_reason = "no_normalized_jobs"
-        if invalid_reason or failure_reason:
-            try:
-                telemetry.emit_posthog_exception(
-                    ValueError(f"Scrape payload invalid: {invalid_reason or failure_reason}"),
-                    properties={
-                        "event": "scrape.invalid_payload" if invalid_reason else "scrape.failed_payload",
-                        "siteUrl": payload.get("sourceUrl") or "",
-                        "provider": provider_for_log,
-                        "workflowName": workflow_name,
-                        "normalizedCount": normalized_count,
-                        "ignoredCount": ignored_count,
-                        "failedCount": failed_count,
-                        "reason": invalid_reason or failure_reason,
-                    },
-                )
-            except Exception:
-                pass
     
         await _log_scratchpad(
             "scrape.received",
@@ -2578,10 +2648,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                             "provider": scraped_with or payload.get("provider"),
                             "workflowName": payload.get("workflowName"),
                             "details": _shrink_payload(entry, 4000),
-                        "title": title_val,
-                        "description": desc_val,
-                    },
-                )
+                            "title": title_val,
+                            "description": desc_val,
+                        },
+                    )
                     ignored_recorded += 1
             if ignored_recorded:
                 await _log_scratchpad(
@@ -2610,6 +2680,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 pass
             # Best-effort; ignore failures
             pass
+
+        urls: list[str] = []
+        job_urls: list[str] = []
+        listing_urls: list[str] = []
     
         # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
         try:
@@ -2632,8 +2706,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             source_url = payload.get("sourceUrl")
             handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
             delays_ms: list[int] | None = None
-            job_urls: list[str] = []
-            listing_urls: list[str] = []
             if urls:
                 for url in urls:
                     if handler and handler.is_listing_url(url):
@@ -2723,9 +2795,17 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     else ""
                 )
 
+                skip_all_message = (
+                    f"All job URLs skipped; already stored in Convex{already_saved_note}"
+                    if already_saved_count
+                    else f"No job URLs extracted from job site scrape{already_saved_note}"
+                )
+                skip_all_event = "scrape.job_urls.skipped" if already_saved_count else "scrape.job_urls.none"
+                skip_all_level = "debug" if already_saved_count else "error"
+
                 await _log_scratchpad(
-                    "scrape.job_urls.none",
-                    message=f"No job URLs extracted from job site scrape{already_saved_note}",
+                    skip_all_event,
+                    message=skip_all_message,
                     data=_strip_none_values(
                         {
                             "companyName": company_name or "Unknown",
@@ -2752,7 +2832,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                             ),
                         }
                     ),
-                    level="error",
+                    level=skip_all_level,
                 )
             await _log_scratchpad(
                 "scrape.url_extraction.summary",
@@ -2796,6 +2876,46 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 data={"error": str(exc), "sourceUrl": payload.get("sourceUrl")},
             )
             # Non-fatal
+
+        if invalid_reason == "no_normalized_jobs" and job_urls:
+            unique_job_urls = list(dict.fromkeys(job_urls))
+            try:
+                existing_jobs = await filter_existing_job_urls(unique_job_urls)
+            except Exception:
+                existing_jobs = []
+            existing_set = {u for u in existing_jobs if isinstance(u, str)}
+            if existing_set and len(existing_set) >= len(unique_job_urls):
+                invalid_reason = None
+                await _log_scratchpad(
+                    "scrape.jobs_skipped",
+                    message="All jobs skipped; URLs already stored in Convex",
+                    data={
+                        "sourceUrl": payload.get("sourceUrl") or "",
+                        "jobUrlsCount": len(unique_job_urls),
+                        "jobUrlsSample": unique_job_urls[:5],
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                    },
+                    level="debug",
+                )
+
+        if invalid_reason or failure_reason:
+            try:
+                telemetry.emit_posthog_exception(
+                    ValueError(f"Scrape payload invalid: {invalid_reason or failure_reason}"),
+                    properties={
+                        "event": "scrape.invalid_payload" if invalid_reason else "scrape.failed_payload",
+                        "siteUrl": payload.get("sourceUrl") or "",
+                        "provider": provider_for_log,
+                        "workflowName": workflow_name,
+                        "normalizedCount": normalized_count,
+                        "ignoredCount": ignored_count,
+                        "failedCount": failed_count,
+                        "reason": invalid_reason or failure_reason,
+                    },
+                )
+            except Exception:
+                pass
     
         if invalid_reason:
             await _log_scratchpad(
@@ -2823,8 +2943,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             )
     
         return str(scrape_id)
-    
-    
+
+
     except asyncio.CancelledError as exc:
         try:
             props = {}
@@ -2842,6 +2962,8 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         except Exception:
             pass
         raise
+
+
 @activity.defn
 async def complete_site(site_id: str) -> None:
     from ...services.convex_client import convex_mutation
@@ -3293,6 +3415,26 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             seen.add(cleaned)
             deduped.append(cleaned)
         return deduped
+
+    def _normalize_job_url(value: str, *, base_url: str | None = None) -> str | None:
+        normalized = normalize_url(value, base_url=base_url)
+        if not normalized:
+            return None
+        return _strip_ashby_application_url(normalized)
+
+    def _normalize_job_url_list(values: Iterable[str], *, base_url: str | None = None) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            if not isinstance(value, str):
+                continue
+            normalized_url = _normalize_job_url(value, base_url=base_url)
+            if not normalized_url or normalized_url in seen:
+                continue
+            seen.add(normalized_url)
+            normalized.append(normalized_url)
+        return normalized
+
     def _normalize_direct_url(value: str) -> str | None:
         cleaned = value.strip()
         if not cleaned:
@@ -3302,14 +3444,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
             return None
         if cleaned.startswith(("http://", "https://")):
-            return cleaned
+            return _strip_ashby_application_url(cleaned)
         if cleaned.startswith("//"):
             if not source_url:
                 return None
             scheme = urlparse(source_url).scheme or "https"
-            return f"{scheme}:{cleaned}"
+            return _strip_ashby_application_url(f"{scheme}:{cleaned}")
         if source_url:
-            return urljoin(source_url, cleaned)
+            return _strip_ashby_application_url(urljoin(source_url, cleaned))
         return None
 
     is_fetchfox_crawl = False
@@ -3366,14 +3508,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if link_urls:
             if handler:
                 link_urls = handler.filter_job_urls(link_urls)
-            link_urls = normalize_url_list(link_urls, base_url=source_url)
+            link_urls = _normalize_job_url_list(link_urls, base_url=source_url)
             link_urls = [url for url in link_urls if not _should_ignore_url(url)]
         json_urls = extract_job_urls_from_json_payload(raw_val)
         if json_urls:
             if handler:
                 json_urls = handler.filter_job_urls(json_urls)
             merged = json_urls + link_urls
-            merged = normalize_url_list(merged, base_url=source_url)
+            merged = _normalize_job_url_list(merged, base_url=source_url)
             merged = [url for url in merged if not _should_ignore_url(url)]
             if merged:
                 return merged
@@ -3383,7 +3525,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             merged = handler_links + link_urls
             if handler:
                 merged = handler.filter_job_urls(merged)
-            merged = normalize_url_list(merged, base_url=source_url)
+            merged = _normalize_job_url_list(merged, base_url=source_url)
             merged = [url for url in merged if not _should_ignore_url(url)]
             return merged
         if link_urls:
@@ -3434,14 +3576,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if json_urls:
                     if handler:
                         json_urls = handler.filter_job_urls(json_urls)
-                    json_urls = normalize_url_list(json_urls, base_url=source_url)
+                    json_urls = _normalize_job_url_list(json_urls, base_url=source_url)
                     json_urls = [url for url in json_urls if not _should_ignore_url(url)]
                     if json_urls:
                         return json_urls
             ashby_urls = _extract_ashby_job_urls(text)
             if ashby_urls:
                 for url in ashby_urls:
-                    normalized_url = normalize_url(url, base_url=source_url)
+                    normalized_url = _normalize_job_url(url, base_url=source_url)
                     if not normalized_url:
                         continue
                     if _should_ignore_url(normalized_url):
@@ -3460,7 +3602,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if not isinstance(text, str):
             continue
         for url, title, location, context_text, context_location in _extract_markdown_links_with_context(text):
-            normalized_url = normalize_url(url, base_url=source_url)
+            normalized_url = _normalize_job_url(url, base_url=source_url)
             if not normalized_url:
                 continue
             if _should_ignore_url(normalized_url):
@@ -3482,7 +3624,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             urls.append(normalized_url)
 
         for url, title, location in _extract_from_text(text):
-            normalized_url = normalize_url(url, base_url=source_url)
+            normalized_url = _normalize_job_url(url, base_url=source_url)
             if not normalized_url:
                 continue
             if normalized_url in blocked:

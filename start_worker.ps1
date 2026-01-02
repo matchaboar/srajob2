@@ -712,7 +712,7 @@ function Start-WorkerMain {
         $TemporalPort = [int]$matches[1]
     }
     $TemporalUiPort = 8233
-    $TemporalUiHost = if ([string]::IsNullOrWhiteSpace($TemporalHost) -or $TemporalHost -eq "0.0.0.0" -or $TemporalHost -eq "::") { "127.0.0.1" } else { $TemporalHost }
+    $TemporalUiHost = if ([string]::IsNullOrWhiteSpace($TemporalHost) -or $TemporalHost -eq "0.0.0.0" -or $TemporalHost -eq "::") { "localhost" } else { $TemporalHost }
     if ($TemporalUiHost -match ":" -and -not $TemporalUiHost.StartsWith("[")) {
         $TemporalUiHost = "[${TemporalUiHost}]"
     }

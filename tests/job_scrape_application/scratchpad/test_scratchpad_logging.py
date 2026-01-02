@@ -285,6 +285,7 @@ def test_scrape_workflow_records_scratchpad_events(monkeypatch):
         monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
         monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_000))
         monkeypatch.setattr(sw.workflow, "info", lambda: SimpleNamespace(run_id="run-123", workflow_id="wf-abc"))
+        monkeypatch.setattr(sw.workflow, "logger", types.SimpleNamespace(info=lambda *_a, **_k: None, warning=lambda *_a, **_k: None, error=lambda *_a, **_k: None), raising=False)
 
         summary = await sw._run_scrape_workflow(fake_scrape_site, "ScraperFirecrawl")
 
@@ -323,6 +324,12 @@ def test_greenhouse_workflow_records_scratchpad_events(monkeypatch):
 
         if name == "filter_existing_job_urls":
             return []
+        if name == "compute_urls_to_scrape":
+            return {
+                "urlsToScrape": ["https://example.com/gh/1", "https://example.com/gh/2"],
+                "existingCount": 0,
+                "totalCount": 2,
+            }
 
         if name == "scrape_greenhouse_jobs":
             return {

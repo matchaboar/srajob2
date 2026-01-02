@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import sys
 import time
 from dataclasses import dataclass
 from datetime import timedelta
@@ -13,12 +12,22 @@ import httpx
 from temporalio import workflow
 from temporalio.client import Client
 from temporalio.service import RPCError, RPCStatusCode
-from temporalio.worker import Interceptor, Worker, WorkflowInboundInterceptor, WorkflowInterceptorClassInput
+from temporalio.worker import (
+    Interceptor,
+    StartActivityInput,
+    StartChildWorkflowInput,
+    StartLocalActivityInput,
+    Worker,
+    WorkflowInboundInterceptor,
+    WorkflowInterceptorClassInput,
+    WorkflowOutboundInterceptor,
+)
 
 from ..config import settings
 from ..services import telemetry
 from ..services.convex_client import convex_query
 from . import activities
+from .deadlock_logging import install_deadlock_posthog_handler, record_run_metadata, update_run_metadata
 from .scrape_workflow import (
     FirecrawlScrapeWorkflow,
     FetchfoxSpidercloudWorkflow,
@@ -46,6 +55,13 @@ WORKFLOW_CLASSES = [
     RecoverMissingFirecrawlWebhookWorkflow,
 ]
 
+_WORKER_CONTEXT: dict[str, object] = {}
+
+
+def _set_worker_context(context: dict[str, object]) -> None:
+    _WORKER_CONTEXT.clear()
+    _WORKER_CONTEXT.update(context)
+
 ACTIVITY_FUNCTIONS = [
     activities.fetch_sites,
     activities.lease_site,
@@ -55,6 +71,7 @@ ACTIVITY_FUNCTIONS = [
     activities.crawl_site_fetchfox,
     activities.fetch_greenhouse_listing,
     activities.filter_existing_job_urls,
+    activities.compute_urls_to_scrape,
     activities.scrape_greenhouse_jobs,
     activities.start_firecrawl_webhook_scrape,
     activities.fetch_pending_firecrawl_webhooks,
@@ -65,7 +82,6 @@ ACTIVITY_FUNCTIONS = [
     activities.complete_site,
     activities.fail_site,
     activities.record_workflow_run,
-    activities.record_scratchpad,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
     activities.complete_scrape_urls,
@@ -93,7 +109,6 @@ FETCHFOX_ACTIVITIES = {
 
 JOB_DETAILS_WORKFLOWS = [SpidercloudJobDetailsWorkflow]
 JOB_DETAILS_ACTIVITIES = [
-    activities.record_scratchpad,
     activities.record_workflow_run,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
@@ -107,6 +122,115 @@ class WorkerConfig:
     workflows: list[type]
     activities: list
     role: str
+
+
+@dataclass
+class WorkflowTaskDebugState:
+    last_activity: str | None = None
+    last_activity_id: str | None = None
+    last_activity_queue: str | None = None
+    last_activity_at: str | None = None
+    last_child_workflow: str | None = None
+    last_child_workflow_id: str | None = None
+    last_child_workflow_queue: str | None = None
+    last_child_workflow_at: str | None = None
+    task_activity_count: int = 0
+    task_child_count: int = 0
+    task_last_activity: str | None = None
+    task_last_activity_id: str | None = None
+    task_last_activity_queue: str | None = None
+    task_last_activity_at: str | None = None
+    task_last_child_workflow: str | None = None
+    task_last_child_workflow_id: str | None = None
+    task_last_child_workflow_queue: str | None = None
+    task_last_child_workflow_at: str | None = None
+
+    def reset_for_task(self) -> None:
+        self.task_activity_count = 0
+        self.task_child_count = 0
+        self.task_last_activity = None
+        self.task_last_activity_id = None
+        self.task_last_activity_queue = None
+        self.task_last_activity_at = None
+        self.task_last_child_workflow = None
+        self.task_last_child_workflow_id = None
+        self.task_last_child_workflow_queue = None
+        self.task_last_child_workflow_at = None
+
+
+class WorkflowTaskDebugOutboundInterceptor(WorkflowOutboundInterceptor):
+    def __init__(self, next: WorkflowOutboundInterceptor, state: WorkflowTaskDebugState) -> None:
+        super().__init__(next)
+        self._state = state
+
+    def start_activity(self, input: StartActivityInput):  # type: ignore[override]
+        now = workflow.now().isoformat()
+        self._state.task_activity_count += 1
+        self._state.task_last_activity = input.activity
+        self._state.task_last_activity_id = input.activity_id
+        self._state.task_last_activity_queue = input.task_queue
+        self._state.task_last_activity_at = now
+        self._state.last_activity = input.activity
+        self._state.last_activity_id = input.activity_id
+        self._state.last_activity_queue = input.task_queue
+        self._state.last_activity_at = now
+        try:
+            update_run_metadata(
+                workflow.info().run_id,
+                lastActivity=input.activity,
+                lastActivityId=input.activity_id,
+                lastActivityQueue=input.task_queue,
+                lastActivityAt=now,
+            )
+        except Exception:
+            pass
+        return self.next.start_activity(input)
+
+    def start_local_activity(self, input: StartLocalActivityInput):  # type: ignore[override]
+        now = workflow.now().isoformat()
+        self._state.task_activity_count += 1
+        self._state.task_last_activity = input.activity
+        self._state.task_last_activity_id = input.activity_id
+        self._state.task_last_activity_queue = "local"
+        self._state.task_last_activity_at = now
+        self._state.last_activity = input.activity
+        self._state.last_activity_id = input.activity_id
+        self._state.last_activity_queue = "local"
+        self._state.last_activity_at = now
+        try:
+            update_run_metadata(
+                workflow.info().run_id,
+                lastActivity=input.activity,
+                lastActivityId=input.activity_id,
+                lastActivityQueue="local",
+                lastActivityAt=now,
+            )
+        except Exception:
+            pass
+        return self.next.start_local_activity(input)
+
+    async def start_child_workflow(self, input: StartChildWorkflowInput):  # type: ignore[override]
+        now = workflow.now().isoformat()
+        self._state.task_child_count += 1
+        self._state.task_last_child_workflow = input.workflow
+        self._state.task_last_child_workflow_id = input.id
+        self._state.task_last_child_workflow_queue = input.task_queue
+        self._state.task_last_child_workflow_at = now
+        self._state.last_child_workflow = input.workflow
+        self._state.last_child_workflow_id = input.id
+        self._state.last_child_workflow_queue = input.task_queue
+        self._state.last_child_workflow_at = now
+        try:
+            update_run_metadata(
+                workflow.info().run_id,
+                lastChildWorkflow=input.workflow,
+                lastChildWorkflowId=input.id,
+                lastChildWorkflowQueue=input.task_queue,
+                lastChildWorkflowAt=now,
+            )
+        except Exception:
+            pass
+        return await self.next.start_child_workflow(input)
 
 
 def _select_worker_config() -> tuple[str, list[type], list]:
@@ -147,8 +271,17 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
     def __init__(self, next: WorkflowInboundInterceptor) -> None:
         super().__init__(next)
         self._logger = logging.getLogger("temporal.worker.workflow")
+        self._debug_state = WorkflowTaskDebugState()
+
+    def init(self, outbound: WorkflowOutboundInterceptor) -> None:
+        wrapped = WorkflowTaskDebugOutboundInterceptor(outbound, self._debug_state)
+        self.next.init(wrapped)
 
     async def execute_workflow(self, input: object) -> object:  # noqa: A002
+        self._debug_state.reset_for_task()
+        error: BaseException | None = None
+        info = None
+        start_time: float | None = None
         try:
             info = workflow.info()
             self._logger.info(
@@ -158,9 +291,79 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
                 info.run_id,
                 info.task_queue,
             )
+            record_run_metadata(
+                info.run_id,
+                info.workflow_id,
+                info.workflow_type,
+                info.task_queue,
+            )
         except Exception as exc:  # noqa: BLE001
             self._logger.warning("Workflow start logging failed: %s", exc)
-        return await super().execute_workflow(input)
+
+        with workflow.unsafe.sandbox_unrestricted():
+            start_time = time.perf_counter()
+
+        try:
+            return await super().execute_workflow(input)
+        except BaseException as exc:
+            error = exc
+            raise
+        finally:
+            if start_time is not None:
+                with workflow.unsafe.sandbox_unrestricted():
+                    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+                threshold_ms = max(0, settings.workflow_task_debug_log_ms)
+                should_log = (
+                    error is not None
+                    or settings.workflow_task_debug_log_all
+                    or (threshold_ms > 0 and elapsed_ms >= threshold_ms)
+                )
+                if should_log:
+                    if info is None:
+                        try:
+                            info = workflow.info()
+                        except Exception:
+                            info = None
+                    payload = {
+                    "event": "workflow.run.error" if error else "workflow.run.slow",
+                        "runId": getattr(info, "run_id", None),
+                        "workflowId": getattr(info, "workflow_id", None),
+                        "workflowType": getattr(info, "workflow_type", None),
+                        "taskQueue": getattr(info, "task_queue", None),
+                        "attempt": getattr(info, "attempt", None),
+                        "elapsedMs": elapsed_ms,
+                    "runActivityCount": self._debug_state.task_activity_count,
+                    "runChildWorkflowCount": self._debug_state.task_child_count,
+                    "runLastActivity": self._debug_state.task_last_activity,
+                    "runLastActivityId": self._debug_state.task_last_activity_id,
+                    "runLastActivityQueue": self._debug_state.task_last_activity_queue,
+                    "runLastActivityAt": self._debug_state.task_last_activity_at,
+                    "runLastChildWorkflow": self._debug_state.task_last_child_workflow,
+                    "runLastChildWorkflowId": self._debug_state.task_last_child_workflow_id,
+                    "runLastChildWorkflowQueue": self._debug_state.task_last_child_workflow_queue,
+                    "runLastChildWorkflowAt": self._debug_state.task_last_child_workflow_at,
+                    "lastActivity": self._debug_state.last_activity,
+                    "lastActivityId": self._debug_state.last_activity_id,
+                    "lastActivityQueue": self._debug_state.last_activity_queue,
+                    "lastActivityAt": self._debug_state.last_activity_at,
+                    "lastChildWorkflow": self._debug_state.last_child_workflow,
+                    "lastChildWorkflowId": self._debug_state.last_child_workflow_id,
+                    "lastChildWorkflowQueue": self._debug_state.last_child_workflow_queue,
+                    "lastChildWorkflowAt": self._debug_state.last_child_workflow_at,
+                        "isReplay": workflow.unsafe.is_replaying(),
+                        "workerId": _WORKER_CONTEXT.get("workerId"),
+                        "hostname": _WORKER_CONTEXT.get("hostname"),
+                        "workerRole": _WORKER_CONTEXT.get("workerRole"),
+                        "taskQueues": _WORKER_CONTEXT.get("taskQueues"),
+                    }
+                    if error is not None:
+                        payload["errorType"] = type(error).__name__
+                        payload["errorMessage"] = str(error)
+                    self._logger.warning(
+                        payload["event"],
+                        extra={k: v for k, v in payload.items() if v is not None},
+                    )
 
 
 class WorkflowLoggingInterceptor(Interceptor):
@@ -173,7 +376,7 @@ class WorkflowLoggingInterceptor(Interceptor):
 
 
 def _setup_logging() -> logging.Logger:
-    """Configure structured logging to both stdout and a rotating file."""
+    """Configure structured logging to PostHog and rotating files."""
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -181,10 +384,7 @@ def _setup_logging() -> logging.Logger:
     scheduling_log_file = log_dir / "scheduling.log"
 
     fmt = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-    handlers = [
-        RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=3),
-        logging.StreamHandler(sys.stdout),
-    ]
+    handlers = [RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=3)]
     scheduling_handler = RotatingFileHandler(scheduling_log_file, maxBytes=2_000_000, backupCount=2)
     scheduling_handler.setLevel(logging.INFO)
 
@@ -196,6 +396,9 @@ def _setup_logging() -> logging.Logger:
 
     scheduling_handler.addFilter(_SchedulingOnly())
     handlers.append(scheduling_handler)
+    posthog_handler = telemetry.build_posthog_log_handler(level=logging.INFO)
+    if posthog_handler is not None:
+        handlers.append(posthog_handler)
 
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
     # HTTPX logs every heartbeat request at INFO; keep them quiet unless debugging.
@@ -392,6 +595,17 @@ async def main() -> None:
     worker_id = f"{hostname}-{os.getpid()}"
 
     configs = _select_worker_configs()
+    queue_summary = ", ".join(f"{cfg.task_queue}({cfg.role})" for cfg in configs)
+    worker_context = {
+        "workerId": worker_id,
+        "hostname": hostname,
+        "temporalAddress": settings.temporal_address,
+        "temporalNamespace": settings.temporal_namespace,
+        "taskQueues": queue_summary,
+        "workerRole": settings.worker_role or "all",
+    }
+    _set_worker_context(worker_context)
+    install_deadlock_posthog_handler(worker_context)
     workers = [
         Worker(
             client,
@@ -408,9 +622,6 @@ async def main() -> None:
     webhook_log_task = asyncio.create_task(webhook_wait_logger())
     schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
 
-    queue_summary = ", ".join(
-        f"{cfg.task_queue}({cfg.role})" for cfg in configs
-    )
     logger.info(
         "Worker started. Namespace=%s Address=%s TaskQueues=%s Role=%s",
         settings.temporal_namespace,

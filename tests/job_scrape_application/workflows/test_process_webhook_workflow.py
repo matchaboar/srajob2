@@ -13,6 +13,16 @@ from job_scrape_application.workflows import webhook_workflow as wf  # noqa: E40
 from job_scrape_application.workflows.exceptions import PaymentRequiredWorkflowError  # noqa: E402
 
 
+def _compute_urls_to_scrape(job_urls, existing):
+    cleaned = [u for u in (job_urls or []) if isinstance(u, str) and u.strip()]
+    existing_set = {u for u in (existing or []) if isinstance(u, str)}
+    return {
+        "urlsToScrape": [u for u in cleaned if u not in existing_set],
+        "existingCount": len(existing_set),
+        "totalCount": len(cleaned),
+    }
+
+
 @pytest.mark.asyncio
 async def test_process_webhook_workflow_continues_on_failure(monkeypatch):
     events = [
@@ -48,6 +58,8 @@ async def test_process_webhook_workflow_continues_on_failure(monkeypatch):
             }
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 1, "scrape": {"items": {"normalized": [{}]}}}
         if fn is wf.store_scrape:
@@ -129,6 +141,8 @@ async def test_process_webhook_greenhouse_scrapes_new_job_urls(monkeypatch):
         if fn is wf.filter_existing_job_urls:
             calls["filter"].append(args[0])
             return ["https://jobs/1"]  # pretend the first URL already exists
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             calls["scrape"].append(args[0])
             return {
@@ -218,6 +232,8 @@ async def test_process_webhook_batches_up_to_50_urls(monkeypatch):
             calls["filter"].append(list(args[0]))
             # Pretend Convex already has the first 25 URLs; 50 remain pending
             return all_job_urls[:25]
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             payload = args[0]
             calls["scrape"].append(payload)
@@ -297,6 +313,8 @@ async def test_process_webhook_stores_single_job_scrape(monkeypatch):
             }
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 0, "scrape": None}
         if fn is wf.store_scrape:
@@ -355,6 +373,8 @@ async def test_process_webhook_retries_on_transient_429(monkeypatch):
             raise wf.ApplicationError("429 Too Many Requests")
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             return {"jobsScraped": 0, "scrape": None}
         if fn is wf.store_scrape:
@@ -422,6 +442,8 @@ async def test_process_webhook_payment_required_marks_failed(monkeypatch):
             }
         if fn is wf.filter_existing_job_urls:
             return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
         if fn is wf.scrape_greenhouse_jobs:
             raise PaymentRequiredWorkflowError("Payment Required: insufficient credits")
         if fn is wf.store_scrape:
