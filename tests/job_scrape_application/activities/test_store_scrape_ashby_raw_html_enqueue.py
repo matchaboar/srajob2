@@ -31,19 +31,30 @@ def _load_html() -> str:
 
 
 def _load_api_payload() -> Dict[str, Any]:
-    return json.loads(API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
+    return payload
 
 
 def _load_serval_api_payload() -> Dict[str, Any]:
-    return json.loads(SERVAL_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(SERVAL_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
+    return payload
 
 
 def _load_ramp_api_payload() -> Dict[str, Any]:
-    return json.loads(RAMP_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(RAMP_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
+    return payload
 
 
 def _load_listing_raw_payload() -> Any:
     payload = json.loads(LISTING_RAW_FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
     if payload and isinstance(payload, list) and isinstance(payload[0], list):
         return payload[0]
     return payload

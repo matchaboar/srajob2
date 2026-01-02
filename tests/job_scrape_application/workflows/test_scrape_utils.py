@@ -24,6 +24,13 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
 )
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def test_parse_markdown_hints_extracts_fields():
     markdown = textwrap.dedent(
         """
@@ -44,7 +51,7 @@ def test_parse_markdown_hints_extracts_fields():
 
 def test_parse_markdown_hints_adobe_bucharest_commonmark_fixture():
     fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_adobe_job_detail_bucharest_commonmark.json"
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     commonmark = ""
     if isinstance(payload, list):
         for entry in payload:
@@ -66,7 +73,7 @@ def test_parse_markdown_hints_adobe_bucharest_commonmark_fixture():
 
 def test_parse_markdown_hints_adobe_yerevan_commonmark_fixture():
     fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_adobe_job_detail_r162922_commonmark.json"
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     commonmark = ""
     if isinstance(payload, list):
         for entry in payload:
@@ -265,7 +272,7 @@ def test_strip_known_nav_blocks_removes_embedded_json_blobs_from_netflix_job_det
         / "fixtures"
         / "netflix_job_detail_convex_prod.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     description = payload["description"]
 
     cleaned = strip_known_nav_blocks(description)
@@ -278,7 +285,7 @@ def test_strip_known_nav_blocks_removes_embedded_json_blobs_from_netflix_job_det
 
 def test_looks_like_job_listing_page_detects_snapchat_table():
     fixture_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
-    response = json.loads(fixture_path.read_text(encoding="utf-8"))
+    response = _load_spidercloud_fixture(fixture_path)
     content = response[0][0]["content"]["commonmark"]
     title = content.splitlines()[0] if content else "Jobs"
 

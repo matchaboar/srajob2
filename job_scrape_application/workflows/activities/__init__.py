@@ -275,6 +275,70 @@ def _activity_cancellation_payload() -> Dict[str, Any]:
     return payload
 
 
+def _summarize_scrape_payload(res: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(res, dict):
+        return {"provider": "unknown"}
+
+    items = res.get("items") if isinstance(res, dict) else {}
+    normalized = items.get("normalized") if isinstance(items, dict) else None
+    jobs = len(normalized) if isinstance(normalized, list) else 0
+    skipped_urls = res.get("skippedUrls") if isinstance(res, dict) else None
+    summary: Dict[str, Any] = {
+        "provider": res.get("provider") or items.get("provider") if isinstance(items, dict) else None,
+        "queued": items.get("queued") if isinstance(items, dict) else None,
+        "jobId": items.get("jobId") if isinstance(items, dict) else None,
+        "statusUrl": items.get("statusUrl") if isinstance(items, dict) else None,
+        "jobs": jobs,
+    }
+    if skipped_urls:
+        summary["skippedUrls"] = skipped_urls
+    if res.get("workflowName"):
+        summary["workflowName"] = res.get("workflowName")
+    if res.get("costMilliCents"):
+        summary["costMilliCents"] = res.get("costMilliCents")
+    return {k: v for k, v in summary.items() if v is not None}
+
+
+def _apply_workflow_context(
+    scrape: Dict[str, Any],
+    workflow_context: Dict[str, Any] | None,
+    site: Site | None,
+) -> Dict[str, Any]:
+    if not isinstance(scrape, dict):
+        return scrape
+    if workflow_context:
+        for key in ("workflowName", "workflowId", "runId"):
+            value = workflow_context.get(key)
+            if value is not None and scrape.get(key) is None:
+                scrape[key] = value
+    if site and scrape.get("siteId") is None:
+        site_id = _convex_site_id(site)
+        if site_id:
+            scrape["siteId"] = site_id
+    return scrape
+
+
+def _build_recovery_payload(scrape: Dict[str, Any], site: Site | None) -> Dict[str, Any] | None:
+    if not isinstance(scrape, dict):
+        return None
+    items_raw = scrape.get("items")
+    items = items_raw if isinstance(items_raw, dict) else {}
+    job_id = scrape.get("jobId") or items.get("jobId")
+    queued = items.get("queued") if isinstance(items, dict) else None
+    if not queued or not job_id:
+        return None
+    payload = {
+        "jobId": str(job_id),
+        "webhookId": scrape.get("webhookId") or items.get("webhookId"),
+        "metadata": scrape.get("metadata"),
+        "siteId": _convex_site_id(site) if site else None,
+        "siteUrl": site.get("url") if isinstance(site, dict) else None,
+        "statusUrl": scrape.get("statusUrl") or items.get("statusUrl"),
+        "receivedAt": scrape.get("receivedAt") or items.get("receivedAt"),
+    }
+    return {k: v for k, v in payload.items() if v is not None}
+
+
 def _make_fetchfox_scraper() -> FetchfoxScraper:
     return _build_fetchfox_scraper(
         build_request_snapshot=_build_request_snapshot,
@@ -582,7 +646,11 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
 
 
 @activity.defn
-async def scrape_site(site: Site) -> Dict[str, Any]:
+async def scrape_site(
+    site: Site,
+    workflow_context: Dict[str, Any] | None = None,
+    persist_scrape: bool = False,
+) -> Dict[str, Any]:
     """Scrape a site, selecting provider based on per-site preference."""
 
     selection = select_scraper_for_site(site)
@@ -605,10 +673,24 @@ async def scrape_site(site: Site) -> Dict[str, Any]:
 
     site_type = (site.get("type") or "general").lower()
     if isinstance(scraper, SpiderCloudScraper) and site_type == "greenhouse":
-        return await _scrape_spidercloud_greenhouse(scraper, site, precomputed_skip or [])
+        result = await _scrape_spidercloud_greenhouse(scraper, site, precomputed_skip or [])
+    else:
+        # Tests expect skip_urls to be forwarded for firecrawl so it can dedupe visited URLs
+        result = await scraper.scrape_site(site, skip_urls=precomputed_skip)
 
-    # Tests expect skip_urls to be forwarded for firecrawl so it can dedupe visited URLs
-    return await scraper.scrape_site(site, skip_urls=precomputed_skip)
+    if not persist_scrape:
+        return result
+
+    if not isinstance(result, dict):
+        raise ApplicationError("Scrape payload missing/invalid", non_retryable=True)
+
+    result = _apply_workflow_context(result, workflow_context, site)
+    scrape_id = await store_scrape(result)
+    return {
+        "scrapeId": scrape_id,
+        "summary": _summarize_scrape_payload(result),
+        "recoveryPayload": _build_recovery_payload(result, site),
+    }
 
 
 @activity.defn
@@ -921,7 +1003,11 @@ async def start_firecrawl_webhook_scrape(site: Site) -> Dict[str, Any]:
 
 
 @activity.defn
-async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
+async def crawl_site_fetchfox(
+    site: Site,
+    workflow_context: Dict[str, Any] | None = None,
+    persist_scrape: bool = False,
+) -> Dict[str, Any]:
     """Use FetchFox crawl to queue job detail URLs for SpiderCloud extraction."""
 
     from ...services.convex_client import convex_mutation, convex_query
@@ -1094,7 +1180,7 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
         response=_shrink_payload(result_obj, 20000),
     )
 
-    return {
+    payload = {
         "provider": "fetchfox-crawl",
         "workflowName": "FetchfoxSpidercloud",
         "sourceUrl": source_url,
@@ -1123,6 +1209,16 @@ async def crawl_site_fetchfox(site: Site) -> Dict[str, Any]:
         },
     }
 
+    if not persist_scrape:
+        return payload
+
+    payload = _apply_workflow_context(payload, workflow_context, site)
+    scrape_id = await store_scrape(payload)
+    return {
+        "scrapeId": scrape_id,
+        "summary": _summarize_scrape_payload(payload),
+    }
+
 
 @activity.defn
 async def scrape_site_fetchfox(site: Site) -> Dict[str, Any]:
@@ -1131,9 +1227,25 @@ async def scrape_site_fetchfox(site: Site) -> Dict[str, Any]:
 
 
 @activity.defn
-async def scrape_site_firecrawl(site: Site, skip_urls: Optional[List[str]] = None) -> Dict[str, Any]:
+async def scrape_site_firecrawl(
+    site: Site,
+    skip_urls: Optional[List[str]] = None,
+    workflow_context: Dict[str, Any] | None = None,
+    persist_scrape: bool = False,
+) -> Dict[str, Any]:
     scraper = _make_firecrawl_scraper()
-    return await scraper.scrape_site(site, skip_urls=skip_urls)
+    result = await scraper.scrape_site(site, skip_urls=skip_urls)
+    if not persist_scrape:
+        return result
+    if not isinstance(result, dict):
+        raise ApplicationError("Scrape payload missing/invalid", non_retryable=True)
+    result = _apply_workflow_context(result, workflow_context, site)
+    scrape_id = await store_scrape(result)
+    return {
+        "scrapeId": scrape_id,
+        "summary": _summarize_scrape_payload(result),
+        "recoveryPayload": _build_recovery_payload(result, site),
+    }
 
 
 @activity.defn
@@ -1207,6 +1319,25 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
     def _build_lease_response(urls: list[Dict[str, Any]], skipped_urls: list[str]) -> Dict[str, Any]:
         return {"urls": urls, "skippedUrls": skipped_urls}
 
+    def _build_completion_item(entry: Dict[str, Any], url_val: str) -> Dict[str, Any]:
+        item: Dict[str, Any] = {"url": url_val}
+        row_id = entry.get("_id")
+        if isinstance(row_id, str):
+            item["id"] = row_id
+        source_val = entry.get("sourceUrl")
+        if isinstance(source_val, str):
+            item["sourceUrl"] = source_val
+        provider_val = entry.get("provider")
+        if isinstance(provider_val, str):
+            item["provider"] = provider_val
+        site_val = entry.get("siteId")
+        if isinstance(site_val, str):
+            item["siteId"] = site_val
+        attempts_val = entry.get("attempts")
+        if isinstance(attempts_val, (int, float)):
+            item["attempts"] = int(attempts_val)
+        return item
+
     skipped: list[str] = []
     skip_cache: dict[tuple[str | None, str | None], set[str]] = {}
 
@@ -1234,6 +1365,9 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
         skipped_round: list[str] = []
         max_attempts_round: list[str] = []
         auth_url_round: list[str] = []
+        skipped_items: list[Dict[str, Any]] = []
+        max_attempts_items: list[Dict[str, Any]] = []
+        auth_url_items: list[Dict[str, Any]] = []
 
         for entry in raw_urls:
             if not isinstance(entry, dict):
@@ -1248,9 +1382,11 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 attempts = 0
             if attempts > SCRAPE_URL_QUEUE_MAX_ATTEMPTS:
                 max_attempts_round.append(url_val)
+                max_attempts_items.append(_build_completion_item(entry, url_val))
                 continue
             if _looks_like_auth_url(url_val):
                 auth_url_round.append(url_val)
+                auth_url_items.append(_build_completion_item(entry, url_val))
                 continue
             source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
             pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
@@ -1263,6 +1399,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
             if url_val in skip_cache[cache_key]:
                 skipped_round.append(url_val)
+                skipped_items.append(_build_completion_item(entry, url_val))
                 continue
             filtered.append(entry)
 
@@ -1271,7 +1408,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
             try:
                 await convex_mutation(
                     "router:completeScrapeUrls",
-                    {"urls": skipped_round, "status": "failed", "error": "skip_listed_url"},
+                    {"items": skipped_items, "status": "failed", "error": "skip_listed_url"},
                 )
             except Exception as skip_err:
                 logger.warning("Failed to mark skipped URLs as failed: %s", skip_err, exc_info=skip_err)
@@ -1280,7 +1417,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
             try:
                 await convex_mutation(
                     "router:completeScrapeUrls",
-                    {"urls": max_attempts_round, "status": "failed", "error": "max_attempts_exceeded"},
+                    {"items": max_attempts_items, "status": "failed", "error": "max_attempts_exceeded"},
                 )
             except Exception as exc:
                 logger.warning("Failed to mark max-attempt URLs as failed: %s", exc, exc_info=exc)
@@ -1289,7 +1426,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
             try:
                 await convex_mutation(
                     "router:completeScrapeUrls",
-                    {"urls": auth_url_round, "status": "failed", "error": "auth_url"},
+                    {"items": auth_url_items, "status": "failed", "error": "auth_url"},
                 )
             except Exception as exc:
                 logger.warning("Failed to mark auth URLs as failed: %s", exc, exc_info=exc)
@@ -1301,7 +1438,10 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
 
 
 @activity.defn
-async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]:
+async def process_spidercloud_job_batch(
+    batch: Dict[str, Any],
+    persist_scrapes: bool = False,
+) -> Dict[str, Any]:
     """Process a batch of job URLs via SpiderCloud."""
 
     def _to_greenhouse_api_url(url: str) -> str:
@@ -1384,6 +1524,8 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
         response = {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
         if skipped_listing_urls:
             response["skippedUrls"] = skipped_listing_urls
+        if persist_scrapes:
+            response.update({"scrapeIds": [], "stored": 0, "invalid": 0, "failed": 0})
         return response
 
     scraper = _make_spidercloud_scraper()
@@ -1461,11 +1603,122 @@ async def process_spidercloud_job_batch(batch: Dict[str, Any]) -> Dict[str, Any]
     for (source_url, pattern), urls in groups.items():
         scrapes.extend(await _scrape_group(urls, source_url, pattern))
 
-    return {"scrapes": scrapes, "sourceUrl": source_url_hint}
+    if not persist_scrapes:
+        response = {"scrapes": scrapes, "sourceUrl": source_url_hint}
+        if skipped_listing_urls:
+            response["skippedUrls"] = skipped_listing_urls
+        return response
+
+    from ...services.convex_client import convex_mutation
+
+    def _scrape_url(scrape: Dict[str, Any]) -> str | None:
+        sub_urls = scrape.get("subUrls")
+        if isinstance(sub_urls, list):
+            for entry in sub_urls:
+                if isinstance(entry, str) and entry.strip():
+                    return entry
+        source_url = scrape.get("sourceUrl")
+        if isinstance(source_url, str) and source_url.strip():
+            return source_url
+        return None
+
+    entry_by_url: dict[str, Dict[str, Any]] = {}
+    raw_batch_urls = batch.get("urls") if isinstance(batch, dict) else None
+    if isinstance(raw_batch_urls, list):
+        for entry in raw_batch_urls:
+            if not isinstance(entry, dict):
+                continue
+            url_val = entry.get("url")
+            if isinstance(url_val, str) and url_val.strip():
+                entry_by_url[url_val] = entry
+
+    def _build_completion_item(url_val: str) -> Dict[str, Any]:
+        item: Dict[str, Any] = {"url": url_val}
+        entry = entry_by_url.get(url_val)
+        if not entry:
+            return item
+        row_id = entry.get("_id")
+        if isinstance(row_id, str):
+            item["id"] = row_id
+        source_val = entry.get("sourceUrl")
+        if isinstance(source_val, str):
+            item["sourceUrl"] = source_val
+        provider_val = entry.get("provider")
+        if isinstance(provider_val, str):
+            item["provider"] = provider_val
+        site_val = entry.get("siteId")
+        if isinstance(site_val, str):
+            item["siteId"] = site_val
+        attempts_val = entry.get("attempts")
+        if isinstance(attempts_val, (int, float)):
+            item["attempts"] = int(attempts_val)
+        return item
+
+    async def _complete_urls(urls: list[str], status: str, error: str | None = None) -> None:
+        if not urls:
+            return
+        chunk_size = 100
+        for idx in range(0, len(urls), chunk_size):
+            chunk = urls[idx : idx + chunk_size]
+            items = [_build_completion_item(url_val) for url_val in chunk if isinstance(url_val, str)]
+            payload: Dict[str, Any] = {"items": items, "status": status}
+            if error:
+                payload["error"] = error
+            try:
+                await convex_mutation("router:completeScrapeUrls", payload)
+            except Exception:
+                logger.warning("SpiderCloud URL completion failed status=%s size=%s", status, len(chunk))
+
+    scrape_ids: list[str] = []
+    completed_urls: list[str] = []
+    invalid_urls: list[str] = []
+    failed_urls: list[str] = []
+
+    for idx, scrape in enumerate(scrapes):
+        if not isinstance(scrape, dict):
+            continue
+        url_val = _scrape_url(scrape)
+        try:
+            res_id = await store_scrape(scrape)
+            if isinstance(res_id, str):
+                scrape_ids.append(res_id)
+            if isinstance(url_val, str):
+                completed_urls.append(url_val)
+        except ApplicationError as exc:
+            if exc.type == "invalid_scrape":
+                if isinstance(url_val, str):
+                    invalid_urls.append(url_val)
+            else:
+                if isinstance(url_val, str):
+                    failed_urls.append(url_val)
+        except Exception:
+            if isinstance(url_val, str):
+                failed_urls.append(url_val)
+        if idx > 0 and idx % 25 == 0:
+            await asyncio.sleep(0)
+
+    await _complete_urls(completed_urls, "completed")
+    await _complete_urls(invalid_urls, "invalid", error="invalid_job_data")
+    await _complete_urls(failed_urls, "failed", error="store_scrape_failed")
+
+    response = {
+        "scrapeIds": scrape_ids,
+        "stored": len(scrape_ids),
+        "invalid": len(invalid_urls),
+        "failed": len(failed_urls),
+        "sourceUrl": source_url_hint,
+    }
+    if skipped_listing_urls:
+        response["skippedUrls"] = skipped_listing_urls
+    return response
 
 
 @activity.defn
-async def scrape_greenhouse_jobs(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def scrape_greenhouse_jobs(
+    payload: Dict[str, Any],
+    workflow_context: Dict[str, Any] | None = None,
+    persist_scrape: bool = False,
+) -> Dict[str, Any]:
     """Scrape new Greenhouse job URLs with a single FetchFox request."""
 
     idempotency_key = payload.get("idempotency_key") or payload.get("webhook_id")
@@ -1475,7 +1728,22 @@ async def scrape_greenhouse_jobs(payload: Dict[str, Any]) -> Dict[str, Any]:
         scraper = _make_firecrawl_scraper()
     else:
         scraper = _build_fetchfox_scraper()
-    return await scraper.scrape_greenhouse_jobs(payload)
+    result = await scraper.scrape_greenhouse_jobs(payload)
+    if not persist_scrape:
+        return result
+
+    scrape_payload = result.get("scrape") if isinstance(result, dict) else None
+    if not isinstance(scrape_payload, dict):
+        raise ApplicationError("Greenhouse scrape payload missing/invalid", non_retryable=True)
+
+    scrape_payload = _apply_workflow_context(scrape_payload, workflow_context, None)
+    scrape_id = await store_scrape(scrape_payload)
+    jobs_scraped = result.get("jobsScraped") if isinstance(result, dict) else None
+    return {
+        "scrapeId": scrape_id,
+        "jobsScraped": jobs_scraped,
+        "summary": _summarize_scrape_payload(scrape_payload),
+    }
 
 
 @activity.defn
@@ -3051,6 +3319,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     md_link_re = re.compile(MARKDOWN_LINK_PATTERN)
     greenhouse_re = re.compile(GREENHOUSE_URL_PATTERN, re.IGNORECASE)
     confluent_job_re = re.compile(CONFLUENT_JOB_PATH_PATTERN, re.IGNORECASE)
+    confluent_page_re = re.compile(r"/jobs/?\?page=\d+", re.IGNORECASE)
     location_line_re = re.compile(LOCATION_LINE_PATTERN, re.IGNORECASE)
     apply_text_re = re.compile(APPLY_WORD_PATTERN, re.IGNORECASE)
     dash_separators: Tuple[str, ...] = (" - ", " | ", " — ", " – ")
@@ -3239,6 +3508,19 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             return False
         return "/jobs/job/" not in path
 
+    def _canonicalize_confluent_pagination_url(url: str) -> str:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return url
+        host = (parsed.hostname or "").lower()
+        if not host.endswith("confluent.io"):
+            return url
+        path = parsed.path or ""
+        if path == "/jobs":
+            path = "/jobs/"
+        return parsed._replace(path=path).geturl()
+
     _NON_JOB_PATH_SEGMENTS = {
         "acceptable-use",
         "cookie",
@@ -3365,6 +3647,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if is_confluent:
             for match in confluent_job_re.findall(text):
                 links.append((match.strip(), None, None))
+            for match in confluent_page_re.findall(text):
+                links.append((match.strip(), None, None))
 
         for match in url_re.findall(text):
             lower = match.lower()
@@ -3415,7 +3699,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
         def _walk(node: Any) -> None:
             if isinstance(node, dict):
-                job_id = node.get("jobId")
+                job_id = None
+                for key in ("jobPostingId", "id", "jobId"):
+                    candidate = node.get(key)
+                    if isinstance(candidate, str) and candidate.strip():
+                        job_id = candidate.strip()
+                        break
                 title = node.get("title")
                 is_listed = node.get("isListed")
                 if (
@@ -3483,7 +3772,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         merged = list(values)
         normalized = _normalize_job_url_list(pagination_urls, base_url=source_url)
         normalized = [url for url in normalized if not _should_ignore_url(url)]
+        normalized_source = _normalize_job_url(source_url, base_url=source_url) if source_url else None
         for url in normalized:
+            if normalized_source and url == normalized_source:
+                continue
+            if _is_confluent_pagination_url(url):
+                url = _canonicalize_confluent_pagination_url(url)
             if url not in merged:
                 merged.append(url)
         return merged
@@ -3593,6 +3887,11 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             pagination_payload = _extract_pagination_payload(raw_val)
             if pagination_payload:
                 pagination_urls = handler.get_pagination_urls_from_json(pagination_payload, source_url)
+        if is_confluent and raw_val:
+            for text in gather_strings(raw_val):
+                if not isinstance(text, str):
+                    continue
+                pagination_urls.extend(confluent_page_re.findall(text))
         json_urls = extract_job_urls_from_json_payload(raw_val)
         if json_urls:
             if handler:
@@ -3601,6 +3900,8 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             merged = _normalize_job_url_list(merged, base_url=source_url)
             merged = [url for url in merged if not _should_ignore_url(url)]
             merged = _merge_pagination_urls(merged)
+            if handler and getattr(handler, "name", "") == "ashby":
+                merged = sorted(merged)
             return merged
         handler_links = _extract_handler_links(gather_strings(raw_val))
         if handler_links:
@@ -3689,6 +3990,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 continue
             if _should_ignore_url(normalized_url):
                 continue
+            if _is_confluent_pagination_url(normalized_url):
+                normalized_url = _canonicalize_confluent_pagination_url(normalized_url)
+                if normalized_url not in seen:
+                    seen.add(normalized_url)
+                    urls.append(normalized_url)
+                continue
             title_match = title_matches_required_keywords(title)
             context_match = False
             if not title_match and context_text:
@@ -3712,6 +4019,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if normalized_url in blocked:
                 continue
             if _should_ignore_url(normalized_url):
+                continue
+            if _is_confluent_pagination_url(normalized_url):
+                normalized_url = _canonicalize_confluent_pagination_url(normalized_url)
+                if normalized_url not in seen:
+                    seen.add(normalized_url)
+                    urls.append(normalized_url)
                 continue
             title_match = title_matches_required_keywords(title) if title else False
             if not title_match:

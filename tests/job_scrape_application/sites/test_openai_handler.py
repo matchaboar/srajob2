@@ -67,6 +67,8 @@ def _extract_first_html(payload: Any) -> Optional[str]:
 
 def _load_html(path: Path) -> str:
     payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
     html = _extract_first_html(payload)
     if not html:
         raise AssertionError(f"Unable to extract raw HTML from {path}")

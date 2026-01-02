@@ -89,7 +89,11 @@ async def test_scrape_workflow_uses_args_kw(monkeypatch):
             assert kwargs["args"] == ["scraper-worker", 300, None, "fetchfox"]
             assert kwargs["schedule_to_close_timeout"] == timedelta(seconds=30)
         if activity is acts.scrape_site:
-            assert kwargs["args"] == [{"_id": "site-123", "url": "https://example.com"}]
+            assert kwargs["args"] == [
+                {"_id": "site-123", "url": "https://example.com"},
+                {"workflowName": "ScrapeWorkflow", "workflowId": "wf-1", "runId": "run-1"},
+                False,
+            ]
         if activity is acts.store_scrape:
             assert kwargs["args"][0]["items"]["normalized"][0]["url"] == "https://example.com"
         if activity is acts.complete_site:

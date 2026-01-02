@@ -141,8 +141,14 @@ class BaseSiteHandler(ABC):
         segments = [seg for seg in path.split("/") if seg]
         if any(seg in {"apply", "application", "hvhapply"} for seg in segments):
             return True
-        if host.endswith("linkedin.com") and path.startswith("/company/"):
-            return True
+        if host.endswith("linkedin.com"):
+            if path.startswith("/company/"):
+                return True
+            if (
+                path.startswith(("/checkpoint/", "/login", "/m/login", "/uas/", "/sharearticle", "/share/"))
+                or "request-password-reset" in path
+            ):
+                return True
         if host.endswith("careers.adobe.com"):
             if "/job/" in path:
                 return False

@@ -20,6 +20,8 @@ def _load_commonmark() -> str:
         "tests/job_scrape_application/workflows/fixtures/spidercloud_notion_careers_commonmark.json"
     )
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
     event = payload[0][0]
     return event.get("content", {}).get("commonmark", "")
 

@@ -87,7 +87,7 @@ def _build_payload(page: int, *, query: str, limit: int) -> Dict[str, Any]:
     }
 
 
-async def _fetch_payload(api_key: str, payload: Dict[str, Any], listing_url: str) -> List[Any]:
+async def _fetch_payload(api_key: str, payload: Dict[str, Any], listing_url: str) -> tuple[List[Any], Dict[str, Any]]:
     payload_json = json.dumps(payload, separators=(",", ":"))
     script = f"""
     (function() {{
@@ -148,13 +148,14 @@ async def _fetch_payload(api_key: str, payload: Dict[str, Any], listing_url: str
                 content_type="application/json",
             )
         )
-    return response
+    return response, {"endpoint": "/scrape", "url": listing_url, "params": params, "listingPayload": payload}
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch Uber careers API fixtures via SpiderCloud.")
     parser.add_argument("--out-dir", required=True, help="Output directory for fixtures")
     parser.add_argument("--pages", type=int, default=3, help="Number of pages to fetch")
+    parser.add_argument("--start-page", type=int, default=0, help="Zero-based page offset to start from")
     parser.add_argument("--limit", type=int, default=10, help="Page size limit")
     parser.add_argument("--query", default=DEFAULT_QUERY, help="Search query")
     args = parser.parse_args()
@@ -185,15 +186,16 @@ async def main() -> None:
         ]
     )
 
-    for page in range(args.pages):
+    for page in range(args.start_page, args.start_page + args.pages):
         payload = _build_payload(page, query=args.query, limit=args.limit)
         page_param = "" if page == 0 else f"&page={page}"
         listing_url = f"{base_url}?{base_query}&{location_params}{page_param}"
-        response = await _fetch_payload(api_key, payload, listing_url)
+        response, request_meta = await _fetch_payload(api_key, payload, listing_url)
         status = _extract_status(response)
         snippet = _extract_snippet(response)
         out_path = out_dir / f"spidercloud_uber_careers_api_page_{page + 1}.json"
-        out_path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
+        fixture = {"request": request_meta, "response": response}
+        out_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps({"page": page + 1, "status": status, "out": str(out_path)}, indent=2))
         if snippet:
             print(snippet.replace("\n", " "))

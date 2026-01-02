@@ -8,6 +8,7 @@ from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
 from .helpers.workflow_logging import get_workflow_logger
+from ..config import settings
 
 with workflow.unsafe.imports_passed_through():
     from .activities import (
@@ -128,15 +129,23 @@ class GreenhouseScraperWorkflow:
                         scrape_payload: Dict[str, Any] = {"urls": urls_to_scrape, "source_url": site["url"]}
                         if posted_at_by_url:
                             scrape_payload["posted_at_by_url"] = posted_at_by_url
+                        workflow_context = {
+                            "workflowName": "GreenhouseScraperWorkflow",
+                            "workflowId": run_info.workflow_id,
+                            "runId": run_info.run_id,
+                        }
+                        persist_scrapes = settings.persist_scrapes_in_activity
                         scrape_res = await workflow.execute_activity(
                             scrape_greenhouse_jobs,
-                            args=[scrape_payload],
+                            args=[scrape_payload, workflow_context, persist_scrapes],
                             start_to_close_timeout=timedelta(minutes=30),
                         )
                         scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None
                         jobs_scraped += int(scrape_res.get("jobsScraped") or 0) if isinstance(scrape_res, dict) else 0
 
-                        if scrape_payload:
+                        if isinstance(scrape_res, dict) and scrape_res.get("scrapeId"):
+                            scrape_ids.append(scrape_res["scrapeId"])
+                        elif scrape_payload:
                             scrape_payload.setdefault("workflowId", run_info.workflow_id)
                             scrape_payload.setdefault("runId", run_info.run_id)
                             scrape_id = await workflow.execute_activity(

@@ -103,8 +103,10 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
         return queue.lease(limit)
 
     @activity.defn
-    async def process_spidercloud_job_batch(batch: Dict[str, Any]):
+    async def process_spidercloud_job_batch(batch: Dict[str, Any], persist_scrapes: bool = False):
         scrapes: List[Dict[str, Any]] = []
+        scrape_ids: List[str] = []
+        completed_urls: List[str] = []
         for entry in batch.get("urls", []):
             if not isinstance(entry, dict):
                 continue
@@ -122,6 +124,20 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
                     "provider": "spidercloud",
                 }
             )
+            if persist_scrapes:
+                scrape_id = await store_scrape(scrapes[-1])
+                if isinstance(scrape_id, str):
+                    scrape_ids.append(scrape_id)
+                completed_urls.append(url)
+        if persist_scrapes and completed_urls:
+            await complete_scrape_urls({"urls": completed_urls, "status": "completed"})
+        if persist_scrapes:
+            return {
+                "scrapeIds": scrape_ids,
+                "stored": len(scrape_ids),
+                "invalid": 0,
+                "failed": 0,
+            }
         return {"scrapes": scrapes}
 
     @activity.defn

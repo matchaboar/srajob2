@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = os.path.abspath(".")
 if ROOT not in sys.path:
@@ -29,11 +30,18 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _load_spidercloud_fixture(path: Path) -> Any:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def test_cisco_job_detail_normalization_strips_junk_and_keeps_location():
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_job_detail_commonmark.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0][0]
     markdown = event.get("content", {}).get("commonmark", "")
 
@@ -59,7 +67,7 @@ def test_paloalto_job_detail_uses_structured_description_and_location():
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_paloalto_networks_job_detail_raw_html.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0][0]
 
     scraper = _make_scraper()
@@ -82,7 +90,7 @@ def test_paloalto_job_detail_prefers_structured_description_when_markdown_has_ch
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_paloalto_networks_job_detail_tools_platforms_raw_html.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0][0]
 
     scraper = _make_scraper()

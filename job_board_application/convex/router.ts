@@ -2002,6 +2002,7 @@ const leaseScrapeUrlBatchHandler = async (
       pattern: r.pattern,
       _id: r._id,
       postedAt: r.postedAt,
+      attempts: (r.attempts ?? 0) + 1,
     })),
   };
 };
@@ -2092,28 +2093,54 @@ export const listPendingJobDetails = query({
   },
 });
 
+type CompleteScrapeUrlItem = {
+  id?: Id<"scrape_url_queue">;
+  url: string;
+  sourceUrl?: string;
+  provider?: string;
+  siteId?: Id<"sites">;
+  attempts?: number | null;
+};
+
 const completeScrapeUrlsHandler = async (
   ctx: any,
-  args: { urls: string[]; status: "completed" | "failed" | "invalid"; error?: string }
+  args: {
+    urls?: string[];
+    items?: CompleteScrapeUrlItem[];
+    status: "completed" | "failed" | "invalid";
+    error?: string;
+  }
 ) => {
   const now = Date.now();
   const aliasCache = new Map<string, string | null>();
-  for (const rawUrl of args.urls) {
-    const url = (rawUrl || "").trim();
-    if (!url) continue;
+  const rawItems = Array.isArray(args.items) ? args.items : [];
+  const rawUrls = rawItems.length > 0 ? [] : Array.isArray(args.urls) ? args.urls : [];
+  const mergedItems: CompleteScrapeUrlItem[] =
+    rawItems.length > 0
+      ? rawItems
+      : rawUrls.map((rawUrl) => ({
+          url: rawUrl,
+        }));
 
-    const existing = await ctx.db
-      .query("scrape_url_queue")
-      .withIndex("by_url", (q: any) => q.eq("url", url))
-      .first();
-    if (!existing) continue;
-    await recordSeenJobUrl(ctx, (existing).sourceUrl, url);
+  const applyCompletion = async (item: CompleteScrapeUrlItem, fallbackRow?: any) => {
+    const url = (item.url || "").trim();
+    if (!url) return;
 
-    // Attempts are incremented when leased; avoid double-increment here.
-    const attempts = (existing).attempts ?? 0;
+    const sourceUrl = (item.sourceUrl ?? fallbackRow?.sourceUrl ?? "").trim();
+    if (sourceUrl) {
+      await recordSeenJobUrl(ctx, sourceUrl, url);
+    }
+
+    const attempts = typeof item.attempts === "number" ? item.attempts : fallbackRow?.attempts ?? 0;
     const shouldIgnore =
       args.status === "failed" &&
-      (attempts >= JOB_DETAIL_MAX_ATTEMPTS || (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
+      (attempts >= JOB_DETAIL_MAX_ATTEMPTS ||
+        (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
+
+    const provider = item.provider ?? fallbackRow?.provider;
+    const siteId = item.siteId ?? fallbackRow?.siteId;
+    const rowId = item.id ?? fallbackRow?._id;
+    if (!rowId) return;
 
     if (shouldIgnore) {
       const resolvedCompany =
@@ -2122,43 +2149,75 @@ const completeScrapeUrlsHandler = async (
       try {
         await ctx.db.insert("ignored_jobs", {
           url,
-          sourceUrl: (existing).sourceUrl ?? "",
+          sourceUrl: sourceUrl || "",
           company: resolvedCompany || undefined,
-          provider: (existing).provider,
+          provider,
           workflowName: "leaseScrapeUrlBatch",
           reason:
             typeof args.error === "string" && args.error.toLowerCase().includes("404")
               ? "http_404"
               : "max_attempts",
-          details: { attempts, siteId: (existing).siteId, lastError: args.error },
+          details: { attempts, siteId, lastError: args.error },
           createdAt: now,
         });
       } catch (err) {
         console.error("completeScrapeUrls: failed to insert ignored_jobs", err);
       }
       try {
-        await ctx.db.delete(existing._id);
+        await ctx.db.delete(rowId);
       } catch (err) {
         console.error("completeScrapeUrls: failed to delete queue row", err);
       }
-      continue;
+      return;
     }
 
-    await ctx.db.patch(existing._id, {
-      status: args.status,
-      attempts,
-      lastError: args.error,
-      updatedAt: now,
-      completedAt: args.status === "completed" ? now : undefined,
-    });
+    try {
+      await ctx.db.patch(rowId, {
+        status: args.status,
+        attempts,
+        lastError: args.error,
+        updatedAt: now,
+        completedAt: args.status === "completed" ? now : undefined,
+      });
+    } catch (err) {
+      console.error("completeScrapeUrls: failed to update queue row", err);
+    }
+  };
+
+  for (const rawItem of mergedItems) {
+    if (!rawItem) continue;
+    const url = (rawItem.url || "").trim();
+    if (!url) continue;
+    if (rawItem.id) {
+      await applyCompletion(rawItem);
+      continue;
+    }
+    const existing = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_url", (q: any) => q.eq("url", url))
+      .first();
+    if (!existing) continue;
+    await applyCompletion(rawItem, existing);
   }
-  return { updated: args.urls.length };
+  return { updated: mergedItems.length };
 };
 
 export const completeScrapeUrls = Object.assign(
   mutation({
     args: {
-      urls: v.array(v.string()),
+      urls: v.optional(v.array(v.string())),
+      items: v.optional(
+        v.array(
+          v.object({
+            id: v.optional(v.id("scrape_url_queue")),
+            url: v.string(),
+            sourceUrl: v.optional(v.string()),
+            provider: v.optional(v.string()),
+            siteId: v.optional(v.id("sites")),
+            attempts: v.optional(v.number()),
+          })
+        )
+      ),
       status: v.union(v.literal("completed"), v.literal("failed"), v.literal("invalid")),
       error: v.optional(v.string()),
     },

@@ -33,6 +33,13 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _load_spidercloud_fixture(path: Path) -> Any:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def _extract_first_job_url(payload: Dict[str, Any]) -> str:
     jobs = payload.get("jobs")
     if not isinstance(jobs, list):
@@ -60,7 +67,7 @@ def test_docusign_handler_extracts_job_urls():
     fixture = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_docusign_api_page_1.json"
     )
-    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
     expected_url = _extract_first_job_url(parsed)
@@ -78,7 +85,7 @@ def test_docusign_handler_builds_pagination_urls():
     fixture = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_docusign_api_page_1.json"
     )
-    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
 

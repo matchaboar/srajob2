@@ -51,6 +51,8 @@ def test_spidercloud_batch_fixture_trim_limits() -> None:
     if not FIXTURE_PATH.exists():
         pytest.skip("Missing spidercloud batch fixture; run agent_scripts/measure_spidercloud_batch.py")
     payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
     results = payload.get("results", [])
     urls = payload.get("meta", {}).get("urls", []) or []
     scrape_payload = _build_scrape_payload(results, urls)

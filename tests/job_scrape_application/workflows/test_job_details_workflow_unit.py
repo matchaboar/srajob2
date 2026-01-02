@@ -84,6 +84,7 @@ async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
     harness = _ActivityHarness()
     harness.batch = {"urls": []}
 
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
@@ -99,20 +100,20 @@ async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_job_details_records_skipped_urls_and_completes(monkeypatch):
+async def test_job_details_uses_activity_scrape_ids(monkeypatch):
     harness = _ActivityHarness()
     harness.batch = {
         "urls": [{"url": "https://example.com/a"}, {"url": "https://example.com/b"}],
         "skippedUrls": ["https://skip.example/1", "https://skip.example/2"],
     }
     harness.process_result = {
-        "scrapes": [
-            {"subUrls": ["https://example.com/a"], "sourceUrl": "https://example.com/a"},
-            {"subUrls": ["https://example.com/b"], "sourceUrl": "https://example.com/b"},
-        ]
+        "scrapeIds": ["scr-1", "scr-2"],
+        "stored": 2,
+        "invalid": 0,
+        "failed": 0,
     }
-    harness.store_outcomes = ["scr-1", "scr-2"]
 
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
@@ -124,12 +125,7 @@ async def test_job_details_records_skipped_urls_and_completes(monkeypatch):
 
     assert summary.site_count == 1
     assert summary.scrape_ids == ["scr-1", "scr-2"]
-
-    completed_calls = [c for c in harness.complete_calls if c.get("status") == "completed"]
-    assert completed_calls
-    assert all(len(call.get("urls", [])) == 1 for call in completed_calls)
-    completed_urls = sorted(call["urls"][0] for call in completed_calls)
-    assert completed_urls == ["https://example.com/a", "https://example.com/b"]
+    assert harness.complete_calls == []
 
 
 @pytest.mark.asyncio
@@ -147,6 +143,7 @@ async def test_job_details_marks_invalid_scrapes(monkeypatch):
         "scr-ok",
     ]
 
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", False)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
@@ -160,13 +157,15 @@ async def test_job_details_marks_invalid_scrapes(monkeypatch):
 
     invalid_calls = [c for c in harness.complete_calls if c.get("status") == "invalid"]
     assert invalid_calls
-    assert all(len(call.get("urls", [])) == 1 for call in invalid_calls)
-    assert invalid_calls[0]["urls"][0] == "https://example.com/a"
+    invalid_items = [item for call in invalid_calls for item in (call.get("items") or [])]
+    assert len(invalid_items) == 1
+    assert invalid_items[0]["url"] == "https://example.com/a"
 
     completed_calls = [c for c in harness.complete_calls if c.get("status") == "completed"]
     assert completed_calls
-    assert all(len(call.get("urls", [])) == 1 for call in completed_calls)
-    assert completed_calls[0]["urls"][0] == "https://example.com/b"
+    completed_items = [item for call in completed_calls for item in (call.get("items") or [])]
+    assert len(completed_items) == 1
+    assert completed_items[0]["url"] == "https://example.com/b"
 
 
 @pytest.mark.asyncio
@@ -180,6 +179,7 @@ async def test_job_details_marks_failed_scrapes(monkeypatch):
     }
     harness.store_outcomes = [RuntimeError("store failed")]
 
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", False)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
@@ -193,8 +193,9 @@ async def test_job_details_marks_failed_scrapes(monkeypatch):
 
     failed_calls = [c for c in harness.complete_calls if c.get("status") == "failed"]
     assert failed_calls
-    assert all(len(call.get("urls", [])) == 1 for call in failed_calls)
-    assert failed_calls[0]["urls"][0] == "https://example.com/a"
+    failed_items = [item for call in failed_calls for item in (call.get("items") or [])]
+    assert len(failed_items) == 1
+    assert failed_items[0]["url"] == "https://example.com/a"
 
 
 @pytest.mark.asyncio
@@ -205,6 +206,7 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
     }
     harness.process_error = RuntimeError("batch failed")
 
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
@@ -217,6 +219,37 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
     assert summary.scrape_ids == []
     failed_calls = [c for c in harness.complete_calls if c.get("status") == "failed"]
     assert failed_calls
-    assert all(len(call.get("urls", [])) == 1 for call in failed_calls)
-    failed_urls = sorted(call["urls"][0] for call in failed_calls)
+    failed_items = [item for call in failed_calls for item in (call.get("items") or [])]
+    failed_urls = sorted(item["url"] for item in failed_items)
     assert failed_urls == ["https://example.com/a", "https://example.com/b"]
+
+
+@pytest.mark.asyncio
+async def test_job_details_yields_on_large_batches(monkeypatch):
+    harness = _ActivityHarness()
+    harness.batch = {
+        "urls": [{"url": f"https://example.com/{idx}"} for idx in range(60)],
+    }
+    harness.process_result = {
+        "scrapes": [
+            {"subUrls": [f"https://example.com/{idx}"], "sourceUrl": f"https://example.com/{idx}"}
+            for idx in range(60)
+        ]
+    }
+
+    sleep_calls: List[object] = []
+
+    async def fake_sleep(duration) -> None:
+        sleep_calls.append(duration)
+
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", False)
+    monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
+    monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
+    monkeypatch.setattr(sw.workflow, "sleep", fake_sleep)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_050))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    wf = sw.SpidercloudJobDetailsWorkflow()
+    await wf.run()
+
+    assert sleep_calls, "Expected workflow.sleep to be called to yield in large batches"

@@ -665,6 +665,7 @@ type CompanySummary = {
   avgCompensationSenior: number | null;
   currencyCode: string | null;
   sampleUrl: string | null;
+  lastPostedAt: number;
   lastScrapedAt: number;
 };
 
@@ -1282,7 +1283,10 @@ export const refreshCompanySummaries = internalMutation({
       const companyName = rawCompany.replace(/\s+/g, " ").trim();
       if (!companyName || isUnknownLabel(companyName)) continue;
 
-      const key = normalizeCompanyKey(companyName);
+      const key =
+        typeof job.companyKey === "string" && job.companyKey.trim()
+          ? job.companyKey.trim()
+          : deriveCompanyKey(companyName);
       if (!key) continue;
 
       let entry = summaries.get(key);
@@ -1301,6 +1305,8 @@ export const refreshCompanySummaries = internalMutation({
           },
         };
         summaries.set(key, entry);
+      } else if (companyName && companyName.length < entry.name.length) {
+        entry.name = companyName;
       }
 
       entry.count += 1;
@@ -1310,8 +1316,14 @@ export const refreshCompanySummaries = internalMutation({
       if (typeof job.postedAt === "number" && job.postedAt > entry.lastPostedAt) {
         entry.lastPostedAt = job.postedAt;
       }
-      if (typeof job.scrapedAt === "number" && job.scrapedAt > entry.lastScrapedAt) {
-        entry.lastScrapedAt = job.scrapedAt;
+      const scrapedAt =
+        typeof job.scrapedAt === "number"
+          ? job.scrapedAt
+          : typeof job._creationTime === "number"
+            ? job._creationTime
+            : 0;
+      if (scrapedAt > entry.lastScrapedAt) {
+        entry.lastScrapedAt = scrapedAt;
       }
 
       const compensationUnknown = job.compensationUnknown === true;

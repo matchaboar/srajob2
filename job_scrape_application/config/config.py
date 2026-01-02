@@ -40,6 +40,7 @@ class Settings:
     )
     workflow_task_debug_log_ms: int = int(os.getenv("WORKFLOW_TASK_DEBUG_LOG_MS", "1500"))
     workflow_task_debug_log_all: bool = _env_flag("WORKFLOW_TASK_DEBUG_LOG_ALL", "false")
+    persist_scrapes_in_activity: bool = _env_flag("PERSIST_SCRAPES_IN_ACTIVITY", "true")
 
     # Convex deployment URL for the ConvexClient (e.g., https://your-app.convex.cloud)
     convex_url: str | None = os.getenv("CONVEX_URL")

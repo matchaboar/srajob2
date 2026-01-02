@@ -41,6 +41,8 @@ def _make_scraper() -> SpiderCloudScraper:
 
 def _load_event() -> dict:
     payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        payload = payload.get("response")
     return payload[0][0]
 
 

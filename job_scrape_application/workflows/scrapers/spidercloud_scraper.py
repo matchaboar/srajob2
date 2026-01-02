@@ -47,6 +47,7 @@ from ..helpers.regex_patterns import (
     CODE_FENCE_END_PATTERN,
     CODE_FENCE_JSON_OBJECT_PATTERN,
     CODE_FENCE_START_PATTERN,
+    CONFLUENT_JOB_PATH_PATTERN,
     GREENHOUSE_BOARDS_PATH_PATTERN,
     GREENHOUSE_URL_PATTERN,
     HTML_BR_TAG_PATTERN,
@@ -2171,31 +2172,46 @@ class SpiderCloudScraper(BaseScraper):
             title_source = None
             from_content = False
 
+        is_confluent_detail = False
+        if handler and getattr(handler, "name", "") == "confluent":
+            try:
+                parsed = urlparse(url)
+            except Exception:
+                parsed = None
+            if parsed and (parsed.hostname or "").lower().endswith("confluent.io"):
+                if re.search(CONFLUENT_JOB_PATH_PATTERN, parsed.path or "", re.IGNORECASE):
+                    is_confluent_detail = True
+
         candidate_title = payload_title or parsed_title
         if handler and handler.is_listing_url(url):
-            if structured_present:
-                self._emit_scrape_log(
-                    event="scrape.normalization.listing_misdetection",
-                    level="error",
-                    site_url=url,
-                    data={
-                        "reason": "handler_listing_url",
-                        "title": candidate_title or "",
-                        "structuredTitle": structured_title,
-                        "structuredLocation": structured_location,
-                        "markdownLength": len(cleaned_markdown.strip()),
-                    },
-                    exc=ValueError("Listing heuristic matched on structured job detail page."),
-                    capture_exception=True,
-                )
-            self._last_ignored_job = {
-                "url": url,
-                "reason": "listing_page",
-                "title": candidate_title or self._title_from_url(url),
-                "description": cleaned_markdown,
-            }
-            return None
-        if looks_like_job_listing_page(candidate_title, cleaned_markdown, url):
+            if (
+                not cleaned_markdown.strip()
+                or looks_like_job_listing_page(candidate_title, cleaned_markdown, url)
+                or not structured_present
+            ):
+                if structured_present:
+                    self._emit_scrape_log(
+                        event="scrape.normalization.listing_misdetection",
+                        level="error",
+                        site_url=url,
+                        data={
+                            "reason": "handler_listing_url",
+                            "title": candidate_title or "",
+                            "structuredTitle": structured_title,
+                            "structuredLocation": structured_location,
+                            "markdownLength": len(cleaned_markdown.strip()),
+                        },
+                        exc=ValueError("Listing heuristic matched on structured job detail page."),
+                        capture_exception=True,
+                    )
+                self._last_ignored_job = {
+                    "url": url,
+                    "reason": "listing_page",
+                    "title": candidate_title or self._title_from_url(url),
+                    "description": cleaned_markdown,
+                }
+                return None
+        if not is_confluent_detail and looks_like_job_listing_page(candidate_title, cleaned_markdown, url):
             if structured_present:
                 self._emit_scrape_log(
                     event="scrape.normalization.listing_misdetection",

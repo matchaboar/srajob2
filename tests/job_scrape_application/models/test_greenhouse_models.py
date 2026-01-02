@@ -42,6 +42,13 @@ def _extract_first_html(payload: object) -> str:
     return ""
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def _extract_json_from_pre(html_text: str) -> dict:
     match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html_text, flags=re.IGNORECASE | re.DOTALL)
     if not match:
@@ -199,7 +206,7 @@ def test_load_greenhouse_board_parses_xai_listing_fixture():
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_xai_greenhouse_listing.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     html = _extract_first_html(payload)
     assert html
     board_payload = _extract_json_from_pre(html)
@@ -219,7 +226,7 @@ def test_greenhouse_handler_extracts_xai_detail_fields():
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_xai_greenhouse_job_detail.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     html = _extract_first_html(payload)
     assert html
     job_payload = _extract_json_from_pre(html)

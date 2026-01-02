@@ -29,8 +29,15 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def _load_event(fixture_path: str) -> tuple[dict, str]:
-    payload = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(Path(fixture_path))
     event = payload[0][0]
     markdown = event.get("content", {}).get("commonmark", "")
     return event, markdown

@@ -79,8 +79,12 @@ async def main() -> None:
                     content_type="application/json",
                 )
             )
-            path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
-            print(f"  wrote {path} ({len(json.dumps(response))} bytes)")
+            fixture = {
+                "request": {"endpoint": "/scrape", "url": url, "params": {k: v for k, v in payload.items() if k != "url"}},
+                "response": response,
+            }
+            path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(f"  wrote {path} ({len(json.dumps(fixture))} bytes)")
 
 
 if __name__ == "__main__":

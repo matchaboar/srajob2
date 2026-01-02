@@ -1,27 +1,39 @@
-[
-  [
-    {
-      "content": {
-        "commonmark": ""
-      },
-      "costs": {
-        "ai_cost": 0.0,
-        "ai_cost_formatted": "0",
-        "bytes_transferred_cost": 0.0,
-        "bytes_transferred_cost_formatted": "0",
-        "compute_cost": 1.0666666666666668e-07,
-        "compute_cost_formatted": "0.0000001066666666666666717783",
-        "file_cost": 1.3882500000000001e-05,
-        "file_cost_formatted": "0.0000138825000000000010891288",
-        "total_cost": 1.3989166666666668e-05,
-        "total_cost_formatted": "0.0000139891666666666677609071",
-        "transform_cost": 0.0,
-        "transform_cost_formatted": "0"
-      },
-      "duration_elasped_ms": 64,
-      "error": null,
-      "status": 200,
-      "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/5572858"
+{
+  "request": {
+    "endpoint": "/scrape",
+    "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/5572858",
+    "params": {
+      "return_format": [
+        "commonmark"
+      ],
+      "limit": 1
     }
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": ""
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 1.2333333333333333e-07,
+          "compute_cost_formatted": "0.0000001233333333333333243359",
+          "file_cost": 1.3882500000000001e-05,
+          "file_cost_formatted": "0.0000138825000000000010891288",
+          "total_cost": 1.4005833333333336e-05,
+          "total_cost_formatted": "0.0000140058333333333344134647",
+          "transform_cost": 0.0,
+          "transform_cost_formatted": "0"
+        },
+        "duration_elasped_ms": 75,
+        "error": null,
+        "status": 200,
+        "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/5572858"
+      }
+    ]
   ]
-]
+}

@@ -19,6 +19,7 @@ Outputs:
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import os
@@ -103,6 +104,14 @@ async def _collect_response(response: Any) -> Any:
 
 
 async def main() -> None:
+    parser = argparse.ArgumentParser(description="Fetch SpiderCloud fixtures for tests.")
+    parser.add_argument(
+        "--only",
+        nargs="*",
+        help="Optional fixture filenames to refresh (e.g. spidercloud_godaddy_search_page_1.json).",
+    )
+    args = parser.parse_args()
+
     load_dotenv()
     api_key = os.getenv("SPIDER_API_KEY") or os.getenv("SPIDER_KEY")
     if not api_key:
@@ -112,7 +121,14 @@ async def main() -> None:
 
     async with AsyncSpider(api_key=api_key) as client:
         avature_handler = AvatureHandler()
-        for filename, endpoint, payload in FIXTURES:
+        fixtures = list(FIXTURES)
+        if args.only:
+            allow = set(args.only)
+            fixtures = [entry for entry in fixtures if entry[0] in allow]
+            missing = allow.difference({entry[0] for entry in fixtures})
+            if missing:
+                raise SystemExit(f"Unknown fixture(s): {', '.join(sorted(missing))}")
+        for filename, endpoint, payload in fixtures:
             path = FIXTURE_DIR / filename
             try:
                 url = payload.get("url")
@@ -131,8 +147,12 @@ async def main() -> None:
                         content_type="application/json",
                     )
                 )
-                path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
-                print(f"  wrote {path} ({len(json.dumps(response))} bytes)")
+                fixture = {
+                    "request": {"endpoint": endpoint, "url": url, "params": params},
+                    "response": response,
+                }
+                path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
+                print(f"  wrote {path} ({len(json.dumps(fixture))} bytes)")
             except Exception as exc:  # noqa: BLE001
                 print(f"  failed to fetch {filename}: {exc}")
 

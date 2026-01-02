@@ -37,11 +37,18 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def _load_spidercloud_event() -> tuple[dict, str]:
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_githubinc_jibeapply_job_detail_commonmark.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0][0]
     markdown = event.get("content", {}).get("commonmark", "")
     return event, markdown
@@ -51,7 +58,7 @@ def _load_jibe_raw_event() -> tuple[dict, str]:
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_github_jibe_job_4771_raw.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0][0]
     raw_html = event.get("content", {}).get("raw", "")
     return event, raw_html

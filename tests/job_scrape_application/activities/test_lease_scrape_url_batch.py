@@ -63,8 +63,18 @@ from job_scrape_application.workflows import activities as acts  # noqa: E402
 async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch):
     leased = {
         "urls": [
-            {"url": "https://example.com/skip-me", "sourceUrl": "https://example.com", "pattern": None},
-            {"url": "https://example.com/process-me", "sourceUrl": "https://example.com", "pattern": None},
+            {
+                "url": "https://example.com/skip-me",
+                "sourceUrl": "https://example.com",
+                "pattern": None,
+                "_id": "01hzconvexqueueidskip0000000001",
+            },
+            {
+                "url": "https://example.com/process-me",
+                "sourceUrl": "https://example.com",
+                "pattern": None,
+                "_id": "01hzconvexqueueidok00000000001",
+            },
         ]
     }
 
@@ -75,7 +85,7 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
         if name == "router:leaseScrapeUrlBatch":
             return leased
         if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("urls") or [])}
+            return {"updated": len(args.get("items") or args.get("urls") or [])}
         raise RuntimeError(f"unexpected mutation {name}")
 
     async def fake_fetch_seen(source_url: str, pattern: str | None):
@@ -91,7 +101,8 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
     assert res["skippedUrls"] == ["https://example.com/skip-me"]
 
     skip_call = next(call for call in mutation_calls if call["name"] == "router:completeScrapeUrls")
-    assert skip_call["args"]["urls"] == ["https://example.com/skip-me"]
+    items = skip_call["args"].get("items") or []
+    assert any(item.get("url") == "https://example.com/skip-me" for item in items)
     assert skip_call["args"]["status"] == "failed"
     assert "skip_listed_url" in (skip_call["args"].get("error") or "")
 
@@ -115,12 +126,22 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
     lease_payloads = [
         {
             "urls": [
-                {"url": "https://example.com/skip-me", "sourceUrl": "https://example.com", "pattern": None},
+                {
+                    "url": "https://example.com/skip-me",
+                    "sourceUrl": "https://example.com",
+                    "pattern": None,
+                    "_id": "01hzconvexqueueidskip0000000002",
+                },
             ]
         },
         {
             "urls": [
-                {"url": "https://example.com/process-me", "sourceUrl": "https://example.com", "pattern": None},
+                {
+                    "url": "https://example.com/process-me",
+                    "sourceUrl": "https://example.com",
+                    "pattern": None,
+                    "_id": "01hzconvexqueueidok00000000002",
+                },
             ]
         },
     ]
@@ -131,7 +152,7 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
         if name == "router:leaseScrapeUrlBatch":
             return lease_payloads.pop(0) if lease_payloads else {"urls": []}
         if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("urls") or [])}
+            return {"updated": len(args.get("items") or args.get("urls") or [])}
         raise RuntimeError(f"unexpected mutation {name}")
 
     async def fake_fetch_seen(source_url: str, pattern: str | None):
@@ -143,6 +164,10 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
 
     res = await acts.lease_scrape_url_batch("spidercloud", 1)
 
-    assert res["urls"] == [{"url": "https://example.com/process-me", "sourceUrl": "https://example.com", "pattern": None}]
+    assert len(res["urls"]) == 1
+    url_entry = res["urls"][0]
+    assert url_entry["url"] == "https://example.com/process-me"
+    assert url_entry["sourceUrl"] == "https://example.com"
+    assert url_entry["pattern"] is None
     assert "https://example.com/skip-me" in res.get("skippedUrls", [])
     assert mutation_calls.count("router:leaseScrapeUrlBatch") == 2

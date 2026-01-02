@@ -68,6 +68,13 @@ from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_
 from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_for_convex  # noqa: E402
 
 
+def _load_spidercloud_fixture(path: Path) -> Any:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def test_spidercloud_workflow_has_schedule():
     configs = load_schedule_configs()
     config_map = {cfg.id: cfg for cfg in configs}
@@ -492,7 +499,7 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
 
     # Use the saved Spidercloud scrape response content (string JSON).
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
-    payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(scrape_fixture)
     content_str = payload[0]["content"]
 
     # Force structured parser to yield no URLs so regex is used.
@@ -553,7 +560,7 @@ async def test_spidercloud_greenhouse_listing_invalid_json_returns_empty(monkeyp
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_lyft_greenhouse_listing_invalid.json"
     )
-    raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    raw_payload = _load_spidercloud_fixture(fixture_path)
     raw_events = raw_payload[0] if isinstance(raw_payload, list) and raw_payload else []
     raw_text = ""
     if isinstance(raw_events, list) and raw_events:
@@ -610,7 +617,7 @@ async def test_spidercloud_greenhouse_listing_parses_raw_html_fixture(monkeypatc
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_airbnb_greenhouse_listing_raw_html.json"
     )
-    raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    raw_payload = _load_spidercloud_fixture(fixture_path)
     raw_events = raw_payload[0] if isinstance(raw_payload, list) and raw_payload else []
     raw_text = ""
     if isinstance(raw_events, list) and raw_events:
@@ -646,7 +653,7 @@ async def test_spidercloud_greenhouse_listing_parses_raw_response_fixture(monkey
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_lyft_greenhouse_listing_raw.json"
     )
-    raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    raw_payload = _load_spidercloud_fixture(fixture_path)
     raw_events = raw_payload if isinstance(raw_payload, list) else [raw_payload]
     raw_text = ""
     for event in raw_events:
@@ -679,7 +686,7 @@ async def test_spidercloud_greenhouse_listing_parses_togetherai_fixture(monkeypa
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_togetherai_greenhouse_listing_invalid.json"
     )
-    raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    raw_payload = _load_spidercloud_fixture(fixture_path)
     raw_events = raw_payload[0] if isinstance(raw_payload, list) and raw_payload else []
     raw_text = ""
     if isinstance(raw_events, list) and raw_events:
@@ -876,7 +883,7 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
 
 def test_extract_job_urls_from_spidercloud_scrape_raw():
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
-    raw_payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))[0]
+    raw_payload = _load_spidercloud_fixture(scrape_fixture)[0]
     scrape_payload = {
         "sourceUrl": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "provider": "spidercloud",
@@ -896,8 +903,8 @@ def test_extract_job_urls_from_spidercloud_scrape_raw():
 
 
 def test_extract_job_urls_from_spidercloud_scrape_strips_slash_noise():
-    fixture = json.loads(
-        Path("tests/fixtures/spidercloud_greenhouse_slash_urls.json").read_text(encoding="utf-8")
+    fixture = _load_spidercloud_fixture(
+        Path("tests/fixtures/spidercloud_greenhouse_slash_urls.json")
     )
     scrape_payload = {
         "sourceUrl": fixture["sourceUrl"],
@@ -1019,8 +1026,8 @@ def test_extract_job_urls_from_spidercloud_paloalto_html():
 def test_spidercloud_extracts_job_urls_from_ashby_listing_payload():
     scraper = _make_spidercloud_scraper()
     handler = AshbyHqHandler()
-    payload = json.loads(
-        Path("tests/fixtures/ashby_lambda_listing_payload_small.json").read_text(encoding="utf-8")
+    payload = _load_spidercloud_fixture(
+        Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
     markdown = json.dumps(payload)
 
@@ -1032,8 +1039,8 @@ def test_spidercloud_extracts_job_urls_from_ashby_listing_payload():
 
 def test_spidercloud_normalize_job_ignores_listing_payload():
     scraper = _make_spidercloud_scraper()
-    payload = json.loads(
-        Path("tests/fixtures/ashby_lambda_listing_payload_small.json").read_text(encoding="utf-8")
+    payload = _load_spidercloud_fixture(
+        Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
     markdown = json.dumps(payload)
 
@@ -1120,8 +1127,8 @@ async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
 async def test_spidercloud_wraps_listing_api_payload(monkeypatch):
     scraper = _make_spidercloud_scraper()
 
-    payload = json.loads(
-        Path("tests/fixtures/ashby_lambda_listing_payload_small.json").read_text(encoding="utf-8")
+    payload = _load_spidercloud_fixture(
+        Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
 
     async def fake_fetch_site_api(*_args, **_kwargs):
@@ -1174,7 +1181,7 @@ async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
-    raw_payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))[0]
+    raw_payload = _load_spidercloud_fixture(scrape_fixture)[0]
     scrape_payload = {
         "sourceUrl": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
         "provider": "spidercloud",
@@ -1209,7 +1216,7 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(monkeypatch):
     scrape_fixture = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
-    raw_payload = json.loads(scrape_fixture.read_text(encoding="utf-8"))
+    raw_payload = _load_spidercloud_fixture(scrape_fixture)
     scrape_payload = {
         "sourceUrl": "https://www.github.careers/careers-home/jobs",
         "provider": "spidercloud",
@@ -1373,7 +1380,7 @@ def test_spidercloud_recovers_keyword_from_markdown():
 @pytest.mark.asyncio
 async def test_spidercloud_github_listing_preserves_query_params(monkeypatch):
     fixture_path = Path("tests/fixtures/github_careers_api_jobs_12.json")
-    payload_full = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload_full = _load_spidercloud_fixture(fixture_path)
     payload_default = {"jobs": payload_full["jobs"][:10], "count": 10, "totalCount": 10}
     captured: dict[str, Any] = {}
 
@@ -1424,7 +1431,7 @@ async def test_spidercloud_github_listing_preserves_query_params(monkeypatch):
 
 def test_spidercloud_coreweave_fixture_not_skipped():
     fixture_path = Path(__file__).parent / "fixtures" / "coreweave_spidercloud_commonmark.json"
-    payload = json.loads(fixture_path.read_text())[0]
+    payload = _load_spidercloud_fixture(fixture_path)[0]
     markdown = payload["content"]["commonmark"]
     events = [{"title": payload["content"].get("title")}]
 
@@ -1442,7 +1449,7 @@ def test_spidercloud_coreweave_fixture_not_skipped():
 
 def test_spidercloud_github_job_detail_uses_structured_data():
     fixture_path = Path("tests/job_scrape_application/workflows/fixtures/spidercloud_github_careers_job_4554_raw.json")
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     event = payload[0]
 
     scraper = _make_spidercloud_scraper()
@@ -1866,7 +1873,7 @@ async def test_spidercloud_cisco_listing_extracts_job_urls(monkeypatch):
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_1.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     events = payload[0] if payload and isinstance(payload[0], list) else payload
     assert isinstance(events, list) and events
 
@@ -1922,7 +1929,7 @@ async def test_spidercloud_cisco_listing_extracts_job_urls(monkeypatch):
 
 def test_extract_job_urls_from_snapchat_scrape_fixture():
     response_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
-    response = json.loads(response_path.read_text(encoding="utf-8"))
+    response = _load_spidercloud_fixture(response_path)
 
     scrape = {"items": {"raw": response, "provider": "spidercloud"}}
     urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
@@ -1934,7 +1941,7 @@ def test_extract_job_urls_from_snapchat_scrape_fixture():
 
 def test_extract_job_urls_from_lambda_ai_careers_fixture():
     response_path = Path("tests/fixtures/spidercloud_lambda_ai_careers.json")
-    response = json.loads(response_path.read_text(encoding="utf-8"))
+    response = _load_spidercloud_fixture(response_path)
     if response and isinstance(response[0], list):
         response = response[0]
 
@@ -1955,7 +1962,7 @@ def test_extract_job_urls_from_adobe_search_fixture():
     response_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_adobe_search_page_1.json"
     )
-    response = json.loads(response_path.read_text(encoding="utf-8"))
+    response = _load_spidercloud_fixture(response_path)
 
     scrape = {
         "sourceUrl": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
@@ -2038,10 +2045,10 @@ def test_extract_job_urls_from_scrape_markdown_read_more_context():
 
 
 def test_extract_job_urls_from_confluent_spidercloud_commonmark_fixture():
-    response = json.loads(
+    response = _load_spidercloud_fixture(
         Path(
             "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_commonmark.json"
-        ).read_text(encoding="utf-8")
+        )
     )
     source_url = "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering"
     scrape = {
@@ -2111,7 +2118,7 @@ async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
         if activity is acts.complete_scrape_urls:
             payload = args[0] if args else kwargs.get("args", [])[0]
             calls.append(payload)
-            return {"updated": len(payload.get("urls", []))}
+            return {"updated": len(payload.get("items", []))}
         if activity is acts.record_workflow_run:
             return None
         raise RuntimeError(f"Unexpected activity {activity}")
@@ -2130,14 +2137,15 @@ async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
     assert calls, "complete_scrape_urls should be called on failure"
     payload = calls[0]
     assert payload["status"] == "failed"
-    assert "https://example.com/job/123" in payload["urls"]
+    items = payload.get("items") or []
+    assert any(item.get("url") == "https://example.com/job/123" for item in items if isinstance(item, dict))
 
 
 @pytest.mark.asyncio
 async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(monkeypatch):
     """Ensure partial successes remove completed URLs without failing the whole batch."""
 
-    calls: dict[str, list[Dict[str, Any]]] = {"complete": [], "runs": []}
+    calls: dict[str, list[Dict[str, Any]]] = {"complete": [], "runs": [], "activity": []}
     state = {"leased": False}
     ok_url = "https://example.com/job/ok"
     bad_url = "https://example.com/job/bad"
@@ -2149,31 +2157,18 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
             state["leased"] = True
             return {"urls": [{"url": ok_url}, {"url": bad_url}]}
         if activity is acts.process_spidercloud_job_batch:
+            calls["activity"].append({"completed": [ok_url], "failed": [bad_url]})
             return {
-                "scrapes": [
-                    {
-                        "sourceUrl": ok_url,
-                        "subUrls": [ok_url],
-                        "items": {"normalized": [{"url": ok_url}]},
-                    },
-                    {
-                        "sourceUrl": bad_url,
-                        "subUrls": [bad_url],
-                        "items": {"normalized": [{"url": bad_url}]},
-                    },
-                ]
+                "scrapeIds": ["scrape-ok"],
+                "stored": 1,
+                "invalid": 0,
+                "failed": 1,
+                "sourceUrl": ok_url,
             }
-        if activity is acts.store_scrape:
-            scrape = args[0] if args else kwargs.get("args", [])[0]
-            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
-            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
-            if url_val == ok_url:
-                return "scrape-ok"
-            raise RuntimeError("store failed")
         if activity is acts.complete_scrape_urls:
             payload = args[0] if args else kwargs.get("args", [])[0]
             calls["complete"].append(payload)
-            return {"updated": len(payload.get("urls", []))}
+            return {"updated": len(payload.get("items", []))}
         if activity is acts.record_workflow_run:
             payload = args[0] if args else kwargs.get("args", [])[0]
             calls["runs"].append(payload)
@@ -2191,11 +2186,8 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
 
     assert summary.site_count == 1
     assert summary.scrape_ids == ["scrape-ok"]
-    completed_payload = next(p for p in calls["complete"] if p.get("status") == "completed")
-    failed_payload = next(p for p in calls["complete"] if p.get("status") == "failed")
-    assert ok_url in completed_payload.get("urls", [])
-    assert bad_url in failed_payload.get("urls", [])
-    assert failed_payload.get("error") == "store_scrape_failed"
+    assert calls["activity"]
+    assert calls["complete"] == []
     assert calls["runs"] and calls["runs"][0].get("status") == "completed"
 
 
@@ -2228,28 +2220,40 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
             urls_for_scrape = [
                 entry.get("url") for entry in raw_urls if isinstance(entry, dict) and isinstance(entry.get("url"), str)
             ]
+            completed_urls: list[str] = []
+            failed_urls: list[str] = []
+            for url in urls_for_scrape:
+                if run_state["run"] == 1 and url != success_url:
+                    failed_urls.append(url)
+                else:
+                    completed_urls.append(url)
+            for row in queue:
+                if row.get("url") in completed_urls:
+                    row["status"] = "completed"
+                if row.get("url") in failed_urls:
+                    row["status"] = "failed"
+            scrape_ids = [f"scrape-{url}" for url in completed_urls]
             return {
-                "scrapes": [
-                    {"sourceUrl": url, "subUrls": [url], "items": {"normalized": [{"url": url}]}}
-                    for url in urls_for_scrape
-                ]
+                "scrapeIds": scrape_ids,
+                "stored": len(scrape_ids),
+                "invalid": 0,
+                "failed": len(failed_urls),
+                "sourceUrl": urls_for_scrape[0] if urls_for_scrape else "",
             }
-        if activity is acts.store_scrape:
-            scrape = args[0] if args else kwargs.get("args", [])[0]
-            sub_urls = scrape.get("subUrls") if isinstance(scrape, dict) else None
-            url_val = sub_urls[0] if isinstance(sub_urls, list) and sub_urls else scrape.get("sourceUrl")
-            if run_state["run"] == 1 and url_val != success_url:
-                raise RuntimeError("store failed")
-            return f"scrape-{url_val}"
         if activity is acts.complete_scrape_urls:
             payload = args[0] if args else kwargs.get("args", [])[0]
             status = payload.get("status")
-            for url in payload.get("urls", []):
+            for item in payload.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                url_val = item.get("url")
+                if not isinstance(url_val, str):
+                    continue
                 for row in queue:
-                    if row.get("url") == url:
+                    if row.get("url") == url_val:
                         row["status"] = status
                         break
-            return {"updated": len(payload.get("urls", []))}
+            return {"updated": len(payload.get("items", []))}
         if activity is acts.record_workflow_run:
             return None
         raise RuntimeError(f"Unexpected activity {activity}")

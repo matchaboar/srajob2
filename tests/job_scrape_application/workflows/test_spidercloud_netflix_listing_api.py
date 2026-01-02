@@ -30,12 +30,19 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def test_spidercloud_extract_json_payload_supports_netflix_positions():
     scraper = _make_scraper()
     fixture = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_api_page_1.json"
     )
-    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
     positions = parsed.get("positions")
@@ -48,7 +55,7 @@ def test_netflix_api_payload_generates_pagination_urls():
     fixture = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_api_page_3.json"
     )
-    payload_raw = json.loads(fixture.read_text(encoding="utf-8"))
+    payload_raw = _load_spidercloud_fixture(fixture)
     parsed = scraper._extract_json_payload(payload_raw)
     assert isinstance(parsed, dict)
 

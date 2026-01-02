@@ -12,6 +12,22 @@ PAGE_2 = FIXTURE_DIR / "spidercloud_bloomberg_avature_search_page_2.json"
 PAGE_3 = FIXTURE_DIR / "spidercloud_bloomberg_avature_search_page_3.json"
 
 
+def _load_fixture(path: Path) -> Any:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
+def _load_request(path: Path) -> Optional[dict[str, Any]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        request = payload.get("request")
+        if isinstance(request, dict):
+            return request
+    return None
+
+
 def _gather_strings(node: Any) -> Iterable[str]:
     if isinstance(node, str):
         yield node
@@ -53,7 +69,7 @@ def _extract_first_html(payload: Any) -> Optional[str]:
 
 
 def _load_html(path: Path) -> str:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _load_fixture(path)
     html = _extract_first_html(payload)
     if not html:
         raise AssertionError(f"Unable to extract raw HTML from {path}")
@@ -91,24 +107,33 @@ def _detail_links(handler: AvatureHandler, payload: Any) -> list[str]:
 def test_avature_pagination_fixtures_traverse_three_pages():
     handler = AvatureHandler()
 
-    payload_1 = json.loads(PAGE_1.read_text(encoding="utf-8"))
+    payload_1 = _load_fixture(PAGE_1)
     page_1_details = _detail_links(handler, payload_1)
     assert page_1_details
+    page_1_request = _load_request(PAGE_1)
+    assert page_1_request is not None
+    assert page_1_request.get("params", {}).get("return_format") == ["raw_html"]
 
     page_1_links = _pagination_links(handler, _load_html(PAGE_1))
     assert any("joboffset=0" in link.lower() for link in page_1_links)
     assert any("joboffset=12" in link.lower() for link in page_1_links)
 
-    payload_2 = json.loads(PAGE_2.read_text(encoding="utf-8"))
+    payload_2 = _load_fixture(PAGE_2)
     page_2_details = _detail_links(handler, payload_2)
     assert page_2_details
+    page_2_request = _load_request(PAGE_2)
+    assert page_2_request is not None
+    assert page_2_request.get("params", {}).get("return_format") == ["raw_html"]
 
     page_2_links = _pagination_links(handler, _load_html(PAGE_2))
     assert any("joboffset=24" in link.lower() for link in page_2_links)
 
-    payload_3 = json.loads(PAGE_3.read_text(encoding="utf-8"))
+    payload_3 = _load_fixture(PAGE_3)
     page_3_details = _detail_links(handler, payload_3)
     assert page_3_details
+    page_3_request = _load_request(PAGE_3)
+    assert page_3_request is not None
+    assert page_3_request.get("params", {}).get("return_format") == ["raw_html"]
 
     page_3_links = _pagination_links(handler, _load_html(PAGE_3))
     assert any("joboffset=36" in link.lower() for link in page_3_links)

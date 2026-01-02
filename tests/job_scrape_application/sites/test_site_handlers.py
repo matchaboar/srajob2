@@ -147,6 +147,13 @@ def _extract_first_html(payload: object) -> str:
     return ""
 
 
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
 def _extract_json_from_pre(html_text: str) -> dict:
     match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html_text, flags=re.IGNORECASE | re.DOTALL)
     if not match:
@@ -161,7 +168,7 @@ def _extract_json_from_pre(html_text: str) -> dict:
 
 
 def _load_netflix_api_payload(path: Path) -> dict:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(path)
     html = _extract_first_html(payload)
     if not html:
         raise AssertionError(f"Unable to extract HTML from {path}")
@@ -183,7 +190,7 @@ def test_netflix_handler_extracts_listing_and_pagination_links():
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_listing_page.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = _load_spidercloud_fixture(fixture_path)
     html = _extract_first_html(payload)
     assert html
     links = handler.get_links_from_raw_html(html)
@@ -264,7 +271,7 @@ def test_uber_careers_handler_extracts_listing_and_pagination_links():
         ),
     ]
     for fixture_path in fixture_paths:
-        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload = _load_spidercloud_fixture(fixture_path)
         html = _extract_first_html(payload)
         assert html
 
@@ -288,7 +295,7 @@ def test_uber_careers_handler_pagination_pages_have_jobs():
         ),
     ]
 
-    first_payload = json.loads(fixture_paths[0].read_text(encoding="utf-8"))
+    first_payload = _load_spidercloud_fixture(fixture_paths[0])
     first_html = _extract_first_html(first_payload)
     assert first_html
     first_links = handler.get_links_from_raw_html(first_html)
@@ -301,7 +308,7 @@ def test_uber_careers_handler_pagination_pages_have_jobs():
     assert any("page=1" in link for link in pagination_links)
 
     for fixture_path in fixture_paths:
-        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload = _load_spidercloud_fixture(fixture_path)
         html = _extract_first_html(payload)
         assert html
         links = handler.get_links_from_raw_html(html)
@@ -337,7 +344,7 @@ def test_cisco_careers_handler_extracts_listing_and_pagination_links():
     ]
 
     for fixture_path, expected_page in fixture_sets:
-        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload = _load_spidercloud_fixture(fixture_path)
         html = _extract_first_html(payload)
         assert html
 

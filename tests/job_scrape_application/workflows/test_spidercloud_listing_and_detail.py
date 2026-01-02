@@ -53,7 +53,9 @@ ZSCALER_DETAIL_MARKDOWN_FIXTURE = (
     FIXTURE_DIR / "markdown_zscaler_staff_program_manager.md"
 )
 ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.json"
-ASHBY_RAMP_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_ramp_job_commonmark.json"
+ASHBY_RAMP_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_ashby_ramp_job_detail_raw_html.json"
+)
 NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
 NETFLIX_LISTING_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_netflix_listing_page_commonmark.json"
@@ -114,7 +116,19 @@ NETFLIX_EMPTY_COMMONMARK_DETAIL_FIXTURE = (
 
 
 def _load_fixture(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
+def _load_request(path: Path) -> Dict[str, Any] | None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        request = payload.get("request")
+        if isinstance(request, dict):
+            return request
+    return None
 
 
 def _extract_source_url(payload: Any) -> str:
@@ -214,6 +228,9 @@ async def _run_store_scrape(
 async def test_spidercloud_godaddy_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
     raw_payload = _load_fixture(LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
+    request = _load_request(LISTING_FIXTURE)
+    assert request is not None
+    assert request.get("params", {}).get("return_format") == ["raw_html"]
 
     urls, calls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
     insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
@@ -365,6 +382,9 @@ def test_spidercloud_godaddy_job_detail_normalizes_description():
     payload = _load_fixture(DETAIL_FIXTURE)
     url = _extract_source_url(payload)
     commonmark = _extract_commonmark(payload)
+    request = _load_request(DETAIL_FIXTURE)
+    assert request is not None
+    assert request.get("params", {}).get("return_format") == ["commonmark"]
 
     scraper = _make_scraper()
     normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
@@ -930,12 +950,19 @@ def test_spidercloud_ashby_job_detail_prefers_metadata_description():
 def test_spidercloud_ashby_ramp_job_detail_not_ignored():
     payload = _load_fixture(ASHBY_RAMP_DETAIL_FIXTURE)
     url = _extract_source_url(payload)
-    commonmark = _extract_commonmark(payload)
     scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
 
-    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+    assert markdown, "expected markdown content extracted from raw HTML fixture"
+    assert "Fraud Risk Associate" in markdown
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
 
     assert normalized is not None
+    assert "About Ramp" in normalized.get("description", "")
+    assert len(normalized.get("description", "")) > 200
     assert scraper._last_ignored_job is None  # noqa: SLF001
 
 

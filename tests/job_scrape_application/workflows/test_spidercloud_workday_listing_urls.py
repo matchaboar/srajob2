@@ -23,7 +23,10 @@ SOURCE_URL = "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer"
 
 
 def _load_fixture() -> Any:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
 
 
 def _extract_first_event(payload: Any) -> Dict[str, Any] | None:

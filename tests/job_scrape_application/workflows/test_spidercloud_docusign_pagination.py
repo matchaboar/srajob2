@@ -50,7 +50,10 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_fixture(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
 
 
 def _parse_payload(raw_payload: Any) -> Dict[str, Any]:
