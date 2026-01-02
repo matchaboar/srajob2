@@ -9,35 +9,7 @@ import pytest
 sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
-from job_scrape_application.services import convex_client, telemetry  # noqa: E402
-
-
-@pytest.mark.asyncio
-async def test_record_scratchpad_sanitizes_required_strings(monkeypatch):
-    """Guard against sending invalid types to Convex mutations (e.g., None for required strings)."""
-
-    captured: Dict[str, Any] = {"payload": {}}
-
-    def fake_emit(payload: Dict[str, Any]) -> None:
-        captured["payload"] = payload or {}
-        for key in ("siteUrl",):
-            if key in captured["payload"]:
-                assert isinstance(captured["payload"][key], str)
-
-    monkeypatch.setattr(telemetry, "emit_posthog_log", fake_emit)
-
-    entry = {
-        "runId": "run-1",
-        "workflowId": "wf-1",
-        "workflowName": "TestWorkflow",
-        "siteUrl": None,  # should be sanitized to empty string before Convex call
-        "event": "test",
-        "message": "hello",
-    }
-
-    await acts.record_scratchpad(entry)
-
-    assert captured["payload"].get("siteUrl") == ""
+from job_scrape_application.services import convex_client  # noqa: E402
 
 
 @pytest.mark.asyncio

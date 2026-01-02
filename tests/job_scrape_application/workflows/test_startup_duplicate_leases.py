@@ -79,17 +79,12 @@ async def test_first_startup_can_lease_same_site_four_times(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):  # noqa: ARG001
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):  # noqa: ARG001
-        return None
-
     monkeypatch.setattr(sw, "lease_site", lease_site, raising=False)
     monkeypatch.setattr(sw, "scrape_site", scrape_site, raising=False)
     monkeypatch.setattr(sw, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(sw, "complete_site", complete_site, raising=False)
     monkeypatch.setattr(sw, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(sw, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(sw, "record_scratchpad", record_scratchpad, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"lease-dup-{uuid.uuid4().hex[:6]}"
@@ -104,7 +99,6 @@ async def test_first_startup_can_lease_same_site_four_times(monkeypatch):
                 complete_site,
                 fail_site,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 

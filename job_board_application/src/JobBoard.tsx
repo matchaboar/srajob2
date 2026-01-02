@@ -2639,7 +2639,7 @@ export function JobBoard() {
                       <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
                       <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-950/60 text-slate-200">
                         <LiveTimer
-                          startTime={company.lastScrapedAt}
+                          startTime={company.lastPostedAt || company.lastScrapedAt}
                           showAgo
                           showSeconds={false}
                           className="text-[10px] font-mono text-slate-200"

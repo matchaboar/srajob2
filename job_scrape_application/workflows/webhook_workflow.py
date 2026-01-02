@@ -8,6 +8,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import ActivityError, ApplicationError
 
+from .helpers.workflow_logging import get_workflow_logger
 from .exceptions import WorkflowError
 
 from ..config import settings
@@ -44,7 +45,7 @@ async def _yield_if_needed(iteration: int, *, every: int = 500) -> None:
 
 
 def _summarize_scrape_payload(scrape_payload: Any, *, max_samples: int = 5) -> Dict[str, Any]:
-    """Return lightweight counts/samples for scratchpad logging."""
+    """Return lightweight counts/samples for workflow logging."""
 
     if not isinstance(scrape_payload, dict):
         return {}
@@ -96,7 +97,7 @@ class SiteLeaseWorkflow:
         status = "completed"
         started_at = int(workflow.now().timestamp() * 1000)
         run_info = workflow.info()
-        wf_logger = workflow.logger  # type: ignore[attr-defined]
+        wf_logger = get_workflow_logger()
 
         async def _log(
             event: str,
@@ -601,7 +602,7 @@ class ProcessWebhookIngestWorkflow:
         failure_reasons: List[str] = []
         site_urls: List[str] = []
         started_at = int(workflow.now().timestamp() * 1000)
-        wf_logger = workflow.logger  # type: ignore[attr-defined]
+        wf_logger = get_workflow_logger()
 
         async def _log(
             event: str,
@@ -885,7 +886,7 @@ class RecoverMissingFirecrawlWebhookWorkflow:
         started_at = int(workflow.now().timestamp() * 1000)
         site_urls: List[str] = []
         jobs_scraped = 0
-        wf_logger = workflow.logger  # type: ignore[attr-defined]
+        wf_logger = get_workflow_logger()
 
         async def _log(
             event: str,

@@ -7,4 +7,11 @@ describe("resolveCompanyLogoUrl", () => {
     const result = resolveCompanyLogoUrl("Voltage Park", url, "https://example.com/fallback.svg");
     expect(result).toContain("cdn.brandfetch.io/voltagepark.com");
   });
+
+  it("uses the hosted path domain when the path includes a full domain slug", () => {
+    const url = "https://jobs.ashbyhq.com/voltagepark.com/5b6e2a55-3f19-437f-ba4c-284d5b7b7724";
+    const result = resolveCompanyLogoUrl("Voltage Park", url, "https://example.com/fallback.svg");
+    expect(result).toContain("cdn.brandfetch.io/voltagepark.com");
+    expect(result).not.toContain("voltagepark.com.com");
+  });
 });

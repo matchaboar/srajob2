@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-    start([Workflow start]) --> logStart["record_scratchpad: workflow.start (jobId/siteUrl)"]
+    start([Workflow start]) --> logStart["workflow.log: workflow.start (jobId/siteUrl)"]
     logStart --> stateCheck["get_firecrawl_webhook_status(jobId)"]
     stateCheck --> delivered{hasProcessed or hasRealEvent?}
     delivered -->|yes| markDelivered["mark_firecrawl_webhook_processed(already_delivered?)"] --> logSkipInitial["Log recovery.skipped (initial_check)"] --> summarize[Return WebhookRecoverySummary]

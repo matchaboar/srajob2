@@ -71,10 +71,6 @@ async def test_recover_missing_after_long_offline_marks_expired(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     monkeypatch.setattr(wf, "get_firecrawl_webhook_status", get_firecrawl_webhook_status, raising=False)
     monkeypatch.setattr(wf, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf, "store_scrape", store_scrape, raising=False)
@@ -82,7 +78,6 @@ async def test_recover_missing_after_long_offline_marks_expired(monkeypatch):
     monkeypatch.setattr(wf, "complete_site", complete_site, raising=False)
     monkeypatch.setattr(wf, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(wf, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf, "record_scratchpad", record_scratchpad, raising=False)
 
     job_payload = {
         "jobId": "job-expired-50",
@@ -108,7 +103,6 @@ async def test_recover_missing_after_long_offline_marks_expired(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -191,10 +185,6 @@ async def test_recover_missing_firecrawl_webhook_retries_after_timeout(monkeypat
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     monkeypatch.setattr(wf, "get_firecrawl_webhook_status", get_firecrawl_webhook_status, raising=False)
     monkeypatch.setattr(wf, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf, "store_scrape", store_scrape, raising=False)
@@ -202,7 +192,6 @@ async def test_recover_missing_firecrawl_webhook_retries_after_timeout(monkeypat
     monkeypatch.setattr(wf, "complete_site", complete_site, raising=False)
     monkeypatch.setattr(wf, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(wf, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf, "record_scratchpad", record_scratchpad, raising=False)
 
     job_payload = {
         "jobId": "job-missing-1",
@@ -227,7 +216,6 @@ async def test_recover_missing_firecrawl_webhook_retries_after_timeout(monkeypat
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -343,10 +331,6 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     monkeypatch.setattr(wf, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
     monkeypatch.setattr(wf, "collect_firecrawl_job_result", collect_firecrawl_job_result, raising=False)
     monkeypatch.setattr(wf, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
@@ -358,7 +342,6 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
     monkeypatch.setattr(wf, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(wf, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf, "record_scratchpad", record_scratchpad, raising=False)
 
     job_payload = {
         "jobId": "job-backlog-1",
@@ -389,7 +372,6 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
                 get_firecrawl_webhook_status,
             ],
         )
@@ -408,7 +390,6 @@ async def test_backlogged_webhook_processed_before_recovery_retry(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
                 get_firecrawl_webhook_status,
             ],
         )

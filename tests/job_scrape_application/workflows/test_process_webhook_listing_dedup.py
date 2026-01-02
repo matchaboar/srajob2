@@ -100,10 +100,6 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     import job_scrape_application.workflows.webhook_workflow as wf_mod
 
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
@@ -116,7 +112,6 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
     monkeypatch.setattr(wf_mod, "mark_firecrawl_webhook_processed", mark_firecrawl_webhook_processed, raising=False)
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"listing-dedup-{uuid.uuid4().hex[:6]}"
@@ -135,7 +130,6 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
                 mark_firecrawl_webhook_processed,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -176,7 +170,6 @@ async def test_listing_webhook_scrapes_new_urls_only_once(monkeypatch):
                 mark_firecrawl_webhook_processed,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -248,10 +241,6 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     import job_scrape_application.workflows.webhook_workflow as wf_mod
 
     monkeypatch.setattr(wf_mod, "fetch_pending_firecrawl_webhooks", fetch_pending_firecrawl_webhooks, raising=False)
@@ -264,7 +253,6 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
     monkeypatch.setattr(wf_mod, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"listing-batch-{uuid.uuid4().hex[:6]}"
@@ -283,7 +271,6 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -326,7 +313,6 @@ async def test_listing_webhook_batches_urls_once_with_idempotency(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -398,10 +384,6 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     import job_scrape_application.workflows.webhook_workflow as wf_mod
 
     # First run: no existing job URLs
@@ -415,7 +397,6 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
     monkeypatch.setattr(wf_mod, "fail_site", fail_site, raising=False)
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"job-once-{uuid.uuid4().hex[:6]}"
@@ -434,7 +415,6 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 
@@ -471,7 +451,6 @@ async def test_individual_job_url_scraped_once_forever(monkeypatch):
                 fail_site,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
 

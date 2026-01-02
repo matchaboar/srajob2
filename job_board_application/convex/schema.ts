@@ -103,6 +103,7 @@ const applicationTables = {
     avgCompensationJunior: v.optional(v.number()),
     avgCompensationMid: v.optional(v.number()),
     avgCompensationSenior: v.optional(v.number()),
+    lastPostedAt: v.optional(v.number()),
     lastScrapedAt: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
@@ -413,23 +414,6 @@ const applicationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_name", ["name"]),
-
-  scratchpad_entries: defineTable({
-    runId: v.optional(v.string()),
-    workflowId: v.optional(v.string()),
-    workflowName: v.optional(v.string()),
-    siteUrl: v.optional(v.string()),
-    siteId: v.optional(v.id("sites")),
-    event: v.string(),
-    message: v.optional(v.string()),
-    data: v.optional(v.any()),
-    level: v.optional(v.union(v.literal("info"), v.literal("warn"), v.literal("error"))),
-    createdAt: v.number(),
-  })
-    .index("by_run", ["runId"])
-    .index("by_site", ["siteUrl"])
-    .index("by_workflow", ["workflowName"])
-    .index("by_created", ["createdAt"]),
 
   // Centralized log of scraper failures (e.g., invalid Firecrawl job ids)
   scrape_errors: defineTable({

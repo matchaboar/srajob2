@@ -24,6 +24,14 @@ This team works closely with partners across the business.
 You'll collaborate from our Seattle office with periodic travel to Austin.
 `;
 
+const BELLEVUE_ADDRESS_MARKDOWN = `
+Job Application for Software Engineer II at The Trade Desk
+# Software Engineer II
+Location: 10770 NE 8th Street, Suite 700, Bellevue, WA 98004
+*Telecommuting permitted: work may be performed within normal commuting distance from The Trade Desk, Inc. office in Bellevue, WA
+CO, CA, IL, NY, WA, and Washington DC residents only: In accordance with CO, CA, IL, NY, WA, and Washington DC law.
+`;
+
 describe("markdown hint parsing", () => {
   it("parses title/location/level/compensation from markdown", () => {
     const hints = parseMarkdownHints(OFFSEC_MARKDOWN);
@@ -87,6 +95,11 @@ describe("markdown hint parsing", () => {
   it("falls back to mapped common tech cities when no explicit location line", () => {
     const hints = parseMarkdownHints(CITY_IN_BODY_MARKDOWN);
     expect(hints.location).toBe("Seattle, Washington");
+  });
+
+  it("prefers explicit address city/state over later state mentions", () => {
+    const hints = parseMarkdownHints(BELLEVUE_ADDRESS_MARKDOWN);
+    expect(hints.location).toBe("Bellevue, Washington");
   });
 
   it("prefers United States location when mixed with international lines", () => {

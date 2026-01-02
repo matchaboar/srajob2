@@ -3080,7 +3080,17 @@ class SpiderCloudScraper(BaseScraper):
                 pattern=site.get("pattern"),
             )
             if api_payload is not None:
-                return api_payload
+                if isinstance(api_payload, dict) and "items" in api_payload:
+                    return api_payload
+                return {
+                    "sourceUrl": source_url,
+                    "pattern": site.get("pattern"),
+                    "provider": self.provider,
+                    "items": {
+                        "raw": api_payload,
+                        "provider": self.provider,
+                    },
+                }
 
         urls = [u for u in [source_url] if isinstance(u, str) and u.strip()]
         force_seed = bool(handler and source_url and handler.is_listing_url(source_url))

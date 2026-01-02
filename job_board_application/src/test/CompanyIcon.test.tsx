@@ -64,6 +64,19 @@ describe("CompanyIcon custom logos", () => {
     expect(img.getAttribute("src") ?? "").toContain("cdn.brandfetch.io/voltagepark.com");
   });
 
+  it("prefers the domain segment when hosted job paths include a full domain", async () => {
+    render(
+      <CompanyIcon
+        company="Voltage Park"
+        url="https://jobs.ashbyhq.com/voltagepark.com/5b6e2a55-3f19-437f-ba4c-284d5b7b7724"
+      />,
+    );
+    const img = await screen.findByRole("img", { name: /voltage park logo/i });
+    const src = img.getAttribute("src") ?? "";
+    expect(src).toContain("cdn.brandfetch.io/voltagepark.com");
+    expect(src).not.toContain("voltagepark.com.com");
+  });
+
   it("uses the brandfetch domain override for Serval", async () => {
     render(<CompanyIcon company="Serval" url="https://serval.ai/careers" />);
     const img = await screen.findByRole("img", { name: /serval logo/i });

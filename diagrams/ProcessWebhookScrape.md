@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-    start([Workflow start]) --> logStart[record_scratchpad: workflow.start]
+    start([Workflow start]) --> logStart[workflow.log: workflow.start]
     logStart --> fetchLoop{{fetch_pending_firecrawl_webhooks<br/>batch=25}}
     fetchLoop -->|no events| summarize[Return WebhookProcessSummary]
     fetchLoop -->|events| forEach[/For each event/]

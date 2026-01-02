@@ -44,7 +44,6 @@ async def test_process_webhook_with_mock_firecrawl(monkeypatch):
     completed_sites: List[str] = []
     failed_sites: List[Dict[str, Any]] = []
     marks: List[Dict[str, Any]] = []
-    scratchpads: List[Dict[str, Any]] = []
 
     @activity.defn
     async def fetch_pending_firecrawl_webhooks(batch: int = 25, cursor: str | None = None):
@@ -93,11 +92,6 @@ async def test_process_webhook_with_mock_firecrawl(monkeypatch):
         return None
 
     @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        scratchpads.append(payload)
-        return None
-
-    @activity.defn
     async def filter_existing_job_urls(urls: List[str]):
         return []
 
@@ -139,7 +133,6 @@ async def test_process_webhook_with_mock_firecrawl(monkeypatch):
     )
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
     monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
@@ -158,7 +151,6 @@ async def test_process_webhook_with_mock_firecrawl(monkeypatch):
                 mark_firecrawl_webhook_processed,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
                 filter_existing_job_urls,
                 compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
@@ -179,8 +171,6 @@ async def test_process_webhook_with_mock_firecrawl(monkeypatch):
     assert marks and marks[0]["id"].startswith("wh-")
     assert processed_events == [marks[0]["id"]]
     assert stored_scrapes and stored_scrapes[0]["items"]["normalized"][0]["job_title"] == "Mocked"
-    # Ensure scratchpad logging happened at least once during the workflow.
-    assert scratchpads
 
 
 @pytest.mark.asyncio
@@ -202,7 +192,6 @@ async def test_process_webhook_when_mock_webhook_missing(monkeypatch):
 
     processed_events: List[str] = []
     marks: List[Dict[str, Any]] = []
-    scratchpads: List[Dict[str, Any]] = []
 
     @activity.defn
     async def fetch_pending_firecrawl_webhooks(batch: int = 25, cursor: str | None = None):
@@ -243,11 +232,6 @@ async def test_process_webhook_when_mock_webhook_missing(monkeypatch):
         return None
 
     @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        scratchpads.append(payload)
-        return None
-
-    @activity.defn
     async def filter_existing_job_urls(urls: List[str]):
         return []
 
@@ -289,7 +273,6 @@ async def test_process_webhook_when_mock_webhook_missing(monkeypatch):
     )
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
     monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
@@ -308,7 +291,6 @@ async def test_process_webhook_when_mock_webhook_missing(monkeypatch):
                 mark_firecrawl_webhook_processed,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
                 filter_existing_job_urls,
                 compute_urls_to_scrape,
                 scrape_greenhouse_jobs,
@@ -327,4 +309,3 @@ async def test_process_webhook_when_mock_webhook_missing(monkeypatch):
     assert result.failed == 0
     assert marks == []
     assert processed_events == []
-    assert scratchpads

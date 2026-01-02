@@ -152,7 +152,7 @@ def _ensure_logger() -> logging.Logger:
 
     provider = _configure_posthog_logger(token)
     handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
-    logger = logging.getLogger("scratchpad")
+    logger = logging.getLogger("temporal.worker.posthog")
     logger.setLevel(logging.INFO)
     logger.propagate = False
 
@@ -194,15 +194,13 @@ def emit_posthog_log(payload: Dict[str, Any]) -> None:
         or _infer_workflow_id()
     )
 
-    message = payload.get("message") or payload.get("event") or "scratchpad"
+    message = payload.get("message") or payload.get("event") or "workflow.log"
     if workflow_id and f"workflow_id={workflow_id}" not in str(message):
         message = f"{message} | workflow_id={workflow_id}"
 
     attributes = {k: v for k, v in payload.items() if k != "message"}
     if workflow_id and "workflowId" not in attributes:
         attributes["workflowId"] = workflow_id
-    if "message" in payload:
-        attributes["scratchpad_message"] = payload["message"]
 
     level = _normalize_log_level(payload.get("level"))
     # Use stacklevel so OTLP location fields point to the caller of emit_posthog_log,

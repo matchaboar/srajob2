@@ -1,10 +1,12 @@
 import asyncio
+import atexit
 import logging
 import time
 from dataclasses import dataclass
 from datetime import timedelta
-from logging.handlers import RotatingFileHandler
+from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
+from queue import SimpleQueue
 from typing import Optional
 import os
 
@@ -56,11 +58,36 @@ WORKFLOW_CLASSES = [
 ]
 
 _WORKER_CONTEXT: dict[str, object] = {}
+_WORKFLOW_LOG_QUEUE: SimpleQueue | None = None
+_WORKFLOW_LOG_LISTENER: QueueListener | None = None
 
 
 def _set_worker_context(context: dict[str, object]) -> None:
     _WORKER_CONTEXT.clear()
     _WORKER_CONTEXT.update(context)
+
+
+def _setup_workflow_logger(handlers: list[logging.Handler]) -> None:
+    """Route workflow logs through a queue to avoid blocking workflow execution."""
+    global _WORKFLOW_LOG_QUEUE, _WORKFLOW_LOG_LISTENER
+
+    if _WORKFLOW_LOG_QUEUE is None:
+        _WORKFLOW_LOG_QUEUE = SimpleQueue()
+
+    workflow_logger = logging.getLogger("temporalio.workflow")
+    workflow_logger.setLevel(logging.INFO)
+    workflow_logger.propagate = False
+    workflow_logger.handlers = [QueueHandler(_WORKFLOW_LOG_QUEUE)]
+
+    if _WORKFLOW_LOG_LISTENER is None:
+        _WORKFLOW_LOG_LISTENER = QueueListener(
+            _WORKFLOW_LOG_QUEUE,
+            *handlers,
+            respect_handler_level=True,
+        )
+        _WORKFLOW_LOG_LISTENER.daemon = True
+        _WORKFLOW_LOG_LISTENER.start()
+        atexit.register(_WORKFLOW_LOG_LISTENER.stop)
 
 ACTIVITY_FUNCTIONS = [
     activities.fetch_sites,
@@ -175,13 +202,14 @@ class WorkflowTaskDebugOutboundInterceptor(WorkflowOutboundInterceptor):
         self._state.last_activity_queue = input.task_queue
         self._state.last_activity_at = now
         try:
-            update_run_metadata(
-                workflow.info().run_id,
-                lastActivity=input.activity,
-                lastActivityId=input.activity_id,
-                lastActivityQueue=input.task_queue,
-                lastActivityAt=now,
-            )
+            with workflow.unsafe.sandbox_unrestricted():
+                update_run_metadata(
+                    workflow.info().run_id,
+                    lastActivity=input.activity,
+                    lastActivityId=input.activity_id,
+                    lastActivityQueue=input.task_queue,
+                    lastActivityAt=now,
+                )
         except Exception:
             pass
         return self.next.start_activity(input)
@@ -198,13 +226,14 @@ class WorkflowTaskDebugOutboundInterceptor(WorkflowOutboundInterceptor):
         self._state.last_activity_queue = "local"
         self._state.last_activity_at = now
         try:
-            update_run_metadata(
-                workflow.info().run_id,
-                lastActivity=input.activity,
-                lastActivityId=input.activity_id,
-                lastActivityQueue="local",
-                lastActivityAt=now,
-            )
+            with workflow.unsafe.sandbox_unrestricted():
+                update_run_metadata(
+                    workflow.info().run_id,
+                    lastActivity=input.activity,
+                    lastActivityId=input.activity_id,
+                    lastActivityQueue="local",
+                    lastActivityAt=now,
+                )
         except Exception:
             pass
         return self.next.start_local_activity(input)
@@ -221,13 +250,14 @@ class WorkflowTaskDebugOutboundInterceptor(WorkflowOutboundInterceptor):
         self._state.last_child_workflow_queue = input.task_queue
         self._state.last_child_workflow_at = now
         try:
-            update_run_metadata(
-                workflow.info().run_id,
-                lastChildWorkflow=input.workflow,
-                lastChildWorkflowId=input.id,
-                lastChildWorkflowQueue=input.task_queue,
-                lastChildWorkflowAt=now,
-            )
+            with workflow.unsafe.sandbox_unrestricted():
+                update_run_metadata(
+                    workflow.info().run_id,
+                    lastChildWorkflow=input.workflow,
+                    lastChildWorkflowId=input.id,
+                    lastChildWorkflowQueue=input.task_queue,
+                    lastChildWorkflowAt=now,
+                )
         except Exception:
             pass
         return await self.next.start_child_workflow(input)
@@ -270,7 +300,6 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
 
     def __init__(self, next: WorkflowInboundInterceptor) -> None:
         super().__init__(next)
-        self._logger = logging.getLogger("temporal.worker.workflow")
         self._debug_state = WorkflowTaskDebugState()
 
     def init(self, outbound: WorkflowOutboundInterceptor) -> None:
@@ -282,23 +311,25 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
         error: BaseException | None = None
         info = None
         start_time: float | None = None
+        logger = workflow.logger  # type: ignore[attr-defined]
         try:
             info = workflow.info()
-            self._logger.info(
+            logger.info(
                 "Workflow run started: type=%s workflow_id=%s run_id=%s task_queue=%s",
                 info.workflow_type,
                 info.workflow_id,
                 info.run_id,
                 info.task_queue,
             )
-            record_run_metadata(
-                info.run_id,
-                info.workflow_id,
-                info.workflow_type,
-                info.task_queue,
-            )
+            with workflow.unsafe.sandbox_unrestricted():
+                record_run_metadata(
+                    info.run_id,
+                    info.workflow_id,
+                    info.workflow_type,
+                    info.task_queue,
+                )
         except Exception as exc:  # noqa: BLE001
-            self._logger.warning("Workflow start logging failed: %s", exc)
+            logger.warning("Workflow start logging failed: %s", exc)
 
         with workflow.unsafe.sandbox_unrestricted():
             start_time = time.perf_counter()
@@ -360,7 +391,7 @@ class WorkflowStartLoggingInterceptor(WorkflowInboundInterceptor):
                     if error is not None:
                         payload["errorType"] = type(error).__name__
                         payload["errorMessage"] = str(error)
-                    self._logger.warning(
+                    logger.warning(
                         payload["event"],
                         extra={k: v for k, v in payload.items() if v is not None},
                     )
@@ -401,6 +432,7 @@ def _setup_logging() -> logging.Logger:
         handlers.append(posthog_handler)
 
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
+    _setup_workflow_logger(handlers)
     # HTTPX logs every heartbeat request at INFO; keep them quiet unless debugging.
     logging.getLogger("httpx").setLevel(logging.WARNING)
     return logging.getLogger("temporal.worker")

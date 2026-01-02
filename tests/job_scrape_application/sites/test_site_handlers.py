@@ -254,13 +254,13 @@ def test_uber_careers_handler_extracts_listing_and_pagination_links():
 
     fixture_paths = [
         Path(
-            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_api_page_1.json"
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_1.json"
         ),
         Path(
-            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_api_page_2.json"
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_2.json"
         ),
         Path(
-            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_api_page_3.json"
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_3.json"
         ),
     ]
     for fixture_path in fixture_paths:
@@ -272,6 +272,41 @@ def test_uber_careers_handler_extracts_listing_and_pagination_links():
         job_links = [link for link in links if re.search(r"/careers/list/\d+$", link)]
         assert job_links
         assert any("page=" in link for link in links if "careers/list" in link)
+
+
+def test_uber_careers_handler_pagination_pages_have_jobs():
+    handler = UberCareersHandler()
+    fixture_paths = [
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_1.json"
+        ),
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_2.json"
+        ),
+        Path(
+            "tests/job_scrape_application/workflows/fixtures/spidercloud_uber_careers_listing_page_3.json"
+        ),
+    ]
+
+    first_payload = json.loads(fixture_paths[0].read_text(encoding="utf-8"))
+    first_html = _extract_first_html(first_payload)
+    assert first_html
+    first_links = handler.get_links_from_raw_html(first_html)
+    pagination_links = [
+        link
+        for link in first_links
+        if "careers/list" in link and "page=" in link
+    ]
+    assert pagination_links
+    assert any("page=1" in link for link in pagination_links)
+
+    for fixture_path in fixture_paths:
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        html = _extract_first_html(payload)
+        assert html
+        links = handler.get_links_from_raw_html(html)
+        job_links = [link for link in links if re.search(r"/careers/list/\d+$", link)]
+        assert job_links
 
 
 def test_cisco_careers_handler_extracts_listing_and_pagination_links():

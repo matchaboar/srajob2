@@ -24,7 +24,6 @@ import type * as location from "../location.js";
 import type * as middleware_firecrawlCors from "../middleware/firecrawlCors.js";
 import type * as migrations from "../migrations.js";
 import type * as router from "../router.js";
-import type * as scratchpad from "../scratchpad.js";
 import type * as seedData from "../seedData.js";
 import type * as siteScheduleSync from "../siteScheduleSync.js";
 import type * as siteTypes from "../siteTypes.js";
@@ -55,7 +54,6 @@ declare const fullApi: ApiFromModules<{
   "middleware/firecrawlCors": typeof middleware_firecrawlCors;
   migrations: typeof migrations;
   router: typeof router;
-  scratchpad: typeof scratchpad;
   seedData: typeof seedData;
   siteScheduleSync: typeof siteScheduleSync;
   siteTypes: typeof siteTypes;

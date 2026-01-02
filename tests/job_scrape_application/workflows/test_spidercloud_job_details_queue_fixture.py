@@ -139,16 +139,11 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
     async def record_workflow_run(payload: Dict[str, Any]):
         return None
 
-    @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
     monkeypatch.setattr(sw, "lease_scrape_url_batch", lease_scrape_url_batch, raising=False)
     monkeypatch.setattr(sw, "process_spidercloud_job_batch", process_spidercloud_job_batch, raising=False)
     monkeypatch.setattr(sw, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(sw, "complete_scrape_urls", complete_scrape_urls, raising=False)
     monkeypatch.setattr(sw, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(sw, "record_scratchpad", record_scratchpad, raising=False)
 
     async with await WorkflowEnvironment.start_time_skipping() as env:
         task_queue = f"queue-fixture-{uuid.uuid4().hex[:6]}"
@@ -162,7 +157,6 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
                 store_scrape,
                 complete_scrape_urls,
                 record_workflow_run,
-                record_scratchpad,
             ],
         )
         async with worker:

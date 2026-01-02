@@ -7,8 +7,7 @@ from typing import Any, Dict, List
 from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
-from .scratchpad_utils import extract_http_exchange
-
+from .helpers.workflow_logging import get_workflow_logger
 
 with workflow.unsafe.imports_passed_through():
     from .activities import (
@@ -43,7 +42,7 @@ class GreenhouseScraperWorkflow:
         status = "completed"
         started_at = int(workflow.now().timestamp() * 1000)
         run_info = workflow.info()
-        wf_logger = workflow.logger  # type: ignore[attr-defined]
+        wf_logger = get_workflow_logger()
 
         async def _log(
             event: str,
@@ -136,15 +135,6 @@ class GreenhouseScraperWorkflow:
                         )
                         scrape_payload = scrape_res.get("scrape") if isinstance(scrape_res, dict) else None
                         jobs_scraped += int(scrape_res.get("jobsScraped") or 0) if isinstance(scrape_res, dict) else 0
-
-                        http_exchange = extract_http_exchange(scrape_payload) if scrape_payload else None
-                        if http_exchange:
-                            http_exchange.setdefault("siteId", site.get("_id"))
-                            await _log(
-                                "scrape.http",
-                                site_url=site["url"],
-                                data=http_exchange,
-                            )
 
                         if scrape_payload:
                             scrape_payload.setdefault("workflowId", run_info.workflow_id)

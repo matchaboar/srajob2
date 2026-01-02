@@ -1,7 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import clsx from "clsx";
+import { useEffect, useMemo, useState } from "react";
 import { LiveTimer } from "./LiveTimer";
 
 type Props = { url: string | null; onBack: () => void };
@@ -39,113 +38,6 @@ const formatDuration = (start?: number | null, end?: number | null) => {
   const secs = seconds % 60;
   return `${mins}m ${secs.toString().padStart(2, "0")}s`;
 };
-
-const formatDataPreview = (data: any) => {
-  if (data === null || data === undefined) return "";
-  try {
-    const text = typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    if (text.length > 800) return `${text.slice(0, 800)}… (+${text.length - 800} chars)`;
-    return text;
-  } catch {
-    return String(data);
-  }
-};
-
-function ScratchpadEntries({ runId }: { runId: string }) {
-  const entries = useQuery(api.scratchpad.listByRun, runId ? { runId, limit: 10 } : { runId: "", limit: 10 });
-
-  if (!runId) {
-    return null;
-  }
-
-  if (entries === undefined) {
-    return <div className="text-[11px] text-slate-500">Loading scratchpad…</div>;
-  }
-
-  if (!entries || entries.length === 0) {
-    return <div className="text-[11px] text-slate-500">No scratchpad entries yet.</div>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {entries.map((entry: any) => {
-        const rows: { key: string; value: ReactNode }[] = [
-          {
-            key: "event",
-            value: (
-              <span
-                className={clsx(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono",
-                  entry.level === "error"
-                    ? "border-red-800 text-red-300 bg-red-900/30"
-                    : entry.level === "warn"
-                      ? "border-amber-800 text-amber-300 bg-amber-900/30"
-                      : "border-slate-700 text-slate-200 bg-slate-900"
-                )}
-              >
-                {entry.event}
-              </span>
-            ),
-          },
-        ];
-
-        if (entry.message) {
-          rows.push({ key: "message", value: <span className="text-slate-100">{entry.message}</span> });
-        }
-
-        if (entry.data !== undefined && entry.data !== null) {
-          rows.push({
-            key: "data",
-            value: (
-              <pre className="text-[10px] text-slate-200 bg-slate-950/60 border border-slate-900/70 rounded p-2 whitespace-pre-wrap break-words overflow-x-auto">
-                {formatDataPreview(entry.data)}
-              </pre>
-            ),
-          });
-        }
-
-        const createdLabel = entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "";
-
-        return (
-          <div key={entry._id} className="border border-slate-800 rounded bg-slate-950/40 overflow-hidden">
-            <table className="w-full text-[11px] text-slate-300">
-              <tbody>
-                {rows.map((row, idx) => (
-                  <tr key={row.key} className={idx === 0 ? "" : "border-t border-slate-800/70"}>
-                    {idx === 0 && (
-                      <td
-                        rowSpan={rows.length}
-                        className="w-48 align-top bg-slate-950/60 border-r border-slate-800 px-3 py-2 text-left"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <span className="font-mono text-[10px] text-slate-400">{createdLabel}</span>
-                          {entry.createdAt && (
-                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-900/70 text-slate-200 w-fit">
-                              <LiveTimer
-                                startTime={entry.createdAt}
-                                colorize
-                                warnAfterMs={5 * 60 * 1000}
-                                dangerAfterMs={30 * 60 * 1000}
-                                showAgo
-                                suffixClassName="text-slate-400"
-                              />
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                    <td className="w-28 uppercase tracking-wide text-[10px] text-slate-500 px-2 py-2 align-top">{row.key}</td>
-                    <td className="px-2 py-2 align-top text-slate-100 break-words">{row.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export function WorkflowRunsSection({ url, onBack }: Props) {
   const [now, setNow] = useState(Date.now());
@@ -349,14 +241,6 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
                     {run.error}
                   </div>
                 )}
-                <div className="mt-3">
-                  <div className="text-[10px] uppercase text-slate-500 mb-1">Scratchpad</div>
-                  {run.runId ? (
-                    <ScratchpadEntries runId={run.runId} />
-                  ) : (
-                    <div className="text-[11px] text-slate-500">No run id available.</div>
-                  )}
-                </div>
               </div>
             );
           })}

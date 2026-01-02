@@ -31,7 +31,6 @@ async def _noop_sleep(_duration) -> None:
 class _ActivityHarness:
     def __init__(self) -> None:
         self.calls: List[str] = []
-        self.scratchpad: List[Dict[str, Any]] = []
         self.complete_calls: List[Dict[str, Any]] = []
         self.workflow_runs: List[Dict[str, Any]] = []
         self.batch: Dict[str, Any] | None = None
@@ -42,11 +41,6 @@ class _ActivityHarness:
     async def execute(self, activity, args=None, **kwargs):  # type: ignore[override]
         name = getattr(activity, "__name__", str(activity))
         self.calls.append(name)
-
-        if activity is sw.record_scratchpad:
-            payload = args[0] if isinstance(args, list) else args
-            self.scratchpad.append(payload)
-            return None
 
         if activity is sw.lease_scrape_url_batch:
             return self.batch
@@ -101,7 +95,6 @@ async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
 
     assert summary.site_count == 0
     assert summary.scrape_ids == []
-    assert any(evt.get("event") == "workflow.start" for evt in harness.scratchpad)
     assert harness.workflow_runs
 
 
@@ -131,17 +124,12 @@ async def test_job_details_records_skipped_urls_and_completes(monkeypatch):
 
     assert summary.site_count == 1
     assert summary.scrape_ids == ["scr-1", "scr-2"]
-    assert any(evt.get("event") == "batch.skipped_urls" for evt in harness.scratchpad)
 
     completed_calls = [c for c in harness.complete_calls if c.get("status") == "completed"]
     assert completed_calls
     assert all(len(call.get("urls", [])) == 1 for call in completed_calls)
     completed_urls = sorted(call["urls"][0] for call in completed_calls)
     assert completed_urls == ["https://example.com/a", "https://example.com/b"]
-    store_logs = [evt for evt in harness.scratchpad if evt.get("event") == "batch.store"]
-    assert store_logs
-    data = store_logs[0].get("data", {})
-    assert data == {"scrapes": 2, "completed": 2, "invalid": 0, "failed": 0}
 
 
 @pytest.mark.asyncio
@@ -169,10 +157,6 @@ async def test_job_details_marks_invalid_scrapes(monkeypatch):
     summary = await wf.run()
 
     assert summary.scrape_ids == ["scr-ok"]
-    store_logs = [evt for evt in harness.scratchpad if evt.get("event") == "batch.store"]
-    assert store_logs
-    data = store_logs[0].get("data", {})
-    assert data == {"scrapes": 2, "completed": 1, "invalid": 1, "failed": 0}
 
     invalid_calls = [c for c in harness.complete_calls if c.get("status") == "invalid"]
     assert invalid_calls
@@ -206,10 +190,6 @@ async def test_job_details_marks_failed_scrapes(monkeypatch):
     summary = await wf.run()
 
     assert summary.scrape_ids == []
-    store_logs = [evt for evt in harness.scratchpad if evt.get("event") == "batch.store"]
-    assert store_logs
-    data = store_logs[0].get("data", {})
-    assert data == {"scrapes": 1, "completed": 0, "invalid": 0, "failed": 1}
 
     failed_calls = [c for c in harness.complete_calls if c.get("status") == "failed"]
     assert failed_calls

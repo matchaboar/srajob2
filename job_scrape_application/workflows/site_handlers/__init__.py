@@ -7,6 +7,7 @@ from .ashby import AshbyHqHandler
 from .avature import AvatureHandler
 from .base import BaseSiteHandler
 from .cisco_careers import CiscoCareersHandler
+from .confluent import ConfluentHandler
 from .docusign import DocusignHandler
 from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
@@ -22,6 +23,7 @@ _HANDLER_CLASSES = (
     AshbyHqHandler,
     AvatureHandler,
     CiscoCareersHandler,
+    ConfluentHandler,
     DocusignHandler,
     GithubCareersHandler,
     GreenhouseHandler,
@@ -63,6 +65,7 @@ __all__ = [
     "AvatureHandler",
     "BaseSiteHandler",
     "CiscoCareersHandler",
+    "ConfluentHandler",
     "DocusignHandler",
     "GithubCareersHandler",
     "GreenhouseHandler",

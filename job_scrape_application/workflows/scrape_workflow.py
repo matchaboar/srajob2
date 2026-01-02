@@ -24,8 +24,8 @@ with workflow.unsafe.imports_passed_through():
         store_scrape,
     )
 
-from .scratchpad_utils import extract_http_exchange
 from ..config import runtime_config
+from .helpers.workflow_logging import get_workflow_logger
 
 
 @dataclass
@@ -92,7 +92,7 @@ async def _run_scrape_workflow(
     failure_reasons: List[str] = []
     run_info = workflow.info()
 
-    wf_logger = workflow.logger  # type: ignore[attr-defined]
+    wf_logger = get_workflow_logger()
 
     def _emit(event: str, *, level: str = "info", **payload: Any) -> None:
         msg = f"{workflow_name} | event={event} | {payload}"
@@ -178,15 +178,6 @@ async def _run_scrape_workflow(
                                 message=str(start_err),
                                 level="warn",
                             )
-
-                http_exchange = extract_http_exchange(res)
-                if http_exchange:
-                    http_exchange.setdefault("siteId", site.get("_id"))
-                    await _log(
-                        "scrape.http",
-                        site_url=site["url"],
-                        data=http_exchange,
-                    )
 
                 scrape_id = await workflow.execute_activity(
                     store_scrape,
@@ -335,7 +326,7 @@ class SpidercloudJobDetailsWorkflow:
         status = "completed"
         failure_reasons: list[str] = []
         run_info = workflow.info()
-        wf_logger = workflow.logger  # type: ignore[attr-defined]
+        wf_logger = get_workflow_logger()
 
         async def _log(event: str, *, level: str = "info", data: dict | None = None):
             msg = f"SpidercloudJobDetails | event={event} | data={data}"

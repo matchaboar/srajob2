@@ -198,7 +198,6 @@ def test_emit_posthog_log_formats_message_and_attributes(monkeypatch):
     assert records[0]["msg"] == "hello"
     assert records[0]["extra"]["event"] == "job.scraped"
     assert records[0]["extra"]["count"] == 1
-    assert records[0]["extra"]["scratchpad_message"] == "hello"
 
 
 def test_emit_posthog_log_appends_workflow_id(monkeypatch):

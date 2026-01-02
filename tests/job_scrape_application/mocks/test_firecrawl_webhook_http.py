@@ -103,10 +103,6 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
         return None
 
     @activity.defn
-    async def record_scratchpad(payload: Dict[str, Any]):
-        return None
-
-    @activity.defn
     async def filter_existing_job_urls(urls: List[str]):
         return []
 
@@ -133,7 +129,6 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
     monkeypatch.setattr(wf_mod, "mark_firecrawl_webhook_processed", mark_firecrawl_webhook_processed, raising=False)
     monkeypatch.setattr(wf_mod, "store_scrape", store_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "record_workflow_run", record_workflow_run, raising=False)
-    monkeypatch.setattr(wf_mod, "record_scratchpad", record_scratchpad, raising=False)
     monkeypatch.setattr(wf_mod, "filter_existing_job_urls", filter_existing_job_urls, raising=False)
     monkeypatch.setattr(wf_mod, "compute_urls_to_scrape", compute_urls_to_scrape, raising=False)
     monkeypatch.setattr(wf_mod, "scrape_greenhouse_jobs", scrape_greenhouse_jobs, raising=False)
@@ -152,7 +147,6 @@ async def test_webhook_post_then_workflow_consumes(monkeypatch):
                 mark_firecrawl_webhook_processed,
                 store_scrape,
                 record_workflow_run,
-                record_scratchpad,
                 filter_existing_job_urls,
                 compute_urls_to_scrape,
                 scrape_greenhouse_jobs,

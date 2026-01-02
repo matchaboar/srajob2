@@ -12,8 +12,7 @@ type WipeTable =
   | "ignored_jobs"
   | "scrape_errors"
   | "run_requests"
-  | "workflow_run_sites"
-  | "scratchpad_entries";
+  | "workflow_run_sites";
 
 type SalaryLevel = "junior" | "mid" | "senior" | "staff";
 const SALARY_LEVELS: SalaryLevel[] = ["junior", "mid", "senior", "staff"];
@@ -31,8 +30,7 @@ export const wipeSiteDataByDomainPage = mutation({
       v.literal("ignored_jobs"),
       v.literal("scrape_errors"),
       v.literal("run_requests"),
-      v.literal("workflow_run_sites"),
-      v.literal("scratchpad_entries")
+      v.literal("workflow_run_sites")
     ),
     dryRun: v.optional(v.boolean()),
     batchSize: v.optional(v.number()),
@@ -89,10 +87,6 @@ export const wipeSiteDataByDomainPage = mutation({
           return ctx.db
             .query("workflow_run_sites")
             .withIndex("by_site", (q) => q.gte("siteUrl", prefix).lt("siteUrl", prefixUpper));
-        case "scratchpad_entries":
-          return ctx.db
-            .query("scratchpad_entries")
-            .withIndex("by_site", (q) => q.gte("siteUrl", prefix).lt("siteUrl", prefixUpper));
         default:
           return ctx.db.query(tableName);
       }
@@ -126,9 +120,6 @@ export const wipeSiteDataByDomainPage = mutation({
           if (row.siteId && siteIds.has(row.siteId)) return true;
           return matchesUrl(row.siteUrl);
         case "workflow_run_sites":
-          return matchesUrl(row.siteUrl);
-        case "scratchpad_entries":
-          if (row.siteId && siteIds.has(row.siteId)) return true;
           return matchesUrl(row.siteUrl);
         default:
           return false;

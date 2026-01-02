@@ -104,6 +104,9 @@ async def _fetch_payload(api_key: str, payload: Dict[str, Any], listing_url: str
       }})
         .then((res) => res.json())
         .then((data) => {{
+          data.__source_url = window.location.href;
+          data.__page = payload.page;
+          data.__limit = payload.limit;
           const pre = document.createElement("pre");
           pre.id = "uber-jobs";
           pre.textContent = JSON.stringify(data);
@@ -181,6 +184,7 @@ async def main() -> None:
             ]
         ]
     )
+
     for page in range(args.pages):
         payload = _build_payload(page, query=args.query, limit=args.limit)
         page_param = "" if page == 0 else f"&page={page}"

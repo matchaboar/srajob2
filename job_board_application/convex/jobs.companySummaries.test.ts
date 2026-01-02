@@ -6,6 +6,7 @@ type JobRow = {
   _id: string;
   company?: string;
   url?: string;
+  postedAt?: number;
   scrapedAt?: number;
   level?: "junior" | "mid" | "senior" | "staff" | string;
   totalCompensation?: number | null;
@@ -66,6 +67,7 @@ describe("refreshCompanySummaries", () => {
         _id: "job-1",
         company: "Acme",
         url: "https://example.com/jobs/1",
+        postedAt: 100,
         level: "junior",
         totalCompensation: 100_000,
         currencyCode: "USD",
@@ -74,6 +76,8 @@ describe("refreshCompanySummaries", () => {
         _id: "job-2",
         company: "Acme",
         url: "https://example.com/jobs/2",
+        postedAt: 200,
+        scrapedAt: 500,
         level: "junior",
         totalCompensation: 200_000,
         currencyCode: "INR",
@@ -82,6 +86,7 @@ describe("refreshCompanySummaries", () => {
         _id: "job-3",
         company: "Acme",
         url: "https://example.com/jobs/3",
+        postedAt: 150,
         level: "junior",
         totalCompensation: 150_000,
         currencyCode: "$",
@@ -90,6 +95,8 @@ describe("refreshCompanySummaries", () => {
         _id: "job-4",
         company: "Acme",
         url: "https://example.com/jobs/4",
+        postedAt: 50,
+        scrapedAt: 700,
         level: "junior",
         totalCompensation: 175_000,
         currencyCode: "USD",
@@ -99,6 +106,7 @@ describe("refreshCompanySummaries", () => {
         _id: "job-5",
         company: "Acme",
         url: "https://example.com/jobs/5",
+        postedAt: 250,
         level: "junior",
         currencyCode: "USD",
       },
@@ -115,6 +123,8 @@ describe("refreshCompanySummaries", () => {
     expect(summary.count).toBe(5);
     expect(summary.currencyCode).toBe("USD");
     expect(summary.avgCompensationJunior).toBe(125_000);
+    expect(summary.lastPostedAt).toBe(250);
+    expect(summary.lastScrapedAt).toBe(700);
   });
 
   it("does not set averages when only non-USD salaries are present", async () => {

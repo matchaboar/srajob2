@@ -33,7 +33,6 @@ TABLES: Tuple[str, ...] = (
     "scrape_errors",
     "run_requests",
     "workflow_run_sites",
-    "scratchpad_entries",
 )
 
 

@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 ROOT = os.path.abspath(".")
 if ROOT not in sys.path:
@@ -32,6 +33,28 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+def _extract_first_job_url(payload: Dict[str, Any]) -> str:
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list):
+        raise AssertionError("expected jobs list in payload")
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+        job_data = job.get("data") if isinstance(job.get("data"), dict) else job
+        if not isinstance(job_data, dict):
+            continue
+        meta = job_data.get("meta_data")
+        if isinstance(meta, dict):
+            canonical = meta.get("canonical_url")
+            if isinstance(canonical, str) and canonical.strip():
+                return canonical.strip()
+        for key in ("canonical_url", "jobUrl", "postingUrl", "url"):
+            value = job_data.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    raise AssertionError("no job url found in payload")
+
+
 def test_docusign_handler_extracts_job_urls():
     scraper = _make_scraper()
     fixture = Path(
@@ -40,13 +63,14 @@ def test_docusign_handler_extracts_job_urls():
     payload = json.loads(fixture.read_text(encoding="utf-8"))
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
+    expected_url = _extract_first_job_url(parsed)
 
     handler = DocusignHandler()
     urls = handler.get_links_from_json(parsed)
     filtered = handler.filter_job_urls(urls)
 
     assert filtered
-    assert "https://careers.docusign.com/jobs/27215?lang=en-us" in filtered
+    assert expected_url in filtered
 
 
 def test_docusign_handler_builds_pagination_urls():

@@ -7,6 +7,7 @@ import {
   splitLocation,
   formatLocationLabel,
   findCityInText,
+  resolveLocationFromDictionary,
   isUnknownLocationValue,
   normalizeLocations,
   deriveLocationFields,
@@ -25,6 +26,8 @@ const SALARY_RE =
 const SALARY_K_RE =
   /(?<currency>[$£€])?\s*(?<low>\d{2,3})\s*[kK]\s*(?:[-–]\s*(?<high>\d{2,3})\s*[kK])?\s*(?<code>USD|EUR|GBP)?/i;
 const REMOTE_RE = /\b(remote(-first)?|hybrid|onsite|on-site)\b/i;
+const CITY_STATE_ABBR_RE =
+  /\b(?<city>[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)*)\s*,\s*(?<state>[A-Z]{2})\b/g;
 
 const isUnknownLabel = (value?: string | null) => {
   const normalized = (value || "").trim().toLowerCase();
@@ -197,6 +200,25 @@ export const parseMarkdownHints = (markdown: string) => {
   if (!markdown) return hints;
 
   const locationCandidates: string[] = [];
+  const addResolvedCandidates = (candidates: string[]) => {
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      if (!resolveLocationFromDictionary(candidate)) continue;
+      if (locationCandidates.includes(candidate)) continue;
+      locationCandidates.push(candidate);
+    }
+  };
+  const extractExplicitCityStates = (text: string): string[] => {
+    const matches: string[] = [];
+    const regex = new RegExp(CITY_STATE_ABBR_RE.source, "g");
+    for (const match of text.matchAll(regex)) {
+      const city = match.groups?.city?.trim();
+      const state = match.groups?.state?.trim();
+      if (!city || !state) continue;
+      matches.push(`${city}, ${state}`);
+    }
+    return matches;
+  };
 
   const titleMatch = TITLE_RE.exec(markdown);
   if (titleMatch?.groups?.title) {
@@ -240,6 +262,15 @@ export const parseMarkdownHints = (markdown: string) => {
     if (locationCandidates.length === 0) {
       locationCandidates.push("Remote");
     }
+  }
+  if (!locationCandidates.length) {
+    const locationLine = lines.find((line) => /(?:^|\b)(location|office|based\s+in)\s*[:\-–]/i.test(line));
+    if (locationLine) {
+      addResolvedCandidates(extractExplicitCityStates(locationLine));
+    }
+  }
+  if (!locationCandidates.length) {
+    addResolvedCandidates(extractExplicitCityStates(markdown));
   }
   if (!locationCandidates.length) {
     const cityHit = findCityInText(markdown);
@@ -1240,6 +1271,7 @@ export const refreshCompanySummaries = internalMutation({
         count: number;
         currencyCode: string | null;
         sampleUrl: string | null;
+        lastPostedAt: number;
         lastScrapedAt: number;
         levels: Record<"junior" | "mid" | "senior", CompanyLevelStats>;
       }
@@ -1260,6 +1292,7 @@ export const refreshCompanySummaries = internalMutation({
           count: 0,
           currencyCode: null,
           sampleUrl: null,
+          lastPostedAt: 0,
           lastScrapedAt: 0,
           levels: {
             junior: emptyCompanyLevelStats(),
@@ -1273,6 +1306,9 @@ export const refreshCompanySummaries = internalMutation({
       entry.count += 1;
       if (!entry.sampleUrl && typeof job.url === "string" && job.url.trim()) {
         entry.sampleUrl = job.url.trim();
+      }
+      if (typeof job.postedAt === "number" && job.postedAt > entry.lastPostedAt) {
+        entry.lastPostedAt = job.postedAt;
       }
       if (typeof job.scrapedAt === "number" && job.scrapedAt > entry.lastScrapedAt) {
         entry.lastScrapedAt = job.scrapedAt;
@@ -1315,6 +1351,8 @@ export const refreshCompanySummaries = internalMutation({
         avgCompensationJunior: avgJunior ?? undefined,
         avgCompensationMid: avgMid ?? undefined,
         avgCompensationSenior: avgSenior ?? undefined,
+        lastPostedAt: entry.lastPostedAt || undefined,
+        lastScrapedAt: entry.lastScrapedAt || undefined,
         updatedAt: now,
       };
       const existingRow = existingByKey.get(key);
@@ -1362,11 +1400,12 @@ export const listCompanySummaries = query({
           typeof row.avgCompensationSenior === "number" ? row.avgCompensationSenior : null,
         currencyCode: typeof row.currencyCode === "string" ? row.currencyCode : null,
         sampleUrl: typeof row.sampleUrl === "string" ? row.sampleUrl : null,
+        lastPostedAt: typeof row.lastPostedAt === "number" ? row.lastPostedAt : 0,
         lastScrapedAt: typeof row.lastScrapedAt === "number" ? row.lastScrapedAt : 0,
       }))
       .sort((a, b) => {
+        if (b.lastPostedAt !== a.lastPostedAt) return b.lastPostedAt - a.lastPostedAt;
         if (b.lastScrapedAt !== a.lastScrapedAt) return b.lastScrapedAt - a.lastScrapedAt;
-        if (b.count !== a.count) return b.count - a.count;
         return a.name.localeCompare(b.name);
       })
       .slice(0, limit) as CompanySummary[];

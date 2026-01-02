@@ -132,6 +132,18 @@ const UUID_LABEL_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 const LONG_HEX_LABEL_REGEX = /^[0-9a-f]{24,}$/i;
 const isOpaqueDomainLabel = (label: string) =>
   UUID_LABEL_REGEX.test(label) || LONG_HEX_LABEL_REGEX.test(label);
+const DOMAIN_SEGMENT_REGEX = /^[a-z0-9.-]+$/;
+const isDomainSegment = (segment: string) => {
+  if (!segment.includes(".")) return false;
+  if (!DOMAIN_SEGMENT_REGEX.test(segment)) return false;
+  if (segment.startsWith(".") || segment.endsWith(".")) return false;
+  if (segment.includes("..")) return false;
+  return true;
+};
+const formatSlugAsDomain = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  return normalized.includes(".") ? normalized : `${normalized}.com`;
+};
 const toLogoSlug = (company: string) => {
   const lowered = (company || "").toLowerCase();
   const replaced = lowered.replace(/[+.&đħıĸŀłßŧø]/g, (char) => LOGO_SLUG_CHAR_MAP[char] ?? "");
@@ -147,6 +159,8 @@ const extractCompanySlug = (pathname: string) => {
     }
     if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
     if (/^\d+$/.test(cleaned)) continue;
+    if (isOpaqueDomainLabel(cleaned)) continue;
+    if (isDomainSegment(cleaned)) return cleaned;
     if (!/^[a-z0-9-]+$/.test(cleaned)) continue;
     return cleaned;
   }
@@ -189,11 +203,11 @@ const deriveBrandfetchDomain = (company: string, url?: string | null) => {
       if (hostedDomain) {
         const slugFromPath = extractCompanySlug(parsed.pathname);
         if (slugFromPath) {
-          return `${slugFromPath}.com`;
+          return formatSlugAsDomain(slugFromPath);
         }
         const hostSlug = extractCompanySlugFromHost(host, hostedDomain);
         if (hostSlug) {
-          return `${hostSlug}.com`;
+          return formatSlugAsDomain(hostSlug);
         }
         const fallback = fallbackCompanyDomain();
         if (fallback) {

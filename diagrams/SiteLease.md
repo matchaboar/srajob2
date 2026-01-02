@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-    start([Workflow start]) --> logStart[record_scratchpad: workflow.start]
+    start([Workflow start]) --> logStart[workflow.log: workflow.start]
     logStart --> lease{{lease_site<br/>worker=scraper-worker<br/>ttl=1800<br/>provider=firecrawl}}
     lease -->|no site| summarize[Return SiteLeaseResult]
     lease -->|site leased| logLease["Log site.leased (url, id)"]
