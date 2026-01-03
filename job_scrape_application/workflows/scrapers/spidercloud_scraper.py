@@ -1547,6 +1547,12 @@ class SpiderCloudScraper(BaseScraper):
                 expect_value = False
         return False
 
+    def _looks_like_http_404(self, title: str | None, markdown: str) -> bool:
+        sample = f"{title or ''} {markdown or ''}".lower()
+        if "job not found" in sample:
+            return True
+        return re.search(r"\b404\b", sample) is not None
+
     def _regex_extract_job_urls(self, text: str) -> List[str]:
         """
         Fallback extraction for Greenhouse listings when structured parsing fails.
@@ -2235,9 +2241,10 @@ class SpiderCloudScraper(BaseScraper):
             }
             return None
         if looks_like_error_landing(candidate_title, cleaned_markdown):
+            reason = "http_404" if self._looks_like_http_404(candidate_title, cleaned_markdown) else "error_landing"
             self._last_ignored_job = {
                 "url": url,
-                "reason": "error_landing",
+                "reason": reason,
                 "title": candidate_title,
                 "description": cleaned_markdown,
             }
