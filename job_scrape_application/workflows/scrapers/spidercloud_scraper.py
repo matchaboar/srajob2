@@ -2641,6 +2641,67 @@ class SpiderCloudScraper(BaseScraper):
         if cost_milli_cents is None and credits_used is not None:
             cost_milli_cents = int(float(credits_used) * 10)
         cost_usd = (cost_milli_cents / 100000) if isinstance(cost_milli_cents, (int, float)) else None
+
+        def _extract_http_status(value: Any) -> Optional[int]:
+            if isinstance(value, dict):
+                for key in ("status", "httpStatus"):
+                    status_val = value.get(key)
+                    if isinstance(status_val, (int, float)):
+                        return int(status_val)
+                meta = value.get("metadata")
+                if isinstance(meta, dict):
+                    meta_raw = meta.get("raw")
+                    if isinstance(meta_raw, dict):
+                        status_val = meta_raw.get("status")
+                        if isinstance(status_val, (int, float)):
+                            return int(status_val)
+            if isinstance(value, str) and value.strip():
+                parsed = self._try_parse_json(value)
+                if isinstance(parsed, dict):
+                    return _extract_http_status(parsed)
+            return None
+
+        http_status = None
+        for evt in raw_events:
+            http_status = _extract_http_status(evt)
+            if http_status is not None:
+                break
+        if http_status is None:
+            for text in gather_strings(raw_events):
+                http_status = _extract_http_status(text)
+                if http_status is not None:
+                    break
+        if http_status is None:
+            for text in markdown_parts:
+                http_status = _extract_http_status(text)
+                if http_status is not None:
+                    break
+
+        if http_status == 404:
+            fallback_title = self._title_from_url(url)
+            ignored_entry = {
+                "url": url,
+                "reason": "http_404",
+                "title": fallback_title,
+                "description": markdown_text or "Job not found",
+            }
+            self._last_ignored_job = ignored_entry
+            return {
+                "normalized": None,
+                "raw": {
+                    "url": url,
+                    "events": raw_events,
+                    "markdown": markdown_text,
+                    "creditsUsed": credits_used,
+                    "job_urls": listing_job_urls,
+                },
+                "job_urls": listing_job_urls,
+                "creditsUsed": credits_used,
+                "costMilliCents": cost_milli_cents,
+                "startedAt": started_at,
+                "ignored": ignored_entry,
+                "failed": {"url": url, "reason": "http_404", "status": http_status},
+            }
         require_keywords = attempt <= 1
         normalized = self._normalize_job(
             url,
