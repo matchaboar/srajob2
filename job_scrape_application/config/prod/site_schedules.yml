@@ -37,17 +37,6 @@ site_schedules:
     startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/flex/jobs
-  name: flex
-  enabled: true
-  type: greenhouse
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 120.0
-    timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/coinbase/jobs
   name: coinbase
   enabled: true
@@ -88,12 +77,28 @@ site_schedules:
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 08:00
-    days: *id001
+    days: &id002
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/figma/jobs
   name: figma
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/flex/jobs
+  name: flex
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
@@ -112,6 +117,17 @@ site_schedules:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/mithril/jobs
+  name: Mithril
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/mongodb/jobs
@@ -136,17 +152,6 @@ site_schedules:
     startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/mithril/jobs
-  name: Mithril
-  enabled: true
-  type: greenhouse
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 08:00
-    days: *id001
-    startTime: 08:00
-    intervalMinutes: 120.0
-    timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/okta/jobs
   name: okta
   enabled: true
@@ -165,7 +170,7 @@ site_schedules:
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 08:00
-    days: *id001
+    days: *id002
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
@@ -242,19 +247,8 @@ site_schedules:
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 08:00
-    days: *id001
+    days: *id002
     startTime: 08:00
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/twilio/jobs
-  name: twilio
-  enabled: true
-  type: greenhouse
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/thetradedesk/jobs
@@ -275,12 +269,12 @@ site_schedules:
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 08:00
-    days: *id001
+    days: *id002
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/zscaler/jobs
-  name: zscaler
+- url: https://api.greenhouse.io/v1/boards/twilio/jobs
+  name: twilio
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
@@ -292,6 +286,17 @@ site_schedules:
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/xai/jobs
   name: xAI
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/zscaler/jobs
+  name: zscaler
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
@@ -323,39 +328,6 @@ site_schedules:
     startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/?q=engineer
-  name: Dataminr
-  enabled: true
-  type: workday
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
-  name: Confluent
-  enabled: true
-  type: general
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 08:00
-    days: *id001
-    startTime: 08:00
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://www.uber.com/us/en/careers/list/?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington
-  name: Uber
-  enabled: true
-  type: uber
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 120.0
-    timezone: America/Denver
 - url: https://careers.adobe.com/us/en/search-results?keywords=engineer
   name: Adobe
   enabled: true
@@ -378,15 +350,26 @@ site_schedules:
     startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States
-  name: Palo Alto Networks
+- url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
+  name: Confluent
   enabled: true
   type: general
   scrapeProvider: spidercloud
   schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
+  name: Docusign
+  enabled: true
+  type: docusign
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://careers.snap.com/jobs
@@ -395,6 +378,17 @@ site_schedules:
   type: general
   scrapeProvider: spidercloud
   pattern: https://careers.snap.com/job**
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer
+  name: Dataminr
+  enabled: true
+  type: workday
+  scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -416,57 +410,35 @@ site_schedules:
 - url: https://jobs.ashbyhq.com/Serval
   name: Serval
   enabled: true
-  type: general
+  type: ashby
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 08:00
-    days: *id001
+    days: *id002
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.ashbyhq.com/factory
+  name: Ashbyhq
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://jobs.ashbyhq.com/lambda
   name: Lambda
   enabled: true
-  type: general
+  type: ashby
   scrapeProvider: spidercloud
   pattern: https://jobs.ashbyhq.com/lambda/*
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://jobs.ashbyhq.com/ramp
-  name: ramp
-  enabled: true
-  type: general
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 08:00
-    days: *id001
-    startTime: 08:00
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
-  name: Github
-  enabled: true
-  type: general
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 08:00
-    days: *id001
-    startTime: 08:00
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
-  name: Docusign
-  enabled: true
-  type: docusign
-  scrapeProvider: spidercloud
-  schedule:
-    name: Weekdays every 2 hours @ 08:00
-    days: *id001
-    startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://jobs.ashbyhq.com/notion
@@ -480,10 +452,76 @@ site_schedules:
     startTime: 09:30
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://openai.com/careers/search/?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
+- url: https://jobs.ashbyhq.com/ramp
+  name: ramp
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.ashbyhq.com/voltagepark.com
+  name: voltage park
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States
+  name: Palo Alto Networks
+  enabled: true
+  type: general
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://openai.com/careers/search?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
   name: OpenAI
   enabled: true
   type: openai
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
+  name: Github
+  enabled: true
+  type: general
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id002
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.notion.com/careers
+  name: notion
+  enabled: true
+  type: notion
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.uber.com/us/en/careers/list?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington
+  name: Uber
+  enabled: true
+  type: uber
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 09:30

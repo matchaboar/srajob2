@@ -94,6 +94,9 @@ _JIBEAPPLY_DROP_LINES = {
     "loginorregister",
     "mail_outline",
 }
+_GENERIC_DROP_LINE_SUBSTRINGS = (
+    "enable javascript to run this app",
+)
 _JUNK_UPPER_LINE_RE = re.compile(r"^[A-Z0-9_.]{8,}$")
 _COMPANY_SUFFIX_RE = re.compile(
     r"(,?\s*(inc|inc\.|llc|ltd|limited|corp|corporation|co|company)\.?)$",
@@ -536,6 +539,8 @@ def _strip_platform_tokens(markdown: str) -> str:
             cleaned_lines.append(line)
             continue
         normalized = re.sub(WHITESPACE_PATTERN, " ", stripped).strip().lower()
+        if any(token in normalized for token in _GENERIC_DROP_LINE_SUBSTRINGS):
+            continue
         if any(token in normalized for token in jibe_substrings):
             continue
         if normalized in _JIBEAPPLY_DROP_LINES:

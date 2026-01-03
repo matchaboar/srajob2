@@ -117,7 +117,7 @@ def _extract_greenhouse_board_slug(parsed: Any) -> str | None:
     return None
 
 
-def _site_wipe_targets(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _site_wipe_targets(sites: List[Dict[str, Any]], *, host_wide: bool) -> List[Dict[str, Any]]:
     targets: List[Dict[str, Any]] = []
     seen: set[tuple[str, str, Tuple[str, ...]]] = set()
     for site in sites:
@@ -128,21 +128,32 @@ def _site_wipe_targets(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if not parsed.scheme or not parsed.hostname:
             continue
         host = parsed.hostname.lower()
-        prefix = f"{parsed.scheme}://{host}"
-        key = (host, prefix, TABLES)
+        base_prefix = f"{parsed.scheme}://{host}"
+        path = (parsed.path or "").rstrip("/")
+        if host_wide or not path or path == "/":
+            prefix = base_prefix
+            domain = host
+        else:
+            prefix = f"{base_prefix}{path}"
+            domain = f"{host}{path}"
+        key = (domain, prefix, TABLES)
         if key not in seen:
             seen.add(key)
-            targets.append({"domain": host, "prefix": prefix, "tables": TABLES})
+            targets.append({"domain": domain, "prefix": prefix, "tables": TABLES})
 
         board_slug = _extract_greenhouse_board_slug(parsed)
         if board_slug:
             board_prefix = f"https://{GREENHOUSE_BOARD_HOST}/{board_slug}"
-            board_key = (GREENHOUSE_BOARD_HOST, board_prefix, GREENHOUSE_BOARD_TABLES)
+            if host_wide:
+                board_domain = GREENHOUSE_BOARD_HOST
+            else:
+                board_domain = f"{GREENHOUSE_BOARD_HOST}/{board_slug}"
+            board_key = (board_domain, board_prefix, GREENHOUSE_BOARD_TABLES)
             if board_key not in seen:
                 seen.add(board_key)
                 targets.append(
                     {
-                        "domain": GREENHOUSE_BOARD_HOST,
+                        "domain": board_domain,
                         "prefix": board_prefix,
                         "tables": GREENHOUSE_BOARD_TABLES,
                     }
@@ -158,6 +169,11 @@ def main() -> None:
     parser.add_argument("--domain", help="Match sites by domain (e.g. bloomberg.avature.net)")
     parser.add_argument("--company", help="Match sites by company name (substring, case-insensitive)")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--host-wide",
+        action="store_true",
+        help="Wipe all data for a host (default is path-scoped to each matched site).",
+    )
     parser.add_argument("--skip-run", action="store_true", help="Skip triggering runSiteNow after wipe")
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument("--max-pages", type=int, default=50)
@@ -176,7 +192,7 @@ def main() -> None:
         matched_sites = _find_sites_by_company(sites_result or [], args.company)
     else:
         matched_sites = _find_sites_by_domain(sites_result or [], args.domain or DEFAULT_DOMAIN)
-    wipe_targets = _site_wipe_targets(matched_sites)
+    wipe_targets = _site_wipe_targets(matched_sites, host_wide=args.host_wide)
     wipe_results: Dict[str, Any] = {}
     if not wipe_targets:
         print("No matching sites found for wipe; skipping.")

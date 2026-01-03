@@ -3,17 +3,14 @@ import atexit
 import logging
 import time
 from dataclasses import dataclass
-from datetime import timedelta
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
 from queue import SimpleQueue
 from typing import Optional
 import os
 
-import httpx
 from temporalio import workflow
 from temporalio.client import Client
-from temporalio.service import RPCError, RPCStatusCode
 from temporalio.worker import (
     Interceptor,
     StartActivityInput,
@@ -27,7 +24,6 @@ from temporalio.worker import (
 
 from ..config import settings
 from ..services import telemetry
-from ..services.convex_client import convex_query
 from . import activities
 from .deadlock_logging import install_deadlock_posthog_handler, record_run_metadata, update_run_metadata
 from .scrape_workflow import (
@@ -433,163 +429,7 @@ def _setup_logging() -> logging.Logger:
 
     logging.basicConfig(level=logging.INFO, format=fmt, handlers=handlers, force=True)
     _setup_workflow_logger(handlers)
-    # HTTPX logs every heartbeat request at INFO; keep them quiet unless debugging.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
     return logging.getLogger("temporal.worker")
-
-
-async def monitor_loop(client: Client, worker_id: str) -> None:
-    """Periodically pushes Temporal workflow status to Convex."""
-    logger = logging.getLogger("temporal.worker.monitor")
-
-    if not settings.convex_http_url:
-        logger.warning("CONVEX_HTTP_URL not set. Monitor disabled.")
-        return
-
-    import socket
-    hostname = socket.gethostname()
-
-    logger.info("Monitor loop started (worker_id=%s host=%s)", worker_id, hostname)
-
-    last_log_time = 0.0
-    last_workflow_count: int | None = None
-    last_no_workflows_reason: str | None = None
-    monitor_timeout: timedelta | None = None
-    if settings.monitor_rpc_timeout_seconds > 0:
-        monitor_timeout = timedelta(seconds=settings.monitor_rpc_timeout_seconds)
-
-    while True:
-        try:
-            workflows = []
-            list_failed = False
-            # List running workflows
-            try:
-                async for wf in client.list_workflows(
-                    'ExecutionStatus="Running"',
-                    rpc_timeout=monitor_timeout,
-                ):
-                    start_time = getattr(wf, "start_time", None)
-                    workflows.append({
-                        "id": wf.id,
-                        "type": getattr(wf, "type", getattr(wf, "workflow_type", "unknown")),
-                        "status": "Running",
-                        "startTime": start_time.isoformat() if start_time else "",
-                    })
-            except RPCError as exc:
-                if exc.status in {
-                    RPCStatusCode.CANCELLED,
-                    RPCStatusCode.DEADLINE_EXCEEDED,
-                    RPCStatusCode.UNAVAILABLE,
-                }:
-                    logger.warning("Monitor workflow listing timed out: %s", exc.message)
-                    list_failed = True
-                else:
-                    raise
-
-            if not list_failed:
-                # Determine reason if no workflows
-                no_workflows_reason = None
-                if len(workflows) == 0:
-                    no_workflows_reason = "No workflows scheduled - waiting for work"
-                
-                # Build payload with worker identification
-                payload = {
-                    "workerId": worker_id,
-                    "hostname": hostname,
-                    "temporalAddress": settings.temporal_address,
-                    "temporalNamespace": settings.temporal_namespace,
-                    "taskQueue": settings.task_queue,
-                    "workflows": workflows,
-                }
-                
-                if no_workflows_reason:
-                    payload["noWorkflowsReason"] = no_workflows_reason
-                
-                # Push to Convex
-                url = settings.convex_http_url.rstrip("/") + "/api/temporal/status"
-                async with httpx.AsyncClient() as http:
-                    resp = await http.post(url, json=payload)
-                    if resp.status_code != 200:
-                        logger.error("Monitor post failed status=%s body=%s", resp.status_code, resp.text)
-                    else:
-                        now_monotonic = time.monotonic()
-                        should_log = False
-                        if last_workflow_count is None or last_workflow_count != len(workflows):
-                            should_log = True
-                        if no_workflows_reason != last_no_workflows_reason:
-                            should_log = True
-                        if now_monotonic - last_log_time >= 300:
-                            should_log = True
-                        if should_log:
-                            logger.info("Monitor heartbeat sent (workflows=%d)", len(workflows))
-                            last_log_time = now_monotonic
-                            last_workflow_count = len(workflows)
-                            last_no_workflows_reason = no_workflows_reason
-        except Exception as e:
-            logger.exception("Monitor loop error: %s", e)
-
-        await asyncio.sleep(30)  # Update every 30 seconds
-
-
-async def webhook_wait_logger() -> None:
-    """Emit a heartbeat of pending Firecrawl webhook jobs for visibility."""
-
-    logger = logging.getLogger("temporal.worker.webhooks")
-    if not (settings.convex_http_url or settings.convex_url):
-        logger.info("Convex URL not set. Webhook wait logger disabled.")
-        return
-    interval = int(getattr(settings, "webhook_wait_logger_interval_seconds", 60))
-    if interval <= 0:
-        logger.info("Webhook wait logger disabled (interval=%s).", interval)
-        return
-
-    last_log_time = 0.0
-    last_count: int | None = None
-    try:
-        while True:
-            try:
-                pending = await convex_query("router:listPendingFirecrawlWebhooks", {"limit": 10})
-                summary_parts = []
-                if isinstance(pending, list):
-                    for event in pending:
-                        metadata = event.get("metadata") if isinstance(event.get("metadata"), dict) else {}
-                        job_id = str(event.get("jobId") or metadata.get("jobId") or event.get("id") or "")
-                        site_url = event.get("siteUrl") or metadata.get("siteUrl") or "unknown"
-                        status_url = (
-                            event.get("statusUrl")
-                            or event.get("status_url")
-                            or metadata.get("statusUrl")
-                            or metadata.get("status_url")
-                        )
-                        summary_parts.append(
-                            f"{job_id or 'unknown'} waiting for webhook url={site_url} status={status_url or 'unknown'}"
-                        )
-
-                count = len(summary_parts)
-                now_monotonic = time.monotonic()
-                should_log = False
-                if last_count is None or last_count != count:
-                    should_log = True
-                if now_monotonic - last_log_time >= 300:
-                    should_log = True
-
-                if should_log:
-                    if summary_parts:
-                        logger.info(
-                            "Waiting for Firecrawl webhooks (%d): %s",
-                            count,
-                            "; ".join(summary_parts),
-                        )
-                    else:
-                        logger.info("Waiting for Firecrawl webhooks: none pending")
-                    last_log_time = now_monotonic
-                    last_count = count
-            except Exception as exc:  # noqa: BLE001
-                logger.exception("Pending webhook check failed: %s", exc)
-
-            await asyncio.sleep(interval)
-    except asyncio.CancelledError:
-        logger.info("Webhook wait logger stopped.")
 
 
 async def main() -> None:
@@ -649,9 +489,6 @@ async def main() -> None:
         for cfg in configs
     ]
 
-    # Start the monitor loop in the background
-    monitor_task = asyncio.create_task(monitor_loop(client, worker_id))
-    webhook_log_task = asyncio.create_task(webhook_wait_logger())
     schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
 
     logger.info(
@@ -670,16 +507,6 @@ async def main() -> None:
     except KeyboardInterrupt:
         logger.info("Worker interrupted; shutting down...")
     finally:
-        monitor_task.cancel()
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            pass
-        webhook_log_task.cancel()
-        try:
-            await webhook_log_task
-        except asyncio.CancelledError:
-            pass
         schedule_audit_task.cancel()
         try:
             await schedule_audit_task

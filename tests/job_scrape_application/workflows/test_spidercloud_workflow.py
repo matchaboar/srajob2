@@ -1447,6 +1447,25 @@ def test_spidercloud_coreweave_fixture_not_skipped():
     assert "engineer" in normalized["title"].lower()
 
 
+def test_spidercloud_coreweave_404_job_ignored():
+    fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_coreweave_job_4573037006_raw.json"
+    payload = _load_spidercloud_fixture(fixture_path)[0]
+
+    scraper = _make_spidercloud_scraper()
+    markdown = scraper._extract_markdown(payload) or ""  # noqa: SLF001
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=payload["url"],
+        markdown=markdown,
+        events=[payload],
+        started_at=0,
+    )
+
+    assert normalized is None
+    assert scraper._last_ignored_job is not None  # noqa: SLF001
+    assert scraper._last_ignored_job.get("reason") == "error_landing"  # noqa: SLF001
+    assert "job not found" in (scraper._last_ignored_job.get("description") or "").lower()  # noqa: SLF001
+
+
 def test_spidercloud_github_job_detail_uses_structured_data():
     fixture_path = Path("tests/job_scrape_application/workflows/fixtures/spidercloud_github_careers_job_4554_raw.json")
     payload = _load_spidercloud_fixture(fixture_path)

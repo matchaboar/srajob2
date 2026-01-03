@@ -53,6 +53,20 @@ class AshbyHqHandler(BaseSiteHandler):
             return None
         return f"https://jobs.ashbyhq.com/{slug}"
 
+    def is_listing_url(self, url: str) -> bool:
+        if not self.matches_url(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        segments = [seg for seg in (parsed.path or "").split("/") if seg]
+        if not segments:
+            return False
+        if len(segments) >= 3 and segments[0] == "posting-api" and segments[1] == "job-board":
+            return len(segments) == 3
+        return len(segments) == 1
+
     def get_links_from_json(self, payload: Any) -> List[str]:
         jobs = payload.get("jobs") if isinstance(payload, dict) else None
         if not isinstance(jobs, list):

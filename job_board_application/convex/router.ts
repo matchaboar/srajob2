@@ -1551,6 +1551,55 @@ export const listIgnoredJobs = query({
   },
 });
 
+export const deleteIgnoredJobsByIds = mutation({
+  args: {
+    ids: v.array(v.id("ignored_jobs")),
+  },
+  handler: async (ctx, args) => {
+    let deleted = 0;
+    for (const id of args.ids) {
+      try {
+        await ctx.db.delete(id);
+        deleted += 1;
+      } catch (err) {
+        console.error("deleteIgnoredJobsByIds: failed to delete ignored job", err);
+      }
+    }
+    return { deleted };
+  },
+});
+
+export const deleteSeenJobUrls = mutation({
+  args: {
+    entries: v.array(
+      v.object({
+        sourceUrl: v.string(),
+        url: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    let deleted = 0;
+    for (const entry of args.entries) {
+      const sourceUrl = entry.sourceUrl.trim();
+      const url = entry.url.trim();
+      if (!sourceUrl || !url) continue;
+      const row = await ctx.db
+        .query("seen_job_urls")
+        .withIndex("by_source_url", (q: any) => q.eq("sourceUrl", sourceUrl).eq("url", url))
+        .first();
+      if (!row) continue;
+      try {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      } catch (err) {
+        console.error("deleteSeenJobUrls: failed to delete seen job url", err);
+      }
+    }
+    return { deleted };
+  },
+});
+
 export const clearIgnoredJobsForSource = mutation({
   args: {
     sourceUrl: v.string(),

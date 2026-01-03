@@ -3,52 +3,18 @@
     "company": "Voltage Park",
     "companySlug": "voltage-park",
     "limit": 3,
-    "count": 3,
+    "count": 1,
     "env": "prod",
     "companyMatches": [
       "voltage park"
     ],
-    "generatedAtMs": 1767334454534,
-    "generatedAt": "2026-01-01 23:14:14"
+    "generatedAtMs": 1767470427866,
+    "generatedAt": "2026-01-03 13:00:27"
   },
   "jobs": [
     {
-      "id": "k17et8e5pm4wzgf0kqst442wed7yebj6",
-      "title": "IT Support Specialist @ Voltage Park",
-      "company": "voltage park",
-      "location": "Washington, District of Columbia",
-      "locations": [
-        "Washington, District of Columbia"
-      ],
-      "country": "United States",
-      "remote": false,
-      "level": "mid",
-      "totalCompensation": 0.0,
-      "compensationUnknown": true,
-      "url": "https://jobs.ashbyhq.com/voltagepark.com/5b6e2a55-3f19-437f-ba4c-284d5b7b7724",
-      "postedAt": 1767333410048.0,
-      "description": "# IT Support Specialist @ Voltage Park\n\nABOUT THE ROLE\n\nVoltage Park is hiring an IT Analyst to support our growing organization. This is an onsite role based in Redmond, WA. You’ll focus on device management, onboarding and offboarding, and day-to-day IT support while also assisting with identity and access management and security standards. You’ll be part of our newly established Seattle-area office, helping ensure the technology and workspace continue to run smoothly as the team settles in.\n\nThis position is a great fit for someone who enjoys helping colleagues solve technology problems, is comfortable with multiple operating systems, and wants to grow their skills in a modern IT environment.\n\nThis is an on-site role based out of our Redmond, Washington office.\n\n\nWHAT YOU’LL DO\n\n - Support onboarding and off-boarding workflows in coordination with business teams.\n\n - Manage the full lifecycle of laptops and workstations across Windows and macOS using JumpCloud MDM.\n\n - Support identity and access management processes, including enforcing Role-Based Access Control (RBAC) standards.\n\n - Partner with Security to apply policies around encryption, MFA, patching, and compliance monitoring.\n\n - Support collaboration tools including Google Workspace, Slack, and internal documentation systems.\n\n - Provide tier-2 technical support for employees, escalating when necessary to the Security team.\n\n - Track, prioritize, and resolve IT requests.\n\n - Maintain IT documentation and create resources to help employees solve common issues.\n\n - Participate in IT initiatives such as endpoint security improvements, device imaging, and access automation.\n\n - Provide onsite IT support in our newly established Seattle-area office, ensuring systems and equipment remain reliable as the office ramps up.\n   \n\n\nWHAT WE’RE LOOKING FOR\n\n - 3+ years of experience in IT support, IT analyst, or a similar technical role.\n\n - Strong knowledge of Windows and macOS systems.\n\n - Experience with identity and access management platforms (e.g., JumpCloud, Okta).\n\n - Familiarity with MDM solutions and enforcing device security policies.\n\n - Solid troubleshooting skills across devices, networks, and SaaS platforms.\n\n - Knowledge of networking basics such as VPNs, DNS, and firewalls.\n\n - Familiarity with ticketing or workflow systems such as Jira, Linear, ServiceNow, or Zendesk.\n\n - Clear and confident communication skills with both technical and non-technical colleagues.\n\n - Ability to document processes and create useful self-service guides.\n   \n\n\nNICE TO HAVE\n\n - Experience working in a fast-paced or high-growth environment.\n\n - Exposure to compliance frameworks such as SOC 2 or ISO 27001.\n\n - Experience supporting engineers or technical teams.\n\n - Exposure to Atlassian tools (Jira, Confluence) for IT request tracking and documentation.\n\n - Familiarity with 1Password or other enterprise password managers.\n\n - Experience with Linux systems.\n   \n\n\nWHY JOIN VOLTAGE PARK\n\nAs an IT Analyst at Voltage Park, you’ll be the first line of support helping employees stay productive and secure. You’ll work with a modern IT stack, contribute to smooth onboarding experiences, and build your skills in device management and SaaS administration. You’ll also play a key role in supporting our new Seattle-area office during its early growth phase. This is a strong opportunity to grow in IT, gain experience with modern security and compliance practices, and make an immediate impact in a collaborative environment.\n\nVoltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.&nbsp;"
-    },
-    {
-      "id": "k1719kjc7z41d71h04w0a06t9d7yf5sa",
-      "title": "Product and Privacy Counsel @ Voltage Park",
-      "company": "voltage park",
-      "location": "Los Angeles, California",
-      "locations": [
-        "Los Angeles, California"
-      ],
-      "country": "United States",
-      "remote": false,
-      "level": "senior",
-      "totalCompensation": 0.0,
-      "compensationUnknown": true,
-      "url": "https://jobs.ashbyhq.com/voltagepark.com/c93c2f7d-f00d-409f-b288-8956f84976dd",
-      "postedAt": 1767333399731.0,
-      "description": "# Product and Privacy Counsel @ Voltage Park\n\nABOUT VOLTAGE PARK\n\nVoltage Park is on a mission to make machine learning infrastructure accessible to all, from large enterprises and research universities to seed-stage startups and nonprofits. Providing seamless access to compute with pricing and inventory transparency is the future of access to GPUs, and we are the only cloud provider offering a platform that shows all available GPUs with transparent, market-based pricing, in addition to long-term reserve contracts for our customers.\n\n\nABOUT THE ROLE\n\nWe’re looking for a Product and Privacy Counsel to join our legal team and provide strategic advice on legal and regulatory issues across our AI and cloud services. You’ll collaborate with engineering, security, and leadership teams to manage product liability, IP, data security, and compliance matters — helping define what responsible AI operations look like at scale. This is a hands-on role that blends traditional legal work with the emerging complexities of AI technology.\n\nThis is a remote role, with a preference for candidates being based in the Los Angeles area.\n\n\nKEY RESPONSIBILITIES\n\n - Advise on legal and compliance issues across AI software, cloud services, and hardware products.\n\n - Manage intellectual property matters, including software and hardware assets.\n\n - Oversee data privacy and security compliance programs.\n\n - Develop and maintain internal governance processes for AI systems and partnerships.\n\n - Support research, contracts, and compliance for both third-party AI tools and first-party AI development.\n\n - Collaborate with senior leadership and engineering to define liability standards in the evolving AI legal landscape.\n\n - Monitor emerging laws and regulations affecting AI and data use.\n   \n\n\n\n - J.D. and active bar membership in at least one U.S. jurisdiction.\n\n - 5+ years of experience at a top law firm and/or in-house at a major tech company.\n\n - Strong foundation in product liability, IP, and data compliance.\n\n - Skilled at working directly with technical and engineering teams.\n\n - Excellent communication, analytical, and problem-solving abilities.\n   \n\n\nBONUS POINTS IF YOU HAVE:\n\n - Experience working with AI systems or cloud infrastructure.\n\n - Background in government or regulatory compliance.\n\n - Technical literacy and a collaborative, practical mindset.\n   \n\nVoltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.&nbsp;"
-    },
-    {
-      "id": "k177p04ewngjsrzhk9cw88mc197yfpge",
-      "title": "Data Center Technician - Quincy @ Voltage Park",
+      "id": "k178hxr9932bnahcwc0bmbe1an7yg89s",
+      "title": "Voltagepark.Com",
       "company": "voltage park",
       "location": "Unknown",
       "locations": [
@@ -59,9 +25,9 @@
       "level": "mid",
       "totalCompensation": 0.0,
       "compensationUnknown": true,
-      "url": "https://jobs.ashbyhq.com/voltagepark.com/2e475a61-e8d3-4c18-99fa-f7c65fe483dd",
-      "postedAt": 1767333389061.0,
-      "description": "# Data Center Technician - Quincy @ Voltage Park\n\nWe’re looking for a Data Center Technician to join our small team. You’ll be monitoring some of the world’s most advanced equipment and systems within our new HPC data center."
+      "url": "https://jobs.ashbyhq.com/voltagepark.com",
+      "postedAt": 1767468978758.0,
+      "description": "Jobs\n\n    \n\n        \n    \n    \n    \n    \n\n  \n  \n    \n      You need to enable JavaScript to run this app."
     }
   ]
 }
