@@ -66,6 +66,7 @@ from job_scrape_application.workflows.site_handlers import GithubCareersHandler 
 from job_scrape_application.workflows.site_handlers import AshbyHqHandler  # noqa: E402
 from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_scraper  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_for_convex  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import _jobs_from_scrape_items  # noqa: E402
 
 
 def _load_spidercloud_fixture(path: Path) -> Any:
@@ -1462,8 +1463,36 @@ def test_spidercloud_coreweave_404_job_ignored():
 
     assert normalized is None
     assert scraper._last_ignored_job is not None  # noqa: SLF001
-    assert scraper._last_ignored_job.get("reason") == "error_landing"  # noqa: SLF001
+    assert scraper._last_ignored_job.get("reason") == "http_404"  # noqa: SLF001
     assert "job not found" in (scraper._last_ignored_job.get("description") or "").lower()  # noqa: SLF001
+
+
+def test_spidercloud_coreweave_job_4618211006_normalizes():
+    fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_coreweave_job_4618211006_raw.json"
+    payload = _load_spidercloud_fixture(fixture_path)[0]
+
+    scraper = _make_spidercloud_scraper()
+    markdown = scraper._extract_markdown(payload) or ""  # noqa: SLF001
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url=payload["url"],
+        markdown=markdown,
+        events=[payload],
+        started_at=0,
+    )
+
+    assert normalized is not None
+    assert normalized.get("title") == "SOX IT Manager"
+
+    jobs = _jobs_from_scrape_items(
+        {"normalized": [normalized]},
+        default_posted_at=0,
+        scraped_at=0,
+        scraped_with="spidercloud",
+        workflow_name="SpidercloudJobDetails",
+        scraped_cost_milli_cents=0,
+    )
+
+    assert jobs
 
 
 def test_spidercloud_github_job_detail_uses_structured_data():

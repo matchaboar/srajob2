@@ -11,6 +11,8 @@ from .confluent import ConfluentHandler
 from .docusign import DocusignHandler
 from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
+from .meta_careers import MetaCareersHandler
+from .microsoft_careers import MicrosoftCareersHandler
 from .netflix import NetflixHandler
 from .notion_careers import NotionCareersHandler
 from .openai_careers import OpenAICareersHandler
@@ -27,6 +29,8 @@ _HANDLER_CLASSES = (
     DocusignHandler,
     GithubCareersHandler,
     GreenhouseHandler,
+    MetaCareersHandler,
+    MicrosoftCareersHandler,
     NetflixHandler,
     NotionCareersHandler,
     OpenAICareersHandler,
@@ -69,6 +73,8 @@ __all__ = [
     "DocusignHandler",
     "GithubCareersHandler",
     "GreenhouseHandler",
+    "MetaCareersHandler",
+    "MicrosoftCareersHandler",
     "NetflixHandler",
     "NotionCareersHandler",
     "OpenAICareersHandler",

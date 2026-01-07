@@ -350,6 +350,47 @@ class SpiderCloudScraper(BaseScraper):
                 return desc
         return None
 
+    def _extract_greenhouse_payload_from_text(self, text: str) -> Optional[Dict[str, Any]]:
+        if not isinstance(text, str) or not text.strip():
+            return None
+        candidate = text.strip()
+        if "<pre" in candidate.lower():
+            match = PRE_PATTERN.search(candidate)
+            if not match:
+                return None
+            candidate = html.unescape(match.group("content") or "").strip()
+        if not candidate:
+            return None
+        parsed = self._try_parse_json(candidate)
+        if parsed is None and "{" in candidate:
+            match = re.search(JSON_OBJECT_PATTERN, candidate, flags=re.DOTALL)
+            if match:
+                parsed = self._try_parse_json(match.group(0))
+        if isinstance(parsed, dict):
+            return parsed
+        return None
+
+    def _extract_greenhouse_company_from_events(self, events: List[Any]) -> Optional[str]:
+        payload = self._extract_greenhouse_payload_from_events(events)
+        if not isinstance(payload, dict):
+            return None
+        for key in ("company_name", "companyName", "company"):
+            raw = payload.get(key)
+            if isinstance(raw, str) and raw.strip():
+                cleaned = raw.strip()
+                normalized = normalize_company_hint(cleaned)
+                return normalized or cleaned
+        return None
+
+    def _extract_greenhouse_payload_from_events(self, events: List[Any]) -> Optional[Dict[str, Any]]:
+        for text in gather_strings(events):
+            if not isinstance(text, str) or not text.strip():
+                continue
+            payload = self._extract_greenhouse_payload_from_text(text)
+            if isinstance(payload, dict):
+                return payload
+        return None
+
     def _extract_greenhouse_location_from_events(self, events: List[Any]) -> Optional[str]:
         def _normalize(value: Any) -> Optional[str]:
             if isinstance(value, dict):
@@ -359,26 +400,17 @@ class SpiderCloudScraper(BaseScraper):
             cleaned = value.strip()
             return cleaned or None
 
-        for text in gather_strings(events):
-            if not isinstance(text, str) or not text.strip():
-                continue
-            payload = None
-            if "<pre" in text.lower():
-                payload = BaseSiteHandler._extract_json_payload_from_html(text)  # noqa: SLF001
-            if payload is None:
-                parsed = self._try_parse_json(text)
-                if isinstance(parsed, dict):
-                    payload = parsed
-            if not isinstance(payload, dict):
-                continue
-            location = _normalize(payload.get("location"))
+        payload = self._extract_greenhouse_payload_from_events(events)
+        if not isinstance(payload, dict):
+            return None
+        location = _normalize(payload.get("location"))
+        if location:
+            return location
+        offices = payload.get("offices")
+        if isinstance(offices, list) and offices:
+            location = _normalize(offices[0])
             if location:
                 return location
-            offices = payload.get("offices")
-            if isinstance(offices, list) and offices:
-                location = _normalize(offices[0])
-                if location:
-                    return location
         return None
 
     def _extract_markdown(self, obj: Any) -> Optional[str]:
@@ -2078,6 +2110,14 @@ class SpiderCloudScraper(BaseScraper):
             }
             return None
 
+        greenhouse_payload = None
+        if handler and handler.name == "greenhouse" and listing_payload is None:
+            for text in gather_strings(events):
+                payload = self._extract_greenhouse_payload_from_text(text)
+                if self._is_greenhouse_job_payload(payload):
+                    greenhouse_payload = payload
+                    break
+
         structured_payload = self._extract_structured_job_posting(events)
         structured_title = None
         structured_location = None
@@ -2298,11 +2338,26 @@ class SpiderCloudScraper(BaseScraper):
                     "description": cleaned_markdown,
                 }
                 return None
+        handler_company = None
+        if handler:
+            extractor = getattr(handler, "extract_company", None)
+            if callable(extractor):
+                handler_company = extractor(listing_payload, url) if listing_payload is not None else None
+                if handler_company is None and greenhouse_payload is not None:
+                    handler_company = extractor(greenhouse_payload, url)
+                if handler_company is None and structured_payload is not None:
+                    handler_company = extractor(structured_payload, url)
+        if handler_company and is_generic_company_name(handler_company):
+            handler_company = None
+        greenhouse_company = None
+        if handler and handler.name == "greenhouse":
+            greenhouse_company = self._extract_greenhouse_company_from_events(events)
+            if greenhouse_company and is_generic_company_name(greenhouse_company):
+                greenhouse_company = None
         derived_company = derive_company_from_url(url)
-        if structured_company and is_generic_company_name(structured_company) and derived_company:
-            company = derived_company
-        else:
-            company = structured_company or derived_company or "Unknown"
+        if structured_company and is_generic_company_name(structured_company):
+            structured_company = None
+        company = structured_company or handler_company or greenhouse_company or derived_company or "Unknown"
         company = apply_company_hint(company, hints) if isinstance(hints, dict) else company
         location_hint = hints.get("location") if isinstance(hints, dict) else None
         structured_location_hint = structured_hints.get("location") if structured_hints else None
@@ -2312,6 +2367,13 @@ class SpiderCloudScraper(BaseScraper):
             elif "remote" in location_hint.lower() and "remote" not in structured_location_hint.lower():
                 location_hint = structured_location_hint
         raw_hints = parse_markdown_hints(raw_cleaned_markdown) if raw_cleaned_markdown.strip() else {}
+        if isinstance(hints, dict) and isinstance(raw_hints, dict):
+            raw_remote = raw_hints.get("remote")
+            if isinstance(raw_remote, bool):
+                if raw_remote:
+                    hints["remote"] = True
+                elif hints.get("remote") is None:
+                    hints["remote"] = False
         raw_location_hint = raw_hints.get("location") if isinstance(raw_hints, dict) else None
         if raw_location_hint:
             if not location_hint:
@@ -2325,6 +2387,12 @@ class SpiderCloudScraper(BaseScraper):
                 raw_locations = raw_hints.get("locations") if isinstance(raw_hints, dict) else None
                 if raw_locations and isinstance(raw_locations, list):
                     hints["locations"] = raw_locations
+        raw_locations = raw_hints.get("locations") if isinstance(raw_hints, dict) else None
+        if isinstance(raw_locations, list) and any(
+            isinstance(loc, str) and "remote" in loc.lower() for loc in raw_locations
+        ):
+            if isinstance(hints, dict) and hints.get("remote") is None:
+                hints["remote"] = True
         handler_location = None
         if handler:
             handler_location = handler.extract_location_hint(raw_markdown)
@@ -2332,6 +2400,11 @@ class SpiderCloudScraper(BaseScraper):
         if handler and handler.name == "greenhouse":
             greenhouse_location = self._extract_greenhouse_location_from_events(events)
         location = structured_location or greenhouse_location or handler_location or location_hint
+        if greenhouse_location and location_hint:
+            greenhouse_label = greenhouse_location.strip()
+            greenhouse_country = _normalize_country_label(greenhouse_label)
+            if greenhouse_country and greenhouse_label.lower() == greenhouse_country.lower():
+                location = location_hint
         if structured_location and location_hint:
             structured_label = structured_location.strip()
             hint_label = location_hint.strip()
@@ -2374,6 +2447,8 @@ class SpiderCloudScraper(BaseScraper):
             extractor = getattr(handler, "extract_posted_at", None)
             if callable(extractor):
                 raw_posted_at = extractor(listing_payload, url) if listing_payload is not None else None
+                if raw_posted_at is None and greenhouse_payload is not None:
+                    raw_posted_at = extractor(greenhouse_payload, url)
                 if raw_posted_at is None and structured_payload is not None:
                     raw_posted_at = extractor(structured_payload, url)
                 if raw_posted_at is None and raw_markdown:
@@ -2391,8 +2466,17 @@ class SpiderCloudScraper(BaseScraper):
                             candidate_payload = self._try_parse_json(fence_match.group(1))
                     if isinstance(candidate_payload, dict):
                         raw_posted_at = extractor(candidate_payload, url)
+                if raw_posted_at is None and handler.name == "greenhouse":
+                    greenhouse_payload = self._extract_greenhouse_payload_from_events(events)
+                    if isinstance(greenhouse_payload, dict):
+                        raw_posted_at = extractor(greenhouse_payload, url)
         if raw_posted_at is None and structured_payload is not None:
             raw_posted_at = self._posted_at_from_job_posting(structured_payload)
+        if raw_posted_at is None and handler and raw_markdown:
+            try:
+                raw_posted_at = handler.extract_posted_at_from_markdown(raw_markdown, url)
+            except Exception:
+                raw_posted_at = None
         if raw_posted_at is not None:
             if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
                 posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)

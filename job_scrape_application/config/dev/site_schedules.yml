@@ -287,3 +287,25 @@
     startTime: 09:30
     intervalMinutes: 1440.0
     timezone: America/Denver
+- url: https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1
+  name: Microsoft
+  enabled: true
+  type: microsoft
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver
+- url: https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ
+  name: Meta Careers
+  enabled: true
+  type: meta
+  scrapeProvider: spidercloud
+  schedule:
+    name: weekdays 9:30am
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 1440.0
+    timezone: America/Denver

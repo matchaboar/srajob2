@@ -15,7 +15,7 @@ import {
   normalizeSiteUrl,
   siteCanonicalKey,
 } from "./siteUtils";
-import { SITE_TYPES, SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
+import { SITE_TYPES, type SiteType } from "./siteTypes";
 import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters, parseMarkdownHints } from "./jobs";
 
 const http = httpRouter();
@@ -1378,9 +1378,7 @@ export const leaseSite = mutation({
 
     for (const site of candidates as any[]) {
       const siteType = (site).type ?? "general";
-      const scrapeProvider =
-        (site).scrapeProvider ??
-        (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
+      const scrapeProvider = (site).scrapeProvider ?? "spidercloud";
       const hasSchedule = !!(site).scheduleId;
       const lastRun = (site).lastRunAt ?? 0;
       const manualTriggerAt = (site).manualTriggerAt ?? 0;
@@ -1451,14 +1449,7 @@ export const leaseSite = mutation({
     const fresh = await ctx.db.get(pick._id as Id<"sites">);
     if (!fresh) return null;
     const s = fresh;
-    const resolvedProvider =
-      (s as any).scrapeProvider ??
-      ((s as any).type === "greenhouse" ||
-      (s as any).type === "avature" ||
-      (s as any).type === "workday" ||
-      (s as any).type === "netflix"
-        ? "spidercloud"
-        : "fetchfox");
+    const resolvedProvider = (s as any).scrapeProvider ?? "spidercloud";
     return {
       _id: s._id,
       name: s.name,
@@ -2951,9 +2942,7 @@ export const upsertSite = mutation({
   handler: async (ctx, args) => {
     // For simplicity, just insert a new record
     const siteType = args.type ?? "general";
-    const scrapeProvider =
-      args.scrapeProvider ??
-      (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
+    const scrapeProvider = args.scrapeProvider ?? "spidercloud";
     const normalizedUrl = normalizeSiteUrl(args.url, siteType);
     const resolvedName = fallbackCompanyName(args.name, normalizedUrl);
     const key = siteCanonicalKey(normalizedUrl, siteType);
@@ -3103,9 +3092,7 @@ export const bulkUpsertSites = mutation({
     const existingSites = await ctx.db.query("sites").collect();
     for (const site of args.sites) {
       const siteType = site.type ?? "general";
-      const scrapeProvider =
-        site.scrapeProvider ??
-        (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType as SiteType) ? "spidercloud" : "fetchfox");
+      const scrapeProvider = site.scrapeProvider ?? "spidercloud";
       const normalizedUrl = normalizeSiteUrl(site.url, siteType);
       const resolvedName = fallbackCompanyName(site.name, normalizedUrl);
       const key = siteCanonicalKey(normalizedUrl, siteType);

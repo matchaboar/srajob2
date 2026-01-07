@@ -157,6 +157,8 @@ const applicationTables = {
         v.literal("notion"),
         v.literal("paloalto"),
         v.literal("ashby"),
+        v.literal("meta"),
+        v.literal("microsoft"),
         v.literal("openai")
       )
     ),

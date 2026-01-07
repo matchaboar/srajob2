@@ -18,6 +18,7 @@ from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     CiscoCareersHandler,
     GithubCareersHandler,
     GreenhouseHandler,
+    MetaCareersHandler,
     NetflixHandler,
     UberCareersHandler,
     get_site_handler,
@@ -237,6 +238,29 @@ def test_netflix_handler_fixture_pages_have_unique_urls():
     assert set(urls_1).isdisjoint(urls_2)
     assert set(urls_1).isdisjoint(urls_3)
     assert set(urls_2).isdisjoint(urls_3)
+
+
+def test_meta_careers_handler_matches_and_extracts_links():
+    handler = MetaCareersHandler()
+    listing_url = (
+        "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&offices[0]=Seattle%2C%20WA"
+    )
+    detail_url = "https://www.metacareers.com/jobs/100000000000000/"
+    assert handler.matches_url(listing_url)
+    assert handler.is_listing_url(listing_url)
+    assert handler.matches_url(detail_url)
+    assert not handler.is_listing_url(detail_url)
+
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_meta_careers_listing.json"
+    )
+    payload = _load_spidercloud_fixture(fixture_path)
+    html = _extract_first_html(payload)
+    assert html
+    links = handler.get_links_from_raw_html(html)
+    assert "https://www.metacareers.com/jobs/100000000000000/" in links
+    assert "https://www.metacareers.com/jobs/200000000000001/" in links
+    assert any("jobsearch" in link and "page=2" in link for link in links)
 
 
 def test_uber_careers_handler_extracts_listing_and_pagination_links():

@@ -3,7 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import { fallbackCompanyNameFromUrl, normalizeSiteUrl, siteCanonicalKey } from "./siteUtils";
 import devSchedules from "./site_schedules.dev.json";
 import prodSchedules from "./site_schedules.prod.json";
-import { SPIDER_CLOUD_DEFAULT_SITE_TYPES, type SiteType } from "./siteTypes";
+import type { SiteType } from "./siteTypes";
 
 const DEFAULT_TIMEZONE = "America/Denver";
 const VALID_DAYS = new Set(["sun", "mon", "tue", "wed", "thu", "fri", "sat"]);
@@ -185,9 +185,7 @@ export const syncSiteSchedulesFromEntries = async (
     }
 
     const siteType = entry.type ?? "general";
-    const scrapeProvider =
-      entry.scrapeProvider ??
-      (SPIDER_CLOUD_DEFAULT_SITE_TYPES.has(siteType) ? "spidercloud" : "fetchfox");
+    const scrapeProvider = entry.scrapeProvider ?? "spidercloud";
 
     const name = entry.name ?? fallbackCompanyNameFromUrl(entry.url);
 

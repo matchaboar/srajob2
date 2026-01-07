@@ -488,11 +488,37 @@ const ensureLocationFields = async (
   job: DbJob,
   options: { allowPatch?: boolean } = {}
 ) => {
+  const hasLocation =
+    typeof job.location === "string" && job.location.trim() && !isUnknownLocationValue(job.location);
+  const hasLocations = Array.isArray(job.locations) && job.locations.length > 0;
+  const hasLocationStates = Array.isArray(job.locationStates) && job.locationStates.length > 0;
+  const hasLocationSearch =
+    typeof job.locationSearch === "string" && job.locationSearch.trim() && !isUnknownLocationValue(job.locationSearch);
+  const hasCity = typeof job.city === "string" && job.city.trim() && !isUnknownLocationValue(job.city);
+  const hasState = typeof job.state === "string" && job.state.trim() && !isUnknownLocationValue(job.state);
+
+  if (hasLocation && hasLocations && hasLocationStates && hasLocationSearch && hasCity && hasState) {
+    return job;
+  }
+
+  const allowPatch = Boolean(options.allowPatch && typeof ctx.db?.patch === "function");
   const locationInfo = deriveLocationFields(job);
   const { city, state } = locationInfo;
   const normalizedCity = isUnknownLocationValue(job.city) ? locationInfo.city : job.city ?? locationInfo.city;
   const normalizedState = isUnknownLocationValue(job.state) ? locationInfo.state : job.state ?? locationInfo.state;
   const locationLabel = formatLocationLabel(normalizedCity, normalizedState, job.location ?? locationInfo.primaryLocation);
+
+  if (!allowPatch) {
+    return {
+      ...job,
+      location: locationLabel,
+      locations: locationInfo.locations,
+      locationStates: locationInfo.locationStates,
+      locationSearch: locationInfo.locationSearch,
+      city: normalizedCity,
+      state: normalizedState,
+    } as DbJob;
+  }
 
   const patched: Record<string, any> = {};
   if ((isUnknownLocationValue(job.city) || !job.city) && city) patched.city = city;
@@ -516,7 +542,7 @@ const ensureLocationFields = async (
     patched.locationSearch = locationInfo.locationSearch;
   }
 
-  if (options.allowPatch && Object.keys(patched).length > 0 && typeof ctx.db?.patch === "function") {
+  if (Object.keys(patched).length > 0) {
     await ctx.db.patch(job._id, patched);
   }
 
@@ -571,15 +597,23 @@ const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetai
 };
 
 export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof deriveLocationFields>) => {
-  const resolvedLocation = locationInfo ?? deriveLocationFields(job);
-  const locationCountries = resolvedLocation.countries ?? [];
-  const locationStates = resolvedLocation.locationStates ?? [];
-  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
-
   const explicitCountry = job.country?.trim();
   if (explicitCountry) {
     return explicitCountry;
   }
+
+  const resolvedLocation =
+    locationInfo ??
+    (Array.isArray(job.countries) || Array.isArray(job.locationStates) || job.state ? null : deriveLocationFields(job));
+  const locationCountries = Array.isArray(job.countries)
+    ? job.countries
+    : resolvedLocation?.countries ?? [];
+  const locationStates = Array.isArray(job.locationStates)
+    ? job.locationStates
+    : job.state
+      ? [job.state]
+      : resolvedLocation?.locationStates ?? [];
+  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
 
   const primaryCountry = locationCountries.find((c) => c && c !== "Unknown");
   if (primaryCountry && primaryCountry !== "Other") {
@@ -903,17 +937,15 @@ export const listJobs = query({
     const singleCompanyFilter = companyFilters.length === 1 ? companyFilters[0] : null;
     const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
     const requestedPageSize = args.paginationOpts.numItems ?? 50;
-    const maxPageSize = hasCompanyFilter ? 25 : 50;
+    const hasUserApplications = Boolean(
+      await ctx.db
+        .query("applications")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first()
+    );
+    const maxPageSize = hasCompanyFilter || hasUserApplications ? 25 : 50;
     const pageSize = Math.max(1, Math.min(requestedPageSize, maxPageSize));
     const paginationOpts = { ...args.paginationOpts, numItems: pageSize };
-
-    // Get user's applied/rejected jobs first
-    const userApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-
-    const appliedJobIds = new Set(userApplications.map(app => app.jobId));
 
     let domainAliasLookup: Map<string, string> | null = null;
     if (hasCompanyFilter) {
@@ -929,11 +961,6 @@ export const listJobs = query({
     }
 
     const jobPassesFilters = (job: any) => {
-      // Remove jobs user has already applied to or rejected
-      if (appliedJobIds.has(job._id)) {
-        return false;
-      }
-
       if (args.includeRemote === false && job.remote) {
         return false;
       }
@@ -964,14 +991,28 @@ export const listJobs = query({
         return true;
       }
 
-      const locationInfo = deriveLocationFields(job);
+      let locationInfo: ReturnType<typeof deriveLocationFields> | null = null;
+      const getLocationInfo = () => {
+        if (!locationInfo) {
+          locationInfo = deriveLocationFields(job);
+        }
+        return locationInfo;
+      };
 
       if (stateFilter) {
-        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        const statesForFilter =
+          Array.isArray(job.locationStates) && job.locationStates.length
+            ? job.locationStates
+            : job.state
+              ? [job.state]
+              : (() => {
+                  const info = getLocationInfo();
+                  return info.locationStates.length ? info.locationStates : [info.state];
+                })();
         if (!statesForFilter.includes(stateFilter)) return false;
       }
       if (hasCountryFilter) {
-        const jobCountry = computeJobCountry(job, locationInfo);
+        const jobCountry = computeJobCountry(job, locationInfo ?? undefined);
         if (!matchesCountryFilter(jobCountry, countryFilter, isOtherCountry)) {
           return false;
         }
@@ -979,9 +1020,28 @@ export const listJobs = query({
       return true;
     };
 
+    const filterOutAppliedJobs = async (jobsToFilter: any[]) => {
+      if (!hasUserApplications || jobsToFilter.length === 0) return jobsToFilter;
+      const uniqueIds = Array.from(new Set(jobsToFilter.map((job) => String(job._id))));
+      const applicationRows = await Promise.all(
+        uniqueIds.map((jobId) =>
+          ctx.db
+            .query("applications")
+            .withIndex("by_user_and_job", (q: any) => q.eq("userId", userId).eq("jobId", jobId))
+            .first()
+        )
+      );
+      const appliedIds = new Set<string>();
+      applicationRows.forEach((row, idx) => {
+        if (row) appliedIds.add(uniqueIds[idx]);
+      });
+      return jobsToFilter.filter((job) => !appliedIds.has(String(job._id)));
+    };
+
     // Apply search and filters
     let jobs;
     let jobsAlreadyFiltered = false;
+    let applicationsFiltered = false;
     if (shouldUseSearch) {
       const SEARCH_LIMIT = 100;
       const matches = await ctx.db
@@ -1089,7 +1149,7 @@ export const listJobs = query({
       };
 
       const needsFilteredPagination =
-        appliedJobIds.size > 0 ||
+        hasUserApplications ||
         hasCompanyFilter ||
         hasCountryFilter ||
         args.hideUnknownCompensation === true ||
@@ -1108,15 +1168,13 @@ export const listJobs = query({
 
         if (carryIds.length > 0) {
           const carryJobs = await Promise.all(carryIds.map((id) => ctx.db.get(id as Id<"jobs">)));
-          for (const job of carryJobs) {
-            if (job && jobPassesFilters(job)) {
-              filteredBuffer.push(job);
-            }
-          }
+          const carryMatches = carryJobs.filter((job) => job && jobPassesFilters(job));
+          const carryWithoutApplied = await filterOutAppliedJobs(carryMatches);
+          filteredBuffer.push(...carryWithoutApplied);
         }
 
         if (!rawIsDone && filteredBuffer.length < pageSize) {
-          const expandedSize = Math.min(pageSize * 4, 200);
+          const expandedSize = Math.min(pageSize * 2, 100);
           const page = await buildBaseQuery().paginate({
             ...paginationOpts,
             cursor: rawCursor,
@@ -1126,11 +1184,9 @@ export const listJobs = query({
           rawIsDone = page.isDone;
           if (page.page.length) {
             const orderedPage = [...page.page].sort(compareNewestJobs);
-            for (const job of orderedPage) {
-              if (jobPassesFilters(job)) {
-                filteredBuffer.push(job);
-              }
-            }
+            const pageMatches = orderedPage.filter(jobPassesFilters);
+            const pageWithoutApplied = await filterOutAppliedJobs(pageMatches);
+            filteredBuffer.push(...pageWithoutApplied);
           }
         }
 
@@ -1145,6 +1201,7 @@ export const listJobs = query({
           continueCursor,
         };
         jobsAlreadyFiltered = true;
+        applicationsFiltered = true;
       }
     }
 
@@ -1152,13 +1209,16 @@ export const listJobs = query({
     // with unknown postedAt entries pushed after known ones when scrapedAt matches.
     const orderedPage = [...jobs.page].sort(compareNewestJobs);
 
-    // Filter out applied/rejected jobs and apply compensation filters
+    // Apply remaining filters and then exclude any applied/rejected jobs as needed.
     const filteredJobs = jobsAlreadyFiltered ? orderedPage : orderedPage.filter(jobPassesFilters);
+    const appliedFilteredJobs = applicationsFiltered
+      ? filteredJobs
+      : await filterOutAppliedJobs(filteredJobs);
 
     // Group jobs with same title/company/level/remote into one row, merging locations and URLs
     const grouped = new Map<string, { base: any; members: any[] }>();
 
-    for (const job of filteredJobs) {
+    for (const job of appliedFilteredJobs) {
       const key = buildJobGroupKey(job);
       const bucket = grouped.get(key);
       if (bucket) {
@@ -1184,6 +1244,12 @@ export const listJobs = query({
         const locationStatesMerged = Array.from(
           new Set(
             members.flatMap((m) => {
+              if (Array.isArray((m).locationStates) && (m).locationStates.length) {
+                return (m).locationStates;
+              }
+              if ((m).state) {
+                return [(m).state];
+              }
               const info = deriveLocationFields(m);
               return info.locationStates.length ? info.locationStates : [info.state];
             }).filter(Boolean)

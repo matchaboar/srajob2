@@ -1631,6 +1631,9 @@ async def process_spidercloud_job_batch(
             url_val = entry.get("url")
             if isinstance(url_val, str) and url_val.strip():
                 entry_by_url[url_val] = entry
+                normalized_url = _to_greenhouse_api_url(url_val)
+                if normalized_url and normalized_url != url_val:
+                    entry_by_url[normalized_url] = entry
 
     def _build_completion_item(url_val: str) -> Dict[str, Any]:
         item: Dict[str, Any] = {"url": url_val}
@@ -1673,11 +1676,41 @@ async def process_spidercloud_job_batch(
     completed_urls: list[str] = []
     invalid_urls: list[str] = []
     failed_urls: list[str] = []
+    http_404_urls: set[str] = set()
+
+    for scrape in scrapes:
+        if not isinstance(scrape, dict):
+            continue
+        items_block = scrape.get("items")
+        if not isinstance(items_block, dict):
+            continue
+        failed_items = items_block.get("failed")
+        if not isinstance(failed_items, list):
+            continue
+        for entry in failed_items:
+            if not isinstance(entry, dict):
+                continue
+            reason = entry.get("reason")
+            status = entry.get("status") or entry.get("httpStatus")
+            if isinstance(status, (int, float)) and int(status) == 404:
+                url_val = entry.get("url")
+                if isinstance(url_val, str) and url_val.strip():
+                    http_404_urls.add(url_val.strip())
+                continue
+            if isinstance(reason, str) and "404" in reason.lower():
+                url_val = entry.get("url")
+                if isinstance(url_val, str) and url_val.strip():
+                    http_404_urls.add(url_val.strip())
+
+    if http_404_urls:
+        await _complete_urls(sorted(http_404_urls), "failed", error="http_404")
 
     for idx, scrape in enumerate(scrapes):
         if not isinstance(scrape, dict):
             continue
         url_val = _scrape_url(scrape)
+        if isinstance(url_val, str) and url_val in http_404_urls:
+            continue
         try:
             res_id = await store_scrape(scrape)
             if isinstance(res_id, str):
@@ -1705,7 +1738,7 @@ async def process_spidercloud_job_batch(
         "scrapeIds": scrape_ids,
         "stored": len(scrape_ids),
         "invalid": len(invalid_urls),
-        "failed": len(failed_urls),
+        "failed": len(failed_urls) + len(http_404_urls),
         "sourceUrl": source_url_hint,
     }
     if skipped_listing_urls:

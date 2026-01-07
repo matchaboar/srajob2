@@ -213,6 +213,17 @@ class GreenhouseHandler(BaseSiteHandler):
 
         return None
 
+    def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
+        if not isinstance(payload, dict):
+            return None
+        for key in ("company_name", "companyName", "company"):
+            value = payload.get(key)
+            if isinstance(value, str):
+                cleaned = value.strip()
+                if cleaned:
+                    return cleaned
+        return None
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}

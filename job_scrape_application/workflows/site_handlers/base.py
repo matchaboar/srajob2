@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 import html as html_lib
 import json
 import re
@@ -9,6 +10,47 @@ from urllib.parse import urlparse
 
 from ..helpers.link_extractors import fix_scheme_slashes, strip_wrapping_url
 from ..helpers.regex_patterns import JSON_ARRAY_PATTERN, JSON_OBJECT_PATTERN, PRE_PATTERN
+
+_POSTED_DATE_LABEL_RE = re.compile(
+    r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
+    flags=re.IGNORECASE,
+)
+_ISO_DATE_RE = re.compile(r"\b(?P<date>\d{4}-\d{2}-\d{2})\b")
+_SLASH_DATE_RE = re.compile(
+    r"\b(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<year>\d{2,4})\b"
+)
+_MONTH_DATE_RE = re.compile(
+    r"\b(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+    r"[.,]?\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(?P<year>\d{4})\b",
+    flags=re.IGNORECASE,
+)
+_MONTH_NAME_TO_NUMBER = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
+}
 
 class BaseSiteHandler(ABC):
     """Base class for site-specific scraping helpers."""
@@ -82,6 +124,69 @@ class BaseSiteHandler(ABC):
         return urls
 
     def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
+        return None
+
+    def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
+        return None
+
+    def extract_posted_at_from_markdown(self, markdown: str, url: str | None = None) -> Any | None:
+        if not markdown:
+            return None
+
+        lines = markdown.splitlines()
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            cleaned = stripped.strip("*` ").strip()
+            if not cleaned:
+                continue
+            if not _POSTED_DATE_LABEL_RE.match(cleaned):
+                continue
+            for offset in range(0, 4):
+                if idx + offset >= len(lines):
+                    break
+                candidate = lines[idx + offset].strip()
+                if not candidate:
+                    continue
+                parsed = self._extract_iso_date_from_text(candidate)
+                if parsed:
+                    return parsed
+        return None
+
+    @staticmethod
+    def _extract_iso_date_from_text(text: str) -> Optional[str]:
+        if not text:
+            return None
+        iso_match = _ISO_DATE_RE.search(text)
+        if iso_match:
+            return f"{iso_match.group('date')}T00:00:00+00:00"
+
+        slash_match = _SLASH_DATE_RE.search(text)
+        if slash_match:
+            try:
+                month = int(slash_match.group("month"))
+                day = int(slash_match.group("day"))
+                year = int(slash_match.group("year"))
+                if year < 100:
+                    year += 2000
+                dt = datetime(year, month, day, tzinfo=timezone.utc)
+                return dt.isoformat()
+            except Exception:
+                return None
+
+        month_match = _MONTH_DATE_RE.search(text)
+        if month_match:
+            month_name = month_match.group("month").lower().strip(".")
+            month = _MONTH_NAME_TO_NUMBER.get(month_name)
+            if not month:
+                return None
+            try:
+                day = int(month_match.group("day"))
+                year = int(month_match.group("year"))
+                dt = datetime(year, month, day, tzinfo=timezone.utc)
+                return dt.isoformat()
+            except Exception:
+                return None
+
         return None
 
     def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:

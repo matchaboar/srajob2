@@ -225,6 +225,11 @@ export const resolveLocationFromDictionary = (location: string, options?: { allo
     }
   }
 
+  const countryAlias = COUNTRY_ALIASES[normalized];
+  if (countryAlias) {
+    return { city: "Unknown", state: "Unknown", country: countryAlias };
+  }
+
   return null;
 };
 
@@ -247,16 +252,19 @@ export const formatLocationLabel = (
   const cleanCity = (city || "").trim();
   const cleanState = (state || "").trim();
   const cleanCountry = (country || "").trim();
+  const hasCity = cleanCity && cleanCity !== "Unknown";
+  const hasState = cleanState && cleanState !== "Unknown";
+  const hasCountry = cleanCountry && cleanCountry !== "Unknown";
 
   if (cleanCity.toLowerCase() === "remote" || cleanState.toLowerCase() === "remote") {
     return "Remote";
   }
 
-  if (cleanCity && cleanState && cleanCity !== "Unknown" && cleanState !== "Unknown") return `${cleanCity}, ${cleanState}`;
-  if (cleanCity && cleanCountry && cleanCountry !== "Unknown") return `${cleanCity}, ${cleanCountry}`;
-  if (cleanCity && cleanCity !== "Unknown") return cleanCity;
-  if (cleanState && cleanState !== "Unknown") return cleanState;
-  if (cleanCountry && cleanCountry !== "Unknown") return cleanCountry;
+  if (hasCity && hasState) return `${cleanCity}, ${cleanState}`;
+  if (hasCity && hasCountry) return `${cleanCity}, ${cleanCountry}`;
+  if (hasCity) return cleanCity;
+  if (hasState) return cleanState;
+  if (hasCountry) return cleanCountry;
   return "Unknown";
 };
 
@@ -413,7 +421,14 @@ export const normalizeLocations = (value?: string | string[] | null): string[] =
       const cleaned = part.replace(/\s+/g, " ").trim().replace(/^[,;]+|[,;]+$/g, "");
       if (!cleaned || cleaned.length < 2 || cleaned.length > 100) continue;
       const resolved = resolveLocationFromDictionary(cleaned);
-      if (!resolved) continue;
+      if (!resolved) {
+        const inferred = inferCountryFromLocation(cleaned);
+        if (inferred && !seen.has(inferred)) {
+          seen.add(inferred);
+          normalized.push(inferred);
+        }
+        continue;
+      }
       const label = formatLocationLabel(resolved.city, resolved.state, undefined, resolved.country);
       if (!label || seen.has(label)) continue;
       seen.add(label);
@@ -468,9 +483,6 @@ export const inferCountryFromLocation = (location: string | null | undefined): s
 
   const normalized = normalizeLocationKey(raw);
   if (!normalized) return null;
-  if (normalized.includes("remote")) return "United States";
-  if (UNKNOWN_LOCATION_TOKENS.has(normalized) || normalized.includes("unknown")) return "United States";
-
   const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
   for (const part of parts) {
     const normalizedPart = normalizeLocationKey(part);
@@ -479,6 +491,9 @@ export const inferCountryFromLocation = (location: string | null | undefined): s
     if (CANADIAN_PROVINCE_CODES.has(upperPart) || CANADIAN_PROVINCE_NAMES.has(normalizedPart)) return "Canada";
     if (normalizeState(part)) return "United States";
   }
+
+  if (normalized.includes("remote")) return "United States";
+  if (UNKNOWN_LOCATION_TOKENS.has(normalized) || normalized.includes("unknown")) return "United States";
 
   if (COUNTRY_ALIASES[normalized]) return COUNTRY_ALIASES[normalized];
   return null;
@@ -500,16 +515,18 @@ export const deriveLocationFields = (input: { locations?: string[] | null; locat
   const prioritizedLocations = reorderByUsPreference(normalizedLocations);
   const primaryLocationRaw = prioritizedLocations[0] ?? "Unknown";
   const { city, state, country: resolvedCountry } = splitLocation(primaryLocationRaw);
-  const locationLabel = formatLocationLabel(city, state, primaryLocationRaw, resolvedCountry);
+  const inferredCountry = inferCountryFromLocation(primaryLocationRaw);
+  const countryHint = resolvedCountry ?? inferredCountry;
+  const locationLabel = formatLocationLabel(city, state, primaryLocationRaw, countryHint);
   const locations = prioritizedLocations.length ? prioritizedLocations : [locationLabel];
   const locationStates = deriveLocationStates(locations);
   const countries = deriveCountries(locations);
-  if (resolvedCountry && !countries.includes(resolvedCountry)) {
-    countries.unshift(resolvedCountry);
+  if (countryHint && !countries.includes(countryHint)) {
+    countries.unshift(countryHint);
   }
   const isUnknownLocation = isUnknownLocationValue(primaryLocationRaw) || isUnknownLocationValue(locationLabel);
   const defaultCountry =
-    locationLabel.toLowerCase().includes("remote") || isUnknownLocation ? "United States" : resolvedCountry ?? "Other";
+    locationLabel.toLowerCase().includes("remote") || isUnknownLocation ? "United States" : countryHint ?? "Other";
   const country =
     countries.find((c) => c === "United States") ??
     countries[0] ??

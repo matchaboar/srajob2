@@ -94,6 +94,18 @@ describe("location dictionary coverage", () => {
     expect(fields.locations[0]).toBe("Boston, Massachusetts");
   });
 
+  it("derives country for remote country-only locations", () => {
+    const normalized = normalizeLocations(["Remote, Germany"]);
+    expect(normalized).toEqual(["Germany"]);
+
+    const fields = deriveLocationFields({ locations: normalized, location: "Remote, Germany" });
+    expect(fields.primaryLocation).toBe("Germany");
+    expect(fields.country).toBe("Germany");
+    expect(fields.countries).toEqual(["Germany"]);
+    expect(fields.city).toBe("Unknown");
+    expect(fields.state).toBe("Unknown");
+  });
+
   it("keeps non-US primary when no US location exists", () => {
     const normalized = normalizeLocations(["Madrid, Spain; Paris, France"]);
     const fields = deriveLocationFields({ locations: normalized });

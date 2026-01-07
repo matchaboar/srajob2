@@ -11,6 +11,8 @@ export const SITE_TYPES = [
   "docusign",
   "notion",
   "paloalto",
+  "meta",
+  "microsoft",
   "openai",
 ] as const;
 
@@ -28,5 +30,7 @@ export const SPIDER_CLOUD_DEFAULT_SITE_TYPES = new Set<SiteType>([
   "docusign",
   "notion",
   "paloalto",
+  "meta",
+  "microsoft",
   "openai",
 ]);

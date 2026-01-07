@@ -17,7 +17,11 @@ if ROOT not in sys.path:
 from job_scrape_application.workflows.activities import store_scrape  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
+    parse_posted_at_with_unknown,
     parse_markdown_hints,
+)
+from job_scrape_application.workflows.site_handlers.greenhouse import (  # noqa: E402
+    GreenhouseHandler,
 )
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
     SpiderCloudScraper,
@@ -37,6 +41,17 @@ AXON_DETAIL_PRODUCT_SPECIALIST_FIXTURE = (
 PURESTORAGE_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_purestorage_greenhouse_listing.json"
 )
+PURESTORAGE_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_purestorage_greenhouse_job_detail_7349657_commonmark.json"
+)
+PURESTORAGE_DETAIL_API_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_purestorage_greenhouse_job_detail_7349657_api.json"
+)
+PURESTORAGE_POSTED_AT = 1_767_802_890_000
+PURESTORAGE_NL_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_purestorage_greenhouse_job_detail.json"
+)
+PURESTORAGE_NL_POSTED_AT = 1_767_808_270_000
 SAMSARA_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_samsara_greenhouse_listing.json"
 )
@@ -76,6 +91,12 @@ BLOOMBERG_IDENTITY_SERVICES_POSTED_AT = 1_767_204_312_240
 OKTA_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_okta_greenhouse_job_detail_commonmark.json"
 NEXHEALTH_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_nexhealth_greenhouse_job_detail.json"
+)
+DATADOG_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_datadog_job_detail_3851935.json"
+)
+DATADOG_GREENHOUSE_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_greenhouse_datadog_job_7519505_raw.json"
 )
 DATAMINR_WORKDAY_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_dataminr_workday_job_detail_api.json"
@@ -476,6 +497,178 @@ def test_spidercloud_nexhealth_job_detail_normalizes_fields():
     assert normalized["location"] == "San Francisco, CA"
     assert "About NexHealth" in normalized["description"]
     assert len(normalized["description"]) > 200
+
+
+def test_spidercloud_datadog_job_detail_extracts_location():
+    payload = _load_fixture(DATADOG_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["location"] == "Boston, MA"
+    assert "Senior Software Engineer" in normalized["title"]
+
+
+def test_spidercloud_purestorage_job_detail_normalizes_fields():
+    payload = _load_fixture(PURESTORAGE_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Account Executive, SLED - Commonwealth of Virginia"
+    assert normalized["company"] == "Pure Storage"
+    assert normalized["remote"] is True
+    assert normalized["location"] == "Virginia"
+
+    hints = parse_markdown_hints(normalized["description"])
+    assert hints.get("compensation_range") == {"low": 126500, "high": 202500}
+
+    description = normalized["description"]
+    assert "apply for this job" not in description.lower()
+    assert "create a job alert" not in description.lower()
+    assert "voluntary self-identification" not in description.lower()
+
+
+def test_greenhouse_purestorage_api_extracts_posted_at():
+    payload = _load_fixture(PURESTORAGE_DETAIL_API_FIXTURE)
+    event = _extract_first_event(payload)
+    assert event is not None
+    content = event.get("content")
+    assert isinstance(content, dict)
+    raw_payload = content.get("raw")
+    assert isinstance(raw_payload, str)
+    job_payload = json.loads(raw_payload)
+
+    handler = GreenhouseHandler()
+    raw_posted_at = handler.extract_posted_at(job_payload, _extract_source_url(payload))
+    posted_at, unknown = parse_posted_at_with_unknown(raw_posted_at)
+
+    assert unknown is False
+    assert posted_at == PURESTORAGE_POSTED_AT
+
+
+def test_spidercloud_greenhouse_datadog_job_detail_normalizes_fields():
+    payload = _load_fixture(DATADOG_GREENHOUSE_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Senior Product Manager - Application Performance Monitoring (APM)"
+    assert normalized["company"] == "Datadog"
+    assert normalized["location"] == "Paris, France"
+    assert normalized["remote"] is False
+
+
+def test_spidercloud_greenhouse_datadog_job_detail_location_components():
+    payload = _load_fixture(DATADOG_GREENHOUSE_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    resolved = _resolve_location_from_dictionary(normalized["location"])
+    assert resolved is not None
+    assert resolved.get("city") == "Paris"
+    assert resolved.get("state") == "France"
+    assert resolved.get("country") == "France"
+    assert resolved.get("remoteOnly") is False
+
+
+def test_spidercloud_greenhouse_datadog_job_detail_posted_at_and_description():
+    payload = _load_fixture(DATADOG_GREENHOUSE_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    raw_content = event.get("content", {})
+    assert isinstance(raw_content, dict)
+    raw_payload = json.loads(raw_content.get("raw", ""))
+    expected_posted_at, posted_unknown = parse_posted_at_with_unknown(raw_payload.get("updated_at"))
+    assert posted_unknown is False
+    assert normalized["posted_at"] == expected_posted_at
+    assert normalized["posted_at_unknown"] is False
+
+    hints = parse_markdown_hints(normalized["description"])
+    assert hints.get("compensation_range") is None
+    assert hints.get("compensation") is None
+    assert "data-renderer" not in normalized["description"]
+    assert "content-conclusion" not in normalized["description"]
+    assert "<" not in normalized["description"]
+
+
+def test_spidercloud_purestorage_greenhouse_job_detail_normalizes_fields():
+    payload = _load_fixture(PURESTORAGE_NL_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Account Executive, Enterprise (Netherlands)"
+    assert normalized["company"] == "Pure Storage"
+    assert normalized["location"] == "Amsterdam, Netherlands"
+    assert normalized["remote"] is False
+    assert normalized["posted_at"] == PURESTORAGE_NL_POSTED_AT
+    assert normalized["posted_at_unknown"] is False
+
+    description = normalized["description"] or ""
+    assert len(description) > 200
+    assert "Pure Innovation" in description
+    for junk in ("content-conclusion", "json-formatter-container", "<div", "<p"):
+        assert junk not in description
+
+
+def test_spidercloud_purestorage_greenhouse_job_detail_parses_location_and_salary_hints():
+    payload = _load_fixture(PURESTORAGE_NL_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    resolved = _resolve_location_from_dictionary(normalized.get("location") or "")
+    assert resolved is not None
+    assert resolved.get("city") == "Amsterdam"
+    assert resolved.get("country") in {"Netherlands", "The Netherlands"}
+    assert normalized.get("remote") is False
+
+    hints = parse_markdown_hints(normalized.get("description") or "")
+    assert not hints.get("compensation_range")
+    assert hints.get("compensation") is None
 
 
 def test_spidercloud_greenhouse_mithril_api_job_detail_normalizes_description():

@@ -32,6 +32,17 @@ _PAGINATION_LINK_REL_RE = re.compile(
     r'href=["\'](?P<href>/[^"\']*/search-results[^"\']*from=\d+[^"\']*)["\']',
     flags=re.IGNORECASE,
 )
+_JOB_DESCRIPTION_HEADER_RE = re.compile(r"^#+\s*job description\b|^job description\b", flags=re.IGNORECASE)
+_DROP_LINE_RE = re.compile(
+    r"^(save job|apply now|category|job id|posted date|location|close the popup|profile icon)$",
+    flags=re.IGNORECASE,
+)
+_COOKIE_LINE_RE = re.compile(r"\bcookie\b", flags=re.IGNORECASE)
+_STOP_SECTION_RE = re.compile(
+    r"^(explore location|get notified for similar jobs|similar jobs|profile recommendations|get tailored job)$",
+    flags=re.IGNORECASE,
+)
+_IMAGE_RE = re.compile(r"^!\[[^\]]*]\([^\)]*\)$")
 
 
 class AdobeCareersHandler(BaseSiteHandler):
@@ -130,3 +141,113 @@ class AdobeCareersHandler(BaseSiteHandler):
                 seen.add(cleaned)
                 filtered.append(cleaned)
         return filtered
+
+    def extract_location_hint(self, markdown: str) -> str | None:
+        if not markdown:
+            return None
+        lines = markdown.splitlines()
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.lower() != "location":
+                continue
+            for offset in range(1, 4):
+                if idx + offset >= len(lines):
+                    break
+                candidate = self._clean_markdown_token(lines[idx + offset])
+                if not candidate:
+                    continue
+                if candidate.lower() in {"category", "job id", "posted date"}:
+                    break
+                lowered = candidate.lower()
+                if lowered.startswith("remote,"):
+                    candidate = candidate.split(",", 1)[-1].strip()
+                return candidate
+
+        for line in lines[:5]:
+            candidate = self._extract_location_from_title_line(line)
+            if candidate:
+                return candidate
+        return None
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, str | None]:
+        if not markdown:
+            return "", None
+
+        lines = markdown.splitlines()
+        title: str | None = None
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            heading_match = re.match(r"^#+\s*(.+)$", stripped)
+            if not heading_match:
+                continue
+            candidate = heading_match.group(1).strip()
+            if not candidate:
+                continue
+            if _JOB_DESCRIPTION_HEADER_RE.match(stripped):
+                continue
+            title = candidate
+            break
+
+        start_idx: int | None = None
+        for idx, line in enumerate(lines):
+            if _JOB_DESCRIPTION_HEADER_RE.match(line.strip()):
+                start_idx = idx
+                break
+        if start_idx is not None:
+            lines = lines[start_idx:]
+
+        stop_idx: int | None = None
+        for idx, line in enumerate(lines):
+            cleaned_stop = self._clean_markdown_token(line)
+            if _STOP_SECTION_RE.match(cleaned_stop):
+                stop_idx = idx
+                break
+        if stop_idx is not None:
+            lines = lines[:stop_idx]
+
+        cleaned_lines: List[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                cleaned_lines.append(line)
+                continue
+            if stripped == "-":
+                continue
+            if _IMAGE_RE.match(stripped):
+                continue
+            if _COOKIE_LINE_RE.search(stripped):
+                continue
+            lower = stripped.lower()
+            if "apply now" in lower or "jobseqno" in lower:
+                continue
+            cleaned = self._clean_markdown_token(stripped)
+            if _DROP_LINE_RE.match(cleaned):
+                continue
+            cleaned_lines.append(line)
+
+        cleaned = "\n".join(cleaned_lines)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+        return cleaned or markdown, title
+
+    @staticmethod
+    def _clean_markdown_token(value: str) -> str:
+        cleaned = value.strip()
+        cleaned = re.sub(r"^[#*\-\u2022]+", "", cleaned).strip()
+        cleaned = cleaned.strip("*` ")
+        cleaned = cleaned.strip("[]()")
+        cleaned = cleaned.strip(" ,:;")
+        return cleaned
+
+    @staticmethod
+    def _extract_location_from_title_line(value: str) -> str | None:
+        if not value:
+            return None
+        match = re.search(r"\bin\s+(?P<location>[^|]+)\|", value, flags=re.IGNORECASE)
+        if not match:
+            return None
+        location = match.group("location").strip()
+        return location or None

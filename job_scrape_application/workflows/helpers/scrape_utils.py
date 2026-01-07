@@ -21,6 +21,7 @@ from .regex_patterns import (
     LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE,
     LOCATION_PREFIX_PATTERN,
     LOCATION_SPLIT_PATTERN,
+    MARKDOWN_HEADING_PREFIX_PATTERN,
     NON_ALNUM_PATTERN,
     NON_ALNUM_SPACE_PATTERN,
     NUMBER_TOKEN_PATTERN,
@@ -464,6 +465,7 @@ def strip_known_nav_blocks(markdown: str) -> str:
     cleaned = _strip_embedded_json_blobs(cleaned)
     cleaned = _strip_empty_link_lines(cleaned)
     cleaned = _strip_platform_tokens(cleaned)
+    cleaned = _strip_application_form_sections(cleaned)
 
     def _normalize_line(line: str) -> str:
         return line.strip().lstrip("#").strip()
@@ -499,6 +501,43 @@ def strip_known_nav_blocks(markdown: str) -> str:
 
     trimmed = lines[:start] + lines[stop:]
     return "\n".join(trimmed).strip("\n") or cleaned.strip("\n")
+
+
+def _strip_application_form_sections(markdown: str) -> str:
+    if not markdown:
+        return markdown
+
+    def _normalize_line(value: str) -> str:
+        trimmed = value.strip()
+        trimmed = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", trimmed).strip()
+        trimmed = trimmed.strip("*").strip()
+        trimmed = re.sub(WHITESPACE_PATTERN, " ", trimmed).strip().lower()
+        return trimmed
+
+    stop_markers = {
+        "apply for this job",
+        "create a job alert",
+        "submit application",
+        "autofill with mygreenhouse",
+        "voluntary self-identification",
+        "equal opportunity employment information",
+    }
+
+    lines = markdown.splitlines()
+    stop_idx = None
+    for idx, line in enumerate(lines):
+        normalized = _normalize_line(line)
+        if not normalized:
+            continue
+        if normalized in stop_markers:
+            stop_idx = idx
+            break
+        if normalized.startswith("apply for this job") or normalized.startswith("create a job alert"):
+            stop_idx = idx
+            break
+    if stop_idx is None:
+        return markdown
+    return "\n".join(lines[:stop_idx]).strip()
 
 
 def _strip_empty_link_lines(markdown: str) -> str:
@@ -1344,7 +1383,13 @@ def is_generic_company_name(value: str | None) -> bool:
 
 def apply_company_hint(company: str, hints: Dict[str, Any]) -> str:
     hint = normalize_company_hint(hints.get("company"))
-    if hint and is_generic_company_name(company):
+    if not hint:
+        return company
+    if is_generic_company_name(company):
+        return hint
+    normalized_company = re.sub(NON_ALNUM_PATTERN, "", company.lower())
+    normalized_hint = re.sub(NON_ALNUM_PATTERN, "", hint.lower())
+    if normalized_company and normalized_company == normalized_hint and hint != company:
         return hint
     return company
 
@@ -1383,6 +1428,18 @@ def _normalize_locations(locations: List[str]) -> List[str]:
                 continue
             resolved = _resolve_location_from_dictionary(candidate)
             if not resolved:
+                state_key = _normalize_location_key(candidate)
+                state_abbr = _STATE_ABBR_BY_KEY.get(state_key)
+                if not state_abbr:
+                    state_upper = candidate.strip().upper()
+                    if state_upper in _STATE_NAME_BY_ABBR:
+                        state_abbr = state_upper
+                if state_abbr:
+                    state_name = _STATE_NAME_BY_ABBR.get(state_abbr, state_abbr)
+                    if state_name not in seen:
+                        seen.add(state_name)
+                        normalized.append(state_name)
+                    continue
                 us_city_state = _normalize_us_city_state(candidate)
                 if us_city_state and us_city_state not in seen:
                     seen.add(us_city_state)
@@ -1509,6 +1566,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     title_lower = ""
     title_location_hint: Optional[str] = None
     company_hint: Optional[str] = None
+    job_application_title: Optional[str] = None
 
     def _record_company(value: Optional[str]) -> None:
         nonlocal company_hint
@@ -1578,7 +1636,10 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return False
         title_keywords = (
             "engineer",
+            "executive",
             "developer",
+            "sales",
+            "account",
             "manager",
             "designer",
             "product",
@@ -1596,6 +1657,19 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if _looks_like_title_location(value) and not any(keyword in lowered for keyword in title_keywords):
             return False
         return True
+
+    job_application_pattern = re.compile(
+        r"job\s+application\s+for\s+(?P<title>.+?)(?:\s+at\s+(?P<company>.+))?$",
+        flags=re.IGNORECASE,
+    )
+    for line in markdown.splitlines()[:10]:
+        cleaned = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", line).strip()
+        match = job_application_pattern.match(cleaned)
+        if not match:
+            continue
+        job_application_title = stringify(match.group("title"))
+        _record_company(stringify(match.group("company")))
+        break
 
     def _extract_title_and_location_from_line(
         line: str,
@@ -1682,6 +1756,9 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             if candidate_location and _looks_like_title_location(candidate_location):
                 title_location_hint = candidate_location
             break
+    if "title" not in hints and job_application_title:
+        hints["title"] = job_application_title
+        title_lower = job_application_title.lower()
     if not company_hint:
         for line in markdown.splitlines()[:40]:
             t = line.strip()

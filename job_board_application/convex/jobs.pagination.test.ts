@@ -93,7 +93,7 @@ class FakeJobsQuery {
 
 class FakeApplicationsQuery {
   withIndex(name: string, cb: (q: any) => any) {
-    if (name !== "by_user") {
+    if (name !== "by_user" && name !== "by_user_and_job") {
       throw new Error(`unexpected applications index ${name}`);
     }
     cb({ eq: (_field: string, val: any) => val });
@@ -102,6 +102,10 @@ class FakeApplicationsQuery {
 
   filter(_cb: (q: any) => any) {
     return this;
+  }
+
+  first() {
+    return null;
   }
 
   collect() {
@@ -310,7 +314,7 @@ describe("listJobs pagination", () => {
       companies: ["Bloomberg"],
     });
 
-    expect(tracker.lastPaginateNumItems).toBe(100);
+    expect(tracker.lastPaginateNumItems).toBe(50);
   });
 
   it("matches company filters case-insensitively", async () => {
