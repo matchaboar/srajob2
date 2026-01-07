@@ -102,6 +102,7 @@ class MetaCareersHandler(BaseSiteHandler):
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
         seen: set[str] = set()
+        base = urlparse(META_BASE_URL)
         for url in urls:
             if not isinstance(url, str):
                 continue
@@ -113,15 +114,25 @@ class MetaCareersHandler(BaseSiteHandler):
             except Exception:
                 continue
             host = (parsed.hostname or "").lower()
-            path = (parsed.path or "").lower()
+            path = parsed.path or ""
+            lower_path = path.lower()
             if not host.endswith(META_HOST_SUFFIX):
                 continue
-            if not path.startswith(JOB_DETAIL_PATH):
+            if lower_path.startswith(JOB_DETAIL_PATH):
+                job_id = path.strip("/").split("/")[-1]
+                if not job_id or not _JOB_ID_RE.match(job_id):
+                    continue
+                normalized = urljoin(META_BASE_URL, f"/jobs/{job_id}/")
+            elif lower_path.startswith(JOBSEARCH_PATH):
+                normalized = urlunparse(
+                    parsed._replace(
+                        scheme=base.scheme,
+                        netloc=base.netloc,
+                        fragment="",
+                    )
+                )
+            else:
                 continue
-            job_id = path.strip("/").split("/")[-1]
-            if not job_id or not _JOB_ID_RE.match(job_id):
-                continue
-            normalized = urljoin(META_BASE_URL, f"/jobs/{job_id}/")
             if normalized in seen:
                 continue
             seen.add(normalized)

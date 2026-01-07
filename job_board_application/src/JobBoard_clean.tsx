@@ -57,12 +57,13 @@ export function JobBoard() {
       minCompensation: filters.minCompensation ?? undefined,
       maxCompensation: filters.maxCompensation ?? undefined,
       companies: filters.companies.length > 0 ? filters.companies : undefined,
+      excludeApplied: false,
     },
     { initialNumItems: 20 }
   );
 
   const recentJobs = useQuery(api.jobs.getRecentJobs);
-  const appliedJobs = useQuery(api.jobs.getAppliedJobs);
+  const appliedJobs = useQuery(api.jobs.getAppliedJobs, activeTab === "applied" ? {} : "skip");
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
 

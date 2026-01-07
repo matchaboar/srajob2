@@ -608,18 +608,44 @@ export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof d
   const locationCountries = Array.isArray(job.countries)
     ? job.countries
     : resolvedLocation?.countries ?? [];
-  const locationStates = Array.isArray(job.locationStates)
-    ? job.locationStates
-    : job.state
-      ? [job.state]
-      : resolvedLocation?.locationStates ?? [];
-  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
 
   const primaryCountry = locationCountries.find((c) => c && c !== "Unknown");
   if (primaryCountry && primaryCountry !== "Other") {
     return primaryCountry;
   }
 
+  const locationCandidates: string[] = [];
+  if (typeof job.location === "string" && job.location.trim()) {
+    locationCandidates.push(job.location);
+  }
+  if (Array.isArray(job.locations) && job.locations.length) {
+    locationCandidates.push(...job.locations);
+  }
+  if (resolvedLocation?.primaryLocation) {
+    locationCandidates.push(resolvedLocation.primaryLocation);
+  }
+
+  for (const loc of locationCandidates) {
+    const inferred = inferCountryFromLocation(loc);
+    if (inferred) {
+      return inferred === "Other" ? "Unknown" : inferred;
+    }
+  }
+
+  const locationStates = Array.isArray(job.locationStates)
+    ? job.locationStates
+    : job.state
+      ? [job.state]
+      : resolvedLocation?.locationStates ?? [];
+
+  for (const state of locationStates) {
+    const inferred = inferCountryFromLocation(state);
+    if (inferred && inferred !== "Other") {
+      return inferred;
+    }
+  }
+
+  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
   if (hasNonUnknownState) {
     return "United States";
   }
@@ -913,6 +939,7 @@ export const listJobs = query({
     companies: v.optional(v.array(v.string())),
     useSearch: v.optional(v.boolean()),
     engineer: v.optional(v.boolean()),
+    excludeApplied: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -937,12 +964,15 @@ export const listJobs = query({
     const singleCompanyFilter = companyFilters.length === 1 ? companyFilters[0] : null;
     const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
     const requestedPageSize = args.paginationOpts.numItems ?? 50;
-    const hasUserApplications = Boolean(
-      await ctx.db
-        .query("applications")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .first()
-    );
+    const shouldExcludeApplied = args.excludeApplied !== false;
+    const hasUserApplications = shouldExcludeApplied
+      ? Boolean(
+          await ctx.db
+            .query("applications")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first()
+        )
+      : false;
     const maxPageSize = hasCompanyFilter || hasUserApplications ? 25 : 50;
     const pageSize = Math.max(1, Math.min(requestedPageSize, maxPageSize));
     const paginationOpts = { ...args.paginationOpts, numItems: pageSize };
@@ -1021,7 +1051,7 @@ export const listJobs = query({
     };
 
     const filterOutAppliedJobs = async (jobsToFilter: any[]) => {
-      if (!hasUserApplications || jobsToFilter.length === 0) return jobsToFilter;
+      if (!shouldExcludeApplied || !hasUserApplications || jobsToFilter.length === 0) return jobsToFilter;
       const uniqueIds = Array.from(new Set(jobsToFilter.map((job) => String(job._id))));
       const applicationRows = await Promise.all(
         uniqueIds.map((jobId) =>
