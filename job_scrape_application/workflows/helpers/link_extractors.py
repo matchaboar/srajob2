@@ -56,6 +56,15 @@ def _strip_trailing_brackets(candidate: str) -> str:
     return cleaned.rstrip(".,")
 
 
+def _strip_html_tail(candidate: str) -> str:
+    if "<" not in candidate:
+        return candidate
+    cut = candidate.find("<")
+    if cut <= 0:
+        return candidate
+    return candidate[:cut].rstrip()
+
+
 def strip_wrapping_url(candidate: str) -> str:
     cleaned = candidate.strip()
     while cleaned:
@@ -65,6 +74,7 @@ def strip_wrapping_url(candidate: str) -> str:
         cleaned = cleaned[1:-1].strip()
     cleaned = _strip_table_tail(cleaned)
     cleaned = _strip_trailing_brackets(cleaned)
+    cleaned = _strip_html_tail(cleaned)
     return cleaned
 
 

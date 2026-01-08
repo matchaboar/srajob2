@@ -41,8 +41,7 @@ def test_hubspot_handler_matches_and_extracts_links():
     assert any(link.endswith("/careers/jobs/5986323") for link in links)
     assert any("page=2" in link for link in links)
     assert all(link.startswith("https://www.hubspot.com/careers/jobs") for link in links)
-    assert any("hubs_signup-cta=careers-apply" in link for link in links)
-    assert not any("hubs_signup-cta=careers-nav-cta" in link for link in links)
+    assert not any("hubs_signup-cta=" in link for link in links)
 
 
 def test_hubspot_handler_normalizes_markdown():
@@ -115,3 +114,10 @@ def test_hubspot_handler_spidercloud_config():
 
     detail_config = handler.get_spidercloud_config(detail_url)
     assert detail_config.get("return_format") == ["commonmark"]
+
+
+def test_hubspot_handler_trims_signup_cta_from_detail_urls():
+    handler = HubspotCareersHandler()
+    url = "https://www.hubspot.com/careers/jobs/5986323?hubs_signup-cta=careers-apply"
+    trimmed = handler.filter_job_urls([url])
+    assert trimmed == ["https://www.hubspot.com/careers/jobs/5986323"]

@@ -219,20 +219,20 @@ BASE_URL_META_PATTERNS = (BASE_HREF_PATTERN, OG_URL_PATTERN, CANONICAL_URL_PATTE
 NETFLIX_LISTING_URL_PATTERNS = (CANONICAL_URL_PATTERN, OG_URL_PATTERN, NAME_OG_URL_PATTERN)
 
 # Site handlers: Avature
-AVATURE_JOB_DETAIL_PATH_PATTERN = r"/careers/JobDetail/[^\"'\s>]+"
+AVATURE_JOB_DETAIL_PATH_PATTERN = r"/careers/JobDetail/[^\"'\s<>]+"
 AVATURE_JOB_DETAIL_PATH_RE = re.compile(AVATURE_JOB_DETAIL_PATH_PATTERN, re.IGNORECASE)
-AVATURE_JOB_DETAIL_URL_PATTERN = r"https?://[^\"'\s>]+/careers/JobDetail/[^\"'\s>]+"
+AVATURE_JOB_DETAIL_URL_PATTERN = r"https?://[^\"'\s<>]+/careers/JobDetail/[^\"'\s<>]+"
 AVATURE_JOB_DETAIL_URL_RE = re.compile(AVATURE_JOB_DETAIL_URL_PATTERN, re.IGNORECASE)
 AVATURE_PAGINATION_PATH_PATTERN = (
-    r"/careers/(?:SearchJobs|SearchJobsData)(?:/[^\"'\s>]*)?[?&][^\"'\s>]*jobOffset=\d+"
+    r"/careers/(?:SearchJobs|SearchJobsData)(?:/[^\"'\s<>]*)?[?&][^\"'\s<>]*jobOffset=\d+"
 )
 AVATURE_PAGINATION_PATH_RE = re.compile(AVATURE_PAGINATION_PATH_PATTERN, re.IGNORECASE)
 AVATURE_PAGINATION_URL_PATTERN = (
-    r"https?://[^\"'\s>]+/careers/(?:SearchJobs|SearchJobsData)"
-    r"(?:/[^\"'\s>]*)?[?&][^\"'\s>]*jobOffset=\d+"
+    r"https?://[^\"'\s<>]+/careers/(?:SearchJobs|SearchJobsData)"
+    r"(?:/[^\"'\s<>]*)?[?&][^\"'\s<>]*jobOffset=\d+"
 )
 AVATURE_PAGINATION_URL_RE = re.compile(AVATURE_PAGINATION_URL_PATTERN, re.IGNORECASE)
-AVATURE_BASE_URL_PATTERN = r"https?://[^\"'\s>]+/careers/[^\"'\s>]*"
+AVATURE_BASE_URL_PATTERN = r"https?://[^\"'\s<>]+/careers/[^\"'\s<>]*"
 AVATURE_BASE_URL_RE = re.compile(AVATURE_BASE_URL_PATTERN, re.IGNORECASE)
 AVATURE_PAGE_RANGE_PATTERN = r"(?P<start>\d+)\s*-\s*(?P<end>\d+)\s*of\s*(?P<total>\d+)"
 AVATURE_PAGE_RANGE_RE = re.compile(AVATURE_PAGE_RANGE_PATTERN, re.IGNORECASE)

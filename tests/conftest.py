@@ -74,6 +74,56 @@ def _ensure_firecrawl_stub() -> None:
     sys.modules["firecrawl.v2.utils.error_handler"] = firecrawl_v2_utils_error
 
 
+def _ensure_opentelemetry_stub() -> None:
+    if "opentelemetry" in sys.modules:
+        return
+
+    otel_mod = types.ModuleType("opentelemetry")
+    otel_logs = types.SimpleNamespace(set_logger_provider=lambda *_args, **_kwargs: None)
+    otel_mod._logs = otel_logs
+
+    class _FakeLoggerProvider:
+        def __init__(self, *_args, **_kwargs):
+            self.processors = []
+
+        def add_log_record_processor(self, proc):
+            self.processors.append(proc)
+
+        def force_flush(self, timeout_ms: int):
+            return True
+
+    class _FakeLoggingHandler:
+        def __init__(self, level=None, logger_provider=None):
+            self.logger_provider = logger_provider
+
+    class _FakeBatchLogRecordProcessor:
+        def __init__(self, exporter):
+            self.exporter = exporter
+
+        def force_flush(self, timeout_millis: int | None = None):
+            return True
+
+    class _FakeOTLPExporter:
+        def __init__(self, endpoint: str | None = None, headers: dict | None = None):
+            self.endpoint = endpoint
+            self.headers = headers or {}
+
+    sys.modules["opentelemetry"] = otel_mod
+    sys.modules["opentelemetry._logs"] = types.SimpleNamespace(
+        set_logger_provider=lambda *_a, **_k: None
+    )
+    sys.modules["opentelemetry.exporter.otlp.proto.common"] = types.SimpleNamespace()
+    sys.modules["opentelemetry.exporter.otlp.proto.http._log_exporter"] = types.SimpleNamespace(
+        OTLPLogExporter=_FakeOTLPExporter
+    )
+    sys.modules["opentelemetry.sdk._logs"] = types.SimpleNamespace(
+        LoggerProvider=_FakeLoggerProvider, LoggingHandler=_FakeLoggingHandler
+    )
+    sys.modules["opentelemetry.sdk._logs.export"] = types.SimpleNamespace(
+        BatchLogRecordProcessor=_FakeBatchLogRecordProcessor
+    )
+
+
 def _sync_settings_flags() -> None:
     config_mod = sys.modules.get("job_scrape_application.config")
     if not config_mod:
@@ -88,6 +138,7 @@ def _sync_settings_flags() -> None:
 _disable_fetchfox_firecrawl_env()
 _ensure_fetchfox_stub()
 _ensure_firecrawl_stub()
+_ensure_opentelemetry_stub()
 _sync_settings_flags()
 
 

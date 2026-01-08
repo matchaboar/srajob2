@@ -442,13 +442,14 @@ def test_base_handler_filters_non_job_detail_urls():
         "https://careers.adobe.com/us/en/teams",
         "https://careers.adobe.com/us/en/apply?jobSeqNo=ADOBUSR162038EXTERNALENUS",
         "https://bloomberg.avature.net/careers/SaveJob?jobId=14551",
+        "https://affable-kiwi-46.convex.site/share/job?id=example&app=https%3A%2F%2Fsrajob.netlify.app",
         "https://www.linkedin.com/company/bloomberg-lp",
         "https://www.linkedin.com/jobs/view/1234567890/",
         "https://careers.adobe.com/us/en/job/123456/Senior-Engineer",
         "https://boards.greenhouse.io/coreweave/jobs/4607747006",
     ]
     filtered = handler.filter_job_urls(urls)
-    for blocked in urls[:7]:
+    for blocked in urls[:8]:
         assert blocked not in filtered
     assert "https://www.linkedin.com/jobs/view/1234567890/" in filtered
     assert "https://careers.adobe.com/us/en/job/123456/Senior-Engineer" in filtered

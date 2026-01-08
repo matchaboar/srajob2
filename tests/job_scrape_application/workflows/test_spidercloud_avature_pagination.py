@@ -81,6 +81,12 @@ async def test_spidercloud_avature_page_1_adds_joboffset_zero_and_next(monkeypat
     assert any("joboffset=0" in url.lower() for url in urls)
     assert any("joboffset=12" in url.lower() for url in urls)
     assert any("/careers/JobDetail/" in url for url in urls), "expected job detail URLs from page links"
+    assert all("<" not in url for url in urls)
+    assert (
+        "https://bloomberg.avature.net/careers/JobDetail/"
+        "Senior-Software-Engineer-Buy-Side/15596"
+        in urls
+    )
 
 
 @pytest.mark.asyncio

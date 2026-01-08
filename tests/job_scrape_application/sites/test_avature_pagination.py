@@ -137,3 +137,16 @@ def test_avature_pagination_fixtures_traverse_three_pages():
 
     page_3_links = _pagination_links(handler, _load_html(PAGE_3))
     assert any("joboffset=36" in link.lower() for link in page_3_links)
+
+
+def test_avature_fixture_strips_trailing_html_tag_fragments():
+    handler = AvatureHandler()
+    html = _load_html(PAGE_1)
+
+    links = handler.get_links_from_raw_html(html)
+    expected = (
+        "https://bloomberg.avature.net/careers/JobDetail/"
+        "Senior-Software-Engineer-Buy-Side/15596"
+    )
+    assert expected in links
+    assert all("<" not in link for link in links)

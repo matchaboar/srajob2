@@ -15,6 +15,10 @@ _POSTED_DATE_LABEL_RE = re.compile(
     r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posting\s+date|date\s+of\s+posting|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
     flags=re.IGNORECASE,
 )
+_POSTED_DATE_INLINE_RE = re.compile(
+    r"(?:posted\s+date|date\s+posted|posting\s+date|date\s+of\s+posting|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
+    flags=re.IGNORECASE,
+)
 _RELATIVE_POSTED_LINE_RE = re.compile(r"\bposted\b.{0,40}\bago\b", flags=re.IGNORECASE)
 _ISO_DATE_RE = re.compile(r"\b(?P<date>\d{4}-\d{2}-\d{2})\b")
 _SLASH_DATE_RE = re.compile(
@@ -189,36 +193,57 @@ class BaseSiteHandler(ABC):
     def extract_posted_at_from_markdown(self, markdown: str, url: str | None = None) -> Any | None:
         if not markdown:
             return None
+        def _normalize_markdown_candidates(value: str) -> List[str]:
+            candidates = [value]
+            if "<" in value and ">" in value:
+                cleaned = re.sub(r"<script\b[^>]*>.*?</script>", " ", value, flags=re.IGNORECASE | re.DOTALL)
+                cleaned = re.sub(r"<style\b[^>]*>.*?</style>", " ", cleaned, flags=re.IGNORECASE | re.DOTALL)
+                cleaned = re.sub(r"<[^>]+>", "\n", cleaned)
+                cleaned = html_lib.unescape(cleaned)
+                cleaned = re.sub(r"[ \t\r\f\v]+", " ", cleaned)
+                cleaned = re.sub(r"\n{2,}", "\n", cleaned)
+                cleaned = cleaned.strip()
+                if cleaned and cleaned != value:
+                    candidates.append(cleaned)
+            return candidates
 
-        relative_match = _RELATIVE_POSTED_RE.search(markdown)
-        if relative_match:
-            return relative_match.group(0)
+        for candidate_text in _normalize_markdown_candidates(markdown):
+            relative_match = _RELATIVE_POSTED_RE.search(candidate_text)
+            if relative_match:
+                return relative_match.group(0)
 
-        lines = markdown.splitlines()
-        for idx, line in enumerate(lines):
-            stripped = line.strip()
-            cleaned = stripped.strip("*`-• ").strip()
-            if not cleaned:
-                continue
-            if _POSTED_DATE_LABEL_RE.match(cleaned):
-                for offset in range(0, 4):
-                    if idx + offset >= len(lines):
-                        break
-                    candidate = lines[idx + offset].strip()
-                    if not candidate:
-                        continue
-                    parsed = self._extract_iso_date_from_text(candidate)
-                    if parsed:
-                        return parsed
-                continue
-
-            lowered = cleaned.lower()
-            if "posted" in lowered or "updated" in lowered:
-                parsed = self._extract_iso_date_from_text(cleaned)
+            inline_match = _POSTED_DATE_INLINE_RE.search(candidate_text)
+            if inline_match:
+                tail = candidate_text[inline_match.end() : inline_match.end() + 200]
+                parsed = self._extract_iso_date_from_text(tail)
                 if parsed:
                     return parsed
-                if "ago" in lowered or "today" in lowered or "yesterday" in lowered:
-                    return cleaned
+
+            lines = candidate_text.splitlines()
+            for idx, line in enumerate(lines):
+                stripped = line.strip()
+                cleaned = stripped.strip("*`-• ").strip()
+                if not cleaned:
+                    continue
+                if _POSTED_DATE_LABEL_RE.match(cleaned):
+                    for offset in range(0, 4):
+                        if idx + offset >= len(lines):
+                            break
+                        line_candidate = lines[idx + offset].strip()
+                        if not line_candidate:
+                            continue
+                        parsed = self._extract_iso_date_from_text(line_candidate)
+                        if parsed:
+                            return parsed
+                    continue
+
+                lowered = cleaned.lower()
+                if "posted" in lowered or "updated" in lowered:
+                    parsed = self._extract_iso_date_from_text(cleaned)
+                    if parsed:
+                        return parsed
+                    if "ago" in lowered or "today" in lowered or "yesterday" in lowered:
+                        return cleaned
         return None
 
     @staticmethod
@@ -227,7 +252,10 @@ class BaseSiteHandler(ABC):
             return None
         iso_match = _ISO_DATE_RE.search(text)
         if iso_match:
-            return f"{iso_match.group('date')}T00:00:00+00:00"
+            candidate = f"{iso_match.group('date')}T00:00:00+00:00"
+            if _POSTED_AT_PLACEHOLDER_RE.match(candidate):
+                return None
+            return candidate
 
         slash_match = _SLASH_DATE_RE.search(text)
         if slash_match:
@@ -238,7 +266,10 @@ class BaseSiteHandler(ABC):
                 if year < 100:
                     year += 2000
                 dt = datetime(year, month, day, tzinfo=timezone.utc)
-                return dt.isoformat()
+                candidate = dt.isoformat()
+                if _POSTED_AT_PLACEHOLDER_RE.match(candidate):
+                    return None
+                return candidate
             except Exception:
                 return None
 
@@ -252,7 +283,10 @@ class BaseSiteHandler(ABC):
                 day = int(month_match.group("day"))
                 year = int(month_match.group("year"))
                 dt = datetime(year, month, day, tzinfo=timezone.utc)
-                return dt.isoformat()
+                candidate = dt.isoformat()
+                if _POSTED_AT_PLACEHOLDER_RE.match(candidate):
+                    return None
+                return candidate
             except Exception:
                 return None
 
@@ -266,7 +300,10 @@ class BaseSiteHandler(ABC):
                 day = int(day_month_match.group("day"))
                 year = int(day_month_match.group("year"))
                 dt = datetime(year, month, day, tzinfo=timezone.utc)
-                return dt.isoformat()
+                candidate = dt.isoformat()
+                if _POSTED_AT_PLACEHOLDER_RE.match(candidate):
+                    return None
+                return candidate
             except Exception:
                 return None
 
@@ -502,6 +539,8 @@ class BaseSiteHandler(ABC):
         path = (parsed.path or "").lower()
         if not host or not path:
             return False
+        if host.endswith((".convex.site", ".convex.cloud")) and path.startswith("/share/"):
+            return True
         if host.endswith("meta.com") and not host.endswith("metacareers.com"):
             return True
         if host.endswith(("facebook.com", "instagram.com", "twitter.com", "x.com")):
