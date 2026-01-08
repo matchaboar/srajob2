@@ -2567,8 +2567,10 @@ def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
         amount = float(match.group("value"))
     except ValueError:
         return None
-    if amount <= 0:
+    if amount < 0:
         return None
+    if amount == 0:
+        return now_ms
 
     unit = match.group("unit")
     if unit.startswith("day") and amount < _RELATIVE_POSTED_MIN_DAYS:

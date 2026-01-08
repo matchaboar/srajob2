@@ -18,6 +18,7 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     normalize_single_row,
     parse_compensation,
     parse_markdown_hints,
+    parse_posted_at_with_unknown,
     prefer_apply_url,
     split_description_metadata,
     strip_known_nav_blocks,
@@ -47,6 +48,14 @@ def test_parse_markdown_hints_extracts_fields():
     assert hints["location"] == "Toronto, Canada"
     assert hints["level"] == "senior"
     assert hints["compensation"] == 157500  # average of range
+
+
+def test_parse_posted_at_with_unknown_allows_zero_days():
+    now_ms = 1_760_000_000_000
+    posted_at, unknown = parse_posted_at_with_unknown("Posted 0 days ago", now_ms=now_ms)
+
+    assert posted_at == now_ms
+    assert unknown is False
 
 
 def test_parse_markdown_hints_adobe_bucharest_commonmark_fixture():

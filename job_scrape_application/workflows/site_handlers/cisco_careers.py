@@ -79,7 +79,7 @@ class CiscoCareersHandler(BaseSiteHandler):
                 "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
             }
             return self._apply_page_links_config(base_config)
-        base_config["return_format"] = ["commonmark"]
+        base_config["return_format"] = ["commonmark", "raw_html"]
         return self._apply_page_links_config(base_config)
 
     def get_links_from_raw_html(self, html: str) -> List[str]:

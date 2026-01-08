@@ -59,6 +59,10 @@ JSON_LD_FIXTURES = [
     Path("tests/job_scrape_application/workflows/fixtures/adobe_refine_search_page_3.json"),
     Path("tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_listing_page.json"),
     Path("tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_1.json"),
+    Path(
+        "tests/job_scrape_application/workflows/fixtures/"
+        "spidercloud_cisco_job_detail_commonmark_raw_html.json"
+    ),
 ]
 
 

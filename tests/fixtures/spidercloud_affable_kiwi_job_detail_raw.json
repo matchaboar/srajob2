@@ -1,0 +1,67 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html lang=\"en\">\n    <meta charset=\"utf-8\">\n    <meta content=\"width=device-width, initial-scale=1\" name=\"viewport\">\n    <title>Site Reliability Engineer, SplunkCloud Tech Ops FedRAMP-33504 at Cisco | JobBoard</title>\n    <meta name=\"description\" content=\"Splunk, a Cisco company, is building a safer and more resilient digital world with an end-to-end full stack platform made for a hybrid, multi-cloud world. Leading enterprises use our unified security and observability platform to keep...\">\n    <meta property=\"og:type\" content=\"website\">\n    <meta content=\"JobBoard\" property=\"og:site_name\">\n    <meta content=\"Site Reliability Engineer, SplunkCloud Tech Ops FedRAMP-33504 at Cisco\" property=\"og:title\">\n    <meta property=\"og:description\" content=\"Splunk, a Cisco company, is building a safer and more resilient digital world with an end-to-end full stack platform made for a hybrid, multi-cloud world. Leading enterprises use our unified security and observability platform to keep...\">\n    <meta property=\"og:image\" content=\"https://cdn.brandfetch.io/cisco.com?c=1idXaGHc5cKcElppzC7\">\n    <meta property=\"og:image:alt\" content=\"Cisco logo\">\n    <meta content=\"https://affable-kiwi-46.convex.site/share/job?id=k175cr6rcv86m5w4en8tsacjb57yvwe6&amp;app=https%3A%2F%2Fsrajob.netlify.app\" property=\"og:url\">\n    <meta name=\"twitter:card\" content=\"summary_large_image\">\n    <meta content=\"Site Reliability Engineer, SplunkCloud Tech Ops FedRAMP-33504 at Cisco\" name=\"twitter:title\">\n    <meta content=\"Splunk, a Cisco company, is building a safer and more resilient digital world with an end-to-end full stack platform made for a hybrid, multi-cloud world. Leading enterprises use our unified security and observability platform to keep...\" name=\"twitter:description\">\n    <meta content=\"https://cdn.brandfetch.io/cisco.com?c=1idXaGHc5cKcElppzC7\" name=\"twitter:image\">\n    <link title=\"Site Reliability Engineer, SplunkCloud Tech Ops FedRAMP-33504 at Cisco\" rel=\"alternate\" href=\"https://affable-kiwi-46.convex.site/share/job/oembed?id=k175cr6rcv86m5w4en8tsacjb57yvwe6&amp;app=https%3A%2F%2Fsrajob.netlify.app\" type=\"application/json+oembed\">\n    <link href=\"https://affable-kiwi-46.convex.site/share/jobboard-logo.svg\" type=\"image/svg+xml\" rel=\"icon\">\n    <style>\n      :root { color-scheme: dark; }\n      body { margin: 0; font-family: \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif; background: #0b1220; color: #e2e8f0; }\n      .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px 48px; gap: 20px; }\n      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px; color: #94a3b8; }\n      .brand img { width: 28px; height: 28px; border-radius: 8px; }\n      .card { width: min(720px, 100%); background: #111827; border: 1px solid #1f2937; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.35); }\n      .header { display: flex; gap: 16px; align-items: center; }\n      .header img { width: 72px; height: 72px; border-radius: 16px; background: #0f172a; border: 1px solid #1f2937; object-fit: contain; }\n      .title { margin: 0; font-size: 24px; font-weight: 700; color: #f8fafc; }\n      .company { margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #38bdf8; }\n      .meta { margin-top: 6px; font-size: 12px; color: #94a3b8; }\n      .description { margin: 18px 0; font-size: 15px; line-height: 1.6; color: #cbd5f5; }\n      .actions { display: flex; flex-wrap: wrap; gap: 12px; }\n      .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px; background: #34d399; color: #0f172a; font-weight: 700; text-decoration: none; font-size: 13px; }\n      .btn.secondary { background: transparent; color: #93c5fd; border: 1px solid #334155; }\n      .footer { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #64748b; }\n    </style>\n  \n  \n    <div class=\"page\">\n      <div class=\"brand\">\n        <img src=\"https://affable-kiwi-46.convex.site/share/jobboard-logo.svg\" alt=\"JobBoard logo\">\n        <span>JobBoard</span>\n      </div>\n      <div class=\"card\">\n        \n        <p class=\"description\">Splunk, a Cisco company, is building a safer and more resilient digital world with an end-to-end full stack platform made for a hybrid, multi-cloud world. Leading enterprises use our unified security and observability platform to keep...</p>\n        <div class=\"actions\">\n          <a class=\"btn\" target=\"_blank\" rel=\"noreferrer\" href=\"https://srajob.netlify.app/#job-details-k175cr6rcv86m5w4en8tsacjb57yvwe6\">Open in JobBoard</a>\n          <a href=\"https://careers.cisco.com/global/en/job/1448524/Site-Reliability-Engineer-SplunkCloud-Tech-Ops-FedRAMP-33504\" rel=\"noreferrer\" class=\"btn secondary\" target=\"_blank\">View job source</a>\n        </div>\n      </div>\n      \n    </div>\n  \n</html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 5.118683333333334e-06,
+        "compute_cost_formatted": "0.0000051186833333333336612192",
+        "file_cost": 8.110500000000001e-06,
+        "file_cost_formatted": "0.0000081105000000000000009992",
+        "total_cost": 1.3229183333333334e-05,
+        "total_cost_formatted": "0.0000132291833333333336622184",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 2910,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "Splunk, a Cisco company, is building a safer and more resilient digital world with an end-to-end full stack platform made for a hybrid, multi-cloud world. Leading enterprises use our unified security and observability platform to keep...",
+          "domain": "affable-kiwi-46.convex.site",
+          "extracted_data": null,
+          "file_size": 4936,
+          "final_url": null,
+          "keywords": [
+            "> <a class=",
+            "> <div class=",
+            "> <img src=",
+            "> <link href=",
+            "> <link title=",
+            "> <meta charset=",
+            "> <meta content=",
+            "> <meta name=",
+            "> <meta property=",
+            "> <p class=",
+            "> <title>Site Reliability Engineer",
+            ">View job source<",
+            "Site Reliability Engineer",
+            "SplunkCloud Tech Ops FedRAMP-33504",
+            "a> <a href=",
+            "div> <div class=",
+            "end-to-end full stack platform made",
+            "p> <div class=",
+            "resilient digital world",
+            "style> <div class=",
+            "title> <meta name="
+          ],
+          "og_image": "https://cdn.brandfetch.io/cisco.com?c=1idXaGHc5cKcElppzC7",
+          "original_url": "https://affable-kiwi-46.convex.site/share/job?id=k175cr6rcv86m5w4en8tsacjb57yvwe6&app=https%3A%2F%2Fsrajob.netlify.app",
+          "pathname": "/share/job?id=k175cr6rcv86m5w4en8tsacjb57yvwe6&app=https%3A%2F%2Fsrajob.netlify.app",
+          "resource_type": ".html",
+          "title": "Site Reliability Engineer, SplunkCloud Tech Ops FedRAMP-33504 at Cisco | JobBoard",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://affable-kiwi-46.convex.site/share/job?id=k175cr6rcv86m5w4en8tsacjb57yvwe6&app=https%3A%2F%2Fsrajob.netlify.app"
+    }
+  ]
+]
