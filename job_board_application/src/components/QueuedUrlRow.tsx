@@ -13,6 +13,8 @@ export interface QueuedUrlRowItem {
   createdAt: number;
   scheduledAt?: number | null;
   attempts?: number | null;
+  completedAt?: number | null;
+  lastError?: string | null;
 }
 
 interface QueuedUrlRowProps {
@@ -21,6 +23,9 @@ interface QueuedUrlRowProps {
   isSelected: boolean;
   onSelect: () => void;
   keyboardBlur?: boolean;
+  onResetRetries?: () => void;
+  showCompletedAt?: boolean;
+  showLastError?: boolean;
 }
 
 const STATUS_STYLES: Record<QueueStatus, string> = {
@@ -152,12 +157,25 @@ const toDisplayName = (value: string) =>
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-export function QueuedUrlRow({ item, index, isSelected, onSelect, keyboardBlur }: QueuedUrlRowProps) {
+export function QueuedUrlRow({
+  item,
+  index,
+  isSelected,
+  onSelect,
+  keyboardBlur,
+  onResetRetries,
+  showCompletedAt,
+  showLastError,
+}: QueuedUrlRowProps) {
   const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.pending;
   const label =
     extractCompanyLabel(item.sourceUrl) ?? extractCompanyLabel(item.url) ?? "Company";
   const displayLabel = toDisplayName(label);
   const logoUrl = item.sourceUrl || item.url;
+  const showExtras = Boolean(showCompletedAt || showLastError);
+  const gridClassName = showExtras
+    ? "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,3.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1.8fr)_minmax(0,2.2fr)]"
+    : "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]";
 
   return (
     <motion.div
@@ -184,7 +202,7 @@ export function QueuedUrlRow({ item, index, isSelected, onSelect, keyboardBlur }
     >
       <div className={`w-1 h-8 rounded-full transition-colors ${isSelected ? "bg-amber-400" : "bg-transparent"}`} />
 
-      <div className="flex-1 min-w-0 grid grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-3 items-center">
+      <div className={`flex-1 min-w-0 grid ${gridClassName} gap-3 items-center`}>
         <div className="text-right text-xs text-slate-500 font-mono">{index + 1}</div>
         <CompanyIcon company={displayLabel} size={26} url={logoUrl} />
         <div className="min-w-0">
@@ -217,10 +235,22 @@ export function QueuedUrlRow({ item, index, isSelected, onSelect, keyboardBlur }
           {item.attempts ?? 0}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-1">
           <span className={`px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded border ${statusStyle}`}>
             {item.status}
           </span>
+          {item.status === "failed" && onResetRetries && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onResetRetries();
+              }}
+              className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded border border-rose-400/40 text-rose-200 hover:text-white hover:border-rose-300 hover:bg-rose-500/20 transition-colors"
+            >
+              Reset retries
+            </button>
+          )}
         </div>
 
         <div className="hidden sm:flex justify-end">
@@ -234,6 +264,18 @@ export function QueuedUrlRow({ item, index, isSelected, onSelect, keyboardBlur }
             className="text-[10px] font-mono text-slate-400 truncate"
           />
         </div>
+        {showExtras && (
+          <div className="hidden sm:block text-xs text-slate-400 truncate">
+            {typeof item.completedAt === "number"
+              ? new Date(item.completedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+              : "—"}
+          </div>
+        )}
+        {showExtras && (
+          <div className="hidden sm:block text-xs text-slate-400 truncate" title={item.lastError ?? ""}>
+            {item.lastError ?? "—"}
+          </div>
+        )}
       </div>
     </motion.div>
   );

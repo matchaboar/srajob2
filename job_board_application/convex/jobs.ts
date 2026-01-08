@@ -1708,7 +1708,15 @@ export const getRecentJobs = query({
 export const listQueuedJobs = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    status: v.optional(v.union(v.literal("pending"), v.literal("processing"))),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed"),
+        v.literal("invalid")
+      )
+    ),
     scheduledBefore: v.optional(v.number()),
   },
   returns: v.object({
@@ -1756,7 +1764,7 @@ export const listQueuedJobs = query({
           q.or(q.lte(q.field("scheduledAt"), scheduledBefore), q.eq(q.field("scheduledAt"), null))
         );
     } else {
-      query = query.withIndex("by_status", (q: any) => q.eq("status", "processing"));
+      query = query.withIndex("by_status", (q: any) => q.eq("status", status));
     }
 
     const paginationOpts = {
@@ -1785,6 +1793,39 @@ export const listQueuedJobs = query({
       isDone: page.isDone,
       continueCursor: page.continueCursor ?? null,
     };
+  },
+});
+
+export const resetQueuedUrlRetries = mutation({
+  args: {
+    id: v.id("scrape_url_queue"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const row = await ctx.db.get(args.id);
+    if (!row) {
+      throw new Error("Queue item not found");
+    }
+    if (row.status !== "failed") {
+      throw new Error("Queue item is not failed");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.id, {
+      status: "pending",
+      attempts: 0,
+      lastError: undefined,
+      createdAt: now,
+      updatedAt: now,
+      completedAt: undefined,
+      scheduledAt: now,
+    });
+
+    return { success: true };
   },
 });
 

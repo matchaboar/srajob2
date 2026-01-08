@@ -1676,13 +1676,18 @@ export const listQueuedScrapeUrls = query({
     const siteId = args.siteId;
     let rows: any[] = [];
 
+    const orderDirection =
+      status === "failed" ? "desc" : "asc";
     if (siteId && status) {
       rows = await baseQuery
         .withIndex("by_site_status", (qi) => qi.eq("siteId", siteId).eq("status", status))
-        .order("asc")
+        .order(orderDirection)
         .take(limit);
     } else if (status) {
-      rows = await baseQuery.withIndex("by_status", (qi) => qi.eq("status", status)).order("asc").take(limit);
+      rows = await baseQuery
+        .withIndex("by_status", (qi) => qi.eq("status", status))
+        .order(orderDirection)
+        .take(limit);
     } else if (siteId) {
       const statuses: Array<"pending" | "processing" | "completed" | "failed" | "invalid"> = [
         "pending",
@@ -1963,16 +1968,17 @@ const leaseScrapeUrlBatchHandler = async (
       q.eq("status", "pending").lte("scheduledAt", now)
     );
   let rows = await baseQuery.order("asc").take(limit * 3);
+  const queueAge = (row: any) => (row.scheduledAt ?? row.createdAt ?? 0);
   rows = rows.slice().sort((a: any, b: any) => {
-    const attemptsA = a.attempts ?? 0;
-    const attemptsB = b.attempts ?? 0;
-    if (attemptsA !== attemptsB) return attemptsA - attemptsB;
-    const scheduledA = a.scheduledAt ?? 0;
-    const scheduledB = b.scheduledAt ?? 0;
-    if (scheduledA !== scheduledB) return scheduledA - scheduledB;
+    const ageA = queueAge(a);
+    const ageB = queueAge(b);
+    if (ageA !== ageB) return ageA - ageB;
     const createdA = a.createdAt ?? 0;
     const createdB = b.createdAt ?? 0;
-    return createdA - createdB;
+    if (createdA !== createdB) return createdA - createdB;
+    const attemptsA = a.attempts ?? 0;
+    const attemptsB = b.attempts ?? 0;
+    return attemptsA - attemptsB;
   });
   if (rows.length < limit) {
     const legacyRows = await ctx.db

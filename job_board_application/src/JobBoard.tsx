@@ -28,9 +28,7 @@ type SelectionId = JobId | QueueId;
 type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
 type QueuedScrapeUrl = PaginatedQueryItem<typeof api.jobs.listQueuedJobs>;
-type QueuedScrapeUrlList = FunctionReturnType<typeof api.router.listQueuedScrapeUrls>;
-type QueuedScrapeUrlItem = QueuedScrapeUrlList extends Array<infer Item> ? NonNullable<Item> : never;
-type QueuedQueueRow = QueuedScrapeUrl | QueuedScrapeUrlItem;
+type QueuedQueueRow = QueuedScrapeUrl;
 type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
 type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
 type CompanySummariesResult = FunctionReturnType<typeof api.jobs.listCompanySummaries>;
@@ -332,8 +330,7 @@ export function JobBoard() {
 
   // Selection state for keyboard navigation
   const [selectedJobId, setSelectedJobId] = useState<SelectionId | null>(null);
-  const [queuedView, setQueuedView] = useState<"pending" | "processing">("pending");
-  const [processingLimit, setProcessingLimit] = useState<number>(20);
+  const [queuedView, setQueuedView] = useState<"pending" | "processing" | "completed" | "failed" | "invalid">("pending");
   const [openIgnoredCompany, setOpenIgnoredCompany] = useState<string | null>(null);
   const defaultFilterRequestedRef = useRef(false);
   const applyingSavedFilterRef = useRef(false);
@@ -428,6 +425,11 @@ export function JobBoard() {
   const isLiveTab = activeTab === "live";
   const isQueuedTab = activeTab === "queued";
   const isIgnoredTab = activeTab === "ignored";
+  useEffect(() => {
+    if (isQueuedTab && queuedView === "pending") {
+      setQueuedCutoff(Date.now());
+    }
+  }, [isQueuedTab, queuedView]);
   const isAdmin = useQuery(api.auth.isAdmin);
   const hasCompanyFilter = filters.companies.length > 0 || (!filtersReady && !!companyFilterFromUrl);
   const adminJobsChunkSize = hasCompanyFilter ? 20 : 50;
@@ -440,11 +442,6 @@ export function JobBoard() {
   const queuedLoadMoreSize = 20;
   const queuedAutoFillTarget = queuedPageSize;
   const queuedAutoFillDelayMs = 1000;
-  useEffect(() => {
-    if (queuedView === "processing") {
-      setProcessingLimit(queuedPageSize);
-    }
-  }, [queuedView, queuedPageSize]);
   const companyBannerName = useMemo(() => {
     if (filters.companies.length === 1) return filters.companies[0] ?? null;
     if (!filtersReady && companyFilterFromUrl) return companyFilterFromUrl;
@@ -458,8 +455,10 @@ export function JobBoard() {
     loadMore: loadMoreQueued,
   } = usePaginatedQuery(
     (api as any).jobs.listQueuedJobs,
-    isQueuedTab && queuedView === "pending"
-      ? { status: "pending", scheduledBefore: queuedCutoff }
+    isQueuedTab
+      ? queuedView === "pending"
+        ? { status: "pending", scheduledBefore: queuedCutoff }
+        : { status: queuedView }
       : "skip",
     { initialNumItems: queuedPageSize }
   );
@@ -594,14 +593,9 @@ export function JobBoard() {
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
   const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
-  const processingQueued = useQuery(
-    api.router.listQueuedScrapeUrls,
-    isQueuedTab && queuedView === "processing"
-      ? { status: "processing", limit: processingLimit }
-      : "skip"
-  ) as QueuedScrapeUrlItem[] | undefined;
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
+  const resetQueuedUrlRetries = useMutation(api.jobs.resetQueuedUrlRetries);
 
   // Withdraw not used in this view; keep mutation available for future enhancements
   const ensureDefaultFilter = useMutation(api.filters.ensureDefaultFilter);
@@ -615,14 +609,11 @@ export function JobBoard() {
     (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job)._id)
   );
   const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean);
-  const queuedList: QueuedQueueRow[] = useMemo(() => {
-    if (queuedView === "processing") {
-      return (processingQueued ?? []).filter(Boolean) as QueuedQueueRow[];
-    }
-    return (queuedResults ?? []).filter(Boolean) as QueuedQueueRow[];
-  }, [queuedResults, processingQueued, queuedView]);
-  const canLoadMoreProcessing =
-    queuedView === "processing" && (processingQueued?.length ?? 0) >= processingLimit;
+  const queuedList: QueuedQueueRow[] = useMemo(
+    () => (queuedResults ?? []).filter(Boolean) as QueuedQueueRow[],
+    [queuedResults]
+  );
+  const queuedHasOutcomeColumns = queuedView === "completed" || queuedView === "failed";
   const shouldAutoLoadQueued =
     isQueuedTab &&
     queuedView === "pending" &&
@@ -1555,6 +1546,15 @@ export function JobBoard() {
     }
   }, [rejectJob, exitingJobs, filteredResults, activeTab, queuedList]);
 
+  const handleResetQueuedRetries = useCallback(async (queueId: QueueId) => {
+    try {
+      await resetQueuedUrlRetries({ id: queueId });
+      toast.success("Successfully re-queued");
+    } catch {
+      toast.error("Failed to reset retries");
+    }
+  }, [resetQueuedUrlRetries]);
+
   const buildJobDetailsLink = useCallback((jobId: JobId) => {
     const shareBase = resolveShareBaseUrl();
     const shareUrl = new URL("/share/job", shareBase);
@@ -1645,7 +1645,7 @@ export function JobBoard() {
             scrollToJob(nextId, currentIndex + 1 >= 3);
           } else if (activeTab === "jobs" && status === "CanLoadMore") {
             loadMore(jobsLoadMoreSize);
-          } else if (activeTab === "queued" && queuedView === "pending" && queuedStatus === "CanLoadMore") {
+          } else if (activeTab === "queued" && queuedStatus === "CanLoadMore") {
             loadMoreQueued(queuedLoadMoreSize);
           }
           break;
@@ -3144,6 +3144,42 @@ export function JobBoard() {
                     >
                       Processing
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setQueuedView("completed")}
+                      className={
+                        "px-3 py-1.5 transition-colors " +
+                        (queuedView === "completed"
+                          ? "bg-emerald-400 text-slate-900"
+                          : "bg-slate-900 text-slate-300 hover:text-white")
+                      }
+                    >
+                      Completed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQueuedView("failed")}
+                      className={
+                        "px-3 py-1.5 transition-colors " +
+                        (queuedView === "failed"
+                          ? "bg-red-400 text-slate-900"
+                          : "bg-slate-900 text-slate-300 hover:text-white")
+                      }
+                    >
+                      Failed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQueuedView("invalid")}
+                      className={
+                        "px-3 py-1.5 transition-colors " +
+                        (queuedView === "invalid"
+                          ? "bg-slate-300 text-slate-900"
+                          : "bg-slate-900 text-slate-300 hover:text-white")
+                      }
+                    >
+                      Invalid
+                    </button>
                   </div>
                 </div>
                 <span className="text-xs text-slate-400">
@@ -3154,7 +3190,14 @@ export function JobBoard() {
                 <div className="sticky top-0 z-20 relative">
                   <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <div className="w-1" />
-                    <div className="flex-1 grid grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-2 sm:gap-3 items-center">
+                    <div
+                      className={
+                        "flex-1 grid gap-2 sm:gap-3 items-center " +
+                        (queuedHasOutcomeColumns
+                          ? "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,3.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1.8fr)_minmax(0,2.2fr)]"
+                          : "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]")
+                      }
+                    >
                       <div className="text-right">#</div>
                       <div className="w-7" />
                       <div>URL</div>
@@ -3163,6 +3206,8 @@ export function JobBoard() {
                       <div className="hidden sm:block text-right">Attempts</div>
                       <div className="text-right">Status</div>
                       <div className="text-right hidden sm:block">Queued</div>
+                      {queuedHasOutcomeColumns && <div className="hidden sm:block">Completed at</div>}
+                      {queuedHasOutcomeColumns && <div className="hidden sm:block">Last error</div>}
                     </div>
                   </div>
                 </div>
@@ -3176,25 +3221,22 @@ export function JobBoard() {
                         index={idx}
                         isSelected={selectedJobId === item._id}
                         onSelect={() => handleSelectQueued(item._id)}
+                        onResetRetries={
+                          queuedView === "failed"
+                            ? () => handleResetQueuedRetries(item._id as QueueId)
+                            : undefined
+                        }
+                        showCompletedAt={queuedHasOutcomeColumns}
+                        showLastError={queuedHasOutcomeColumns}
                         keyboardBlur={idx > blurFromIndex}
                       />
                     ))}
                   </AnimatePresence>
 
-                  {queuedView === "pending" && queuedStatus === "CanLoadMore" && (
+                  {queuedStatus === "CanLoadMore" && (
                     <div className="p-4 flex justify-center border-t border-slate-800">
                       <button
                         onClick={() => loadMoreQueued(queuedLoadMoreSize)}
-                        className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
-                      >
-                        Load More
-                      </button>
-                    </div>
-                  )}
-                  {queuedView === "processing" && canLoadMoreProcessing && (
-                    <div className="p-4 flex justify-center border-t border-slate-800">
-                      <button
-                        onClick={() => setProcessingLimit((prev) => prev + queuedLoadMoreSize)}
                         className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-900 rounded transition-colors"
                       >
                         Load More
@@ -3249,6 +3291,15 @@ export function JobBoard() {
                           </button>
                         )}
                       </div>
+                      {selectedQueuedItem.status === "failed" && (
+                        <button
+                          type="button"
+                          onClick={() => handleResetQueuedRetries(selectedQueuedItem._id as QueueId)}
+                          className="w-full px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-rose-100 bg-rose-500/30 hover:bg-rose-500/50 border border-rose-400/40 transition-transform active:scale-[0.99]"
+                        >
+                          Reset retries
+                        </button>
+                      )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
