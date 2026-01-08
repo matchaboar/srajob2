@@ -175,6 +175,8 @@ const applicationTables = {
     ),
     // Optional pattern for detail pages (e.g., "https://example.com/jobs/**")
     pattern: v.optional(v.string()),
+    // Optional pagination cap for listing pages
+    paginationLimit: v.optional(v.number()),
     // Optional reusable schedule reference
     scheduleId: v.optional(v.id("scrape_schedules")),
     enabled: v.boolean(),
@@ -224,6 +226,7 @@ const applicationTables = {
     .index("by_source", ["sourceUrl"])
     .index("by_source_completed", ["sourceUrl", "completedAt"])
     .index("by_completedAt", ["completedAt"])
+    .index("by_completedAt_site", ["completedAt", "siteId"])
     .index("by_startedAt", ["startedAt"])
     .index("by_site", ["siteId"])
     .index("by_site_completed", ["siteId", "completedAt"]),
@@ -335,6 +338,7 @@ const applicationTables = {
     siteId: v.optional(v.id("sites")),
     pattern: v.optional(v.string()),
     urlType: v.optional(v.union(v.literal("listing"), v.literal("detail"))),
+    bucket: v.optional(v.number()),
     status: v.union(
       v.literal("pending"),
       v.literal("processing"),
@@ -355,10 +359,29 @@ const applicationTables = {
     .index("by_status_last_error", ["status", "lastError"])
     .index("by_site_status", ["siteId", "status"])
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
+    .index("by_status_bucket_scheduled_at", ["status", "bucket", "scheduledAt"])
     .index("by_status_url_type", ["status", "urlType"])
     .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"])
     .index("by_type_updated", ["urlType", "updatedAt"])
     .index("by_urlType", ["urlType"]),
+
+  scrape_url_bucket_leases: defineTable({
+    bucket: v.number(),
+    workerId: v.string(),
+    expiresAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_bucket", ["bucket"])
+    .index("by_worker", ["workerId"])
+    .index("by_expires_at", ["expiresAt"]),
+
+  scrape_worker_heartbeats: defineTable({
+    workerId: v.string(),
+    expiresAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_worker", ["workerId"])
+    .index("by_expires_at", ["expiresAt"]),
 
   job_detail_configs: defineTable({
     domain: v.string(),

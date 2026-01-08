@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, os.path.abspath("."))
 
 try:
-    from temporalio.exceptions import ApplicationError
+    from temporalio.exceptions import ActivityError, ApplicationError, TimeoutError, TimeoutType
 except Exception:  # pragma: no cover - optional dependency
     pytest.skip("temporalio not installed", allow_module_level=True)
 
@@ -131,6 +131,70 @@ async def test_listing_workflow_uses_listing_batch_size(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_listing_batch_failure_records_reason(monkeypatch):
+    batch = {"urls": [{"url": "https://example.com/jobs?page=1"}]}
+    recorded_runs: list[dict[str, Any]] = []
+    captured_error: dict[str, Any] = {"error": None}
+
+    timeout = TimeoutError(
+        "activity ScheduleToClose timeout",
+        type=TimeoutType.SCHEDULE_TO_CLOSE,
+        last_heartbeat_details=[],
+    )
+    listing_error: ActivityError | None = None
+    try:
+        raise ActivityError(
+            "activity ScheduleToClose timeout",
+            scheduled_event_id=1,
+            started_event_id=2,
+            identity="worker-1",
+            activity_type="process_spidercloud_listing_batch",
+            activity_id="act-2",
+            retry_state=None,
+        ) from timeout
+    except ActivityError as exc:
+        listing_error = exc
+
+    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
+        if activity is sw.lease_scrape_url_batch:
+            return batch
+        if activity is sw.process_spidercloud_listing_batch:
+            if listing_error is None:
+                raise AssertionError("listing_error not set")
+            raise listing_error
+        if activity is sw.fail_listing_batch_urls:
+            if isinstance(args, list) and len(args) > 1:
+                captured_error["error"] = args[1]
+            return None
+        if activity is sw.record_workflow_run:
+            payload = args[0] if isinstance(args, list) else args
+            if isinstance(payload, dict):
+                recorded_runs.append(payload)
+            return None
+        if activity is sw.complete_scrape_urls:
+            return None
+        return None
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute)
+    monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_060))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    await sw.SpidercloudListingWorkflow().run()
+
+    assert "activity=process_spidercloud_listing_batch" in (captured_error["error"] or "")
+    assert "timeout=SCHEDULE_TO_CLOSE" in (captured_error["error"] or "")
+    assert "https://example.com/jobs?page=1" in (captured_error["error"] or "")
+    assert recorded_runs
+    assert any(
+        "activity=process_spidercloud_listing_batch" in (run.get("error") or "")
+        and "timeout=SCHEDULE_TO_CLOSE" in (run.get("error") or "")
+        and "https://example.com/jobs?page=1" in (run.get("error") or "")
+        for run in recorded_runs
+    )
+
+
+@pytest.mark.asyncio
 async def test_job_details_uses_activity_scrape_ids(monkeypatch):
     harness = _ActivityHarness()
     harness.batch = {
@@ -235,7 +299,23 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
     harness.batch = {
         "urls": [{"url": "https://example.com/a"}, {"url": "https://example.com/b"}],
     }
-    harness.process_error = RuntimeError("batch failed")
+    timeout = TimeoutError(
+        "activity ScheduleToClose timeout",
+        type=TimeoutType.SCHEDULE_TO_CLOSE,
+        last_heartbeat_details=[],
+    )
+    try:
+        raise ActivityError(
+            "activity ScheduleToClose timeout",
+            scheduled_event_id=1,
+            started_event_id=2,
+            identity="worker-1",
+            activity_type="process_spidercloud_job_batch",
+            activity_id="act-1",
+            retry_state=None,
+        ) from timeout
+    except ActivityError as exc:
+        harness.process_error = exc
 
     monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
@@ -253,6 +333,20 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
     failed_items = [item for call in failed_calls for item in (call.get("items") or [])]
     failed_urls = sorted(item["url"] for item in failed_items)
     assert failed_urls == ["https://example.com/a", "https://example.com/b"]
+    assert any(
+        "activity=process_spidercloud_job_batch" in (call.get("error") or "")
+        and "timeout=SCHEDULE_TO_CLOSE" in (call.get("error") or "")
+        and "https://example.com/a" in (call.get("error") or "")
+        for call in failed_calls
+    )
+
+    assert harness.workflow_runs
+    assert any(
+        "activity=process_spidercloud_job_batch" in (run.get("error") or "")
+        and "timeout=SCHEDULE_TO_CLOSE" in (run.get("error") or "")
+        and "https://example.com/a" in (run.get("error") or "")
+        for run in harness.workflow_runs
+    )
 
 
 @pytest.mark.asyncio

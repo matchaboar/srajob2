@@ -28,6 +28,19 @@ _posthog_log_handler: LoggingHandler | None = None
 _posthog_log_configured: bool = False
 
 
+class _OtelMessageFormatter(logging.Formatter):
+    """Formatter that omits exception/stack info from message bodies."""
+
+    def formatException(self, ei: Any) -> str:  # noqa: N802
+        return ""
+
+    def formatStack(self, stack_info: Any) -> str:  # noqa: N802
+        return ""
+
+
+_OTLP_MESSAGE_FORMATTER = _OtelMessageFormatter("%(message)s")
+
+
 def _resolve_endpoint() -> str:
     if settings.posthog_logs_endpoint:
         return settings.posthog_logs_endpoint.rstrip("/")
@@ -137,6 +150,7 @@ def build_posthog_log_handler(level: int = logging.INFO) -> LoggingHandler | Non
 
     provider = _configure_posthog_logger(token)
     _posthog_log_handler = LoggingHandler(level=level, logger_provider=provider)
+    _posthog_log_handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
     return _posthog_log_handler
 
 
@@ -152,6 +166,7 @@ def _ensure_logger() -> logging.Logger:
 
     provider = _configure_posthog_logger(token)
     handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
+    handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
     logger = logging.getLogger("temporal.worker.posthog")
     logger.setLevel(logging.INFO)
     logger.propagate = False

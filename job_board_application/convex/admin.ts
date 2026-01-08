@@ -436,3 +436,35 @@ export const deleteScrapeQueueOlderThanPage = mutation({
     };
   },
 });
+
+export const countScrapeQueueMissingUrlType = query({
+  args: {
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 2000, 5000));
+    let cursor: string | null = null;
+    let missing = 0;
+    let scanned = 0;
+    let isDone = false;
+
+    while (!isDone) {
+      const page = await ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status", (q) => q.eq("status", "pending"))
+        .paginate({ cursor, numItems: batchSize });
+
+      for (const row of page.page as AnyDoc[]) {
+        scanned += 1;
+        if (row.urlType !== "listing" && row.urlType !== "detail") {
+          missing += 1;
+        }
+      }
+
+      cursor = page.continueCursor;
+      isDone = page.isDone;
+    }
+
+    return { missing, scanned };
+  },
+});

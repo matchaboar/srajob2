@@ -69,7 +69,11 @@ class GreenhouseScraperWorkflow:
 
         try:
             while True:
-                workflow_checkpoint("greenhouse.before_lease")
+                workflow_checkpoint(
+                    "greenhouse.before_lease",
+                    location="greenhouse_workflow:GreenhouseScraperWorkflow.run:before_lease",
+                    data={"provider": "greenhouse", "leaseLimit": 300},
+                )
                 site = await workflow.execute_activity(
                     lease_site,
                     args=["scraper-worker", 300, "greenhouse"],
@@ -88,7 +92,11 @@ class GreenhouseScraperWorkflow:
                 )
 
                 try:
-                    workflow_checkpoint("greenhouse.fetch_listing")
+                    workflow_checkpoint(
+                        "greenhouse.fetch_listing",
+                        location="greenhouse_workflow:GreenhouseScraperWorkflow.run:fetch_listing",
+                        data={"siteUrl": site.get("url"), "siteId": site.get("_id")},
+                    )
                     listing = await workflow.execute_activity(
                         fetch_greenhouse_listing,
                         args=[site],
@@ -101,13 +109,22 @@ class GreenhouseScraperWorkflow:
                         if isinstance(listing, dict) and isinstance(listing.get("posted_at_by_url"), dict)
                         else None
                     )
-                    workflow_checkpoint("greenhouse.filter_existing")
+                    workflow_checkpoint(
+                        "greenhouse.filter_existing",
+                        location="greenhouse_workflow:GreenhouseScraperWorkflow.run:filter_existing",
+                        data={"jobUrls": len(job_urls)},
+                    )
                     existing = await workflow.execute_activity(
                         filter_existing_job_urls,
                         args=[job_urls],
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
-                    workflow_checkpoint("greenhouse.compute_diff")
+                    existing_len = len([u for u in existing if isinstance(u, str)]) if isinstance(existing, list) else 0
+                    workflow_checkpoint(
+                        "greenhouse.compute_diff",
+                        location="greenhouse_workflow:GreenhouseScraperWorkflow.run:compute_diff",
+                        data={"jobUrls": len(job_urls), "existing": existing_len},
+                    )
                     diff = await workflow.execute_activity(
                         compute_urls_to_scrape,
                         args=[job_urls, existing],
@@ -131,7 +148,11 @@ class GreenhouseScraperWorkflow:
                     )
 
                     if urls_to_scrape:
-                        workflow_checkpoint("greenhouse.scrape_jobs")
+                        workflow_checkpoint(
+                            "greenhouse.scrape_jobs",
+                            location="greenhouse_workflow:GreenhouseScraperWorkflow.run:scrape_jobs",
+                            data={"urlsToScrape": len(urls_to_scrape)},
+                        )
                         scrape_payload: Dict[str, Any] = {"urls": urls_to_scrape, "source_url": site["url"]}
                         if posted_at_by_url:
                             scrape_payload["posted_at_by_url"] = posted_at_by_url
@@ -152,7 +173,11 @@ class GreenhouseScraperWorkflow:
                         if isinstance(scrape_res, dict) and scrape_res.get("scrapeId"):
                             scrape_ids.append(scrape_res["scrapeId"])
                         elif scrape_payload:
-                            workflow_checkpoint("greenhouse.store_scrape")
+                            workflow_checkpoint(
+                                "greenhouse.store_scrape",
+                                location="greenhouse_workflow:GreenhouseScraperWorkflow.run:store_scrape",
+                                data={"urlsToScrape": len(urls_to_scrape)},
+                            )
                             scrape_payload.setdefault("workflowId", run_info.workflow_id)
                             scrape_payload.setdefault("runId", run_info.run_id)
                             scrape_id = await workflow.execute_activity(

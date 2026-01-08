@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
+import json
 import math
 import re
 from typing import Any, Dict, List, Optional
@@ -12,6 +13,18 @@ HUBSPOT_HOST_SUFFIX = "hubspot.com"
 HUBSPOT_BASE_URL = "https://www.hubspot.com"
 CAREERS_PATH = "/careers/jobs"
 MAX_PAGINATION_PAGE = 4
+HUBSPOT_GRAPHQL_URL = "https://wtcfns.hubspot.com/careers/graphql"
+HUBSPOT_GRAPHQL_JOBS_QUERY = """
+query Jobs($departmentIds: [Int], $officeIds: [Int], $languages: [String], $roleTypes: [String], $searchQuery: String) {
+  jobs(departmentIds: $departmentIds, officeIds: $officeIds, languages: $languages, roleTypes: $roleTypes, searchQuery: $searchQuery) {
+    id
+    title
+    department { name id }
+    office { id location }
+    location { name }
+  }
+}
+""".strip()
 
 _JOB_LINK_RE = re.compile(
     r"href=[\"'](?P<href>/careers/jobs/\d+[^\"']*)[\"']",
@@ -27,6 +40,8 @@ _HEADING_RE = re.compile(r"^#{2,4}\s+(?P<value>.+)$")
 class HubspotCareersHandler(BaseSiteHandler):
     name = "hubspot_careers"
     site_type = "hubspot"
+    supports_listing_api = True
+    use_graphql_listing_api = True
 
     @classmethod
     def matches_url(cls, url: str) -> bool:
@@ -46,6 +61,15 @@ class HubspotCareersHandler(BaseSiteHandler):
         except Exception:
             return False
         return self._is_listing_path(parsed.path or "")
+
+    def get_listing_api_uri(self, uri: str) -> Optional[str]:
+        if not self.use_graphql_listing_api:
+            return None
+        if not self.matches_url(uri):
+            return None
+        if not self.is_listing_url(uri):
+            return None
+        return self._build_graphql_listing_url(uri)
 
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
@@ -106,6 +130,28 @@ class HubspotCareersHandler(BaseSiteHandler):
             urls.append(page_url)
 
         return self.filter_job_urls(urls)
+
+    def get_links_from_json(self, payload: Any) -> List[str]:
+        jobs = self._extract_graphql_jobs(payload)
+        if not jobs:
+            return []
+        urls: List[str] = []
+        seen: set[str] = set()
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            job_id = job.get("id")
+            url = self._build_job_detail_url(job_id)
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            urls.append(url)
+        return self.filter_job_urls(urls)
+
+    def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:
+        if self.use_graphql_listing_api:
+            return []
+        return super().get_pagination_urls_from_json(payload, source_url)
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
@@ -230,11 +276,57 @@ class HubspotCareersHandler(BaseSiteHandler):
                 continue
             if lowered in {"careers menu", "logo - full (color)"}:
                 continue
+            if "headquartered" in lowered or "headquarters" in lowered:
+                continue
+            if "remote employee" in lowered and "work from the office" in lowered:
+                continue
             cleaned_lines.append(line)
 
         cleaned = "\n".join(cleaned_lines)
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
         return cleaned or markdown, title
+
+    def _build_graphql_listing_url(self, source_url: str) -> Optional[str]:
+        try:
+            parsed = urlparse(source_url)
+        except Exception:
+            return None
+        params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        search_query = params.get("q") or params.get("query") or None
+        variables = {
+            "departmentIds": None,
+            "officeIds": None,
+            "languages": None,
+            "roleTypes": None,
+            "searchQuery": search_query,
+        }
+        query = urlencode(
+            {
+                "query": HUBSPOT_GRAPHQL_JOBS_QUERY,
+                "variables": json.dumps(variables, separators=(",", ":")),
+            }
+        )
+        return f"{HUBSPOT_GRAPHQL_URL}?{query}"
+
+    def _extract_graphql_jobs(self, payload: Any) -> List[Dict[str, Any]]:
+        if isinstance(payload, dict):
+            jobs = payload.get("jobs")
+            if isinstance(jobs, list):
+                return [job for job in jobs if isinstance(job, dict)]
+            data = payload.get("data")
+            if isinstance(data, dict):
+                jobs = data.get("jobs")
+                if isinstance(jobs, list):
+                    return [job for job in jobs if isinstance(job, dict)]
+        return []
+
+    def _build_job_detail_url(self, job_id: Any) -> Optional[str]:
+        if job_id is None:
+            return None
+        job_id_str = str(job_id).strip()
+        if not job_id_str:
+            return None
+        return f"{HUBSPOT_BASE_URL}{CAREERS_PATH}/{job_id_str}"
 
     def _build_pagination_urls(self, html: str) -> List[str]:
         range_info = self._extract_showing_range(html)

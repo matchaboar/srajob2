@@ -1810,13 +1810,14 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         item["isListingUrl"] = True
         return item
 
-    from ...services.convex_client import convex_mutation
+    from ...services.convex_client import convex_mutation, convex_query
 
     listing_entries: list[Dict[str, Any]] = []
     entry_by_key: dict[tuple[str, str | None], Dict[str, Any]] = {}
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
+    pagination_limit_cache: dict[str, Optional[int]] = {}
 
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
@@ -1843,6 +1844,67 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
     scraper = _make_spidercloud_scraper()
     queued_total = 0
 
+    async def _resolve_pagination_limit(entry: Dict[str, Any]) -> Optional[int]:
+        limit_val = entry.get("paginationLimit")
+        if isinstance(limit_val, (int, float)) and limit_val > 0:
+            return int(limit_val)
+        site_id = entry.get("siteId")
+        if not isinstance(site_id, str) or not site_id:
+            return None
+        if site_id in pagination_limit_cache:
+            return pagination_limit_cache[site_id]
+        try:
+            site = await convex_query("router:getSiteById", {"id": site_id})
+        except Exception:
+            site = None
+        limit = None
+        if isinstance(site, dict):
+            site_limit = site.get("paginationLimit")
+            if isinstance(site_limit, (int, float)) and site_limit > 0:
+                limit = int(site_limit)
+        pagination_limit_cache[site_id] = limit
+        return limit
+
+    def _limit_listing_urls(
+        urls: list[str],
+        limit: int,
+        source_url: str,
+        handler: BaseSiteHandler | None,
+    ) -> list[str]:
+        if limit <= 0 or len(urls) <= limit:
+            return urls
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if url in seen:
+                continue
+            seen.add(url)
+            cleaned.append(url)
+        if source_url and handler and handler.is_listing_url(source_url) and source_url not in seen:
+            cleaned.insert(0, source_url)
+        indexed = list(enumerate(cleaned))
+        def _page_key(item: tuple[int, str]) -> tuple[int, int]:
+            idx, url = item
+            try:
+                parsed = urlparse(url)
+                params = parse_qs(parsed.query)
+            except Exception:
+                params = {}
+            page_val = None
+            for key in ("from", "start", "offset", "page"):
+                raw = params.get(key, [None])[0]
+                if raw is None:
+                    continue
+                try:
+                    page_val = int(raw)
+                except Exception:
+                    page_val = None
+                if page_val is not None:
+                    break
+            return ((page_val if page_val is not None else 0), idx)
+        ordered = [url for _, url in sorted(indexed, key=_page_key)]
+        return ordered[:limit]
+
     async def _enqueue_from_scrape(scrape_payload: Dict[str, Any], entry: Dict[str, Any]) -> int:
         urls = _extract_job_urls_from_scrape(scrape_payload)
         if not urls:
@@ -1857,6 +1919,10 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 listing_urls.append(url)
             else:
                 job_urls.append(url)
+
+        pagination_limit = await _resolve_pagination_limit(entry)
+        if pagination_limit and listing_urls:
+            listing_urls = _limit_listing_urls(listing_urls, pagination_limit, source_url, handler)
 
         if listing_urls and source_url:
             seen_listing: set[str] = set()

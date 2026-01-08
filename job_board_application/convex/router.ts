@@ -22,6 +22,9 @@ const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const JOB_DETAIL_QUEUE_EXPIRE_MS = 48 * 60 * 60 * 1000; // 48 hours
 const JOB_DETAIL_MAX_ATTEMPTS = 3;
+const SCRAPE_URL_QUEUE_BUCKETS = 128;
+const SCRAPE_URL_BUCKET_LEASE_TTL_MS = 60 * 1000;
+const SCRAPE_URL_WORKER_HEARTBEAT_TTL_MS = 90 * 1000;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
 const HEURISTIC_VERSION = 4;
@@ -118,6 +121,36 @@ const hostFromUrl = (url: string) => {
   }
 };
 const WORKDAY_HOST_SUFFIX = "myworkdayjobs.com";
+
+const hashStringToBucket = (value: string, bucketCount: number) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % bucketCount;
+};
+
+const deriveScrapeQueueBucketKey = (params: {
+  url: string;
+  sourceUrl?: string | null;
+  siteId?: string | null;
+}) => {
+  if (params.siteId) return `site:${params.siteId}`;
+  if (params.sourceUrl) return `source:${params.sourceUrl}`;
+  const domain = hostFromUrl(params.url);
+  if (domain) return `domain:${domain}`;
+  return `url:${params.url}`;
+};
+
+const deriveScrapeQueueBucket = (params: {
+  url: string;
+  sourceUrl?: string | null;
+  siteId?: string | null;
+}) => {
+  const key = deriveScrapeQueueBucketKey(params);
+  return hashStringToBucket(key, SCRAPE_URL_QUEUE_BUCKETS);
+};
 const baseDomainFromHost = (host: string): string => {
   const parts = host.split(".").filter(Boolean);
   if (parts.length <= 1) return host;
@@ -1264,6 +1297,13 @@ export const listSites = query({
   },
 });
 
+export const getSiteById = query({
+  args: { id: v.id("sites") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 const recordSeenJobUrl = async (ctx: any, sourceUrl?: string, url?: string) => {
   const cleanedSource = (sourceUrl ?? "").trim();
   const cleanedUrl = (url ?? "").trim();
@@ -1806,7 +1846,9 @@ export const enqueueScrapeUrls = mutation({
     };
 
     for (const [index, rawUrl] of args.urls.entries()) {
-      const url = (rawUrl || "").trim();
+      const rawValue = typeof rawUrl === "string" ? rawUrl : String(rawUrl ?? "");
+      const normalized = normalizeQueueUrl(rawValue);
+      const url = (normalized || rawValue).trim();
       if (!url || seen.has(url)) continue;
       seen.add(url);
       const ignored = await ctx.db
@@ -1859,6 +1901,11 @@ export const enqueueScrapeUrls = mutation({
           isStale || status === "failed" || status === "completed" || status === "invalid";
 
         if (shouldRequeue) {
+          const bucket = deriveScrapeQueueBucket({
+            url,
+            sourceUrl: args.sourceUrl,
+            siteId: args.siteId ?? null,
+          });
           const patch: any = {
             sourceUrl: args.sourceUrl,
             provider: args.provider,
@@ -1870,6 +1917,7 @@ export const enqueueScrapeUrls = mutation({
             completedAt: undefined,
             updatedAt: now,
             scheduledAt,
+            bucket,
           };
           if (urlType) {
             patch.urlType = urlType;
@@ -1883,12 +1931,18 @@ export const enqueueScrapeUrls = mutation({
         continue;
       }
 
+      const bucket = deriveScrapeQueueBucket({
+        url,
+        sourceUrl: args.sourceUrl,
+        siteId: args.siteId ?? null,
+      });
       const insertPayload: any = {
         url,
         sourceUrl: args.sourceUrl,
         provider: args.provider,
         siteId: args.siteId,
         pattern: args.pattern === null ? undefined : args.pattern,
+        bucket,
         status: "pending",
         attempts: 0,
         createdAt: now,
@@ -1909,6 +1963,131 @@ export const enqueueScrapeUrls = mutation({
   },
 });
 
+const normalizeScrapeWorkerId = (workerId?: string | null) => {
+  if (typeof workerId !== "string") return null;
+  const trimmed = workerId.trim();
+  return trimmed ? trimmed : null;
+};
+
+const upsertScrapeWorkerHeartbeat = async (ctx: any, workerId: string, now: number) => {
+  const existing = await ctx.db
+    .query("scrape_worker_heartbeats")
+    .withIndex("by_worker", (q: any) => q.eq("workerId", workerId))
+    .first();
+  const expiresAt = now + SCRAPE_URL_WORKER_HEARTBEAT_TTL_MS;
+  if (existing) {
+    await ctx.db.patch(existing._id, { updatedAt: now, expiresAt });
+  } else {
+    await ctx.db.insert("scrape_worker_heartbeats", { workerId, updatedAt: now, expiresAt });
+  }
+};
+
+const getActiveScrapeWorkerIds = async (ctx: any, now: number) => {
+  const rows = await ctx.db
+    .query("scrape_worker_heartbeats")
+    .withIndex("by_expires_at", (q: any) => q.gt("expiresAt", now))
+    .collect();
+  const ids = new Set<string>();
+  for (const row of rows as any[]) {
+    if (typeof row.workerId === "string" && row.workerId) {
+      ids.add(row.workerId);
+    }
+  }
+  return ids;
+};
+
+const ensureScrapeBucketLeaseRows = async (ctx: any, now: number) => {
+  const rows = await ctx.db.query("scrape_url_bucket_leases").collect();
+  const byBucket = new Map<number, any>();
+  for (const row of rows as any[]) {
+    const bucket = typeof row.bucket === "number" ? Math.floor(row.bucket) : null;
+    if (bucket === null || Number.isNaN(bucket)) continue;
+    const current = byBucket.get(bucket);
+    if (!current || (row.updatedAt ?? 0) > (current.updatedAt ?? 0)) {
+      byBucket.set(bucket, row);
+    }
+  }
+  for (const row of rows as any[]) {
+    const bucket = typeof row.bucket === "number" ? Math.floor(row.bucket) : null;
+    if (bucket === null || Number.isNaN(bucket)) continue;
+    const keep = byBucket.get(bucket);
+    if (keep && keep._id !== row._id) {
+      try {
+        await ctx.db.delete(row._id);
+      } catch {
+        // best-effort cleanup
+      }
+    }
+  }
+  for (let bucket = 0; bucket < SCRAPE_URL_QUEUE_BUCKETS; bucket += 1) {
+    if (byBucket.has(bucket)) continue;
+    const _id = await ctx.db.insert("scrape_url_bucket_leases", {
+      bucket,
+      workerId: "",
+      expiresAt: 0,
+      updatedAt: now,
+    });
+    byBucket.set(bucket, { _id, bucket, workerId: "", expiresAt: 0, updatedAt: now });
+  }
+  return byBucket;
+};
+
+const claimScrapeBucketsForWorker = async (
+  ctx: any,
+  workerId: string,
+  targetBuckets: number,
+  now: number
+) => {
+  const byBucket = await ensureScrapeBucketLeaseRows(ctx, now);
+  const owned: number[] = [];
+  const available = new Set<number>();
+  for (const [bucket, row] of byBucket.entries()) {
+    if (row.workerId === workerId && row.expiresAt > now) {
+      owned.push(bucket);
+    } else if (!row.workerId || row.expiresAt <= now) {
+      available.add(bucket);
+    }
+  }
+
+  owned.sort((a, b) => a - b);
+  const keep = owned.slice(0, targetBuckets);
+  const keepSet = new Set(keep);
+  const expiresAt = now + SCRAPE_URL_BUCKET_LEASE_TTL_MS;
+  for (const bucket of keep) {
+    const row = byBucket.get(bucket);
+    if (!row) continue;
+    await ctx.db.patch(row._id, { workerId, expiresAt, updatedAt: now });
+  }
+
+  let needed = targetBuckets - keep.length;
+  if (needed > 0 && available.size > 0) {
+    const start = hashStringToBucket(workerId, SCRAPE_URL_QUEUE_BUCKETS);
+    for (let offset = 0; offset < SCRAPE_URL_QUEUE_BUCKETS && needed > 0; offset += 1) {
+      const bucket = (start + offset) % SCRAPE_URL_QUEUE_BUCKETS;
+      if (!available.has(bucket)) continue;
+      const row = byBucket.get(bucket);
+      if (!row) continue;
+      await ctx.db.patch(row._id, { workerId, expiresAt, updatedAt: now });
+      keepSet.add(bucket);
+      available.delete(bucket);
+      needed -= 1;
+    }
+  }
+  return keepSet;
+};
+
+const deriveScrapeQueueRowBucket = (row: any) => {
+  const bucket = typeof row.bucket === "number" ? Math.floor(row.bucket) : null;
+  if (bucket !== null && !Number.isNaN(bucket)) {
+    return Math.abs(bucket) % SCRAPE_URL_QUEUE_BUCKETS;
+  }
+  return deriveScrapeQueueBucket({
+    url: row.url,
+    sourceUrl: row.sourceUrl ?? null,
+    siteId: row.siteId ?? null,
+  });
+};
+
 const leaseScrapeUrlBatchHandler = async (
   ctx: any,
   args: {
@@ -1923,6 +2102,19 @@ const leaseScrapeUrlBatchHandler = async (
   const now = Date.now();
   const processingExpiryMs = Math.max(60_000, Math.min(args.processingExpiryMs ?? 5 * 60_000, 24 * 60 * 60_000));
   const aliasCache = new Map<string, string | null>();
+  const normalizedWorkerId = normalizeScrapeWorkerId(args.workerId);
+  let leasedBuckets: Set<number> | null = null;
+
+  if (normalizedWorkerId) {
+    await upsertScrapeWorkerHeartbeat(ctx, normalizedWorkerId, now);
+    const activeWorkerIds = await getActiveScrapeWorkerIds(ctx, now);
+    const activeWorkers = Math.max(1, activeWorkerIds.size);
+    const targetBuckets = Math.max(
+      1,
+      Math.min(SCRAPE_URL_QUEUE_BUCKETS, Math.ceil(SCRAPE_URL_QUEUE_BUCKETS / activeWorkers))
+    );
+    leasedBuckets = await claimScrapeBucketsForWorker(ctx, normalizedWorkerId, targetBuckets, now);
+  }
 
   const normalizeDomain = (url: string) => {
     try {
@@ -1990,6 +2182,9 @@ const leaseScrapeUrlBatchHandler = async (
     const attemptsB = b.attempts ?? 0;
     return attemptsA - attemptsB;
   });
+  if (leasedBuckets) {
+    rows = rows.filter((row: any) => leasedBuckets?.has(deriveScrapeQueueRowBucket(row)));
+  }
   if (rows.length < limit) {
     const legacyRows = await ctx.db
       .query("scrape_url_queue")
@@ -2001,6 +2196,9 @@ const leaseScrapeUrlBatchHandler = async (
       const missingScheduled = !row.scheduledAt;
       const missingAttempts = row.attempts === undefined || row.attempts === null;
       if ((missingScheduled || missingAttempts) && !seenIds.has(row._id)) {
+        if (leasedBuckets && !leasedBuckets.has(deriveScrapeQueueRowBucket(row))) {
+          continue;
+        }
         rows.push(row);
       }
       if (rows.length >= limit * 3) break;
@@ -2018,6 +2216,7 @@ const leaseScrapeUrlBatchHandler = async (
   for (const row of rows as any[]) {
     if (args.provider && row.provider !== args.provider) continue;
     if (args.urlType && row.urlType !== args.urlType) continue;
+    if (leasedBuckets && !leasedBuckets.has(deriveScrapeQueueRowBucket(row))) continue;
     const createdAt = row.createdAt ?? 0;
     if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
       await ctx.db.patch(row._id, {
@@ -2093,10 +2292,12 @@ const leaseScrapeUrlBatchHandler = async (
   }
   for (const row of picked) {
     const nextAttempts = ((row).attempts ?? 0) + 1;
+    const bucket = deriveScrapeQueueRowBucket(row);
     await ctx.db.patch(row._id, {
       status: "processing",
       attempts: nextAttempts,
       updatedAt: now,
+      bucket,
     });
   }
 
@@ -3939,6 +4140,28 @@ const normalizeUrlKey = (url: any) => {
   return trimmed.replace(/\/+$/, "");
 };
 
+const normalizeQueueUrl = (url: any) => {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    const params = new URLSearchParams(parsed.search);
+    const entries = Array.from(params.entries()).filter(([key]) => Boolean(key));
+    entries.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    const normalizedParams = new URLSearchParams();
+    for (const [key, value] of entries) {
+      normalizedParams.append(key, value);
+    }
+    parsed.search = normalizedParams.toString();
+    parsed.hash = "";
+    parsed.pathname = (parsed.pathname || "").replace(/\/+$/, "");
+    return parsed.toString();
+  } catch {
+    return normalizeUrlKey(trimmed);
+  }
+};
+
 const clampRequestSnapshot = (value: any) => {
   if (!value || typeof value !== "object") return value;
   if (!("body" in value) && !("headers" in value) && !("method" in value) && !("url" in value)) {
@@ -4388,6 +4611,8 @@ export const ingestJobsFromScrape = mutation({
     jobs: v.array(
       v.object({
         title: v.string(),
+        jobTitle: v.optional(v.string()),
+        job_title: v.optional(v.string()),
         company: v.string(),
         description: v.string(),
         metadata: v.optional(v.string()),
@@ -4476,6 +4701,8 @@ export const ingestJobsFromScrape = mutation({
         heuristicVersion,
         scrapeUrl,
         engineer: jobEngineer,
+        jobTitle: _ignoredJobTitle,
+        job_title: _ignoredJobTitleSnake,
         ...jobFields
       } = job;
       const engineer = typeof jobEngineer === "boolean" ? jobEngineer : deriveEngineerFlag(job.title);

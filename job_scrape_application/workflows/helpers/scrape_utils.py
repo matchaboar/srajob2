@@ -1719,6 +1719,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "job description",
             "description",
             "description and requirements",
+            "minimum qualifications",
+            "preferred qualifications",
+            "qualifications",
+            "minimum requirements",
+            "preferred requirements",
+            "requirements",
             "what's in it for you",
             "whats in it for you",
             "why this matters",
@@ -1840,6 +1846,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "sales",
             "account",
             "manager",
+            "marketer",
+            "marketing",
             "designer",
             "product",
             "software",
@@ -2039,6 +2047,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 if part_clean:
                     location_candidates.append(part_clean)
             return
+        if "remote" in lower_candidate and any(token in candidate for token in (" - ", " – ", " — ")):
+            for part in re.split(r"\s*[-–—]\s*", candidate):
+                part_clean = part.strip()
+                if part_clean:
+                    location_candidates.append(part_clean)
+            return
         location_candidates.append(candidate)
 
     if title_location_hint and _looks_like_title_location(title_location_hint):
@@ -2149,6 +2163,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         )
         for match in _REMOTE_RE.finditer(line):
             token = match.group(1).lower()
+            if token in {"hybrid", "onsite", "on-site"} and not context_ok:
+                continue
             if "remote" in token and not context_ok:
                 continue
             remote_tokens.append(token)

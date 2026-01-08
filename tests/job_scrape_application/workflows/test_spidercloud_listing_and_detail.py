@@ -6,6 +6,7 @@ import os
 import re
 import textwrap
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -107,6 +108,9 @@ DATADOG_GREENHOUSE_DETAIL_FIXTURE = (
 )
 DATAMINR_WORKDAY_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_dataminr_workday_job_detail_api.json"
+)
+DATAMINR_WORKDAY_SALES_DEV_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_dataminr_workday_job_detail_sales_dev_api.json"
 )
 GITHUB_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_github_careers_job_4648_raw.json"
 MITHRIL_DETAIL_FIXTURE = (
@@ -1171,6 +1175,24 @@ def test_spidercloud_workday_job_detail_api_normalizes_title_and_description():
     description = normalized.get("description") or ""
     assert len(description) > 200
     assert "Dataminr" in description
+
+
+def test_spidercloud_workday_job_detail_api_prefers_start_date_for_posted_at():
+    payload = _load_fixture(DATAMINR_WORKDAY_SALES_DEV_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    scraper = _make_scraper()
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw Workday API event in fixture"
+
+    markdown = _extract_event_markdown(scraper, payload)
+    now_ms = int(datetime(2026, 1, 8, tzinfo=timezone.utc).timestamp() * 1000)
+    normalized = scraper._normalize_job(url, markdown, [event], now_ms, require_keywords=False)  # noqa: SLF001
+
+    assert normalized is not None
+    expected_posted_at, expected_unknown = parse_posted_at_with_unknown("2025-10-20", now_ms=now_ms)
+    assert expected_unknown is False
+    assert normalized["posted_at"] == expected_posted_at
+    assert normalized["posted_at_unknown"] is False
 
 
 @pytest.mark.asyncio

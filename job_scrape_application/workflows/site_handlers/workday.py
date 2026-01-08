@@ -5,7 +5,7 @@ import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
-from .base import BaseSiteHandler
+from .base import BaseSiteHandler, _normalize_relative_posted_label
 from ..helpers.regex_patterns import (
     BASE_URL_META_PATTERNS,
     NON_ALNUM_PATTERN,
@@ -21,6 +21,8 @@ _LOCATION_LINE_RE = re.compile(r"^locations?\s*(?P<location>.+)$", flags=re.IGNO
 _STOP_SECTION_RE = re.compile(r"^#+\s*about us\b", flags=re.IGNORECASE)
 _IMAGE_LINE_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)$")
 _EMPTY_LINK_RE = re.compile(r"^\[\s*\]\([^)]+\)$")
+_WORKDAY_START_DATE_KEYS = ("startDate", "start_date")
+_WORKDAY_POSTED_ON_KEYS = ("postedOn", "posted_on")
 
 
 class WorkdayHandler(BaseSiteHandler):
@@ -250,6 +252,37 @@ class WorkdayHandler(BaseSiteHandler):
             return None
         cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
         return cleaned.title() if cleaned else None
+
+    def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
+        start_date = self._extract_workday_value(payload, _WORKDAY_START_DATE_KEYS)
+        if start_date is not None:
+            return start_date
+        posted_on = self._extract_workday_value(payload, _WORKDAY_POSTED_ON_KEYS)
+        if posted_on is not None:
+            if isinstance(posted_on, str):
+                return _normalize_relative_posted_label(posted_on)
+            return posted_on
+        return super().extract_posted_at(payload, url)
+
+    def _extract_workday_value(self, payload: Any, keys: tuple[str, ...]) -> Any | None:
+        if isinstance(payload, dict):
+            for key in keys:
+                if key in payload:
+                    value = payload.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+                    if isinstance(value, (int, float)):
+                        return value
+            for value in payload.values():
+                found = self._extract_workday_value(value, keys)
+                if found is not None:
+                    return found
+        if isinstance(payload, list):
+            for entry in payload:
+                found = self._extract_workday_value(entry, keys)
+                if found is not None:
+                    return found
+        return None
 
     def extract_location_hint(self, markdown: str) -> Optional[str]:
         if not markdown:

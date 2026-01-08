@@ -33,8 +33,23 @@ _DROP_LINE_RE = re.compile(
     r"^(save job|apply now|share(?: via.*)?|job id\b|category\b|available in \d+ locations|job)$",
     flags=re.IGNORECASE,
 )
+_CUT_SECTION_RE = re.compile(
+    r"^(?:#+\s*)?(get notified for similar jobs|similar jobs|job alerts|we are cisco)\b",
+    flags=re.IGNORECASE,
+)
+_MARKDOWN_LINK_RE = re.compile(r"^\s*\[(?P<label>[^\]]+)\]\([^\)]*\)\s*$")
+_DROP_LINK_LABELS = {
+    "apply",
+    "apply now",
+    "apply today",
+    "apply here",
+    "view more",
+    "learn more",
+    "get started",
+    "manage alerts",
+    "submit",
+}
 _IMAGE_RE = re.compile(r"^!\[[^\]]*]\([^\)]*\)$")
-
 
 class CiscoCareersHandler(BaseSiteHandler):
     name = "cisco_careers"
@@ -113,6 +128,24 @@ class CiscoCareersHandler(BaseSiteHandler):
 
         return self.filter_job_urls(urls)
 
+    def get_links_from_json(self, payload: Any) -> List[str]:
+        urls = super().get_links_from_json(payload)
+        if isinstance(payload, dict):
+            jobs = payload.get("jobs")
+            if jobs is None:
+                data_block = payload.get("data")
+                if isinstance(data_block, dict):
+                    jobs = data_block.get("jobs")
+            if isinstance(jobs, list):
+                for job in jobs:
+                    if not isinstance(job, dict):
+                        continue
+                    for key in ("jobDetailUrl", "jobDetailURL", "jobUrl", "applyUrl", "postingUrl"):
+                        value = job.get(key)
+                        if isinstance(value, str) and value.strip():
+                            urls.append(value.strip())
+        return self.filter_job_urls(urls)
+
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
         seen: set[str] = set()
@@ -152,11 +185,14 @@ class CiscoCareersHandler(BaseSiteHandler):
                 continue
             if "http" in lower:
                 continue
-            if "," not in stripped:
+            candidate = stripped
+            if lower.startswith("location"):
+                candidate = re.sub(r"^location[:\\s-]*", "", stripped, flags=re.IGNORECASE).strip()
+            if "," not in candidate:
                 continue
-            if stripped.endswith("."):
+            if candidate.endswith("."):
                 continue
-            return stripped
+            return candidate
         return None
 
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
@@ -195,10 +231,17 @@ class CiscoCareersHandler(BaseSiteHandler):
             if not stripped:
                 cleaned_lines.append(line)
                 continue
+            if _CUT_SECTION_RE.match(stripped):
+                break
             if stripped == "-":
                 continue
             if _DROP_LINE_RE.match(stripped):
                 continue
+            link_match = _MARKDOWN_LINK_RE.match(stripped)
+            if link_match:
+                label = link_match.group("label").strip().lower()
+                if label in _DROP_LINK_LABELS:
+                    continue
             if _IMAGE_RE.match(stripped):
                 continue
             cleaned_lines.append(line)

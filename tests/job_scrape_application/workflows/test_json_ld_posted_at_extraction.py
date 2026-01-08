@@ -29,6 +29,7 @@ from job_scrape_application.workflows.site_handlers.base import (  # noqa: E402
 )
 
 JSON_LD_FIXTURES = [
+    Path("tests/job_scrape_application/workflows/fixtures/broadcom_workday_r024197_raw.json"),
     Path("tests/fixtures/ashby_lambda_job_detail_raw.html"),
     Path("tests/job_scrape_application/workflows/fixtures/github_careers_job_4554_raw.html"),
     Path(

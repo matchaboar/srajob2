@@ -237,6 +237,7 @@
   enabled: true
   type: cisco
   scrapeProvider: spidercloud
+  paginationLimit: 5
   schedule:
     name: weekdays 9:30am
     days: *id001

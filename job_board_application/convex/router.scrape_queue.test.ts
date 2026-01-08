@@ -21,6 +21,7 @@ type QueueRow = {
   lastError?: string;
   completedAt?: number;
   urlType?: "listing" | "detail";
+  bucket?: number;
 };
 
 type IndexCall = {
@@ -37,11 +38,13 @@ class FakeQuery {
     private indexName: string | null = null,
     private ordered: boolean = false,
     private tracker?: { indexCalls: IndexCall[] },
-    private predicates: Array<(row: QueueRow) => boolean> = []
+    private predicates: Array<(row: QueueRow) => boolean> = [],
+    private expiresAtMin: number | null = null
   ) {}
   withIndex(name: string, cb: (q: any) => any) {
     const filterFields = { ...this.filterFields };
     let scheduledAtMax = this.scheduledAtMax;
+    let expiresAtMin = this.expiresAtMin;
     const indexName = name;
     const builder = {
       eq: (field: string, val: string) => {
@@ -54,6 +57,12 @@ class FakeQuery {
             throw new Error("Index order violation: attempts must be constrained before scheduledAt");
           }
           scheduledAtMax = val;
+        }
+        return builder;
+      },
+      gt: (field: string, val: number) => {
+        if (field === "expiresAt") {
+          expiresAtMin = val;
         }
         return builder;
       },
@@ -73,7 +82,8 @@ class FakeQuery {
       indexName,
       this.ordered,
       this.tracker,
-      this.predicates
+      this.predicates,
+      expiresAtMin
     );
   }
   order() {
@@ -84,7 +94,8 @@ class FakeQuery {
       this.indexName,
       true,
       this.tracker,
-      this.predicates
+      this.predicates,
+      this.expiresAtMin
     );
   }
   filter(cb: (q: any) => any) {
@@ -92,6 +103,7 @@ class FakeQuery {
       field: (name: string) => name,
       eq: (field: string, val: any) => (row: QueueRow) => (row as any)[field] === val,
       lte: (field: string, val: number) => (row: QueueRow) => (row as any)[field] <= val,
+      gt: (field: string, val: number) => (row: QueueRow) => (row as any)[field] > val,
       or: (...tests: Array<(row: QueueRow) => boolean>) => (row: QueueRow) =>
         tests.some((test) => test(row)),
       and: (...tests: Array<(row: QueueRow) => boolean>) => (row: QueueRow) =>
@@ -104,7 +116,8 @@ class FakeQuery {
       this.indexName,
       this.ordered,
       this.tracker,
-      predicate ? [...this.predicates, predicate] : this.predicates
+      predicate ? [...this.predicates, predicate] : this.predicates,
+      this.expiresAtMin
     );
   }
   private _filterRows(rows: QueueRow[]) {
@@ -121,6 +134,10 @@ class FakeQuery {
         const scheduledAt = row.scheduledAt ?? 0;
         return scheduledAt <= scheduledAtMax;
       });
+    }
+    if (this.expiresAtMin !== null) {
+      const expiresAtMin = this.expiresAtMin;
+      filtered = filtered.filter((row) => (row as any).expiresAt > expiresAtMin);
     }
     if (this.ordered && this.indexName === "by_status_attempts_scheduled_at") {
       filtered = filtered.slice().sort((a, b) => {
@@ -162,6 +179,8 @@ class FakeDb {
     private queueRows: QueueRow[],
     private ignoredRows: Array<any> = [],
     private seenRows: Array<any> = [],
+    private bucketLeaseRows: Array<any> = [],
+    private heartbeatRows: Array<any> = [],
     private tracker?: { indexCalls: IndexCall[] }
   ) {}
   query = (table: string) => {
@@ -174,6 +193,12 @@ class FakeDb {
     if (table === "domain_aliases") {
       return new FakeQuery(() => [] as QueueRow[], {}, null, null, false, this.tracker);
     }
+    if (table === "scrape_url_bucket_leases") {
+      return new FakeQuery(() => this.bucketLeaseRows as QueueRow[], {}, null, null, false, this.tracker);
+    }
+    if (table === "scrape_worker_heartbeats") {
+      return new FakeQuery(() => this.heartbeatRows as QueueRow[], {}, null, null, false, this.tracker);
+    }
     throw new Error(`Unexpected table ${table}`);
   };
   insert = vi.fn((table: string, payload: any) => {
@@ -185,12 +210,32 @@ class FakeDb {
       this.seenRows.push(payload);
       return `seen-${this.seenRows.length}`;
     }
+    if (table === "scrape_url_bucket_leases") {
+      const _id = `bucket-${this.bucketLeaseRows.length + 1}`;
+      this.bucketLeaseRows.push({ _id, ...payload });
+      return _id;
+    }
+    if (table === "scrape_worker_heartbeats") {
+      const _id = `heartbeat-${this.heartbeatRows.length + 1}`;
+      this.heartbeatRows.push({ _id, ...payload });
+      return _id;
+    }
     throw new Error(`Unexpected insert table ${table}`);
   });
   patch = vi.fn((id: string, updates: any) => {
     const row = this.queueRows.find((r) => r._id === id);
     if (row) {
       Object.assign(row, updates);
+      return;
+    }
+    const bucketRow = this.bucketLeaseRows.find((r) => r._id === id);
+    if (bucketRow) {
+      Object.assign(bucketRow, updates);
+      return;
+    }
+    const heartbeatRow = this.heartbeatRows.find((r) => r._id === id);
+    if (heartbeatRow) {
+      Object.assign(heartbeatRow, updates);
       return;
     }
     throw new Error(`Unknown id ${id}`);
@@ -201,6 +246,16 @@ class FakeDb {
       this.queueRows.splice(idx, 1);
       return;
     }
+    const bucketIdx = this.bucketLeaseRows.findIndex((row) => row._id === id);
+    if (bucketIdx >= 0) {
+      this.bucketLeaseRows.splice(bucketIdx, 1);
+      return;
+    }
+    const heartbeatIdx = this.heartbeatRows.findIndex((row) => row._id === id);
+    if (heartbeatIdx >= 0) {
+      this.heartbeatRows.splice(heartbeatIdx, 1);
+      return;
+    }
     throw new Error(`Unknown id ${id}`);
   });
   getIgnored() {
@@ -208,6 +263,12 @@ class FakeDb {
   }
   getSeen() {
     return this.seenRows;
+  }
+  getBucketLeases() {
+    return this.bucketLeaseRows;
+  }
+  getHeartbeats() {
+    return this.heartbeatRows;
   }
 }
 
@@ -227,7 +288,7 @@ describe("leaseScrapeUrlBatch", () => {
       },
     ];
     const tracker = { indexCalls: [] as IndexCall[] };
-    const db = new FakeDb(rows, [], [], tracker);
+    const db = new FakeDb(rows, [], [], [], [], tracker);
     const ctx: any = { db };
     const handler = getHandler(leaseScrapeUrlBatch);
 
@@ -760,6 +821,167 @@ describe("leaseScrapeUrlBatch", () => {
     const leasedSiteIds = res.urls.map((u: any) => u.siteId);
     expect(leasedSiteIds).toContain("site-a");
     expect(leasedSiteIds).toContain("site-b");
+  });
+
+  it("leases only from buckets owned by the worker", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-1",
+        url: "https://example.com/job/1",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        bucket: 0,
+      },
+      {
+        _id: "row-2",
+        url: "https://example.com/job/2",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        bucket: 1,
+      },
+      {
+        _id: "row-3",
+        url: "https://example.com/job/3",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        bucket: 2,
+      },
+      {
+        _id: "row-4",
+        url: "https://example.com/job/4",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        bucket: 3,
+      },
+    ];
+    const bucketLeases = [
+      { _id: "bucket-0", bucket: 0, workerId: "worker-0", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "bucket-1", bucket: 1, workerId: "worker-0", updatedAt: now, expiresAt: now + 60_000 },
+    ];
+    const heartbeats = Array.from({ length: 64 }, (_, index) => ({
+      _id: `hb-${index}`,
+      workerId: `worker-${index}`,
+      updatedAt: now,
+      expiresAt: now + 60_000,
+    }));
+    const db = new FakeDb(rows, [], [], bucketLeases, heartbeats);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+      workerId: "worker-0",
+    });
+
+    const ownedBuckets = db
+      .getBucketLeases()
+      .filter((row: any) => row.workerId === "worker-0" && row.expiresAt > now)
+      .map((row: any) => row.bucket);
+    expect(ownedBuckets.length).toBeGreaterThan(0);
+    expect(res.urls.length).toBeGreaterThan(0);
+    for (const leased of res.urls) {
+      const row = rows.find((r) => r.url === leased.url);
+      expect(row?.bucket).toBeDefined();
+      expect(ownedBuckets).toContain(row?.bucket);
+    }
+  });
+
+  it("claims more buckets when other workers expire", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-1",
+        url: "https://example.com/job/1",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+        bucket: 10,
+      },
+    ];
+    const heartbeats = [
+      { _id: "hb-1", workerId: "worker-1", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-2", workerId: "worker-2", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-3", workerId: "worker-3", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-4", workerId: "worker-4", updatedAt: now, expiresAt: now + 60_000 },
+    ];
+    const db = new FakeDb(rows, [], [], [], heartbeats);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+      workerId: "worker-1",
+    });
+    const ownedBefore = db
+      .getBucketLeases()
+      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > now).length;
+
+    const nowLater = now + 2_000;
+    for (const heartbeat of db.getHeartbeats()) {
+      if (heartbeat.workerId !== "worker-1") {
+        heartbeat.expiresAt = nowLater - 1;
+      }
+    }
+    nowSpy.mockReturnValue(nowLater);
+    await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+      workerId: "worker-1",
+    });
+    nowSpy.mockRestore();
+
+    const ownedAfter = db
+      .getBucketLeases()
+      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > nowLater).length;
+    expect(ownedAfter).toBeGreaterThan(ownedBefore);
+  });
+
+  it("backfills bucket when missing", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-1",
+        url: "https://example.com/job/1",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        provider: "spidercloud",
+        attempts: 0,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+      workerId: "worker-1",
+    });
+
+    expect(typeof rows[0].bucket).toBe("number");
   });
 });
 

@@ -6,7 +6,7 @@ import html as html_lib
 import json
 import re
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from ..helpers.link_extractors import fix_scheme_slashes, normalize_url, strip_wrapping_url
 from ..helpers.regex_patterns import (
@@ -46,6 +46,10 @@ _RELATIVE_POSTED_RE = re.compile(
     r"\bposted\b[^0-9]{0,20}(?P<value>\d+)\s+(?P<unit>minute|hour|day|week|month|year)s?\s+ago\b",
     flags=re.IGNORECASE,
 )
+_RELATIVE_POSTED_PLUS_RE = re.compile(
+    r"(?P<value>\d+)\s*\+\s*(?P<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)",
+    flags=re.IGNORECASE,
+)
 _MONTH_NAME_TO_NUMBER = {
     "jan": 1,
     "january": 1,
@@ -77,6 +81,8 @@ _POSTED_AT_KEYS = (
     "posted_ts",
     "postedAt",
     "posted_at",
+    "postedOn",
+    "posted_on",
     "datePosted",
     "date_posted",
     "postedDate",
@@ -121,6 +127,15 @@ _POSTED_AT_PLACEHOLDER_RE = re.compile(
     r"^(?:0+|0000-00-00(?:[T\s]00:00:00(?:Z|[+-]00:00)?)?|"
     r"1970-01-01(?:[T\s]00:00:00(?:Z|[+-]00:00)?)?)$"
 )
+
+
+def _normalize_relative_posted_label(value: str) -> str:
+    if not value:
+        return value
+    normalized = _RELATIVE_POSTED_PLUS_RE.sub(r"\g<value> \g<unit>", value)
+    if normalized != value:
+        normalized = re.sub(r"\s{2,}", " ", normalized)
+    return normalized
 
 class BaseSiteHandler(ABC):
     """Base class for site-specific scraping helpers."""
@@ -200,8 +215,15 @@ class BaseSiteHandler(ABC):
         return None
 
     def extract_posted_at_from_markdown(self, markdown: str, url: str | None = None) -> Any | None:
+        return self._extract_posted_at_from_markdown_text(markdown, url)
+
+    @classmethod
+    def _extract_posted_at_from_markdown_text(
+        cls, markdown: str, url: str | None = None
+    ) -> Any | None:
         if not markdown:
             return None
+
         def _normalize_markdown_candidates(value: str) -> List[str]:
             candidates = [value]
             if "<" in value and ">" in value:
@@ -224,7 +246,7 @@ class BaseSiteHandler(ABC):
             inline_match = _POSTED_DATE_INLINE_RE.search(candidate_text)
             if inline_match:
                 tail = candidate_text[inline_match.end() : inline_match.end() + 200]
-                parsed = self._extract_iso_date_from_text(tail)
+                parsed = cls._extract_iso_date_from_text(tail)
                 if parsed:
                     return parsed
 
@@ -234,6 +256,7 @@ class BaseSiteHandler(ABC):
                 cleaned = stripped.strip("*`-• ").strip()
                 if not cleaned:
                     continue
+                cleaned = _normalize_relative_posted_label(cleaned)
                 if _POSTED_DATE_LABEL_RE.match(cleaned):
                     for offset in range(0, 4):
                         if idx + offset >= len(lines):
@@ -241,14 +264,14 @@ class BaseSiteHandler(ABC):
                         line_candidate = lines[idx + offset].strip()
                         if not line_candidate:
                             continue
-                        parsed = self._extract_iso_date_from_text(line_candidate)
+                        parsed = cls._extract_iso_date_from_text(line_candidate)
                         if parsed:
                             return parsed
                     continue
 
                 lowered = cleaned.lower()
                 if "posted" in lowered or "updated" in lowered:
-                    parsed = self._extract_iso_date_from_text(cleaned)
+                    parsed = cls._extract_iso_date_from_text(cleaned)
                     if parsed:
                         return parsed
                     if "ago" in lowered or "today" in lowered or "yesterday" in lowered:
@@ -349,7 +372,7 @@ class BaseSiteHandler(ABC):
             if value is None:
                 return None
             if isinstance(value, str):
-                cleaned = value.strip()
+                cleaned = _normalize_relative_posted_label(value.strip())
                 if not cleaned or _POSTED_AT_PLACEHOLDER_RE.match(cleaned):
                     return None
                 return cleaned
@@ -364,12 +387,33 @@ class BaseSiteHandler(ABC):
                 parsed = urlparse(url)
             except Exception:
                 parsed = None
+            tokens: list[str] = []
             path = parsed.path if parsed else url
             parts = [part for part in path.split("/") if part]
             if not parts:
-                return []
+                tokens = []
             last = parts[-1].split("?")[0].strip()
-            return [last] if last else []
+            if last:
+                tokens.append(last)
+            if parsed:
+                params = parse_qs(parsed.query or "")
+                for key in ("id", "jobId", "job_id", "postingId", "positionId", "reqId"):
+                    values = params.get(key)
+                    if not values:
+                        continue
+                    for value in values:
+                        cleaned = str(value).strip()
+                        if cleaned:
+                            tokens.append(cleaned)
+                if parsed.fragment:
+                    fragment = parsed.fragment.strip()
+                    if fragment:
+                        tokens.append(fragment)
+                        if fragment.startswith("job-details-"):
+                            job_id = fragment[len("job-details-") :].strip()
+                            if job_id:
+                                tokens.append(job_id)
+            return tokens
 
         if isinstance(payload, dict):
             for key in _POSTED_AT_KEYS:
@@ -523,6 +567,10 @@ class BaseSiteHandler(ABC):
 
         lower = cleaned.lower()
         if "<script" not in lower or "ld+json" not in lower:
+            if "<" in cleaned and ">" in cleaned:
+                candidate = cls._extract_posted_at_from_markdown_text(cleaned, url)
+                if candidate is not None:
+                    return candidate
             return None
 
         script_pattern = re.compile(JSON_LD_SCRIPT_PATTERN, flags=re.IGNORECASE | re.DOTALL)
@@ -543,6 +591,11 @@ class BaseSiteHandler(ABC):
                 depth=depth + 1,
                 seen=seen,
             )
+            if candidate is not None:
+                return candidate
+
+        if "<" in cleaned and ">" in cleaned:
+            candidate = cls._extract_posted_at_from_markdown_text(cleaned, url)
             if candidate is not None:
                 return candidate
 
@@ -625,6 +678,9 @@ class BaseSiteHandler(ABC):
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
+        return self.filter_job_urls(urls)
 
     @staticmethod
     def _looks_like_non_job_detail_url(url: str) -> bool:

@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { countJobs } from "./lib/scrapeCounts";
 
@@ -243,6 +244,9 @@ const RUN_LOOKBACK_MS = 45 * 24 * 60 * 60 * 1000; // 45 days
 const SCRAPE_LIMIT = 80;
 const SCRAPE_PAGE_SIZE = 40;
 const SCRAPE_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const COST_LOOKBACK_MINUTES = 60;
+const COST_MAX_SCRAPES = 5000;
+const COST_PAGE_SIZE = 200;
 
 async function collectWithLimit(cursorable: any, maxItems: number = 500, pageSize: number = DEFAULT_PAGE_SIZE) {
   try {
@@ -278,6 +282,16 @@ async function collectWithLimit(cursorable: any, maxItems: number = 500, pageSiz
     console.error("listScrapeActivity: collectWithLimit failed", err);
   }
   return [];
+}
+
+function deriveCostMilliCents(scrape: any): number {
+  if (typeof scrape?.costMilliCents === "number") {
+    return scrape.costMilliCents;
+  }
+  if (typeof scrape?.items?.costMilliCents === "number") {
+    return scrape.items.costMilliCents;
+  }
+  return 0;
 }
 
 const listScrapeActivityHandler = async (ctx: any) => {
@@ -395,5 +409,133 @@ export const listScrapeActivity = query({
   handler: listScrapeActivityHandler,
 });
 (listScrapeActivity as any).handler = listScrapeActivityHandler;
+
+export const listScrapeCostSummary = query({
+  args: {
+    lookbackMinutes: v.optional(v.number()),
+    maxScrapes: v.optional(v.number()),
+  },
+  returns: v.object({
+    windowStartMs: v.number(),
+    windowEndMs: v.number(),
+    lookbackMinutes: v.number(),
+    scrapesChecked: v.number(),
+    rows: v.array(
+      v.object({
+        company: v.string(),
+        siteId: v.optional(v.id("sites")),
+        siteName: v.optional(v.string()),
+        siteUrl: v.optional(v.string()),
+        scrapeCount: v.number(),
+        totalCostMilliCents: v.number(),
+        avgCostPerPageMilliCents: v.number(),
+        maxCostPerPageMilliCents: v.number(),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const lookbackMinutes = Math.max(1, Math.min(args.lookbackMinutes ?? COST_LOOKBACK_MINUTES, 24 * 60));
+    const maxScrapes = Math.max(1, Math.min(args.maxScrapes ?? COST_MAX_SCRAPES, 20000));
+    const cutoff = now - lookbackMinutes * 60 * 1000;
+
+    const scrapes = await collectWithLimit(
+      ctx.db
+        .query("scrapes")
+        .withIndex("by_completedAt_site", (q) => q.gte("completedAt", cutoff))
+        .order("desc"),
+      maxScrapes,
+      COST_PAGE_SIZE
+    );
+
+    const siteIds = new Set<Id<"sites">>();
+    for (const scrape of scrapes as any[]) {
+      if (scrape?.siteId) {
+        siteIds.add(scrape.siteId as Id<"sites">);
+      }
+    }
+
+    const siteIdList = Array.from(siteIds);
+    const siteList = await Promise.all(siteIdList.map((siteId) => ctx.db.get(siteId)));
+    const siteMap = new Map<string, any>();
+    siteIdList.forEach((siteId, index) => {
+      const site = siteList[index];
+      if (site) {
+        siteMap.set(siteId.toString(), site);
+      }
+    });
+
+    const summaries = new Map<
+      string,
+      {
+        company: string;
+        siteId?: Id<"sites">;
+        siteName?: string;
+        siteUrl?: string;
+        scrapeCount: number;
+        totalCostMilliCents: number;
+        maxCostPerPageMilliCents: number;
+      }
+    >();
+
+    for (const scrape of scrapes as any[]) {
+      const cost = deriveCostMilliCents(scrape);
+      const siteId = scrape?.siteId ? (scrape.siteId as Id<"sites">) : undefined;
+      const site = siteId ? siteMap.get(siteId.toString()) : undefined;
+      const company =
+        (typeof site?.name === "string" && site.name.trim()) ||
+        (typeof site?.url === "string" && site.url.trim()) ||
+        (typeof scrape.sourceUrl === "string" && scrape.sourceUrl.trim()) ||
+        "unknown";
+      const key = siteId ? siteId.toString() : typeof scrape.sourceUrl === "string" ? scrape.sourceUrl : company;
+
+      const entry = summaries.get(key) ?? {
+        company,
+        siteId,
+        siteName: typeof site?.name === "string" ? site.name : undefined,
+        siteUrl: typeof site?.url === "string" ? site.url : undefined,
+        scrapeCount: 0,
+        totalCostMilliCents: 0,
+        maxCostPerPageMilliCents: 0,
+      };
+
+      entry.scrapeCount += 1;
+      entry.totalCostMilliCents += cost;
+      entry.maxCostPerPageMilliCents = Math.max(entry.maxCostPerPageMilliCents, cost);
+
+      summaries.set(key, entry);
+    }
+
+    const rows = Array.from(summaries.values()).map((entry) => ({
+      company: entry.company,
+      siteId: entry.siteId,
+      siteName: entry.siteName,
+      siteUrl: entry.siteUrl,
+      scrapeCount: entry.scrapeCount,
+      totalCostMilliCents: entry.totalCostMilliCents,
+      avgCostPerPageMilliCents:
+        entry.scrapeCount > 0 ? Math.round(entry.totalCostMilliCents / entry.scrapeCount) : 0,
+      maxCostPerPageMilliCents: entry.maxCostPerPageMilliCents,
+    }));
+
+    rows.sort((a, b) => {
+      if (b.totalCostMilliCents !== a.totalCostMilliCents) {
+        return b.totalCostMilliCents - a.totalCostMilliCents;
+      }
+      if (b.scrapeCount !== a.scrapeCount) {
+        return b.scrapeCount - a.scrapeCount;
+      }
+      return a.company.localeCompare(b.company);
+    });
+
+    return {
+      windowStartMs: cutoff,
+      windowEndMs: now,
+      lookbackMinutes,
+      scrapesChecked: scrapes.length,
+      rows,
+    };
+  },
+});
 
 export const __test = { collectWithLimit, countJobs };

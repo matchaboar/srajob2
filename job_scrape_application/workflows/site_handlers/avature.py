@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from .base import BaseSiteHandler
+from ..helpers.link_extractors import normalize_url
 from ..helpers.regex_patterns import (
     AVATURE_BASE_URL_RE,
     AVATURE_JOB_DETAIL_PATH_RE,
@@ -201,6 +202,112 @@ class AvatureHandler(BaseSiteHandler):
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
+        filtered = self.filter_job_urls(urls)
+        if not source_url:
+            return filtered
+        normalized_source = normalize_url(source_url, base_url=source_url) or source_url
+        if not normalized_source or not self.matches_url(normalized_source):
+            return filtered
+        if not self.is_listing_url(normalized_source):
+            return filtered
+        try:
+            source_parsed = urlparse(normalized_source)
+        except Exception:
+            return filtered
+
+        source_host = (source_parsed.hostname or "").lower()
+        source_path = (source_parsed.path or "").rstrip("/")
+        if not source_host or not source_path:
+            return filtered
+
+        source_pairs = parse_qsl(source_parsed.query, keep_blank_values=True)
+        base_pairs = [(key, value) for key, value in source_pairs if key.lower() != "joboffset"]
+        base_key_values = {key.lower(): value for key, value in base_pairs}
+        required_keys = set(base_key_values.keys())
+        allowed_keys = set(required_keys)
+        allowed_keys.add("joboffset")
+
+        def _matches_listing_path(path: str) -> bool:
+            lower = (path or "").lower().rstrip("/")
+            base_lower = source_path.lower().rstrip("/")
+            if "/careers/searchjobsdata" in lower:
+                base_lower = base_lower.replace("/careers/searchjobs", "/careers/searchjobsdata", 1)
+                return lower == base_lower
+            if "/careers/searchjobs" in lower:
+                return lower == base_lower
+            return False
+
+        def _canonical_listing_url(path: str, job_offset: int | None) -> str:
+            query_pairs = list(base_pairs)
+            if job_offset is not None:
+                query_pairs.append(("jobOffset", str(job_offset)))
+            return urlunparse(
+                (
+                    source_parsed.scheme or "https",
+                    source_parsed.netloc,
+                    path.rstrip("/"),
+                    "",
+                    urlencode(query_pairs, doseq=True),
+                    "",
+                )
+            )
+
+        cleaned: List[str] = []
+        seen: set[str] = set()
+        for url in filtered:
+            normalized = normalize_url(url, base_url=normalized_source) or url
+            try:
+                parsed = urlparse(normalized)
+            except Exception:
+                continue
+            host = (parsed.hostname or "").lower()
+            if not host or host != source_host:
+                continue
+            path_lower = (parsed.path or "").lower()
+            if "/careers/jobdetail/" in path_lower:
+                if normalized not in seen:
+                    seen.add(normalized)
+                    cleaned.append(normalized)
+                continue
+            if not _matches_listing_path(parsed.path or ""):
+                continue
+            pairs = parse_qsl(parsed.query, keep_blank_values=True)
+            keys_lower = [key.lower() for key, _ in pairs]
+            if any(not key or ";" in key for key in keys_lower):
+                continue
+            key_set = set(keys_lower)
+            if required_keys and not required_keys.issubset(key_set):
+                continue
+            if not key_set.issubset(allowed_keys):
+                continue
+            invalid = False
+            for base_key, base_value in base_key_values.items():
+                values = [val for key, val in pairs if key.lower() == base_key]
+                if len(values) != 1 or values[0] != base_value:
+                    invalid = True
+                    break
+            if invalid:
+                continue
+            job_offset = None
+            for key, value in pairs:
+                if key.lower() == "joboffset":
+                    if not value.isdigit():
+                        invalid = True
+                        break
+                    job_offset = int(value)
+                    if job_offset < 0:
+                        invalid = True
+                        break
+            if invalid:
+                continue
+            canonical = _canonical_listing_url(parsed.path or source_path, job_offset)
+            if canonical in seen:
+                continue
+            seen.add(canonical)
+            cleaned.append(canonical)
+        return cleaned
 
     def _infer_pagination_base_url(self, html: str, urls: List[str]) -> Optional[str]:
         if not self._has_pagination_signals(html):

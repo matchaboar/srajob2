@@ -12,6 +12,8 @@ type Row = Record<string, any>;
 
 type Tables = {
   scrape_url_queue: Row[];
+  scrape_url_bucket_leases: Row[];
+  scrape_worker_heartbeats: Row[];
   ignored_jobs: Row[];
   seen_job_urls: Row[];
   jobs: Row[];
@@ -35,6 +37,10 @@ class FakeQuery {
       },
       lte: (field: string, val: any) => {
         nextFilters[field] = { lte: val };
+        return builder;
+      },
+      gt: (field: string, val: any) => {
+        nextFilters[field] = { gt: val };
         return builder;
       },
     };
@@ -69,6 +75,9 @@ class FakeQuery {
         if (val && typeof val === "object" && "lte" in val) {
           return (row as any)[key] <= (val as any).lte;
         }
+        if (val && typeof val === "object" && "gt" in val) {
+          return (row as any)[key] > (val as any).gt;
+        }
         return (row as any)[key] === val;
       })
     );
@@ -85,6 +94,8 @@ class FakeDb {
   constructor(seed?: Partial<Tables>) {
     this.tables = {
       scrape_url_queue: seed?.scrape_url_queue ?? [],
+      scrape_url_bucket_leases: seed?.scrape_url_bucket_leases ?? [],
+      scrape_worker_heartbeats: seed?.scrape_worker_heartbeats ?? [],
       ignored_jobs: seed?.ignored_jobs ?? [],
       seen_job_urls: seed?.seen_job_urls ?? [],
       jobs: seed?.jobs ?? [],
@@ -215,6 +226,22 @@ describe("scrape queue end-to-end", () => {
     const leaseRes = await leaseHandler(ctx, { provider: "spidercloud", limit: 2 });
     const leasedA = leaseRes.urls.find((row: any) => row.url === jobUrlA);
     expect(leasedA?.postedAt).toBe(postedAtA);
+  });
+
+  it("dedupes normalized URLs before enqueueing", async () => {
+    const sourceUrl = "https://example.com/jobs";
+    const db = new FakeDb();
+    const ctx: any = { db };
+    const enqueueHandler = getHandler(enqueueScrapeUrls);
+
+    await enqueueHandler(ctx, {
+      urls: ["https://example.com/jobs?b=1&a=2", "https://example.com/jobs?a=2&b=1"],
+      sourceUrl,
+      provider: "spidercloud",
+    });
+
+    expect(db.tables.scrape_url_queue).toHaveLength(1);
+    expect(db.tables.scrape_url_queue[0]?.url).toBe("https://example.com/jobs?a=2&b=1");
   });
 
   it("skips enqueueing URLs that are already ignored", async () => {

@@ -15,6 +15,7 @@ export type SiteScheduleEntry = {
   type?: SiteType;
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
+  paginationLimit?: number;
   schedule?: {
     name: string;
     days: string[];
@@ -31,6 +32,7 @@ export type NormalizedSiteSchedule = {
   type?: SiteType;
   scrapeProvider?: "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
   pattern?: string;
+  paginationLimit?: number;
   schedule?: {
     name: string;
     days: string[];
@@ -80,6 +82,10 @@ export const normalizeSiteScheduleEntries = (entries: SiteScheduleEntry[]): Norm
 
     const enabled = entry.enabled !== false;
     const schedule = normalizeSchedule(entry.schedule ?? undefined);
+    const paginationLimit =
+      typeof entry.paginationLimit === "number" && Number.isFinite(entry.paginationLimit)
+        ? Math.max(1, Math.floor(entry.paginationLimit))
+        : undefined;
 
     results.push({
       url: normalizedUrl,
@@ -88,6 +94,7 @@ export const normalizeSiteScheduleEntries = (entries: SiteScheduleEntry[]): Norm
       type,
       scrapeProvider: entry.scrapeProvider,
       pattern: typeof entry.pattern === "string" && entry.pattern.trim() ? entry.pattern.trim() : undefined,
+      paginationLimit,
       schedule: schedule ?? undefined,
     });
   }
@@ -195,6 +202,7 @@ export const syncSiteSchedulesFromEntries = async (
       type: siteType,
       scrapeProvider,
       pattern: entry.pattern,
+      paginationLimit: entry.paginationLimit,
       scheduleId: scheduleId ?? undefined,
       enabled: entry.enabled,
       lastRunAt: 0,

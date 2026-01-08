@@ -1,31 +1,29 @@
 from __future__ import annotations
 
-import inspect
-import os
+from typing import Any, Dict
 
 from temporalio import workflow
 
-from ..deadlock_logging import update_run_metadata
 
-
-def workflow_checkpoint(label: str) -> None:
+def workflow_checkpoint(
+    label: str,
+    *,
+    location: str | None = None,
+    data: Dict[str, Any] | None = None,
+) -> None:
     """Record a workflow-side checkpoint to aid deadlock diagnostics."""
 
     try:
-        run_id = workflow.info().run_id
+        info = workflow.info()
+        run_id = info.run_id
+        workflow_id = info.workflow_id
+        workflow_type = info.workflow_type
+        task_queue = info.task_queue
     except Exception:
         run_id = None
-
-    location = None
-    try:
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            caller = frame.f_back
-            filename = caller.f_code.co_filename
-            basename = os.path.basename(filename)
-            location = f"{basename}:{caller.f_lineno}"
-    except Exception:
-        location = None
+        workflow_id = None
+        workflow_type = None
+        task_queue = None
 
     try:
         now = workflow.now().isoformat()
@@ -34,11 +32,18 @@ def workflow_checkpoint(label: str) -> None:
 
     try:
         with workflow.unsafe.sandbox_unrestricted():
-            update_run_metadata(
+            with workflow.unsafe.imports_passed_through():
+                from .. import deadlock_logging
+
+            deadlock_logging.update_run_metadata(
                 run_id,
                 lastCheckpoint=label,
                 lastCheckpointLocation=location,
+                lastCheckpointData=data,
                 lastCheckpointAt=now,
+                workflowId=workflow_id,
+                workflowType=workflow_type,
+                taskQueue=task_queue,
             )
     except Exception:
         return

@@ -1696,11 +1696,11 @@ class SpiderCloudScraper(BaseScraper):
 
         job_urls = handler.get_links_from_json(payload)
         if job_urls:
-            job_urls = handler.filter_job_urls(job_urls)
+            job_urls = handler.filter_job_urls_for_site(job_urls, request_url)
         pagination_urls = handler.get_pagination_urls_from_json(payload, request_url)
         if pagination_urls:
             job_urls.extend(pagination_urls)
-            job_urls = handler.filter_job_urls(job_urls)
+            job_urls = handler.filter_job_urls_for_site(job_urls, request_url)
         else:
             if handler.name == "netflix":
                 count = payload.get("count") if isinstance(payload, dict) else None
@@ -2063,7 +2063,10 @@ class SpiderCloudScraper(BaseScraper):
         if not urls:
             return []
 
-        filtered = handler.filter_job_urls([u for u in urls if isinstance(u, str) and u.strip()])
+        filtered = handler.filter_job_urls_for_site(
+            [u for u in urls if isinstance(u, str) and u.strip()],
+            base_url,
+        )
         normalized: List[str] = []
         seen: set[str] = set()
         for url in filtered:
@@ -3455,15 +3458,48 @@ class SpiderCloudScraper(BaseScraper):
                 f"Failed to fetch Greenhouse board via SpiderCloud (timeout {timeout_seconds}s)."
             ) from exc
         except Exception as exc:  # noqa: BLE001
+            error_type = None
+            status_code = None
+            content_type = None
+            try:
+                from aiohttp.client_exceptions import ContentTypeError
+
+                if isinstance(exc, ContentTypeError):
+                    status_code = getattr(exc, "status", None)
+                    content_type = getattr(exc, "content_type", None)
+            except Exception:
+                pass
+            if status_code is None:
+                match = re.search(r"\b(401|402|403)\b", str(exc))
+                if match:
+                    try:
+                        status_code = int(match.group(1))
+                    except Exception:
+                        status_code = None
+            if status_code == 402:
+                error_type = "spidercloud_payment_required"
+            elif status_code in {401, 403}:
+                error_type = "spidercloud_unauthorized"
             logger.error("SpiderCloud greenhouse listing fetch failed url=%s error=%s", api_url, exc)
             self._emit_scrape_log(
-                event="scrape.greenhouse_listing.fetch_failed",
+                event=f"scrape.greenhouse_listing.{error_type}" if error_type else "scrape.greenhouse_listing.fetch_failed",
                 level="error",
                 site_url=api_url,
                 api_url=api_url,
+                data={
+                    "statusCode": status_code,
+                    "contentType": content_type,
+                    "errorType": error_type,
+                },
                 exc=exc,
                 capture_exception=True,
             )
+            if error_type:
+                raise ApplicationError(
+                    f"Failed to fetch Greenhouse board via SpiderCloud: {exc}",
+                    type=error_type,
+                    non_retryable=True,
+                ) from exc
             raise ApplicationError(f"Failed to fetch Greenhouse board via SpiderCloud: {exc}") from exc
 
         def _extract_text(value: Any) -> str:

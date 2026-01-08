@@ -71,7 +71,7 @@ async def main() -> None:
             raise SystemExit(f"Could not load site handlers: {exc}") from exc
         handler = get_site_handler(args.url)
         if handler:
-            params.update(handler.get_spidercloud_config(args.url))
+            params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(args.url)))
     if args.return_format is None:
         if "return_format" not in params:
             params["return_format"] = ["raw_html"]
