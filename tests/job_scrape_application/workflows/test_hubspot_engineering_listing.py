@@ -8,6 +8,7 @@ from job_scrape_application.workflows import activities as acts
 
 
 ENGINEERING_LISTING_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_engineering_page1.html")
+NO_RANGE_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_page1_no_range.html")
 ENGINEERING_SOURCE_URL = (
     "https://www.hubspot.com/careers/jobs?page=1#department=product-ux-engineering;"
 )
@@ -29,6 +30,20 @@ def test_hubspot_engineering_listing_extracts_engineer_jobs():
 
     assert "https://www.hubspot.com/careers/jobs/7294272?hubs_signup-cta=careers-apply" in urls
     assert any("hubs_signup-cta=careers-apply" in url for url in urls)
+
+
+def test_hubspot_listing_fallback_pagination_includes_first_four_pages():
+    html = NO_RANGE_FIXTURE.read_text(encoding="utf-8")
+    scrape = _build_scrape_payload(
+        "https://www.hubspot.com/careers/jobs?page=1",
+        html,
+    )
+
+    urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://www.hubspot.com/careers/jobs?page=2" in urls
+    assert "https://www.hubspot.com/careers/jobs?page=3" in urls
+    assert "https://www.hubspot.com/careers/jobs?page=4" in urls
 
 
 @pytest.mark.asyncio

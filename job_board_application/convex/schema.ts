@@ -356,7 +356,8 @@ const applicationTables = {
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
     .index("by_status_url_type", ["status", "urlType"])
     .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"])
-    .index("by_type_updated", ["urlType", "updatedAt"]),
+    .index("by_type_updated", ["urlType", "updatedAt"])
+    .index("by_urlType", ["urlType"]),
 
   job_detail_configs: defineTable({
     domain: v.string(),

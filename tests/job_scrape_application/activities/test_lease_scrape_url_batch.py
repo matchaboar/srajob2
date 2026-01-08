@@ -108,6 +108,52 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_lease_scrape_url_batch_keeps_listing_urls_out_of_seen(monkeypatch):
+    listing_url = "https://www.metacareers.com/jobsearch?page=2"
+    detail_url = "https://www.metacareers.com/profile/job_details/1770681236847041"
+    leased = {
+        "urls": [
+            {
+                "url": listing_url,
+                "sourceUrl": "https://www.metacareers.com/jobsearch",
+                "pattern": None,
+                "_id": "01hzconvexqueueidlisting00000001",
+            },
+            {
+                "url": detail_url,
+                "sourceUrl": "https://www.metacareers.com/jobsearch",
+                "pattern": None,
+                "_id": "01hzconvexqueueiddetail00000002",
+            },
+        ]
+    }
+
+    mutation_calls: List[Dict[str, Any]] = []
+
+    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+        mutation_calls.append({"name": name, "args": args})
+        if name == "router:leaseScrapeUrlBatch":
+            return leased
+        if name == "router:completeScrapeUrls":
+            return {"updated": len(args.get("items") or args.get("urls") or [])}
+        raise RuntimeError(f"unexpected mutation {name}")
+
+    async def fake_fetch_seen(source_url: str, pattern: str | None):
+        assert source_url == "https://www.metacareers.com/jobsearch"
+        return [listing_url, detail_url]
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+
+    res = await acts.lease_scrape_url_batch("spidercloud", 5)
+
+    assert res["urls"] == [leased["urls"][0]]
+    assert res["skippedUrls"] == [detail_url]
+    skip_call = next(call for call in mutation_calls if call["name"] == "router:completeScrapeUrls")
+    assert any(item.get("url") == detail_url for item in (skip_call["args"].get("items") or []))
+
+
+@pytest.mark.asyncio
 async def test_lease_scrape_url_batch_handles_non_dict_response(monkeypatch):
     async def fake_convex_mutation(name: str, args: Dict[str, Any]):
         if name == "router:leaseScrapeUrlBatch":

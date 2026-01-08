@@ -8,7 +8,7 @@ from job_scrape_application.workflows import activities as acts
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_skips_seen_listing_urls(monkeypatch: pytest.MonkeyPatch):
+async def test_store_scrape_keeps_listing_urls_even_when_seen(monkeypatch: pytest.MonkeyPatch):
     source_url = "https://explore.jobs.netflix.net/careers?query=engineer"
     listing_url = (
         "https://explore.jobs.netflix.net/api/apply/v2/jobs"
@@ -51,4 +51,7 @@ async def test_store_scrape_skips_seen_listing_urls(monkeypatch: pytest.MonkeyPa
 
     enqueue_calls = [c for c in mutation_calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "expected enqueueScrapeUrls to be called"
-    assert enqueue_calls[0]["args"]["urls"] == [job_url]
+    enqueue_args = enqueue_calls[0]["args"]
+    assert enqueue_args["urls"] == [listing_url, job_url]
+    assert enqueue_args["urlTypes"] == ["listing", "detail"]
+    assert enqueue_args["delaysMs"]

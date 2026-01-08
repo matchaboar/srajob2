@@ -1418,7 +1418,15 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                     skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
                 except Exception:
                     skip_list = []
-                skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
+                handler = get_site_handler(source_val or url_val)
+                filtered_skip: list[str] = []
+                for skip_url in skip_list:
+                    if not isinstance(skip_url, str):
+                        continue
+                    if handler and handler.is_listing_url(skip_url):
+                        continue
+                    filtered_skip.append(skip_url)
+                skip_cache[cache_key] = set(filtered_skip)
             if url_val in skip_cache[cache_key]:
                 skipped_round.append(url_val)
                 skipped_items.append(_build_completion_item(entry, url_val, is_listing=is_listing_url))
@@ -1534,7 +1542,6 @@ async def process_spidercloud_job_batch(
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
-    skipped_listing_urls: list[str] = []
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
             continue
@@ -1545,9 +1552,6 @@ async def process_spidercloud_job_batch(
         pattern_val = row.get("pattern") if isinstance(row.get("pattern"), str) else None
         if source_val and not source_url_hint:
             source_url_hint = source_val
-        if _is_spidercloud_listing_url(url_val, source_val or None):
-            skipped_listing_urls.append(url_val)
-            continue
         key = (source_val, pattern_val)
         normalized_url = _to_greenhouse_api_url(url_val)
         groups.setdefault(key, []).append(normalized_url)
@@ -1556,41 +1560,8 @@ async def process_spidercloud_job_batch(
             mapping = posted_at_groups.setdefault(key, {})
             mapping[normalize_url(normalized_url) or normalized_url] = int(posted_at_val)
 
-    if skipped_listing_urls:
-        seen_listing: set[str] = set()
-        deduped_listing: list[str] = []
-        for url in skipped_listing_urls:
-            if url in seen_listing:
-                continue
-            seen_listing.add(url)
-            deduped_listing.append(url)
-        skipped_listing_urls = deduped_listing
-        logger.info(
-            "SpiderCloud prefilter skipped listing urls count=%s sample=%s",
-            len(skipped_listing_urls),
-            skipped_listing_urls[:10],
-        )
-        try:
-            from ...services.convex_client import convex_mutation
-
-            await convex_mutation(
-                "router:completeScrapeUrls",
-                {
-                    "items": [
-                        {"url": url, "isListingUrl": True}
-                        for url in skipped_listing_urls
-                    ],
-                    "status": "failed",
-                    "error": "listing_url",
-                },
-            )
-        except Exception:
-            pass
-
     if not groups:
         response = {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
-        if skipped_listing_urls:
-            response["skippedUrls"] = skipped_listing_urls
         if persist_scrapes:
             response.update({"scrapeIds": [], "stored": 0, "invalid": 0, "failed": 0})
         return response
@@ -1671,10 +1642,7 @@ async def process_spidercloud_job_batch(
         scrapes.extend(await _scrape_group(urls, source_url, pattern))
 
     if not persist_scrapes:
-        response = {"scrapes": scrapes, "sourceUrl": source_url_hint}
-        if skipped_listing_urls:
-            response["skippedUrls"] = skipped_listing_urls
-        return response
+        return {"scrapes": scrapes, "sourceUrl": source_url_hint}
 
     from ...services.convex_client import convex_mutation
 
@@ -1808,8 +1776,6 @@ async def process_spidercloud_job_batch(
         "failed": len(failed_urls) + len(http_404_urls),
         "sourceUrl": source_url_hint,
     }
-    if skipped_listing_urls:
-        response["skippedUrls"] = skipped_listing_urls
     return response
 
 

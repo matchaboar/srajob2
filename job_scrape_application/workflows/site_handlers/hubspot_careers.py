@@ -11,6 +11,7 @@ from .base import BaseSiteHandler
 HUBSPOT_HOST_SUFFIX = "hubspot.com"
 HUBSPOT_BASE_URL = "https://www.hubspot.com"
 CAREERS_PATH = "/careers/jobs"
+MAX_PAGINATION_PAGE = 4
 
 _JOB_LINK_RE = re.compile(
     r"href=[\"'](?P<href>/careers/jobs/\d+[^\"']*)[\"']",
@@ -68,6 +69,20 @@ class HubspotCareersHandler(BaseSiteHandler):
             return self._apply_page_links_config(base_config)
         base_config["return_format"] = ["commonmark"]
         return self._apply_page_links_config(base_config)
+
+    def get_pagination_urls_from_listing(self, source_url: str | None = None) -> List[str]:
+        if not source_url or not self.matches_url(source_url):
+            return []
+        if not self.is_listing_url(source_url):
+            return []
+        parsed = urlparse(source_url)
+        current_page = self._extract_page_param(parsed.query) or 1
+        if current_page >= MAX_PAGINATION_PAGE:
+            return []
+        return [
+            self._set_page_param(source_url, page)
+            for page in range(current_page + 1, MAX_PAGINATION_PAGE + 1)
+        ]
 
     def get_links_from_raw_html(self, html: str) -> List[str]:
         if not html:

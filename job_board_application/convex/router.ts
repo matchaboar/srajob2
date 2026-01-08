@@ -2865,7 +2865,7 @@ export const listScrapeQueue = query({
 
     const rows = await ctx.db
       .query("scrape_url_queue")
-      .withIndex("by_type_updated", (q) => q.eq("urlType", type))
+      .withIndex("by_urlType", (q) => q.eq("urlType", type))
       .order("desc")
       .take(lim);
 
@@ -4727,8 +4727,9 @@ const parseUrlSafe = (value: string, base?: string): URL | null => {
 
 const isAshbyHost = (host: string) => host.endsWith("ashbyhq.com");
 const isAvatureHost = (host: string) => host.endsWith("avature.net") || host.endsWith("avature.com");
+const isHubspotHost = (host: string) => host.endsWith("hubspot.com");
 
-function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null {
+export function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null {
   if (typeof rawUrl !== "string") return null;
   let cleaned = rawUrl.trim();
   if (!cleaned) return null;
@@ -4747,6 +4748,9 @@ function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null 
 
   if (isAvatureHost(host) && /\/(savejob|searchjobs|jobsearch)/i.test(path)) {
     return null;
+  }
+  if (isHubspotHost(host) && path.toLowerCase().startsWith("/careers/jobs/")) {
+    if (parsed.searchParams.has("hubs_signup-cta")) return null;
   }
 
   if (sourceUrl) {

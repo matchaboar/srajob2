@@ -2573,7 +2573,6 @@ function PendingRequestsSection() {
   const listings = useQuery(api.router.listScrapeQueue, activeTab === "listings" ? { limit: 50, type: "listing" } : "skip");
   const details = useQuery(api.router.listScrapeQueue, activeTab === "details" ? { limit: 50, type: "detail" } : "skip");
   const webhooks = useQuery(api.router.listFirecrawlWebhooks, activeTab === "webhooks" ? { limit: 50 } : "skip");
-  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, { limit: 50 });
 
   const data = activeTab === "site_scrapes" ? siteScrapes
     : activeTab === "listings" ? listings
@@ -2770,63 +2769,6 @@ function PendingRequestsSection() {
         </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Pending Webhooks</h2>
-            <p className="text-xs text-slate-500">Webhooks waiting to be processed.</p>
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">{pendingWebhooks?.length ?? 0} pending</span>
-        </div>
-        <div className="overflow-auto">
-          <table className="min-w-full text-left text-xs text-slate-200">
-            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-3 py-2 border-b border-slate-800">Job</th>
-                <th className="px-3 py-2 border-b border-slate-800">Site</th>
-                <th className="px-3 py-2 border-b border-slate-800">Event</th>
-                <th className="px-3 py-2 border-b border-slate-800">Received</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {(pendingWebhooks ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
-                    {pendingWebhooks === undefined ? "Loading..." : "No pending webhooks."}
-                  </td>
-                </tr>
-              )}
-              {(pendingWebhooks ?? []).map((hook: any) => (
-                <tr key={hook._id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[180px]">
-                    {hook.jobId || "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">
-                      {hook.siteUrl || (hook.metadata || {}).siteUrl || "—"}
-                    </div>
-                    <div className="text-[10px] text-slate-500 font-mono">{hook.siteId || (hook.metadata || {}).siteId || ""}</div>
-                  </td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">{hook.event || "—"}</td>
-                  <td className="px-3 py-2 text-[11px] text-slate-300">
-                    {hook.receivedAt ? (
-                      <LiveTimer
-                        startTime={hook.receivedAt}
-                        colorize
-                        warnAfterMs={2 * 60 * 1000}
-                        dangerAfterMs={10 * 60 * 1000}
-                        showAgo
-                      />
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
