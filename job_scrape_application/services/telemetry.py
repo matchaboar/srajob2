@@ -150,7 +150,8 @@ def build_posthog_log_handler(level: int = logging.INFO) -> LoggingHandler | Non
 
     provider = _configure_posthog_logger(token)
     _posthog_log_handler = LoggingHandler(level=level, logger_provider=provider)
-    _posthog_log_handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
+    if hasattr(_posthog_log_handler, "setFormatter"):
+        _posthog_log_handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
     return _posthog_log_handler
 
 
@@ -166,7 +167,8 @@ def _ensure_logger() -> logging.Logger:
 
     provider = _configure_posthog_logger(token)
     handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
-    handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
+    if hasattr(handler, "setFormatter"):
+        handler.setFormatter(_OTLP_MESSAGE_FORMATTER)
     logger = logging.getLogger("temporal.worker.posthog")
     logger.setLevel(logging.INFO)
     logger.propagate = False

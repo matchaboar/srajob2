@@ -101,6 +101,17 @@ def _workflow_now_ms() -> int:
         return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
+async def _safe_workflow_sleep(seconds: float) -> None:
+    """Sleep inside a workflow loop; no-op when running in unit tests."""
+
+    try:
+        await workflow.sleep(seconds)
+    except Exception as exc:
+        if exc.__class__.__name__ == "_NotInWorkflowEventLoopError":
+            return
+        raise
+
+
 def _format_failure_reason(exc: Exception) -> str:
     if isinstance(exc, ActivityError):
         parts = [f"activity={exc.activity_type}"]
@@ -149,7 +160,7 @@ async def _yield_if_needed(iteration: int, *, every: int = 50) -> None:
     """Cooperatively yield so large in-memory loops don't block workflow progress."""
 
     if iteration > 0 and iteration % every == 0:
-        await workflow.sleep(0)
+        await _safe_workflow_sleep(0)
 
 
 async def _run_scrape_workflow(
@@ -568,7 +579,7 @@ class SpidercloudJobDetailsWorkflow:
                 args=["spidercloud", SPIDERCLOUD_BATCH_SIZE, "detail"],
                 schedule_to_close_timeout=timedelta(seconds=20),
             )
-            await workflow.sleep(0)
+            await _safe_workflow_sleep(0)
 
             skipped_urls = []
             skipped_count = 0
@@ -580,13 +591,13 @@ class SpidercloudJobDetailsWorkflow:
                         if isinstance(entry, str):
                             skipped_urls.append(entry)
                         if idx and idx % 200 == 0:
-                            await workflow.sleep(0)
+                            await _safe_workflow_sleep(0)
                 workflow_checkpoint(
                     "job_details.process_skipped_urls",
                     location="scrape_workflow:SpidercloudJobDetails.run:process_skipped_urls",
                     data={"skippedCount": skipped_count},
                 )
-                await workflow.sleep(0)
+                await _safe_workflow_sleep(0)
             if skipped_urls:
                 await _log(
                     "batch.skipped_urls",
@@ -603,7 +614,7 @@ class SpidercloudJobDetailsWorkflow:
                 data={"batchUrls": len(urls), "skippedCount": skipped_count},
             )
             await _log("batch.leased", data={"count": len(urls), "skippedCount": skipped_count})
-            await workflow.sleep(0)
+            await _safe_workflow_sleep(0)
 
             try:
                 workflow_checkpoint(
@@ -618,7 +629,7 @@ class SpidercloudJobDetailsWorkflow:
                         minutes=runtime_config.spidercloud_job_details_timeout_minutes
                     ),
                 )
-                await workflow.sleep(0)
+                await _safe_workflow_sleep(0)
                 scrapes = res.get("scrapes") if isinstance(res, dict) else []
                 scrape_ids_payload = res.get("scrapeIds") if isinstance(res, dict) else None
                 stored_count = res.get("stored") if isinstance(res, dict) else None
@@ -628,7 +639,7 @@ class SpidercloudJobDetailsWorkflow:
                 if persist_scrapes:
                     if isinstance(scrape_ids_payload, list):
                         scrape_ids.extend([sid for sid in scrape_ids_payload if isinstance(sid, str)])
-                        await workflow.sleep(0)
+                        await _safe_workflow_sleep(0)
 
                     if stored_count is None and isinstance(scrape_ids_payload, list):
                         stored_count = len(scrape_ids_payload)
@@ -652,7 +663,7 @@ class SpidercloudJobDetailsWorkflow:
                                 "failed": failed_count,
                             },
                         )
-                        await workflow.sleep(0)
+                        await _safe_workflow_sleep(0)
 
                     if not isinstance(scrapes, list):
                         scrapes = []
@@ -671,7 +682,7 @@ class SpidercloudJobDetailsWorkflow:
                             data={"urls": len(urls)},
                         )
                         await _log("batch.processed", data={"count": len(urls)})
-                    await workflow.sleep(0)
+                    await _safe_workflow_sleep(0)
                 else:
                     if not isinstance(scrapes, list):
                         scrapes = []
@@ -740,7 +751,7 @@ class SpidercloudJobDetailsWorkflow:
                                 if isinstance(url_val, str):
                                     failed_urls.append(url_val)
                             await _yield_if_needed(idx)
-                        await workflow.sleep(0)
+                        await _safe_workflow_sleep(0)
 
                         if completed_urls:
                             workflow_checkpoint(
@@ -775,7 +786,7 @@ class SpidercloudJobDetailsWorkflow:
                         )
 
                     await _log("batch.processed", data={"count": len(scrapes) or len(urls)})
-                    await workflow.sleep(0)
+                    await _safe_workflow_sleep(0)
                 site_count += 1
             except Exception as exc:  # noqa: BLE001
                 reason = _format_failure_reason(exc)
@@ -877,7 +888,7 @@ class SpidercloudListingWorkflow:
                 args=["spidercloud", runtime_config.spidercloud_listing_batch_size, "listing"],
                 schedule_to_close_timeout=timedelta(seconds=20),
             )
-            await workflow.sleep(0)
+            await _safe_workflow_sleep(0)
 
             skipped_urls = []
             skipped_count = 0
@@ -889,13 +900,13 @@ class SpidercloudListingWorkflow:
                         if isinstance(entry, str):
                             skipped_urls.append(entry)
                         if idx and idx % 200 == 0:
-                            await workflow.sleep(0)
+                            await _safe_workflow_sleep(0)
                 workflow_checkpoint(
                     "listing.process_skipped_urls",
                     location="scrape_workflow:SpidercloudListing.run:process_skipped_urls",
                     data={"skippedCount": skipped_count},
                 )
-                await workflow.sleep(0)
+                await _safe_workflow_sleep(0)
             if skipped_urls:
                 await _log(
                     "batch.skipped_urls",
@@ -912,7 +923,7 @@ class SpidercloudListingWorkflow:
                 data={"batchUrls": len(urls), "skippedCount": skipped_count},
             )
             await _log("batch.leased", data={"count": len(urls), "skippedCount": skipped_count})
-            await workflow.sleep(0)
+            await _safe_workflow_sleep(0)
 
             try:
                 workflow_checkpoint(
@@ -927,7 +938,7 @@ class SpidercloudListingWorkflow:
                         minutes=runtime_config.spidercloud_job_details_timeout_minutes
                     ),
                 )
-                await workflow.sleep(0)
+                await _safe_workflow_sleep(0)
                 queued = res.get("queued") if isinstance(res, dict) else None
                 listing_completed = res.get("listingCompleted") if isinstance(res, dict) else None
                 workflow_checkpoint(

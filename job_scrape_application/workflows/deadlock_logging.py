@@ -7,6 +7,11 @@ import threading
 import time
 import traceback
 
+try:
+    from job_scrape_application.services import telemetry  # type: ignore
+except Exception:  # pragma: no cover - optional in constrained test envs
+    telemetry = None  # type: ignore[assignment]
+
 _DEADLOCK_SIGNATURES = ("TMPRL1101", "Potential deadlock detected", "_DeadlockError")
 _DEADLOCK_RUN_ID_RE = re.compile(r"run ID ([0-9a-f-]{8,})", re.IGNORECASE)
 _DEADLOCK_WORKFLOW_ID_RE = re.compile(r"workflow ID ([0-9a-zA-Z_-]{4,})", re.IGNORECASE)
@@ -166,10 +171,13 @@ class DeadlockLogHandler(logging.Handler):
         }
 
         try:
-            telemetry = importlib.import_module(
-                "job_scrape_application.services.telemetry"
-            )
-            telemetry.emit_posthog_log(payload)
+            if telemetry is None:
+                telemetry_mod = importlib.import_module(
+                    "job_scrape_application.services.telemetry"
+                )
+                telemetry_mod.emit_posthog_log(payload)
+            else:
+                telemetry.emit_posthog_log(payload)
         except Exception:
             return
 
