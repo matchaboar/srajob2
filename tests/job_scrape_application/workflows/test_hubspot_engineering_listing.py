@@ -28,8 +28,8 @@ def test_hubspot_engineering_listing_extracts_engineer_jobs():
 
     urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
 
-    assert "https://www.hubspot.com/careers/jobs/7294272?hubs_signup-cta=careers-apply" in urls
-    assert any("hubs_signup-cta=careers-apply" in url for url in urls)
+    assert "https://www.hubspot.com/careers/jobs/7294272" in urls
+    assert all("hubs_signup-cta=careers-apply" not in url for url in urls)
 
 
 def test_hubspot_listing_fallback_pagination_includes_first_four_pages():
@@ -79,4 +79,4 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
     assert enqueue_calls, "store_scrape should enqueue HubSpot engineering job URLs"
 
     urls = enqueue_calls[0]["args"]["urls"]
-    assert "https://www.hubspot.com/careers/jobs/7294272?hubs_signup-cta=careers-apply" in urls
+    assert "https://www.hubspot.com/careers/jobs/7294272" in urls

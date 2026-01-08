@@ -352,6 +352,7 @@ const applicationTables = {
   })
     .index("by_url", ["url"])
     .index("by_status", ["status"])
+    .index("by_status_last_error", ["status", "lastError"])
     .index("by_site_status", ["siteId", "status"])
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
     .index("by_status_url_type", ["status", "urlType"])

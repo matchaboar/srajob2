@@ -9,7 +9,12 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from ..helpers.link_extractors import fix_scheme_slashes, normalize_url, strip_wrapping_url
-from ..helpers.regex_patterns import JSON_ARRAY_PATTERN, JSON_OBJECT_PATTERN, PRE_PATTERN
+from ..helpers.regex_patterns import (
+    JSON_ARRAY_PATTERN,
+    JSON_LD_SCRIPT_PATTERN,
+    JSON_OBJECT_PATTERN,
+    PRE_PATTERN,
+)
 
 _POSTED_DATE_LABEL_RE = re.compile(
     r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posting\s+date|date\s+of\s+posting|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
@@ -95,6 +100,10 @@ _POSTED_AT_FALLBACK_KEYS = (
     "date_modified",
     "lastUpdated",
     "last_updated",
+    "validThrough",
+    "valid_through",
+    "validUntil",
+    "valid_until",
 )
 _POSTED_AT_CONTAINER_KEYS = (
     "data",
@@ -320,6 +329,13 @@ class BaseSiteHandler(ABC):
     ) -> Any | None:
         if depth > 6:
             return None
+        if isinstance(payload, str):
+            return cls._extract_posted_at_from_text(
+                payload,
+                url,
+                depth=depth + 1,
+                seen=seen,
+            )
         if not isinstance(payload, (dict, list)):
             return None
         if seen is None:
@@ -446,6 +462,89 @@ class BaseSiteHandler(ABC):
                 )
                 if candidate is not None:
                     return candidate
+
+        return None
+
+    @classmethod
+    def _extract_posted_at_from_text(
+        cls,
+        text: str,
+        url: str | None = None,
+        *,
+        depth: int,
+        seen: set[int] | None,
+    ) -> Any | None:
+        cleaned = text.strip()
+        if not cleaned:
+            return None
+
+        def _parse_json_blob(value: str) -> Any | None:
+            try:
+                parsed = json.loads(value)
+            except Exception:
+                parsed = None
+            if parsed is not None:
+                if isinstance(parsed, str):
+                    try:
+                        return json.loads(parsed)
+                    except Exception:
+                        return parsed
+                return parsed
+            try:
+                unescaped = value.encode("utf-8", errors="ignore").decode("unicode_escape")
+            except Exception:
+                unescaped = ""
+            if unescaped:
+                try:
+                    return json.loads(unescaped)
+                except Exception:
+                    pass
+            for pattern in (JSON_OBJECT_PATTERN, JSON_ARRAY_PATTERN):
+                match = re.search(pattern, value, flags=re.DOTALL)
+                if not match:
+                    continue
+                try:
+                    return json.loads(match.group(0))
+                except Exception:
+                    continue
+            return None
+
+        if cleaned.startswith(("{", "[")):
+            parsed = _parse_json_blob(cleaned)
+            if parsed is not None:
+                candidate = cls._extract_posted_at_from_payload(
+                    parsed,
+                    url,
+                    depth=depth + 1,
+                    seen=seen,
+                )
+                if candidate is not None:
+                    return candidate
+
+        lower = cleaned.lower()
+        if "<script" not in lower or "ld+json" not in lower:
+            return None
+
+        script_pattern = re.compile(JSON_LD_SCRIPT_PATTERN, flags=re.IGNORECASE | re.DOTALL)
+        for match in script_pattern.finditer(cleaned):
+            payload_raw = match.group("payload").strip()
+            if not payload_raw:
+                continue
+            parsed = _parse_json_blob(payload_raw)
+            if parsed is None:
+                unescaped = html_lib.unescape(payload_raw)
+                if unescaped and unescaped != payload_raw:
+                    parsed = _parse_json_blob(unescaped)
+            if parsed is None:
+                continue
+            candidate = cls._extract_posted_at_from_payload(
+                parsed,
+                url,
+                depth=depth + 1,
+                seen=seen,
+            )
+            if candidate is not None:
+                return candidate
 
         return None
 

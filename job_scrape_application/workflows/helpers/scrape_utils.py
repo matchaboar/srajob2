@@ -2625,7 +2625,12 @@ def parse_posted_at(value: Any, now_ms: int | None = None) -> int:
     return now_ms
 
 
-def parse_posted_at_with_unknown(value: Any, now_ms: int | None = None) -> tuple[int, bool]:
+def parse_posted_at_with_unknown(
+    value: Any,
+    now_ms: int | None = None,
+    *,
+    max_age_days: int | None = None,
+) -> tuple[int, bool]:
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
     if value is None:
         return now_ms, True
@@ -2643,12 +2648,22 @@ def parse_posted_at_with_unknown(value: Any, now_ms: int | None = None) -> tuple
             return now_ms, True
         relative = _parse_relative_posted_at(cleaned, now_ms)
         if relative is not None:
-            return relative, False
+            posted_at = relative
+            if max_age_days is not None:
+                max_age_ms = int(max_age_days) * 86_400_000
+                if posted_at < now_ms - max_age_ms:
+                    return now_ms, True
+            return posted_at, False
         if re.search(r"[+-]\d{4}$", cleaned):
             cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
         try:
             dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
-            return int(dt.timestamp() * 1000), False
+            posted_at = int(dt.timestamp() * 1000)
+            if max_age_days is not None:
+                max_age_ms = int(max_age_days) * 86_400_000
+                if posted_at < now_ms - max_age_ms:
+                    return now_ms, True
+            return posted_at, False
         except Exception:
             return now_ms, True
 

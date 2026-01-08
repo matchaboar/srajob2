@@ -84,6 +84,7 @@ if TYPE_CHECKING:
 SPIDERCLOUD_BATCH_SIZE = 50
 CAPTCHA_RETRY_LIMIT = 2
 CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
+STRUCTURED_POSTED_AT_MAX_AGE_DAYS = 365
 STRUCTURED_DESCRIPTION_CHROME_MARKERS = (
     "saved jobs",
     "recently viewed jobs",
@@ -2496,59 +2497,89 @@ class SpiderCloudScraper(BaseScraper):
 
         posted_at = started_at
         posted_at_unknown = True
-        raw_posted_at: Any | None = None
-        if handler:
-            extractor = getattr(handler, "extract_posted_at", None)
-            if callable(extractor):
-                raw_posted_at = extractor(listing_payload, url) if listing_payload is not None else None
-                if raw_posted_at is None and greenhouse_payload is not None:
-                    raw_posted_at = extractor(greenhouse_payload, url)
-                if raw_posted_at is None and structured_payload is not None:
-                    raw_posted_at = extractor(structured_payload, url)
-                if raw_posted_at is None and raw_markdown:
-                    candidate_payload = None
-                    stripped = raw_markdown.strip()
-                    if stripped.startswith("{"):
-                        candidate_payload = self._try_parse_json(stripped)
-                    if candidate_payload is None and "```" in raw_markdown:
-                        fence_match = re.search(
-                            CODE_FENCE_JSON_OBJECT_PATTERN,
-                            raw_markdown,
-                            flags=re.DOTALL | re.IGNORECASE,
-                        )
-                        if fence_match:
-                            candidate_payload = self._try_parse_json(fence_match.group(1))
-                    if isinstance(candidate_payload, dict):
-                        raw_posted_at = extractor(candidate_payload, url)
-                if raw_posted_at is None and handler.name == "greenhouse":
-                    greenhouse_payload = self._extract_greenhouse_payload_from_events(events)
-                    if isinstance(greenhouse_payload, dict):
-                        raw_posted_at = extractor(greenhouse_payload, url)
-        if raw_posted_at is None and structured_payload is not None:
-            raw_posted_at = self._posted_at_from_job_posting(structured_payload)
-        if raw_posted_at is None and handler and raw_markdown:
-            try:
-                raw_posted_at = handler.extract_posted_at_from_markdown(raw_markdown, url)
-            except Exception:
-                raw_posted_at = None
-        if raw_posted_at is not None:
-            if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
-                posted_at, posted_at_unknown = parse_posted_at_with_unknown(
-                    raw_posted_at,
-                    now_ms=started_at or None,
+        now_ms = started_at or None
+
+        def _is_nonempty(value: Any | None) -> bool:
+            if value is None:
+                return False
+            if isinstance(value, str) and not value.strip():
+                return False
+            return True
+
+        outer_greenhouse_payload = greenhouse_payload
+
+        def _iter_posted_at_candidates() -> List[tuple[Any, bool]]:
+            candidates: List[tuple[Any, bool]] = []
+            if handler:
+                extractor = getattr(handler, "extract_posted_at", None)
+                if callable(extractor):
+                    if listing_payload is not None:
+                        value = extractor(listing_payload, url)
+                        if _is_nonempty(value):
+                            candidates.append((value, False))
+                    if outer_greenhouse_payload is not None:
+                        value = extractor(outer_greenhouse_payload, url)
+                        if _is_nonempty(value):
+                            candidates.append((value, False))
+                    if structured_payload is not None:
+                        value = extractor(structured_payload, url)
+                        if _is_nonempty(value):
+                            candidates.append((value, True))
+                    if raw_markdown:
+                        candidate_payload = None
+                        stripped = raw_markdown.strip()
+                        if stripped.startswith("{"):
+                            candidate_payload = self._try_parse_json(stripped)
+                        if candidate_payload is None and "```" in raw_markdown:
+                            fence_match = re.search(
+                                CODE_FENCE_JSON_OBJECT_PATTERN,
+                                raw_markdown,
+                                flags=re.DOTALL | re.IGNORECASE,
+                            )
+                            if fence_match:
+                                candidate_payload = self._try_parse_json(fence_match.group(1))
+                        if isinstance(candidate_payload, dict):
+                            value = extractor(candidate_payload, url)
+                            if _is_nonempty(value):
+                                candidates.append((value, False))
+                    if handler.name == "greenhouse":
+                        event_greenhouse_payload = self._extract_greenhouse_payload_from_events(events)
+                        if isinstance(event_greenhouse_payload, dict):
+                            value = extractor(event_greenhouse_payload, url)
+                            if _is_nonempty(value):
+                                candidates.append((value, False))
+            if structured_payload is not None:
+                value = self._posted_at_from_job_posting(structured_payload)
+                if _is_nonempty(value):
+                    candidates.append((value, True))
+            if handler and raw_markdown:
+                try:
+                    value = handler.extract_posted_at_from_markdown(raw_markdown, url)
+                    if _is_nonempty(value):
+                        candidates.append((value, False))
+                except Exception:
+                    pass
+            if structured_payload:
+                value = (
+                    structured_payload.get("datePosted")
+                    or structured_payload.get("date_posted")
+                    or structured_payload.get("postedAt")
+                    or structured_payload.get("posted_at")
                 )
-        if posted_at_unknown and structured_payload:
-            raw_posted_at = (
-                structured_payload.get("datePosted")
-                or structured_payload.get("date_posted")
-                or structured_payload.get("postedAt")
-                or structured_payload.get("posted_at")
+                if _is_nonempty(value):
+                    candidates.append((value, True))
+            return candidates
+
+        for candidate, is_structured in _iter_posted_at_candidates():
+            candidate_posted_at, candidate_unknown = parse_posted_at_with_unknown(
+                candidate,
+                now_ms=now_ms,
+                max_age_days=STRUCTURED_POSTED_AT_MAX_AGE_DAYS if is_structured else None,
             )
-            if raw_posted_at is not None and (not isinstance(raw_posted_at, str) or raw_posted_at.strip()):
-                posted_at, posted_at_unknown = parse_posted_at_with_unknown(
-                    raw_posted_at,
-                    now_ms=started_at or None,
-                )
+            if not candidate_unknown:
+                posted_at = candidate_posted_at
+                posted_at_unknown = False
+                break
 
         self._last_ignored_job = None
         return {
