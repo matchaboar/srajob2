@@ -110,7 +110,18 @@ class HubspotCareersHandler(BaseSiteHandler):
                 continue
             path = parsed.path or ""
             if self._is_job_detail_path(path):
-                normalized = urlunparse(parsed._replace(path=path, params="", query="", fragment=""))
+                query = ""
+                if parsed.query:
+                    params = [
+                        (key, value)
+                        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                        if key.lower() == "hubs_signup-cta"
+                    ]
+                    if params:
+                        query = urlencode(params, doseq=True)
+                normalized = urlunparse(
+                    parsed._replace(path=path, params="", query=query, fragment="")
+                )
             elif self._is_listing_path(path):
                 normalized = self._normalize_listing_url(parsed)
             else:

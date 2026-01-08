@@ -222,7 +222,7 @@ class MicrosoftCareersHandler(BaseSiteHandler):
                     if str(position.get("id")) == job_id:
                         if "postedTs" in position:
                             return position.get("postedTs")
-        return None
+        return super().extract_posted_at(payload, url)
 
     def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
         if url and self.matches_url(url):

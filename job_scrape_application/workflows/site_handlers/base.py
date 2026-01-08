@@ -12,7 +12,7 @@ from ..helpers.link_extractors import fix_scheme_slashes, normalize_url, strip_w
 from ..helpers.regex_patterns import JSON_ARRAY_PATTERN, JSON_OBJECT_PATTERN, PRE_PATTERN
 
 _POSTED_DATE_LABEL_RE = re.compile(
-    r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
+    r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posting\s+date|date\s+of\s+posting|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
     flags=re.IGNORECASE,
 )
 _RELATIVE_POSTED_LINE_RE = re.compile(r"\bposted\b.{0,40}\bago\b", flags=re.IGNORECASE)
@@ -24,6 +24,13 @@ _MONTH_DATE_RE = re.compile(
     r"\b(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
     r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
     r"[.,]?\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(?P<year>\d{4})\b",
+    flags=re.IGNORECASE,
+)
+_DAY_MONTH_DATE_RE = re.compile(
+    r"\b(?P<day>\d{1,2})(?:st|nd|rd|th)?\s+"
+    r"(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+    r"[.,]?\s+(?P<year>\d{4})\b",
     flags=re.IGNORECASE,
 )
 _RELATIVE_POSTED_RE = re.compile(
@@ -56,6 +63,51 @@ _MONTH_NAME_TO_NUMBER = {
     "dec": 12,
     "december": 12,
 }
+_POSTED_AT_KEYS = (
+    "postedTs",
+    "posted_ts",
+    "postedAt",
+    "posted_at",
+    "datePosted",
+    "date_posted",
+    "postedDate",
+    "postingDate",
+    "postDate",
+    "publishedAt",
+    "published_at",
+    "publishDate",
+    "publicationDate",
+    "publication_date",
+)
+_POSTED_AT_FALLBACK_KEYS = (
+    "createdAt",
+    "created_at",
+    "creationTs",
+    "createdTs",
+    "created_ts",
+    "dateCreated",
+    "date_created",
+    "dateModified",
+    "date_modified",
+    "lastUpdated",
+    "last_updated",
+)
+_POSTED_AT_CONTAINER_KEYS = (
+    "data",
+    "job",
+    "jobPosting",
+    "job_posting",
+    "jobPostingInfo",
+    "job_detail",
+    "jobDetail",
+    "jobDetails",
+    "position",
+    "posting",
+)
+_POSTED_AT_PLACEHOLDER_RE = re.compile(
+    r"^(?:0+|0000-00-00(?:[T\s]00:00:00(?:Z|[+-]00:00)?)?|"
+    r"1970-01-01(?:[T\s]00:00:00(?:Z|[+-]00:00)?)?)$"
+)
 
 class BaseSiteHandler(ABC):
     """Base class for site-specific scraping helpers."""
@@ -129,7 +181,7 @@ class BaseSiteHandler(ABC):
         return urls
 
     def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
-        return None
+        return self._extract_posted_at_from_payload(payload, url)
 
     def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
         return None
@@ -145,7 +197,7 @@ class BaseSiteHandler(ABC):
         lines = markdown.splitlines()
         for idx, line in enumerate(lines):
             stripped = line.strip()
-            cleaned = stripped.strip("*` ").strip()
+            cleaned = stripped.strip("*`-• ").strip()
             if not cleaned:
                 continue
             if _POSTED_DATE_LABEL_RE.match(cleaned):
@@ -203,6 +255,160 @@ class BaseSiteHandler(ABC):
                 return dt.isoformat()
             except Exception:
                 return None
+
+        day_month_match = _DAY_MONTH_DATE_RE.search(text)
+        if day_month_match:
+            month_name = day_month_match.group("month").lower().strip(".")
+            month = _MONTH_NAME_TO_NUMBER.get(month_name)
+            if not month:
+                return None
+            try:
+                day = int(day_month_match.group("day"))
+                year = int(day_month_match.group("year"))
+                dt = datetime(year, month, day, tzinfo=timezone.utc)
+                return dt.isoformat()
+            except Exception:
+                return None
+
+        return None
+
+    @classmethod
+    def _extract_posted_at_from_payload(
+        cls,
+        payload: Any,
+        url: str | None = None,
+        *,
+        depth: int = 0,
+        seen: set[int] | None = None,
+    ) -> Any | None:
+        if depth > 6:
+            return None
+        if not isinstance(payload, (dict, list)):
+            return None
+        if seen is None:
+            seen = set()
+        payload_id = id(payload)
+        if payload_id in seen:
+            return None
+        seen.add(payload_id)
+
+        def _coerce(value: Any) -> Any | None:
+            if value is None:
+                return None
+            if isinstance(value, str):
+                cleaned = value.strip()
+                if not cleaned or _POSTED_AT_PLACEHOLDER_RE.match(cleaned):
+                    return None
+                return cleaned
+            if isinstance(value, (int, float)):
+                return value if value > 0 else None
+            return None
+
+        def _job_id_tokens() -> list[str]:
+            if not url:
+                return []
+            try:
+                parsed = urlparse(url)
+            except Exception:
+                parsed = None
+            path = parsed.path if parsed else url
+            parts = [part for part in path.split("/") if part]
+            if not parts:
+                return []
+            last = parts[-1].split("?")[0].strip()
+            return [last] if last else []
+
+        if isinstance(payload, dict):
+            for key in _POSTED_AT_KEYS:
+                candidate = _coerce(payload.get(key))
+                if candidate is not None:
+                    return candidate
+
+            for key in _POSTED_AT_CONTAINER_KEYS:
+                if key in payload:
+                    candidate = cls._extract_posted_at_from_payload(
+                        payload.get(key),
+                        url,
+                        depth=depth + 1,
+                        seen=seen,
+                    )
+                    if candidate is not None:
+                        return candidate
+
+            job_tokens = _job_id_tokens()
+            if job_tokens:
+                for key, value in payload.items():
+                    if not isinstance(value, list) or not value:
+                        continue
+                    for item in value:
+                        if not isinstance(item, dict):
+                            continue
+                        for id_key in ("id", "jobId", "job_id", "positionId", "postingId", "reqId"):
+                            if id_key not in item:
+                                continue
+                            item_id = str(item.get(id_key))
+                            if item_id in job_tokens:
+                                candidate = cls._extract_posted_at_from_payload(
+                                    item,
+                                    url,
+                                    depth=depth + 1,
+                                    seen=seen,
+                                )
+                                if candidate is not None:
+                                    return candidate
+
+            for value in payload.values():
+                if isinstance(value, (dict, list)):
+                    candidate = cls._extract_posted_at_from_payload(
+                        value,
+                        url,
+                        depth=depth + 1,
+                        seen=seen,
+                    )
+                    if candidate is not None:
+                        return candidate
+
+            for key in _POSTED_AT_FALLBACK_KEYS:
+                candidate = _coerce(payload.get(key))
+                if candidate is not None:
+                    return candidate
+
+        if isinstance(payload, list):
+            if len(payload) == 1:
+                return cls._extract_posted_at_from_payload(
+                    payload[0],
+                    url,
+                    depth=depth + 1,
+                    seen=seen,
+                )
+            job_tokens = _job_id_tokens()
+            if job_tokens:
+                for item in payload:
+                    if not isinstance(item, dict):
+                        continue
+                    for id_key in ("id", "jobId", "job_id", "positionId", "postingId", "reqId"):
+                        if id_key not in item:
+                            continue
+                        item_id = str(item.get(id_key))
+                        if item_id in job_tokens:
+                            candidate = cls._extract_posted_at_from_payload(
+                                item,
+                                url,
+                                depth=depth + 1,
+                                seen=seen,
+                            )
+                            if candidate is not None:
+                                return candidate
+
+            for item in payload:
+                candidate = cls._extract_posted_at_from_payload(
+                    item,
+                    url,
+                    depth=depth + 1,
+                    seen=seen,
+                )
+                if candidate is not None:
+                    return candidate
 
         return None
 

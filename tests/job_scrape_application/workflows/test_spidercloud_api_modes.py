@@ -22,6 +22,7 @@ from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # n
     SpidercloudDependencies,
 )
 from job_scrape_application.workflows.site_handlers.greenhouse import GreenhouseHandler  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import parse_posted_at_with_unknown  # noqa: E402
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -443,6 +444,29 @@ def test_normalize_job_falls_back_when_greenhouse_updated_at_missing():
     )
     assert normalized is not None
     assert normalized["posted_at"] == started_at
+
+
+def test_normalize_job_extracts_microsoft_posted_ts_from_detail_payload():
+    scraper = _make_scraper()
+    payload = {
+        "status": 200,
+        "data": {
+            "id": 1970393556653560,
+            "postedTs": 1767826486,
+            "name": "Datacenter Building Automation Engineer",
+            "jobDescription": "<p>Role</p>",
+        },
+    }
+    normalized = scraper._normalize_job(
+        "https://apply.careers.microsoft.com/careers/job/1970393556653560",
+        json.dumps(payload),
+        [],
+        123,
+    )
+    assert normalized is not None
+    expected_posted_at, expected_unknown = parse_posted_at_with_unknown(1767826486)
+    assert normalized["posted_at"] == expected_posted_at
+    assert normalized["posted_at_unknown"] is expected_unknown
 
 
 @pytest.mark.asyncio

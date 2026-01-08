@@ -18,12 +18,14 @@ from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # n
     SpidercloudDependencies,
 )
 from job_scrape_application.workflows.site_handlers.microsoft_careers import (  # noqa: E402
+    DEFAULT_PAGE_SIZE,
     MicrosoftCareersHandler,
 )
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 PAGE_1 = FIXTURE_DIR / "spidercloud_microsoft_api_page_1.json"
 PAGE_2 = FIXTURE_DIR / "spidercloud_microsoft_api_page_2.json"
+PAGE_3 = FIXTURE_DIR / "spidercloud_microsoft_api_page_3.json"
 SOURCE_URL = (
     "https://apply.careers.microsoft.com/api/pcsx/search"
     "?domain=microsoft.com&query=software%20engineer&start=0"
@@ -31,6 +33,16 @@ SOURCE_URL = (
 PAGE_2_SOURCE_URL = (
     "https://apply.careers.microsoft.com/api/pcsx/search"
     "?domain=microsoft.com&query=software%20engineer&start=10"
+)
+PAGE_3_SOURCE_URL = (
+    "https://apply.careers.microsoft.com/api/pcsx/search"
+    "?domain=microsoft.com&query=software%20engineer&start=20"
+)
+
+PAGE_FIXTURES = (
+    (PAGE_1, SOURCE_URL),
+    (PAGE_2, PAGE_2_SOURCE_URL),
+    (PAGE_3, PAGE_3_SOURCE_URL),
 )
 
 
@@ -66,9 +78,10 @@ def _extract_positions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
-def test_microsoft_api_fixture_parses_positions():
+@pytest.mark.parametrize("fixture_path,_source_url", PAGE_FIXTURES)
+def test_microsoft_api_fixture_parses_positions(fixture_path: Path, _source_url: str):
     scraper = _make_scraper()
-    payload = _load_spidercloud_fixture(PAGE_1)
+    payload = _load_spidercloud_fixture(fixture_path)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
 
@@ -80,9 +93,13 @@ def test_microsoft_api_fixture_parses_positions():
     assert count > len(positions)
 
 
-def test_microsoft_handler_extracts_job_urls_and_pagination():
+@pytest.mark.parametrize("fixture_path,source_url", PAGE_FIXTURES)
+def test_microsoft_handler_extracts_job_urls_and_pagination(
+    fixture_path: Path,
+    source_url: str,
+):
     scraper = _make_scraper()
-    payload = _load_spidercloud_fixture(PAGE_1)
+    payload = _load_spidercloud_fixture(fixture_path)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
 
@@ -102,29 +119,40 @@ def test_microsoft_handler_extracts_job_urls_and_pagination():
     assert isinstance(count, int)
     assert count > page_size
 
-    pagination_urls = handler.get_pagination_urls_from_json(parsed, SOURCE_URL)
+    pagination_urls = handler.get_pagination_urls_from_json(parsed, source_url)
     assert pagination_urls
-    assert any("start=10" in url for url in pagination_urls)
+    expected_next_start = (handler._extract_start_param(source_url) or 0) + page_size
+    assert any(f"start={expected_next_start}" in url for url in pagination_urls)
     last_start = (count - 1) // page_size * page_size
     if last_start:
         assert any(f"start={last_start}" in url for url in pagination_urls)
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_microsoft_listing_pagination(monkeypatch):
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fixture_path,source_url", PAGE_FIXTURES)
+async def test_store_scrape_enqueues_microsoft_listing_pagination(
+    monkeypatch,
+    fixture_path: Path,
+    source_url: str,
+):
     scraper = _make_scraper()
-    payload = _load_spidercloud_fixture(PAGE_2)
+    payload = _load_spidercloud_fixture(fixture_path)
     parsed = scraper._extract_json_payload(payload)
     assert isinstance(parsed, dict)
 
     handler = MicrosoftCareersHandler()
     job_urls = handler.get_links_from_json(parsed)
-    pagination_urls = handler.get_pagination_urls_from_json(parsed, PAGE_2_SOURCE_URL)
+    pagination_urls = handler.get_pagination_urls_from_json(parsed, source_url)
     job_urls = handler.filter_job_urls(job_urls + pagination_urls)
     assert job_urls
 
+    positions = _extract_positions(parsed)
+    page_size = len(positions) or DEFAULT_PAGE_SIZE
+    expected_next_start = (handler._extract_start_param(source_url) or 0) + page_size
+
     scrape_payload = {
-        "sourceUrl": PAGE_2_SOURCE_URL,
+        "sourceUrl": source_url,
         "provider": "spidercloud",
         "startedAt": 0,
         "completedAt": 1,
@@ -154,12 +182,15 @@ async def test_store_scrape_enqueues_microsoft_listing_pagination(monkeypatch):
 
     urls = enqueue_calls[0]["args"]["urls"]
     assert any(url.startswith("https://apply.careers.microsoft.com/careers/job/") for url in urls)
-    assert any("/api/pcsx/search" in url and "start=20" in url for url in urls)
+    assert any(
+        "/api/pcsx/search" in url and f"start={expected_next_start}" in url
+        for url in urls
+    )
 
     delays = enqueue_calls[0]["args"].get("delaysMs") or []
     delay_for_listing = None
     for url, delay in zip(urls, delays):
-        if "/api/pcsx/search" in url and "start=20" in url:
+        if "/api/pcsx/search" in url and f"start={expected_next_start}" in url:
             delay_for_listing = delay
             break
     assert delay_for_listing is not None and delay_for_listing > 0

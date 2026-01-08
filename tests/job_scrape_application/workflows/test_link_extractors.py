@@ -104,6 +104,18 @@ def test_normalize_url_strips_backslashes_and_trailing_slashes():
     assert normalize_url(url) == "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101"
 
 
+def test_normalize_url_strips_markdown_table_tail():
+    url = "https://careers.snap.com/job?id=R0041979)|Engineering|Regular|Bellevue"
+
+    assert normalize_url(url) == "https://careers.snap.com/job?id=R0041979"
+
+
+def test_normalize_url_strips_unbalanced_trailing_paren():
+    url = "https://careers.snap.com/job?id=R0041979)"
+
+    assert normalize_url(url) == "https://careers.snap.com/job?id=R0041979"
+
+
 def test_normalize_url_list_dedupes_and_filters():
     urls = [
         "https://example.com/jobs/1",

@@ -223,6 +223,39 @@ describe("scrape queue end-to-end", () => {
     expect(db.tables.scrape_url_queue.map((row) => row.url)).toEqual([allowedUrl]);
   });
 
+  it("does not requeue fail_expired job detail URLs", async () => {
+    const sourceUrl = "https://example.com/jobs";
+    const expiredUrl = "https://example.com/jobs/expired";
+    const db = new FakeDb({
+      scrape_url_queue: [
+        {
+          _id: "queue-1",
+          url: expiredUrl,
+          sourceUrl,
+          provider: "spidercloud",
+          status: "failed",
+          lastError: "fail_expired",
+          createdAt: Date.now() - 60 * 60 * 1000,
+          updatedAt: Date.now() - 60 * 60 * 1000,
+          urlType: "detail",
+        },
+      ],
+    });
+    const ctx: any = { db };
+
+    const enqueueHandler = getHandler(enqueueScrapeUrls);
+    const res = await enqueueHandler(ctx, {
+      urls: [expiredUrl],
+      sourceUrl,
+      provider: "spidercloud",
+    });
+
+    expect(res.queued).toEqual([]);
+    expect(db.tables.scrape_url_queue).toHaveLength(1);
+    expect(db.tables.scrape_url_queue[0]?.status).toBe("failed");
+    expect(db.tables.scrape_url_queue[0]?.lastError).toBe("fail_expired");
+  });
+
   it("skips enqueueing URLs that already exist as jobs", async () => {
     const sourceUrl = "https://example.com/jobs";
     const storedUrl = "https://example.com/jobs/123";

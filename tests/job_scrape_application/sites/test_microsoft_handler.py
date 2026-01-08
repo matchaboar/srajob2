@@ -98,6 +98,21 @@ def test_microsoft_handler_extracts_links_from_html_and_posted_ts():
     assert posted == 1767823358
 
 
+def test_microsoft_handler_extracts_posted_ts_from_detail_payload():
+    handler = MicrosoftCareersHandler()
+    payload = {
+        "status": 200,
+        "data": {
+            "id": 1970393556656795,
+            "postedTs": 1767826486,
+            "name": "Datacenter Building Automation Engineer",
+            "jobDescription": "<p>Example</p>",
+        },
+    }
+    posted = handler.extract_posted_at(payload, "https://apply.careers.microsoft.com/careers/job/1970393556656795")
+    assert posted == 1767826486
+
+
 def test_microsoft_handler_spidercloud_config():
     handler = MicrosoftCareersHandler()
     listing_url = "https://apply.careers.microsoft.com/careers?query=engineer"

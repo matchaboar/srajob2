@@ -71,6 +71,7 @@ from ..helpers.link_extractors import (
     extract_job_urls_from_json_payload,
     extract_links_from_payload,
     normalize_url,
+    strip_wrapping_url,
 )
 from ..helpers.regex_patterns import (
     APPLY_WORD_PATTERN,
@@ -581,6 +582,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
                     "siteId": site_id,
                     "pattern": site.get("pattern"),
                     "postedAts": posted_ats_to_enqueue,
+                    "urlTypes": ["detail" for _ in urls_to_scrape],
                 }
             ),
         )
@@ -1145,6 +1147,13 @@ async def crawl_site_fetchfox(
     candidates = [u for u in unique_urls if u not in skip_set]
     enqueued: list[str] = []
     if candidates:
+        handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
+        url_types = None
+        if handler:
+            url_types = [
+                "listing" if handler.is_listing_url(url) else "detail"
+                for url in candidates
+            ]
         try:
             res = await convex_mutation(
                 "router:enqueueScrapeUrls",
@@ -1155,6 +1164,7 @@ async def crawl_site_fetchfox(
                     "provider": "spidercloud",
                     "siteId": site_id,
                     "pattern": pattern,
+                    "urlTypes": url_types,
                   }
                 ),
             )
@@ -1321,7 +1331,12 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
     def _build_lease_response(urls: list[Dict[str, Any]], skipped_urls: list[str]) -> Dict[str, Any]:
         return {"urls": urls, "skippedUrls": skipped_urls}
 
-    def _build_completion_item(entry: Dict[str, Any], url_val: str) -> Dict[str, Any]:
+    def _build_completion_item(
+        entry: Dict[str, Any],
+        url_val: str,
+        *,
+        is_listing: bool | None = None,
+    ) -> Dict[str, Any]:
         item: Dict[str, Any] = {"url": url_val}
         row_id = entry.get("_id")
         if isinstance(row_id, str):
@@ -1338,6 +1353,8 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
         attempts_val = entry.get("attempts")
         if isinstance(attempts_val, (int, float)):
             item["attempts"] = int(attempts_val)
+        if is_listing:
+            item["isListingUrl"] = True
         return item
 
     skipped: list[str] = []
@@ -1377,6 +1394,9 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
             url_val = entry.get("url")
             if not isinstance(url_val, str) or not url_val.strip():
                 continue
+            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
+            pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
+            is_listing_url = _is_spidercloud_listing_url(url_val, source_val or None)
             attempts_raw = entry.get("attempts")
             try:
                 attempts = int(attempts_raw)
@@ -1384,14 +1404,14 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 attempts = 0
             if attempts > SCRAPE_URL_QUEUE_MAX_ATTEMPTS:
                 max_attempts_round.append(url_val)
-                max_attempts_items.append(_build_completion_item(entry, url_val))
+                max_attempts_items.append(
+                    _build_completion_item(entry, url_val, is_listing=is_listing_url)
+                )
                 continue
             if _looks_like_auth_url(url_val):
                 auth_url_round.append(url_val)
-                auth_url_items.append(_build_completion_item(entry, url_val))
+                auth_url_items.append(_build_completion_item(entry, url_val, is_listing=is_listing_url))
                 continue
-            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
-            pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
             cache_key = (source_val, pattern_val)
             if cache_key not in skip_cache:
                 try:
@@ -1401,7 +1421,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 skip_cache[cache_key] = set(u for u in skip_list if isinstance(u, str))
             if url_val in skip_cache[cache_key]:
                 skipped_round.append(url_val)
-                skipped_items.append(_build_completion_item(entry, url_val))
+                skipped_items.append(_build_completion_item(entry, url_val, is_listing=is_listing_url))
                 continue
             filtered.append(entry)
 
@@ -1424,7 +1444,11 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                     url_val = entry.get("url")
                     if isinstance(url_val, str) and url_val in existing_set:
                         existing_round.append(url_val)
-                        existing_items.append(_build_completion_item(entry, url_val))
+                        source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
+                        is_listing_url = _is_spidercloud_listing_url(url_val, source_val or None)
+                        existing_items.append(
+                            _build_completion_item(entry, url_val, is_listing=is_listing_url)
+                        )
                         continue
                     next_filtered.append(entry)
                 filtered = next_filtered
@@ -1551,7 +1575,14 @@ async def process_spidercloud_job_batch(
 
             await convex_mutation(
                 "router:completeScrapeUrls",
-                {"urls": skipped_listing_urls, "status": "failed", "error": "listing_url"},
+                {
+                    "items": [
+                        {"url": url, "isListingUrl": True}
+                        for url in skipped_listing_urls
+                    ],
+                    "status": "failed",
+                    "error": "listing_url",
+                },
             )
         except Exception:
             pass
@@ -3050,12 +3081,16 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             source_url = payload.get("sourceUrl")
             handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
             delays_ms: list[int] | None = None
+            url_types: list[str] | None = None
             if urls:
+                url_types = []
                 for url in urls:
                     if handler and handler.is_listing_url(url):
                         listing_urls.append(url)
+                        url_types.append("listing")
                     else:
                         job_urls.append(url)
+                        url_types.append("detail")
                 extracted_job_urls = list(dict.fromkeys(job_urls))
                 if listing_urls and isinstance(source_url, str) and source_url:
                     seen_listing: set[str] = set()
@@ -3067,13 +3102,15 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         )
                     except Exception:
                         seen_listing = set()
+                    if seen_listing and handler:
+                        seen_listing = {u for u in seen_listing if not handler.is_listing_url(u)}
                     if seen_listing:
                         filtered_listing_urls = [u for u in listing_urls if u not in seen_listing]
                         if len(filtered_listing_urls) != len(listing_urls):
                             listing_urls = filtered_listing_urls
-                            urls = [
-                                u
-                                for u in urls
+                            filtered_pairs = [
+                                (u, t)
+                                for u, t in zip(urls, url_types or [])
                                 if not (
                                     handler
                                     and handler.is_listing_url(u)
@@ -3081,6 +3118,13 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                                     and u in seen_listing
                                 )
                             ]
+                            if filtered_pairs:
+                                urls, url_types = zip(*filtered_pairs)
+                                urls = list(urls)
+                                url_types = list(url_types) if url_types else None
+                            else:
+                                urls = []
+                                url_types = []
                 if listing_urls:
                     delay_map: Dict[str, int] = {}
                     delay_idx = 1
@@ -3212,6 +3256,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                             "siteId": site_id,
                             "pattern": payload.get("pattern"),
                             "delaysMs": delays_ms,
+                            "urlTypes": url_types,
                         }
                     ),
                 )
@@ -3715,6 +3760,15 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
         links: list[tuple[str, Optional[str], Optional[str]]] = []
+        markdown_urls: set[str] = set()
+        if md_link_re.search(text):
+            for match in md_link_re.finditer(text):
+                raw_url = match.group(2).strip()
+                if not raw_url:
+                    continue
+                cleaned_url = strip_wrapping_url(raw_url).rstrip(").,]")
+                if cleaned_url:
+                    markdown_urls.add(cleaned_url)
 
         parser = _AnchorParser()
         try:
@@ -3741,7 +3795,11 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             lower = match.lower()
             if "/job" not in lower and "/jobs/" not in lower and "/position" not in lower:
                 continue
-            links.append((match.strip(), None, None))
+            cleaned = match.strip()
+            cleaned = strip_wrapping_url(cleaned).rstrip(").,]")
+            if cleaned in markdown_urls:
+                continue
+            links.append((cleaned, None, None))
 
         return links
 
@@ -3827,7 +3885,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         for value in values:
             if not isinstance(value, str):
                 continue
-            cleaned = value.strip()
+            cleaned = strip_wrapping_url(value)
             if not cleaned or cleaned in seen:
                 continue
             seen.add(cleaned)

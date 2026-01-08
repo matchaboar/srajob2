@@ -1800,6 +1800,23 @@ class SpiderCloudScraper(BaseScraper):
         return urlunparse(parsed._replace(query=new_query))
 
     def _extract_json_payload(self, value: Any) -> Optional[Dict[str, Any]]:
+        def _looks_like_job_detail(node: dict[str, Any]) -> bool:
+            if "jobPostingInfo" in node and isinstance(node.get("jobPostingInfo"), dict):
+                return True
+            desc = node.get("jobDescription") or node.get("description")
+            if isinstance(desc, str) and desc.strip():
+                return True
+            title = node.get("title") or node.get("name") or node.get("jobTitle")
+            if isinstance(desc, str) and desc.strip() and isinstance(title, str) and title.strip():
+                return True
+            posted_keys = {"postedTs", "postedAt", "posted_at", "datePosted", "date_posted", "postingDate"}
+            if any(key in node for key in posted_keys):
+                if isinstance(title, str) and title.strip():
+                    return True
+                if isinstance(desc, str) and desc.strip():
+                    return True
+            return False
+
         def _find_jobs_payload(node: Any) -> Optional[Dict[str, Any]]:
             if isinstance(node, dict):
                 jobs = node.get("jobs")
@@ -1807,6 +1824,11 @@ class SpiderCloudScraper(BaseScraper):
                     return node
                 positions = node.get("positions")
                 if isinstance(positions, list) and any(isinstance(position, dict) for position in positions):
+                    return node
+                data = node.get("data")
+                if isinstance(data, dict) and _looks_like_job_detail(data):
+                    return data
+                if _looks_like_job_detail(node):
                     return node
                 for child in node.values():
                     found = _find_jobs_payload(child)

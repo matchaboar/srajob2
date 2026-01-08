@@ -333,6 +333,7 @@ const applicationTables = {
     provider: v.optional(v.string()),
     siteId: v.optional(v.id("sites")),
     pattern: v.optional(v.string()),
+    urlType: v.optional(v.union(v.literal("listing"), v.literal("detail"))),
     status: v.union(
       v.literal("pending"),
       v.literal("processing"),
@@ -352,6 +353,7 @@ const applicationTables = {
     .index("by_status", ["status"])
     .index("by_site_status", ["siteId", "status"])
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
+    .index("by_status_url_type", ["status", "urlType"])
     .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"]),
 
   job_detail_configs: defineTable({

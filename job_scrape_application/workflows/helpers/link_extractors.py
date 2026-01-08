@@ -35,6 +35,27 @@ _WRAPPER_PAIRS = {
 }
 
 
+def _strip_table_tail(candidate: str) -> str:
+    if not candidate:
+        return candidate
+    if "|" not in candidate:
+        return candidate
+    if not candidate.startswith(("http://", "https://", "//")):
+        return candidate
+    if ")|" in candidate or "]|" in candidate:
+        return candidate.split("|", 1)[0].strip()
+    return candidate
+
+
+def _strip_trailing_brackets(candidate: str) -> str:
+    cleaned = candidate
+    while cleaned.endswith(")") and cleaned.count("(") < cleaned.count(")"):
+        cleaned = cleaned[:-1]
+    while cleaned.endswith("]") and cleaned.count("[") < cleaned.count("]"):
+        cleaned = cleaned[:-1]
+    return cleaned.rstrip(".,")
+
+
 def strip_wrapping_url(candidate: str) -> str:
     cleaned = candidate.strip()
     while cleaned:
@@ -42,6 +63,8 @@ def strip_wrapping_url(candidate: str) -> str:
         if not closing or cleaned[-1] != closing:
             break
         cleaned = cleaned[1:-1].strip()
+    cleaned = _strip_table_tail(cleaned)
+    cleaned = _strip_trailing_brackets(cleaned)
     return cleaned
 
 

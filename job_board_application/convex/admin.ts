@@ -385,3 +385,54 @@ export const wipeScrapeQueueByStatus = mutation({
     };
   },
 });
+
+export const deleteScrapeQueueOlderThanPage = mutation({
+  args: {
+    cutoffMs: v.number(),
+    statuses: v.optional(
+      v.array(
+        v.union(
+          v.literal("pending"),
+          v.literal("processing"),
+          v.literal("completed"),
+          v.literal("failed"),
+          v.literal("invalid")
+        )
+      )
+    ),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const cutoffMs = args.cutoffMs;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    const cursor = args.cursor ?? null;
+    const dryRun = args.dryRun ?? false;
+    const statuses = args.statuses?.length ? args.statuses : null;
+
+    const page = await ctx.db.query("scrape_url_queue").paginate({ cursor, numItems: batchSize });
+    let deleted = 0;
+    let scanned = 0;
+
+    for (const row of page.page as AnyDoc[]) {
+      scanned += 1;
+      if (statuses && !statuses.includes(row.status)) continue;
+      if (typeof row.createdAt !== "number" || row.createdAt >= cutoffMs) continue;
+      deleted += 1;
+      if (dryRun) continue;
+      await ctx.db.delete(row._id);
+    }
+
+    return {
+      cutoffMs,
+      statuses: statuses ?? ["pending", "processing", "completed", "failed", "invalid"],
+      batchSize,
+      dryRun,
+      scanned,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});

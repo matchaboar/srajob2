@@ -20,6 +20,7 @@ type QueueRow = {
   siteId?: string;
   lastError?: string;
   completedAt?: number;
+  urlType?: "listing" | "detail";
 };
 
 type IndexCall = {
@@ -299,6 +300,74 @@ describe("leaseScrapeUrlBatch", () => {
 
     expect(firstUrls.length).toBeGreaterThan(0);
     expect(new Set([...firstUrls, ...secondUrls]).size).toBe(firstUrls.length + secondUrls.length);
+  });
+
+  it("expires stale job detail rows after 48 hours", async () => {
+    const now = Date.now();
+    const expired: QueueRow = {
+      _id: "expired-1",
+      url: "https://example.com/job/expired",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 49 * 60 * 60 * 1000,
+      provider: "spidercloud",
+      attempts: 0,
+      urlType: "detail",
+    };
+    const pending: QueueRow = {
+      _id: "pend-1",
+      url: "https://example.com/job/fresh",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 60 * 60 * 1000,
+      provider: "spidercloud",
+      attempts: 0,
+      urlType: "detail",
+    };
+
+    const db = new FakeDb([expired, pending]);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toContain("https://example.com/job/fresh");
+    expect(leasedUrls).not.toContain("https://example.com/job/expired");
+    expect(expired.status).toBe("failed");
+    expect(expired.lastError).toBe("fail_expired");
+  });
+
+  it("does not expire listing rows after 48 hours", async () => {
+    const now = Date.now();
+    const listing: QueueRow = {
+      _id: "listing-1",
+      url: "https://example.com/jobs?page=2",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 49 * 60 * 60 * 1000,
+      provider: "spidercloud",
+      attempts: 0,
+      urlType: "listing",
+    };
+
+    const db = new FakeDb([listing]);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toContain("https://example.com/jobs?page=2");
+    expect(listing.status).toBe("processing");
   });
 
   it("prioritizes lowest attempts when leasing", async () => {

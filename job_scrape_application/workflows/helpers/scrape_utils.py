@@ -1889,7 +1889,14 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return title, location, None
         paren_match = _TITLE_LOCATION_PAREN_RE.match(line)
         if paren_match:
-            return stringify(paren_match.group(1)), stringify(paren_match.group(2)), None
+            paren_title = stringify(paren_match.group(1))
+            paren_location = stringify(paren_match.group(2))
+            if _looks_like_title_location(paren_location):
+                return paren_title, paren_location, None
+            stripped_line = line.strip()
+            if stripped_line.startswith("](") or re.match(r"^\]\([^)]+\)$", stripped_line):
+                return paren_title, None, None
+            return stringify(line), None, None
         return None, None, None
 
     for match in _TITLE_RE.finditer(markdown):
@@ -2039,7 +2046,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     for line in markdown.splitlines():
         t = line.strip()
-        if not t or t.startswith("#"):
+        if not t:
+            continue
+        if t.startswith("#"):
+            heading_value = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", t).strip()
+            if heading_value and _looks_like_title_location(heading_value):
+                _add_location_candidate(heading_value)
             continue
         lower = t.lower()
         if lower in {"locations", "office location", "office locations"}:

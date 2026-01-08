@@ -20,6 +20,7 @@ import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters, parseMarkd
 
 const http = httpRouter();
 const SCRAPE_URL_QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const JOB_DETAIL_QUEUE_EXPIRE_MS = 48 * 60 * 60 * 1000; // 48 hours
 const JOB_DETAIL_MAX_ATTEMPTS = 3;
 const DEFAULT_TIMEZONE = "America/Denver";
 const UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction";
@@ -1281,6 +1282,12 @@ const recordSeenJobUrl = async (ctx: any, sourceUrl?: string, url?: string) => {
   });
 };
 
+const isListingReason = (reason?: string | null) => {
+  const normalized = (reason ?? "").trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes("listing");
+};
+
 const buildJobUrlCandidates = (rawUrl: string, sourceUrl?: string) => {
   const candidates: string[] = [];
   const seen = new Set<string>();
@@ -1334,7 +1341,8 @@ export const listSeenJobUrlsForSite = query({
       .collect();
     for (const row of ignored as any[]) {
       const url = (row).url;
-      if (typeof url === "string" && matcher(url)) {
+      const reason = (row).reason;
+      if (typeof url === "string" && matcher(url) && !isListingReason(typeof reason === "string" ? reason : undefined)) {
         seen.add(url);
       }
     }
@@ -1484,7 +1492,9 @@ export const insertIgnoredJob = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    await recordSeenJobUrl(ctx, args.sourceUrl, args.url);
+    if (!isListingReason(args.reason)) {
+      await recordSeenJobUrl(ctx, args.sourceUrl, args.url);
+    }
     const resolvedCompany =
       (args.company ?? "").trim() ||
       (await resolveCompanyForUrl(ctx, args.url, "", undefined)).trim() ||
@@ -1708,6 +1718,7 @@ export const listQueuedScrapeUrls = query({
         provider: row.provider,
         siteId: row.siteId,
         pattern: row.pattern,
+        urlType: row.urlType,
         status: row.status,
         attempts: row.attempts,
         lastError: row.lastError,
@@ -1763,6 +1774,7 @@ export const enqueueScrapeUrls = mutation({
     pattern: v.optional(v.union(v.string(), v.null())),
     delaysMs: v.optional(v.array(v.number())),
     postedAts: v.optional(v.array(v.union(v.number(), v.null()))),
+    urlTypes: v.optional(v.array(v.union(v.literal("listing"), v.literal("detail")))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -1796,7 +1808,12 @@ export const enqueueScrapeUrls = mutation({
         .query("ignored_jobs")
         .withIndex("by_url", (q: any) => q.eq("url", url))
         .first();
-      if (ignored) continue;
+      if (ignored) {
+        const reason = (ignored as any).reason;
+        if (!isListingReason(typeof reason === "string" ? reason : undefined)) {
+          continue;
+        }
+      }
 
       const existingJobUrl = await findExistingJobMatch(url);
       if (existingJobUrl) {
@@ -1806,6 +1823,8 @@ export const enqueueScrapeUrls = mutation({
 
       const delayMs = args.delaysMs?.[index];
       const postedAtValue = args.postedAts?.[index];
+      const urlTypeValue = args.urlTypes?.[index];
+      const urlType = urlTypeValue === "listing" || urlTypeValue === "detail" ? urlTypeValue : undefined;
       const postedAt =
         typeof postedAtValue === "number" && Number.isFinite(postedAtValue)
           ? Math.floor(postedAtValue)
@@ -1824,6 +1843,10 @@ export const enqueueScrapeUrls = mutation({
         const createdAt = (existing as any).createdAt ?? 0;
         const updatedAt = (existing as any).updatedAt ?? createdAt;
         const status = (existing as any).status as string | undefined;
+        const lastError = (existing as any).lastError as string | undefined;
+        if (lastError === "fail_expired") {
+          continue;
+        }
         const isStale =
           (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) ||
           (updatedAt && updatedAt < now - SCRAPE_URL_QUEUE_TTL_MS);
@@ -1843,6 +1866,9 @@ export const enqueueScrapeUrls = mutation({
             updatedAt: now,
             scheduledAt,
           };
+          if (urlType) {
+            patch.urlType = urlType;
+          }
           if (postedAt !== undefined) {
             patch.postedAt = postedAt;
           }
@@ -1864,6 +1890,9 @@ export const enqueueScrapeUrls = mutation({
         updatedAt: now,
         scheduledAt,
       };
+      if (urlType) {
+        insertPayload.urlType = urlType;
+      }
       if (postedAt !== undefined) {
         insertPayload.postedAt = postedAt;
       }
@@ -1906,6 +1935,16 @@ const leaseScrapeUrlBatchHandler = async (
       .withIndex("by_status", (q: any) => q.eq("status", "processing"))
       .take(500);
     for (const row of processingRows as any[]) {
+      const createdAt = row.createdAt ?? 0;
+      if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
+        await ctx.db.patch(row._id, {
+          status: "failed",
+          lastError: "fail_expired",
+          updatedAt: now,
+          completedAt: now,
+        });
+        continue;
+      }
       if ((row).updatedAt && (row).updatedAt >= cutoff) continue;
       if (args.provider && row.provider !== args.provider) continue;
       await ctx.db.patch(row._id, {
@@ -1960,13 +1999,22 @@ const leaseScrapeUrlBatchHandler = async (
   };
 
   const buckets = new Map<string, any[]>();
-  for (const row of rows as any[]) {
-    if (args.provider && row.provider !== args.provider) continue;
-    const createdAt = row.createdAt ?? 0;
-    if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
-      // Skip stale (>7d) entries; mark ignored
-      const resolvedCompany =
-        (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
+    for (const row of rows as any[]) {
+      if (args.provider && row.provider !== args.provider) continue;
+      const createdAt = row.createdAt ?? 0;
+      if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
+        await ctx.db.patch(row._id, {
+          status: "failed",
+          lastError: "fail_expired",
+          updatedAt: now,
+          completedAt: now,
+        });
+        continue;
+      }
+      if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
+        // Skip stale (>7d) entries; mark ignored
+        const resolvedCompany =
+          (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
         fallbackCompanyName(undefined, row.url);
       await ctx.db.patch(row._id, {
         status: "failed",
@@ -2140,6 +2188,7 @@ type CompleteScrapeUrlItem = {
   provider?: string;
   siteId?: Id<"sites">;
   attempts?: number | null;
+  isListingUrl?: boolean;
 };
 
 const completeScrapeUrlsHandler = async (
@@ -2167,12 +2216,18 @@ const completeScrapeUrlsHandler = async (
     if (!url) return;
 
     const sourceUrl = (item.sourceUrl ?? fallbackRow?.sourceUrl ?? "").trim();
-    if (sourceUrl) {
+    const fallbackUrlType = fallbackRow?.urlType;
+    const isListing =
+      Boolean(item.isListingUrl) ||
+      fallbackUrlType === "listing" ||
+      isListingReason(args.error);
+    if (sourceUrl && !isListing) {
       await recordSeenJobUrl(ctx, sourceUrl, url);
     }
 
     const attempts = typeof item.attempts === "number" ? item.attempts : fallbackRow?.attempts ?? 0;
     const shouldIgnore =
+      !isListing &&
       args.status === "failed" &&
       (attempts >= JOB_DETAIL_MAX_ATTEMPTS ||
         (typeof args.error === "string" && args.error.toLowerCase().includes("404")));
@@ -2255,6 +2310,7 @@ export const completeScrapeUrls = Object.assign(
             provider: v.optional(v.string()),
             siteId: v.optional(v.id("sites")),
             attempts: v.optional(v.number()),
+            isListingUrl: v.optional(v.boolean()),
           })
         )
       ),
