@@ -100,6 +100,37 @@ async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_listing_workflow_uses_listing_batch_size(monkeypatch):
+    calls: list[dict[str, Any]] = []
+
+    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
+        if activity is sw.lease_scrape_url_batch:
+            calls.append({"args": args})
+            return {"urls": []}
+        if activity is sw.process_spidercloud_listing_batch:
+            return {"queued": 0, "listingCompleted": 0}
+        if activity in (sw.complete_scrape_urls, sw.record_workflow_run):
+            return None
+        return {"scrapes": []}
+
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute)
+    monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_020))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    monkeypatch.setattr(sw.runtime_config, "spidercloud_listing_batch_size", 4)
+
+    wf = sw.SpidercloudListingWorkflow()
+    summary = await wf.run()
+
+    assert summary.site_count == 0
+    assert calls
+    lease_args = calls[0]["args"] or []
+    assert lease_args[1] == 4
+    assert lease_args[2] == "listing"
+
+
+@pytest.mark.asyncio
 async def test_job_details_uses_activity_scrape_ids(monkeypatch):
     harness = _ActivityHarness()
     harness.batch = {

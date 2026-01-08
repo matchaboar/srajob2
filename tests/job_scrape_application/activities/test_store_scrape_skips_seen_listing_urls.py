@@ -56,6 +56,8 @@ async def test_store_scrape_enqueues_detail_urls_from_listing_payload(monkeypatc
     second_args = enqueue_calls[1]["args"]
     assert first_args["urls"] == [job_url]
     assert second_args["urls"] == [job_url]
+    assert first_args["urlTypes"] == ["detail"]
+    assert second_args["urlTypes"] == ["detail"]
 
 
 @pytest.mark.asyncio
@@ -104,3 +106,4 @@ async def test_listing_urls_scraped_by_job_details_worker_enqueue_jobs(monkeypat
     enqueue_calls = [c for c in mutation_calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "expected enqueueScrapeUrls to be called"
     assert enqueue_calls[0]["args"]["urls"] == [job_url]
+    assert enqueue_calls[0]["args"]["urlTypes"] == ["detail"]

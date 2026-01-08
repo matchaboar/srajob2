@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import re
 import threading
 import time
 import traceback
-
-from ..services import telemetry
 
 _DEADLOCK_SIGNATURES = ("TMPRL1101", "Potential deadlock detected", "_DeadlockError")
 _DEADLOCK_RUN_ID_RE = re.compile(r"run ID ([0-9a-f-]{8,})", re.IGNORECASE)
@@ -149,6 +148,9 @@ class DeadlockLogHandler(logging.Handler):
                 "lastChildWorkflowId": run_metadata.get("lastChildWorkflowId") if run_metadata else None,
                 "lastChildWorkflowQueue": run_metadata.get("lastChildWorkflowQueue") if run_metadata else None,
                 "lastChildWorkflowAt": run_metadata.get("lastChildWorkflowAt") if run_metadata else None,
+                "lastCheckpoint": run_metadata.get("lastCheckpoint") if run_metadata else None,
+                "lastCheckpointLocation": run_metadata.get("lastCheckpointLocation") if run_metadata else None,
+                "lastCheckpointAt": run_metadata.get("lastCheckpointAt") if run_metadata else None,
                 "logger": record.name,
                 "level": record.levelname,
                 "errorType": exc_type,
@@ -164,6 +166,9 @@ class DeadlockLogHandler(logging.Handler):
         }
 
         try:
+            telemetry = importlib.import_module(
+                "job_scrape_application.services.telemetry"
+            )
             telemetry.emit_posthog_log(payload)
         except Exception:
             return

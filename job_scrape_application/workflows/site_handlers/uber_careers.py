@@ -105,6 +105,7 @@ class UberCareersHandler(BaseSiteHandler):
         return self.filter_job_urls(urls)
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
+        urls = super().filter_job_urls(urls)
         filtered: List[str] = []
         seen: set[str] = set()
         for url in urls:

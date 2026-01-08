@@ -153,16 +153,23 @@ def test_worker_registers_spidercloud_job_details_workflow():
     assert "SpidercloudJobDetailsWorkflow" in names
 
 
+def test_worker_registers_spidercloud_listing_workflow():
+    names = {wf.__name__ for wf in worker.WORKFLOW_CLASSES}
+    assert "SpidercloudListingWorkflow" in names
+
+
 def test_activities_exports_job_detail_batch_helpers():
     assert hasattr(acts, "lease_scrape_url_batch")
     assert hasattr(acts, "process_spidercloud_job_batch")
     assert hasattr(acts, "complete_scrape_urls")
+    assert hasattr(acts, "fail_listing_batch_urls")
 
 
 def test_worker_registers_job_detail_activities():
     names = {fn.__name__ for fn in worker.ACTIVITY_FUNCTIONS}
     assert "lease_scrape_url_batch" in names
     assert "process_spidercloud_job_batch" in names
+    assert "fail_listing_batch_urls" in names
 
 
 @pytest.mark.asyncio

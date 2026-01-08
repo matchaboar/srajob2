@@ -151,21 +151,31 @@ async def test_prod_queue_pending_without_job_details_worker(monkeypatch):
     # start_worker.ps1 sets these before creating schedules/workers.
     monkeypatch.setattr(cs.settings, "job_details_task_queue", "spidercloud-job-details-queue")
     monkeypatch.setattr(cs.settings, "task_queue", "scraper-task-queue")
+    monkeypatch.setattr(cs.settings, "listing_task_queue", "spidercloud-listing-queue")
     monkeypatch.setattr(worker_mod.settings, "job_details_task_queue", "spidercloud-job-details-queue")
     monkeypatch.setattr(worker_mod.settings, "task_queue", "scraper-task-queue")
+    monkeypatch.setattr(worker_mod.settings, "listing_task_queue", "spidercloud-listing-queue")
 
     cfgs = cs.load_schedule_configs()
     cfg = next(cfg for cfg in cfgs if cfg.workflow == "SpidercloudJobDetails")
     schedule = cs.build_schedule(cfg)
     schedule_queue = schedule.action.task_queue
+    listing_cfg = next(cfg for cfg in cfgs if cfg.workflow == "SpidercloudListing")
+    listing_schedule = cs.build_schedule(listing_cfg)
+    listing_queue = listing_schedule.action.task_queue
 
     # start_worker.ps1 spawns both "all" and "job-details" workers.
     monkeypatch.setattr(worker_mod.settings, "worker_role", "all")
     general_queue, _, _ = worker_mod._select_worker_config()
     monkeypatch.setattr(worker_mod.settings, "worker_role", "job-details")
     job_details_queue, _, _ = worker_mod._select_worker_config()
-    pool = FakeWorkerPool([general_queue, job_details_queue])
+    monkeypatch.setattr(worker_mod.settings, "worker_role", "listing")
+    listing_worker_queue, _, _ = worker_mod._select_worker_config()
+    pool = FakeWorkerPool([general_queue, job_details_queue, listing_worker_queue])
 
     assert pool.can_run(
         schedule_queue
     ), "job-details schedule queue should be serviced by the worker pool"
+    assert pool.can_run(
+        listing_queue
+    ), "listing schedule queue should be serviced by the worker pool"

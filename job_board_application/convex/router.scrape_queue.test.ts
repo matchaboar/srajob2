@@ -36,7 +36,8 @@ class FakeQuery {
     private scheduledAtMax: number | null = null,
     private indexName: string | null = null,
     private ordered: boolean = false,
-    private tracker?: { indexCalls: IndexCall[] }
+    private tracker?: { indexCalls: IndexCall[] },
+    private predicates: Array<(row: QueueRow) => boolean> = []
   ) {}
   withIndex(name: string, cb: (q: any) => any) {
     const filterFields = { ...this.filterFields };
@@ -65,7 +66,15 @@ class FakeQuery {
         filterFields: { ...filterFields },
       });
     }
-    return new FakeQuery(this.getRows, filterFields, scheduledAtMax, indexName, this.ordered, this.tracker);
+    return new FakeQuery(
+      this.getRows,
+      filterFields,
+      scheduledAtMax,
+      indexName,
+      this.ordered,
+      this.tracker,
+      this.predicates
+    );
   }
   order() {
     return new FakeQuery(
@@ -74,13 +83,37 @@ class FakeQuery {
       this.scheduledAtMax,
       this.indexName,
       true,
-      this.tracker
+      this.tracker,
+      this.predicates
+    );
+  }
+  filter(cb: (q: any) => any) {
+    const predicate = cb({
+      field: (name: string) => name,
+      eq: (field: string, val: any) => (row: QueueRow) => (row as any)[field] === val,
+      lte: (field: string, val: number) => (row: QueueRow) => (row as any)[field] <= val,
+      or: (...tests: Array<(row: QueueRow) => boolean>) => (row: QueueRow) =>
+        tests.some((test) => test(row)),
+      and: (...tests: Array<(row: QueueRow) => boolean>) => (row: QueueRow) =>
+        tests.every((test) => test(row)),
+    });
+    return new FakeQuery(
+      this.getRows,
+      this.filterFields,
+      this.scheduledAtMax,
+      this.indexName,
+      this.ordered,
+      this.tracker,
+      predicate ? [...this.predicates, predicate] : this.predicates
     );
   }
   private _filterRows(rows: QueueRow[]) {
     let filtered = rows;
     for (const [field, val] of Object.entries(this.filterFields)) {
       filtered = filtered.filter((row) => (row as any)[field] === val);
+    }
+    if (this.predicates.length > 0) {
+      filtered = filtered.filter((row) => this.predicates.every((predicate) => predicate(row)));
     }
     if (this.scheduledAtMax !== null) {
       const scheduledAtMax = this.scheduledAtMax;
@@ -247,6 +280,43 @@ describe("leaseScrapeUrlBatch", () => {
     const leasedUrls = res.urls.map((u: any) => u.url);
     expect(leasedUrls).toContain("https://example.com/pending");
     expect(db.getIgnored().some((row) => row?.reason === "stale_scrape_queue_entry")).toBe(true);
+  });
+
+  it("marks stale listing rows with a listing reason", async () => {
+    const now = Date.now();
+    const listing: QueueRow = {
+      _id: "listing-1",
+      url: "https://example.com/jobs?page=3",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 8 * 24 * 60 * 60 * 1000,
+      provider: "spidercloud",
+      attempts: 0,
+      urlType: "listing",
+    };
+    const pending: QueueRow = {
+      _id: "pend-1",
+      url: "https://example.com/job/123",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 30 * 60 * 1000,
+      provider: "spidercloud",
+      attempts: 0,
+      urlType: "detail",
+    };
+
+    const db = new FakeDb([listing, pending]);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const reasons = db.getIgnored().map((row) => row?.reason);
+    expect(reasons).toContain("listing_stale_scrape_queue_entry");
   });
 
   it("leases unique rows across consecutive calls (multi-worker safety)", async () => {

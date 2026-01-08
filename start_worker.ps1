@@ -23,6 +23,8 @@ $script:ShutdownStopwatch = $null
 $script:ShutdownHandled = $false
 $script:ErrorWatcher = $null
 $script:ErrorWatcherCount = 0
+$script:WorkerCountTimer = $null
+$script:LastProdWorkerCheck = $null
 
 # Avoid hardlink/symlink issues on Windows filesystems when uv manages the venv
 if (-not $env:UV_LINK_MODE) {
@@ -546,6 +548,7 @@ function Stop-WorkerAndContainer {
         Write-Host ("[shutdown] Shutdown duration: {0}s" -f [math]::Round($Timer.Elapsed.TotalSeconds, 2)) -ForegroundColor Yellow
     }
 
+    Stop-WorkerCountTicker
     $script:ShutdownHandled = $true
 }
 
@@ -621,6 +624,151 @@ function Stop-ExistingWorkers {
     } catch {
         Write-Warning "Unable to enumerate existing workers: $($_.Exception.Message)"
     }
+}
+
+function Get-LocalWorkerCount {
+    try {
+        if ($IsWindows) {
+            $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.CommandLine -match "job_scrape_application\.workflows\.worker"
+            }
+            return @($procs).Count
+        }
+
+        $psPath = "/bin/ps"
+        if (-not (Test-Path $psPath)) { $psPath = "/usr/bin/ps" }
+        if (-not (Test-Path $psPath)) { return 0 }
+
+        $psOutput = & $psPath -eo args 2>$null
+        $count = 0
+        foreach ($line in $psOutput) {
+            if ($line -match "job_scrape_application\.workflows\.worker") {
+                $count += 1
+            }
+        }
+        return $count
+    } catch {
+        return 0
+    }
+}
+
+function Write-WorkerDebugLog {
+    param(
+        [string]$LogPath,
+        [string]$EnvironmentLabel,
+        [bool]$UseProd,
+        [string]$ConvexUrl,
+        [string]$TemporalAddress,
+        [string]$TemporalNamespace,
+        [string]$TaskQueue,
+        [string]$JobDetailsQueue,
+        [string]$ListingQueue
+    )
+
+    try {
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $entries = New-Object System.Collections.Generic.List[string]
+        $entries.Add("---- $timestamp ----") | Out-Null
+        $entries.Add("Environment: $EnvironmentLabel") | Out-Null
+        $entries.Add("CONVEX_HTTP_URL: $ConvexUrl") | Out-Null
+        $entries.Add("TEMPORAL_ADDRESS: $TemporalAddress") | Out-Null
+        $entries.Add("TEMPORAL_NAMESPACE: $TemporalNamespace") | Out-Null
+        $entries.Add("TEMPORAL_TASK_QUEUE: $TaskQueue") | Out-Null
+        if ($JobDetailsQueue) { $entries.Add("TEMPORAL_JOB_DETAILS_TASK_QUEUE: $JobDetailsQueue") | Out-Null }
+        if ($ListingQueue) { $entries.Add("TEMPORAL_LISTING_TASK_QUEUE: $ListingQueue") | Out-Null }
+        $entries.Add(("Local worker processes: {0}" -f (Get-LocalWorkerCount))) | Out-Null
+
+        if ($UseProd -and $ConvexUrl) {
+            try {
+                $diag = & uv run agent_scripts/diagnose_spidercloud_stalls.py --env prod 2>$null | ConvertFrom-Json
+                if ($diag.temporal) {
+                    $entries.Add(("Prod activeWorkers: {0}" -f $diag.temporal.activeWorkers)) | Out-Null
+                    $entries.Add(("Prod staleWorkers: {0}" -f $diag.temporal.staleWorkers)) | Out-Null
+                    $queues = @($diag.temporal.taskQueues) -join ", "
+                    if ($queues) { $entries.Add(("Prod taskQueues: {0}" -f $queues)) | Out-Null }
+                }
+            } catch {
+                $entries.Add("Prod diagnostics: failed to read temporal status") | Out-Null
+            }
+        }
+
+        $entries | Out-File -FilePath $LogPath -Encoding utf8 -Append
+    } catch {
+        Write-Warning "Failed to write debug log: $($_.Exception.Message)"
+    }
+}
+
+function Start-WorkerCountTicker {
+    param(
+        [int]$IntervalSeconds,
+        [string]$LogPath,
+        [bool]$UseProd,
+        [string]$ConvexUrl
+    )
+
+    if ($IntervalSeconds -le 0) { return }
+
+    try {
+        if ($script:WorkerCountTimer) {
+            try { $script:WorkerCountTimer.Stop() } catch {}
+            $script:WorkerCountTimer = $null
+        }
+
+        $timer = New-Object System.Timers.Timer
+        $timer.Interval = $IntervalSeconds * 1000
+        $timer.AutoReset = $true
+        $script:LastProdWorkerCheck = $null
+
+        $handler = {
+            try {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $entries = New-Object System.Collections.Generic.List[string]
+                $entries.Add("---- $timestamp ----") | Out-Null
+                $entries.Add(("Local worker processes: {0}" -f (Get-LocalWorkerCount))) | Out-Null
+
+                if ($UseProd -and $ConvexUrl) {
+                    $now = Get-Date
+                    $shouldCheck = $false
+                    if (-not $script:LastProdWorkerCheck) {
+                        $shouldCheck = $true
+                    } elseif (($now - $script:LastProdWorkerCheck).TotalMinutes -ge 5) {
+                        $shouldCheck = $true
+                    }
+
+                    if ($shouldCheck) {
+                        $script:LastProdWorkerCheck = $now
+                        try {
+                            $diag = & uv run agent_scripts/diagnose_spidercloud_stalls.py --env prod 2>$null | ConvertFrom-Json
+                            if ($diag.temporal) {
+                                $entries.Add(("Prod activeWorkers: {0}" -f $diag.temporal.activeWorkers)) | Out-Null
+                                $entries.Add(("Prod staleWorkers: {0}" -f $diag.temporal.staleWorkers)) | Out-Null
+                            }
+                        } catch {
+                            $entries.Add("Prod diagnostics: failed to read temporal status") | Out-Null
+                        }
+                    }
+                }
+
+                $entries | Out-File -FilePath $LogPath -Encoding utf8 -Append
+            } catch {}
+        }
+
+        Register-ObjectEvent -InputObject $timer -EventName Elapsed -Action $handler | Out-Null
+        $timer.Start()
+        $script:WorkerCountTimer = $timer
+    } catch {
+        Write-Warning "Failed to start worker count ticker: $($_.Exception.Message)"
+    }
+}
+
+function Stop-WorkerCountTicker {
+    try {
+        if ($script:WorkerCountTimer) {
+            $script:WorkerCountTimer.Stop()
+            $script:WorkerCountTimer.Dispose()
+            $script:WorkerCountTimer = $null
+        }
+    } catch {}
 }
 
 function Start-WorkerMain {
@@ -702,6 +850,34 @@ function Start-WorkerMain {
     } else {
         Write-Host "CONVEX_HTTP_URL is not set after loading environment files." -ForegroundColor Red
     }
+    $temporalTaskQueue = if ($env:TEMPORAL_TASK_QUEUE) { $env:TEMPORAL_TASK_QUEUE } else { "scraper-task-queue" }
+    $jobDetailsQueue = if ($env:TEMPORAL_JOB_DETAILS_TASK_QUEUE) { $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE } else { "" }
+    $listingQueue = if ($env:TEMPORAL_LISTING_TASK_QUEUE) { $env:TEMPORAL_LISTING_TASK_QUEUE } else { "" }
+    Write-Host ("TEMPORAL_ADDRESS: {0}" -f $TemporalAddress) -ForegroundColor Cyan
+    Write-Host ("TEMPORAL_NAMESPACE: {0}" -f $TemporalNamespace) -ForegroundColor Cyan
+    Write-Host ("TEMPORAL_TASK_QUEUE: {0}" -f $temporalTaskQueue) -ForegroundColor Cyan
+    if ($jobDetailsQueue) {
+        Write-Host ("TEMPORAL_JOB_DETAILS_TASK_QUEUE: {0}" -f $jobDetailsQueue) -ForegroundColor Cyan
+    }
+    if ($listingQueue) {
+        Write-Host ("TEMPORAL_LISTING_TASK_QUEUE: {0}" -f $listingQueue) -ForegroundColor Cyan
+    }
+
+    $workerDebugLogPath = Join-Path "logs" "worker-start.log"
+    if (-not (Test-Path (Split-Path $workerDebugLogPath -Parent))) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $workerDebugLogPath -Parent) | Out-Null
+    }
+    Write-WorkerDebugLog `
+        -LogPath $workerDebugLogPath `
+        -EnvironmentLabel $environmentLabel `
+        -UseProd:$UseProd `
+        -ConvexUrl $ConvexUrl `
+        -TemporalAddress $TemporalAddress `
+        -TemporalNamespace $TemporalNamespace `
+        -TaskQueue $temporalTaskQueue `
+        -JobDetailsQueue $jobDetailsQueue `
+        -ListingQueue $listingQueue
+    Start-WorkerCountTicker -IntervalSeconds 30 -LogPath $workerDebugLogPath -UseProd:$UseProd -ConvexUrl $ConvexUrl
 
     # Ensure any old worker processes from previous runs are terminated
     Stop-ExistingWorkers
@@ -883,7 +1059,9 @@ function Start-WorkerMain {
     }
 
     $JobDetailsQueue = "spidercloud-job-details-queue"
+    $ListingQueue = "spidercloud-listing-queue"
     $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE = $JobDetailsQueue
+    $env:TEMPORAL_LISTING_TASK_QUEUE = $ListingQueue
 
     Write-Host "Ensuring scrape schedule exists (every 5 minutes)..."
     $maxScheduleAttempts = 5
@@ -914,8 +1092,10 @@ function Start-WorkerMain {
     $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
     $defaultGeneralWorkerCount = 4
     $defaultJobDetailsWorkerCount = 4
+    $defaultListingWorkerCount = 4
     $generalWorkerCount = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_general_worker_count" -DefaultValue $defaultGeneralWorkerCount
     $jobDetailsWorkerCount = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultJobDetailsWorkerCount
+    $listingWorkerCount = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_listing_worker_count" -DefaultValue $defaultListingWorkerCount
     if ($generalWorkerCount -lt 1) {
         Write-Warning "Invalid temporal_general_worker_count=$generalWorkerCount in $runtimeConfigPath; using $defaultGeneralWorkerCount."
         $generalWorkerCount = $defaultGeneralWorkerCount
@@ -924,8 +1104,12 @@ function Start-WorkerMain {
         Write-Warning "Invalid temporal_job_details_worker_count=$jobDetailsWorkerCount in $runtimeConfigPath; using $defaultJobDetailsWorkerCount."
         $jobDetailsWorkerCount = $defaultJobDetailsWorkerCount
     }
+    if ($listingWorkerCount -lt 1) {
+        Write-Warning "Invalid temporal_listing_worker_count=$listingWorkerCount in $runtimeConfigPath; using $defaultListingWorkerCount."
+        $listingWorkerCount = $defaultListingWorkerCount
+    }
 
-    Write-Host ("Starting Workers ({0} general + {1} job-details)..." -f $generalWorkerCount, $jobDetailsWorkerCount)
+    Write-Host ("Starting Workers ({0} general + {1} job-details + {2} listing)..." -f $generalWorkerCount, $jobDetailsWorkerCount, $listingWorkerCount)
     if ($ConvexUrl) {
         Write-Host "Using CONVEX_HTTP_URL=$ConvexUrl" -ForegroundColor Green
     } else {
@@ -941,6 +1125,9 @@ function Start-WorkerMain {
     }
     for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
         $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+    }
+    for ($i = 1; $i -le $listingWorkerCount; $i++) {
+        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "listing" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
     }
     $script:WorkerProcess = $script:WorkerProcesses[0].Process
     $cancelSub = Register-EngineEvent -SourceIdentifier ConsoleCancelEvent -Action {
@@ -992,6 +1179,9 @@ function Start-WorkerMain {
                             }
                             for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
                                 $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+                            }
+                            for ($i = 1; $i -le $listingWorkerCount; $i++) {
+                                $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "listing" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
                             }
                             $script:WorkerProcess = $script:WorkerProcesses[0].Process
                             continue

@@ -31,6 +31,7 @@ from .scrape_workflow import (
     FetchfoxSpidercloudWorkflow,
     ScrapeWorkflow,
     SpidercloudJobDetailsWorkflow,
+    SpidercloudListingWorkflow,
     SpidercloudScrapeWorkflow,
 )
 from .greenhouse_workflow import GreenhouseScraperWorkflow
@@ -47,6 +48,7 @@ WORKFLOW_CLASSES = [
     FetchfoxSpidercloudWorkflow,
     SpidercloudScrapeWorkflow,
     SpidercloudJobDetailsWorkflow,
+    SpidercloudListingWorkflow,
     GreenhouseScraperWorkflow,
     SiteLeaseWorkflow,
     ProcessWebhookIngestWorkflow,
@@ -108,6 +110,7 @@ ACTIVITY_FUNCTIONS = [
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
     activities.complete_scrape_urls,
+    activities.fail_listing_batch_urls,
 ]
 
 FIRECRAWL_WORKFLOWS = {
@@ -135,8 +138,18 @@ JOB_DETAILS_ACTIVITIES = [
     activities.record_workflow_run,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
+    activities.process_spidercloud_listing_batch,
     activities.store_scrape,
     activities.complete_scrape_urls,
+]
+
+LISTING_WORKFLOWS = [SpidercloudListingWorkflow]
+LISTING_ACTIVITIES = [
+    activities.record_workflow_run,
+    activities.lease_scrape_url_batch,
+    activities.process_spidercloud_listing_batch,
+    activities.complete_scrape_urls,
+    activities.fail_listing_batch_urls,
 ]
 
 @dataclass(frozen=True)
@@ -264,6 +277,9 @@ def _select_worker_config() -> tuple[str, list[type], list]:
     if role in {"job-details", "spidercloud-job-details"}:
         queue = settings.job_details_task_queue or settings.task_queue
         return queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES
+    if role in {"listing", "spidercloud-listing"}:
+        queue = settings.listing_task_queue or settings.task_queue
+        return queue, LISTING_WORKFLOWS, LISTING_ACTIVITIES
     workflows = list(WORKFLOW_CLASSES)
     activities_list = list(ACTIVITY_FUNCTIONS)
     if not settings.enable_firecrawl:
@@ -280,6 +296,9 @@ def _select_worker_configs() -> list[WorkerConfig]:
     if role in {"job-details", "spidercloud-job-details"}:
         queue = settings.job_details_task_queue or settings.task_queue
         return [WorkerConfig(queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES, role)]
+    if role in {"listing", "spidercloud-listing"}:
+        queue = settings.listing_task_queue or settings.task_queue
+        return [WorkerConfig(queue, LISTING_WORKFLOWS, LISTING_ACTIVITIES, role)]
 
     task_queue, workflows, activities_list = _select_worker_config()
     configs = [WorkerConfig(task_queue, workflows, activities_list, role)]
@@ -287,6 +306,11 @@ def _select_worker_configs() -> list[WorkerConfig]:
     if role == "all" and job_details_queue and job_details_queue != task_queue:
         configs.append(
             WorkerConfig(job_details_queue, JOB_DETAILS_WORKFLOWS, JOB_DETAILS_ACTIVITIES, "job-details")
+        )
+    listing_queue = settings.listing_task_queue
+    if role == "all" and listing_queue and listing_queue != task_queue:
+        configs.append(
+            WorkerConfig(listing_queue, LISTING_WORKFLOWS, LISTING_ACTIVITIES, "listing")
         )
     return configs
 

@@ -662,6 +662,16 @@ class BaseSiteHandler(ABC):
             return True
         if any(token in path for token in ("http://", "https://", "http:/", "https:/")):
             return True
+        if path.endswith("/careers/list") or path.endswith("/careers/list/"):
+            if not parsed.query:
+                segments = [seg for seg in path.split("/") if seg]
+                if len(segments) >= 4 and segments[-2:] == ["careers", "list"]:
+                    country = segments[-4]
+                    language = segments[-3]
+                    if re.fullmatch(r"[a-z]{2}", country) and re.fullmatch(
+                        r"[a-z]{2}(?:-[a-z]{2})?", language
+                    ):
+                        return True
         segments = [seg for seg in path.split("/") if seg]
         if any(seg in {"apply", "application", "hvhapply"} for seg in segments):
             return True

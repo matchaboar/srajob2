@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { listSeenJobUrlsForSite } from "./router";
 import { getHandler } from "./__tests__/getHandler";
 
-type Row = { sourceUrl: string; url?: string };
+type Row = { sourceUrl: string; url?: string; reason?: string };
 
 class FakeQuery {
   constructor(private rows: Row[], private sourceUrl: string | null = null) {}
@@ -17,19 +17,23 @@ class FakeQuery {
 }
 
 describe("listSeenJobUrlsForSite", () => {
-  it("includes ignored listing URLs so workflows can skip re-scraping them", async () => {
+  it("includes ignored non-listing URLs but skips listing-tagged ignores", async () => {
     const sourceUrl = "https://careers.confluent.io/jobs";
     const ignoredUrls = [
       "https://careers.confluent.io/jobs/united_states-united_arab_emirates",
       "https://careers.confluent.io/jobs/united_states-thailand",
       "https://careers.confluent.io/jobs/united_states-finance_&_operations",
     ];
+    const listingIgnoredUrl = "https://careers.confluent.io/jobs/united_states-some_team";
 
     const seenRows: Row[] = [
       { sourceUrl, url: "https://careers.confluent.io/jobs/123" },
     ];
 
-    const ignored: Row[] = ignoredUrls.map((url) => ({ sourceUrl, url }));
+    const ignored: Row[] = [
+      ...ignoredUrls.map((url) => ({ sourceUrl, url })),
+      { sourceUrl, url: listingIgnoredUrl, reason: "listing_stale_scrape_queue_entry" },
+    ];
 
     const ctx: any = {
       db: {
@@ -50,5 +54,6 @@ describe("listSeenJobUrlsForSite", () => {
         ...ignoredUrls,
       ])
     );
+    expect(res.urls).not.toContain(listingIgnoredUrl);
   });
 });

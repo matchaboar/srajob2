@@ -500,6 +500,26 @@ def test_base_handler_filters_meta_non_job_detail_urls():
     assert "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering" in filtered
 
 
+def test_base_handler_filters_locale_careers_list_urls():
+    handler = _BaseHandlerForTest()
+    urls = [
+        "https://www.uber.com/br/pt-br/careers/list",
+        "https://www.uber.com/gt/es/careers/list",
+        "https://careers.example.com/ae/ar/careers/list/",
+        "https://jobs.sample.org/us/en/careers/list",
+        "https://www.uber.com/us/en/careers/list?query=engineer",
+        "https://careers.example.com/us/en/careers/list?page=2",
+        "https://jobs.sample.org/us/en/careers/listing",
+        "https://jobs.sample.org/us/eng/careers/list",
+        "https://jobs.sample.org/us/en/careers/list/123",
+    ]
+    filtered = handler.filter_job_urls(urls)
+    for blocked in urls[:4]:
+        assert blocked not in filtered
+    for kept in urls[4:]:
+        assert kept in filtered
+
+
 def test_base_handler_drop_source_listing_url():
     handler = _BaseHandlerForTest()
     source_url = "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&page=4"

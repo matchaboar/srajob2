@@ -147,6 +147,7 @@ async def test_gather_temporal_status_counts_workers_and_runs(monkeypatch):
                 {"workerId": "w1", "taskQueue": "scraper-task-queue"},
                 {"workerId": "w2", "taskQueue": "scraper-task-queue"},
                 {"workerId": "w3", "taskQueue": "job-details-queue"},
+                {"workerId": "w4", "taskQueue": "listing-queue"},
             ]
         if name == "temporal:getStaleWorkers":
             return [{"workerId": "s1"}, {"workerId": "s2"}, {"workerId": "s3"}]
@@ -155,6 +156,7 @@ async def test_gather_temporal_status_counts_workers_and_runs(monkeypatch):
                 {"workflowName": "ScraperSpidercloud", "status": "completed"},
                 {"workflowName": "ScraperSpidercloud", "status": "completed"},
                 {"workflowName": "SpidercloudJobDetails", "status": "completed"},
+                {"workflowName": "SpidercloudListing", "status": "completed"},
                 {"workflowName": "SiteLease", "status": "completed"},
             ]
         raise AssertionError(f"Unexpected query {name}")
@@ -163,11 +165,12 @@ async def test_gather_temporal_status_counts_workers_and_runs(monkeypatch):
 
     status = await ds._gather_temporal_status()
 
-    assert status["activeWorkers"] == 3
+    assert status["activeWorkers"] == 4
     assert status["staleWorkers"] == 3
-    assert status["taskQueues"] == ["job-details-queue", "scraper-task-queue"]
+    assert status["taskQueues"] == ["job-details-queue", "listing-queue", "scraper-task-queue"]
     assert status["recentWorkflowCounts"]["ScraperSpidercloud"] == 2
     assert status["recentWorkflowCounts"]["SpidercloudJobDetails"] == 1
+    assert status["recentWorkflowCounts"]["SpidercloudListing"] == 1
 
 
 @pytest.mark.asyncio

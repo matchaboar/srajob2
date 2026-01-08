@@ -9,11 +9,13 @@ from .paths import resolve_config_path
 class RuntimeConfig:
     spidercloud_job_details_timeout_minutes: int
     spidercloud_job_details_batch_size: int
+    spidercloud_listing_batch_size: int
     spidercloud_job_details_concurrency: int
     spidercloud_job_details_processing_expire_minutes: int
     spidercloud_http_timeout_seconds: int
     temporal_general_worker_count: int
     temporal_job_details_worker_count: int
+    temporal_listing_worker_count: int
 
 
 def _load_runtime_yaml() -> Dict[str, Any]:
@@ -51,6 +53,11 @@ runtime_config = RuntimeConfig(
         "spidercloud_job_details_batch_size",
         50,
     ),
+    spidercloud_listing_batch_size=_coerce_int(
+        _raw_runtime_config,
+        "spidercloud_listing_batch_size",
+        4,
+    ),
     spidercloud_job_details_concurrency=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_concurrency",
@@ -74,6 +81,11 @@ runtime_config = RuntimeConfig(
     temporal_job_details_worker_count=_coerce_int(
         _raw_runtime_config,
         "temporal_job_details_worker_count",
+        4,
+    ),
+    temporal_listing_worker_count=_coerce_int(
+        _raw_runtime_config,
+        "temporal_listing_worker_count",
         4,
     ),
 )

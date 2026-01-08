@@ -50,6 +50,83 @@ def _find_convex_references(tree: ast.AST) -> list[str]:
     return offenders
 
 
+_BLOCKING_IMPORTS = {
+    "requests",
+    "httpx",
+    "urllib",
+    "urllib3",
+    "aiohttp",
+    "socket",
+    "subprocess",
+    "psycopg",
+    "psycopg2",
+    "pymongo",
+    "redis",
+    "boto3",
+    "botocore",
+    "google",
+    "firebase_admin",
+    "sqlalchemy",
+}
+_BLOCKING_CALL_NAMES = {
+    "sleep",
+    "open",
+}
+_BLOCKING_MODULE_CALLS = {
+    "time.sleep",
+    "requests.get",
+    "requests.post",
+    "requests.request",
+    "httpx.get",
+    "httpx.post",
+    "httpx.request",
+    "urllib.request.urlopen",
+    "urllib3.PoolManager",
+    "aiohttp.ClientSession",
+    "socket.socket",
+    "subprocess.run",
+    "subprocess.Popen",
+    "subprocess.call",
+    "subprocess.check_call",
+    "subprocess.check_output",
+    "os.system",
+    "pathlib.Path.read_text",
+    "pathlib.Path.write_text",
+    "pathlib.Path.open",
+    "builtins.open",
+}
+
+
+def _find_blocking_calls(tree: ast.AST) -> list[str]:
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = alias.name.split(".")[0]
+                if root in _BLOCKING_IMPORTS:
+                    offenders.append(f"import:{alias.name}")
+        if isinstance(node, ast.ImportFrom) and node.module:
+            root = node.module.split(".")[0]
+            if root in _BLOCKING_IMPORTS:
+                offenders.append(f"import-from:{node.module}")
+        if isinstance(node, ast.Call):
+            fn = node.func
+            if isinstance(fn, ast.Name) and fn.id in _BLOCKING_CALL_NAMES:
+                offenders.append(f"call:{fn.id}")
+            if isinstance(fn, ast.Attribute):
+                parts = []
+                cur: ast.AST | None = fn
+                while isinstance(cur, ast.Attribute):
+                    parts.append(cur.attr)
+                    cur = cur.value
+                if isinstance(cur, ast.Name):
+                    parts.append(cur.id)
+                    full = ".".join(reversed(parts))
+                    if full in _BLOCKING_MODULE_CALLS:
+                        offenders.append(f"call:{full}")
+    return offenders
+
+
 def _assert_no_convex_calls(module) -> None:
     path = Path(module.__file__)
     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -62,37 +139,14 @@ def test_workflow_modules_do_not_call_convex_directly():
         _assert_no_convex_calls(module)
 
 
-@pytest.mark.asyncio
-async def test_scrape_workflow_avoids_store_scrape_when_activity_persists(monkeypatch):
-    state = {"leased": False}
+def test_workflow_modules_do_not_call_blocking_libs():
+    for module in (sw, gw, ww, hw):
+        path = Path(module.__file__)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        offenders = _find_blocking_calls(tree)
+        assert not offenders, f"Workflow module {path} has blocking calls/imports: {offenders}"
 
-    async def fake_execute_activity(activity, *args, **kwargs):
-        if activity is acts.lease_site:
-            if state["leased"]:
-                return None
-            state["leased"] = True
-            return {"_id": "site-1", "url": "https://example.com"}
-        if activity is acts.scrape_site:
-            return {"scrapeId": "scr-1", "summary": {"jobs": 1}}
-        if activity is acts.complete_site:
-            return None
-        if activity is acts.record_workflow_run:
-            return None
-        if activity is acts.store_scrape:
-            raise AssertionError("store_scrape should not be called when persist_scrapes_in_activity=True")
-        if activity is acts.fail_site:
-            return None
-        raise AssertionError(f"Unexpected activity {activity}")
 
-    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
-    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
-    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
-    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
-    _stub_logger(sw)
-
-    summary = await sw.ScrapeWorkflow().run()
-
-    assert summary.scrape_ids == ["scr-1"]
 
 
 @pytest.mark.asyncio
@@ -134,3 +188,155 @@ async def test_greenhouse_workflow_avoids_store_scrape_when_activity_persists(mo
 
     assert summary.scrape_ids == ["scr-1"]
     assert summary.jobs_scraped == 1
+
+
+@pytest.mark.asyncio
+async def test_listing_workflow_avoids_store_scrape_and_detail_batch(monkeypatch):
+    state = {"leased": False}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": "https://example.com/jobs?page=1"}]}
+        if activity is acts.process_spidercloud_listing_batch:
+            return {"queued": 2, "listingCompleted": 1}
+        if activity is acts.record_workflow_run:
+            return None
+        if activity is acts.complete_scrape_urls:
+            return None
+        if activity is acts.process_spidercloud_job_batch:
+            raise AssertionError("process_spidercloud_job_batch should not run for listing workflow")
+        if activity is acts.store_scrape:
+            raise AssertionError("store_scrape should not be called for listing workflow")
+        raise AssertionError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    _stub_logger(sw)
+
+    summary = await sw.SpidercloudListingWorkflow().run()
+
+    assert summary.site_count == 1
+
+
+@pytest.mark.asyncio
+async def test_listing_workflow_returns_immediately_on_empty_lease(monkeypatch):
+    calls: list[str] = []
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        calls.append(getattr(activity, "__name__", str(activity)))
+        if activity is acts.lease_scrape_url_batch:
+            return {"urls": []}
+        if activity is acts.record_workflow_run:
+            return None
+        raise AssertionError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    _stub_logger(sw)
+
+    summary = await sw.SpidercloudListingWorkflow().run()
+
+    assert summary.site_count == 0
+    assert calls == ["lease_scrape_url_batch", "record_workflow_run"]
+
+
+@pytest.mark.asyncio
+async def test_listing_workflow_only_runs_listing_activity(monkeypatch):
+    state = {"leased": False}
+    calls: list[str] = []
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        calls.append(getattr(activity, "__name__", str(activity)))
+        if activity is acts.lease_scrape_url_batch:
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": "https://example.com/jobs?page=1"}]}
+        if activity is acts.process_spidercloud_listing_batch:
+            return {"queued": 1, "listingCompleted": 1}
+        if activity is acts.record_workflow_run:
+            return None
+        if activity is acts.complete_scrape_urls:
+            return None
+        if activity in (acts.store_scrape, acts.process_spidercloud_job_batch):
+            raise AssertionError("Unexpected heavy activity in listing workflow")
+        raise AssertionError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    _stub_logger(sw)
+
+    await sw.SpidercloudListingWorkflow().run()
+
+    assert "process_spidercloud_listing_batch" in calls
+
+
+@pytest.mark.asyncio
+async def test_job_details_workflow_avoids_store_scrape_when_activity_persists(monkeypatch):
+    state = {"leased": False}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_scrape_url_batch:
+            if state["leased"]:
+                return {"urls": []}
+            state["leased"] = True
+            return {"urls": [{"url": "https://example.com/job/1"}]}
+        if activity is acts.process_spidercloud_job_batch:
+            return {"scrapeIds": ["scr-1"], "stored": 1, "invalid": 0, "failed": 0}
+        if activity is acts.complete_scrape_urls:
+            return None
+        if activity is acts.record_workflow_run:
+            return None
+        if activity is acts.store_scrape:
+            raise AssertionError("store_scrape should not be called when persist_scrapes_in_activity=True")
+        raise AssertionError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    _stub_logger(sw)
+
+    summary = await sw.SpidercloudJobDetailsWorkflow().run()
+
+    assert summary.scrape_ids == ["scr-1"]
+    assert summary.site_count == 1
+
+
+@pytest.mark.asyncio
+async def test_scrape_workflow_avoids_store_scrape_when_activity_persists(monkeypatch):
+    state = {"leased": False}
+
+    async def fake_execute_activity(activity, *args, **kwargs):
+        if activity is acts.lease_site:
+            if state["leased"]:
+                return None
+            state["leased"] = True
+            return {"_id": "site-1", "url": "https://example.com"}
+        if activity is acts.scrape_site:
+            return {"scrapeId": "scr-1", "summary": {"jobs": 1}}
+        if activity is acts.complete_site:
+            return None
+        if activity is acts.record_workflow_run:
+            return None
+        if activity is acts.store_scrape:
+            raise AssertionError("store_scrape should not be called when persist_scrapes_in_activity=True")
+        if activity is acts.fail_site:
+            return None
+        raise AssertionError(f"Unexpected activity {activity}")
+
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(0))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+    _stub_logger(sw)
+
+    summary = await sw.ScrapeWorkflow().run()
+
+    assert summary.scrape_ids == ["scr-1"]

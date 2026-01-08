@@ -21,7 +21,11 @@ type Tables = {
 };
 
 class FakeQuery {
-  constructor(private rows: Row[], private filters: Record<string, any> = {}) {}
+  constructor(
+    private rows: Row[],
+    private filters: Record<string, any> = {},
+    private predicates: Array<(row: Row) => boolean> = []
+  ) {}
   withIndex(_name: string, cb: (q: any) => any) {
     const nextFilters = { ...this.filters };
     const builder = {
@@ -35,7 +39,23 @@ class FakeQuery {
       },
     };
     cb(builder);
-    return new FakeQuery(this.rows, nextFilters);
+    return new FakeQuery(this.rows, nextFilters, this.predicates);
+  }
+  filter(cb: (q: any) => any) {
+    const predicate = cb({
+      field: (name: string) => name,
+      eq: (field: string, val: any) => (row: Row) => (row as any)[field] === val,
+      lte: (field: string, val: number) => (row: Row) => (row as any)[field] <= val,
+      or: (...tests: Array<(row: Row) => boolean>) => (row: Row) =>
+        tests.some((test) => test(row)),
+      and: (...tests: Array<(row: Row) => boolean>) => (row: Row) =>
+        tests.every((test) => test(row)),
+    });
+    return new FakeQuery(
+      this.rows,
+      this.filters,
+      predicate ? [...this.predicates, predicate] : this.predicates
+    );
   }
   order() {
     return this;
@@ -44,7 +64,7 @@ class FakeQuery {
     return this.collect().slice(0, n);
   }
   collect() {
-    return this.rows.filter((row) =>
+    const filtered = this.rows.filter((row) =>
       Object.entries(this.filters).every(([key, val]) => {
         if (val && typeof val === "object" && "lte" in val) {
           return (row as any)[key] <= (val as any).lte;
@@ -52,6 +72,8 @@ class FakeQuery {
         return (row as any)[key] === val;
       })
     );
+    if (this.predicates.length === 0) return filtered;
+    return filtered.filter((row) => this.predicates.every((predicate) => predicate(row)));
   }
   first() {
     return this.collect()[0] ?? null;
@@ -221,6 +243,43 @@ describe("scrape queue end-to-end", () => {
 
     expect(res.queued).toEqual([allowedUrl]);
     expect(db.tables.scrape_url_queue.map((row) => row.url)).toEqual([allowedUrl]);
+  });
+
+  it("leases only listing URLs when urlType filter is set", async () => {
+    const sourceUrl = "https://example.com/jobs";
+    const db = new FakeDb({
+      scrape_url_queue: [
+        {
+          _id: "queue-1",
+          url: "https://example.com/jobs?page=1",
+          sourceUrl,
+          provider: "spidercloud",
+          urlType: "listing",
+          status: "pending",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          scheduledAt: Date.now(),
+        },
+        {
+          _id: "queue-2",
+          url: "https://example.com/jobs/123",
+          sourceUrl,
+          provider: "spidercloud",
+          urlType: "detail",
+          status: "pending",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          scheduledAt: Date.now(),
+        },
+      ],
+    });
+    const ctx: any = { db };
+
+    const leaseHandler = getHandler(leaseScrapeUrlBatch);
+    const leased = await leaseHandler(ctx, { provider: "spidercloud", limit: 5, urlType: "listing" });
+    expect(leased.urls.map((entry: any) => entry.url)).toEqual([
+      "https://example.com/jobs?page=1",
+    ]);
   });
 
   it("does not requeue fail_expired job detail URLs", async () => {

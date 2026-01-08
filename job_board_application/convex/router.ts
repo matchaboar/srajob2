@@ -1916,6 +1916,7 @@ const leaseScrapeUrlBatchHandler = async (
     limit?: number;
     processingExpiryMs?: number;
     workerId?: string;
+    urlType?: "listing" | "detail";
   }
 ) => {
   const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
@@ -1962,11 +1963,20 @@ const leaseScrapeUrlBatchHandler = async (
   }
 
   // Use the scheduledAt index here; the attempts index requires attempts to be constrained first.
-  const baseQuery = ctx.db
-    .query("scrape_url_queue")
-    .withIndex("by_status_and_scheduled_at", (q: any) =>
-      q.eq("status", "pending").lte("scheduledAt", now)
-    );
+  const baseQuery = args.urlType
+    ? ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status_url_type", (q: any) =>
+          q.eq("status", "pending").eq("urlType", args.urlType)
+        )
+        .filter((q: any) =>
+          q.or(q.lte(q.field("scheduledAt"), now), q.eq(q.field("scheduledAt"), null))
+        )
+    : ctx.db
+        .query("scrape_url_queue")
+        .withIndex("by_status_and_scheduled_at", (q: any) =>
+          q.eq("status", "pending").lte("scheduledAt", now)
+        );
   let rows = await baseQuery.order("asc").take(limit * 3);
   const queueAge = (row: any) => (row.scheduledAt ?? row.createdAt ?? 0);
   rows = rows.slice().sort((a: any, b: any) => {
@@ -2007,6 +2017,7 @@ const leaseScrapeUrlBatchHandler = async (
   const buckets = new Map<string, any[]>();
   for (const row of rows as any[]) {
     if (args.provider && row.provider !== args.provider) continue;
+    if (args.urlType && row.urlType !== args.urlType) continue;
     const createdAt = row.createdAt ?? 0;
     if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
       await ctx.db.patch(row._id, {
@@ -2022,6 +2033,8 @@ const leaseScrapeUrlBatchHandler = async (
       const resolvedCompany =
         (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
         fallbackCompanyName(undefined, row.url);
+      const ignoreReason =
+        row.urlType === "listing" ? "listing_stale_scrape_queue_entry" : "stale_scrape_queue_entry";
       await ctx.db.patch(row._id, {
         status: "failed",
         lastError: "stale (>7d)",
@@ -2035,7 +2048,7 @@ const leaseScrapeUrlBatchHandler = async (
           company: resolvedCompany || undefined,
           provider: row.provider,
           workflowName: "leaseScrapeUrlBatch",
-          reason: "stale_scrape_queue_entry",
+          reason: ignoreReason,
           details: { siteId: row.siteId, createdAt },
           createdAt: now,
         });
@@ -2108,6 +2121,7 @@ export const leaseScrapeUrlBatch = Object.assign(
       limit: v.optional(v.number()),
       processingExpiryMs: v.optional(v.number()),
       workerId: v.optional(v.string()),
+      urlType: v.optional(v.union(v.literal("listing"), v.literal("detail"))),
     },
     handler: leaseScrapeUrlBatchHandler,
   }),
@@ -2640,6 +2654,7 @@ export const resetScrapeUrlsByStatus = mutation({
     return { updated };
   },
 });
+
 
 export const resetTodayAndRunAllScheduled = mutation({
   args: {

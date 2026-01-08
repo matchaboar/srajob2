@@ -182,6 +182,7 @@ async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
     class _Info:
         run_id = "run-1"
         workflow_id = "wf-1"
+        task_queue = "scraper-task-queue"
 
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
 
@@ -2226,6 +2227,7 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
     class _Info:
         run_id = "run-partial"
         workflow_id = "wf-partial"
+        task_queue = "scraper-task-queue"
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
@@ -2309,6 +2311,7 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
     class _Info:
         run_id = "run-retry"
         workflow_id = "wf-retry"
+        task_queue = "scraper-task-queue"
 
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute_activity)
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
@@ -2362,6 +2365,7 @@ async def test_spidercloud_job_details_uses_runtime_timeouts(monkeypatch):
     class _Info:
         run_id = "run-2"
         workflow_id = "wf-2"
+        task_queue = "scraper-task-queue"
 
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
 

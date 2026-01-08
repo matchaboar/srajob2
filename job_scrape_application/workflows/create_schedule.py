@@ -120,6 +120,8 @@ def build_schedule(cfg: ScheduleConfig) -> Schedule:
     task_queue = cfg.task_queue or settings.task_queue
     if cfg.workflow == "SpidercloudJobDetails" and settings.job_details_task_queue:
         task_queue = settings.job_details_task_queue
+    if cfg.workflow == "SpidercloudListing" and settings.listing_task_queue:
+        task_queue = settings.listing_task_queue
 
     action = ScheduleActionStartWorkflow(
         cfg.workflow,

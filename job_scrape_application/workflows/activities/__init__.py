@@ -151,7 +151,9 @@ __all__ = [
     "lease_scrape_url_batch",
     "process_pending_job_details_batch",
     "process_spidercloud_job_batch",
+    "process_spidercloud_listing_batch",
     "complete_scrape_urls",
+    "fail_listing_batch_urls",
 ]
 
 COMP_MAGNITUDE_SUFFIX_PATTERN = r"^\s*(?:[kmb]|bn|mm|million|billion|trillion)\b"
@@ -1323,8 +1325,12 @@ async def complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @activity.defn
-async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SPIDERCLOUD_BATCH_SIZE) -> Dict[str, Any]:
-    """Lease a batch of queued job-detail URLs from Convex."""
+async def lease_scrape_url_batch(
+    provider: Optional[str] = None,
+    limit: int = SPIDERCLOUD_BATCH_SIZE,
+    url_type: str | None = None,
+) -> Dict[str, Any]:
+    """Lease a batch of queued URLs from Convex."""
 
     from ...services.convex_client import convex_mutation
 
@@ -1368,6 +1374,7 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 {
                     "provider": provider,
                     "limit": limit,
+                    "urlType": url_type,
                     "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
                     "workerId": _get_activity_worker_id(),
                 }
@@ -1777,6 +1784,220 @@ async def process_spidercloud_job_batch(
         "sourceUrl": source_url_hint,
     }
     return response
+
+
+@activity.defn
+async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, Any]:
+    """Scrape listing URLs and enqueue extracted job/detail URLs without storing scrapes."""
+
+    def _build_completion_item(entry: Dict[str, Any]) -> Dict[str, Any]:
+        item: Dict[str, Any] = {"url": entry.get("url")}
+        row_id = entry.get("_id")
+        if isinstance(row_id, str):
+            item["id"] = row_id
+        source_val = entry.get("sourceUrl")
+        if isinstance(source_val, str):
+            item["sourceUrl"] = source_val
+        provider_val = entry.get("provider")
+        if isinstance(provider_val, str):
+            item["provider"] = provider_val
+        site_val = entry.get("siteId")
+        if isinstance(site_val, str):
+            item["siteId"] = site_val
+        attempts_val = entry.get("attempts")
+        if isinstance(attempts_val, (int, float)):
+            item["attempts"] = int(attempts_val)
+        item["isListingUrl"] = True
+        return item
+
+    from ...services.convex_client import convex_mutation
+
+    listing_entries: list[Dict[str, Any]] = []
+    entry_by_key: dict[tuple[str, str | None], Dict[str, Any]] = {}
+    groups: dict[tuple[str, str | None], list[str]] = {}
+    posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
+    source_url_hint = ""
+
+    for row in batch.get("urls", []):
+        if not isinstance(row, dict):
+            continue
+        url_val = row.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        listing_entries.append(row)
+        source_val = row.get("sourceUrl") if isinstance(row.get("sourceUrl"), str) else ""
+        pattern_val = row.get("pattern") if isinstance(row.get("pattern"), str) else None
+        if source_val and not source_url_hint:
+            source_url_hint = source_val
+        key = (source_val, pattern_val)
+        entry_by_key.setdefault(key, row)
+        groups.setdefault(key, []).append(url_val)
+        posted_at_val = row.get("postedAt")
+        if isinstance(posted_at_val, (int, float)):
+            mapping = posted_at_groups.setdefault(key, {})
+            mapping[normalize_url(url_val) or url_val] = int(posted_at_val)
+
+    if not groups:
+        return {"queued": 0, "listingCompleted": 0, "sourceUrl": source_url_hint}
+
+    scraper = _make_spidercloud_scraper()
+    queued_total = 0
+
+    async def _enqueue_from_scrape(scrape_payload: Dict[str, Any], entry: Dict[str, Any]) -> int:
+        urls = _extract_job_urls_from_scrape(scrape_payload)
+        if not urls:
+            return 0
+        source_url = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
+        handler = get_site_handler(source_url) if source_url else None
+
+        job_urls: list[str] = []
+        listing_urls: list[str] = []
+        for url in urls:
+            if handler and handler.is_listing_url(url):
+                listing_urls.append(url)
+            else:
+                job_urls.append(url)
+
+        if listing_urls and source_url:
+            seen_listing: set[str] = set()
+            try:
+                seen_listing = set(
+                    u
+                    for u in await fetch_seen_urls_for_site(source_url, entry.get("pattern"))
+                    if isinstance(u, str)
+                )
+            except Exception:
+                seen_listing = set()
+            if seen_listing and handler:
+                seen_listing = {u for u in seen_listing if not handler.is_listing_url(u)}
+            if seen_listing:
+                listing_urls = [u for u in listing_urls if u not in seen_listing]
+
+        if job_urls:
+            try:
+                existing_jobs = await filter_existing_job_urls(job_urls)
+            except Exception:
+                existing_jobs = []
+            existing_set = {u for u in existing_jobs if isinstance(u, str)}
+            if existing_set:
+                job_urls = [u for u in job_urls if u not in existing_set]
+
+        if not job_urls and not listing_urls:
+            return 0
+
+        merged_urls = job_urls + listing_urls
+        url_types = [
+            "listing" if (handler and handler.is_listing_url(url)) else "detail" for url in merged_urls
+        ]
+
+        delays_ms: list[int] | None = None
+        if listing_urls:
+            delay_map: Dict[str, int] = {}
+            delay_idx = 1
+            for url in merged_urls:
+                if handler and handler.is_listing_url(url):
+                    delay_map[url] = delay_idx * PAGINATION_ENQUEUE_STAGGER_MS
+                    delay_idx += 1
+            if delay_map:
+                delays_ms = [delay_map.get(url, 0) for url in merged_urls]
+                if not any(delays_ms):
+                    delays_ms = None
+
+        await convex_mutation(
+            "router:enqueueScrapeUrls",
+            _strip_none_values(
+                {
+                    "urls": merged_urls,
+                    "sourceUrl": source_url or "",
+                    "provider": entry.get("provider") or "spidercloud",
+                    "siteId": entry.get("siteId"),
+                    "pattern": entry.get("pattern"),
+                    "delaysMs": delays_ms,
+                    "urlTypes": url_types,
+                }
+            ),
+        )
+        return len(merged_urls)
+
+    for (source_url, pattern), urls in groups.items():
+        payload: Dict[str, Any] = {
+            "urls": urls,
+            "source_url": source_url or (urls[0] if urls else ""),
+            "pattern": pattern,
+        }
+        posted_at_by_url = posted_at_groups.get((source_url, pattern))
+        if posted_at_by_url:
+            payload["posted_at_by_url"] = posted_at_by_url
+        result = await scraper.scrape_greenhouse_jobs(payload) or {}
+        base_payload = None
+        if isinstance(result, dict):
+            base_payload = result.get("scrape") if isinstance(result.get("scrape"), dict) else result
+        if not isinstance(base_payload, dict):
+            continue
+        base_payload.setdefault("provider", "spidercloud")
+        base_payload.setdefault("workflowName", "SpidercloudListing")
+        entry = entry_by_key.get((source_url, pattern)) or {}
+        queued_total += await _enqueue_from_scrape(base_payload, entry)
+
+    listing_completed = 0
+    if listing_entries:
+        items = []
+        for entry in listing_entries:
+            url_val = entry.get("url")
+            if isinstance(url_val, str) and url_val.strip():
+                items.append(_build_completion_item(entry))
+        if items:
+            await convex_mutation(
+                "router:completeScrapeUrls",
+                {"items": items, "status": "completed"},
+            )
+            listing_completed = len(items)
+
+    return {"queued": queued_total, "listingCompleted": listing_completed, "sourceUrl": source_url_hint}
+
+
+@activity.defn
+async def fail_listing_batch_urls(
+    batch: Dict[str, Any],
+    error: str = "batch_failed",
+) -> Dict[str, Any]:
+    """Mark a leased listing batch as failed without touching workflow code."""
+
+    from ...services.convex_client import convex_mutation
+
+    items: list[Dict[str, Any]] = []
+    for entry in batch.get("urls", []):
+        if not isinstance(entry, dict):
+            continue
+        url_val = entry.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        item: Dict[str, Any] = {"url": url_val, "isListingUrl": True}
+        row_id = entry.get("_id")
+        if isinstance(row_id, str):
+            item["id"] = row_id
+        source_val = entry.get("sourceUrl")
+        if isinstance(source_val, str):
+            item["sourceUrl"] = source_val
+        provider_val = entry.get("provider")
+        if isinstance(provider_val, str):
+            item["provider"] = provider_val
+        site_val = entry.get("siteId")
+        if isinstance(site_val, str):
+            item["siteId"] = site_val
+        attempts_val = entry.get("attempts")
+        if isinstance(attempts_val, (int, float)):
+            item["attempts"] = int(attempts_val)
+        items.append(item)
+
+    if not items:
+        return {"updated": 0}
+
+    res = await convex_mutation(
+        "router:completeScrapeUrls",
+        {"items": items, "status": "failed", "error": error},
+    )
+    return res if isinstance(res, dict) else {"updated": 0}
 
 
 @activity.defn

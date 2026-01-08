@@ -9,6 +9,7 @@ from temporalio.exceptions import ActivityError, ApplicationError
 
 from .helpers.workflow_logging import get_workflow_logger
 from ..config import settings
+from .helpers.workflow_debug import workflow_checkpoint
 
 with workflow.unsafe.imports_passed_through():
     from .activities import (
@@ -68,6 +69,7 @@ class GreenhouseScraperWorkflow:
 
         try:
             while True:
+                workflow_checkpoint("greenhouse.before_lease")
                 site = await workflow.execute_activity(
                     lease_site,
                     args=["scraper-worker", 300, "greenhouse"],
@@ -86,6 +88,7 @@ class GreenhouseScraperWorkflow:
                 )
 
                 try:
+                    workflow_checkpoint("greenhouse.fetch_listing")
                     listing = await workflow.execute_activity(
                         fetch_greenhouse_listing,
                         args=[site],
@@ -98,11 +101,13 @@ class GreenhouseScraperWorkflow:
                         if isinstance(listing, dict) and isinstance(listing.get("posted_at_by_url"), dict)
                         else None
                     )
+                    workflow_checkpoint("greenhouse.filter_existing")
                     existing = await workflow.execute_activity(
                         filter_existing_job_urls,
                         args=[job_urls],
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
+                    workflow_checkpoint("greenhouse.compute_diff")
                     diff = await workflow.execute_activity(
                         compute_urls_to_scrape,
                         args=[job_urls, existing],
@@ -126,6 +131,7 @@ class GreenhouseScraperWorkflow:
                     )
 
                     if urls_to_scrape:
+                        workflow_checkpoint("greenhouse.scrape_jobs")
                         scrape_payload: Dict[str, Any] = {"urls": urls_to_scrape, "source_url": site["url"]}
                         if posted_at_by_url:
                             scrape_payload["posted_at_by_url"] = posted_at_by_url
@@ -146,6 +152,7 @@ class GreenhouseScraperWorkflow:
                         if isinstance(scrape_res, dict) and scrape_res.get("scrapeId"):
                             scrape_ids.append(scrape_res["scrapeId"])
                         elif scrape_payload:
+                            workflow_checkpoint("greenhouse.store_scrape")
                             scrape_payload.setdefault("workflowId", run_info.workflow_id)
                             scrape_payload.setdefault("runId", run_info.run_id)
                             scrape_id = await workflow.execute_activity(

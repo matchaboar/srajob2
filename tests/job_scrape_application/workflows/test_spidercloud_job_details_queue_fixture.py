@@ -99,7 +99,11 @@ async def test_spidercloud_job_details_processes_queue_fixture(monkeypatch):
     stored_scrapes: List[Dict[str, Any]] = []
 
     @activity.defn
-    async def lease_scrape_url_batch(provider: str | None = None, limit: int = sw.SPIDERCLOUD_BATCH_SIZE):
+    async def lease_scrape_url_batch(
+        provider: str | None = None,
+        limit: int = sw.SPIDERCLOUD_BATCH_SIZE,
+        url_type: str | None = None,
+    ):
         return queue.lease(limit)
 
     @activity.defn
