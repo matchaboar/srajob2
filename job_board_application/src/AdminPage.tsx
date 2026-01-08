@@ -649,7 +649,7 @@ function UrlScrapeListSection() {
                           className={clsx("px-1.5 py-0.5 rounded text-[9px] font-semibold border w-fit", info.tone)}
                           title={info.detail || info.label}
                         >
-                            {info.label}
+                          {info.label}
                         </span>
                       );
                     })()}
@@ -909,11 +909,11 @@ export function CompanyNamesSection() {
   const searchFilteredRows = !domainSearchLower
     ? rows
     : rows.filter((row) => {
-        const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
-          .filter((v) => typeof v === "string")
-          .map((v) => (v).toLowerCase());
-        return fields.some((v) => v.includes(domainSearchLower));
-      });
+      const fields = [row.domain, row.derivedName, row.alias, row.siteName, row.siteUrl]
+        .filter((v) => typeof v === "string")
+        .map((v) => (v).toLowerCase());
+      return fields.some((v) => v.includes(domainSearchLower));
+    });
   const filteredRows = showAllDomains || domainSearchLower
     ? searchFilteredRows
     : searchFilteredRows.filter(hasAlias);
@@ -2083,681 +2083,755 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 
   const formatDate = (value?: number | null) => {
     if (!value) return "-";
-      return new Date(value).toLocaleString();
+    return new Date(value).toLocaleString();
   };
 
   const _formatAge = (value?: number | null) => {
-    if (!value) return {label: "—", tone: "text-slate-600" };
-      const diff = Date.now() - value;
-      const totalSeconds = Math.max(0, Math.floor(diff / 1000));
-      const days = Math.floor(totalSeconds / 86400);
-      const hours = Math.floor((totalSeconds % 86400) / 3600)
+    if (!value) return { label: "—", tone: "text-slate-600" };
+    const diff = Date.now() - value;
+    const totalSeconds = Math.max(0, Math.floor(diff / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600)
       .toString()
       .padStart(2, "0");
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
       .toString()
       .padStart(2, "0");
-      const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-      const label = `${days}d ${hours}:${minutes}:${seconds}`;
+    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+    const label = `${days}d ${hours}:${minutes}:${seconds}`;
 
-      const tone =
+    const tone =
       diff < 3 * 60 * 60 * 1000
-      ? "text-green-400"
-      : diff < 24 * 60 * 60 * 1000
-      ? "text-amber-400"
-      : "text-red-400";
+        ? "text-green-400"
+        : diff < 24 * 60 * 60 * 1000
+          ? "text-amber-400"
+          : "text-red-400";
 
-      return {label, tone};
+    return { label, tone };
   };
 
   const formatElapsed = (value?: number | null) => {
-    if (!value) return {label: "-", tone: "text-slate-600" };
-      const diff = Math.max(0, currentTime - value);
-      const totalSeconds = Math.floor(diff / 1000);
-      const days = Math.floor(totalSeconds / 86400);
-      const hours = Math.floor((totalSeconds % 86400) / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
+    if (!value) return { label: "-", tone: "text-slate-600" };
+    const diff = Math.max(0, currentTime - value);
+    const totalSeconds = Math.floor(diff / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
       .toString()
       .padStart(2, "0");
-      const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-      const hDisplay = (days * 24 + hours).toString().padStart(2, "0");
-      const label = `${hDisplay}:${minutes}:${seconds}`;
-      const tone =
+    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+    const hDisplay = (days * 24 + hours).toString().padStart(2, "0");
+    const label = `${hDisplay}:${minutes}:${seconds}`;
+    const tone =
       diff < 3 * 60 * 60 * 1000
-      ? "text-green-400"
-      : diff < 24 * 60 * 60 * 1000
-      ? "text-amber-400"
-      : "text-red-400";
-      return {label, tone};
+        ? "text-green-400"
+        : diff < 24 * 60 * 60 * 1000
+          ? "text-amber-400"
+          : "text-red-400";
+    return { label, tone };
   };
 
   const _formatDuration = (start?: number | null, end?: number | null) => {
     if (!start || !end) return "-";
-      const diff = Math.max(0, end - start);
-      const seconds = Math.floor(diff / 1000);
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+    const diff = Math.max(0, end - start);
+    const seconds = Math.floor(diff / 1000);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs.toString().padStart(2, "0")}s`;
   };
 
-      if (activity === undefined) {
+  if (activity === undefined) {
     return (
       <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm text-xs text-slate-500">
         Loading scrape activity...
       </div>
-      );
+    );
   }
 
-      if (!activity || activity.length === 0) {
+  if (!activity || activity.length === 0) {
     return (
       <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm text-sm text-slate-500">
         No sites configured yet.
       </div>
-      );
+    );
   }
 
-      return (
-      <div className="flex flex-col w-full min-h-[calc(100vh-4rem)]">
-        <div className="flex-1 overflow-auto w-full">
-          <table className="min-w-full text-left text-sm text-slate-200 font-medium border border-slate-800 rounded-lg shadow-sm overflow-hidden">
-            <thead className="bg-slate-900/95 text-[11px] uppercase tracking-wide text-slate-100 sticky top-0 z-10">
-              <tr>
-                <th className="px-4 py-3 border-b border-slate-800 text-left">URL</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Successful run</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Last run</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Created</th>
-                <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Jobs</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Worker</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Start</th>
-                <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">End</th>
-                <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Runs</th>
-                <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Jobs Sum</th>
-              </tr>
-            </thead>
-            <tbody className="bg-slate-950 divide-y divide-slate-800">
-              {[...activity]
-                .sort((a: any, b: any) => {
-                  const lastA = Math.max(a.lastRunAt ?? 0, a.lastFailureAt ?? 0);
-                  const lastB = Math.max(b.lastRunAt ?? 0, b.lastFailureAt ?? 0);
-                  return lastB - lastA;
-                })
-                .map((row: any, idx: number) => {
-                  const lastAnyRun = Math.max(row.lastRunAt ?? 0, row.lastFailureAt ?? 0);
-                  const lastRunFailed = (row.lastFailureAt ?? 0) >= (row.lastRunAt ?? 0);
+  return (
+    <div className="flex flex-col w-full min-h-[calc(100vh-4rem)]">
+      <div className="flex-1 overflow-auto w-full">
+        <table className="min-w-full text-left text-sm text-slate-200 font-medium border border-slate-800 rounded-lg shadow-sm overflow-hidden">
+          <thead className="bg-slate-900/95 text-[11px] uppercase tracking-wide text-slate-100 sticky top-0 z-10">
+            <tr>
+              <th className="px-4 py-3 border-b border-slate-800 text-left">URL</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Successful run</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Last run</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Created</th>
+              <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Jobs</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Worker</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">Start</th>
+              <th className="px-3 py-3 border-b border-slate-800 whitespace-nowrap">End</th>
+              <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Runs</th>
+              <th className="px-3 py-3 border-b border-slate-800 text-center whitespace-nowrap">Jobs Sum</th>
+            </tr>
+          </thead>
+          <tbody className="bg-slate-950 divide-y divide-slate-800">
+            {[...activity]
+              .sort((a: any, b: any) => {
+                const lastA = Math.max(a.lastRunAt ?? 0, a.lastFailureAt ?? 0);
+                const lastB = Math.max(b.lastRunAt ?? 0, b.lastFailureAt ?? 0);
+                return lastB - lastA;
+              })
+              .map((row: any, idx: number) => {
+                const lastAnyRun = Math.max(row.lastRunAt ?? 0, row.lastFailureAt ?? 0);
+                const lastRunFailed = (row.lastFailureAt ?? 0) >= (row.lastRunAt ?? 0);
 
-                  return (
-                    <tr
-                      key={row.siteId}
-                      onClick={() => onOpenRuns(row.url)}
-                      className={clsx(
-                        "transition-colors cursor-pointer border-b border-slate-800 last:border-b-0",
-                        idx % 2 === 0 ? "bg-slate-950" : "bg-slate-900/40",
-                        "hover:bg-slate-800/80"
-                      )}
-                    >
-                      <td className="px-4 py-3 align-top">
-                        <div className="relative group inline-block">
-                          <div className="text-[11px] text-slate-300 font-mono break-words max-w-[320px] relative z-10">
-                            {row.url}
+                return (
+                  <tr
+                    key={row.siteId}
+                    onClick={() => onOpenRuns(row.url)}
+                    className={clsx(
+                      "transition-colors cursor-pointer border-b border-slate-800 last:border-b-0",
+                      idx % 2 === 0 ? "bg-slate-950" : "bg-slate-900/40",
+                      "hover:bg-slate-800/80"
+                    )}
+                  >
+                    <td className="px-4 py-3 align-top">
+                      <div className="relative group inline-block">
+                        <div className="text-[11px] text-slate-300 font-mono break-words max-w-[320px] relative z-10">
+                          {row.url}
+                        </div>
+                        <div className="absolute left-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 rounded shadow-lg p-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-20">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-sm font-semibold text-white truncate max-w-[200px]">
+                              {row.name || "Untitled"}
+                            </span>
+                            <span
+                              className={clsx(
+                                "text-[10px] px-1.5 py-0.5 rounded-full border whitespace-nowrap",
+                                row.enabled
+                                  ? "bg-green-900/25 text-green-300 border-green-800"
+                                  : "bg-slate-800 text-slate-400 border-slate-700"
+                              )}
+                            >
+                              {row.enabled ? "Active" : "Disabled"}
+                            </span>
                           </div>
-                          <div className="absolute left-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 rounded shadow-lg p-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-20">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-sm font-semibold text-white truncate max-w-[200px]">
-                                {row.name || "Untitled"}
-                              </span>
-                              <span
-                                className={clsx(
-                                  "text-[10px] px-1.5 py-0.5 rounded-full border whitespace-nowrap",
-                                  row.enabled
-                                    ? "bg-green-900/25 text-green-300 border-green-800"
-                                    : "bg-slate-800 text-slate-400 border-slate-700"
-                                )}
-                              >
-                                {row.enabled ? "Active" : "Disabled"}
-                              </span>
+                          {row.pattern && (
+                            <div className="text-[11px] text-slate-400 font-mono break-words">
+                              Pattern: {row.pattern}
                             </div>
-                            {row.pattern && (
-                              <div className="text-[11px] text-slate-400 font-mono break-words">
-                                Pattern: {row.pattern}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-3 py-3 align-top">
-                        <span className="text-xs text-slate-400 truncate max-w-[200px] inline-block">
-                          {(() => {
-                            const age = formatElapsed(row.lastRunAt);
-                            return <span className={clsx("font-mono font-semibold", age.tone)}>{age.label}</span>;
-                          })()}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 align-top">
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          {lastRunFailed && <span className="text-red-400 font-bold">✕</span>}
-                          {(() => {
-                            if (!lastAnyRun) return <span className="text-slate-500">-</span>;
-                            const age = formatElapsed(lastAnyRun);
-                            return <span className={clsx("font-mono font-semibold", age.tone)}>{age.label}</span>;
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <span className="text-xs text-slate-400 truncate max-w-[200px] inline-block">
                         {(() => {
-                          const age = formatElapsed(row.createdAt);
+                          const age = formatElapsed(row.lastRunAt);
                           return <span className={clsx("font-mono font-semibold", age.tone)}>{age.label}</span>;
                         })()}
-                      </td>
-                      <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
-                        {row.lastJobsScraped}
-                      </td>
-                      <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap font-mono">
-                        {row.workerId || "-"}
-                      </td>
-                      <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
-                        {formatDate(row.lastScrapeStart)}
-                      </td>
-                      <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
-                        {formatDate(row.lastScrapeEnd)}
-                      </td>
-                      <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
-                        {row.totalScrapes}
-                      </td>
-                      <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
-                        {row.totalJobsScraped}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        {lastRunFailed && <span className="text-red-400 font-bold">✕</span>}
+                        {(() => {
+                          if (!lastAnyRun) return <span className="text-slate-500">-</span>;
+                          const age = formatElapsed(lastAnyRun);
+                          return <span className={clsx("font-mono font-semibold", age.tone)}>{age.label}</span>;
+                        })()}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
+                      {(() => {
+                        const age = formatElapsed(row.createdAt);
+                        return <span className={clsx("font-mono font-semibold", age.tone)}>{age.label}</span>;
+                      })()}
+                    </td>
+                    <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
+                      {row.lastJobsScraped}
+                    </td>
+                    <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap font-mono">
+                      {row.workerId || "-"}
+                    </td>
+                    <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
+                      {formatDate(row.lastScrapeStart)}
+                    </td>
+                    <td className="px-3 py-3 align-top text-[11px] text-slate-300 whitespace-nowrap">
+                      {formatDate(row.lastScrapeEnd)}
+                    </td>
+                    <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
+                      {row.totalScrapes}
+                    </td>
+                    <td className="px-3 py-3 align-top text-center text-sm font-semibold text-slate-100">
+                      {row.totalJobsScraped}
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
       </div>
-      );
+    </div>
+  );
 }
 
-      function WorkerStatusSection() {
-  const successfulSites = useQuery(api.sites.listSuccessfulSites, {limit: 100 });
-      const failedSites = useQuery(api.sites.listFailedSites, {limit: 100 });
-      const retrySite = useMutation(api.sites.retrySite);
-      const retryProcessing = useMutation(api.sites.retryProcessing);
-      const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
-      const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
-      const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
-      const scrapeErrors = useQuery(api.router.listScrapeErrors, {limit: 25 });
+function WorkerStatusSection() {
+  const successfulSites = useQuery(api.sites.listSuccessfulSites, { limit: 100 });
+  const failedSites = useQuery(api.sites.listFailedSites, { limit: 100 });
+  const retrySite = useMutation(api.sites.retrySite);
+  const retryProcessing = useMutation(api.sites.retryProcessing);
+  const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
+  const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
+  const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
+  const scrapeErrors = useQuery(api.router.listScrapeErrors, { limit: 25 });
 
-      const rows: any[] = [];
-      if (successfulSites) {
-    for (const s of successfulSites as any[]) rows.push({...s, status: "success" });
+  const rows: any[] = [];
+  if (successfulSites) {
+    for (const s of successfulSites as any[]) rows.push({ ...s, status: "success" });
   }
-      if (failedSites) {
-    for (const s of failedSites as any[]) rows.push({...s, status: "failed" });
+  if (failedSites) {
+    for (const s of failedSites as any[]) rows.push({ ...s, status: "failed" });
   }
 
   const sorted = rows.sort((a, b) => {
     const aTime = a.lastRunAt ?? a.lastFailureAt ?? 0;
-      const bTime = b.lastRunAt ?? b.lastFailureAt ?? 0;
-      return bTime - aTime;
+    const bTime = b.lastRunAt ?? b.lastFailureAt ?? 0;
+    return bTime - aTime;
   });
 
-      return (
-      <div className="space-y-4">
-        <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Worker Status</h2>
-              <p className="text-xs text-slate-500">Recent successful/failed site scrapes.</p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Use <span className="text-amber-200 font-semibold">Clear failures</span> to reset a stuck site:
-                it clears the failed flag and immediately requeues the site for the next scrape cycle.
-              </p>
-              <p className="text-[11px] text-slate-500">
-                <span className="text-blue-200 font-semibold">Retry processing</span> replays existing scraped data for
-                the site (no new scrape) and re-ingests jobs, while also clearing failures.
-              </p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Use <span className="text-emerald-200 font-semibold">Reset processing</span> to move any stuck job-detail
-                URLs back to pending for reprocessing.
-              </p>
-              <p className="text-[11px] text-slate-500">
-                <span className="text-indigo-200 font-semibold">Reset completed</span> will reopen finished job-detail
-                URLs (e.g., for re-scrape) and move them back to pending.
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="min-w-full text-left text-xs text-slate-200">
-              <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-3 py-2 border-b border-slate-800">Status</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Site</th>
-                  <th className="px-3 py-2 border-b border-slate-800">URL</th>
-                  <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last run</th>
-                  <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last failure</th>
-                  <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Failures</th>
-                  <th className="px-3 py-2 border-b border-slate-800 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {sorted.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-3 py-3 text-center text-slate-500">
-                      {successfulSites === undefined || failedSites === undefined ? "Loading..." : "No data yet."}
-                    </td>
-                  </tr>
-                )}
-                {sorted.map((row) => (
-                  <tr key={row._id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-3 py-2">
-                      <span
-                        className={clsx(
-                          "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
-                          row.status === "success"
-                            ? "bg-green-900/30 text-green-300 border-green-800"
-                            : "bg-red-900/30 text-red-300 border-red-800"
-                        )}
-                      >
-                        {row.status === "success" ? "Success" : "Failed"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-sm text-white truncate max-w-[180px]">{row.name || "Untitled"}</td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300 font-mono truncate max-w-[260px]">{row.url}</td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
-                      {row.lastRunAt ? new Date(row.lastRunAt).toLocaleString() : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
-                      {row.lastFailureAt ? new Date(row.lastFailureAt).toLocaleString() : row.lastError ? "Failed" : "—"}
-                      {row.lastError && (
-                        <div className="text-[10px] text-red-300 mt-1 line-clamp-2">{row.lastError}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300 text-center">
-                      {row.failCount ?? (row.status === "failed" ? 1 : 0)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            void (async () => {
-                              try {
-                                const res = await clearIgnoredJobsForSource({
-                                  sourceUrl: row.url,
-                                  provider: row.scrapeProvider,
-                                  reason: "missing_required_keyword",
-                                });
-                                toast.success(`Cleared ${res.deleted ?? 0} skipped jobs`);
-                              } catch (err: any) {
-                                toast.error(err?.message ?? "Failed to clear skipped jobs");
-                              }
-                            })();
-                          }}
-                          className="text-[11px] px-2 py-1 rounded border border-purple-700 bg-purple-900/30 text-purple-200 hover:bg-purple-800/40 transition-colors"
-                        >
-                          Clear skipped
-                        </button>
-                        {row.status === "failed" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                void (async () => {
-                                  try {
-                                    await retrySite({ id: row._id, clearError: true });
-                                    toast.success("Failures cleared; site requeued");
-                                  } catch {
-                                    toast.error("Failed to clear site errors");
-                                  }
-                                })();
-                              }}
-                              className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
-                            >
-                              Clear failures
-                            </button>
-                            <button
-                              onClick={() => {
-                                void (async () => {
-                                  try {
-                                    const res = await retryProcessing({ id: row._id });
-                                    toast.success(
-                                      `Replayed ${res.jobsAttempted ?? 0} jobs from ${res.scrapesProcessed ?? 0} scrapes`
-                                    );
-                                  } catch (err: any) {
-                                    toast.error(`Retry processing failed: ${err?.message ?? "unknown error"}`);
-                                  }
-                                })();
-                              }}
-                              className="text-[11px] px-2 py-1 rounded border border-blue-700 bg-blue-900/30 text-blue-200 hover:bg-blue-800/40 transition-colors"
-                            >
-                              Retry processing
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Job detail queue controls</h3>
-              <p className="text-[11px] text-slate-500">Manually reset stuck or completed job-detail URLs.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      const res = await resetScrapeUrlProcessing({});
-                      toast.success(`Reset ${res.updated ?? 0} processing URLs to pending`);
-                    } catch (err: any) {
-                      toast.error(err?.message ?? "Failed to reset processing URLs");
-                    }
-                  })();
-                }}
-                className="text-[11px] px-2 py-1 rounded border border-emerald-700 bg-emerald-900/30 text-emerald-200 hover:bg-emerald-800/40 transition-colors"
-              >
-                Reset processing
-              </button>
-              <button
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      const res = await resetScrapeUrlsByStatus({});
-                      toast.success(`Reset ${res.updated ?? 0} completed URLs to pending`);
-                    } catch (err: any) {
-                      toast.error(err?.message ?? "Failed to reset completed URLs");
-                    }
-                  })();
-                }}
-                className="text-[11px] px-2 py-1 rounded border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
-              >
-                Reset completed
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Scrape Errors</h2>
-              <p className="text-xs text-slate-500">Latest Firecrawl/worker failures captured from webhooks.</p>
-            </div>
-            <span className="text-[10px] text-slate-500 font-mono">{scrapeErrors?.length ?? 0} recent</span>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="min-w-full text-left text-xs text-slate-200">
-              <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-3 py-2 border-b border-slate-800">Job ID</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Source</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Status</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Error</th>
-                  <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">When</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {(scrapeErrors ?? []).length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-3 text-center text-slate-500">
-                      {scrapeErrors === undefined ? "Loading..." : "No errors recorded."}
-                    </td>
-                  </tr>
-                )}
-                {(scrapeErrors ?? []).map((err: any) => (
-                  <tr key={err._id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[160px]">
-                      {err.jobId || "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="text-[11px] text-slate-200 truncate max-w-[220px]">{err.sourceUrl || "—"}</div>
-                      {err.siteId && <div className="text-[10px] text-slate-500">site: {err.siteId}</div>}
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300">
-                      <span className="px-1.5 py-0.5 rounded bg-red-900/30 border border-red-800 text-red-200 text-[10px] font-medium">
-                        {err.status || "error"}
-                      </span>
-                      {err.event && <div className="text-[10px] text-slate-500 mt-0.5">{err.event}</div>}
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-red-200 max-w-[260px]">
-                      <div className="line-clamp-2 leading-snug">{err.error}</div>
-                    </td>
-                    <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
-                      {err.createdAt ? new Date(err.createdAt).toLocaleString() : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-      );
-}
-
-      function WorkflowMetaSummary({workflow}: {workflow: WorkflowScheduleMeta }) {
   return (
-      <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 mt-1">
-        <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-100 font-medium">
-          {workflow.name}
-        </span>
-        <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Schedule: {workflow.scheduleId}</span>
-        <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">
-          Cadence: every {formatInterval(workflow.intervalSeconds)}
-        </span>
-        {workflow.taskQueue && (
-          <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Queue: {workflow.taskQueue}</span>
-        )}
-      </div>
-      );
-}
-
-      function PendingRequestsSection() {
-  const RUN_REQUEST_TABS = [
-    {
-      id: "pending",
-      label: "Pending",
-      description: "Request created; not yet leased by a worker.",
-    },
-    {
-      id: "processing",
-      label: "Processing",
-      description: "Leased by a worker and currently running.",
-    },
-    {
-      id: "done",
-      label: "Done",
-      description: "Workflow finished and request marked complete.",
-    },
-  ] as const;
-  type RunRequestTab = typeof RUN_REQUEST_TABS[number]["id"];
-  const [runRequestTab, setRunRequestTab] = useState<RunRequestTab>("pending");
-  const pendingRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "pending" });
-  const processingRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "processing" });
-  const doneRequests = useQuery(api.router.listRunRequests, { limit: 25, status: "done" });
-  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, {limit: 25 });
-
-  const runRequestByStatus: Record<RunRequestTab, any[] | undefined> = {
-    pending: pendingRequests ?? undefined,
-    processing: processingRequests ?? undefined,
-    done: doneRequests ?? undefined,
-  };
-  const runRequestsRaw = runRequestByStatus[runRequestTab];
-  const runRequests = runRequestsRaw ?? [];
-  const activeTabMeta = RUN_REQUEST_TABS.find((tab) => tab.id === runRequestTab);
-
-      return (
-      <div className="space-y-4">
-        <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Pending Requests</h2>
-              <p className="text-xs text-slate-500">{SITE_LEASE_WORKFLOW.description}</p>
-              <WorkflowMetaSummary workflow={SITE_LEASE_WORKFLOW} />
-            </div>
-            <span className="text-[10px] text-slate-500 font-mono">
-              {runRequests?.length ?? 0} {runRequestTab}
-            </span>
+    <div className="space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Worker Status</h2>
+            <p className="text-xs text-slate-500">Recent successful/failed site scrapes.</p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Use <span className="text-amber-200 font-semibold">Clear failures</span> to reset a stuck site:
+              it clears the failed flag and immediately requeues the site for the next scrape cycle.
+            </p>
+            <p className="text-[11px] text-slate-500">
+              <span className="text-blue-200 font-semibold">Retry processing</span> replays existing scraped data for
+              the site (no new scrape) and re-ingests jobs, while also clearing failures.
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Use <span className="text-emerald-200 font-semibold">Reset processing</span> to move any stuck job-detail
+              URLs back to pending for reprocessing.
+            </p>
+            <p className="text-[11px] text-slate-500">
+              <span className="text-indigo-200 font-semibold">Reset completed</span> will reopen finished job-detail
+              URLs (e.g., for re-scrape) and move them back to pending.
+            </p>
           </div>
-          <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/40">
-            <div className="flex flex-wrap gap-2">
-              {RUN_REQUEST_TABS.map((tab) => {
-                const count = (runRequestByStatus[tab.id]?.length ?? 0);
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setRunRequestTab(tab.id)}
-                    className={clsx(
-                      "px-2.5 py-1 rounded text-[11px] font-medium border transition-colors",
-                      runRequestTab === tab.id
-                        ? "bg-slate-800 text-white border-slate-600 shadow-inner"
-                        : "bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
+        </div>
+
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                <th className="px-3 py-2 border-b border-slate-800">URL</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last run</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Last failure</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Failures</th>
+                <th className="px-3 py-2 border-b border-slate-800 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-3 text-center text-slate-500">
+                    {successfulSites === undefined || failedSites === undefined ? "Loading..." : "No data yet."}
+                  </td>
+                </tr>
+              )}
+              {sorted.map((row) => (
+                <tr key={row._id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="px-3 py-2">
+                    <span
+                      className={clsx(
+                        "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
+                        row.status === "success"
+                          ? "bg-green-900/30 text-green-300 border-green-800"
+                          : "bg-red-900/30 text-red-300 border-red-800"
+                      )}
+                    >
+                      {row.status === "success" ? "Success" : "Failed"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-sm text-white truncate max-w-[180px]">{row.name || "Untitled"}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 font-mono truncate max-w-[260px]">{row.url}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
+                    {row.lastRunAt ? new Date(row.lastRunAt).toLocaleString() : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 whitespace-nowrap">
+                    {row.lastFailureAt ? new Date(row.lastFailureAt).toLocaleString() : row.lastError ? "Failed" : "—"}
+                    {row.lastError && (
+                      <div className="text-[10px] text-red-300 mt-1 line-clamp-2">{row.lastError}</div>
                     )}
-                  >
-                    {tab.label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-            {activeTabMeta && (
-              <p className="text-[11px] text-slate-500 mt-2">{activeTabMeta.description}</p>
-            )}
-          </div>
-          <div className="overflow-auto">
-            <table className="min-w-full text-left text-xs text-slate-200">
-              <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-3 py-2 border-b border-slate-800">Site</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Status</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Elapsed</th>
-                  <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">ETA</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {(runRequests ?? []).length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
-                      {runRequestsRaw === undefined ? "Loading..." : "No run requests in this state."}
-                    </td>
-                  </tr>
-                )}
-                {(runRequests ?? []).map((req: any) => (
-                  <tr key={req._id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-3 py-2">
-                      <div className="text-[11px] text-slate-100 font-semibold truncate max-w-[220px]">
-                        {req.companyName || "—"}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[220px]">{req.siteUrl || "—"}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{String(req.siteId)}</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={clsx(
-                          "px-1.5 py-0.5 rounded border text-[10px] font-medium",
-                          req.status === "done"
-                            ? "bg-green-900/30 text-green-200 border-green-800"
-                            : req.status === "processing"
-                              ? "bg-amber-900/30 text-amber-200 border-amber-800"
-                              : "bg-slate-900/50 text-slate-300 border-slate-700"
-                        )}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300 text-center">
+                    {row.failCount ?? (row.status === "failed" ? 1 : 0)}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              const res = await clearIgnoredJobsForSource({
+                                sourceUrl: row.url,
+                                provider: row.scrapeProvider,
+                                reason: "missing_required_keyword",
+                              });
+                              toast.success(`Cleared ${res.deleted ?? 0} skipped jobs`);
+                            } catch (err: any) {
+                              toast.error(err?.message ?? "Failed to clear skipped jobs");
+                            }
+                          })();
+                        }}
+                        className="text-[11px] px-2 py-1 rounded border border-purple-700 bg-purple-900/30 text-purple-200 hover:bg-purple-800/40 transition-colors"
                       >
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300">
-                      {req.createdAt ? (
-                        <LiveTimer
-                          startTime={req.createdAt}
-                          colorize
-                          warnAfterMs={2 * 60 * 1000}
-                          dangerAfterMs={10 * 60 * 1000}
-                          showAgo
-                        />
-                      ) : (
-                        "—"
+                        Clear skipped
+                      </button>
+                      {row.status === "failed" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              void (async () => {
+                                try {
+                                  await retrySite({ id: row._id, clearError: true });
+                                  toast.success("Failures cleared; site requeued");
+                                } catch {
+                                  toast.error("Failed to clear site errors");
+                                }
+                              })();
+                            }}
+                            className="text-[11px] px-2 py-1 rounded border border-amber-700 bg-amber-900/30 text-amber-200 hover:bg-amber-800/40 transition-colors"
+                          >
+                            Clear failures
+                          </button>
+                          <button
+                            onClick={() => {
+                              void (async () => {
+                                try {
+                                  const res = await retryProcessing({ id: row._id });
+                                  toast.success(
+                                    `Replayed ${res.jobsAttempted ?? 0} jobs from ${res.scrapesProcessed ?? 0} scrapes`
+                                  );
+                                } catch (err: any) {
+                                  toast.error(`Retry processing failed: ${err?.message ?? "unknown error"}`);
+                                }
+                              })();
+                            }}
+                            className="text-[11px] px-2 py-1 rounded border border-blue-700 bg-blue-900/30 text-blue-200 hover:bg-blue-800/40 transition-colors"
+                          >
+                            Retry processing
+                          </button>
+                        </>
                       )}
-                    </td>
-                    <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
-                      {req.expectedEta ? new Date(req.expectedEta).toLocaleTimeString() : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Pending Firecrawl Webhooks</h2>
-              <p className="text-xs text-slate-500">{PROCESS_WEBHOOK_WORKFLOW.description}</p>
-              <WorkflowMetaSummary workflow={PROCESS_WEBHOOK_WORKFLOW} />
-            </div>
-            <span className="text-[10px] text-slate-500 font-mono">{pendingWebhooks?.length ?? 0} pending</span>
-          </div>
-          <div className="overflow-auto">
-            <table className="min-w-full text-left text-xs text-slate-200">
-              <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-3 py-2 border-b border-slate-800">Job</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Site</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Event</th>
-                  <th className="px-3 py-2 border-b border-slate-800">Received</th>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {(pendingWebhooks ?? []).length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
-                      {pendingWebhooks === undefined ? "Loading..." : "No pending webhooks."}
-                    </td>
-                  </tr>
-                )}
-                {(pendingWebhooks ?? []).map((hook: any) => (
-                  <tr key={hook._id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[180px]">
-                      {hook.jobId || "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="text-[11px] text-slate-200 truncate max-w-[220px]">
-                        {hook.siteUrl || (hook.metadata || {}).siteUrl || "—"}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">{hook.siteId || (hook.metadata || {}).siteId || ""}</div>
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300">{hook.event || "—"}</td>
-                    <td className="px-3 py-2 text-[11px] text-slate-300">
-                      {hook.receivedAt ? (
-                        <LiveTimer
-                          startTime={hook.receivedAt}
-                          colorize
-                          warnAfterMs={2 * 60 * 1000}
-                          dangerAfterMs={10 * 60 * 1000}
-                          showAgo
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Job detail queue controls</h3>
+            <p className="text-[11px] text-slate-500">Manually reset stuck or completed job-detail URLs.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const res = await resetScrapeUrlProcessing({});
+                    toast.success(`Reset ${res.updated ?? 0} processing URLs to pending`);
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Failed to reset processing URLs");
+                  }
+                })();
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-emerald-700 bg-emerald-900/30 text-emerald-200 hover:bg-emerald-800/40 transition-colors"
+            >
+              Reset processing
+            </button>
+            <button
+              onClick={() => {
+                void (async () => {
+                  try {
+                    const res = await resetScrapeUrlsByStatus({});
+                    toast.success(`Reset ${res.updated ?? 0} completed URLs to pending`);
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Failed to reset completed URLs");
+                  }
+                })();
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
+            >
+              Reset completed
+            </button>
           </div>
         </div>
       </div>
-      );
+
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Scrape Errors</h2>
+            <p className="text-xs text-slate-500">Latest Firecrawl/worker failures captured from webhooks.</p>
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">{scrapeErrors?.length ?? 0} recent</span>
+        </div>
+
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Job ID</th>
+                <th className="px-3 py-2 border-b border-slate-800">Source</th>
+                <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                <th className="px-3 py-2 border-b border-slate-800">Error</th>
+                <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">When</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(scrapeErrors ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-3 text-center text-slate-500">
+                    {scrapeErrors === undefined ? "Loading..." : "No errors recorded."}
+                  </td>
+                </tr>
+              )}
+              {(scrapeErrors ?? []).map((err: any) => (
+                <tr key={err._id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[160px]">
+                    {err.jobId || "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">{err.sourceUrl || "—"}</div>
+                    {err.siteId && <div className="text-[10px] text-slate-500">site: {err.siteId}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">
+                    <span className="px-1.5 py-0.5 rounded bg-red-900/30 border border-red-800 text-red-200 text-[10px] font-medium">
+                      {err.status || "error"}
+                    </span>
+                    {err.event && <div className="text-[10px] text-slate-500 mt-0.5">{err.event}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-red-200 max-w-[260px]">
+                    <div className="line-clamp-2 leading-snug">{err.error}</div>
+                  </td>
+                  <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
+                    {err.createdAt ? new Date(err.createdAt).toLocaleString() : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  );
 }
 
-      function DatabaseSection() {
+function WorkflowMetaSummary({ workflow }: { workflow: WorkflowScheduleMeta }) {
+  return (
+    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 mt-1">
+      <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-100 font-medium">
+        {workflow.name}
+      </span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Schedule: {workflow.scheduleId}</span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">
+        Cadence: every {formatInterval(workflow.intervalSeconds)}
+      </span>
+      {workflow.taskQueue && (
+        <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Queue: {workflow.taskQueue}</span>
+      )}
+    </div>
+  );
+}
+
+function PendingRequestsSection() {
+  const QUEUE_TABS = [
+    { id: "site_scrapes", label: "Site Scrapes", description: "Full site crawl requests." },
+    { id: "listings", label: "Listings", description: "Job listing URLs (discovery layer)." },
+    { id: "details", label: "Details", description: "Job detail pages (extraction layer)." },
+    { id: "webhooks", label: "Webhooks", description: "Firecrawl webhooks (input layer)." },
+  ] as const;
+  type QueueTab = typeof QUEUE_TABS[number]["id"];
+  const [activeTab, setActiveTab] = useState<QueueTab>("site_scrapes");
+
+  const siteScrapes = useQuery(api.router.listRunRequests, { limit: 50 });
+  const listings = useQuery(api.router.listScrapeQueue, activeTab === "listings" ? { limit: 50, type: "listing" } : "skip");
+  const details = useQuery(api.router.listScrapeQueue, activeTab === "details" ? { limit: 50, type: "detail" } : "skip");
+  const webhooks = useQuery(api.router.listFirecrawlWebhooks, activeTab === "webhooks" ? { limit: 50 } : "skip");
+  const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, { limit: 50 });
+
+  const data = activeTab === "site_scrapes" ? siteScrapes
+    : activeTab === "listings" ? listings
+      : activeTab === "details" ? details
+        : activeTab === "webhooks" ? webhooks
+          : undefined;
+
+  const activeTabMeta = QUEUE_TABS.find((tab) => tab.id === activeTab);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Queued Jobs</h2>
+            <p className="text-xs text-slate-500">{SITE_LEASE_WORKFLOW.description}</p>
+            <WorkflowMetaSummary workflow={SITE_LEASE_WORKFLOW} />
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">
+            {data?.length ?? 0} {activeTab}
+          </span>
+        </div>
+        <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/40">
+          <div className="flex flex-wrap gap-2">
+            {QUEUE_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={clsx(
+                  "px-2.5 py-1 rounded text-[11px] font-medium border transition-colors",
+                  activeTab === tab.id
+                    ? "bg-slate-800 text-white border-slate-600 shadow-inner"
+                    : "bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeTabMeta && (
+            <p className="text-[11px] text-slate-500 mt-2">{activeTabMeta.description}</p>
+          )}
+        </div>
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                {activeTab === "site_scrapes" && (
+                  <>
+                    <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Elapsed</th>
+                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">ETA</th>
+                  </>
+                )}
+                {(activeTab === "listings" || activeTab === "details") && (
+                  <>
+                    <th className="px-3 py-2 border-b border-slate-800">URL</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Status</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Attempts</th>
+                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Updated</th>
+                  </>
+                )}
+                {activeTab === "webhooks" && (
+                  <>
+                    <th className="px-3 py-2 border-b border-slate-800">Source</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Event</th>
+                    <th className="px-3 py-2 border-b border-slate-800">Processed</th>
+                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Received</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(data ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
+                    {data === undefined ? "Loading..." : "No items found."}
+                  </td>
+                </tr>
+              )}
+              {(data ?? []).map((row: any) => (
+                <tr key={row._id} className="hover:bg-slate-800/40 transition-colors">
+                  {activeTab === "site_scrapes" && (
+                    <>
+                      <td className="px-3 py-2">
+                        <div className="text-[11px] text-slate-100 font-semibold truncate max-w-[220px]">
+                          {row.companyName || "—"}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate max-w-[220px]">{row.siteUrl || "—"}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">{String(row.siteId)}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={clsx(
+                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
+                            row.status === "done"
+                              ? "bg-green-900/30 text-green-200 border-green-800"
+                              : row.status === "processing"
+                                ? "bg-amber-900/30 text-amber-200 border-amber-800"
+                                : "bg-slate-900/50 text-slate-300 border-slate-700"
+                          )}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300">
+                        {row.createdAt ? (
+                          <LiveTimer
+                            startTime={row.createdAt}
+                            colorize
+                            warnAfterMs={2 * 60 * 1000}
+                            dangerAfterMs={10 * 60 * 1000}
+                            showAgo
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
+                        {row.expectedEta ? new Date(row.expectedEta).toLocaleTimeString() : "—"}
+                      </td>
+                    </>
+                  )}
+                  {(activeTab === "listings" || activeTab === "details") && (
+                    <>
+                      <td className="px-3 py-2">
+                        <div className="text-[11px] text-slate-100 font-mono truncate max-w-[300px]">
+                          {row.url}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate max-w-[300px]">
+                          Src: {row.sourceUrl || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={clsx(
+                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
+                            row.status === "completed"
+                              ? "bg-green-900/30 text-green-200 border-green-800"
+                              : row.status === "processing"
+                                ? "bg-amber-900/30 text-amber-200 border-amber-800"
+                                : row.status === "failed" || row.status === "invalid"
+                                  ? "bg-red-900/30 text-red-200 border-red-800"
+                                  : "bg-slate-900/50 text-slate-300 border-slate-700"
+                          )}
+                        >
+                          {row.status}
+                        </span>
+                        {row.lastError && (
+                          <div className="text-[10px] text-red-400 truncate max-w-[100px] mt-0.5">{row.lastError}</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono">
+                        {row.attempts ?? 0}
+                      </td>
+                      <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
+                        <LiveTimer startTime={row.updatedAt || row.createdAt} showAgo />
+                      </td>
+                    </>
+                  )}
+                  {activeTab === "webhooks" && (
+                    <>
+                      <td className="px-3 py-2">
+                        <div className="text-[11px] text-slate-100 truncate max-w-[200px]">
+                          {row.sourceUrl || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300">
+                        {row.event}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={clsx(
+                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
+                            row.processed
+                              ? "bg-green-900/30 text-green-200 border-green-800"
+                              : "bg-slate-900/50 text-slate-300 border-slate-700"
+                          )}
+                        >
+                          {row.processed ? "Processed" : "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono whitespace-nowrap">
+                        {row.receivedAt ? new Date(row.receivedAt).toLocaleString() : "—"}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Pending Webhooks</h2>
+            <p className="text-xs text-slate-500">Webhooks waiting to be processed.</p>
+          </div>
+          <span className="text-[10px] text-slate-500 font-mono">{pendingWebhooks?.length ?? 0} pending</span>
+        </div>
+        <div className="overflow-auto">
+          <table className="min-w-full text-left text-xs text-slate-200">
+            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-2 border-b border-slate-800">Job</th>
+                <th className="px-3 py-2 border-b border-slate-800">Site</th>
+                <th className="px-3 py-2 border-b border-slate-800">Event</th>
+                <th className="px-3 py-2 border-b border-slate-800">Received</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {(pendingWebhooks ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
+                    {pendingWebhooks === undefined ? "Loading..." : "No pending webhooks."}
+                  </td>
+                </tr>
+              )}
+              {(pendingWebhooks ?? []).map((hook: any) => (
+                <tr key={hook._id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-2 font-mono text-[11px] text-slate-300 truncate max-w-[180px]">
+                    {hook.jobId || "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="text-[11px] text-slate-200 truncate max-w-[220px]">
+                      {hook.siteUrl || (hook.metadata || {}).siteUrl || "—"}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono">{hook.siteId || (hook.metadata || {}).siteId || ""}</div>
+                  </td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">{hook.event || "—"}</td>
+                  <td className="px-3 py-2 text-[11px] text-slate-300">
+                    {hook.receivedAt ? (
+                      <LiveTimer
+                        startTime={hook.receivedAt}
+                        colorize
+                        warnAfterMs={2 * 60 * 1000}
+                        dangerAfterMs={10 * 60 * 1000}
+                        showAgo
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatabaseSection() {
   const insertFakeJobs = useMutation(api.seedData.insertFakeJobs);
   const normalizeDevTestJobs = useMutation(api.jobs.normalizeDevTestJobs);
   const reparseAllJobs = useMutation(api.jobs.reparseAllJobs);
@@ -2770,10 +2844,10 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
 
   const handleInsertFakeJobs = async () => {
     try {
-      const result = await insertFakeJobs({ });
+      const result = await insertFakeJobs({});
       toast.success(result.message);
     } catch {
-        toast.error("Failed to insert fake jobs");
+      toast.error("Failed to insert fake jobs");
     }
   };
 
@@ -2824,103 +2898,103 @@ function ScrapeActivitySection({ onOpenRuns }: { onOpenRuns: (url: string) => vo
     }
   };
 
-      return (
-      <div className="space-y-4">
-        <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
-          <h2 className="text-lg font-semibold text-white mb-4">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => { void handleInsertFakeJobs(); }}
-              className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-500 transition-colors"
-            >
-              Insert 10 Fake Jobs
-            </button>
-            <button
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const res = await normalizeDevTestJobs({});
-                    toast.success(`Normalized ${res.updated} jobs`);
-                  } catch {
-                    toast.error("Failed to normalize");
-                  }
-                })();
-              }}
-              className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-500 transition-colors"
-            >
-              Normalize Dev/Test Jobs
-            </button>
-            <button
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const res = await reparseAllJobs({});
-                    toast.success(`Re-parsed ${res.updated} of ${res.scanned} jobs`);
-                  } catch (err: any) {
-                    toast.error(err?.message ?? "Failed to re-parse");
-                  }
-                })();
-              }}
-              className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded hover:bg-amber-500 transition-colors"
-            >
-              Re-parse All Jobs
-            </button>
-            <button
-              onClick={() => { void handleResetTodayAndRunAll(); }}
-              disabled={resettingToday}
-              className={clsx(
-                "px-3 py-1.5 text-white text-sm font-medium rounded transition-colors",
-                resettingToday
-                  ? "bg-red-900/60 cursor-not-allowed"
-                  : "bg-red-700 hover:bg-red-600"
-              )}
-              title="Deletes today's scrapes/jobs/skipped records, clears the scrape queue, and manually triggers all enabled scheduled sites"
-            >
-              {resettingToday ? "Running..." : "Purge today + Run all scheduled"}
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-2">
-            Uses the current server day (midnight to midnight) for the delete window and triggers every enabled site with a schedule.
-          </p>
-        </div>
-
-        <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
-          <h2 className="text-lg font-semibold text-white mb-4">Current Jobs ({recentJobs?.length || 0})</h2>
-          <div className="space-y-2">
-            {recentJobs ? (
-              recentJobs.map((job) => (
-                <div key={job._id} className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800 rounded hover:border-slate-700 transition-colors group">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-slate-200 truncate">{job.title}</h3>
-                    <p className="text-xs text-slate-500 truncate">{job.company} • {job.location}</p>
-                  </div>
-                  <div className="flex items-center gap-3 pl-4">
-                    <span className="text-[10px] text-slate-600 font-mono whitespace-nowrap">
-                      {new Date(job.postedAt).toLocaleDateString()}
-                    </span>
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          try {
-                            await deleteJob({ jobId: job._id as any });
-                            toast.success("Deleted");
-                          } catch {
-                            toast.error("Failed");
-                          }
-                        })();
-                      }}
-                      className="opacity-0 group-hover:opacity-100 px-2 py-1 text-[10px] bg-red-900/20 text-red-400 border border-red-900/30 rounded hover:bg-red-900/40 transition-all"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">Loading...</p>
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
+        <h2 className="text-lg font-semibold text-white mb-4">Actions</h2>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => { void handleInsertFakeJobs(); }}
+            className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-500 transition-colors"
+          >
+            Insert 10 Fake Jobs
+          </button>
+          <button
+            onClick={() => {
+              void (async () => {
+                try {
+                  const res = await normalizeDevTestJobs({});
+                  toast.success(`Normalized ${res.updated} jobs`);
+                } catch {
+                  toast.error("Failed to normalize");
+                }
+              })();
+            }}
+            className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-500 transition-colors"
+          >
+            Normalize Dev/Test Jobs
+          </button>
+          <button
+            onClick={() => {
+              void (async () => {
+                try {
+                  const res = await reparseAllJobs({});
+                  toast.success(`Re-parsed ${res.updated} of ${res.scanned} jobs`);
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Failed to re-parse");
+                }
+              })();
+            }}
+            className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded hover:bg-amber-500 transition-colors"
+          >
+            Re-parse All Jobs
+          </button>
+          <button
+            onClick={() => { void handleResetTodayAndRunAll(); }}
+            disabled={resettingToday}
+            className={clsx(
+              "px-3 py-1.5 text-white text-sm font-medium rounded transition-colors",
+              resettingToday
+                ? "bg-red-900/60 cursor-not-allowed"
+                : "bg-red-700 hover:bg-red-600"
             )}
-          </div>
+            title="Deletes today's scrapes/jobs/skipped records, clears the scrape queue, and manually triggers all enabled scheduled sites"
+          >
+            {resettingToday ? "Running..." : "Purge today + Run all scheduled"}
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-2">
+          Uses the current server day (midnight to midnight) for the delete window and triggers every enabled site with a schedule.
+        </p>
+      </div>
+
+      <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
+        <h2 className="text-lg font-semibold text-white mb-4">Current Jobs ({recentJobs?.length || 0})</h2>
+        <div className="space-y-2">
+          {recentJobs ? (
+            recentJobs.map((job) => (
+              <div key={job._id} className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800 rounded hover:border-slate-700 transition-colors group">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-slate-200 truncate">{job.title}</h3>
+                  <p className="text-xs text-slate-500 truncate">{job.company} • {job.location}</p>
+                </div>
+                <div className="flex items-center gap-3 pl-4">
+                  <span className="text-[10px] text-slate-600 font-mono whitespace-nowrap">
+                    {new Date(job.postedAt).toLocaleDateString()}
+                  </span>
+                  <button
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          await deleteJob({ jobId: job._id as any });
+                          toast.success("Deleted");
+                        } catch {
+                          toast.error("Failed");
+                        }
+                      })();
+                    }}
+                    className="opacity-0 group-hover:opacity-100 px-2 py-1 text-[10px] bg-red-900/20 text-red-400 border border-red-900/30 rounded hover:bg-red-900/40 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-slate-500">Loading...</p>
+          )}
         </div>
       </div>
-      );
+    </div>
+  );
 }

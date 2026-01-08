@@ -109,27 +109,32 @@ class HubspotCareersHandler(BaseSiteHandler):
             if not host.endswith(HUBSPOT_HOST_SUFFIX):
                 continue
             path = parsed.path or ""
+            normalized_variants: List[str] = []
             if self._is_job_detail_path(path):
-                query = ""
-                if parsed.query:
-                    params = [
-                        (key, value)
-                        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-                        if key.lower() == "hubs_signup-cta"
-                    ]
-                    if params:
-                        query = urlencode(params, doseq=True)
-                normalized = urlunparse(
-                    parsed._replace(path=path, params="", query=query, fragment="")
+                params = [
+                    (key, value)
+                    for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                    if key.lower() == "hubs_signup-cta"
+                ]
+                query = urlencode(params, doseq=True) if params else ""
+                canonical = urlunparse(
+                    parsed._replace(path=path, params="", query="", fragment="")
                 )
+                normalized_variants.append(canonical)
+                if query:
+                    normalized_query = urlunparse(
+                        parsed._replace(path=path, params="", query=query, fragment="")
+                    )
+                    normalized_variants.append(normalized_query)
             elif self._is_listing_path(path):
-                normalized = self._normalize_listing_url(parsed)
+                normalized_variants.append(self._normalize_listing_url(parsed))
             else:
                 continue
-            if normalized in seen:
-                continue
-            seen.add(normalized)
-            filtered.append(normalized)
+            for normalized in normalized_variants:
+                if normalized in seen:
+                    continue
+                seen.add(normalized)
+                filtered.append(normalized)
         return filtered
 
     def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:

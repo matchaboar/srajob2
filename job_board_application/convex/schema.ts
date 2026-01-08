@@ -257,7 +257,8 @@ const applicationTables = {
     error: v.optional(v.string()),
   })
     .index("by_job", ["jobId"])
-    .index("by_processed", ["processed"]),
+    .index("by_processed", ["processed"])
+    .index("by_received", ["receivedAt"]),
 
   resumes: defineTable({
     userId: v.id("users"),
@@ -354,7 +355,8 @@ const applicationTables = {
     .index("by_site_status", ["siteId", "status"])
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
     .index("by_status_url_type", ["status", "urlType"])
-    .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"]),
+    .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"])
+    .index("by_type_updated", ["urlType", "updatedAt"]),
 
   job_detail_configs: defineTable({
     domain: v.string(),

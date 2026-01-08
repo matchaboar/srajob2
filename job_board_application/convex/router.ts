@@ -706,11 +706,11 @@ const zonedParts = (nowMs: number, timeZone: string) => {
 const latestEligibleTime = (
   schedule:
     | {
-        days: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
-        startTime?: string | null;
-        intervalMinutes?: number | null;
-        timezone?: string | null;
-      }
+      days: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
+      startTime?: string | null;
+      intervalMinutes?: number | null;
+      timezone?: string | null;
+    }
     | null
     | undefined,
   nowMs: number
@@ -1999,22 +1999,22 @@ const leaseScrapeUrlBatchHandler = async (
   };
 
   const buckets = new Map<string, any[]>();
-    for (const row of rows as any[]) {
-      if (args.provider && row.provider !== args.provider) continue;
-      const createdAt = row.createdAt ?? 0;
-      if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
-        await ctx.db.patch(row._id, {
-          status: "failed",
-          lastError: "fail_expired",
-          updatedAt: now,
-          completedAt: now,
-        });
-        continue;
-      }
-      if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
-        // Skip stale (>7d) entries; mark ignored
-        const resolvedCompany =
-          (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
+  for (const row of rows as any[]) {
+    if (args.provider && row.provider !== args.provider) continue;
+    const createdAt = row.createdAt ?? 0;
+    if (row.urlType === "detail" && createdAt && createdAt < now - JOB_DETAIL_QUEUE_EXPIRE_MS) {
+      await ctx.db.patch(row._id, {
+        status: "failed",
+        lastError: "fail_expired",
+        updatedAt: now,
+        completedAt: now,
+      });
+      continue;
+    }
+    if (createdAt && createdAt < now - SCRAPE_URL_QUEUE_TTL_MS) {
+      // Skip stale (>7d) entries; mark ignored
+      const resolvedCompany =
+        (await resolveCompanyForUrl(ctx, row.url, "", undefined, aliasCache)).trim() ||
         fallbackCompanyName(undefined, row.url);
       await ctx.db.patch(row._id, {
         status: "failed",
@@ -2208,8 +2208,8 @@ const completeScrapeUrlsHandler = async (
     rawItems.length > 0
       ? rawItems
       : rawUrls.map((rawUrl) => ({
-          url: rawUrl,
-        }));
+        url: rawUrl,
+      }));
 
   const applyCompletion = async (item: CompleteScrapeUrlItem, fallbackRow?: any) => {
     const url = (item.url || "").trim();
@@ -2846,6 +2846,30 @@ export const listRunRequests = query({
       });
     }
     return results;
+  },
+});
+
+export const listScrapeQueue = query({
+  args: {
+    limit: v.optional(v.number()),
+    type: v.optional(v.union(v.literal("listing"), v.literal("detail"))),
+  },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
+    const type = args.type;
+
+    if (!type) {
+      // If no type specified, return empty for now as we lack a global time index
+      return [];
+    }
+
+    const rows = await ctx.db
+      .query("scrape_url_queue")
+      .withIndex("by_type_updated", (q) => q.eq("urlType", type))
+      .order("desc")
+      .take(lim);
+
+    return rows;
   },
 });
 
@@ -3845,6 +3869,20 @@ export const listScrapeErrors = query({
       .order("desc")
       .take(lim);
     return rows;
+  },
+});
+
+export const listFirecrawlWebhooks = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const lim = Math.max(1, Math.min(args.limit ?? 50, 200));
+    return await ctx.db
+      .query("firecrawl_webhooks")
+      .withIndex("by_received")
+      .order("desc")
+      .take(lim);
   },
 });
 
@@ -4904,7 +4942,7 @@ export function extractJobs(
     if (merged.includes("jr") || merged.includes("junior") || merged.includes("intern")) return "junior";
     return "mid";
   };
-const parseComp = (val: any): { value: number; unknown: boolean } => {
+  const parseComp = (val: any): { value: number; unknown: boolean } => {
     const parseRangeObj = (obj: any): number | null => {
       if (!obj || typeof obj !== "object") return null;
       const minRaw = (obj).min_value ?? (obj).min;
@@ -4958,16 +4996,16 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
       const rawTitle =
         (row && typeof row === "object"
           ? row.job_title ??
-            row.title ??
-            row.jobTitle ??
-            row.position_title ??
-            row.positionTitle ??
-            row.posting_title ??
-            row.heading ??
-            row.position ??
-            row.name ??
-            row.role ??
-            row.jobName
+          row.title ??
+          row.jobTitle ??
+          row.position_title ??
+          row.positionTitle ??
+          row.posting_title ??
+          row.heading ??
+          row.position ??
+          row.name ??
+          row.role ??
+          row.jobName
           : undefined) ?? row;
 
       const rawUrl = String(row?.url || row?.link || row?.href || row?.absolute_url || "").trim();
@@ -5050,10 +5088,10 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
 
       const { value: totalCompensation, unknown: compensationUnknown } = parseComp(
         compensationSource ??
-          (row).totalCompensation ??
-          (row).total_compensation ??
-          (row).salary ??
-          (row).compensation
+        (row).totalCompensation ??
+        (row).total_compensation ??
+        (row).salary ??
+        (row).compensation
       );
       const { value: postedAt, unknown: postedAtUnknown } = parsePostedAt(
         (row).postedAt ?? (row).posted_at,
@@ -5067,8 +5105,8 @@ const parseComp = (val: any): { value: number; unknown: boolean } => {
             : compensationSource
               ? "pay range provided in metadata"
               : compensationUnknown
-              ? UNKNOWN_COMPENSATION_REASON
-              : "compensation provided in scrape payload";
+                ? UNKNOWN_COMPENSATION_REASON
+                : "compensation provided in scrape payload";
 
       return {
         title: title || "Untitled",
