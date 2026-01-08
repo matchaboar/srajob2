@@ -57,7 +57,7 @@ export function JobBoard() {
       minCompensation: filters.minCompensation ?? undefined,
       maxCompensation: filters.maxCompensation ?? undefined,
       companies: filters.companies.length > 0 ? filters.companies : undefined,
-      excludeApplied: false,
+      excludeApplied: true,
     },
     { initialNumItems: 20 }
   );

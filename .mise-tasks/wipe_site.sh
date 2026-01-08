@@ -14,4 +14,4 @@ USAGE
   exit 0
 fi
 
-uv run agent_scripts/wipe_comapny_convex.py "$@"
+uv run agent_scripts/wipe_company_convex.py "$@"

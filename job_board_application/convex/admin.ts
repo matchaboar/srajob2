@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { TableNames } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { normalizeCompanyFilterKey } from "./jobs";
 
 type AnyDoc = Record<string, any>;
 type WipeTable =
@@ -158,6 +159,116 @@ export const wipeSiteDataByDomainPage = mutation({
         url: site.url,
         name: site.name ?? null,
       })),
+    };
+  },
+});
+
+export const wipeJobsByCompanyPage = mutation({
+  args: {
+    company: v.string(),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const company = (args.company || "").trim();
+    if (!company) {
+      throw new Error("company is required");
+    }
+
+    const needleLower = company.toLowerCase();
+    const needleKey = normalizeCompanyFilterKey(company);
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    const cursor = args.cursor ?? null;
+
+    const matchesCompany = (value: unknown): boolean => {
+      if (typeof value !== "string") return false;
+      const cleaned = value.trim();
+      if (!cleaned) return false;
+      const normalized = normalizeCompanyFilterKey(cleaned);
+      if (needleKey && normalized && normalized === needleKey) return true;
+      const lowered = cleaned.toLowerCase();
+      if (lowered === needleLower) return true;
+      if (lowered.startsWith(needleLower) && lowered.length > needleLower.length) {
+        const next = lowered[needleLower.length];
+        if (!next || !/[a-z0-9]/.test(next)) return true;
+      }
+      return false;
+    };
+
+    const page = await ctx.db.query("jobs").paginate({ cursor, numItems: batchSize });
+    let deleted = 0;
+    for (const row of page.page as AnyDoc[]) {
+      const companyValue = row.company ?? "";
+      const companyKey = row.companyKey ?? "";
+      if (!matchesCompany(companyValue) && !matchesCompany(companyKey)) {
+        continue;
+      }
+      deleted += 1;
+      if (dryRun) continue;
+      const details = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", row._id))
+        .collect();
+      for (const detail of details as AnyDoc[]) {
+        await ctx.db.delete(detail._id);
+      }
+      await ctx.db.delete(row._id);
+    }
+
+    return {
+      company,
+      dryRun,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteJobsById = mutation({
+  args: {
+    jobIds: v.array(v.id("jobs")),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const results: Array<{ jobId: string; hadJob: boolean; details: number }> = [];
+    let deletedJobs = 0;
+    let deletedDetails = 0;
+
+    for (const jobId of args.jobIds) {
+      const job = await ctx.db.get(jobId);
+      const details = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", jobId))
+        .collect();
+      const detailCount = details.length;
+
+      if (!dryRun) {
+        for (const detail of details as AnyDoc[]) {
+          await ctx.db.delete(detail._id);
+        }
+        if (job) {
+          await ctx.db.delete(jobId);
+        }
+      }
+
+      if (job) {
+        deletedJobs += 1;
+      }
+      deletedDetails += detailCount;
+      results.push({ jobId: String(jobId), hadJob: Boolean(job), details: detailCount });
+    }
+
+    return {
+      dryRun,
+      deletedJobs,
+      deletedDetails,
+      results,
     };
   },
 });

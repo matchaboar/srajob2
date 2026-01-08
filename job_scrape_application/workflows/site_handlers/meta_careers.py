@@ -14,11 +14,14 @@ META_HOST_SUFFIX = "metacareers.com"
 META_BASE_URL = "https://www.metacareers.com"
 JOBSEARCH_PATH = "/jobsearch"
 JOB_DETAIL_PATH = "/jobs/"
+JOB_DETAIL_PROFILE_PATH = "/profile/job_details/"
 GRAPHQL_ENDPOINT = "/api/graphql/"
 RESULTS_PER_PAGE = 20
 GRAPHQL_DOC_ID = "24330890369943030"
+MAX_PAGINATION_PAGE = 4
 
 _JOB_ID_RE = re.compile(r"^\d+$")
+_HREF_RE = re.compile(r'href=[\'"](?P<url>[^\'"]+)', flags=re.IGNORECASE)
 
 
 class MetaCareersHandler(BaseSiteHandler):
@@ -37,7 +40,11 @@ class MetaCareersHandler(BaseSiteHandler):
         if not host or not host.endswith(META_HOST_SUFFIX):
             return False
         path = (parsed.path or "").lower()
-        return path.startswith(JOBSEARCH_PATH) or path.startswith(JOB_DETAIL_PATH)
+        return (
+            path.startswith(JOBSEARCH_PATH)
+            or path.startswith(JOB_DETAIL_PATH)
+            or path.startswith(JOB_DETAIL_PROFILE_PATH)
+        )
 
     def is_listing_url(self, url: str) -> bool:
         try:
@@ -58,7 +65,9 @@ class MetaCareersHandler(BaseSiteHandler):
         }
         if self.is_listing_url(uri):
             base_config["return_format"] = ["raw_html"]
-            base_config["execution_scripts"] = {"*": self._build_execution_script()}
+            script = self._build_execution_script()
+            base_config["execution_scripts"] = {"*": script}
+            base_config["exuecution_scripts"] = {"*": script}
             base_config["wait_for"] = {
                 "selector": {
                     "selector": "#meta-jobs",
@@ -67,15 +76,37 @@ class MetaCareersHandler(BaseSiteHandler):
                 "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
             }
             return self._apply_page_links_config(base_config)
-        base_config["return_format"] = ["commonmark"]
+        base_config["return_format"] = ["raw_html"]
         return self._apply_page_links_config(base_config)
 
     def get_links_from_raw_html(self, html: str) -> List[str]:
         payload = self._extract_results_payload(html)
-        if not payload:
+        if payload:
+            source_url = self._extract_source_url(payload)
+            urls = self.get_links_from_json(payload)
+            pagination = self.get_pagination_urls_from_json(payload, source_url)
+            listing_pagination = self.get_pagination_urls_from_listing(source_url)
+            if listing_pagination:
+                pagination.extend(listing_pagination)
+            urls.extend(pagination)
+            return self.filter_job_urls(urls)
+        if not isinstance(html, str) or not html:
             return []
-        urls = self.get_links_from_json(payload)
-        urls.extend(self.get_pagination_urls_from_json(payload))
+        urls: List[str] = []
+        for match in _HREF_RE.finditer(html):
+            href = html_lib.unescape(match.group("url") or "").strip()
+            if not href:
+                continue
+            lower_href = href.lower()
+            if lower_href.startswith(("javascript:", "mailto:", "tel:", "#")):
+                continue
+            if not (
+                JOBSEARCH_PATH in lower_href
+                or JOB_DETAIL_PATH in lower_href
+                or JOB_DETAIL_PROFILE_PATH in lower_href
+            ):
+                continue
+            urls.append(urljoin(META_BASE_URL, href))
         return self.filter_job_urls(urls)
 
     def get_links_from_json(self, payload: Any) -> List[str]:
@@ -96,7 +127,7 @@ class MetaCareersHandler(BaseSiteHandler):
             job_id_str = str(job_id).strip()
             if not job_id_str or not _JOB_ID_RE.match(job_id_str):
                 continue
-            _add(urljoin(META_BASE_URL, f"/jobs/{job_id_str}/"))
+            _add(urljoin(META_BASE_URL, f"/profile/job_details/{job_id_str}"))
         return urls
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
@@ -118,11 +149,17 @@ class MetaCareersHandler(BaseSiteHandler):
             lower_path = path.lower()
             if not host.endswith(META_HOST_SUFFIX):
                 continue
-            if lower_path.startswith(JOB_DETAIL_PATH):
+            if lower_path.startswith(JOB_DETAIL_PROFILE_PATH):
+                segments = [seg for seg in path.split("/") if seg]
+                job_id = segments[2] if len(segments) >= 3 else ""
+                if not job_id or not _JOB_ID_RE.match(job_id):
+                    continue
+                normalized = urljoin(META_BASE_URL, f"/profile/job_details/{job_id}")
+            elif lower_path.startswith(JOB_DETAIL_PATH):
                 job_id = path.strip("/").split("/")[-1]
                 if not job_id or not _JOB_ID_RE.match(job_id):
                     continue
-                normalized = urljoin(META_BASE_URL, f"/jobs/{job_id}/")
+                normalized = urljoin(META_BASE_URL, f"/profile/job_details/{job_id}")
             elif lower_path.startswith(JOBSEARCH_PATH):
                 normalized = urlunparse(
                     parsed._replace(
@@ -138,6 +175,34 @@ class MetaCareersHandler(BaseSiteHandler):
             seen.add(normalized)
             filtered.append(normalized)
         return filtered
+
+    def should_use_structured_description(self, markdown: str) -> Optional[bool]:
+        return True
+
+    def build_structured_description(self, payload: Dict[str, Any]) -> Optional[str]:
+        if not isinstance(payload, dict):
+            return None
+
+        def _clean(value: Any) -> Optional[str]:
+            if not isinstance(value, str):
+                return None
+            cleaned = html_lib.unescape(value).replace("\u00a0", "\n").strip()
+            cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+            return cleaned if cleaned else None
+
+        parts: List[str] = []
+        description = _clean(payload.get("description"))
+        if description:
+            parts.append(description)
+        responsibilities = _clean(payload.get("responsibilities"))
+        if responsibilities:
+            parts.append(f"Responsibilities\n{responsibilities}")
+        qualifications = _clean(payload.get("qualifications"))
+        if qualifications:
+            parts.append(f"Qualifications\n{qualifications}")
+        if not parts:
+            return None
+        return "\n\n".join(parts)
 
     def get_pagination_urls_from_json(
         self,
@@ -279,9 +344,47 @@ class MetaCareersHandler(BaseSiteHandler):
         query = urlencode(params, doseq=True)
         return urlunparse(parsed._replace(query=query))
 
+    def get_pagination_urls_from_listing(self, source_url: str | None = None) -> List[str]:
+        if not source_url or not self.is_listing_url(source_url):
+            return []
+        try:
+            parsed = urlparse(source_url)
+        except Exception:
+            return []
+        query_params = [
+            (key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if key.lower() != "page"
+        ]
+        current_page = 1
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+            if key.lower() != "page":
+                continue
+            try:
+                current_page = max(1, int(str(value)))
+            except Exception:
+                current_page = 1
+            break
+        if current_page >= MAX_PAGINATION_PAGE:
+            return []
+        urls: List[str] = []
+        for page in range(current_page + 1, MAX_PAGINATION_PAGE + 1):
+            params = list(query_params)
+            params.append(("page", str(page)))
+            query = urlencode(params, doseq=True)
+            urls.append(
+                urlunparse(
+                    parsed._replace(
+                        query=query,
+                        fragment="",
+                    )
+                )
+            )
+        return urls
+
     def _build_execution_script(self) -> str:
         return f"""
-(function() {{
+(() => {{
   const listKeys = new Set([
     "divisions",
     "offices",
@@ -396,7 +499,6 @@ class MetaCareersHandler(BaseSiteHandler):
   const timeout = new Promise((_, reject) => {{
     window.setTimeout(() => reject(new Error("GraphQL timeout")), 20000);
   }});
-
   Promise.race([
     fetch("{GRAPHQL_ENDPOINT}", {{
       method: "POST",

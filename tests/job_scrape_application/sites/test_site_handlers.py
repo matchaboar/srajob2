@@ -246,21 +246,35 @@ def test_meta_careers_handler_matches_and_extracts_links():
         "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&offices[0]=Seattle%2C%20WA"
     )
     detail_url = "https://www.metacareers.com/jobs/100000000000000/"
+    detail_profile_url = "https://www.metacareers.com/profile/job_details/677160418622314"
     assert handler.matches_url(listing_url)
     assert handler.is_listing_url(listing_url)
     assert handler.matches_url(detail_url)
     assert not handler.is_listing_url(detail_url)
+    assert handler.matches_url(detail_profile_url)
+    assert not handler.is_listing_url(detail_profile_url)
 
-    fixture_path = Path(
-        "tests/job_scrape_application/workflows/fixtures/spidercloud_meta_careers_listing.json"
+    config = handler.get_spidercloud_config(listing_url)
+    assert config.get("request") == "chrome"
+    assert config.get("return_format") == ["raw_html"]
+    assert config.get("return_page_links") is True
+    assert isinstance(config.get("execution_scripts"), dict)
+    assert "*" in config.get("execution_scripts")
+    wait_for = config.get("wait_for")
+    assert isinstance(wait_for, dict)
+    assert wait_for.get("selector", {}).get("selector") == "#meta-jobs"
+
+    html = (
+        '<a href="/profile/job_details/677160418622314">Job</a>'
+        '<a href="/jobs/100000000000000/">Job 2</a>'
+        '<a href="/jobsearch/?teams[0]=Software%20Engineering&page=2">Next</a>'
+        '<a href="/culture">Culture</a>'
     )
-    payload = _load_spidercloud_fixture(fixture_path)
-    html = _extract_first_html(payload)
-    assert html
     links = handler.get_links_from_raw_html(html)
-    assert "https://www.metacareers.com/jobs/100000000000000/" in links
-    assert "https://www.metacareers.com/jobs/200000000000001/" in links
+    assert "https://www.metacareers.com/profile/job_details/677160418622314" in links
+    assert "https://www.metacareers.com/profile/job_details/100000000000000" in links
     assert any("jobsearch" in link and "page=2" in link for link in links)
+    assert "https://www.metacareers.com/culture" not in links
 
 
 def test_uber_careers_handler_extracts_listing_and_pagination_links():
@@ -451,3 +465,48 @@ def test_base_handler_keeps_adobe_listing_urls():
     filtered = handler.filter_job_urls(urls)
     for url in urls:
         assert url in filtered
+
+
+def test_base_handler_filters_meta_non_job_detail_urls():
+    handler = _BaseHandlerForTest()
+    urls = [
+        "https://www.meta.com/media-gallery",
+        "https://www.metacareers.com/accessibility-and-engagement",
+        "https://www.linkedin.com/company/meta",
+        "https://www.metacareers.com/culture",
+        "https://www.metacareers.com/nyc-disclosure-notice",
+        "https://www.metacareers.com/teams/business",
+        "https://www.metacareers.com/rotational-programs",
+        "https://www.investor.atmeta.com/home/default.aspx",
+        "https://www.meta.com/about/company-info",
+        "https://www.metacareers.com/blog",
+        "https://www.meta.com/brand/resources",
+        "https://www.facebook.com/LifeAtMeta",
+        "https://www.twitter.com/MetaforBusiness",
+        "https://www.metacareers.com/profile/info",
+        "https://www.instagram.com/lifeatmeta",
+        "https://www.metacareers.com/accommodations_request",
+        "https://transparency.meta.com/policies/community-standards",
+        "https://www.metacareers.com/profile/job_details/677160418622314",
+        "https://www.metacareers.com/jobs/100000000000000/",
+        "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering",
+    ]
+    filtered = handler.filter_job_urls(urls)
+    for blocked in urls[:17]:
+        assert blocked not in filtered
+    assert "https://www.metacareers.com/profile/job_details/677160418622314" in filtered
+    assert "https://www.metacareers.com/jobs/100000000000000/" in filtered
+    assert "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering" in filtered
+
+
+def test_base_handler_drop_source_listing_url():
+    handler = _BaseHandlerForTest()
+    source_url = "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&page=4"
+    urls = [
+        "https://www.metacareers.com/jobsearch?teams[0]=Software%20Engineering&page=4",
+        "/jobsearch?teams[0]=Software%20Engineering&page=4",
+        "https://www.metacareers.com/profile/job_details/1092822929374881",
+    ]
+    cleaned = handler.drop_source_listing_url(urls, source_url)
+    assert "https://www.metacareers.com/profile/job_details/1092822929374881" in cleaned
+    assert len(cleaned) == 1

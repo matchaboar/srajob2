@@ -965,14 +965,24 @@ export const listJobs = query({
     const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
     const requestedPageSize = args.paginationOpts.numItems ?? 50;
     const shouldExcludeApplied = args.excludeApplied !== false;
-    const hasUserApplications = shouldExcludeApplied
+    const hasAppliedApplications = shouldExcludeApplied
       ? Boolean(
           await ctx.db
             .query("applications")
-            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "applied"))
             .first()
         )
       : false;
+    const hasRejectedApplications =
+      shouldExcludeApplied && !hasAppliedApplications
+        ? Boolean(
+            await ctx.db
+              .query("applications")
+              .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "rejected"))
+              .first()
+          )
+        : false;
+    const hasUserApplications = shouldExcludeApplied ? hasAppliedApplications || hasRejectedApplications : false;
     const maxPageSize = hasCompanyFilter || hasUserApplications ? 25 : 50;
     const pageSize = Math.max(1, Math.min(requestedPageSize, maxPageSize));
     const paginationOpts = { ...args.paginationOpts, numItems: pageSize };
@@ -1050,21 +1060,27 @@ export const listJobs = query({
       return true;
     };
 
+    let appliedJobIds: Set<string> | null = null;
+    const loadAppliedJobIds = async () => {
+      if (appliedJobIds) return appliedJobIds;
+      const [appliedRows, rejectedRows] = await Promise.all([
+        ctx.db
+          .query("applications")
+          .withIndex("by_user_status_applied_at", (q: any) => q.eq("userId", userId).eq("status", "applied"))
+          .collect(),
+        ctx.db
+          .query("applications")
+          .withIndex("by_user_status_applied_at", (q: any) => q.eq("userId", userId).eq("status", "rejected"))
+          .collect(),
+      ]);
+      appliedJobIds = new Set(
+        [...appliedRows, ...rejectedRows].map((row: any) => String(row.jobId))
+      );
+      return appliedJobIds;
+    };
     const filterOutAppliedJobs = async (jobsToFilter: any[]) => {
       if (!shouldExcludeApplied || !hasUserApplications || jobsToFilter.length === 0) return jobsToFilter;
-      const uniqueIds = Array.from(new Set(jobsToFilter.map((job) => String(job._id))));
-      const applicationRows = await Promise.all(
-        uniqueIds.map((jobId) =>
-          ctx.db
-            .query("applications")
-            .withIndex("by_user_and_job", (q: any) => q.eq("userId", userId).eq("jobId", jobId))
-            .first()
-        )
-      );
-      const appliedIds = new Set<string>();
-      applicationRows.forEach((row, idx) => {
-        if (row) appliedIds.add(uniqueIds[idx]);
-      });
+      const appliedIds = await loadAppliedJobIds();
       return jobsToFilter.filter((job) => !appliedIds.has(String(job._id)));
     };
 
@@ -1782,8 +1798,8 @@ export const getAppliedJobs = query({
 
     const applications = await ctx.db
       .query("applications")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("status"), "applied"))
+      .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "applied"))
+      .order("desc")
       .collect();
 
     const appliedJobs = await Promise.all(
@@ -1825,8 +1841,8 @@ export const getRejectedJobs = query({
 
     const applications = await ctx.db
       .query("applications")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("status"), "rejected"))
+      .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "rejected"))
+      .order("desc")
       .collect();
 
     const rejectedJobs = await Promise.all(

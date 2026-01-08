@@ -8,13 +8,14 @@ import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from ..helpers.link_extractors import fix_scheme_slashes, strip_wrapping_url
+from ..helpers.link_extractors import fix_scheme_slashes, normalize_url, strip_wrapping_url
 from ..helpers.regex_patterns import JSON_ARRAY_PATTERN, JSON_OBJECT_PATTERN, PRE_PATTERN
 
 _POSTED_DATE_LABEL_RE = re.compile(
     r"^(?:#+\s*)?(?:posted\s+date|date\s+posted|posted\s+on|updated\s+on|updated\s+at|last\s+updated)\b",
     flags=re.IGNORECASE,
 )
+_RELATIVE_POSTED_LINE_RE = re.compile(r"\bposted\b.{0,40}\bago\b", flags=re.IGNORECASE)
 _ISO_DATE_RE = re.compile(r"\b(?P<date>\d{4}-\d{2}-\d{2})\b")
 _SLASH_DATE_RE = re.compile(
     r"\b(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<year>\d{2,4})\b"
@@ -23,6 +24,10 @@ _MONTH_DATE_RE = re.compile(
     r"\b(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
     r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
     r"[.,]?\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(?P<year>\d{4})\b",
+    flags=re.IGNORECASE,
+)
+_RELATIVE_POSTED_RE = re.compile(
+    r"\bposted\b[^0-9]{0,20}(?P<value>\d+)\s+(?P<unit>minute|hour|day|week|month|year)s?\s+ago\b",
     flags=re.IGNORECASE,
 )
 _MONTH_NAME_TO_NUMBER = {
@@ -133,23 +138,35 @@ class BaseSiteHandler(ABC):
         if not markdown:
             return None
 
+        relative_match = _RELATIVE_POSTED_RE.search(markdown)
+        if relative_match:
+            return relative_match.group(0)
+
         lines = markdown.splitlines()
         for idx, line in enumerate(lines):
             stripped = line.strip()
             cleaned = stripped.strip("*` ").strip()
             if not cleaned:
                 continue
-            if not _POSTED_DATE_LABEL_RE.match(cleaned):
+            if _POSTED_DATE_LABEL_RE.match(cleaned):
+                for offset in range(0, 4):
+                    if idx + offset >= len(lines):
+                        break
+                    candidate = lines[idx + offset].strip()
+                    if not candidate:
+                        continue
+                    parsed = self._extract_iso_date_from_text(candidate)
+                    if parsed:
+                        return parsed
                 continue
-            for offset in range(0, 4):
-                if idx + offset >= len(lines):
-                    break
-                candidate = lines[idx + offset].strip()
-                if not candidate:
-                    continue
-                parsed = self._extract_iso_date_from_text(candidate)
+
+            lowered = cleaned.lower()
+            if "posted" in lowered or "updated" in lowered:
+                parsed = self._extract_iso_date_from_text(cleaned)
                 if parsed:
                     return parsed
+                if "ago" in lowered or "today" in lowered or "yesterday" in lowered:
+                    return cleaned
         return None
 
     @staticmethod
@@ -192,11 +209,43 @@ class BaseSiteHandler(ABC):
     def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:
         return []
 
+    def get_pagination_urls_from_listing(self, source_url: str | None = None) -> List[str]:
+        return []
+
     def is_listing_url(self, url: str) -> bool:
         return False
 
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         return {}
+
+    def normalize_spidercloud_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        if not config:
+            return {}
+        normalized = dict(config)
+        if "execution_scripts" in normalized and "exuecution_scripts" not in normalized:
+            normalized["exuecution_scripts"] = normalized["execution_scripts"]
+        elif "exuecution_scripts" in normalized and "execution_scripts" not in normalized:
+            normalized["execution_scripts"] = normalized["exuecution_scripts"]
+        return normalized
+
+    @staticmethod
+    def drop_source_listing_url(urls: List[str], source_url: str | None) -> List[str]:
+        if not source_url or not urls:
+            return urls
+        normalized_source = normalize_url(source_url, base_url=source_url)
+        if not normalized_source:
+            return urls
+        cleaned: List[str] = []
+        for url in urls:
+            if not isinstance(url, str):
+                continue
+            if url == normalized_source:
+                continue
+            normalized = normalize_url(url, base_url=source_url)
+            if normalized == normalized_source:
+                continue
+            cleaned.append(url)
+        return cleaned
 
     def get_firecrawl_config(self, uri: str) -> Dict[str, Any]:
         return {}
@@ -205,6 +254,12 @@ class BaseSiteHandler(ABC):
         return markdown, None
 
     def extract_location_hint(self, markdown: str) -> Optional[str]:
+        return None
+
+    def should_use_structured_description(self, markdown: str) -> Optional[bool]:
+        return None
+
+    def build_structured_description(self, payload: Dict[str, Any]) -> Optional[str]:
         return None
 
     def is_api_detail_url(self, uri: str) -> bool:
@@ -241,6 +296,26 @@ class BaseSiteHandler(ABC):
         path = (parsed.path or "").lower()
         if not host or not path:
             return False
+        if host.endswith("meta.com") and not host.endswith("metacareers.com"):
+            return True
+        if host.endswith(("facebook.com", "instagram.com", "twitter.com", "x.com")):
+            return True
+        if host.endswith("metacareers.com"):
+            segments = [seg for seg in path.split("/") if seg]
+            if not segments:
+                return True
+            if segments[0] == "jobsearch":
+                return False
+            if segments[0] == "jobs":
+                return not (len(segments) >= 2 and segments[1].isdigit())
+            if (
+                len(segments) >= 3
+                and segments[0] == "profile"
+                and segments[1] == "job_details"
+                and segments[2].isdigit()
+            ):
+                return False
+            return True
         if any(token in path for token in ("http://", "https://", "http:/", "https:/")):
             return True
         segments = [seg for seg in path.split("/") if seg]

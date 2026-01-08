@@ -479,3 +479,71 @@ async def test_process_webhook_payment_required_marks_failed(monkeypatch):
     assert calls["mark"] == [("pay-1", "Payment Required: insufficient credits")]
     assert calls["fail"] == [{"id": "site-pay", "error": "Payment Required: insufficient credits"}]
     assert calls["record"]["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_process_webhook_yields_for_large_batch(monkeypatch):
+    events = [
+        {"_id": f"evt-{idx}", "event": "completed", "siteId": f"site-{idx}", "siteUrl": f"https://s/{idx}"}
+        for idx in range(25)
+    ]
+    fetch_calls = {"count": 0}
+    calls: Dict[str, Any] = {"mark": [], "complete": [], "record": None}
+    yield_calls: list[int] = []
+
+    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+        if fn is wf.fetch_pending_firecrawl_webhooks:
+            fetch_calls["count"] += 1
+            return events if fetch_calls["count"] == 1 else []
+        if fn is wf.collect_firecrawl_job_result:
+            event = args[0]
+            return {
+                "kind": "site_crawl",
+                "siteId": event["siteId"],
+                "siteUrl": event["siteUrl"],
+                "status": "completed",
+                "scrape": {"sourceUrl": event["siteUrl"], "items": {"normalized": [{"title": "ok"}]}},
+                "jobsScraped": 1,
+            }
+        if fn is wf.filter_existing_job_urls:
+            return []
+        if fn is wf.compute_urls_to_scrape:
+            return _compute_urls_to_scrape(args[0], args[1] if len(args) > 1 else [])
+        if fn is wf.scrape_greenhouse_jobs:
+            return {"jobsScraped": 0, "scrape": None}
+        if fn is wf.store_scrape:
+            return None
+        if fn is wf.complete_site:
+            calls["complete"].append(args[0])
+            return None
+        if fn is wf.mark_firecrawl_webhook_processed:
+            calls["mark"].append((args[0], args[1]))
+            return None
+        if fn is wf.record_workflow_run:
+            calls["record"] = args[0]
+            return None
+        raise AssertionError(f"Unexpected activity {fn}")
+
+    async def fake_yield_if_needed(iteration: int, *, every: int = 500) -> None:
+        if iteration > 0 and iteration % every == 0:
+            yield_calls.append(iteration)
+
+    monkeypatch.setattr(wf.workflow, "execute_activity", fake_execute_activity)
+    monkeypatch.setattr(wf.workflow, "now", lambda: datetime.fromtimestamp(1))
+    monkeypatch.setattr(
+        wf.workflow,
+        "info",
+        lambda: type("Info", (), {"run_id": "r-yield", "workflow_id": "ProcessWebhook/yield"})(),
+    )
+    monkeypatch.setattr(wf, "_yield_if_needed", fake_yield_if_needed)
+
+    summary = await wf.ProcessWebhookIngestWorkflow().run()
+
+    assert summary.processed == 25
+    assert summary.failed == 0
+    assert summary.stored == 25
+    assert summary.jobs_scraped == 25
+    assert len(calls["mark"]) == 25
+    assert len(calls["complete"]) == 25
+    assert calls["record"]["status"] == "completed"
+    assert yield_calls, "Expected workflow to yield during large webhook batch processing"

@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 from .base import BaseSiteHandler
 from ..helpers.regex_patterns import (
     BASE_URL_META_PATTERNS,
+    NON_ALNUM_PATTERN,
     WORKDAY_BASE_URL_RE,
     WORKDAY_JOB_DETAIL_PATH_RE,
     WORKDAY_JOB_DETAIL_URL_RE,
@@ -15,7 +16,11 @@ from ..helpers.regex_patterns import (
     WORKDAY_PAGE_RANGE_RE,
 )
 
-WORKDAY_HOST_SUFFIX = "myworkdayjobs.com"
+WORKDAY_HOST_SUFFIXES = ("myworkdayjobs.com", "myworkdaysite.com")
+_LOCATION_LINE_RE = re.compile(r"^locations?\s*(?P<location>.+)$", flags=re.IGNORECASE)
+_STOP_SECTION_RE = re.compile(r"^#+\s*about us\b", flags=re.IGNORECASE)
+_IMAGE_LINE_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)$")
+_EMPTY_LINK_RE = re.compile(r"^\[\s*\]\([^)]+\)$")
 
 
 class WorkdayHandler(BaseSiteHandler):
@@ -29,7 +34,7 @@ class WorkdayHandler(BaseSiteHandler):
             host = (urlparse(url).hostname or "").lower()
         except Exception:
             return False
-        return host.endswith(WORKDAY_HOST_SUFFIX)
+        return host.endswith(WORKDAY_HOST_SUFFIXES)
 
     def is_listing_url(self, url: str) -> bool:
         try:
@@ -223,6 +228,96 @@ class WorkdayHandler(BaseSiteHandler):
             augmented.append(_with_offset(working_base, offset, page_size))
 
         return augmented
+
+    def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
+        if not url:
+            return None
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return None
+        segments = [segment for segment in (parsed.path or "").split("/") if segment]
+        candidate = None
+        if "recruiting" in segments:
+            idx = segments.index("recruiting")
+            if idx + 1 < len(segments):
+                candidate = segments[idx + 1]
+        elif "cxs" in segments:
+            idx = segments.index("cxs")
+            if idx + 1 < len(segments):
+                candidate = segments[idx + 1]
+        if not candidate:
+            return None
+        cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
+        return cleaned.title() if cleaned else None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        if not markdown:
+            return None
+        for line in markdown.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            match = _LOCATION_LINE_RE.match(stripped)
+            if match:
+                return match.group("location").strip()
+        return None
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
+        if not markdown:
+            return "", None
+
+        lines = markdown.splitlines()
+        title: Optional[str] = None
+        start_idx: Optional[int] = None
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            heading_match = re.match(r"^#{1,6}\s*(.+)$", stripped)
+            if not heading_match:
+                continue
+            candidate = heading_match.group(1).strip()
+            if not candidate or candidate.lower() == "careers":
+                continue
+            title = candidate
+            start_idx = idx
+            break
+        if start_idx is not None:
+            lines = lines[start_idx:]
+
+        stop_idx: Optional[int] = None
+        for idx, line in enumerate(lines):
+            if _STOP_SECTION_RE.match(line.strip()):
+                stop_idx = idx
+                break
+        if stop_idx is not None:
+            lines = lines[:stop_idx]
+
+        cleaned_lines: List[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                cleaned_lines.append(line)
+                continue
+            lower = stripped.lower()
+            if lower in {"careers", "sign in", "decline", "accept cookies", "english"}:
+                continue
+            if lower.startswith("skip to main content"):
+                continue
+            if "this website uses cookies" in lower:
+                continue
+            if stripped.lower().startswith("[apply"):
+                continue
+            if _IMAGE_LINE_RE.match(stripped):
+                continue
+            if _EMPTY_LINK_RE.match(stripped):
+                continue
+            cleaned_lines.append(line)
+
+        cleaned = "\n".join(cleaned_lines)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+        return cleaned or markdown, title
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []

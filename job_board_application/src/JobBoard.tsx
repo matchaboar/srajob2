@@ -477,7 +477,7 @@ export function JobBoard() {
       hideUnknownCompensation: throttledFilters.hideUnknownCompensation,
       engineer: throttledFilters.engineer ? true : undefined,
       companies: throttledFilters.companies.length > 0 ? throttledFilters.companies : undefined,
-      excludeApplied: false,
+      excludeApplied: true,
     } : "skip",
     { initialNumItems: jobsPageSize } // Load more items for the dense list
   );

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -91,18 +92,46 @@ def _find_sites_by_domain(sites: List[Dict[str, Any]], domain: str) -> List[Dict
     return matched
 
 
+def _normalize(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def _site_matches(company: str, site: Dict[str, Any]) -> bool:
+    token = _normalize(company)
+    if not token:
+        return False
+    for key in ("name", "url", "pattern", "type", "scrapeProvider"):
+        value = site.get(key)
+        if isinstance(value, str) and token in value.lower():
+            return True
+    return False
+
+
 def _find_sites_by_company(sites: List[Dict[str, Any]], company: str) -> List[Dict[str, Any]]:
-    lowered = company.lower()
     matched = []
     for site in sites:
-        name = site.get("name")
-        url = site.get("url")
-        if isinstance(name, str) and lowered in name.lower():
-            matched.append(site)
-            continue
-        if isinstance(url, str) and lowered in url.lower():
+        if _site_matches(company, site):
             matched.append(site)
     return matched
+
+
+def _parse_job_ids(values: List[str] | None, csv: str | None) -> List[str]:
+    job_ids: List[str] = []
+    if values:
+        job_ids.extend([value.strip() for value in values if value and value.strip()])
+    if csv:
+        for item in re.split(r"[,\s]+", csv):
+            cleaned = item.strip()
+            if cleaned:
+                job_ids.append(cleaned)
+    seen: set[str] = set()
+    ordered: List[str] = []
+    for job_id in job_ids:
+        if job_id in seen:
+            continue
+        seen.add(job_id)
+        ordered.append(job_id)
+    return ordered
 
 
 def _extract_greenhouse_board_slug(parsed: Any) -> str | None:
@@ -168,6 +197,11 @@ def main() -> None:
     parser.add_argument("--env", choices=["dev", "prod"], default="dev")
     parser.add_argument("--domain", help="Match sites by domain (e.g. bloomberg.avature.net)")
     parser.add_argument("--company", help="Match sites by company name (substring, case-insensitive)")
+    parser.add_argument("--job-id", action="append", help="Convex job id to delete (repeatable).")
+    parser.add_argument(
+        "--job-ids",
+        help="Comma/space-separated Convex job ids to delete.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--host-wide",
@@ -184,6 +218,7 @@ def main() -> None:
 
     _load_env(args.env)
     env = os.environ.copy()
+    job_ids = _parse_job_ids(args.job_id, args.job_ids)
 
     sites_cmd = _build_convex_run_args(args.env, "router:listSites", {"enabledOnly": False})
     sites_result = _run_convex(sites_cmd, env=env)
@@ -194,6 +229,8 @@ def main() -> None:
         matched_sites = _find_sites_by_domain(sites_result or [], args.domain or DEFAULT_DOMAIN)
     wipe_targets = _site_wipe_targets(matched_sites, host_wide=args.host_wide)
     wipe_results: Dict[str, Any] = {}
+    company_wipe: Dict[str, Any] | None = None
+    job_id_wipe: Dict[str, Any] | None = None
     if not wipe_targets:
         print("No matching sites found for wipe; skipping.")
     else:
@@ -243,7 +280,61 @@ def main() -> None:
                     "cursor": last_cursor,
                     "prefix": prefix,
                 }
-        print(json.dumps({"wipe": wipe_results}, indent=2))
+    if args.company:
+        total_deleted = 0
+        total_scanned = 0
+        pages = 0
+        cursor = None
+        last_cursor = None
+        last_has_more = False
+        while pages < args.max_pages:
+            wipe_payload = {
+                "company": args.company,
+                "dryRun": args.dry_run,
+                "batchSize": args.batch_size,
+            }
+            if cursor:
+                wipe_payload["cursor"] = cursor
+            wipe_cmd = _build_convex_run_args(
+                args.env,
+                "admin:wipeJobsByCompanyPage",
+                wipe_payload,
+            )
+            wipe_result = _run_convex(wipe_cmd, env=env)
+            if not isinstance(wipe_result, dict):
+                break
+            total_deleted += int(wipe_result.get("deleted", 0) or 0)
+            total_scanned += int(wipe_result.get("scanned", 0) or 0)
+            pages += 1
+            cursor = wipe_result.get("cursor")
+            last_cursor = cursor
+            last_has_more = bool(wipe_result.get("hasMore"))
+            if not last_has_more:
+                break
+        company_wipe = {
+            "company": args.company,
+            "deleted": total_deleted,
+            "scanned": total_scanned,
+            "pages": pages,
+            "hasMore": last_has_more,
+            "cursor": last_cursor,
+        }
+
+    if job_ids:
+        wipe_payload = {
+            "jobIds": job_ids,
+            "dryRun": args.dry_run,
+        }
+        wipe_cmd = _build_convex_run_args(args.env, "admin:deleteJobsById", wipe_payload)
+        wipe_result = _run_convex(wipe_cmd, env=env)
+        job_id_wipe = wipe_result if isinstance(wipe_result, dict) else {"error": "failed to delete job ids"}
+
+    output: Dict[str, Any] = {"wipe": wipe_results}
+    if company_wipe is not None:
+        output["companyJobs"] = company_wipe
+    if job_id_wipe is not None:
+        output["jobIds"] = job_id_wipe
+    print(json.dumps(output, indent=2))
 
     if not matched_sites:
         label = args.company or args.domain or DEFAULT_DOMAIN

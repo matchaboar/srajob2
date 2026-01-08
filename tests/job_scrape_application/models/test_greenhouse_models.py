@@ -220,6 +220,23 @@ def test_load_greenhouse_board_parses_xai_listing_fixture():
     assert total is None or len(urls) == total
 
 
+def test_load_greenhouse_board_parses_verkada_listing_fixture():
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_verkada_greenhouse_listing.json"
+    )
+    payload = _load_spidercloud_fixture(fixture_path)
+    html = _extract_first_html(payload)
+    assert html
+    board_payload = _extract_json_from_pre(html)
+    board = load_greenhouse_board(board_payload)
+    assert board.jobs
+    assert any(job.company_name == "Verkada" for job in board.jobs)
+    urls = extract_greenhouse_job_urls(board, required_keywords=())
+    assert any("job-boards.greenhouse.io/verkada/jobs/" in url for url in urls)
+    total = board_payload.get("meta", {}).get("total")
+    assert total is None or len(urls) == total
+
+
 def test_greenhouse_handler_extracts_xai_detail_fields():
     from job_scrape_application.workflows.site_handlers import GreenhouseHandler
 
@@ -238,4 +255,27 @@ def test_greenhouse_handler_extracts_xai_detail_fields():
     markdown, title = handler.normalize_markdown(json.dumps(job_payload))
     assert title == job_payload.get("title")
     assert "About xAI" in markdown
+
+
+def test_greenhouse_handler_extracts_verkada_detail_fields():
+    from job_scrape_application.workflows.site_handlers import GreenhouseHandler
+
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/"
+        "spidercloud_verkada_greenhouse_job_detail_4991227007_raw_api.json"
+    )
+    payload = _load_spidercloud_fixture(fixture_path)
+    html = _extract_first_html(payload)
+    assert html
+    job_payload = _extract_json_from_pre(html)
+
+    handler = GreenhouseHandler()
+    posted_at = handler.extract_posted_at(job_payload, job_payload.get("absolute_url"))
+    assert posted_at == job_payload.get("first_published")
+
+    markdown, title = handler.normalize_markdown(json.dumps(job_payload))
+    assert title == job_payload.get("title")
+    assert "Who We Are" in markdown
+    assert "<div" not in markdown
+    assert "&lt;" not in markdown
     assert "<div" not in markdown

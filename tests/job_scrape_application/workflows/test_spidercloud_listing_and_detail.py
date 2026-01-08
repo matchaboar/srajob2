@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as html_lib
 import json
 import os
 import re
@@ -19,6 +20,9 @@ from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E40
     _resolve_location_from_dictionary,
     parse_posted_at_with_unknown,
     parse_markdown_hints,
+)
+from job_scrape_application.workflows.helpers.regex_patterns import (  # noqa: E402
+    JSON_LD_SCRIPT_PATTERN,
 )
 from job_scrape_application.workflows.site_handlers.greenhouse import (  # noqa: E402
     GreenhouseHandler,
@@ -77,6 +81,9 @@ NETFLIX_LISTING_COMMONMARK_FIXTURE = (
 )
 NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
 NETFLIX_RAW_HTML_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_raw_html.json"
+SNAPCHAT_WORKDAY_DETAIL_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_snapchat_workday_job_detail_commonmark.json"
+)
 BLOOMBERG_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_commonmark.json"
 BLOOMBERG_EMPLOYEE_ENGAGEMENT_FIXTURE = (
     FIXTURE_DIR / "spidercloud_bloomberg_avature_job_detail_15349_commonmark.json"
@@ -134,6 +141,9 @@ NETFLIX_COMMONMARK_DETAIL_FIXTURES = (
 NETFLIX_EMPTY_COMMONMARK_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_netflix_job_detail_790313241540_commonmark.json"
 )
+META_DETAIL_RAW_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_meta_job_detail_1394915781774041_raw.html.json"
+)
 
 
 def _load_fixture(path: Path) -> Any:
@@ -182,12 +192,28 @@ def _extract_commonmark(payload: Any) -> str:
     return ""
 
 
+def _extract_relative_days(markdown: str) -> int:
+    match = re.search(r"posted\s+(\d+)\s+days?\s+ago", markdown, flags=re.IGNORECASE)
+    if not match:
+        return 0
+    return int(match.group(1))
+
+
 def _extract_event_markdown(scraper: SpiderCloudScraper, payload: Any) -> str:
     event = _extract_first_event(payload)
     if not isinstance(event, dict):
         return ""
     markdown = scraper._extract_markdown(event)  # noqa: SLF001
     return markdown or ""
+
+
+def _extract_structured_job_posting_from_raw(raw_html: str) -> Dict[str, Any]:
+    match = re.search(JSON_LD_SCRIPT_PATTERN, raw_html, flags=re.IGNORECASE | re.DOTALL)
+    assert match, "expected JSON-LD JobPosting script in raw HTML"
+    payload_raw = html_lib.unescape(match.group("payload").strip())
+    parsed = json.loads(payload_raw)
+    assert isinstance(parsed, dict)
+    return parsed
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -440,6 +466,53 @@ def test_spidercloud_mongodb_job_detail_normalizes_description():
     assert hints.get("compensation") == 69472
 
 
+def test_spidercloud_snapchat_job_detail_normalizes_fields():
+    payload = _load_fixture(SNAPCHAT_WORKDAY_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    started_at = 1_700_000_000_000
+    normalized = scraper._normalize_job(  # noqa: SLF001
+        url, commonmark, [], started_at, require_keywords=False
+    )
+
+    assert normalized is not None
+    assert normalized["title"] == "Research Scientist, User Modeling and Personalization"
+    assert normalized["company"] == "Snapchat"
+    assert normalized["location"] == "Bellevue, Washington"
+    assert normalized["remote"] is False
+    days_ago = _extract_relative_days(commonmark)
+    assert normalized["posted_at"] == started_at - days_ago * 86_400_000
+    assert normalized["posted_at_unknown"] is False
+
+    resolved = _resolve_location_from_dictionary(normalized["location"])
+    assert resolved is not None
+    assert resolved["city"] == "Bellevue"
+    assert resolved["state"] == "Washington"
+    assert resolved["country"] == "United States"
+
+    description = normalized["description"]
+    assert "Careers" not in description
+    assert "Accept Cookies" not in description
+    assert "About Us" not in description
+    assert "Follow Us" not in description
+
+
+def test_spidercloud_snapchat_job_detail_extracts_compensation_range():
+    payload = _load_fixture(SNAPCHAT_WORKDAY_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+    commonmark = _extract_commonmark(payload)
+
+    scraper = _make_scraper()
+    normalized = scraper._normalize_job(url, commonmark, [], 0, require_keywords=False)  # noqa: SLF001
+
+    assert normalized is not None
+    hints = parse_markdown_hints(normalized["description"])
+    assert hints.get("compensation_range") == {"low": 173000, "high": 259000}
+    assert hints.get("compensation") == 216000
+
+
 def test_spidercloud_axon_job_detail_normalizes_description():
     payload = _load_fixture(AXON_DETAIL_FIXTURE)
     url = _extract_source_url(payload)
@@ -513,6 +586,63 @@ def test_spidercloud_datadog_job_detail_extracts_location():
     assert normalized is not None
     assert normalized["location"] == "Boston, MA"
     assert "Senior Software Engineer" in normalized["title"]
+
+
+def test_spidercloud_meta_job_detail_normalizes_fields():
+    payload = _load_fixture(META_DETAIL_RAW_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Software Engineer, Android"
+    assert normalized["company"] == "Meta"
+    assert normalized["location"] == "Menlo Park, CA"
+    assert normalized["remote"] is False
+
+    description = normalized["description"]
+    assert "Responsibilities" in description
+    assert "Qualifications" in description
+    assert "Meta Careers" not in description
+    assert "Equal Employment Opportunity" not in description
+    assert "class=" not in description
+
+    hints = parse_markdown_hints(description)
+    assert hints.get("compensation_range") is None
+    assert hints.get("compensation") is None
+
+
+def test_spidercloud_meta_job_detail_posted_at_and_location_components():
+    payload = _load_fixture(META_DETAIL_RAW_FIXTURE)
+    url = _extract_source_url(payload)
+
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+    raw_html = event.get("content", {}).get("raw")
+    assert isinstance(raw_html, str)
+    structured = _extract_structured_job_posting_from_raw(raw_html)
+    expected_posted_at, posted_unknown = parse_posted_at_with_unknown(structured.get("datePosted"))
+    assert posted_unknown is False
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["posted_at"] == expected_posted_at
+    assert normalized["posted_at_unknown"] is False
+
+    resolved = _resolve_location_from_dictionary(normalized["location"])
+    assert resolved is not None
+    assert resolved.get("city") == "Menlo Park"
+    assert resolved.get("state") == "California"
+    assert resolved.get("country") == "United States"
+    assert resolved.get("remoteOnly") is False
 
 
 def test_spidercloud_purestorage_job_detail_normalizes_fields():

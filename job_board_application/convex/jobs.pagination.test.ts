@@ -93,10 +93,14 @@ class FakeJobsQuery {
 
 class FakeApplicationsQuery {
   withIndex(name: string, cb: (q: any) => any) {
-    if (name !== "by_user" && name !== "by_user_and_job") {
+    if (name !== "by_user" && name !== "by_user_and_job" && name !== "by_user_status_applied_at") {
       throw new Error(`unexpected applications index ${name}`);
     }
-    cb({ eq: (_field: string, val: any) => val });
+    cb({
+      eq: (_field: string, val: any) => ({
+        eq: (_field2: string, val2: any) => ({ userId: val, status: val2 }),
+      }),
+    });
     return this;
   }
 

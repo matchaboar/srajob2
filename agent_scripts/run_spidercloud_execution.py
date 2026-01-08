@@ -69,6 +69,21 @@ async def main() -> None:
         help="Enable event_tracker.automation in SpiderCloud",
     )
     parser.add_argument(
+        "--disable-intercept",
+        action="store_true",
+        help="Disable request interception in SpiderCloud (chrome/smart only).",
+    )
+    parser.add_argument(
+        "--disable-cache",
+        action="store_true",
+        help="Disable SpiderCloud response caching for this request.",
+    )
+    parser.add_argument(
+        "--skip-config-checks",
+        action="store_true",
+        help="Skip SpiderCloud configuration checks.",
+    )
+    parser.add_argument(
         "--wait-for-selector",
         help="CSS selector to wait for before returning content",
     )
@@ -107,6 +122,12 @@ async def main() -> None:
         params["automation_scripts"] = {args.script_path: [{"Evaluate": args.automation_eval}]}
     if args.track_automation:
         params["event_tracker"] = {"automation": True, "requests": False, "responses": False}
+    if args.disable_intercept:
+        params["disable_intercept"] = True
+    if args.disable_cache:
+        params["cache"] = False
+    if args.skip_config_checks:
+        params["skip_config_checks"] = True
     if args.wait_for_selector:
         params["wait_for"] = {
             "selector": {

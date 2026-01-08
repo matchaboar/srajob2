@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as html_lib
 import json
 import re
 import time
@@ -18,6 +19,8 @@ from .link_extractors import dedupe_str_list, extract_links_from_payload
 from .regex_patterns import (
     DIGIT_PATTERN,
     ERROR_404_PATTERN,
+    INVALID_JSON_ESCAPE_PATTERN,
+    JSON_OBJECT_PATTERN,
     LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE,
     LOCATION_PREFIX_PATTERN,
     LOCATION_SPLIT_PATTERN,
@@ -68,6 +71,10 @@ UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
 _AVATURE_TAIL_MARKERS = (
     "back to job search",
     "similar jobs",
+)
+_SNAP_TAIL_MARKERS = (
+    "ready to join team snap",
+    "life at snap",
 )
 _EMBEDDED_JSON_ALWAYS_DROP_MARKERS = (
     '"display_banner"',
@@ -343,6 +350,11 @@ _LISTING_URL_TOKENS = {
     "openings",
 }
 _LISTING_CARD_POSTED_RE = re.compile(r"\bposted\b.{0,40}\bago\b")
+_RELATIVE_TIME_RE = re.compile(
+    r"\b(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b",
+    flags=re.IGNORECASE,
+)
+_RELATIVE_POSTED_MIN_DAYS = 30
 _JOB_DETAIL_MARKERS = (
     "responsibilities",
     "requirements",
@@ -452,16 +464,169 @@ def stringify(value: Any) -> str:
     return str(value)
 
 
+def _parse_lenient_json(text: str) -> Any | None:
+    cleaned = text.strip()
+    if not cleaned:
+        return None
+    try:
+        return json.loads(cleaned, strict=False)
+    except Exception:
+        pass
+    try:
+        unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
+    except Exception:
+        unescaped = ""
+    if unescaped:
+        try:
+            return json.loads(unescaped, strict=False)
+        except Exception:
+            return None
+    return None
+
+
+def _first_string(value: Any) -> Optional[str]:
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if cleaned:
+            return cleaned
+        return None
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                return item.strip()
+    return None
+
+
+def _first_url(value: Any) -> Optional[str]:
+    candidate = _first_string(value)
+    if not candidate:
+        return None
+    if candidate.startswith(("http://", "https://")):
+        return candidate
+    return None
+
+
+def _is_job_detail_payload(node: dict[str, Any]) -> bool:
+    desc = node.get("jobDescription") or node.get("description")
+    if not isinstance(desc, str) or len(desc.strip()) < 80:
+        return False
+    if "jobDescription" in node:
+        return True
+    for key in (
+        "positionUrl",
+        "publicUrl",
+        "atsJobId",
+        "jobId",
+        "jobPostingId",
+        "displayJobId",
+        "workLocationOption",
+        "standardizedLocations",
+        "locations",
+        "location",
+    ):
+        if key in node:
+            return True
+    if any(key in node for key in ("name", "title", "jobTitle", "job_title")):
+        return True
+    return False
+
+
+def _find_job_detail_payload(node: Any) -> Optional[dict[str, Any]]:
+    if isinstance(node, dict):
+        if _is_job_detail_payload(node):
+            return node
+        for val in node.values():
+            found = _find_job_detail_payload(val)
+            if found:
+                return found
+    if isinstance(node, list):
+        for child in node:
+            found = _find_job_detail_payload(child)
+            if found:
+                return found
+    return None
+
+
+def _extract_job_markdown_from_json(markdown: str) -> Optional[str]:
+    if not markdown:
+        return None
+    trimmed = markdown.strip()
+    if not trimmed or not trimmed.startswith(("{", "[")):
+        return None
+    payload = _parse_lenient_json(trimmed)
+    if payload is None:
+        return None
+    job_payload = _find_job_detail_payload(payload)
+    if not job_payload:
+        return None
+    description = job_payload.get("jobDescription") or job_payload.get("description")
+    if not isinstance(description, str) or not description.strip():
+        return None
+    title = _first_string(job_payload.get("name"))
+    if not title:
+        title = _first_string(job_payload.get("title"))
+    if not title:
+        title = _first_string(job_payload.get("jobTitle"))
+    if not title:
+        title = _first_string(job_payload.get("job_title"))
+    location = (
+        _first_string(job_payload.get("standardizedLocations"))
+        or _first_string(job_payload.get("locations"))
+        or _first_string(job_payload.get("location"))
+        or _first_string(job_payload.get("jobLocation"))
+    )
+    url = (
+        _first_url(job_payload.get("publicUrl"))
+        or _first_url(job_payload.get("positionUrl"))
+        or _first_url(job_payload.get("canonicalPositionUrl"))
+        or _first_url(job_payload.get("jobUrl"))
+        or _first_url(job_payload.get("url"))
+    )
+    company = derive_company_from_url(url) if url else None
+    if company and is_generic_company_name(company):
+        company = None
+    work_site = (
+        _first_string(job_payload.get("workLocationOption"))
+        or _first_string(job_payload.get("locationFlexibility"))
+        or _first_string(job_payload.get("workLocation"))
+        or _first_string(job_payload.get("workLocationType"))
+    )
+
+    header_lines: List[str] = []
+    if title and location and company:
+        header_lines.append(f"{title} in {location} | {company}")
+    else:
+        if title:
+            header_lines.append(f"# {title}")
+        if location:
+            header_lines.append(f"Location: {location}")
+        if company:
+            header_lines.append(f"Company: {company}")
+    if work_site:
+        header_lines.append(f"Work Location: {work_site}")
+
+    body = description.strip()
+    parts = [line for line in header_lines if line]
+    if body:
+        parts.append(body)
+    return "\n\n".join(parts).strip() if parts else None
+
+
 def strip_known_nav_blocks(markdown: str) -> str:
     """Remove repeated navigation/footer menus scraped into markdown bodies."""
 
     if not markdown:
         return markdown
 
+    extracted_json = _extract_job_markdown_from_json(markdown)
+    if extracted_json:
+        markdown = extracted_json
+
     cleaned = _strip_cookie_banner(markdown)
     cleaned = _strip_html_tag_lines(cleaned)
     cleaned = _NAV_BLOCK_REGEX.sub("\n", cleaned)
     cleaned = _strip_avature_tail(cleaned)
+    cleaned = _strip_snap_tail(cleaned)
     cleaned = _strip_embedded_json_blobs(cleaned)
     cleaned = _strip_empty_link_lines(cleaned)
     cleaned = _strip_platform_tokens(cleaned)
@@ -911,6 +1076,24 @@ def _strip_avature_tail(markdown: str) -> str:
         if not lower:
             continue
         if any(marker in lower for marker in _AVATURE_TAIL_MARKERS):
+            trimmed = "\n".join(lines[:idx]).strip("\n")
+            return trimmed or markdown
+    return markdown
+
+
+def _strip_snap_tail(markdown: str) -> str:
+    if not markdown:
+        return markdown
+    lines = markdown.splitlines()
+
+    def _normalize_line(line: str) -> str:
+        return line.strip().lstrip("#").strip().lower()
+
+    for idx, line in enumerate(lines):
+        normalized = _normalize_line(line)
+        if not normalized:
+            continue
+        if any(marker in normalized for marker in _SNAP_TAIL_MARKERS):
             trimmed = "\n".join(lines[:idx]).strip("\n")
             return trimmed or markdown
     return markdown
@@ -1522,7 +1705,12 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     if not markdown:
         return hints
 
+    seed_description, seed_hints = _extract_job_detail_seed_from_json(markdown)
+    if seed_description:
+        markdown = seed_description
+
     markdown = strip_known_nav_blocks(markdown)
+    markdown = html_lib.unescape(markdown)
 
     def _is_generic_heading_title(value: str) -> bool:
         lower = value.strip().lower().rstrip(":.")
@@ -1572,9 +1760,20 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         nonlocal company_hint
         if not value or company_hint:
             return
-        cleaned = normalize_company_hint(value)
+        cleaned = normalize_company_hint(html_lib.unescape(value))
         if cleaned:
             company_hint = cleaned
+
+    seed_title = seed_hints.get("title") if isinstance(seed_hints, dict) else None
+    if seed_title and isinstance(seed_title, str):
+        if not markdown.lstrip().lower().startswith(seed_title.lower()):
+            markdown = f"# {seed_title}\n\n{markdown}".strip()
+    seed_company = seed_hints.get("company") if isinstance(seed_hints, dict) else None
+    if isinstance(seed_company, str) and seed_company.strip():
+        _record_company(seed_company)
+    seed_location = seed_hints.get("location") if isinstance(seed_hints, dict) else None
+    if isinstance(seed_location, str) and seed_location.strip() and not title_location_hint:
+        title_location_hint = seed_location
 
     def _looks_like_title_location(value: str) -> bool:
         if not value:
@@ -1695,6 +1894,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     for match in _TITLE_RE.finditer(markdown):
         raw_title = stringify(match.group("title"))
+        raw_title = html_lib.unescape(raw_title)
         if not raw_title:
             continue
         if not raw_title.strip().strip("#"):
@@ -1760,12 +1960,21 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         hints["title"] = job_application_title
         title_lower = job_application_title.lower()
     if not company_hint:
+        company_link_re = re.compile(
+            r"^\s*\[(?P<company>[^\]]+)\]\([^)]+\)\s+is\s+(?:a|an|the)\b",
+            flags=re.IGNORECASE,
+        )
         for line in markdown.splitlines()[:40]:
             t = line.strip()
             if not t:
                 continue
             cleaned = re.sub(r"^[#*\-\u2022]+", "", t).strip()
             lower = cleaned.lower()
+            link_match = company_link_re.match(cleaned)
+            if link_match:
+                _record_company(stringify(link_match.group("company")))
+                if company_hint:
+                    break
             if lower.startswith("about "):
                 _record_company(cleaned[6:].strip())
             elif lower.startswith("about:"):
@@ -1898,21 +2107,47 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         hints["location"] = non_remote_locations[0] if non_remote_locations else normalized_locations[0]
 
     has_physical_location = any("remote" not in loc.lower() for loc in normalized_locations)
-    remote_match = _REMOTE_RE.search(markdown)
-    if remote_match:
-        token = remote_match.group(1).lower()
-        remote_hint: Optional[bool]
-        if "remote" in token:
-            remote_hint = True
-        elif "hybrid" in token:
-            remote_hint = False
-        else:
-            remote_hint = False
-        if remote_hint is True:
-            if not has_physical_location or any("remote" in loc.lower() for loc in normalized_locations):
-                hints["remote"] = True
-        else:
-            hints["remote"] = False
+    remote_tokens: List[str] = []
+    remote_false_positive_re = re.compile(
+        r"\bremote\s+(?:access|control|controls|monitoring|sensing|desktop|operation|operations|support)\b",
+        flags=re.IGNORECASE,
+    )
+    for line in markdown.splitlines():
+        lowered_line = line.lower()
+        if "remote" not in lowered_line and "hybrid" not in lowered_line and "onsite" not in lowered_line:
+            continue
+        if remote_false_positive_re.search(line):
+            continue
+        stripped_line = lowered_line.strip()
+        context_ok = (
+            len(stripped_line) <= 80
+            or any(
+                token in stripped_line
+                for token in (
+                    "remote work",
+                    "work remotely",
+                    "work from",
+                    "remote role",
+                    "remote position",
+                    "remote location",
+                    "based in",
+                )
+            )
+            or stripped_line.startswith("remote")
+        )
+        for match in _REMOTE_RE.finditer(line):
+            token = match.group(1).lower()
+            if "remote" in token and not context_ok:
+                continue
+            remote_tokens.append(token)
+    has_non_remote_clue = any(token in ("hybrid", "onsite", "on-site") for token in remote_tokens)
+    has_remote_clue = any("remote" in token for token in remote_tokens)
+    if has_non_remote_clue:
+        hints["remote"] = False
+    elif has_remote_clue:
+        hints["remote"] = True
+    elif has_physical_location:
+        hints["remote"] = False
 
     comp_candidates: List[int] = []
     comp_ranges: List[tuple[Optional[int], Optional[int]]] = []
@@ -1993,7 +2228,169 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if range_payload:
             hints["compensation_range"] = range_payload
 
+    if isinstance(seed_hints, dict):
+        for key, value in seed_hints.items():
+            if value in (None, "", [], {}):
+                continue
+            if key == "locations":
+                if not hints.get("locations") and isinstance(value, list):
+                    hints["locations"] = value
+                    if "location" not in hints and value:
+                        hints["location"] = value[0]
+                continue
+            if key == "location":
+                if not hints.get("location") and isinstance(value, str):
+                    hints["location"] = value
+                continue
+            if key == "company":
+                if not hints.get("company") and isinstance(value, str):
+                    hints["company"] = value
+                continue
+            if key == "title":
+                if not hints.get("title") and isinstance(value, str):
+                    hints["title"] = value
+                continue
+            if key == "remote":
+                if "remote" not in hints and isinstance(value, bool):
+                    hints["remote"] = value
+
     return hints
+
+
+def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Dict[str, Any]]:
+    if not isinstance(markdown, str):
+        return None, {}
+    raw_text = markdown.strip()
+    if not raw_text:
+        return None, {}
+
+    def _escape_control_chars_in_strings(value: str) -> str:
+        output: List[str] = []
+        in_string = False
+        escaped = False
+        for char in value:
+            if escaped:
+                output.append(char)
+                escaped = False
+                continue
+            if char == "\\":
+                output.append(char)
+                escaped = True
+                continue
+            if char == "\"":
+                output.append(char)
+                in_string = not in_string
+                continue
+            if in_string and char in ("\n", "\r", "\t"):
+                if char == "\n":
+                    output.append("\\n")
+                elif char == "\r":
+                    output.append("\\r")
+                else:
+                    output.append("\\t")
+                continue
+            output.append(char)
+        return "".join(output)
+
+    def _try_parse_json_blob(text: str) -> Any | None:
+        cleaned = text.strip()
+        if not cleaned:
+            return None
+        if not cleaned.startswith("{"):
+            match = re.search(JSON_OBJECT_PATTERN, cleaned, flags=re.DOTALL)
+            if match:
+                cleaned = match.group(0)
+            else:
+                return None
+        cleaned = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", cleaned)
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            escaped = _escape_control_chars_in_strings(cleaned)
+            if escaped != cleaned:
+                try:
+                    return json.loads(escaped)
+                except Exception:
+                    return None
+        return None
+
+    def _select_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+        for key in ("data", "response", "result", "job", "position"):
+            candidate = payload.get(key)
+            if isinstance(candidate, dict):
+                if any(k in candidate for k in ("jobDescription", "description", "name", "title")):
+                    return candidate
+        return payload
+
+    def _first_string(payload: Dict[str, Any], keys: List[str]) -> Optional[str]:
+        for key in keys:
+            val = payload.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        return None
+
+    def _extract_location(payload: Dict[str, Any]) -> Optional[str]:
+        for key in ("standardizedLocations", "locations"):
+            values = payload.get(key)
+            if isinstance(values, list):
+                for item in values:
+                    if isinstance(item, str) and item.strip():
+                        return item.strip()
+        location_val = payload.get("location")
+        if isinstance(location_val, str) and location_val.strip():
+            return location_val.strip()
+        return None
+
+    def _extract_remote(payload: Dict[str, Any]) -> Optional[bool]:
+        for key in ("remote", "isRemote", "remoteAllowed"):
+            val = payload.get(key)
+            if isinstance(val, bool):
+                return val
+        for key in ("workLocationOption", "locationFlexibility", "workplaceType", "workLocationType"):
+            val = payload.get(key)
+            if isinstance(val, str) and val.strip():
+                lowered = val.lower()
+                if "remote" in lowered:
+                    return True
+                if "hybrid" in lowered:
+                    return False
+                if "on" in lowered or "site" in lowered or "office" in lowered:
+                    return False
+        return None
+
+    if not any(token in raw_text for token in ("\"jobDescription\"", "\"positionUrl\"", "\"publicUrl\"")):
+        if not raw_text.lstrip().startswith("{"):
+            return None, {}
+
+    parsed = _try_parse_json_blob(raw_text)
+    if not isinstance(parsed, dict):
+        return None, {}
+    payload = _select_payload(parsed)
+
+    description = _first_string(payload, ["jobDescription", "description"])
+    if description:
+        description = html_lib.unescape(description.replace("\u00a0", " ")).strip()
+
+    hints: Dict[str, Any] = {}
+    title = _first_string(payload, ["name", "title", "jobTitle", "positionTitle"])
+    if title:
+        hints["title"] = html_lib.unescape(title.replace("\u00a0", " ")).strip()
+    company = _first_string(payload, ["company", "companyName", "employer", "brand"])
+    if not company:
+        url = _first_string(payload, ["publicUrl", "applyUrl", "jobUrl", "url"])
+        if url:
+            company = derive_company_from_url(url)
+    if company:
+        hints["company"] = company
+    location = _extract_location(payload)
+    if location:
+        hints["locations"] = [location]
+        hints["location"] = location
+    remote = _extract_remote(payload)
+    if remote is not None:
+        hints["remote"] = remote
+
+    return description, hints
 
 
 def derive_company_from_url(url: str) -> str:
@@ -2026,7 +2423,7 @@ def derive_company_from_url(url: str) -> str:
                 cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
                 if cleaned:
                     return cleaned.title()
-    if hostname.endswith("myworkdayjobs.com"):
+    if hostname.endswith(("myworkdayjobs.com", "myworkdaysite.com")):
         parts = hostname.split(".")
         if len(parts) >= 3:
             subdomains = parts[:-2]
@@ -2141,8 +2538,54 @@ def extract_description(row: Dict[str, Any]) -> str:
         return str(row)
 
 
-def parse_posted_at(value: Any) -> int:
-    now_ms = int(time.time() * 1000)
+def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
+    lowered = value.lower()
+    if "today" in lowered:
+        return now_ms
+    if "yesterday" in lowered:
+        return now_ms - 86_400_000
+    if "ago" not in lowered:
+        return None
+
+    match = _RELATIVE_TIME_RE.search(lowered)
+    if not match:
+        return None
+
+    try:
+        amount = float(match.group("value"))
+    except ValueError:
+        return None
+    if amount <= 0:
+        return None
+
+    unit = match.group("unit")
+    if unit.startswith("day") and amount < _RELATIVE_POSTED_MIN_DAYS:
+        # Allow smaller ranges when the value explicitly looks like a posted/updated label.
+        if "posted" not in lowered and "updated" not in lowered:
+            return None
+    if unit.startswith(("second", "sec")):
+        multiplier = 1
+    elif unit.startswith(("minute", "min")):
+        multiplier = 60
+    elif unit.startswith(("hour", "hr")):
+        multiplier = 3_600
+    elif unit.startswith("day"):
+        multiplier = 86_400
+    elif unit.startswith("week"):
+        multiplier = 604_800
+    elif unit.startswith("month"):
+        multiplier = 2_592_000
+    elif unit.startswith("year"):
+        multiplier = 31_536_000
+    else:
+        return None
+
+    delta_ms = int(amount * multiplier * 1000)
+    return max(0, now_ms - delta_ms)
+
+
+def parse_posted_at(value: Any, now_ms: int | None = None) -> int:
+    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
     if value is None:
         return now_ms
 
@@ -2156,6 +2599,9 @@ def parse_posted_at(value: Any) -> int:
     if isinstance(value, str):
         cleaned = value.strip()
         if cleaned:
+            relative = _parse_relative_posted_at(cleaned, now_ms)
+            if relative is not None:
+                return relative
             if re.search(r"[+-]\d{4}$", cleaned):
                 cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
             try:
@@ -2167,8 +2613,8 @@ def parse_posted_at(value: Any) -> int:
     return now_ms
 
 
-def parse_posted_at_with_unknown(value: Any) -> tuple[int, bool]:
-    now_ms = int(time.time() * 1000)
+def parse_posted_at_with_unknown(value: Any, now_ms: int | None = None) -> tuple[int, bool]:
+    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
     if value is None:
         return now_ms, True
 
@@ -2183,6 +2629,9 @@ def parse_posted_at_with_unknown(value: Any) -> tuple[int, bool]:
         cleaned = value.strip()
         if not cleaned:
             return now_ms, True
+        relative = _parse_relative_posted_at(cleaned, now_ms)
+        if relative is not None:
+            return relative, False
         if re.search(r"[+-]\d{4}$", cleaned):
             cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
         try:

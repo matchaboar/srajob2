@@ -32,11 +32,11 @@ Quick reference for the helper scripts in `agent_scripts/`. Always run via `uv r
   - Example: `uv run agent_scripts/measure_spidercloud_batch.py --env prod --provider spidercloud`
 
 ## Convex Data Maintenance
-- `wipe_comapny_convex.py`
+- `wipe_company_convex.py`
   - Wipes Convex data by domain or company and triggers `runSiteNow` for matches.
   - Examples:
-    - `uv run agent_scripts/wipe_comapny_convex.py --env prod --domain bloomberg.avature.net`
-    - `uv run agent_scripts/wipe_comapny_convex.py --env prod --company lambda`
+    - `uv run agent_scripts/wipe_company_convex.py --env prod --domain bloomberg.avature.net`
+    - `uv run agent_scripts/wipe_company_convex.py --env prod --company lambda`
 - `export_scrape_queue_fixture.py`
   - Exports `scrape_url_queue` rows into a fixture JSON.
   - Example: `uv run agent_scripts/export_scrape_queue_fixture.py --provider spidercloud --statuses pending,processing`

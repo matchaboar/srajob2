@@ -27,14 +27,24 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description="Dump SpiderCloud response payloads for debugging.")
     parser.add_argument("url", help="URL to scrape")
     parser.add_argument("--out", required=True, help="Path to write raw response JSON")
-    parser.add_argument("--return-format", default="raw_html", help="SpiderCloud return_format value")
+    parser.add_argument("--return-format", help="SpiderCloud return_format value")
     parser.add_argument("--request", default="chrome", help="SpiderCloud request type")
     parser.add_argument("--return-cookies", action="store_true", help="Include response cookies")
     parser.add_argument("--return-headers", action="store_true", help="Include response headers")
+    parser.add_argument(
+        "--return-page-links",
+        action="store_true",
+        help="Include page_links from SpiderCloud (DOM link extraction).",
+    )
     parser.add_argument("--cookies", help="Cookie header string to pass through SpiderCloud")
     parser.add_argument("--track-responses", action="store_true", help="Track network responses")
     parser.add_argument("--track-requests", action="store_true", help="Track network requests")
     parser.add_argument("--track-automation", action="store_true", help="Track automation events")
+    parser.add_argument(
+        "--use-handler-config",
+        action="store_true",
+        help="Merge SpiderCloud params from the site handler for the URL.",
+    )
     parser.add_argument(
         "--wait-for-selector",
         help="CSS selector to wait for before returning content",
@@ -53,20 +63,33 @@ async def main() -> None:
     if not api_key:
         raise SystemExit("SPIDER_API_KEY (or SPIDER_KEY) is not set in environment/.env")
 
-    params: Dict[str, Any] = {
-        "return_format": [args.return_format],
-        "metadata": True,
-        "request": args.request,
-        "follow_redirects": True,
-        "redirect_policy": "Loose",
-        "external_domains": ["*"],
-        "preserve_host": True,
-        "limit": 1,
-    }
+    params: Dict[str, Any] = {}
+    if args.use_handler_config:
+        try:
+            from job_scrape_application.workflows.site_handlers import get_site_handler
+        except Exception as exc:
+            raise SystemExit(f"Could not load site handlers: {exc}") from exc
+        handler = get_site_handler(args.url)
+        if handler:
+            params.update(handler.get_spidercloud_config(args.url))
+    if args.return_format is None:
+        if "return_format" not in params:
+            params["return_format"] = ["raw_html"]
+    else:
+        params["return_format"] = [args.return_format]
+    params.setdefault("request", args.request)
+    params.setdefault("follow_redirects", True)
+    params.setdefault("redirect_policy", "Loose")
+    params.setdefault("external_domains", ["*"])
+    params.setdefault("preserve_host", True)
+    params.setdefault("metadata", True)
+    params.setdefault("limit", 1)
     if args.return_cookies:
         params["return_cookies"] = True
     if args.return_headers:
         params["return_headers"] = True
+    if args.return_page_links:
+        params["return_page_links"] = True
     if args.cookies:
         params["cookies"] = args.cookies
     if args.track_responses or args.track_requests or args.track_automation:

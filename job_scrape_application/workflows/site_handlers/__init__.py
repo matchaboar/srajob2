@@ -11,12 +11,15 @@ from .confluent import ConfluentHandler
 from .docusign import DocusignHandler
 from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
+from .hubspot_careers import HubspotCareersHandler
+from .lifeatspotify import LifeAtSpotifyHandler
 from .meta_careers import MetaCareersHandler
 from .microsoft_careers import MicrosoftCareersHandler
 from .netflix import NetflixHandler
 from .notion_careers import NotionCareersHandler
 from .openai_careers import OpenAICareersHandler
 from .paloalto_networks import PaloAltoNetworksHandler
+from .snapchat_careers import SnapchatCareersHandler
 from .uber_careers import UberCareersHandler
 from .workday import WorkdayHandler
 
@@ -29,12 +32,15 @@ _HANDLER_CLASSES = (
     DocusignHandler,
     GithubCareersHandler,
     GreenhouseHandler,
+    HubspotCareersHandler,
+    LifeAtSpotifyHandler,
     MetaCareersHandler,
     MicrosoftCareersHandler,
     NetflixHandler,
     NotionCareersHandler,
     OpenAICareersHandler,
     PaloAltoNetworksHandler,
+    SnapchatCareersHandler,
     UberCareersHandler,
     WorkdayHandler,
 )
@@ -73,12 +79,15 @@ __all__ = [
     "DocusignHandler",
     "GithubCareersHandler",
     "GreenhouseHandler",
+    "HubspotCareersHandler",
+    "LifeAtSpotifyHandler",
     "MetaCareersHandler",
     "MicrosoftCareersHandler",
     "NetflixHandler",
     "NotionCareersHandler",
     "OpenAICareersHandler",
     "PaloAltoNetworksHandler",
+    "SnapchatCareersHandler",
     "UberCareersHandler",
     "WorkdayHandler",
     "get_site_handler",

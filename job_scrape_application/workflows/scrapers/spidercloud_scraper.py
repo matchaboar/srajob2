@@ -21,6 +21,7 @@ from ..helpers.scrape_utils import (
     _METADATA_LABEL_KEYS,
     _normalize_country_label,
     _normalize_section_heading,
+    _extract_job_markdown_from_json,
     _strip_embedded_theme_json,
     MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
@@ -445,7 +446,7 @@ class SpiderCloudScraper(BaseScraper):
             if not text:
                 return None
             try:
-                return json.loads(text)
+                return json.loads(text, strict=False)
             except Exception:
                 pass
             try:
@@ -454,7 +455,7 @@ class SpiderCloudScraper(BaseScraper):
                 unescaped = ""
             if unescaped:
                 try:
-                    return json.loads(unescaped)
+                    return json.loads(unescaped, strict=False)
                 except Exception:
                     pass
             match = re.search(JSON_OBJECT_PATTERN, text, flags=re.DOTALL)
@@ -563,6 +564,9 @@ class SpiderCloudScraper(BaseScraper):
             if isinstance(value, str):
                 if not value.strip():
                     return None
+                extracted_json = _extract_job_markdown_from_json(value)
+                if extracted_json:
+                    return extracted_json
                 # Detect obvious HTML and convert to markdown before returning.
                 looks_like_html = "<" in value and ">" in value and (
                     "<html" in value.lower() or "<div" in value.lower() or "<p" in value.lower()
@@ -1657,7 +1661,7 @@ class SpiderCloudScraper(BaseScraper):
             "preserve_host": True,
             "limit": 1,
         }
-        spider_params.update(handler.get_spidercloud_config(request_url))
+        spider_params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(request_url)))
         try:
             async with AsyncSpider(api_key=api_key) as client:
                 scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
@@ -2132,6 +2136,12 @@ class SpiderCloudScraper(BaseScraper):
             raw_description = structured_payload.get("description")
             if isinstance(raw_description, str) and raw_description.strip():
                 structured_description = raw_description.strip()
+            if handler:
+                extractor = getattr(handler, "build_structured_description", None)
+                if callable(extractor):
+                    handler_description = extractor(structured_payload)
+                    if isinstance(handler_description, str) and handler_description.strip():
+                        structured_description = handler_description.strip()
             structured_location = self._location_from_job_posting(structured_payload)
             structured_company = self._company_from_structured_payload(structured_payload)
         if structured_description and not structured_present:
@@ -2141,7 +2151,12 @@ class SpiderCloudScraper(BaseScraper):
         if structured_description:
             structured_markdown = self._html_to_markdown(structured_description)
             if structured_markdown.strip():
-                if self._should_use_structured_description(parsed_markdown):
+                should_use_structured = self._should_use_structured_description(parsed_markdown)
+                if handler:
+                    override = handler.should_use_structured_description(parsed_markdown)
+                    if isinstance(override, bool):
+                        should_use_structured = override
+                if should_use_structured:
                     parsed_markdown = structured_markdown
                 else:
                     listing_probe = strip_known_nav_blocks(parsed_markdown or "")
@@ -2320,8 +2335,10 @@ class SpiderCloudScraper(BaseScraper):
             keyword_title = self._title_with_required_keyword(cleaned_markdown)
             can_replace_title = title_source in {None, "hint", "markdown", "event"}
             if keyword_title and can_replace_title:
-                weak_title = self._is_placeholder_title(title) or len(title.split()) <= 3
-                if weak_title or title_source == "event":
+                normalized_title = title.lower() if isinstance(title, str) else ""
+                has_job_keyword = any(keyword in normalized_title for keyword in JOB_TITLE_KEYWORDS)
+                weak_title = self._is_placeholder_title(title) or len(title.split()) <= 2
+                if (weak_title or title_source == "event") and not has_job_keyword:
                     title = keyword_title
                     title_source = "markdown"
         if from_content and not title_matches_required_keywords(title):
@@ -2342,11 +2359,13 @@ class SpiderCloudScraper(BaseScraper):
         if handler:
             extractor = getattr(handler, "extract_company", None)
             if callable(extractor):
-                handler_company = extractor(listing_payload, url) if listing_payload is not None else None
+                handler_company = extractor(listing_payload, url)
                 if handler_company is None and greenhouse_payload is not None:
                     handler_company = extractor(greenhouse_payload, url)
                 if handler_company is None and structured_payload is not None:
                     handler_company = extractor(structured_payload, url)
+                if handler_company is None:
+                    handler_company = extractor(None, url)
         if handler_company and is_generic_company_name(handler_company):
             handler_company = None
         greenhouse_company = None
@@ -2399,11 +2418,24 @@ class SpiderCloudScraper(BaseScraper):
         greenhouse_location = None
         if handler and handler.name == "greenhouse":
             greenhouse_location = self._extract_greenhouse_location_from_events(events)
+        def _hint_more_specific_than_country(hint: str | None, country_label: str | None) -> bool:
+            if not hint or not country_label:
+                return False
+            hint_parts = [part.strip().lower() for part in hint.split(",") if part.strip()]
+            if not hint_parts:
+                return False
+            country_lower = country_label.strip().lower()
+            return any(part != country_lower for part in hint_parts)
+
         location = structured_location or greenhouse_location or handler_location or location_hint
         if greenhouse_location and location_hint:
             greenhouse_label = greenhouse_location.strip()
             greenhouse_country = _normalize_country_label(greenhouse_label)
-            if greenhouse_country and greenhouse_label.lower() == greenhouse_country.lower():
+            if (
+                greenhouse_country
+                and greenhouse_label.lower() == greenhouse_country.lower()
+                and _hint_more_specific_than_country(location_hint, greenhouse_label)
+            ):
                 location = location_hint
         if structured_location and location_hint:
             structured_label = structured_location.strip()
@@ -2479,7 +2511,10 @@ class SpiderCloudScraper(BaseScraper):
                 raw_posted_at = None
         if raw_posted_at is not None:
             if not isinstance(raw_posted_at, str) or raw_posted_at.strip():
-                posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
+                posted_at, posted_at_unknown = parse_posted_at_with_unknown(
+                    raw_posted_at,
+                    now_ms=started_at or None,
+                )
         if posted_at_unknown and structured_payload:
             raw_posted_at = (
                 structured_payload.get("datePosted")
@@ -2488,7 +2523,10 @@ class SpiderCloudScraper(BaseScraper):
                 or structured_payload.get("posted_at")
             )
             if raw_posted_at is not None and (not isinstance(raw_posted_at, str) or raw_posted_at.strip()):
-                posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_at)
+                posted_at, posted_at_unknown = parse_posted_at_with_unknown(
+                    raw_posted_at,
+                    now_ms=started_at or None,
+                )
 
         self._last_ignored_job = None
         return {
@@ -2583,11 +2621,15 @@ class SpiderCloudScraper(BaseScraper):
         handler = self._get_site_handler(url)
         request_url = url
         if handler:
-            api_url = handler.get_api_uri(url) if handler.name == "workday" else None
+            api_url = (
+                handler.get_api_uri(url)
+                if handler.name in {"workday", "microsoft_careers"}
+                else None
+            )
             if api_url and api_url != url:
                 request_url = api_url
                 logger.debug("SpiderCloud using api_url=%s original_url=%s", request_url, url)
-            local_params.update(handler.get_spidercloud_config(request_url))
+            local_params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(request_url)))
 
         try:
             async for chunk in self._iterate_scrape_response(
@@ -2914,7 +2956,7 @@ class SpiderCloudScraper(BaseScraper):
         for url in urls:
             handler = self._get_site_handler(url)
             if handler:
-                config = handler.get_spidercloud_config(url)
+                config = handler.normalize_spidercloud_config(handler.get_spidercloud_config(url))
                 if not config:
                     config = _infer_spidercloud_config(url)
                 handler_configs.append(config)
@@ -3319,7 +3361,7 @@ class SpiderCloudScraper(BaseScraper):
             "limit": 1,
         }
         if handler:
-            spider_params.update(handler.get_spidercloud_config(api_url))
+            spider_params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(api_url)))
 
         async def _do_fetch() -> list[Any]:
             async with AsyncSpider(api_key=api_key) as client:

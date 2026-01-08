@@ -137,7 +137,8 @@ const applicationTables = {
   })
     .index("by_user", ["userId"])
     .index("by_job", ["jobId"])
-    .index("by_user_and_job", ["userId", "jobId"]),
+    .index("by_user_and_job", ["userId", "jobId"])
+    .index("by_user_status_applied_at", ["userId", "status", "appliedAt"]),
 
   // List of websites to scrape for jobs
   sites: defineTable({
@@ -155,6 +156,8 @@ const applicationTables = {
         v.literal("adobe"),
         v.literal("docusign"),
         v.literal("notion"),
+        v.literal("spotify"),
+        v.literal("hubspot"),
         v.literal("paloalto"),
         v.literal("ashby"),
         v.literal("meta"),

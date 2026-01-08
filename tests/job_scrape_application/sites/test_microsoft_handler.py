@@ -21,11 +21,16 @@ def test_microsoft_handler_matches_and_builds_api_url():
         "pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1"
     )
     detail_url = "https://apply.careers.microsoft.com/careers/job/1970393556656795"
+    api_detail_url = (
+        "https://apply.careers.microsoft.com/api/pcsx/position_details"
+        "?position_id=1970393556656795&domain=microsoft.com&hl=en"
+    )
 
     assert handler.matches_url(listing_url)
     assert handler.is_listing_url(listing_url)
     assert handler.matches_url(detail_url)
     assert not handler.is_listing_url(detail_url)
+    assert handler.matches_url(api_detail_url)
     assert isinstance(get_site_handler(listing_url), MicrosoftCareersHandler)
 
     api_url = handler.get_listing_api_uri(listing_url)
@@ -34,6 +39,11 @@ def test_microsoft_handler_matches_and_builds_api_url():
     assert "domain=microsoft.com" in api_url
     assert "start=0" in api_url
     assert "pid=" not in api_url
+
+    detail_api_url = handler.get_api_uri(detail_url)
+    assert detail_api_url is not None
+    assert "/api/pcsx/position_details" in detail_api_url
+    assert "position_id=1970393556656795" in detail_api_url
 
 
 def test_microsoft_handler_extracts_links_and_pagination():
@@ -93,6 +103,10 @@ def test_microsoft_handler_spidercloud_config():
     listing_url = "https://apply.careers.microsoft.com/careers?query=engineer"
     api_url = "https://apply.careers.microsoft.com/api/pcsx/search?domain=microsoft.com&query=engineer"
     detail_url = "https://apply.careers.microsoft.com/careers/job/1970393556656795"
+    detail_api_url = (
+        "https://apply.careers.microsoft.com/api/pcsx/position_details"
+        "?position_id=1970393556656795&domain=microsoft.com&hl=en"
+    )
 
     listing_config = handler.get_spidercloud_config(listing_url)
     assert listing_config.get("return_format") == ["raw_html"]
@@ -105,4 +119,8 @@ def test_microsoft_handler_spidercloud_config():
     detail_config = handler.get_spidercloud_config(detail_url)
     assert detail_config.get("return_format") == ["raw_html"]
     assert detail_config.get("request") == "chrome"
-    assert "execution_scripts" in detail_config
+    assert "execution_scripts" not in detail_config
+
+    detail_api_config = handler.get_spidercloud_config(detail_api_url)
+    assert detail_api_config.get("return_format") == ["raw_html"]
+    assert detail_api_config.get("request") == "standard"

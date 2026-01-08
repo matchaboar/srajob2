@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html as html_lib
 import inspect
 import json
 import logging
@@ -49,6 +50,7 @@ from ..helpers.provider import (
     sanitize_headers,
 )
 from ..helpers.scrape_utils import (
+    _extract_job_detail_seed_from_json,
     _jobs_from_scrape_items,
     _shrink_payload,
     _strip_ashby_application_url,
@@ -1403,6 +1405,30 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 continue
             filtered.append(entry)
 
+        existing_round: list[str] = []
+        existing_items: list[Dict[str, Any]] = []
+        if filtered:
+            try:
+                candidate_urls = [
+                    entry.get("url")
+                    for entry in filtered
+                    if isinstance(entry.get("url"), str) and entry.get("url").strip()
+                ]
+                existing_urls = await filter_existing_job_urls(candidate_urls)
+            except Exception:
+                existing_urls = []
+            existing_set = {u for u in existing_urls if isinstance(u, str)}
+            if existing_set:
+                next_filtered: list[Dict[str, Any]] = []
+                for entry in filtered:
+                    url_val = entry.get("url")
+                    if isinstance(url_val, str) and url_val in existing_set:
+                        existing_round.append(url_val)
+                        existing_items.append(_build_completion_item(entry, url_val))
+                        continue
+                    next_filtered.append(entry)
+                filtered = next_filtered
+
         if skipped_round:
             skipped.extend(skipped_round)
             try:
@@ -1430,6 +1456,16 @@ async def lease_scrape_url_batch(provider: Optional[str] = None, limit: int = SP
                 )
             except Exception as exc:
                 logger.warning("Failed to mark auth URLs as failed: %s", exc, exc_info=exc)
+
+        if existing_round:
+            skipped.extend(existing_round)
+            try:
+                await convex_mutation(
+                    "router:completeScrapeUrls",
+                    {"items": existing_items, "status": "completed", "error": "already_saved"},
+                )
+            except Exception as exc:
+                logger.warning("Failed to mark existing URLs as completed: %s", exc, exc_info=exc)
 
         if filtered:
             return _build_lease_response(filtered, skipped)
@@ -2989,6 +3025,9 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         urls: list[str] = []
         job_urls: list[str] = []
         listing_urls: list[str] = []
+        extracted_job_urls: list[str] = []
+        existing_job_set: set[str] = set()
+        existing_job_set_ready = False
     
         # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
         try:
@@ -3017,6 +3056,7 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                         listing_urls.append(url)
                     else:
                         job_urls.append(url)
+                extracted_job_urls = list(dict.fromkeys(job_urls))
                 if listing_urls and isinstance(source_url, str) and source_url:
                     seen_listing: set[str] = set()
                     try:
@@ -3148,6 +3188,18 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "urlSample": urls[:5] if urls else None,
                 },
             )
+            existing_jobs: list[str] = []
+            if job_urls:
+                try:
+                    existing_jobs = await filter_existing_job_urls(job_urls)
+                except Exception:
+                    existing_jobs = []
+            existing_job_set = {u for u in existing_jobs if isinstance(u, str)}
+            existing_job_set_ready = True
+            if existing_job_set:
+                job_urls = [u for u in job_urls if u not in existing_job_set]
+                urls = [u for u in urls if u not in existing_job_set]
+
             if urls:
                 site_id = _convex_site_id(payload.get("siteId"))
                 await convex_mutation(
@@ -3182,13 +3234,15 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             )
             # Non-fatal
 
-        if invalid_reason == "no_normalized_jobs" and job_urls:
-            unique_job_urls = list(dict.fromkeys(job_urls))
-            try:
-                existing_jobs = await filter_existing_job_urls(unique_job_urls)
-            except Exception:
-                existing_jobs = []
-            existing_set = {u for u in existing_jobs if isinstance(u, str)}
+        if invalid_reason == "no_normalized_jobs" and extracted_job_urls:
+            unique_job_urls = list(dict.fromkeys(extracted_job_urls))
+            existing_set = existing_job_set
+            if not existing_job_set_ready:
+                try:
+                    existing_jobs = await filter_existing_job_urls(unique_job_urls)
+                except Exception:
+                    existing_jobs = []
+                existing_set = {u for u in existing_jobs if isinstance(u, str)}
             if existing_set and len(existing_set) >= len(unique_job_urls):
                 invalid_reason = None
                 await _log_workflow_event(
@@ -3784,6 +3838,26 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         normalized = normalize_url(value, base_url=base_url)
         if not normalized:
             return None
+        if base_url:
+            try:
+                normalized_parsed = urlparse(normalized)
+                base_parsed = urlparse(base_url)
+            except Exception:
+                normalized_parsed = None
+                base_parsed = None
+            if (
+                normalized_parsed
+                and base_parsed
+                and not normalized_parsed.query
+                and base_parsed.query
+                and normalized_parsed.scheme == base_parsed.scheme
+                and normalized_parsed.netloc == base_parsed.netloc
+                and (normalized_parsed.path or "").rstrip("/")
+                == (base_parsed.path or "").rstrip("/")
+            ):
+                preferred = normalize_url(base_url, base_url=base_url)
+                if preferred:
+                    normalized = preferred
         return _strip_ashby_application_url(normalized)
 
     def _normalize_job_url_list(values: Iterable[str], *, base_url: str | None = None) -> list[str]:
@@ -3912,14 +3986,18 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if raw_links:
             link_urls.extend(raw_links)
         if link_urls:
+            link_urls = _normalize_job_url_list(link_urls, base_url=source_url)
             if handler:
                 link_urls = handler.filter_job_urls(link_urls)
             link_urls = _normalize_job_url_list(link_urls, base_url=source_url)
             link_urls = [url for url in link_urls if not _should_ignore_url(url)]
+        link_urls = BaseSiteHandler.drop_source_listing_url(link_urls, source_url)
         if handler:
             pagination_payload = _extract_pagination_payload(raw_val)
             if pagination_payload:
                 pagination_urls = handler.get_pagination_urls_from_json(pagination_payload, source_url)
+            if not pagination_urls:
+                pagination_urls = handler.get_pagination_urls_from_listing(source_url)
         if is_confluent and raw_val:
             for text in gather_strings(raw_val):
                 if not isinstance(text, str):
@@ -3927,12 +4005,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 pagination_urls.extend(confluent_page_re.findall(text))
         json_urls = extract_job_urls_from_json_payload(raw_val)
         if json_urls:
+            json_urls = _normalize_job_url_list(json_urls, base_url=source_url)
             if handler:
                 json_urls = handler.filter_job_urls(json_urls)
             merged = json_urls + link_urls
             merged = _normalize_job_url_list(merged, base_url=source_url)
             merged = [url for url in merged if not _should_ignore_url(url)]
             merged = _merge_pagination_urls(merged)
+            merged = BaseSiteHandler.drop_source_listing_url(merged, source_url)
             if handler and getattr(handler, "name", "") == "ashby":
                 merged = sorted(merged)
             return merged
@@ -3943,9 +4023,13 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 merged = handler.filter_job_urls(merged)
             merged = _normalize_job_url_list(merged, base_url=source_url)
             merged = [url for url in merged if not _should_ignore_url(url)]
-            return _merge_pagination_urls(merged)
+            merged = _merge_pagination_urls(merged)
+            merged = BaseSiteHandler.drop_source_listing_url(merged, source_url)
+            return merged
         if link_urls:
-            return _merge_pagination_urls(link_urls)
+            merged = _merge_pagination_urls(link_urls)
+            merged = BaseSiteHandler.drop_source_listing_url(merged, source_url)
+            return merged
 
     if isinstance(items, dict):
         raw_val = items.get("raw")
@@ -4453,7 +4537,11 @@ def _build_job_detail_heuristic_patch(
 ) -> tuple[Dict[str, Any], List[Dict[str, str]]]:
     """Return heuristic patch + records for a job row without mutating Convex."""
 
-    raw_description = row.get("description") or ""
+    source_description = row.get("description") or ""
+    raw_description = source_description
+    seed_description, seed_hints = _extract_job_detail_seed_from_json(raw_description)
+    if seed_description:
+        raw_description = seed_description
     cleaned_description = strip_known_nav_blocks(raw_description)
     analysis_description = cleaned_description
     description_body, description_metadata = split_description_metadata(cleaned_description)
@@ -4481,6 +4569,37 @@ def _build_job_detail_heuristic_patch(
     comp_regexes = _build_ordered_regexes(configs, "compensation", comp_defaults)
 
     hints = parse_markdown_hints(analysis_description)
+    if isinstance(seed_hints, dict) and seed_hints:
+        if not hints.get("title") and seed_hints.get("title"):
+            hints["title"] = seed_hints.get("title")
+        if not hints.get("company") and seed_hints.get("company"):
+            hints["company"] = seed_hints.get("company")
+        if not hints.get("locations") and seed_hints.get("locations"):
+            hints["locations"] = seed_hints.get("locations")
+        if not hints.get("location") and seed_hints.get("location"):
+            hints["location"] = seed_hints.get("location")
+        if "remote" not in hints and seed_hints.get("remote") is not None:
+            hints["remote"] = seed_hints.get("remote")
+        seed_locations = seed_hints.get("locations")
+        seed_location = seed_hints.get("location")
+        if seed_locations and isinstance(seed_locations, list) and seed_location:
+            hint_locations = hints.get("locations") or []
+            if not isinstance(hint_locations, list):
+                hint_locations = []
+            overlaps = False
+            for loc in hint_locations:
+                if not isinstance(loc, str):
+                    continue
+                loc_lower = loc.lower()
+                if any(loc_lower in seed.lower() or seed.lower() in loc_lower for seed in seed_locations):
+                    overlaps = True
+                    break
+            if not overlaps and seed_description:
+                hints["locations"] = seed_locations
+                hints["location"] = seed_location
+    hinted_title = hints.get("title") if isinstance(hints, dict) else None
+    raw_title_value = row.get("title") or row.get("jobTitle") or row.get("job_title") or ""
+    raw_title = str(raw_title_value).strip()
     hinted_comp = hints.get("compensation")
     comp_range_hint = hints.get("compensation_range") or {}
     locations_hint = hints.get("locations") or []
@@ -4489,11 +4608,27 @@ def _build_job_detail_heuristic_patch(
     company_remote = is_remote_company(company_name)
     raw_location_value = (row.get("location") or "").strip()
     raw_location_lower = raw_location_value.lower()
+    seed_location = None
+    seed_locations: list[str] = []
+    if isinstance(seed_hints, dict):
+        seed_location = seed_hints.get("location")
+        raw_seed_locations = seed_hints.get("locations")
+        if isinstance(raw_seed_locations, list):
+            seed_locations = [loc for loc in raw_seed_locations if isinstance(loc, str) and loc.strip()]
     location_fallback = (
         hints.get("location")
         if (not raw_location_value or raw_location_lower in _UNKNOWN_LOCATION_TOKENS)
         else raw_location_value or hints.get("location")
     )
+    if seed_description and seed_location and isinstance(seed_location, str) and seed_location.strip():
+        if not raw_location_value or raw_location_lower in _UNKNOWN_LOCATION_TOKENS:
+            location_fallback = seed_location
+        elif seed_locations:
+            raw_norm = raw_location_lower.strip()
+            if not any(
+                raw_norm in loc.lower() or loc.lower() in raw_norm for loc in seed_locations
+            ):
+                location_fallback = seed_location
     is_remote = company_remote or hints.get("remote") is True or bool(row.get("remote"))
     if hints.get("remote") is False and not company_remote:
         is_remote = False
@@ -4594,11 +4729,50 @@ def _build_job_detail_heuristic_patch(
         )
         recorded_comp = True
 
+    def _should_override_title(value: str) -> bool:
+        if not value:
+            return True
+        lowered = value.strip().lower()
+        if lowered in {"unknown", "n/a", "na", "untitled"}:
+            return True
+        if re.search(r"\b\d+\+?\s+years?\b", lowered):
+            return True
+        if re.search(r"\byears?\s+(?:of\s+)?experience\b", lowered):
+            return True
+        if re.search(r"\byears?\s+working\b", lowered):
+            return True
+        if re.search(
+            r"\bexperience\s+(?:in|with|providing|working|leading|managing|developing|designing|supporting)\b",
+            lowered,
+        ):
+            return True
+        if re.search(r"\bability\s+to\b", lowered):
+            return True
+        if re.search(r"\bknowledge\s+of\b", lowered):
+            return True
+        if lowered.endswith((".", "!", "?")):
+            return True
+        if len(lowered.split()) > 14:
+            return True
+        if not title_matches_required_keywords(value):
+            return True
+        return False
+
+    title_patch: Optional[str] = None
+    if isinstance(hinted_title, str) and hinted_title.strip():
+        cleaned_hint = html_lib.unescape(hinted_title).strip()
+        if cleaned_hint and cleaned_hint.lower() != raw_title.lower():
+            if _should_override_title(raw_title):
+                title_patch = cleaned_hint
+
     patch: Dict[str, Any] = {
         "heuristicAttempts": attempts + 1,
         "heuristicLastTried": now_ms,
         "heuristicVersion": HEURISTIC_VERSION,
     }
+    if title_patch:
+        patch["title"] = title_patch
+        patch["jobTitle"] = title_patch
     if locations:
         patch["locations"] = locations
         patch["location"] = locations[0]
@@ -4624,9 +4798,9 @@ def _build_job_detail_heuristic_patch(
         patch["remote"] = False
     if description_metadata and description_metadata != row.get("metadata"):
         patch["metadata"] = description_metadata
-    if description_body.strip() and description_body != raw_description:
+    if description_body.strip() and description_body != source_description:
         patch["description"] = description_body
-    elif cleaned_description.strip() and cleaned_description != raw_description:
+    elif cleaned_description.strip() and cleaned_description != source_description:
         patch["description"] = cleaned_description
 
     return patch, records

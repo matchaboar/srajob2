@@ -775,6 +775,19 @@ def test_parse_markdown_hints_stubhub_range_and_hybrid(stubhub_markdown):
     assert hints.get("compensation") == 325000
 
 
+def test_parse_markdown_hints_remote_with_location_override():
+    markdown = (
+        "# Support Engineer\n"
+        "Austin, TX\n"
+        "This role is fully remote within the United States.\n"
+    )
+
+    hints = parse_markdown_hints(markdown)
+
+    assert hints.get("location") == "Austin, TX"
+    assert hints.get("remote") is True
+
+
 def test_parse_markdown_hints_prefers_country_over_incidental_city(airbnb_china_markdown):
     hints = parse_markdown_hints(airbnb_china_markdown)
 
@@ -813,6 +826,40 @@ def test_build_job_detail_heuristic_patch_extracts_metadata():
     assert "metadata" in patch
     assert "Business Area" in patch["metadata"]
     assert "Description & Requirements" not in patch.get("description", "")
+
+
+def test_build_job_detail_heuristic_patch_sets_remote_false_with_location():
+    description = "Staff Engineer\nSeattle, WA\nResponsibilities\n"
+    row = {
+        "description": description,
+        "url": "https://example.com/jobs/remote-override",
+        "location": "Unknown",
+        "totalCompensation": 0,
+        "compensationUnknown": True,
+        "company": "ExampleCo",
+        "remote": True,
+    }
+
+    patch, _ = _build_job_detail_heuristic_patch(row, [], 0)
+
+    assert patch.get("remote") is False
+
+
+def test_build_job_detail_heuristic_patch_preserves_remote_company_override():
+    description = "Senior Platform Engineer\nSan Francisco, CA\nResponsibilities\n"
+    row = {
+        "description": description,
+        "url": "https://github.com/jobs/123",
+        "location": "Unknown",
+        "totalCompensation": 0,
+        "compensationUnknown": True,
+        "company": "GitHub",
+        "remote": False,
+    }
+
+    patch, _ = _build_job_detail_heuristic_patch(row, [], 0)
+
+    assert patch.get("remote") is True
 
 
 @pytest.mark.asyncio

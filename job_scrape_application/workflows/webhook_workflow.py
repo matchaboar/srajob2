@@ -44,7 +44,12 @@ async def _yield_if_needed(iteration: int, *, every: int = 500) -> None:
         await workflow.sleep(0)
 
 
-def _summarize_scrape_payload(scrape_payload: Any, *, max_samples: int = 5) -> Dict[str, Any]:
+def _summarize_scrape_payload(
+    scrape_payload: Any,
+    *,
+    max_samples: int = 5,
+    max_scan: int | None = None,
+) -> Dict[str, Any]:
     """Return lightweight counts/samples for workflow logging."""
 
     if not isinstance(scrape_payload, dict):
@@ -55,7 +60,10 @@ def _summarize_scrape_payload(scrape_payload: Any, *, max_samples: int = 5) -> D
     normalized_jobs = normalized if isinstance(normalized, list) else []
 
     samples: List[Dict[str, Any]] = []
-    for job in normalized_jobs:
+    scan_limit = max_scan if isinstance(max_scan, int) and max_scan > 0 else max_samples * 50
+    for idx, job in enumerate(normalized_jobs):
+        if idx >= scan_limit:
+            break
         if not isinstance(job, dict):
             continue
         sample = {
@@ -666,162 +674,171 @@ class ProcessWebhookIngestWorkflow:
                 if not events:
                     break
 
-                for event in events:
-                    if not isinstance(event, dict):
-                        continue
-                    event_id = event.get("_id")
-                    event_type = (event.get("event") or "").lower()
-                    metadata_raw = event.get("metadata")
-                    metadata_event: Dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
-                    job_id = str(event.get("jobId") or metadata_event.get("jobId") or event.get("id") or "")
-                    site_url_hint = event.get("siteUrl") or metadata_event.get("siteUrl")
-                    site_id_hint = event.get("siteId") or metadata_event.get("siteId")
-
-                    dedup_key = f"{event_type}:{job_id}" if job_id else None
-                    if dedup_key and dedup_key in seen_jobs:
-                        await _log(
-                            "webhook.duplicate",
-                            site_url=site_url_hint,
-                            data={"jobId": job_id, "eventId": event_id, "event": event_type},
-                            level="warn",
-                        )
-                        if event_id:
-                            await workflow.execute_activity(
-                                mark_firecrawl_webhook_processed,
-                                args=[event_id, "duplicate"],
-                                schedule_to_close_timeout=timedelta(seconds=30),
-                            )
-                        continue
-                    if dedup_key:
-                        seen_jobs.add(dedup_key)
-                    processed += 1
-                    await _log(
-                        "webhook.received",
-                        site_url=site_url_hint,
-                        data={
-                            "eventId": event_id,
-                            "siteId": site_id_hint,
-                            "event": event.get("event"),
-                            "status": event.get("status"),
-                            "jobId": job_id or None,
-                            "receivedAt": event.get("receivedAt"),
-                            "statusUrl": event.get("statusUrl") or event.get("status_url"),
-                        },
-                    )
+                for idx, event in enumerate(events):
                     try:
-                        # Short-circuit explicit failure events
-                        if "fail" in event_type:
-                            site_id = event.get("siteId") or metadata_event.get("siteId")
-                            if site_id:
-                                await workflow.execute_activity(
-                                    fail_site,
-                                    args=[{"id": site_id, "error": event.get("status") or event_type}],
-                                    start_to_close_timeout=timedelta(seconds=30),
-                                )
+                        if not isinstance(event, dict):
+                            continue
+                        event_id = event.get("_id")
+                        event_type = (event.get("event") or "").lower()
+                        metadata_raw = event.get("metadata")
+                        metadata_event: Dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
+                        job_id = str(
+                            event.get("jobId") or metadata_event.get("jobId") or event.get("id") or ""
+                        )
+                        site_url_hint = event.get("siteUrl") or metadata_event.get("siteUrl")
+                        site_id_hint = event.get("siteId") or metadata_event.get("siteId")
+
+                        dedup_key = f"{event_type}:{job_id}" if job_id else None
+                        if dedup_key and dedup_key in seen_jobs:
+                            await _log(
+                                "webhook.duplicate",
+                                site_url=site_url_hint,
+                                data={"jobId": job_id, "eventId": event_id, "event": event_type},
+                                level="warn",
+                            )
                             if event_id:
                                 await workflow.execute_activity(
                                     mark_firecrawl_webhook_processed,
-                                    args=[event_id, event.get("status") or event_type],
+                                    args=[event_id, "duplicate"],
                                     schedule_to_close_timeout=timedelta(seconds=30),
                                 )
                             continue
-
-                        result = await workflow.execute_activity(
-                            collect_firecrawl_job_result,
-                            args=[event],
-                            start_to_close_timeout=timedelta(minutes=10),
-                            retry_policy=RetryPolicy(
-                                initial_interval=timedelta(seconds=HTTP_RETRY_BASE_SECONDS),
-                                backoff_coefficient=2.0,
-                                maximum_interval=timedelta(minutes=5),
-                            ),
-                        )
-
-                        result_scrape_summary = (
-                            _summarize_scrape_payload(result.get("scrape")) if isinstance(result, dict) else {}
-                        )
-                        result_job_urls = result.get("job_urls") if isinstance(result, dict) else None
-                        result_job_urls_count = (
-                            len(result_job_urls) if isinstance(result_job_urls, list) else None
-                        )
-
+                        if dedup_key:
+                            seen_jobs.add(dedup_key)
+                        processed += 1
                         await _log(
-                            "webhook.collected",
-                            site_url=result.get("siteUrl") if isinstance(result, dict) else site_url_hint,
+                            "webhook.received",
+                            site_url=site_url_hint,
                             data={
                                 "eventId": event_id,
                                 "siteId": site_id_hint,
+                                "event": event.get("event"),
+                                "status": event.get("status"),
                                 "jobId": job_id or None,
-                                "kind": result.get("kind"),
-                                "status": result.get("status"),
-                                "httpStatus": result.get("httpStatus"),
-                                "jobsScraped": int(result.get("jobsScraped") or 0)
+                                "receivedAt": event.get("receivedAt"),
+                                "statusUrl": event.get("statusUrl") or event.get("status_url"),
+                            },
+                        )
+                        try:
+                            # Short-circuit explicit failure events
+                            if "fail" in event_type:
+                                site_id = event.get("siteId") or metadata_event.get("siteId")
+                                if site_id:
+                                    await workflow.execute_activity(
+                                        fail_site,
+                                        args=[{"id": site_id, "error": event.get("status") or event_type}],
+                                        start_to_close_timeout=timedelta(seconds=30),
+                                    )
+                                if event_id:
+                                    await workflow.execute_activity(
+                                        mark_firecrawl_webhook_processed,
+                                        args=[event_id, event.get("status") or event_type],
+                                        schedule_to_close_timeout=timedelta(seconds=30),
+                                    )
+                                continue
+
+                            result = await workflow.execute_activity(
+                                collect_firecrawl_job_result,
+                                args=[event],
+                                start_to_close_timeout=timedelta(minutes=10),
+                                retry_policy=RetryPolicy(
+                                    initial_interval=timedelta(seconds=HTTP_RETRY_BASE_SECONDS),
+                                    backoff_coefficient=2.0,
+                                    maximum_interval=timedelta(minutes=5),
+                                ),
+                            )
+
+                            result_scrape_summary = (
+                                _summarize_scrape_payload(result.get("scrape"))
+                                if isinstance(result, dict)
+                                else {}
+                            )
+                            result_job_urls = result.get("job_urls") if isinstance(result, dict) else None
+                            result_job_urls_count = (
+                                len(result_job_urls) if isinstance(result_job_urls, list) else None
+                            )
+
+                            await _log(
+                                "webhook.collected",
+                                site_url=result.get("siteUrl") if isinstance(result, dict) else site_url_hint,
+                                data={
+                                    "eventId": event_id,
+                                    "siteId": site_id_hint,
+                                    "jobId": job_id or None,
+                                    "kind": result.get("kind"),
+                                    "status": result.get("status"),
+                                    "httpStatus": result.get("httpStatus"),
+                                    "jobsScraped": int(result.get("jobsScraped") or 0)
+                                    if isinstance(result, dict)
+                                    else None,
+                                    "itemsCount": result.get("itemsCount"),
+                                    "jobUrls": result_job_urls_count,
+                                    "normalizedCount": result_scrape_summary.get("normalizedCount")
+                                    if result_scrape_summary
+                                    else None,
+                                    "sampleJobs": result_scrape_summary.get("sample")
+                                    if result_scrape_summary
+                                    else None,
+                                }
                                 if isinstance(result, dict)
                                 else None,
-                                "itemsCount": result.get("itemsCount"),
-                                "jobUrls": result_job_urls_count,
-                                "normalizedCount": result_scrape_summary.get("normalizedCount")
-                                if result_scrape_summary
-                                else None,
-                                "sampleJobs": result_scrape_summary.get("sample") if result_scrape_summary else None,
-                            }
-                            if isinstance(result, dict)
-                            else None,
-                        )
+                            )
 
-                        ingested_stored, ingested_jobs, ingested_sites = await _ingest_firecrawl_result(
-                            event,
-                            result,
-                            log=_log,
-                            workflow_name="ProcessWebhookScrape",
-                        )
-                        stored += ingested_stored
-                        jobs_scraped += ingested_jobs
-                        site_urls.extend(ingested_sites)
-                    except Exception as e:  # noqa: BLE001
-                        if _is_retryable_error(e):
-                            status = "retry"
+                            ingested_stored, ingested_jobs, ingested_sites = await _ingest_firecrawl_result(
+                                event,
+                                result,
+                                log=_log,
+                                workflow_name="ProcessWebhookScrape",
+                            )
+                            stored += ingested_stored
+                            jobs_scraped += ingested_jobs
+                            site_urls.extend(ingested_sites)
+                        except Exception as e:  # noqa: BLE001
+                            if _is_retryable_error(e):
+                                status = "retry"
+                                failure_reasons.append(str(e))
+                                await _log(
+                                    "webhook.retry",
+                                    site_url=site_url_hint,
+                                    message=str(e),
+                                    data={"eventId": event_id, "jobId": job_id or None, "siteId": site_id_hint},
+                                    level="warn",
+                                )
+                                raise
+
+                            failed += 1
+                            status = "failed"
+                            site_id = event.get("siteId") or (event.get("metadata") or {}).get("siteId")
+                            if site_id:
+                                try:
+                                    await workflow.execute_activity(
+                                        fail_site,
+                                        args=[{"id": site_id, "error": str(e)}],
+                                        start_to_close_timeout=timedelta(seconds=30),
+                                    )
+                                except Exception:
+                                    # Avoid masking the original error
+                                    pass
+                            if event_id:
+                                try:
+                                    await workflow.execute_activity(
+                                        mark_firecrawl_webhook_processed,
+                                        args=[event_id, str(e)],
+                                        schedule_to_close_timeout=timedelta(seconds=30),
+                                    )
+                                except Exception:
+                                    pass
                             failure_reasons.append(str(e))
+
                             await _log(
-                                "webhook.retry",
+                                "webhook.error",
                                 site_url=site_url_hint,
                                 message=str(e),
                                 data={"eventId": event_id, "jobId": job_id or None, "siteId": site_id_hint},
-                                level="warn",
+                                level="error",
                             )
-                            raise
-
-                        failed += 1
-                        status = "failed"
-                        site_id = event.get("siteId") or (event.get("metadata") or {}).get("siteId")
-                        if site_id:
-                            try:
-                                await workflow.execute_activity(
-                                    fail_site,
-                                    args=[{"id": site_id, "error": str(e)}],
-                                    start_to_close_timeout=timedelta(seconds=30),
-                                )
-                            except Exception:
-                                # Avoid masking the original error
-                                pass
-                        if event_id:
-                            try:
-                                await workflow.execute_activity(
-                                    mark_firecrawl_webhook_processed,
-                                    args=[event_id, str(e)],
-                                    schedule_to_close_timeout=timedelta(seconds=30),
-                                )
-                            except Exception:
-                                pass
-                        failure_reasons.append(str(e))
-
-                        await _log(
-                            "webhook.error",
-                            site_url=site_url_hint,
-                            message=str(e),
-                            data={"eventId": event_id, "jobId": job_id or None, "siteId": site_id_hint},
-                            level="error",
-                        )
+                    finally:
+                        await _yield_if_needed(idx, every=10)
 
             return WebhookProcessSummary(
                 processed=processed, stored=stored, jobs_scraped=jobs_scraped, failed=failed

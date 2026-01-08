@@ -268,6 +268,17 @@ site_schedules:
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/verkada/jobs
+  name: verkada
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/twilio/jobs
   name: twilio
   enabled: true
@@ -513,10 +524,32 @@ site_schedules:
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
+- url: https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing
+  name: Spotify
+  enabled: true
+  type: spotify
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
 - url: https://www.notion.com/careers
   name: notion
   enabled: true
   type: notion
+  scrapeProvider: spidercloud
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;
+  name: HubSpot
+  enabled: true
+  type: hubspot
   scrapeProvider: spidercloud
   schedule:
     name: Weekdays every 2 hours @ 09:30

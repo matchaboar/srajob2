@@ -1,0 +1,45 @@
+[
+  [
+    {
+      "content": {
+        "commonmark": "Meta Careers"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 1.3468907407407408e-05,
+        "compute_cost_formatted": "0.0000134689074074074075498860",
+        "file_cost": 0.0006772065,
+        "file_cost_formatted": "0.0006772065000000000001278977",
+        "total_cost": 0.0007006754074074074,
+        "total_cost_formatted": "0.0007006754074074074082328952",
+        "transform_cost": 1e-05,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 3071,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "Meta is seeking talented experienced engineers to join our teams in building cutting-edge products that connect billions of people around the world. As ...",
+          "domain": "www.metacareers.com",
+          "extracted_data": null,
+          "file_size": 12,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://www.metacareers.com/profile/job_details/1394915781774041",
+          "pathname": "/profile/job_details/1394915781774041",
+          "resource_type": ".md",
+          "title": "Meta Careers",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://www.metacareers.com/profile/job_details/1394915781774041"
+    }
+  ]
+]

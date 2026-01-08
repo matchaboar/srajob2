@@ -11,6 +11,7 @@ MICROSOFT_BASE_URL = "https://apply.careers.microsoft.com"
 CAREERS_PATH = "/careers"
 JOB_DETAIL_PATH = "/careers/job/"
 API_SEARCH_PATH = "/api/pcsx/search"
+API_DETAIL_PATH = "/api/pcsx/position_details"
 DEFAULT_PAGE_SIZE = 10
 
 _JOB_ID_RE = re.compile(r"/careers/job/(?P<job_id>\d+)", flags=re.IGNORECASE)
@@ -31,7 +32,11 @@ class MicrosoftCareersHandler(BaseSiteHandler):
         if not host or not host.endswith(MICROSOFT_HOST_SUFFIX):
             return False
         path = (parsed.path or "").lower()
-        return path.startswith(CAREERS_PATH) or path.startswith(API_SEARCH_PATH)
+        return (
+            path.startswith(CAREERS_PATH)
+            or path.startswith(API_SEARCH_PATH)
+            or path.startswith(API_DETAIL_PATH)
+        )
 
     def is_listing_url(self, url: str) -> bool:
         try:
@@ -64,6 +69,30 @@ class MicrosoftCareersHandler(BaseSiteHandler):
         api_path = API_SEARCH_PATH if not (parsed.path or "").lower().startswith(API_SEARCH_PATH) else parsed.path
         query = urlencode(params, doseq=True)
         return urlunparse(parsed._replace(path=api_path, query=query, scheme="https"))
+
+    def get_api_uri(self, uri: str) -> Optional[str]:
+        if not self.matches_url(uri):
+            return None
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return None
+
+        path = (parsed.path or "").lower()
+        if path.startswith(API_DETAIL_PATH):
+            return urlunparse(parsed._replace(scheme="https"))
+
+        job_id = self._extract_job_id(uri)
+        if not job_id:
+            return None
+
+        params = [
+            ("position_id", job_id),
+            ("domain", "microsoft.com"),
+            ("hl", "en"),
+        ]
+        query = urlencode(params, doseq=True)
+        return urlunparse(parsed._replace(path=API_DETAIL_PATH, query=query, scheme="https"))
 
     def get_links_from_json(self, payload: Any) -> List[str]:
         urls: List[str] = []
@@ -151,25 +180,13 @@ class MicrosoftCareersHandler(BaseSiteHandler):
             "external_domains": ["*"],
             "preserve_host": True,
         }
-        if path.startswith(API_SEARCH_PATH):
+        if path.startswith(API_SEARCH_PATH) or path.startswith(API_DETAIL_PATH):
             base_config.update({"request": "standard", "return_format": ["raw_html"]})
             return self._apply_page_links_config(base_config)
         if self.is_listing_url(uri):
             base_config.update({"request": "chrome", "return_format": ["raw_html"]})
             return self._apply_page_links_config(base_config)
-        base_config.update(
-            {
-                "request": "chrome",
-                "return_format": ["raw_html"],
-                "execution_scripts": {"*": self._build_detail_execution_script()},
-                "wait_for": {
-                    "selector": {
-                        "selector": "#ms-job-json",
-                        "timeout": {"secs": 25, "nanos": 0},
-                    }
-                },
-            }
-        )
+        base_config.update({"request": "chrome", "return_format": ["raw_html"]})
         return self._apply_page_links_config(base_config)
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
@@ -274,6 +291,15 @@ class MicrosoftCareersHandler(BaseSiteHandler):
     def _extract_job_id(url: str | None) -> Optional[str]:
         if not url:
             return None
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            parsed = None
+        if parsed:
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+                if key.lower() == "position_id":
+                    job_id = str(value).strip()
+                    return job_id if job_id else None
         match = _JOB_ID_RE.search(url)
         if match:
             return match.group("job_id")

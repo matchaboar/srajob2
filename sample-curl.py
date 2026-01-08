@@ -1,7 +1,8 @@
 import os
+import asyncio
 from pprint import pprint
 
-import requests
+import httpx
 from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
@@ -23,8 +24,9 @@ SPIDER_API_KEY = os.getenv("SPIDER_API_KEY")
 
 # json_data = {"return_format":"markdown","url":URL,"request":"smart_mode","return_json_data":False}
 
-# response = requests.post('https://api.spider.cloud/scrape', 
-#   headers=headers, json=json_data)
+# async with httpx.AsyncClient() as client:
+#     response = await client.post('https://api.spider.cloud/scrape',
+#       headers=headers, json=json_data)
 
 # print(response.json())
 
@@ -47,8 +49,9 @@ SPIDER_API_KEY = os.getenv("SPIDER_API_KEY")
 #     "whitelist": WHITELIST
 #     }
 
-# response = requests.post('https://api.spider.cloud/links', 
-#   headers=headers, json=json_data)
+# async with httpx.AsyncClient() as client:
+#     response = await client.post('https://api.spider.cloud/links',
+#       headers=headers, json=json_data)
 
 # Spider.crawl_url(
 #     url=URL,
@@ -77,7 +80,7 @@ WHITELIST = [
   # .*{word}.*" for word in WHITELIST_WORDS
 ]
 
-def crawl_page() -> dict:
+async def crawl_page() -> dict:
   headers = {
     'Authorization': f'Bearer {os.getenv("SPIDER_API_KEY")}',
     'Content-Type': 'application/json',
@@ -95,12 +98,14 @@ def crawl_page() -> dict:
     "whitelist": WHITELIST
   }
 
-  response = requests.post('https://api.spider.cloud/crawl', 
-    headers=headers, json=json_data)
-  return response.json()
+  async with httpx.AsyncClient() as client:
+    response = await client.post('https://api.spider.cloud/crawl',
+      headers=headers, json=json_data)
+    response.raise_for_status()
+    return response.json()
     
 if __name__ == "__main__":
-  res = crawl_page()
+  res = asyncio.run(crawl_page())
   pprint(res)
   with open("sample-crawl-response.json", "w") as f:
       import json
