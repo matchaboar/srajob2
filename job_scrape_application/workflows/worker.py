@@ -40,7 +40,7 @@ from .webhook_workflow import (
     RecoverMissingFirecrawlWebhookWorkflow,
     SiteLeaseWorkflow,
 )
-from .schedule_audit import schedule_audit_logger
+from .schedule_audit import schedule_audit_logger, should_run_schedule_audit
 
 WORKFLOW_CLASSES = [
     ScrapeWorkflow,
@@ -106,6 +106,7 @@ ACTIVITY_FUNCTIONS = [
     activities.store_scrape,
     activities.complete_site,
     activities.fail_site,
+    activities.record_workflow_checkpoint,
     activities.record_workflow_run,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
@@ -136,6 +137,7 @@ FETCHFOX_ACTIVITIES = {
 JOB_DETAILS_WORKFLOWS = [SpidercloudJobDetailsWorkflow]
 JOB_DETAILS_ACTIVITIES = [
     activities.record_workflow_run,
+    activities.record_workflow_checkpoint,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_job_batch,
     activities.process_spidercloud_listing_batch,
@@ -146,6 +148,7 @@ JOB_DETAILS_ACTIVITIES = [
 LISTING_WORKFLOWS = [SpidercloudListingWorkflow]
 LISTING_ACTIVITIES = [
     activities.record_workflow_run,
+    activities.record_workflow_checkpoint,
     activities.lease_scrape_url_batch,
     activities.process_spidercloud_listing_batch,
     activities.complete_scrape_urls,
@@ -488,7 +491,10 @@ async def main() -> None:
     import socket
 
     hostname = socket.gethostname()
-    worker_id = f"{hostname}-{os.getpid()}"
+    worker_id = os.environ.get("SCRAPE_WORKER_ID", "").strip()
+    if not worker_id:
+        worker_id = f"{hostname}-{os.getpid()}"
+        os.environ["SCRAPE_WORKER_ID"] = worker_id
 
     configs = _select_worker_configs()
     queue_summary = ", ".join(f"{cfg.task_queue}({cfg.role})" for cfg in configs)
@@ -513,7 +519,11 @@ async def main() -> None:
         for cfg in configs
     ]
 
-    schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
+    schedule_audit_task: asyncio.Task | None = None
+    if should_run_schedule_audit(worker_id):
+        schedule_audit_task = asyncio.create_task(schedule_audit_logger(worker_id))
+    else:
+        logger.info("Schedule audit logger disabled for worker_id=%s.", worker_id)
 
     logger.info(
         "Worker started. Namespace=%s Address=%s TaskQueues=%s Role=%s",
@@ -531,11 +541,12 @@ async def main() -> None:
     except KeyboardInterrupt:
         logger.info("Worker interrupted; shutting down...")
     finally:
-        schedule_audit_task.cancel()
-        try:
-            await schedule_audit_task
-        except asyncio.CancelledError:
-            pass
+        if schedule_audit_task is not None:
+            schedule_audit_task.cancel()
+            try:
+                await schedule_audit_task
+            except asyncio.CancelledError:
+                pass
 
 
 if __name__ == "__main__":

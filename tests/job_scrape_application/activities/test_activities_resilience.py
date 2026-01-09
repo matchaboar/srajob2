@@ -59,10 +59,14 @@ def test_trim_scrape_for_convex_truncates_and_strips_raw():
 
     items = trimmed["items"]
     assert len(items["normalized"]) == 1  # limited by max_items
-    assert len(items["normalized"][0]["description"]) == 100  # truncated description
-    assert len(items["normalized"][0]["job_description"]) == 100
-    assert len(items["normalized"][0]["title"]) == 50
-    assert len(items["normalized"][0]["job_title"]) == 50
+    assert items["normalized"][0] == {"url": "https://example.com/1"}
+    assert items["normalizedCount"] == 2
+    sample = items.get("normalizedSample", [])
+    assert sample
+    assert len(sample[0]["description"]) == 100  # truncated description
+    assert len(sample[0]["job_description"]) == 100
+    assert len(sample[0]["title"]) == 50
+    assert len(sample[0]["job_title"]) == 50
     assert "raw" not in items
     assert "rawPreview" in items  # preview retained instead of raw blob
 

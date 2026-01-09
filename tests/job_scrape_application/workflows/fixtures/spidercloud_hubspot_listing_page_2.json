@@ -1,0 +1,23 @@
+{
+  "request": {
+    "endpoint": "/scrape",
+    "url": "https://www.hubspot.com/careers/jobs?page=2#department=product-ux-engineering;",
+    "params": {
+      "return_format": [
+        "raw_html"
+      ],
+      "limit": 1
+    }
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "raw": "<html><body><div>Showing 21 - 40 of 200</div><a class=\"careers-apply\" href=\"/careers/jobs/5986324\">Apply</a><a class=\"careers-apply\" href=\"/careers/jobs/5986325\">Apply</a></body></html>"
+        },
+        "status": 200,
+        "url": "https://www.hubspot.com/careers/jobs?page=2#department=product-ux-engineering;"
+      }
+    ]
+  ]
+}

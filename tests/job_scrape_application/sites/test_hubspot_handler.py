@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 
 ROOT = os.path.abspath(".")
 if ROOT not in sys.path:
@@ -14,20 +12,11 @@ from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     HubspotCareersHandler,
     get_site_handler,
 )
-from tests.job_scrape_application.sites.helpers import load_spidercloud_fixture  # noqa: E402
-
 LISTING_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_page1.html")
 LISTING_PAGE_2_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_page2.html")
 LISTING_PAGE_3_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_page3.html")
 DETAIL_FIXTURE = Path("tests/fixtures/hubspot_job_detail_commonmark.md")
 ENGINEERING_DETAIL_FIXTURE = Path("tests/fixtures/hubspot_job_detail_7294272_commonmark.md")
-GRAPHQL_FIXTURE = Path("tests/fixtures/spidercloud_hubspot_graphql_jobs.json")
-
-
-def _load_hubspot_graphql_payload() -> dict:
-    payload = load_spidercloud_fixture(GRAPHQL_FIXTURE)
-    raw = payload[0][0]["content"]["raw"]
-    return json.loads(raw)
 
 
 def test_hubspot_handler_matches_and_extracts_links():
@@ -126,41 +115,16 @@ def test_hubspot_handler_spidercloud_config():
     assert detail_config.get("return_format") == ["commonmark"]
 
 
+def test_hubspot_handler_listing_api_disabled():
+    handler = HubspotCareersHandler()
+    listing_url = "https://www.hubspot.com/careers/jobs?page=1"
+
+    assert handler.supports_listing_api is False
+    assert handler.get_listing_api_uri(listing_url) is None
+
+
 def test_hubspot_handler_trims_signup_cta_from_detail_urls():
     handler = HubspotCareersHandler()
     url = "https://www.hubspot.com/careers/jobs/5986323?hubs_signup-cta=careers-apply"
     trimmed = handler.filter_job_urls([url])
     assert trimmed == ["https://www.hubspot.com/careers/jobs/5986323"]
-
-
-def test_hubspot_handler_extracts_links_from_graphql_payload():
-    handler = HubspotCareersHandler()
-    payload = _load_hubspot_graphql_payload()
-    links = handler.get_links_from_json(payload)
-    jobs = payload.get("data", {}).get("jobs", [])
-    job_ids = {str(job.get("id")) for job in jobs if isinstance(job, dict) and job.get("id")}
-
-    assert links
-    assert all(link.startswith("https://www.hubspot.com/careers/jobs/") for link in links)
-    assert all(link.rsplit("/", 1)[-1].isdigit() for link in links)
-    assert {link.rsplit("/", 1)[-1] for link in links} == job_ids
-
-
-def test_hubspot_handler_builds_graphql_listing_url():
-    handler = HubspotCareersHandler()
-    listing_url = "https://www.hubspot.com/careers/jobs?page=1&q=engineering"
-    api_url = handler.get_listing_api_uri(listing_url)
-
-    assert api_url is not None
-    parsed = urlparse(api_url)
-    assert parsed.scheme == "https"
-    assert parsed.netloc == "wtcfns.hubspot.com"
-    assert parsed.path == "/careers/graphql"
-
-    params = parse_qs(parsed.query)
-    assert "query" in params
-    assert "variables" in params
-    assert "jobs" in params["query"][0]
-
-    variables = json.loads(params["variables"][0])
-    assert variables["searchQuery"] == "engineering"

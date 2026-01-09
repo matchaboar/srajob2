@@ -7,10 +7,22 @@ import threading
 import time
 import traceback
 
-try:
-    from job_scrape_application.services import telemetry  # type: ignore
-except Exception:  # pragma: no cover - optional in constrained test envs
-    telemetry = None  # type: ignore[assignment]
+# Import telemetry lazily to avoid heavy imports in workflow threads.
+class _TelemetryProxy:
+    def __init__(self) -> None:
+        self._module = None
+
+    def _resolve(self):
+        if self._module is None:
+            self._module = importlib.import_module("job_scrape_application.services.telemetry")
+        return self._module
+
+    def __getattr__(self, name: str):
+        module = self._resolve()
+        return getattr(module, name)
+
+
+telemetry = _TelemetryProxy()
 
 _DEADLOCK_SIGNATURES = ("TMPRL1101", "Potential deadlock detected", "_DeadlockError")
 _DEADLOCK_RUN_ID_RE = re.compile(r"run ID ([0-9a-f-]{8,})", re.IGNORECASE)
@@ -171,13 +183,12 @@ class DeadlockLogHandler(logging.Handler):
         }
 
         try:
-            if telemetry is None:
+            telemetry_mod = telemetry
+            if telemetry_mod is None:
                 telemetry_mod = importlib.import_module(
                     "job_scrape_application.services.telemetry"
                 )
-                telemetry_mod.emit_posthog_log(payload)
-            else:
-                telemetry.emit_posthog_log(payload)
+            telemetry_mod.emit_posthog_log(payload)
         except Exception:
             return
 

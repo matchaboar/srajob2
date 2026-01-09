@@ -6,15 +6,19 @@ import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, ashbySlugFromUrl } from "./siteUtils";
 import { deriveCompanyKey, deriveEngineerFlag, deriveCompanyFromUrl } from "./jobs";
 import { extractJobs } from "./router";
+import { normalizeJobUrlKey } from "./jobUrlUtils";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 import { countJobs } from "./lib/scrapeCounts";
+import { siteScheduleCounts } from "./lib/siteScheduleAggregate";
+import { deriveNextEligibleAt, scheduleFromRow } from "./lib/siteScheduling";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
 export const runScrapeActivityBackfill = migrations.runner(internal.migrations.backfillScrapeActivity);
 export const runJobDetailScrapeUrlBackfill = migrations.runner(internal.migrations.backfillJobDetailScrapeUrl);
 export const runIgnoredJobCompanyBackfill = migrations.runner(internal.migrations.backfillIgnoredJobCompanies);
+export const runJobUrlKeyBackfill = migrations.runner(internal.migrations.backfillJobUrlKeys);
 
 type JobId = Id<"jobs">;
 
@@ -58,6 +62,35 @@ const hostFromUrl = (url: string): string => {
   } catch {
     return "";
   }
+};
+const SCRAPE_URL_QUEUE_BUCKETS = 128;
+const JOB_URL_BUCKETS = 256;
+const hashStringToBucket = (value: string, bucketCount: number) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % bucketCount;
+};
+const deriveScrapeQueueBucketKey = (params: {
+  url: string;
+  sourceUrl?: string | null;
+  siteId?: string | null;
+}) => {
+  if (params.siteId) return `site:${params.siteId}`;
+  if (params.sourceUrl) return `source:${params.sourceUrl}`;
+  const domain = hostFromUrl(params.url);
+  if (domain) return `domain:${domain}`;
+  return `url:${params.url}`;
+};
+const deriveScrapeQueueBucket = (params: {
+  url: string;
+  sourceUrl?: string | null;
+  siteId?: string | null;
+}) => {
+  const key = deriveScrapeQueueBucketKey(params);
+  return hashStringToBucket(key, SCRAPE_URL_QUEUE_BUCKETS);
 };
 
 const normalizeIgnoredDomainInput = (value: string): string => {
@@ -152,6 +185,51 @@ export const backfillEngineerFlag = migrations.define({
     const desired = deriveEngineerFlag(doc.title);
     if ((doc as any).engineer !== desired) {
       await ctx.db.patch(doc._id, { engineer: desired });
+    }
+  },
+});
+
+export const backfillJobUrlKeys = migrations.define({
+  table: "jobs",
+  migrateOne: async (ctx, doc) => {
+    const key = normalizeJobUrlKey(doc.url);
+    if (!key) return;
+    const bucket = hashStringToBucket(key, JOB_URL_BUCKETS);
+    const existing = await ctx.db
+      .query("job_url_keys")
+      .withIndex("by_bucket_url", (q) => q.eq("bucket", bucket).eq("url", key))
+      .first();
+    if (existing) return;
+    await ctx.db.insert("job_url_keys", {
+      bucket,
+      url: key,
+      jobId: doc._id,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const backfillSiteNextEligibleAt = migrations.define({
+  table: "sites",
+  migrateOne: async (ctx, doc) => {
+    const hasSchedule = !!(doc as any).scheduleId;
+    const isFailed = (doc as any).failed ?? false;
+    let nextEligibleAt: number | undefined;
+    if (isFailed) {
+      nextEligibleAt = undefined;
+    } else {
+      const schedule = hasSchedule ? await ctx.db.get((doc as any).scheduleId) : null;
+      const scheduleConfig = scheduleFromRow(schedule);
+      nextEligibleAt = deriveNextEligibleAt({
+        hasSchedule,
+        schedule: scheduleConfig,
+        lastRunAt: (doc as any).lastRunAt ?? 0,
+        completed: (doc as any).completed ?? false,
+        nowMs: Date.now(),
+      });
+    }
+    if ((doc as any).nextEligibleAt !== nextEligibleAt) {
+      await ctx.db.patch(doc._id, { nextEligibleAt });
     }
   },
 });
@@ -296,6 +374,22 @@ export const backfillScrapeQueueScheduledAt = migrations.define({
   },
 });
 
+export const backfillScrapeQueueBuckets = migrations.define({
+  table: "scrape_url_queue",
+  migrateOne: async (ctx, doc) => {
+    const existing = (doc as any).bucket;
+    if (typeof existing === "number" && !Number.isNaN(existing)) return;
+    const url = (doc as any).url;
+    if (typeof url !== "string" || !url.trim()) return;
+    const bucket = deriveScrapeQueueBucket({
+      url,
+      sourceUrl: (doc as any).sourceUrl ?? null,
+      siteId: (doc as any).siteId ?? null,
+    });
+    await ctx.db.patch(doc._id, { bucket });
+  },
+});
+
 export const repairJobDetailJobIds = migrations.define({
   table: "job_details",
   migrateOne: async (ctx, doc) => {
@@ -421,7 +515,9 @@ export const dedupeSitesImpl = async (ctx: any) => {
         lastError: `duplicate_of:${keep._id}`,
         url: keep._normalizedUrl,
       };
+      const updated = { ...(dup as any), ...patch };
       await ctx.db.patch(dup._id, patch);
+      await siteScheduleCounts.replaceOrInsert(ctx, dup as any, updated as any);
     }
   }
 };
@@ -436,6 +532,13 @@ export const dedupeSites = migrations.define({
       await dedupeSitesImpl(ctx);
     };
   })(),
+});
+
+export const backfillSiteScheduleCounts = migrations.define({
+  table: "sites",
+  migrateOne: async (ctx, doc) => {
+    await siteScheduleCounts.insertIfDoesNotExist(ctx, doc as any);
+  },
 });
 
 const isWorkdayHost = (host: string) => host.endsWith(WORKDAY_HOST_SUFFIX);
@@ -659,15 +762,19 @@ export const runAll = internalMutation({
       internal.migrations.fixJobLocations,
       internal.migrations.backfillScrapeMetadata,
       internal.migrations.backfillEngineerFlag,
+      internal.migrations.backfillJobUrlKeys,
       internal.migrations.backfillCompanyKey,
       internal.migrations.backfillIgnoredJobCompanies,
       internal.migrations.moveJobDetails,
       internal.migrations.backfillScrapeRecords,
       internal.migrations.backfillScrapeActivity,
+      internal.migrations.backfillJobDetailScrapeUrl,
       internal.migrations.repairJobDetailJobIds,
       internal.migrations.repairApplicationJobIds,
       internal.migrations.syncSiteSchedules,
+      internal.migrations.backfillSiteNextEligibleAt,
       internal.migrations.dedupeSites,
+      internal.migrations.backfillSiteScheduleCounts,
       internal.migrations.fixWorkdayDomainAliases,
       internal.migrations.retagWorkdayJobs,
       internal.migrations.retagGreenhouseJobs,

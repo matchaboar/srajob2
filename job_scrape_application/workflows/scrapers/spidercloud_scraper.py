@@ -218,7 +218,7 @@ class SpidercloudDependencies:
     log_sync_response: Callable[..., None]
     trim_scrape_for_convex: Callable[[Dict[str, Any]], Dict[str, Any]]
     settings: Any
-    fetch_seen_urls_for_site: Callable[[str, Optional[str]], Awaitable[List[str]]]
+    fetch_seen_urls_for_site: Callable[[str, Optional[str], Optional[List[str]]], Awaitable[List[str]]]
 
 
 class SpiderCloudScraper(BaseScraper):
@@ -270,8 +270,23 @@ class SpiderCloudScraper(BaseScraper):
             return self.deps.trim_scrape_for_convex(scrape_payload)
 
     def _try_parse_json(self, raw: str) -> Any | None:
+        if not isinstance(raw, str):
+            return None
+        cleaned = raw.strip()
+        if not cleaned:
+            return None
         try:
-            return json.loads(raw)
+            return json.loads(cleaned, strict=False)
+        except Exception:
+            pass
+        try:
+            unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
+        except Exception:
+            return None
+        if not unescaped or unescaped == cleaned:
+            return None
+        try:
+            return json.loads(unescaped, strict=False)
         except Exception:
             return None
 

@@ -5,6 +5,7 @@ import html as html_lib
 import inspect
 import json
 import logging
+import os
 import time
 import re
 from urllib.parse import parse_qs, urlparse, urljoin
@@ -154,6 +155,7 @@ __all__ = [
     "process_spidercloud_listing_batch",
     "complete_scrape_urls",
     "fail_listing_batch_urls",
+    "record_workflow_checkpoint",
 ]
 
 COMP_MAGNITUDE_SUFFIX_PATTERN = r"^\s*(?:[kmb]|bn|mm|million|billion|trillion)\b"
@@ -167,9 +169,13 @@ SPIDERCLOUD_BATCH_SIZE = runtime_config.spidercloud_job_details_batch_size
 SCRAPE_URL_QUEUE_LIST_LIMIT = 500
 TEMPORAL_PAYLOAD_MAX_CHARS = 10 * 1024 * 1024
 SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS = 64_000
+SCRAPE_WORKER_HEARTBEAT_SEND_INTERVAL_SECONDS = 30
 
 logger = logging.getLogger("temporal.worker.activities")
 scheduling_logger = logging.getLogger("temporal.scheduler")
+
+_last_scrape_worker_heartbeat: dict[str, float] = {}
+_scrape_worker_heartbeat_lock = asyncio.Lock()
 
 
 def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -179,6 +185,9 @@ def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_activity_worker_id() -> str | None:
+    env_worker_id = os.getenv("SCRAPE_WORKER_ID", "").strip()
+    if env_worker_id:
+        return env_worker_id
     try:
         info = activity.info()
     except Exception:
@@ -189,6 +198,22 @@ def _get_activity_worker_id() -> str | None:
         if worker_identity:
             return worker_identity
     return None
+
+
+async def _maybe_send_scrape_worker_heartbeat(worker_id: str) -> None:
+    now = time.monotonic()
+    async with _scrape_worker_heartbeat_lock:
+        last_sent = _last_scrape_worker_heartbeat.get(worker_id, 0.0)
+        if now - last_sent < SCRAPE_WORKER_HEARTBEAT_SEND_INTERVAL_SECONDS:
+            return
+        _last_scrape_worker_heartbeat[worker_id] = now
+
+    from ...services.convex_client import convex_mutation
+
+    try:
+        await convex_mutation("router:upsertScrapeWorkerHeartbeat", {"workerId": worker_id})
+    except Exception:
+        logger.debug("Failed to upsert scrape worker heartbeat.", exc_info=True)
 
 
 def _looks_like_auth_url(url: str) -> bool:
@@ -527,7 +552,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
     try:
         source_url = site.get("url") or ""
         if source_url:
-            seen_for_site = await fetch_seen_urls_for_site(source_url, site.get("pattern"))
+            seen_for_site = await fetch_seen_urls_for_site(source_url, site.get("pattern"), urls)
     except Exception:
         seen_for_site = []
     skip_set = set(skip_urls or [])
@@ -1366,6 +1391,28 @@ async def lease_scrape_url_batch(
     skipped: list[str] = []
     skip_cache: dict[tuple[str | None, str | None], set[str]] = {}
 
+    worker_id = _get_activity_worker_id()
+    buckets: list[int] | None = None
+    if worker_id:
+        await _maybe_send_scrape_worker_heartbeat(worker_id)
+        try:
+            bucket_res = await convex_mutation("router:leaseScrapeUrlBuckets", {"workerId": worker_id})
+        except Exception:
+            bucket_res = None
+        if isinstance(bucket_res, dict):
+            bucket_vals = bucket_res.get("buckets")
+            if isinstance(bucket_vals, list) and bucket_vals:
+                sanitized: list[int] = []
+                for val in bucket_vals:
+                    try:
+                        bucket_int = int(val)
+                    except Exception:
+                        continue
+                    if bucket_int >= 0:
+                        sanitized.append(bucket_int)
+                if sanitized:
+                    buckets = sanitized
+
     # If a leased batch is fully skipped, keep leasing so we can reach other pending URLs.
     for _ in range(3):
         res = await convex_mutation(
@@ -1376,7 +1423,7 @@ async def lease_scrape_url_batch(
                     "limit": limit,
                     "urlType": url_type,
                     "processingExpiryMs": runtime_config.spidercloud_job_details_processing_expire_minutes * 60 * 1000,
-                    "workerId": _get_activity_worker_id(),
+                    "buckets": buckets,
                 }
             ),
         )
@@ -1395,13 +1442,29 @@ async def lease_scrape_url_batch(
         max_attempts_items: list[Dict[str, Any]] = []
         auth_url_items: list[Dict[str, Any]] = []
 
+        candidate_urls_by_source: dict[tuple[str, Optional[str]], list[str]] = {}
         for entry in raw_urls:
             if not isinstance(entry, dict):
                 continue
             url_val = entry.get("url")
             if not isinstance(url_val, str) or not url_val.strip():
                 continue
-            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else None
+            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
+            pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
+            cache_key = (source_val, pattern_val)
+            bucket = candidate_urls_by_source.get(cache_key)
+            if bucket is None:
+                candidate_urls_by_source[cache_key] = [url_val.strip()]
+            else:
+                bucket.append(url_val.strip())
+
+        for entry in raw_urls:
+            if not isinstance(entry, dict):
+                continue
+            url_val = entry.get("url")
+            if not isinstance(url_val, str) or not url_val.strip():
+                continue
+            source_val = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
             pattern_val = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
             is_listing_url = _is_spidercloud_listing_url(url_val, source_val or None)
             attempts_raw = entry.get("attempts")
@@ -1422,7 +1485,11 @@ async def lease_scrape_url_batch(
             cache_key = (source_val, pattern_val)
             if cache_key not in skip_cache:
                 try:
-                    skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
+                    skip_list = await fetch_seen_urls_for_site(
+                        source_val or "",
+                        pattern_val,
+                        candidate_urls_by_source.get(cache_key),
+                    )
                 except Exception:
                     skip_list = []
                 handler = get_site_handler(source_val or url_val)
@@ -1537,14 +1604,22 @@ async def process_spidercloud_job_batch(
         Temporal's activity result size limits. We keep enough data for downstream
         storage/ingestion while aggressively truncating large fields.
         """
-
-        return trim_scrape_for_convex(
+        trimmed = trim_scrape_for_convex(
             scrape,
             max_items=50,  # we only ever keep one normalized row per scrape here
             max_description=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
             raw_preview_chars=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
             request_max_chars=SPIDERCLOUD_ACTIVITY_PAYLOAD_MAX_CHARS,
         )
+        items = trimmed.get("items")
+        if isinstance(items, dict):
+            normalized_sample = items.get("normalizedSample")
+            normalized = items.get("normalized")
+            normalized_count = items.get("normalizedCount")
+            if isinstance(normalized_sample, list) and normalized_sample:
+                if normalized_count == 1 or (isinstance(normalized, list) and len(normalized) == 1):
+                    items["normalized"] = normalized_sample
+        return trimmed
 
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
@@ -1602,12 +1677,43 @@ async def process_spidercloud_job_batch(
         scrapes: list[Dict[str, Any]] = []
         items = base_payload.get("items") if isinstance(base_payload, dict) else {}
         normalized = items.get("normalized") if isinstance(items, dict) else []
+        normalized_sample = items.get("normalizedSample") if isinstance(items, dict) else None
         raw_items = items.get("raw") if isinstance(items, dict) else []
         cost_milli_cents_total: float | None = None
         if isinstance(base_payload.get("costMilliCents"), (int, float)):
             cost_milli_cents_total = float(base_payload["costMilliCents"])
         elif isinstance(items, dict) and isinstance(items.get("costMilliCents"), (int, float)):
             cost_milli_cents_total = float(items["costMilliCents"])
+
+        def _is_url_only(row: Any) -> bool:
+            if not isinstance(row, dict):
+                return True
+            if any(
+                row.get(key)
+                for key in (
+                    "title",
+                    "job_title",
+                    "jobTitle",
+                    "company",
+                    "description",
+                    "job_description",
+                )
+            ):
+                return False
+            return bool(row.get("url") or row.get("job_url") or row.get("absolute_url"))
+
+        if (
+            isinstance(normalized, list)
+            and normalized
+            and isinstance(normalized_sample, list)
+            and normalized_sample
+        ):
+            if all(_is_url_only(row) for row in normalized) and any(
+                not _is_url_only(row) for row in normalized_sample
+            ):
+                normalized = normalized_sample
+                if isinstance(items, dict):
+                    items["normalized"] = normalized_sample
 
         url_count = len(urls) if urls else (len(normalized) if isinstance(normalized, list) else 0)
         per_url_cost = (
@@ -1871,8 +1977,6 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         source_url: str,
         handler: BaseSiteHandler | None,
     ) -> list[str]:
-        if limit <= 0 or len(urls) <= limit:
-            return urls
         cleaned: list[str] = []
         seen: set[str] = set()
         for url in urls:
@@ -1880,8 +1984,55 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 continue
             seen.add(url)
             cleaned.append(url)
-        if source_url and handler and handler.is_listing_url(source_url) and source_url not in seen:
-            cleaned.insert(0, source_url)
+        normalized_source = source_url
+        source_to_insert = source_url
+        if handler:
+            normalized = handler.filter_job_urls(cleaned)
+            if normalized:
+                cleaned = normalized
+            if source_url:
+                normalized_sources = handler.filter_job_urls([source_url])
+                if normalized_sources:
+                    normalized_source = normalized_sources[0]
+                    source_to_insert = normalized_source
+                try:
+                    source_parts = urlparse(source_url)
+                except Exception:
+                    source_parts = None
+                if source_parts and source_parts.fragment:
+                    source_to_insert = source_url
+        if source_to_insert and normalized_source and source_to_insert != normalized_source:
+            cleaned = [url for url in cleaned if url != normalized_source]
+        if limit > 0:
+            def _page_param(url: str) -> Optional[int]:
+                try:
+                    parsed = urlparse(url)
+                    params = parse_qs(parsed.query)
+                except Exception:
+                    return None
+                values = params.get("page")
+                if not values:
+                    return None
+                try:
+                    page_val = int(values[0])
+                except Exception:
+                    return None
+                return page_val if page_val > 0 else None
+            filtered: list[str] = []
+            for url in cleaned:
+                page_val = _page_param(url)
+                if page_val is None or page_val <= limit:
+                    filtered.append(url)
+            cleaned = filtered
+        if (
+            source_to_insert
+            and handler
+            and handler.is_listing_url(source_to_insert)
+            and source_to_insert not in cleaned
+        ):
+            cleaned.insert(0, source_to_insert)
+        if limit <= 0 or len(cleaned) <= limit:
+            return cleaned
         indexed = list(enumerate(cleaned))
         def _page_key(item: tuple[int, str]) -> tuple[int, int]:
             idx, url = item
@@ -1929,7 +2080,11 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
             try:
                 seen_listing = set(
                     u
-                    for u in await fetch_seen_urls_for_site(source_url, entry.get("pattern"))
+                    for u in await fetch_seen_urls_for_site(
+                        source_url,
+                        entry.get("pattern"),
+                        listing_urls,
+                    )
                     if isinstance(u, str)
                 )
             except Exception:
@@ -2761,6 +2916,48 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
             request_max_chars=1000,
             collect_page_links=False,
         )
+        SIZE_WARN_BYTES = 900_000
+
+        def _estimate_payload_size(value: Any) -> int:
+            try:
+                return len(json.dumps(value, ensure_ascii=False))
+            except Exception:
+                try:
+                    return len(str(value))
+                except Exception:
+                    return 0
+
+        def _log_payload_size(label: str, data: Dict[str, Any]) -> None:
+            total = _estimate_payload_size(data)
+            if total < SIZE_WARN_BYTES:
+                return
+            size_entries: list[tuple[str, int]] = []
+            for key in ("items", "request", "providerRequest", "response", "asyncResponse", "subUrls"):
+                if key in data:
+                    size_entries.append((key, _estimate_payload_size(data.get(key))))
+            items_block = data.get("items")
+            if isinstance(items_block, dict):
+                for key in (
+                    "normalized",
+                    "normalizedSample",
+                    "job_urls",
+                    "seedUrls",
+                    "page_links",
+                    "raw",
+                    "rawPreview",
+                ):
+                    if key in items_block:
+                        size_entries.append((f"items.{key}", _estimate_payload_size(items_block.get(key))))
+            top = sorted(size_entries, key=lambda entry: entry[1], reverse=True)[:6]
+            top_display = ", ".join(f"{name}={size}" for name, size in top if size)
+            logger.warning(
+                "Scrape payload %s is large (%s bytes). Top fields: %s",
+                label,
+                total,
+                top_display or "n/a",
+            )
+
+        _log_payload_size("trimmed", payload)
         raw_items_block = scrape.get("items") if isinstance(scrape, dict) else None
         now = int(time.time() * 1000)
         normalized_count = 0
@@ -3350,7 +3547,11 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     try:
                         seen_listing = set(
                             u
-                            for u in await fetch_seen_urls_for_site(source_url, payload.get("pattern"))
+                            for u in await fetch_seen_urls_for_site(
+                                source_url,
+                                payload.get("pattern"),
+                                listing_urls,
+                            )
                             if isinstance(u, str)
                         )
                     except Exception:
@@ -5044,6 +5245,18 @@ def _build_job_detail_heuristic_patch(
         if not value:
             return True
         lowered = value.strip().lower()
+        normalized = re.sub(r"[^a-z0-9]+", " ", lowered).strip()
+        if normalized in {
+            "the role",
+            "our team",
+            "the team",
+            "role",
+            "job description",
+            "description",
+            "description and requirements",
+            "description requirements",
+        }:
+            return True
         if lowered in {"unknown", "n/a", "na", "untitled"}:
             return True
         if re.search(r"\b\d+\+?\s+years?\b", lowered):
@@ -5274,6 +5487,18 @@ async def record_workflow_run(run: Dict[str, Any]) -> None:
         return None
     except Exception as e:  # noqa: BLE001
         raise RuntimeError(f"Failed to record workflow run: {e}") from e
+
+
+@activity.defn(name="record_workflow_checkpoint")
+async def record_workflow_checkpoint(payload: Dict[str, Any]) -> None:
+    from ..deadlock_logging import update_run_metadata
+
+    if not isinstance(payload, dict):
+        return None
+
+    run_id = payload.get("runId")
+    fields = {k: v for k, v in payload.items() if k != "runId"}
+    update_run_metadata(run_id, **fields)
 
 
 def _coerce_workflow_id(entry: Dict[str, Any]) -> str:

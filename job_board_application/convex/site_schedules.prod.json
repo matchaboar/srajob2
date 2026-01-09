@@ -990,6 +990,7 @@
       "enabled": true,
       "type": "hubspot",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 4,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [

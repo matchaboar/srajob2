@@ -559,7 +559,8 @@ function Start-WorkerProcess {
         [string]$TemporalNamespace,
         [string]$Role = "all",
         [string]$TaskQueue = "scraper-task-queue",
-        [string]$JobDetailsQueue = ""
+        [string]$JobDetailsQueue = "",
+        [switch]$EnableScheduleAudit = $false
     )
 
     $envBlock = @{}
@@ -570,6 +571,9 @@ function Start-WorkerProcess {
     $envBlock["TEMPORAL_NAMESPACE"] = $TemporalNamespace
     $envBlock["TEMPORAL_TASK_QUEUE"] = $TaskQueue
     $envBlock["TEMPORAL_WORKER_ROLE"] = $Role
+    if ($EnableScheduleAudit) {
+        $envBlock["SCRAPE_WORKER_ROLE"] = "audit"
+    }
     if ($JobDetailsQueue) {
         $envBlock["TEMPORAL_JOB_DETAILS_TASK_QUEUE"] = $JobDetailsQueue
     }
@@ -1121,7 +1125,7 @@ function Start-WorkerMain {
     $script:WorkerProcId = $null
     $script:WorkerProcesses = @()
     for ($i = 1; $i -le $generalWorkerCount; $i++) {
-        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+        $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue -EnableScheduleAudit:($i -eq 1)
     }
     for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
         $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
@@ -1175,7 +1179,7 @@ function Start-WorkerMain {
                             } catch {}
                             $script:WorkerProcesses = @()
                             for ($i = 1; $i -le $generalWorkerCount; $i++) {
-                                $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue
+                                $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "all" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue -EnableScheduleAudit:($i -eq 1)
                             }
                             for ($i = 1; $i -le $jobDetailsWorkerCount; $i++) {
                                 $script:WorkerProcesses += Start-WorkerProcess -ErrorLogPath $errorLogPath -TemporalAddress $TemporalAddress -TemporalNamespace $TemporalNamespace -Role "job-details" -TaskQueue $TemporalTaskQueue -JobDetailsQueue $JobDetailsQueue

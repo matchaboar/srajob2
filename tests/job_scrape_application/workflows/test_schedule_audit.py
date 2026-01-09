@@ -11,6 +11,49 @@ def _ts(dt: datetime) -> int:
     return int(dt.timestamp() * 1000)
 
 
+def test_should_run_schedule_audit_with_role(monkeypatch):
+    monkeypatch.setenv("SCRAPE_WORKER_ROLE", "audit")
+    assert schedule_audit.should_run_schedule_audit("worker-1") is True
+
+    monkeypatch.setenv("SCRAPE_WORKER_ROLE", "listing")
+    assert schedule_audit.should_run_schedule_audit("worker-1") is False
+
+
+def test_should_run_schedule_audit_with_leader_id(monkeypatch):
+    monkeypatch.delenv("SCRAPE_WORKER_ROLE", raising=False)
+    monkeypatch.setenv("SCRAPE_SCHEDULE_AUDIT_LEADER_ID", "worker-2")
+    assert schedule_audit.should_run_schedule_audit("worker-2") is True
+    assert schedule_audit.should_run_schedule_audit("worker-3") is False
+
+
+def test_should_run_schedule_audit_with_fallback_leader_id(monkeypatch):
+    monkeypatch.delenv("SCRAPE_WORKER_ROLE", raising=False)
+    monkeypatch.delenv("SCRAPE_SCHEDULE_AUDIT_LEADER_ID", raising=False)
+    monkeypatch.setenv("SCRAPE_AUDIT_WORKER_ID", "worker-9")
+    assert schedule_audit.should_run_schedule_audit("worker-9") is True
+    assert schedule_audit.should_run_schedule_audit("worker-1") is False
+
+
+def test_schedule_audit_logger_noop_when_disabled(monkeypatch):
+    monkeypatch.delenv("SCRAPE_WORKER_ROLE", raising=False)
+    monkeypatch.delenv("SCRAPE_SCHEDULE_AUDIT_LEADER_ID", raising=False)
+    monkeypatch.delenv("SCRAPE_AUDIT_WORKER_ID", raising=False)
+
+    called = {"count": 0}
+
+    async def fake_gather(*_args, **_kwargs):
+        called["count"] += 1
+        return []
+
+    monkeypatch.setattr(schedule_audit, "_gather_schedule_audit", fake_gather)
+
+    async def _run():
+        await schedule_audit.schedule_audit_logger("worker-nope")
+
+    asyncio.run(_run())
+    assert called["count"] == 0
+
+
 def test_latest_eligible_time_matches_ts_logic():
     sched = {
         "days": ["mon", "tue", "wed", "thu", "fri"],

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class FetchfoxDependencies:
-    fetch_seen_urls_for_site: Callable[[str, Optional[str]], Awaitable[List[str]]]
+    fetch_seen_urls_for_site: Callable[[str, Optional[str], Optional[List[str]]], Awaitable[List[str]]]
     build_job_template: Callable[[], Dict[str, str]]
     build_request_snapshot: Callable[..., Dict[str, Any]]
     log_provider_dispatch: Callable[..., None]

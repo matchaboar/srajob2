@@ -524,6 +524,7 @@
       "enabled": true,
       "type": "hubspot",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 4,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [

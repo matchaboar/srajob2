@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   completeScrapeUrls,
+  leaseScrapeUrlBuckets,
   leaseScrapeUrlBatch,
   requeueStaleScrapeUrls,
   resetScrapeUrlsByStatus,
@@ -179,6 +180,7 @@ class FakeDb {
     private queueRows: QueueRow[],
     private ignoredRows: Array<any> = [],
     private seenRows: Array<any> = [],
+    private seenIndexRows: Array<any> = [],
     private bucketLeaseRows: Array<any> = [],
     private heartbeatRows: Array<any> = [],
     private tracker?: { indexCalls: IndexCall[] }
@@ -189,6 +191,9 @@ class FakeDb {
     }
     if (table === "seen_job_urls") {
       return new FakeQuery(() => this.seenRows, {}, null, null, false, this.tracker);
+    }
+    if (table === "seen_job_url_index") {
+      return new FakeQuery(() => this.seenIndexRows, {}, null, null, false, this.tracker);
     }
     if (table === "domain_aliases") {
       return new FakeQuery(() => [] as QueueRow[], {}, null, null, false, this.tracker);
@@ -209,6 +214,10 @@ class FakeDb {
     if (table === "seen_job_urls") {
       this.seenRows.push(payload);
       return `seen-${this.seenRows.length}`;
+    }
+    if (table === "seen_job_url_index") {
+      this.seenIndexRows.push(payload);
+      return `seen-index-${this.seenIndexRows.length}`;
     }
     if (table === "scrape_url_bucket_leases") {
       const _id = `bucket-${this.bucketLeaseRows.length + 1}`;
@@ -288,7 +297,7 @@ describe("leaseScrapeUrlBatch", () => {
       },
     ];
     const tracker = { indexCalls: [] as IndexCall[] };
-    const db = new FakeDb(rows, [], [], [], [], tracker);
+    const db = new FakeDb(rows, [], [], [], [], [], tracker);
     const ctx: any = { db };
     const handler = getHandler(leaseScrapeUrlBatch);
 
@@ -741,7 +750,7 @@ describe("leaseScrapeUrlBatch", () => {
     expect(rows.every((r) => (r.attempts ?? 0) === 0)).toBe(true);
   });
 
-  it("releases stale processing rows and leases them for retry", async () => {
+  it("requeues stale processing rows and leases them for retry", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
       {
@@ -759,16 +768,21 @@ describe("leaseScrapeUrlBatch", () => {
     ];
     const db = new FakeDb(rows);
     const ctx: any = { db };
-    const handler = getHandler(leaseScrapeUrlBatch);
+    const requeueHandler = getHandler(requeueStaleScrapeUrls);
+    const leaseHandler = getHandler(leaseScrapeUrlBatch);
 
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    const res = await handler(ctx, {
+    const requeueRes = await requeueHandler(ctx, {
+      provider: "spidercloud",
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    const res = await leaseHandler(ctx, {
       provider: "spidercloud",
       limit: 1,
-      processingExpiryMs: 15 * 60 * 1000,
     });
     nowSpy.mockRestore();
 
+    expect(requeueRes.requeued).toBe(1);
     expect(res.urls.map((u: any) => u.url)).toEqual([rows[0].url]);
     expect(rows[0].status).toBe("processing");
     expect(rows[0].attempts).toBe(1);
@@ -823,7 +837,7 @@ describe("leaseScrapeUrlBatch", () => {
     expect(leasedSiteIds).toContain("site-b");
   });
 
-  it("leases only from buckets owned by the worker", async () => {
+  it("leases only from provided buckets", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
       {
@@ -867,94 +881,23 @@ describe("leaseScrapeUrlBatch", () => {
         bucket: 3,
       },
     ];
-    const bucketLeases = [
-      { _id: "bucket-0", bucket: 0, workerId: "worker-0", updatedAt: now, expiresAt: now + 60_000 },
-      { _id: "bucket-1", bucket: 1, workerId: "worker-0", updatedAt: now, expiresAt: now + 60_000 },
-    ];
-    const heartbeats = Array.from({ length: 64 }, (_, index) => ({
-      _id: `hb-${index}`,
-      workerId: `worker-${index}`,
-      updatedAt: now,
-      expiresAt: now + 60_000,
-    }));
-    const db = new FakeDb(rows, [], [], bucketLeases, heartbeats);
+    const db = new FakeDb(rows);
     const ctx: any = { db };
     const handler = getHandler(leaseScrapeUrlBatch);
 
     const res = await handler(ctx, {
       provider: "spidercloud",
       limit: 2,
-      processingExpiryMs: 15 * 60 * 1000,
-      workerId: "worker-0",
+      buckets: [1, 3],
     });
 
-    const ownedBuckets = db
-      .getBucketLeases()
-      .filter((row: any) => row.workerId === "worker-0" && row.expiresAt > now)
-      .map((row: any) => row.bucket);
-    expect(ownedBuckets.length).toBeGreaterThan(0);
+    const ownedBuckets = new Set([1, 3]);
     expect(res.urls.length).toBeGreaterThan(0);
     for (const leased of res.urls) {
       const row = rows.find((r) => r.url === leased.url);
       expect(row?.bucket).toBeDefined();
-      expect(ownedBuckets).toContain(row?.bucket);
+      expect(ownedBuckets.has(row?.bucket ?? -1)).toBe(true);
     }
-  });
-
-  it("claims more buckets when other workers expire", async () => {
-    const now = Date.now();
-    const rows: QueueRow[] = [
-      {
-        _id: "row-1",
-        url: "https://example.com/job/1",
-        status: "pending",
-        updatedAt: now - 1_000,
-        createdAt: now - 5_000,
-        provider: "spidercloud",
-        attempts: 0,
-        bucket: 10,
-      },
-    ];
-    const heartbeats = [
-      { _id: "hb-1", workerId: "worker-1", updatedAt: now, expiresAt: now + 60_000 },
-      { _id: "hb-2", workerId: "worker-2", updatedAt: now, expiresAt: now + 60_000 },
-      { _id: "hb-3", workerId: "worker-3", updatedAt: now, expiresAt: now + 60_000 },
-      { _id: "hb-4", workerId: "worker-4", updatedAt: now, expiresAt: now + 60_000 },
-    ];
-    const db = new FakeDb(rows, [], [], [], heartbeats);
-    const ctx: any = { db };
-    const handler = getHandler(leaseScrapeUrlBatch);
-
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    await handler(ctx, {
-      provider: "spidercloud",
-      limit: 1,
-      processingExpiryMs: 15 * 60 * 1000,
-      workerId: "worker-1",
-    });
-    const ownedBefore = db
-      .getBucketLeases()
-      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > now).length;
-
-    const nowLater = now + 2_000;
-    for (const heartbeat of db.getHeartbeats()) {
-      if (heartbeat.workerId !== "worker-1") {
-        heartbeat.expiresAt = nowLater - 1;
-      }
-    }
-    nowSpy.mockReturnValue(nowLater);
-    await handler(ctx, {
-      provider: "spidercloud",
-      limit: 1,
-      processingExpiryMs: 15 * 60 * 1000,
-      workerId: "worker-1",
-    });
-    nowSpy.mockRestore();
-
-    const ownedAfter = db
-      .getBucketLeases()
-      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > nowLater).length;
-    expect(ownedAfter).toBeGreaterThan(ownedBefore);
   });
 
   it("backfills bucket when missing", async () => {
@@ -977,11 +920,45 @@ describe("leaseScrapeUrlBatch", () => {
     await handler(ctx, {
       provider: "spidercloud",
       limit: 1,
-      processingExpiryMs: 15 * 60 * 1000,
-      workerId: "worker-1",
     });
 
     expect(typeof rows[0].bucket).toBe("number");
+  });
+});
+
+describe("leaseScrapeUrlBuckets", () => {
+  it("claims more buckets when other workers expire", async () => {
+    const now = Date.now();
+    const heartbeats = [
+      { _id: "hb-1", workerId: "worker-1", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-2", workerId: "worker-2", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-3", workerId: "worker-3", updatedAt: now, expiresAt: now + 60_000 },
+      { _id: "hb-4", workerId: "worker-4", updatedAt: now, expiresAt: now + 60_000 },
+    ];
+    const db = new FakeDb([], [], [], [], [], heartbeats);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBuckets);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    await handler(ctx, { workerId: "worker-1" });
+    const ownedBefore = db
+      .getBucketLeases()
+      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > now).length;
+
+    const nowLater = now + 2_000;
+    for (const heartbeat of db.getHeartbeats()) {
+      if (heartbeat.workerId !== "worker-1") {
+        heartbeat.expiresAt = nowLater - 1;
+      }
+    }
+    nowSpy.mockReturnValue(nowLater);
+    await handler(ctx, { workerId: "worker-1" });
+    nowSpy.mockRestore();
+
+    const ownedAfter = db
+      .getBucketLeases()
+      .filter((row: any) => row.workerId === "worker-1" && row.expiresAt > nowLater).length;
+    expect(ownedAfter).toBeGreaterThan(ownedBefore);
   });
 });
 

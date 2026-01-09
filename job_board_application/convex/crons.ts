@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 
 const internalAny = internal as any;
@@ -35,6 +35,14 @@ crons.interval(
   "clearStaleScrapeQueue",
   { hours: 1 },
   internal.router.clearStaleScrapeQueue,
+);
+
+// Every 5 minutes, release stale processing rows so they can be retried.
+crons.interval(
+  "requeueStaleScrapeUrls",
+  { minutes: 5 },
+  api.router.requeueStaleScrapeUrls,
+  {},
 );
 
 // Keep the company summary cron registered (component-based cron is idempotent).

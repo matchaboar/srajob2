@@ -140,6 +140,7 @@ describe("dedupeSites", () => {
         },
         patch: async (id: string, payload: any) => patches.push({ id, payload }),
       },
+      runMutation: async () => null,
     };
 
     await dedupeSitesImpl(ctx);
@@ -174,6 +175,7 @@ describe("dedupeSites", () => {
         },
         patch: async (id: string, payload: any) => patches.push({ id, payload }),
       },
+      runMutation: async () => null,
     };
 
     await dedupeSitesImpl(ctx);

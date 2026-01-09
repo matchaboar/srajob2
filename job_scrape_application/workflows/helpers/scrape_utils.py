@@ -7,7 +7,7 @@ import time
 import unicodedata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -406,12 +406,22 @@ def build_firecrawl_schema() -> Dict[str, Any]:
     return FirecrawlJobSchema.model_json_schema() if hasattr(FirecrawlJobSchema, "model_json_schema") else {}
 
 
-async def fetch_seen_urls_for_site(source_url: str, pattern: Optional[str]) -> List[str]:
+async def fetch_seen_urls_for_site(
+    source_url: str,
+    pattern: Optional[str],
+    candidate_urls: Optional[List[str]] = None,
+) -> List[str]:
     from ...services.convex_client import convex_query
 
     payload: Dict[str, Any] = {"sourceUrl": source_url}
     if pattern is not None:
         payload["pattern"] = pattern
+    if candidate_urls is not None:
+        cleaned_candidates = [
+            url.strip() for url in candidate_urls if isinstance(url, str) and url.strip()
+        ]
+        if cleaned_candidates:
+            payload["urls"] = cleaned_candidates
 
     try:
         res = await convex_query("router:listSeenJobUrlsForSite", payload)
@@ -782,6 +792,7 @@ def _normalize_section_heading(line: str) -> str:
     text = line.strip()
     if not text:
         return ""
+    text = html_lib.unescape(text)
     text = re.sub(r"^[#*\-\u2022]+\s*", "", text)
     text = text.strip().rstrip(":").strip()
     if not text:
@@ -1711,6 +1722,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
 
     markdown = strip_known_nav_blocks(markdown)
     markdown = html_lib.unescape(markdown)
+    _description_body, metadata_block = split_description_metadata(markdown)
 
     def _is_generic_heading_title(value: str) -> bool:
         lower = value.strip().lower().rstrip(":.")
@@ -1725,6 +1737,9 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "minimum requirements",
             "preferred requirements",
             "requirements",
+            "the role",
+            "our team",
+            "the team",
             "what's in it for you",
             "whats in it for you",
             "why this matters",
@@ -1865,6 +1880,52 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return False
         return True
 
+    def _extract_company_from_metadata(block: str) -> Optional[str]:
+        if not block:
+            return None
+        label_pending = False
+        bullet_candidates: List[str] = []
+        other_candidates: List[str] = []
+
+        for raw_line in block.splitlines():
+            if not raw_line.strip():
+                continue
+            stripped = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", raw_line).strip()
+            if not stripped:
+                continue
+            cleaned = re.sub(r"^[#*\-\u2022]+", "", stripped).strip()
+            if not cleaned:
+                continue
+            if _line_is_metadata_label(cleaned):
+                label_pending = True
+                continue
+            if label_pending:
+                label_pending = False
+                continue
+            if _line_is_numeric(cleaned):
+                continue
+            if cleaned.strip("#") == "":
+                continue
+            cleaned_lower = cleaned.lower()
+            if title_lower and (cleaned_lower == title_lower or title_lower in cleaned_lower):
+                continue
+            if _looks_like_title_line(cleaned):
+                continue
+            if _resolve_location_from_dictionary(cleaned) is not None:
+                continue
+            if len(cleaned.split()) > 4:
+                continue
+            if raw_line.lstrip().startswith(("-", "*", "•")):
+                bullet_candidates.append(cleaned)
+            else:
+                other_candidates.append(cleaned)
+
+        if bullet_candidates:
+            return bullet_candidates[0]
+        if other_candidates:
+            return other_candidates[0]
+        return None
+
     job_application_pattern = re.compile(
         r"job\s+application\s+for\s+(?P<title>.+?)(?:\s+at\s+(?P<company>.+))?$",
         flags=re.IGNORECASE,
@@ -1996,6 +2057,10 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 _record_company(cleaned.split(":", 1)[-1].strip())
             if company_hint:
                 break
+    if not company_hint and metadata_block:
+        metadata_company = _extract_company_from_metadata(metadata_block)
+        if metadata_company:
+            _record_company(metadata_company)
     if company_hint:
         hints["company"] = company_hint
 
@@ -2632,13 +2697,15 @@ def parse_posted_at(value: Any, now_ms: int | None = None) -> int:
             relative = _parse_relative_posted_at(cleaned, now_ms)
             if relative is not None:
                 return relative
-            if re.search(r"[+-]\d{4}$", cleaned):
-                cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
-            try:
-                dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
-                return int(dt.timestamp() * 1000)
-            except Exception:
-                pass
+        if re.search(r"[+-]\d{4}$", cleaned):
+            cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
+        try:
+            dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
 
     return now_ms
 
@@ -2676,6 +2743,8 @@ def parse_posted_at_with_unknown(
             cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
         try:
             dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
             posted_at = int(dt.timestamp() * 1000)
             if max_age_days is not None:
                 max_age_ms = int(max_age_days) * 86_400_000
@@ -3073,35 +3142,85 @@ def trim_scrape_for_convex(
     collect_page_links: bool = True,
 ) -> Dict[str, Any]:
     items = scrape.get("items", {})
-    normalized: list[Dict[str, Any]] = []
+    normalized_urls: list[Dict[str, Any]] = []
+    normalized_samples: list[Dict[str, Any]] = []
+    normalized_count = 0
     ignored_items: list[Any] = []
     failed_items: list[Any] = []
     page_links: list[str] = []
+    sample_limit = min(10, max_items)
+    sample_string_limit = min(max_description, 400)
+    seen_urls: set[str] = set()
+
+    def _extract_url(value: Any) -> str | None:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if not isinstance(value, dict):
+            return None
+        for key in ("url", "job_url", "jobUrl", "link", "href", "_url", "_rawUrl"):
+            candidate = value.get(key)
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate.strip()
+        return None
+
+    drop_sample_keys = {
+        "_raw",
+        "raw",
+        "raw_html",
+        "html",
+        "markdown",
+        "commonmark",
+        "content",
+        "page_content",
+        "pageContent",
+        "full_text",
+        "fullText",
+    }
+
+    def _trim_sample_row(row: Dict[str, Any]) -> Dict[str, Any]:
+        new_row = dict(row)
+        new_row.pop("_raw", None)
+        desc = stringify(new_row.get("description", ""))
+        if len(desc) > max_description:
+            new_row["description"] = desc[:max_description]
+        job_desc = stringify(
+            new_row.get("job_description")
+            or new_row.get("jobDescription")
+            or ""
+        )
+        if job_desc and len(job_desc) > max_description:
+            new_row["job_description"] = job_desc[:max_description]
+        for title_key in ("title", "job_title", "jobTitle"):
+            title_val = new_row.get(title_key)
+            if isinstance(title_val, str) and len(title_val) > max_title_chars:
+                new_row[title_key] = title_val[:max_title_chars]
+
+        for key in list(new_row.keys()):
+            if key in drop_sample_keys:
+                new_row.pop(key, None)
+                continue
+            value = new_row.get(key)
+            if isinstance(value, str) and len(value) > sample_string_limit:
+                new_row[key] = value[:sample_string_limit]
+            elif isinstance(value, (dict, list)):
+                new_row[key] = _shrink_payload(value, sample_string_limit)
+
+        return new_row
 
     if isinstance(items, dict):
         raw_normalized = items.get("normalized", [])
         if isinstance(raw_normalized, list):
-            truncated = len(raw_normalized) > max_items
-            for row in raw_normalized[: max_items]:
-                if not isinstance(row, dict):
-                    continue
-                new_row = dict(row)
-                new_row.pop("_raw", None)
-                desc = stringify(new_row.get("description", ""))
-                if len(desc) > max_description:
-                    new_row["description"] = desc[:max_description]
-                job_desc = stringify(
-                    new_row.get("job_description")
-                    or new_row.get("jobDescription")
-                    or ""
-                )
-                if job_desc and len(job_desc) > max_description:
-                    new_row["job_description"] = job_desc[:max_description]
-                for title_key in ("title", "job_title", "jobTitle"):
-                    title_val = new_row.get(title_key)
-                    if isinstance(title_val, str) and len(title_val) > max_title_chars:
-                        new_row[title_key] = title_val[:max_title_chars]
-                normalized.append(new_row)
+            normalized_count = len(raw_normalized)
+            truncated = normalized_count > max_items
+            for row in raw_normalized:
+                url_val = _extract_url(row)
+                if url_val and len(normalized_urls) < max_items and url_val not in seen_urls:
+                    seen_urls.add(url_val)
+                    normalized_urls.append({"url": url_val})
+                if len(normalized_samples) < sample_limit and isinstance(row, dict):
+                    normalized_samples.append(_trim_sample_row(row))
+                if len(normalized_urls) >= max_items and len(normalized_samples) >= sample_limit:
+                    break
         else:
             truncated = False
         raw_ignored = items.get("ignored")
@@ -3121,7 +3240,11 @@ def trim_scrape_for_convex(
         except Exception:
             raw_preview = None
 
-    trimmed_items: Dict[str, Any] = {"normalized": normalized}
+    trimmed_items: Dict[str, Any] = {"normalized": normalized_urls}
+    if normalized_count:
+        trimmed_items["normalizedCount"] = normalized_count
+    if normalized_samples:
+        trimmed_items["normalizedSample"] = normalized_samples
     if collect_page_links and isinstance(items, dict) and "raw" in items:
         try:
             page_links = extract_links_from_payload(
@@ -3160,10 +3283,24 @@ def trim_scrape_for_convex(
         _copy_meta(key, scrape.get(key))
 
     if isinstance(items, dict):
-        for key, value in items.items():
-            if key in {"normalized", "raw", "ignored", "failed"}:
-                continue
-            _copy_meta(key, value)
+        for key in (
+            "provider",
+            "crawlProvider",
+            "costMilliCents",
+            "workflowName",
+            "asyncState",
+            "jobId",
+            "webhookId",
+            "metadata",
+            "statusUrl",
+            "status",
+            "providerVersion",
+            "kind",
+            "requestedFormat",
+            "seedUrls",
+        ):
+            if key in items:
+                _copy_meta(key, items.get(key))
         raw_job_urls = items.get("job_urls") if "job_urls" in items else items.get("jobUrls")
         if isinstance(raw_job_urls, list):
             deduped_job_urls = dedupe_str_list(raw_job_urls, limit=2000)

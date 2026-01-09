@@ -3,6 +3,7 @@ import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { countJobs } from "./lib/scrapeCounts";
+import { deriveNextEligibleAt, scheduleFromRow } from "./lib/siteScheduling";
 
 export const listSuccessfulSites = query({
   args: { limit: v.optional(v.number()) },
@@ -70,12 +71,28 @@ export const retrySite = mutation({
   args: { id: v.id("sites"), clearError: v.optional(v.boolean()) },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
+    const site = await ctx.db.get(args.id);
+    if (!site) {
+      throw new Error("Site not found");
+    }
+    const now = Date.now();
+    const scheduleConfig = (site).scheduleId
+      ? scheduleFromRow(await ctx.db.get((site).scheduleId as Id<"scrape_schedules">))
+      : null;
+    const nextEligibleAt = deriveNextEligibleAt({
+      hasSchedule: !!(site).scheduleId,
+      schedule: scheduleConfig,
+      lastRunAt: 0,
+      completed: false,
+      nowMs: now,
+    });
     const patch: any = {
       completed: false,
       failed: false,
       lockedBy: "",
       lockExpiresAt: 0,
       lastRunAt: 0,
+      nextEligibleAt,
     };
     if (args.clearError !== false) {
       patch.lastError = undefined;
@@ -100,6 +117,17 @@ export const retryProcessing = mutation({
     if (!site) {
       throw new Error("Site not found");
     }
+    const now = Date.now();
+    const scheduleConfig = (site).scheduleId
+      ? scheduleFromRow(await ctx.db.get((site).scheduleId as Id<"scrape_schedules">))
+      : null;
+    const nextEligibleAt = deriveNextEligibleAt({
+      hasSchedule: !!(site).scheduleId,
+      schedule: scheduleConfig,
+      lastRunAt: (site).lastRunAt ?? 0,
+      completed: (site).completed ?? false,
+      nowMs: now,
+    });
 
     // Clear failure flags so the site can resume normal scheduling
     await ctx.db.patch(args.id, {
@@ -108,6 +136,7 @@ export const retryProcessing = mutation({
       lockedBy: "",
       lockExpiresAt: 0,
       lastRunAt: site.lastRunAt ?? 0,
+      nextEligibleAt,
       lastError: undefined,
       lastFailureAt: undefined,
     } as any);

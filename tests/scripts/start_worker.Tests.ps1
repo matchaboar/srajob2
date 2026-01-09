@@ -240,4 +240,104 @@ EXISTING=override
         $call = $script:NpxCalls[0]
         ($call -join " ") | Should -Be "convex run --prod router:resetScrapeUrlProcessing {}"
     }
+
+    It "sets SCRAPE_WORKER_ROLE=audit when schedule audit is enabled" {
+        $script:CapturedEnvironment = $null
+        Mock -CommandName Start-Process -MockWith {
+            param(
+                $FilePath,
+                $ArgumentList,
+                $NoNewWindow,
+                $PassThru,
+                $RedirectStandardError,
+                $Environment
+            )
+            $script:CapturedEnvironment = $Environment
+            return [pscustomobject]@{ Id = 123; HasExited = $true; ExitCode = 0 }
+        }
+
+        $null = Start-WorkerProcess -ErrorLogPath "log.txt" -TemporalAddress "127.0.0.1:7233" -TemporalNamespace "default" -Role "all" -TaskQueue "scraper-task-queue" -EnableScheduleAudit
+
+        $script:CapturedEnvironment["SCRAPE_WORKER_ROLE"] | Should -Be "audit"
+    }
+
+    It "does not set SCRAPE_WORKER_ROLE when schedule audit is disabled" {
+        $script:CapturedEnvironment = $null
+        Mock -CommandName Start-Process -MockWith {
+            param(
+                $FilePath,
+                $ArgumentList,
+                $NoNewWindow,
+                $PassThru,
+                $RedirectStandardError,
+                $Environment
+            )
+            $script:CapturedEnvironment = $Environment
+            return [pscustomobject]@{ Id = 124; HasExited = $true; ExitCode = 0 }
+        }
+
+        $null = Start-WorkerProcess -ErrorLogPath "log.txt" -TemporalAddress "127.0.0.1:7233" -TemporalNamespace "default" -Role "all" -TaskQueue "scraper-task-queue"
+
+        $script:CapturedEnvironment.ContainsKey("SCRAPE_WORKER_ROLE") | Should -BeFalse
+    }
+
+    It "enables schedule audit only on the first general worker" {
+        $script:StartWorkerProcessCalls = @()
+        Mock -CommandName Start-WorkerProcess -MockWith {
+            param(
+                [string]$ErrorLogPath,
+                [string]$TemporalAddress,
+                [string]$TemporalNamespace,
+                [string]$Role,
+                [string]$TaskQueue,
+                [string]$JobDetailsQueue,
+                [switch]$EnableScheduleAudit
+            )
+            $script:StartWorkerProcessCalls += [pscustomobject]@{
+                Role = $Role
+                EnableScheduleAudit = [bool]$EnableScheduleAudit
+            }
+            return @{
+                Process = [pscustomobject]@{ HasExited = $true; ExitCode = 0; Id = 200 }
+                Role = $Role
+                TaskQueue = $TaskQueue
+                JobDetailsQueue = $JobDetailsQueue
+            }
+        }
+
+        Set-ContainerMocks
+        Mock -CommandName uv -MockWith {
+            param([Parameter(ValueFromRemainingArguments = $true)] $rest)
+            $global:LASTEXITCODE = 0
+        }
+        Mock -CommandName Start-ThreadJob -MockWith { return 1 }
+
+        Push-Location $TestDrive
+        try {
+            New-Item -ItemType Directory -Force -Path (Join-Path $TestDrive "job_scrape_application/config") | Out-Null
+            Set-Content (Join-Path $TestDrive "job_scrape_application/config/runtime.yaml") @"
+temporal_general_worker_count: 2
+temporal_job_details_worker_count: 1
+temporal_listing_worker_count: 1
+"@
+            Set-Content ".env" ""
+            $env:CONVEX_HTTP_URL = "https://convex.test"
+            $env:SKIP_PREFLIGHT_CHECKS = "1"
+            $env:SKIP_START_WORKER_MAIN = "0"
+
+            Start-WorkerMain
+        } finally {
+            Pop-Location
+            Remove-Item Env:SKIP_PREFLIGHT_CHECKS -ErrorAction SilentlyContinue
+            Remove-Item Env:SKIP_START_WORKER_MAIN -ErrorAction SilentlyContinue
+            Remove-Item Env:CONVEX_HTTP_URL -ErrorAction SilentlyContinue
+        }
+
+        $general = $script:StartWorkerProcessCalls | Where-Object { $_.Role -eq "all" }
+        $general.Count | Should -Be 2
+        $general[0].EnableScheduleAudit | Should -BeTrue
+        $general[1].EnableScheduleAudit | Should -BeFalse
+
+        ($script:StartWorkerProcessCalls | Where-Object { $_.Role -ne "all" -and $_.EnableScheduleAudit }).Count | Should -Be 0
+    }
 }

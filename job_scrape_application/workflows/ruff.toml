@@ -1,0 +1,17 @@
+extend = "../../pyproject.toml"
+
+[lint]
+extend-select = ["TID251"]
+
+[lint.flake8-tidy-imports.banned-api]
+"job_scrape_application.services.convex_client" = { msg = "Convex client calls must run in activities; do not import convex_client in workflow modules." }
+"job_scrape_application.services.convex_query" = { msg = "Convex queries must run in activities; do not import convex_query in workflow modules." }
+"job_scrape_application.services.convex_mutation" = { msg = "Convex mutations must run in activities; do not import convex_mutation in workflow modules." }
+"job_scrape_application.services.get_client" = { msg = "Convex client access must run in activities; do not import get_client in workflow modules." }
+
+[lint.per-file-ignores]
+"activities/**" = ["TID251"]
+"helpers/**" = ["TID251"]
+"scrapers/**" = ["TID251"]
+"site_handlers/**" = ["TID251"]
+"schedule_audit.py" = ["TID251"]

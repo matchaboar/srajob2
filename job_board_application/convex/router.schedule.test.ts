@@ -7,6 +7,7 @@ type FakeCtx = {
     get: (id: string) => Promise<any>;
     patch: (id: string, updates: Record<string, any>) => Promise<void>;
   };
+  runMutation: (...args: any[]) => Promise<any>;
 };
 
 const dayStartUtc = (date: Date) =>
@@ -53,6 +54,7 @@ describe("updateSiteSchedule", () => {
           patches.push({ id, updates });
         },
       },
+      runMutation: async () => null,
     };
 
     const handler = getHandler(updateSiteSchedule);
@@ -88,6 +90,7 @@ describe("updateSiteSchedule", () => {
           patches.push({ id, updates });
         },
       },
+      runMutation: async () => null,
     };
 
     const handler = getHandler(updateSiteSchedule);
@@ -113,6 +116,7 @@ describe("updateSiteSchedule", () => {
           patches.push({ id, updates });
         },
       },
+      runMutation: async () => null,
     };
 
     const handler = getHandler(updateSiteSchedule);

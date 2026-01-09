@@ -209,7 +209,7 @@ async def _run_scrape_workflow(
             if max_leases is not None and leased_count >= max_leases:
                 break
             lease_args = ["scraper-worker", 300, None, scrape_provider]
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "scraper.before_lease",
                 location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_lease",
                 data={
@@ -230,7 +230,7 @@ async def _run_scrape_workflow(
 
             leased_count += 1
             site_urls.append(site["url"])
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "scraper.after_lease",
                 location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:after_lease",
                 data={
@@ -255,7 +255,7 @@ async def _run_scrape_workflow(
                 activity_args = [site, workflow_context, persist_scrapes]
                 if scrape_activity is scrape_site_firecrawl:
                     activity_args = [site, None, workflow_context, persist_scrapes]
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "scraper.before_activity",
                     location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_activity",
                     data={
@@ -278,7 +278,7 @@ async def _run_scrape_workflow(
                     scrape_id = res.get("scrapeId") if persist_scrapes else None
                     summary = res.get("summary")
                     recovery_payload = res.get("recoveryPayload")
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "scraper.after_activity",
                     location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:after_activity",
                     data={
@@ -314,7 +314,7 @@ async def _run_scrape_workflow(
                                 "receivedAt": res_dict.get("receivedAt") or items.get("receivedAt"),
                             }
 
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "scraper.before_store_scrape",
                         location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_store_scrape",
                         data={
@@ -333,7 +333,7 @@ async def _run_scrape_workflow(
                     summary = summarize_scrape_result(res) if isinstance(res, dict) else {"provider": "unknown"}
 
                 if recovery_payload and recovery_payload.get("jobId"):
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "scraper.before_start_recovery",
                         location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_start_recovery",
                         data={
@@ -364,7 +364,7 @@ async def _run_scrape_workflow(
                 )
 
                 # Mark site completed so next lease skips it
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "scraper.before_complete_site",
                     location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_complete_site",
                     data={"siteUrl": site.get("url"), "siteId": site.get("_id")},
@@ -377,7 +377,7 @@ async def _run_scrape_workflow(
             except Exception as e:  # noqa: BLE001
                 reason = _format_failure_reason(e)
                 # On failure, record and release the lock for retry after TTL or immediately
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "scraper.before_fail_site",
                     location=f"scrape_workflow:_run_scrape_workflow:{workflow_name}:before_fail_site",
                     data={"siteUrl": site.get("url"), "siteId": site.get("_id")},
@@ -529,14 +529,14 @@ class SpidercloudJobDetailsWorkflow:
             if not entries:
                 return
             chunk_size = 100
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "job_details.complete_urls.start",
                 location="scrape_workflow:SpidercloudJobDetails.run:complete_urls:start",
                 data={"status": status, "total": len(entries), "chunkSize": chunk_size, "error": error},
             )
             for idx, start in enumerate(range(0, len(entries), chunk_size)):
                 chunk = entries[start : start + chunk_size]
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "job_details.complete_urls.chunk",
                     location="scrape_workflow:SpidercloudJobDetails.run:complete_urls:chunk",
                     data={"status": status, "chunkIndex": idx, "chunkSize": len(chunk)},
@@ -556,7 +556,7 @@ class SpidercloudJobDetailsWorkflow:
                     schedule_to_close_timeout=timedelta(seconds=20),
                 )
                 await _yield_if_needed(idx, every=5)
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "job_details.complete_urls.done",
                 location="scrape_workflow:SpidercloudJobDetails.run:complete_urls:done",
                 data={"status": status, "total": len(entries)},
@@ -565,7 +565,7 @@ class SpidercloudJobDetailsWorkflow:
         await _log("workflow.start")
 
         try:
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "job_details.before_lease",
                 location="scrape_workflow:SpidercloudJobDetails.run:before_lease",
                 data={
@@ -592,7 +592,7 @@ class SpidercloudJobDetailsWorkflow:
                             skipped_urls.append(entry)
                         if idx and idx % 200 == 0:
                             await _safe_workflow_sleep(0)
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "job_details.process_skipped_urls",
                     location="scrape_workflow:SpidercloudJobDetails.run:process_skipped_urls",
                     data={"skippedCount": skipped_count},
@@ -608,7 +608,7 @@ class SpidercloudJobDetailsWorkflow:
             if not urls:
                 return ScrapeSummary(site_count=site_count, scrape_ids=scrape_ids)
 
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "job_details.before_log_batch_leased",
                 location="scrape_workflow:SpidercloudJobDetails.run:before_log_batch_leased",
                 data={"batchUrls": len(urls), "skippedCount": skipped_count},
@@ -617,7 +617,7 @@ class SpidercloudJobDetailsWorkflow:
             await _safe_workflow_sleep(0)
 
             try:
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "job_details.before_process_batch",
                     location="scrape_workflow:SpidercloudJobDetails.run:before_process_batch",
                     data={"batchUrls": len(urls), "skippedCount": skipped_count},
@@ -645,7 +645,7 @@ class SpidercloudJobDetailsWorkflow:
                         stored_count = len(scrape_ids_payload)
 
                     if isinstance(stored_count, int) or isinstance(invalid_count, int) or isinstance(failed_count, int):
-                        workflow_checkpoint(
+                        await workflow_checkpoint(
                             "job_details.before_log_batch_store",
                             location="scrape_workflow:SpidercloudJobDetails.run:before_log_batch_store",
                             data={
@@ -669,14 +669,14 @@ class SpidercloudJobDetailsWorkflow:
                         scrapes = []
 
                     if scrapes:
-                        workflow_checkpoint(
+                        await workflow_checkpoint(
                             "job_details.before_log_batch_processed",
                             location="scrape_workflow:SpidercloudJobDetails.run:before_log_batch_processed",
                             data={"scrapes": len(scrapes)},
                         )
                         await _log("batch.processed", data={"count": len(scrapes)})
                     else:
-                        workflow_checkpoint(
+                        await workflow_checkpoint(
                             "job_details.before_log_batch_processed_empty",
                             location="scrape_workflow:SpidercloudJobDetails.run:before_log_batch_processed_empty",
                             data={"urls": len(urls)},
@@ -706,7 +706,7 @@ class SpidercloudJobDetailsWorkflow:
                         return None
 
                     if scrapes:
-                        workflow_checkpoint(
+                        await workflow_checkpoint(
                             "job_details.store_scrapes_loop",
                             location="scrape_workflow:SpidercloudJobDetails.run:store_scrapes_loop",
                             data={"scrapes": len(scrapes), "urls": len(urls)},
@@ -754,21 +754,21 @@ class SpidercloudJobDetailsWorkflow:
                         await _safe_workflow_sleep(0)
 
                         if completed_urls:
-                            workflow_checkpoint(
+                            await workflow_checkpoint(
                                 "job_details.complete_urls",
                                 location="scrape_workflow:SpidercloudJobDetails.run:complete_urls",
                                 data={"completed": len(completed_urls)},
                             )
                             await _complete_urls(completed_urls, "completed")
                         if invalid_urls:
-                            workflow_checkpoint(
+                            await workflow_checkpoint(
                                 "job_details.complete_invalid",
                                 location="scrape_workflow:SpidercloudJobDetails.run:complete_invalid",
                                 data={"invalid": len(invalid_urls)},
                             )
                             await _complete_urls(invalid_urls, "invalid", error="invalid_job_data")
                         if failed_urls:
-                            workflow_checkpoint(
+                            await workflow_checkpoint(
                                 "job_details.complete_failed",
                                 location="scrape_workflow:SpidercloudJobDetails.run:complete_failed",
                                 data={"failed": len(failed_urls)},
@@ -797,7 +797,7 @@ class SpidercloudJobDetailsWorkflow:
                 status = "failed"
                 # Release leased URLs so they can be retried
                 try:
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "job_details.fail_cleanup",
                         location="scrape_workflow:SpidercloudJobDetails.run:fail_cleanup",
                     )
@@ -810,7 +810,7 @@ class SpidercloudJobDetailsWorkflow:
                                     leased_entries.append(entry)
                                 await _yield_if_needed(idx)
                         if leased_entries:
-                            workflow_checkpoint(
+                            await workflow_checkpoint(
                                 "job_details.fail_cleanup.complete_urls",
                                 location="scrape_workflow:SpidercloudJobDetails.run:fail_cleanup_complete_urls",
                                 data={"leased": len(leased_entries)},
@@ -874,7 +874,7 @@ class SpidercloudListingWorkflow:
         await _log("workflow.start")
 
         try:
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "listing.before_lease",
                 location="scrape_workflow:SpidercloudListing.run:before_lease",
                 data={
@@ -901,7 +901,7 @@ class SpidercloudListingWorkflow:
                             skipped_urls.append(entry)
                         if idx and idx % 200 == 0:
                             await _safe_workflow_sleep(0)
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "listing.process_skipped_urls",
                     location="scrape_workflow:SpidercloudListing.run:process_skipped_urls",
                     data={"skippedCount": skipped_count},
@@ -917,7 +917,7 @@ class SpidercloudListingWorkflow:
             if not urls:
                 return ScrapeSummary(site_count=site_count, scrape_ids=scrape_ids)
 
-            workflow_checkpoint(
+            await workflow_checkpoint(
                 "listing.before_log_batch_leased",
                 location="scrape_workflow:SpidercloudListing.run:before_log_batch_leased",
                 data={"batchUrls": len(urls), "skippedCount": skipped_count},
@@ -926,7 +926,7 @@ class SpidercloudListingWorkflow:
             await _safe_workflow_sleep(0)
 
             try:
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "listing.before_process_batch",
                     location="scrape_workflow:SpidercloudListing.run:before_process_batch",
                     data={"batchUrls": len(urls), "skippedCount": skipped_count},
@@ -941,7 +941,7 @@ class SpidercloudListingWorkflow:
                 await _safe_workflow_sleep(0)
                 queued = res.get("queued") if isinstance(res, dict) else None
                 listing_completed = res.get("listingCompleted") if isinstance(res, dict) else None
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "listing.before_log_batch_processed",
                     location="scrape_workflow:SpidercloudListing.run:before_log_batch_processed",
                     data={
@@ -968,7 +968,7 @@ class SpidercloudListingWorkflow:
                 status = "failed"
                 # Release leased URLs so they can be retried
                 try:
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "listing.fail_cleanup",
                         location="scrape_workflow:SpidercloudListing.run:fail_cleanup",
                         data={"batchUrls": len(urls)},

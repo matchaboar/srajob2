@@ -5,6 +5,7 @@ import { getHandler } from "./__tests__/getHandler";
 class FakeDb {
   jobs: Map<string, any> = new Map();
   jobDetails: any[] = [];
+  jobUrlKeys: any[] = [];
   domainAliases: Map<string, any> = new Map();
   private seq = 1;
 
@@ -37,6 +38,29 @@ class FakeDb {
         },
       };
     }
+    if (table === "job_url_keys") {
+      const keys = this.jobUrlKeys;
+      return {
+        withIndex(_name: string, cb: (q: any) => any) {
+          let bucket: number | null = null;
+          let url: string | null = null;
+          const q = {
+            eq: (field: string, value: any) => {
+              if (field === "bucket") bucket = value;
+              if (field === "url") url = value;
+              return q;
+            },
+          };
+          cb(q);
+          const match = keys.find((row) => row.bucket === bucket && row.url === url) ?? null;
+          return {
+            first() {
+              return match;
+            },
+          };
+        },
+      };
+    }
     throw new Error(`Unsupported query table ${table}`);
   }
 
@@ -48,6 +72,10 @@ class FakeDb {
     }
     if (table === "job_details") {
       this.jobDetails.push({ _id: id, ...payload });
+      return id;
+    }
+    if (table === "job_url_keys") {
+      this.jobUrlKeys.push({ _id: id, ...payload });
       return id;
     }
     throw new Error(`Unsupported insert table ${table}`);

@@ -16,7 +16,9 @@ type Tables = {
   scrape_worker_heartbeats: Row[];
   ignored_jobs: Row[];
   seen_job_urls: Row[];
+  seen_job_url_index: Row[];
   jobs: Row[];
+  job_url_keys: Row[];
   job_details: Row[];
   domain_aliases: Row[];
   sites: Row[];
@@ -98,7 +100,9 @@ class FakeDb {
       scrape_worker_heartbeats: seed?.scrape_worker_heartbeats ?? [],
       ignored_jobs: seed?.ignored_jobs ?? [],
       seen_job_urls: seed?.seen_job_urls ?? [],
+      seen_job_url_index: seed?.seen_job_url_index ?? [],
       jobs: seed?.jobs ?? [],
+      job_url_keys: seed?.job_url_keys ?? [],
       job_details: seed?.job_details ?? [],
       domain_aliases: seed?.domain_aliases ?? [],
       sites: seed?.sites ?? [],

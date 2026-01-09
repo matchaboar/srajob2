@@ -62,6 +62,16 @@ const applicationTables = {
       searchField: "company",
     }),
 
+  job_url_keys: defineTable({
+    bucket: v.number(),
+    url: v.string(),
+    jobId: v.optional(v.id("jobs")),
+    createdAt: v.number(),
+  })
+    .index("by_bucket", ["bucket"])
+    .index("by_bucket_url", ["bucket", "url"])
+    .index("by_url", ["url"]),
+
   job_details: defineTable({
     jobId: v.id("jobs"),
     description: v.optional(v.string()),
@@ -194,9 +204,12 @@ const applicationTables = {
     lastFailureAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
     manualTriggerAt: v.optional(v.number()),
+    nextEligibleAt: v.optional(v.number()),
   })
     .index("by_enabled", ["enabled"])
-    .index("by_schedule", ["scheduleId"]),
+    .index("by_schedule", ["scheduleId"])
+    .index("by_enabled_nextEligibleAt", ["enabled", "nextEligibleAt"])
+    .index("by_enabled_manualTriggerAt", ["enabled", "manualTriggerAt"]),
 
   // Raw scrape results captured by the scraper
   scrapes: defineTable({
@@ -401,6 +414,13 @@ const applicationTables = {
   })
     .index("by_source", ["sourceUrl"])
     .index("by_source_url", ["sourceUrl", "url"]),
+
+  seen_job_url_index: defineTable({
+    sourceUrl: v.string(),
+    url: v.string(),
+    seenJobUrlId: v.optional(v.id("seen_job_urls")),
+    createdAt: v.number(),
+  }).index("by_url_source", ["url", "sourceUrl"]),
 
   ignored_jobs: defineTable({
     url: v.string(),

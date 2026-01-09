@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import random
 from typing import Any, Mapping
 
@@ -10,11 +11,12 @@ from ..config import settings
 from . import telemetry
 
 _client: ConvexClient | None = None
-_REQUEST_TIMEOUT_SECONDS = 4.0
-_TOTAL_BUDGET_SECONDS = 8.0
-_MAX_RETRIES = 3
+_REQUEST_TIMEOUT_SECONDS = float(os.getenv("CONVEX_REQUEST_TIMEOUT_SECONDS", "2.0"))
+_TOTAL_BUDGET_SECONDS = float(os.getenv("CONVEX_TOTAL_TIMEOUT_SECONDS", "4.0"))
+_MAX_RETRIES = int(os.getenv("CONVEX_MAX_RETRIES", "2"))
 _BACKOFF_BASE_SECONDS = 0.5
 _BACKOFF_MAX_SECONDS = 4.0
+_RETRY_ON_TIMEOUT = os.getenv("CONVEX_RETRY_ON_TIMEOUT", "0") == "1"
 
 
 async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any:
@@ -33,6 +35,8 @@ async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any
             )
         except Exception as exc:  # noqa: BLE001
             last_error = exc
+            if isinstance(exc, asyncio.TimeoutError) and not _RETRY_ON_TIMEOUT:
+                break
             if attempt >= _MAX_RETRIES:
                 break
             elapsed = asyncio.get_event_loop().time() - start

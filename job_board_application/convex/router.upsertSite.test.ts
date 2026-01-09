@@ -52,6 +52,16 @@ class FakeDb {
     throw new Error(`Unknown id ${id}`);
   }
 
+  get(id: string) {
+    if (this.sites.has(id)) {
+      return this.sites.get(id)!;
+    }
+    if (this.companyProfiles.has(id)) {
+      return this.companyProfiles.get(id)!;
+    }
+    return null;
+  }
+
   insert(table: string, payload: any) {
     const id = `${table}-${this.seq++}`;
     const record = { _id: id, ...payload };
@@ -71,6 +81,7 @@ describe("upsertSite", () => {
   it("preserves query strings in stored site URLs", async () => {
     const ctx: any = {
       db: new FakeDb(),
+      runMutation: async () => null,
     };
 
     const handler = getHandler(upsertSite);
@@ -86,6 +97,7 @@ describe("upsertSite", () => {
   it("preserves avature search URLs exactly when inserting from the admin UI", async () => {
     const ctx: any = {
       db: new FakeDb(),
+      runMutation: async () => null,
     };
 
     const handler = getHandler(upsertSite);
@@ -103,6 +115,7 @@ describe("bulkUpsertSites", () => {
   it("preserves query strings in stored site URLs", async () => {
     const ctx: any = {
       db: new FakeDb(),
+      runMutation: async () => null,
     };
 
     const handler = getHandler(bulkUpsertSites);
@@ -120,6 +133,7 @@ describe("bulkUpsertSites", () => {
   it("preserves avature search URLs exactly when bulk inserting from the admin UI", async () => {
     const ctx: any = {
       db: new FakeDb(),
+      runMutation: async () => null,
     };
 
     const handler = getHandler(bulkUpsertSites);

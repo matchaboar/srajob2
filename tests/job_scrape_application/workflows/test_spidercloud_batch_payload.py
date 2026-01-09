@@ -70,9 +70,12 @@ def test_spidercloud_batch_fixture_trim_limits() -> None:
     for row in normalized:
         if not isinstance(row, dict):
             continue
-        desc = row.get("description") or row.get("job_description") or ""
-        if isinstance(desc, str):
-            assert len(desc) <= MAX_JOB_DESCRIPTION_CHARS
+        assert set(row.keys()) == {"url"}
+        assert isinstance(row.get("url"), str)
+
+    normalized_sample = items.get("normalizedSample", [])
+    assert isinstance(normalized_sample, list)
+    assert len(normalized_sample) <= 10
 
 
 def test_spidercloud_trim_reduces_large_payload() -> None:
@@ -100,3 +103,7 @@ def test_spidercloud_trim_reduces_large_payload() -> None:
     assert trimmed_bytes < raw_bytes
     items = trimmed.get("items", {})
     assert len(items.get("normalized", [])) <= 400
+    for row in items.get("normalized", []):
+        if not isinstance(row, dict):
+            continue
+        assert set(row.keys()) == {"url"}

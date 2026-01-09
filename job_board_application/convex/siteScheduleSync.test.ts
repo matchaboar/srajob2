@@ -72,6 +72,9 @@ describe("syncSiteSchedulesFromEntries", () => {
         query: (table: string) => ({
           collect: async () => (table === "scrape_schedules" ? schedules : sites),
         }),
+        get: async (id: string) => {
+          return sites.find((row) => row._id === id) ?? schedules.find((row) => row._id === id) ?? null;
+        },
         insert: async (table: string, payload: any) => {
           const id = `${table}-${inserts.length + 1}`;
           const row = { _id: id, ...payload };
@@ -81,6 +84,7 @@ describe("syncSiteSchedulesFromEntries", () => {
           return id;
         },
       },
+      runMutation: async () => null,
     };
 
     const entries: NormalizedSiteSchedule[] = [
@@ -112,6 +116,9 @@ describe("syncSiteSchedulesFromEntries", () => {
         query: (table: string) => ({
           collect: async () => (table === "scrape_schedules" ? schedules : sites),
         }),
+        get: async (id: string) => {
+          return sites.find((row) => row._id === id) ?? schedules.find((row) => row._id === id) ?? null;
+        },
         insert: async (table: string, payload: any) => {
           const id = `${table}-new`;
           const row = { _id: id, ...payload };
@@ -119,6 +126,7 @@ describe("syncSiteSchedulesFromEntries", () => {
           return id;
         },
       },
+      runMutation: async () => null,
     };
 
     const entries: NormalizedSiteSchedule[] = [
@@ -149,12 +157,16 @@ describe("syncSiteSchedulesFromEntries", () => {
         query: (table: string) => ({
           collect: async () => (table === "scrape_schedules" ? schedules : sites),
         }),
+        get: async (id: string) => {
+          return sites.find((row) => row._id === id) ?? schedules.find((row) => row._id === id) ?? null;
+        },
         insert: async (table: string, payload: any) => {
           const id = `${table}-${inserts.length + 1}`;
           inserts.push({ table, payload, id });
           return id;
         },
       },
+      runMutation: async () => null,
     };
 
     const entries: NormalizedSiteSchedule[] = [
@@ -174,11 +186,15 @@ describe("syncSiteSchedulesFromEntries", () => {
         query: (table: string) => ({
           collect: async () => (table === "scrape_schedules" ? schedules : sites),
         }),
+        get: async (id: string) => {
+          return sites.find((row) => row._id === id) ?? schedules.find((row) => row._id === id) ?? null;
+        },
         insert: async (_table: string, payload: any) => {
           sites.push(payload);
           return "site-1";
         },
       },
+      runMutation: async () => null,
     };
 
     const entries: NormalizedSiteSchedule[] = [

@@ -4,6 +4,8 @@ export function countJobs(items: any): number {
   // Common shapes: array, { items: [...] }, { results: { items: [...] } }, { results: [...] }
   if (Array.isArray(items)) return items.length;
   if (typeof items === "object") {
+    if (typeof (items as any).normalizedCount === "number") return (items as any).normalizedCount;
+    if (typeof (items as any).normalized_count === "number") return (items as any).normalized_count;
     if (Array.isArray((items as any).normalized)) return (items as any).normalized.length;
     if (Array.isArray((items as any).items)) return (items as any).items.length;
     if (Array.isArray((items as any).results)) return (items as any).results.length;

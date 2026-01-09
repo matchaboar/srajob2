@@ -69,7 +69,7 @@ class GreenhouseScraperWorkflow:
 
         try:
             while True:
-                workflow_checkpoint(
+                await workflow_checkpoint(
                     "greenhouse.before_lease",
                     location="greenhouse_workflow:GreenhouseScraperWorkflow.run:before_lease",
                     data={"provider": "greenhouse", "leaseLimit": 300},
@@ -92,7 +92,7 @@ class GreenhouseScraperWorkflow:
                 )
 
                 try:
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "greenhouse.fetch_listing",
                         location="greenhouse_workflow:GreenhouseScraperWorkflow.run:fetch_listing",
                         data={"siteUrl": site.get("url"), "siteId": site.get("_id")},
@@ -109,7 +109,7 @@ class GreenhouseScraperWorkflow:
                         if isinstance(listing, dict) and isinstance(listing.get("posted_at_by_url"), dict)
                         else None
                     )
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "greenhouse.filter_existing",
                         location="greenhouse_workflow:GreenhouseScraperWorkflow.run:filter_existing",
                         data={"jobUrls": len(job_urls)},
@@ -120,7 +120,7 @@ class GreenhouseScraperWorkflow:
                         schedule_to_close_timeout=timedelta(seconds=30),
                     )
                     existing_len = len([u for u in existing if isinstance(u, str)]) if isinstance(existing, list) else 0
-                    workflow_checkpoint(
+                    await workflow_checkpoint(
                         "greenhouse.compute_diff",
                         location="greenhouse_workflow:GreenhouseScraperWorkflow.run:compute_diff",
                         data={"jobUrls": len(job_urls), "existing": existing_len},
@@ -148,7 +148,7 @@ class GreenhouseScraperWorkflow:
                     )
 
                     if urls_to_scrape:
-                        workflow_checkpoint(
+                        await workflow_checkpoint(
                             "greenhouse.scrape_jobs",
                             location="greenhouse_workflow:GreenhouseScraperWorkflow.run:scrape_jobs",
                             data={"urlsToScrape": len(urls_to_scrape)},
@@ -173,7 +173,7 @@ class GreenhouseScraperWorkflow:
                         if isinstance(scrape_res, dict) and scrape_res.get("scrapeId"):
                             scrape_ids.append(scrape_res["scrapeId"])
                         elif scrape_payload:
-                            workflow_checkpoint(
+                            await workflow_checkpoint(
                                 "greenhouse.store_scrape",
                                 location="greenhouse_workflow:GreenhouseScraperWorkflow.run:store_scrape",
                                 data={"urlsToScrape": len(urls_to_scrape)},

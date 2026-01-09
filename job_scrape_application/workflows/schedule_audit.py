@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
@@ -58,6 +59,20 @@ def _latest_eligible_time(schedule: Dict[str, Any] | None, now_ms: int) -> Optio
         tzinfo=ZoneInfo(time_zone),
     ).replace(hour=0, minute=0, second=0, microsecond=0)
     return int(day_start.timestamp() * 1000) + minutes_at_slot * 60 * 1000
+
+
+def should_run_schedule_audit(worker_id: str) -> bool:
+    role = os.getenv("SCRAPE_WORKER_ROLE", "").strip().lower()
+    if role:
+        return role == "audit"
+
+    leader_id = os.getenv("SCRAPE_SCHEDULE_AUDIT_LEADER_ID", "").strip()
+    if not leader_id:
+        leader_id = os.getenv("SCRAPE_AUDIT_WORKER_ID", "").strip()
+    if leader_id:
+        return worker_id == leader_id
+
+    return False
 
 
 def _schedule_decision_for_site(site: Dict[str, Any], schedule_map: Dict[str, Dict[str, Any]], now_ms: int) -> Dict[str, Any]:
@@ -164,6 +179,12 @@ async def _gather_schedule_audit(worker_id: str, now_ms: Optional[int] = None) -
 
 async def schedule_audit_logger(worker_id: str) -> None:
     logger = logging.getLogger("temporal.scheduler.audit")
+    if not should_run_schedule_audit(worker_id):
+        logger.info(
+            "Schedule audit disabled for worker_id=%s. Set SCRAPE_WORKER_ROLE=audit or SCRAPE_SCHEDULE_AUDIT_LEADER_ID to enable.",
+            worker_id,
+        )
+        return
     try:
         while True:
             try:

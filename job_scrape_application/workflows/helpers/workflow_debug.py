@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, Dict
 
 from temporalio import workflow
 
 
-def workflow_checkpoint(
+async def workflow_checkpoint(
     label: str,
     *,
     location: str | None = None,
@@ -30,20 +31,22 @@ def workflow_checkpoint(
     except Exception:
         now = None
 
-    try:
-        with workflow.unsafe.sandbox_unrestricted():
-            with workflow.unsafe.imports_passed_through():
-                from .. import deadlock_logging
+    payload = {
+        "runId": run_id,
+        "lastCheckpoint": label,
+        "lastCheckpointLocation": location,
+        "lastCheckpointData": data,
+        "lastCheckpointAt": now,
+        "workflowId": workflow_id,
+        "workflowType": workflow_type,
+        "taskQueue": task_queue,
+    }
 
-            deadlock_logging.update_run_metadata(
-                run_id,
-                lastCheckpoint=label,
-                lastCheckpointLocation=location,
-                lastCheckpointData=data,
-                lastCheckpointAt=now,
-                workflowId=workflow_id,
-                workflowType=workflow_type,
-                taskQueue=task_queue,
-            )
+    try:
+        await workflow.execute_local_activity(
+            "record_workflow_checkpoint",
+            args=[payload],
+            start_to_close_timeout=timedelta(seconds=5),
+        )
     except Exception:
         return

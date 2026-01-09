@@ -4,6 +4,8 @@ import { fallbackCompanyNameFromUrl, normalizeSiteUrl, siteCanonicalKey } from "
 import devSchedules from "./site_schedules.dev.json";
 import prodSchedules from "./site_schedules.prod.json";
 import type { SiteType } from "./siteTypes";
+import { siteScheduleCounts } from "./lib/siteScheduleAggregate";
+import { deriveNextEligibleAt } from "./lib/siteScheduling";
 
 const DEFAULT_TIMEZONE = "America/Denver";
 const VALID_DAYS = new Set(["sun", "mon", "tue", "wed", "thu", "fri", "sat"]);
@@ -196,7 +198,25 @@ export const syncSiteSchedulesFromEntries = async (
 
     const name = entry.name ?? fallbackCompanyNameFromUrl(entry.url);
 
-    await ctx.db.insert("sites", {
+    const scheduleConfig: ScheduleLike | null = entry.schedule
+      ? {
+        days: entry.schedule.days
+          .map((day) => String(day).toLowerCase())
+          .filter((day): day is ScheduleLike["days"][number] => VALID_DAYS.has(day)),
+        startTime: entry.schedule.startTime,
+        intervalMinutes: entry.schedule.intervalMinutes,
+        timezone: entry.schedule.timezone,
+      }
+      : null;
+    const nextEligibleAt = deriveNextEligibleAt({
+      hasSchedule: !!scheduleId,
+      schedule: scheduleConfig,
+      lastRunAt: 0,
+      completed: false,
+      nowMs,
+    });
+
+    const id = await ctx.db.insert("sites", {
       name,
       url: entry.url,
       type: siteType,
@@ -206,7 +226,12 @@ export const syncSiteSchedulesFromEntries = async (
       scheduleId: scheduleId ?? undefined,
       enabled: entry.enabled,
       lastRunAt: 0,
+      nextEligibleAt,
     });
+    const inserted = await ctx.db.get(id);
+    if (inserted) {
+      await siteScheduleCounts.insertIfDoesNotExist(ctx, inserted as any);
+    }
     siteKeys.add(key);
     result.addedSites += 1;
   }

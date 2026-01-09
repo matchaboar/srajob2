@@ -350,7 +350,7 @@ site_schedules:
   enabled: true
   type: cisco
   scrapeProvider: spidercloud
-  paginationLimit: 5
+  paginationLimit: 3
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -396,6 +396,7 @@ site_schedules:
   enabled: true
   type: workday
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -552,6 +553,7 @@ site_schedules:
   enabled: true
   type: hubspot
   scrapeProvider: spidercloud
+  paginationLimit: 4
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
