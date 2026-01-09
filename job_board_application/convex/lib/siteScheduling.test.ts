@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveNextEligibleAt } from "./siteScheduling";
+import { deriveNextEligibleAt, type ScheduleLike } from "./siteScheduling";
 
 describe("deriveNextEligibleAt", () => {
   it("returns the latest eligible slot when behind the current window", () => {
     const now = Date.UTC(2024, 0, 1, 12, 30, 0); // Monday
-    const schedule = {
+    const schedule: ScheduleLike = {
       days: ["mon"],
       startTime: "08:00",
       intervalMinutes: 60,
@@ -24,7 +24,7 @@ describe("deriveNextEligibleAt", () => {
 
   it("returns the next day slot when today is not scheduled", () => {
     const now = Date.UTC(2024, 0, 1, 12, 0, 0); // Monday
-    const schedule = {
+    const schedule: ScheduleLike = {
       days: ["tue"],
       startTime: "09:00",
       intervalMinutes: 1440,

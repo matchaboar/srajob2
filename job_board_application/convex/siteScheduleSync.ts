@@ -5,7 +5,7 @@ import devSchedules from "./site_schedules.dev.json";
 import prodSchedules from "./site_schedules.prod.json";
 import type { SiteType } from "./siteTypes";
 import { siteScheduleCounts } from "./lib/siteScheduleAggregate";
-import { deriveNextEligibleAt } from "./lib/siteScheduling";
+import { deriveNextEligibleAt, type ScheduleLike } from "./lib/siteScheduling";
 
 const DEFAULT_TIMEZONE = "America/Denver";
 const VALID_DAYS = new Set(["sun", "mon", "tue", "wed", "thu", "fri", "sat"]);
