@@ -86,6 +86,13 @@ const findQueryCalls = (queryFn: any) => {
   return (convexReact as any).useQuery.mock.calls.filter((call: any[]) => getQueryName(call[0]) === targetName);
 };
 
+const findPaginatedQueryCall = (queryFn: any) => {
+  const targetName = getQueryName(queryFn);
+  return (convexReact as any).usePaginatedQuery.mock.calls.find(
+    (call: any[]) => getQueryName(call[0]) === targetName,
+  );
+};
+
 const captureTimeouts = () => {
   const timeouts: Array<{ cb: () => void; delay: number }> = [];
   const timeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation((cb, delay) => {
@@ -124,12 +131,18 @@ describe("JobBoard query skipping", () => {
     expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.searchCompanies)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toEqual({});
     expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toEqual({});
 
     const detailsCalls = findQueryCalls(api.jobs.getJobDetails);
     expect(detailsCalls.length).toBeGreaterThan(0);
     expect(detailsCalls.every((call: any[]) => call[1] === "skip")).toBe(true);
+
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).not.toBe("skip");
   });
 
   it("fetches only applied jobs on the applied tab", () => {
@@ -141,9 +154,12 @@ describe("JobBoard query skipping", () => {
     expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
 
-    const paginatedArgs = (convexReact as any).usePaginatedQuery.mock.calls[0]?.[1];
-    expect(paginatedArgs).toBe("skip");
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
   });
 
   it("fetches recent jobs on the live tab and skips job list", () => {
@@ -154,9 +170,13 @@ describe("JobBoard query skipping", () => {
     expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
+    expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
 
-    const paginatedArgs = (convexReact as any).usePaginatedQuery.mock.calls[0]?.[1];
-    expect(paginatedArgs).toBe("skip");
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
   });
 
   it("fetches ignored jobs only on the ignored tab", () => {
@@ -167,9 +187,71 @@ describe("JobBoard query skipping", () => {
     expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
+    expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
 
-    const paginatedArgs = (convexReact as any).usePaginatedQuery.mock.calls[0]?.[1];
-    expect(paginatedArgs).toBe("skip");
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
+  });
+
+  it("skips queued list until the queued tab is active", () => {
+    render(<JobBoard />);
+
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+  });
+
+  it("loads queued list only when the queued tab is active", () => {
+    window.location.hash = "#queued";
+    render(<JobBoard />);
+
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toMatchObject({ status: "pending" });
+
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
+    expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
+  });
+
+  it("fetches rejected jobs only on the rejected tab", () => {
+    window.location.hash = "#rejected";
+    render(<JobBoard />);
+
+    expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toEqual({});
+    expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toBe("skip");
+
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
+  });
+
+  it("fetches company summaries only on the companies tab", () => {
+    window.location.hash = "#companies";
+    render(<JobBoard />);
+
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toEqual({ limit: 300 });
+    expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
+    expect(findQueryCall(api.filters.getSavedFilters)?.[1]).toBe("skip");
+
+    const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
+    expect(queuedCall?.[1]).toBe("skip");
+    const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
+    expect(jobsCall?.[1]).toBe("skip");
   });
 });
 

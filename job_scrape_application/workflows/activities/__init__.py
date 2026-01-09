@@ -1358,6 +1358,7 @@ async def lease_scrape_url_batch(
     """Lease a batch of queued URLs from Convex."""
 
     from ...services.convex_client import convex_mutation
+    import inspect
 
     def _build_lease_response(urls: list[Dict[str, Any]], skipped_urls: list[str]) -> Dict[str, Any]:
         return {"urls": urls, "skippedUrls": skipped_urls}
@@ -1390,6 +1391,7 @@ async def lease_scrape_url_batch(
 
     skipped: list[str] = []
     skip_cache: dict[tuple[str | None, str | None], set[str]] = {}
+    fetch_seen_supports_candidates: bool | None = None
 
     worker_id = _get_activity_worker_id()
     buckets: list[int] | None = None
@@ -1484,12 +1486,24 @@ async def lease_scrape_url_batch(
                 continue
             cache_key = (source_val, pattern_val)
             if cache_key not in skip_cache:
+                if fetch_seen_supports_candidates is None:
+                    try:
+                        signature = inspect.signature(fetch_seen_urls_for_site)
+                        params = list(signature.parameters.values())
+                        fetch_seen_supports_candidates = any(
+                            param.kind == inspect.Parameter.VAR_POSITIONAL for param in params
+                        ) or len(params) >= 3
+                    except (TypeError, ValueError):
+                        fetch_seen_supports_candidates = False
                 try:
-                    skip_list = await fetch_seen_urls_for_site(
-                        source_val or "",
-                        pattern_val,
-                        candidate_urls_by_source.get(cache_key),
-                    )
+                    if fetch_seen_supports_candidates:
+                        skip_list = await fetch_seen_urls_for_site(
+                            source_val or "",
+                            pattern_val,
+                            candidate_urls_by_source.get(cache_key),
+                        )
+                    else:
+                        skip_list = await fetch_seen_urls_for_site(source_val or "", pattern_val)
                 except Exception:
                     skip_list = []
                 handler = get_site_handler(source_val or url_val)

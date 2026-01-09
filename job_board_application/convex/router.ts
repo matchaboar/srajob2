@@ -2359,9 +2359,11 @@ const leaseScrapeUrlBatchHandler = async (
   if (leasedBuckets && !useBucketScopedQuery) {
     rows = rows.filter((row: any) => leasedBuckets?.has(deriveScrapeQueueRowBucket(row)));
   }
-  if (rows.length < limit && !hasExplicitBuckets) {
+  if (rows.length < limit) {
     // Only let one worker do a legacy scan so we avoid cross-bucket contention.
-    const allowLegacyScan = !useBucketScopedQuery || leasedBuckets?.has(0);
+    const allowLegacyScan = !hasExplicitBuckets
+      ? !useBucketScopedQuery || leasedBuckets?.has(0)
+      : Boolean(leasedBuckets && leasedBuckets.size > 0);
     if (allowLegacyScan) {
       const legacyRows = await ctx.db
         .query("scrape_url_queue")
@@ -2370,15 +2372,20 @@ const leaseScrapeUrlBatchHandler = async (
         .take(limit * 2);
       const seenIds = new Set(rows.map((row: any) => row._id));
       for (const row of legacyRows as any[]) {
-        const missingScheduled = !row.scheduledAt;
+        const missingScheduled = row.scheduledAt === undefined || row.scheduledAt === null;
         const missingAttempts = row.attempts === undefined || row.attempts === null;
         const missingBucket = row.bucket === undefined || row.bucket === null;
-        if ((missingScheduled || missingAttempts || missingBucket) && !seenIds.has(row._id)) {
-          if (leasedBuckets && !missingBucket && !leasedBuckets.has(deriveScrapeQueueRowBucket(row))) {
+        const isLegacy = missingScheduled || missingAttempts || missingBucket;
+        if (!isLegacy || seenIds.has(row._id)) continue;
+        if (hasExplicitBuckets) {
+          if (!missingScheduled && !missingBucket) continue;
+          if (leasedBuckets && !leasedBuckets.has(deriveScrapeQueueRowBucket(row))) {
             continue;
           }
-          rows.push(row);
+        } else if (leasedBuckets && !missingBucket && !leasedBuckets.has(deriveScrapeQueueRowBucket(row))) {
+          continue;
         }
+        rows.push(row);
         if (rows.length >= limit * 3) break;
       }
     }
@@ -2472,11 +2479,13 @@ const leaseScrapeUrlBatchHandler = async (
   for (const row of picked) {
     const nextAttempts = ((row).attempts ?? 0) + 1;
     const bucket = deriveScrapeQueueRowBucket(row);
+    const scheduledAt = row.scheduledAt ?? now;
     await ctx.db.patch(row._id, {
       status: "processing",
       attempts: nextAttempts,
       updatedAt: now,
       bucket,
+      scheduledAt,
     });
   }
 
@@ -2580,9 +2589,13 @@ export const requeueStaleScrapeUrls = mutation({
     for (const row of rows as any[]) {
       if (args.provider && row.provider !== args.provider) continue;
       if (!row.updatedAt || row.updatedAt >= cutoff) continue;
+      const bucket = row.bucket ?? deriveScrapeQueueRowBucket(row);
+      const scheduledAt = row.scheduledAt ?? now;
       await ctx.db.patch(row._id, {
         status: "pending",
         updatedAt: now,
+        bucket,
+        scheduledAt,
       });
       requeued += 1;
     }
@@ -2997,7 +3010,15 @@ export const resetScrapeUrlProcessing = mutation({
     for (const row of rows as any[]) {
       if (args.provider && row.provider !== args.provider) continue;
       if (args.siteId && row.siteId !== args.siteId) continue;
-      await ctx.db.patch(row._id, { status: "pending", updatedAt: Date.now() });
+      const now = Date.now();
+      const bucket = row.bucket ?? deriveScrapeQueueRowBucket(row);
+      const scheduledAt = row.scheduledAt ?? now;
+      await ctx.db.patch(row._id, {
+        status: "pending",
+        updatedAt: now,
+        bucket,
+        scheduledAt,
+      });
       updated += 1;
     }
     return { updated };
@@ -3074,9 +3095,13 @@ export const resetScrapeUrlsByStatus = mutation({
     for (const row of rows as any[]) {
       if (args.provider && row.provider !== args.provider) continue;
       if (args.siteId && row.siteId !== args.siteId) continue;
+      const bucket = row.bucket ?? deriveScrapeQueueRowBucket(row);
+      const scheduledAt = row.scheduledAt ?? now;
       await ctx.db.patch(row._id, {
         status: "pending",
         updatedAt: now,
+        bucket,
+        scheduledAt,
         completedAt: undefined,
         lastError: status === "failed" || status === "invalid" ? undefined : row.lastError,
       });

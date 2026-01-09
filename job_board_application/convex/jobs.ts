@@ -29,6 +29,38 @@ const REMOTE_RE = /\b(remote(-first)?|hybrid|onsite|on-site)\b/i;
 const CITY_STATE_ABBR_RE =
   /\b(?<city>[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)*)\s*,\s*(?<state>[A-Z]{2})\b/g;
 
+const SCRAPE_URL_QUEUE_BUCKETS = 128;
+
+const hashStringToBucket = (value: string, bucketCount: number) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % bucketCount;
+};
+
+const deriveScrapeQueueBucketKey = (params: {
+  url: string;
+  sourceUrl?: string | null;
+  siteId?: string | null;
+}) => {
+  if (params.siteId) return `site:${params.siteId}`;
+  if (params.sourceUrl) return `source:${params.sourceUrl}`;
+  try {
+    const domain = new URL(params.url).hostname.toLowerCase();
+    if (domain) return `domain:${domain}`;
+  } catch {
+    // fall back to url
+  }
+  return `url:${params.url}`;
+};
+
+const deriveScrapeQueueBucket = (params: { url: string; sourceUrl?: string | null; siteId?: string | null }) => {
+  const key = deriveScrapeQueueBucketKey(params);
+  return hashStringToBucket(key, SCRAPE_URL_QUEUE_BUCKETS);
+};
+
 const isUnknownLabel = (value?: string | null) => {
   const normalized = (value || "").trim().toLowerCase();
   return (
@@ -1756,6 +1788,7 @@ export const listQueuedJobs = query({
     const scheduledBefore = typeof args.scheduledBefore === "number" ? args.scheduledBefore : now;
     const status = args.status ?? "pending";
     const hiddenFailedErrors = new Set(["skip_listed_url"]);
+    const orderDirection = status === "completed" || status === "failed" ? "desc" : "asc";
 
     let query: any = ctx.db.query("scrape_url_queue");
     if (status === "pending") {
@@ -1765,10 +1798,7 @@ export const listQueuedJobs = query({
           q.or(q.lte(q.field("scheduledAt"), scheduledBefore), q.eq(q.field("scheduledAt"), null))
         );
     } else {
-      query =
-        status === "failed"
-          ? query.withIndex("by_status_last_error", (q: any) => q.eq("status", status))
-          : query.withIndex("by_status", (q: any) => q.eq("status", status));
+      query = query.withIndex("by_status", (q: any) => q.eq("status", status));
       if (status === "failed" && hiddenFailedErrors.size > 0) {
         query = query.filter((q: any) => q.neq(q.field("lastError"), "skip_listed_url"));
       }
@@ -1778,7 +1808,7 @@ export const listQueuedJobs = query({
       ...args.paginationOpts,
       numItems: Math.min(args.paginationOpts.numItems ?? 20, 20),
     };
-    const page = await query.order("asc").paginate(paginationOpts);
+    const page = await query.order(orderDirection).paginate(paginationOpts);
     const rows = page.page.map((row: any) => ({
       _id: row._id,
       url: row.url,
@@ -1822,6 +1852,11 @@ export const resetQueuedUrlRetries = mutation({
     }
 
     const now = Date.now();
+    const bucket = deriveScrapeQueueBucket({
+      url: row.url,
+      sourceUrl: (row as any).sourceUrl ?? null,
+      siteId: (row as any).siteId ?? null,
+    });
     await ctx.db.patch(args.id, {
       status: "pending",
       attempts: 0,
@@ -1830,6 +1865,7 @@ export const resetQueuedUrlRetries = mutation({
       updatedAt: now,
       completedAt: undefined,
       scheduledAt: now,
+      bucket,
     });
 
     return { success: true };

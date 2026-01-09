@@ -31,6 +31,29 @@ type IndexCall = {
   filterFields: Record<string, any>;
 };
 
+const SCRAPE_URL_QUEUE_BUCKETS = 128;
+
+const hashStringToBucket = (value: string, bucketCount: number) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % bucketCount;
+};
+
+const deriveScrapeQueueBucket = (params: { url: string; sourceUrl?: string | null; siteId?: string | null }) => {
+  if (params.siteId) return hashStringToBucket(`site:${params.siteId}`, SCRAPE_URL_QUEUE_BUCKETS);
+  if (params.sourceUrl) return hashStringToBucket(`source:${params.sourceUrl}`, SCRAPE_URL_QUEUE_BUCKETS);
+  try {
+    const host = new URL(params.url).hostname.toLowerCase();
+    if (host) return hashStringToBucket(`domain:${host}`, SCRAPE_URL_QUEUE_BUCKETS);
+  } catch {
+    // fall through to url hash
+  }
+  return hashStringToBucket(`url:${params.url}`, SCRAPE_URL_QUEUE_BUCKETS);
+};
+
 class FakeQuery {
   constructor(
     private getRows: () => QueueRow[],
@@ -788,6 +811,36 @@ describe("leaseScrapeUrlBatch", () => {
     expect(rows[0].attempts).toBe(1);
   });
 
+  it("requeues stale processing rows with bucket and scheduledAt populated", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "stale-2",
+        url: "https://example.com/job/stale",
+        status: "processing",
+        updatedAt: now - 31 * 60 * 1000,
+        createdAt: now - 31 * 60 * 1000,
+        provider: "spidercloud",
+        attempts: 1,
+      },
+    ];
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(requeueStaleScrapeUrls);
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+    nowSpy.mockRestore();
+
+    expect(res.requeued).toBe(1);
+    expect(rows[0].status).toBe("pending");
+    expect(typeof rows[0].bucket).toBe("number");
+    expect(rows[0].scheduledAt).toBe(now);
+  });
+
   it("round-robins across site buckets when leasing", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
@@ -900,6 +953,68 @@ describe("leaseScrapeUrlBatch", () => {
     }
   });
 
+  it("leases rows missing bucket when explicit buckets are provided", async () => {
+    const now = Date.now();
+    const row: QueueRow = {
+      _id: "row-missing-bucket",
+      url: "https://example.com/job/1",
+      sourceUrl: "https://example.com/jobs",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 5_000,
+      scheduledAt: now - 500,
+      provider: "spidercloud",
+      attempts: 0,
+    };
+    const derivedBucket = deriveScrapeQueueBucket({
+      url: row.url,
+      sourceUrl: row.sourceUrl ?? null,
+      siteId: row.siteId ?? null,
+    });
+    const db = new FakeDb([row]);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      buckets: [derivedBucket],
+    });
+
+    expect(res.urls).toHaveLength(1);
+  });
+
+  it("leases rows missing scheduledAt when explicit buckets are provided", async () => {
+    const now = Date.now();
+    const row: QueueRow = {
+      _id: "row-missing-scheduled",
+      url: "https://example.com/job/2",
+      sourceUrl: "https://example.com/jobs",
+      status: "pending",
+      updatedAt: now - 1_000,
+      createdAt: now - 5_000,
+      provider: "spidercloud",
+      attempts: 0,
+    };
+    const derivedBucket = deriveScrapeQueueBucket({
+      url: row.url,
+      sourceUrl: row.sourceUrl ?? null,
+      siteId: row.siteId ?? null,
+    });
+    row.bucket = derivedBucket;
+    const db = new FakeDb([row]);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 1,
+      buckets: [derivedBucket],
+    });
+
+    expect(res.urls).toHaveLength(1);
+  });
+
   it("backfills bucket when missing", async () => {
     const now = Date.now();
     const rows: QueueRow[] = [
@@ -1008,7 +1123,6 @@ describe("completeScrapeUrls", () => {
       status: "failed",
       updatedAt: now - 1_000,
       createdAt: now - 5_000,
-      scheduledAt: now - 1_000,
       provider: "spidercloud",
       attempts: 1,
     };
@@ -1023,6 +1137,8 @@ describe("completeScrapeUrls", () => {
       status: "failed",
       limit: 50,
     });
+    expect(typeof row.bucket).toBe("number");
+    expect(row.scheduledAt).toBe(now);
     const res = await leaseHandler(ctx, {
       provider: "spidercloud",
       limit: 1,

@@ -365,6 +365,8 @@ export const wipeScrapeQueueByStatus = mutation({
     const limit = Math.max(1, Math.min(args.limit ?? 1000, 5000));
     const dryRun = args.dryRun ?? false;
     const deletedByStatus: Record<string, number> = {};
+    let deletedBucketLeases = 0;
+    let deletedWorkerHeartbeats = 0;
     let hasMore = false;
 
     for (const status of statuses) {
@@ -383,6 +385,22 @@ export const wipeScrapeQueueByStatus = mutation({
       }
     }
 
+    const shouldClearInfra =
+      !dryRun && statuses.some((status) => status === "pending" || status === "processing");
+    if (shouldClearInfra) {
+      const bucketLeases = await ctx.db.query("scrape_url_bucket_leases").collect();
+      deletedBucketLeases = bucketLeases.length;
+      for (const row of bucketLeases as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+      }
+
+      const workerHeartbeats = await ctx.db.query("scrape_worker_heartbeats").collect();
+      deletedWorkerHeartbeats = workerHeartbeats.length;
+      for (const row of workerHeartbeats as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
     return {
       statuses,
       limit,
@@ -390,6 +408,8 @@ export const wipeScrapeQueueByStatus = mutation({
       deletedByStatus,
       deleted: Object.values(deletedByStatus).reduce((sum, val) => sum + val, 0),
       hasMore,
+      deletedBucketLeases,
+      deletedWorkerHeartbeats,
     };
   },
 });

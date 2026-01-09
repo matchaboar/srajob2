@@ -208,6 +208,7 @@ const applicationTables = {
   })
     .index("by_enabled", ["enabled"])
     .index("by_schedule", ["scheduleId"])
+    .index("by_lock_expires_at", ["lockExpiresAt"])
     .index("by_enabled_nextEligibleAt", ["enabled", "nextEligibleAt"])
     .index("by_enabled_manualTriggerAt", ["enabled", "manualTriggerAt"]),
 

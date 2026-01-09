@@ -9,7 +9,10 @@ export const clearExpiredSiteLocks = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const sites = await ctx.db.query("sites").collect();
+    const sites = await ctx.db
+      .query("sites")
+      .withIndex("by_lock_expires_at", (q) => q.gt("lockExpiresAt", 0).lte("lockExpiresAt", now))
+      .collect();
     let cleared = 0;
     for (const s of sites as any[]) {
       if (s.lockExpiresAt && s.lockExpiresAt <= now && s.lockedBy) {
