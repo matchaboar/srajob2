@@ -125,7 +125,29 @@ def test_list_queued_jobs_read_budget_estimate() -> None:
     if not rows:
         assert False, "scrape queue fixture is empty"
 
-    avg_row_bytes = sum(_json_size(row) for row in rows) / len(rows)
+    projected_rows = []
+    for row in rows:
+        projected_rows.append(
+            {
+                "_id": row.get("_id"),
+                "url": row.get("url"),
+                "sourceUrl": row.get("sourceUrl"),
+                "provider": row.get("provider"),
+                "siteId": row.get("siteId"),
+                "pattern": row.get("pattern"),
+                "urlType": row.get("urlType"),
+                "bucket": row.get("bucket"),
+                "status": row.get("status"),
+                "attempts": row.get("attempts"),
+                "lastError": row.get("lastError"),
+                "createdAt": row.get("createdAt"),
+                "updatedAt": row.get("updatedAt"),
+                "completedAt": row.get("completedAt"),
+                "scheduledAt": row.get("scheduledAt"),
+            }
+        )
+
+    avg_row_bytes = sum(_json_size(row) for row in projected_rows) / len(projected_rows)
     page_size = 20
     polls_per_day = 2880  # every 30s
     daily_bytes = avg_row_bytes * page_size * polls_per_day

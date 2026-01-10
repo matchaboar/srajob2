@@ -145,12 +145,20 @@ class FakeDb {
   };
 }
 
+const buildCtx = (db: FakeDb) => ({
+  db,
+  storage: {
+    store: async () => "storage-1",
+    delete: async () => {},
+  },
+});
+
 describe("scrape queue end-to-end", () => {
   it("records seen URLs after completion so future leases can skip them", async () => {
     const sourceUrl = "https://example.com/jobs";
     const site = { _id: "site-1", url: sourceUrl, name: "Example" };
     const db = new FakeDb({ sites: [site] });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const jobUrl = "https://example.com/jobs/123";
 
@@ -203,7 +211,7 @@ describe("scrape queue end-to-end", () => {
     const sourceUrl = "https://api.greenhouse.io/v1/boards/acme/jobs";
     const site = { _id: "site-1", url: sourceUrl, name: "Acme" };
     const db = new FakeDb({ sites: [site] });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const jobUrlA = "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123";
     const jobUrlB = "https://boards-api.greenhouse.io/v1/boards/acme/jobs/456";
@@ -235,7 +243,7 @@ describe("scrape queue end-to-end", () => {
   it("dedupes normalized URLs before enqueueing", async () => {
     const sourceUrl = "https://example.com/jobs";
     const db = new FakeDb();
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
     const enqueueHandler = getHandler(enqueueScrapeUrls);
 
     await enqueueHandler(ctx, {
@@ -263,7 +271,7 @@ describe("scrape queue end-to-end", () => {
         },
       ],
     });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const enqueueHandler = getHandler(enqueueScrapeUrls);
     const res = await enqueueHandler(ctx, {
@@ -304,7 +312,7 @@ describe("scrape queue end-to-end", () => {
         },
       ],
     });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const leaseHandler = getHandler(leaseScrapeUrlBatch);
     const leased = await leaseHandler(ctx, { provider: "spidercloud", limit: 5, urlType: "listing" });
@@ -331,7 +339,7 @@ describe("scrape queue end-to-end", () => {
         },
       ],
     });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const enqueueHandler = getHandler(enqueueScrapeUrls);
     const res = await enqueueHandler(ctx, {
@@ -366,7 +374,7 @@ describe("scrape queue end-to-end", () => {
         },
       ],
     });
-    const ctx: any = { db };
+    const ctx: any = buildCtx(db);
 
     const enqueueHandler = getHandler(enqueueScrapeUrls);
     const res = await enqueueHandler(ctx, {
@@ -391,7 +399,7 @@ describe("scrape queue end-to-end", () => {
       const sourceUrl = "https://example.com/jobs";
       const site = { _id: "site-2", url: sourceUrl, name: "Example" };
       const db = new FakeDb({ sites: [site] });
-      const ctx: any = { db };
+      const ctx: any = buildCtx(db);
 
       const jobUrlA = "https://example.com/jobs/aaa";
       const jobUrlB = "https://example.com/jobs/bbb";

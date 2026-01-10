@@ -81,7 +81,7 @@ from .base import BaseScraper
 if TYPE_CHECKING:
     from ..activities import Site
 
-SPIDERCLOUD_BATCH_SIZE = 50
+SPIDERCLOUD_BATCH_SIZE = 10
 CAPTCHA_RETRY_LIMIT = 2
 CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
 STRUCTURED_POSTED_AT_MAX_AGE_DAYS = 365

@@ -31,6 +31,7 @@ import {
 } from "./siteUtils";
 import { SITE_TYPES, type SiteType } from "./siteTypes";
 import { deriveCompanyKey, deriveEngineerFlag, matchesCompanyFilters, parseMarkdownHints } from "./jobs";
+import { deleteDescriptionFromStorage, storeDescriptionInStorage } from "./jobDescriptionStorage";
 
 const http = httpRouter();
 export { normalizeScrapedUrl };
@@ -292,28 +293,6 @@ export const resolveCompanyLogoUrl = (company: string, url: string | null | unde
   return fallbackLogoUrl;
 };
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
-const MAX_CONVEX_STRING_BYTES = 1_000_000;
-const DESCRIPTION_TRUNCATION_SUFFIX = "...";
-const clampStringToBytes = (value: string, maxBytes = MAX_CONVEX_STRING_BYTES) => {
-  const encoder = new TextEncoder();
-  if (encoder.encode(value).length <= maxBytes) return value;
-
-  const suffixBytes = encoder.encode(DESCRIPTION_TRUNCATION_SUFFIX).length;
-  const targetBytes = Math.max(0, maxBytes - suffixBytes);
-  let low = 0;
-  let high = value.length;
-  while (low < high) {
-    const mid = Math.floor((low + high + 1) / 2);
-    const chunk = value.slice(0, mid);
-    const size = encoder.encode(chunk).length;
-    if (size <= targetBytes) {
-      low = mid;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return `${value.slice(0, low)}${DESCRIPTION_TRUNCATION_SUFFIX}`;
-};
 const truncateText = (value: string, max = 220) => {
   const cleaned = normalizeWhitespace(value);
   if (cleaned.length <= max) return cleaned;
@@ -2306,11 +2285,22 @@ const leaseScrapeUrlBatchHandler = async (
     }
   };
 
-  // Use the scheduledAt index here; the attempts index requires attempts to be constrained first.
+  // Prefer attempts+createdAt ordering; filter scheduledAt so delayed rows stay gated.
   const maxRows = limit * 3;
   const useBucketScopedQuery =
     leasedBuckets && leasedBuckets.size > 0 && leasedBuckets.size < SCRAPE_URL_QUEUE_BUCKETS;
   let rows: any[] = [];
+  const applyLeaseFilters = (query: any) =>
+    query.filter((q: any) => {
+      const scheduledGate = q.or(
+        q.lte(q.field("scheduledAt"), now),
+        q.eq(q.field("scheduledAt"), null)
+      );
+      if (args.urlType) {
+        return q.and(q.eq(q.field("urlType"), args.urlType), scheduledGate);
+      }
+      return scheduledGate;
+    });
   if (useBucketScopedQuery && leasedBuckets) {
     const bucketList = Array.from(leasedBuckets).sort((a, b) => a - b);
     const perBucketLimit = Math.max(1, Math.ceil(maxRows / bucketList.length));
@@ -2318,43 +2308,41 @@ const leaseScrapeUrlBatchHandler = async (
       if (rows.length >= maxRows) break;
       const remaining = maxRows - rows.length;
       const takeCount = Math.min(perBucketLimit, remaining);
-      const bucketRows = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status_bucket_scheduled_at", (q: any) =>
-          q.eq("status", "pending").eq("bucket", bucket).lte("scheduledAt", now)
-        )
-        .order("asc")
-        .take(takeCount);
+      const bucketRows = await applyLeaseFilters(
+        ctx.db
+          .query("scrape_url_queue")
+          .withIndex("by_status_bucket_attempts_created_at", (q: any) =>
+            q.eq("status", "pending").eq("bucket", bucket)
+          )
+          .order("asc")
+      ).take(takeCount);
       rows.push(...bucketRows);
     }
   } else {
     const baseQuery = args.urlType
       ? ctx.db
         .query("scrape_url_queue")
-        .withIndex("by_status_url_type", (q: any) =>
+        .withIndex("by_status_url_type_attempts_created_at", (q: any) =>
           q.eq("status", "pending").eq("urlType", args.urlType)
         )
-        .filter((q: any) =>
-          q.or(q.lte(q.field("scheduledAt"), now), q.eq(q.field("scheduledAt"), null))
-        )
+        .order("asc")
       : ctx.db
         .query("scrape_url_queue")
-        .withIndex("by_status_and_scheduled_at", (q: any) =>
-          q.eq("status", "pending").lte("scheduledAt", now)
-        );
-    rows = await baseQuery.order("asc").take(maxRows);
+        .withIndex("by_status_attempts_created_at", (q: any) => q.eq("status", "pending"))
+        .order("asc");
+    rows = await applyLeaseFilters(baseQuery).take(maxRows);
   }
   const queueAge = (row: any) => (row.scheduledAt ?? row.createdAt ?? 0);
   rows = rows.slice().sort((a: any, b: any) => {
-    const ageA = queueAge(a);
-    const ageB = queueAge(b);
-    if (ageA !== ageB) return ageA - ageB;
+    const attemptsA = a.attempts ?? 0;
+    const attemptsB = b.attempts ?? 0;
+    if (attemptsA !== attemptsB) return attemptsA - attemptsB;
     const createdA = a.createdAt ?? 0;
     const createdB = b.createdAt ?? 0;
     if (createdA !== createdB) return createdA - createdB;
-    const attemptsA = a.attempts ?? 0;
-    const attemptsB = b.attempts ?? 0;
-    return attemptsA - attemptsB;
+    const ageA = queueAge(a);
+    const ageB = queueAge(b);
+    return ageA - ageB;
   });
   if (leasedBuckets && !useBucketScopedQuery) {
     rows = rows.filter((row: any) => leasedBuckets?.has(deriveScrapeQueueRowBucket(row)));
@@ -2870,6 +2858,7 @@ export const updateJobWithHeuristicHandler = async (
 ) => {
   const patch: any = {};
   const detailPatch: any = {};
+  const shouldUpdateDescription = typeof args.description === "string";
   for (const key of [
     "location",
     "locations",
@@ -2887,27 +2876,36 @@ export const updateJobWithHeuristicHandler = async (
       patch[key] = args[key] as any;
     }
   }
-  for (const key of ["description", "metadata", "heuristicAttempts", "heuristicLastTried", "heuristicVersion"] as const) {
+  for (const key of ["metadata", "heuristicAttempts", "heuristicLastTried", "heuristicVersion"] as const) {
     if (args[key] !== undefined) {
-      detailPatch[key] =
-        key === "description" && typeof args[key] === "string"
-          ? clampStringToBytes(args[key])
-          : (args[key] as any);
+      detailPatch[key] = args[key] as any;
     }
   }
-  if (Object.keys(patch).length === 0 && Object.keys(detailPatch).length === 0) return { updated: false };
+  if (Object.keys(patch).length === 0 && Object.keys(detailPatch).length === 0 && !shouldUpdateDescription) {
+    return { updated: false };
+  }
   if (Object.keys(patch).length > 0) {
     await ctx.db.patch(args.id, patch);
   }
-  if (Object.keys(detailPatch).length > 0) {
+  if (Object.keys(detailPatch).length > 0 || shouldUpdateDescription) {
     const existing = await ctx.db
       .query("job_details")
       .withIndex("by_job", (q: any) => q.eq("jobId", args.id))
       .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, detailPatch);
-    } else {
-      await ctx.db.insert("job_details", { jobId: args.id, ...detailPatch });
+    if (shouldUpdateDescription) {
+      const descriptionPatch = await storeDescriptionInStorage(
+        ctx,
+        args.description as string,
+        (existing as any)?.descriptionStorageId
+      );
+      Object.assign(detailPatch, descriptionPatch);
+    }
+    if (Object.keys(detailPatch).length > 0) {
+      if (existing) {
+        await ctx.db.patch(existing._id, detailPatch);
+      } else {
+        await ctx.db.insert("job_details", { jobId: args.id, ...detailPatch });
+      }
     }
   }
   return { updated: true };
@@ -3141,6 +3139,7 @@ export const resetTodayAndRunAllScheduled = mutation({
           .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
           .first();
         if (detail) {
+          await deleteDescriptionFromStorage(ctx, (detail as any).descriptionStorageId);
           await ctx.db.delete(detail._id);
         }
         await ctx.db.delete(job._id);
@@ -3961,9 +3960,10 @@ export const insertJobRecord = mutation({
       })
     );
     await recordJobUrlKey(ctx, args.url, jobId);
+    const detailFields = await storeDescriptionInStorage(ctx, description);
     await ctx.db.insert("job_details", {
       jobId,
-      description: clampStringToBytes(description),
+      ...detailFields,
     });
     return jobId;
   },
@@ -4046,6 +4046,12 @@ const MAX_SCRAPE_SAMPLE_ITEMS = 10;
 const MAX_SCRAPE_SAMPLE_CHARS = 400;
 const MAX_SCRAPE_URLS = 2000;
 const SCRAPE_SIZE_WARN_BYTES = 900_000;
+const MAX_SCRAPE_RECORD_BYTES = 950_000;
+const HARD_MAX_SCRAPE_URL_ITEMS = 100;
+const HARD_MAX_SCRAPE_SAMPLE_ITEMS = 3;
+const HARD_MAX_SCRAPE_URLS = 500;
+const HARD_MAX_SCRAPE_SEED_URLS = 100;
+const HARD_MAX_SCRAPE_AUX_ITEMS = 20;
 
 const estimateJsonSize = (value: any): number => {
   if (value === undefined) return 0;
@@ -4207,6 +4213,45 @@ const trimScrapeItemsForStorage = (items: any): any => {
     if (rawPreview !== undefined) {
       trimmed.rawPreview = rawPreview;
     }
+  }
+
+  return trimmed;
+};
+
+const hardTrimScrapeItemsForStorage = (items: any): any => {
+  if (!items || typeof items !== "object") return items;
+  const trimmed: Record<string, any> = { ...items };
+
+  if (Array.isArray(trimmed.normalized)) {
+    trimmed.normalized = trimmed.normalized.slice(0, HARD_MAX_SCRAPE_URL_ITEMS);
+  }
+  if (Array.isArray(trimmed.normalizedSample)) {
+    trimmed.normalizedSample = trimmed.normalizedSample.slice(0, HARD_MAX_SCRAPE_SAMPLE_ITEMS);
+  }
+  if (Array.isArray(trimmed.job_urls)) {
+    trimmed.job_urls = trimmed.job_urls.slice(0, HARD_MAX_SCRAPE_URLS);
+  }
+  if (Array.isArray(trimmed.seedUrls)) {
+    trimmed.seedUrls = trimmed.seedUrls.slice(0, HARD_MAX_SCRAPE_SEED_URLS);
+  }
+  if (Array.isArray(trimmed.ignored)) {
+    trimmed.ignored = trimmed.ignored.slice(0, HARD_MAX_SCRAPE_AUX_ITEMS);
+  }
+  if (Array.isArray(trimmed.failed)) {
+    trimmed.failed = trimmed.failed.slice(0, HARD_MAX_SCRAPE_AUX_ITEMS);
+  }
+  if ("rawPreview" in trimmed) delete trimmed.rawPreview;
+  if ("raw" in trimmed) delete trimmed.raw;
+  if ("page_links" in trimmed) {
+    trimmed.page_links = Array.isArray(trimmed.page_links)
+      ? trimmed.page_links.slice(0, HARD_MAX_SCRAPE_URLS)
+      : trimmed.page_links;
+  }
+  if ("metadata" in trimmed) {
+    trimmed.metadata = shrinkPayload(trimmed.metadata, 400);
+  }
+  if ("request" in trimmed) {
+    trimmed.request = shrinkPayload(trimmed.request, 400);
   }
 
   return trimmed;
@@ -5049,8 +5094,46 @@ export const insertScrapeRecord = mutation({
     providerRequest: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    const trimmedItems = trimScrapeItemsForStorage(args.items);
-    const storedArgs = { ...args, items: trimmedItems };
+    let trimmedItems = trimScrapeItemsForStorage(args.items);
+    let storedArgs: any = { ...args, items: trimmedItems };
+    let storedSize = estimateJsonSize(storedArgs);
+    if (storedSize > MAX_SCRAPE_RECORD_BYTES) {
+      trimmedItems = hardTrimScrapeItemsForStorage(trimmedItems);
+      storedArgs = { ...storedArgs, items: trimmedItems };
+      storedSize = estimateJsonSize(storedArgs);
+      console.warn(
+        `insertScrapeRecord payload trimmed (${storedSize} bytes after hard trim)`
+      );
+    }
+    if (storedSize > MAX_SCRAPE_RECORD_BYTES) {
+      const minimalItems: Record<string, any> = {
+        normalized: Array.isArray(trimmedItems?.normalized)
+          ? trimmedItems.normalized.slice(0, 25)
+          : [],
+      };
+      if (typeof trimmedItems?.normalizedCount === "number") {
+        minimalItems.normalizedCount = trimmedItems.normalizedCount;
+      }
+      for (const key of ["provider", "workflowName", "requestedFormat", "kind"]) {
+        if (trimmedItems && trimmedItems[key] !== undefined) {
+          minimalItems[key] = trimmedItems[key];
+        }
+      }
+      storedArgs = { ...storedArgs, items: minimalItems };
+      if (Array.isArray(storedArgs.subUrls)) {
+        storedArgs.subUrls = storedArgs.subUrls.slice(0, 50);
+      }
+      storedArgs.request = storedArgs.request ? clampRequestSnapshot(storedArgs.request) : storedArgs.request;
+      storedArgs.providerRequest = storedArgs.providerRequest
+        ? shrinkPayload(storedArgs.providerRequest, 500)
+        : storedArgs.providerRequest;
+      delete storedArgs.response;
+      delete storedArgs.asyncResponse;
+      storedSize = estimateJsonSize(storedArgs);
+      console.warn(
+        `insertScrapeRecord payload trimmed to minimal (${storedSize} bytes)`
+      );
+    }
     logScrapePayloadSize("insertScrapeRecord", storedArgs);
     const id = await ctx.db.insert("scrapes", storedArgs);
     await ctx.db.insert("scrape_activity", {
@@ -5245,7 +5328,10 @@ export const ingestJobsFromScrape = mutation({
       });
       await recordJobUrlKey(ctx, job.url, jobId);
       const detailRow: any = { jobId };
-      if (description !== undefined) detailRow.description = clampStringToBytes(description);
+      if (description !== undefined) {
+        const descriptionFields = await storeDescriptionInStorage(ctx, description);
+        Object.assign(detailRow, descriptionFields);
+      }
       if (metadata !== undefined) detailRow.metadata = metadata;
       if (scrapeUrl !== undefined) detailRow.scrapeUrl = scrapeUrl;
       if (scrapedWith !== undefined) detailRow.scrapedWith = scrapedWith;
@@ -5797,7 +5883,6 @@ export function extractJobs(
               ? cleanScrapedText(row)
               : JSON.stringify(row, null, 2);
       const description = stripEmbeddedJson(descriptionRaw);
-      const safeDescription = clampStringToBytes(description);
       // Prefer structured pay range from Greenhouse metadata when present
       const compensationSource: any =
         (Array.isArray((row).metadata)
@@ -5829,7 +5914,7 @@ export function extractJobs(
       return {
         title: title || "Untitled",
         company: company || "Unknown",
-        description: safeDescription,
+        description,
         location: locationLabel || "Unknown",
         city,
         state,
@@ -6052,8 +6137,18 @@ export const reparseRecentCompanyJobs = mutation({
       }
 
       const detailPatch: Record<string, any> = {};
+      let existingDetail: any | null = null;
       if (typeof parsed.description === "string" && parsed.description.trim()) {
-        detailPatch.description = clampStringToBytes(parsed.description);
+        existingDetail = await ctx.db
+          .query("job_details")
+          .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+          .first();
+        const descriptionFields = await storeDescriptionInStorage(
+          ctx,
+          parsed.description,
+          (existingDetail as any)?.descriptionStorageId
+        );
+        Object.assign(detailPatch, descriptionFields);
       }
       if (parsed.scrapeUrl) {
         detailPatch.scrapeUrl = parsed.scrapeUrl;
@@ -6067,19 +6162,21 @@ export const reparseRecentCompanyJobs = mutation({
       }
 
       if (Object.keys(detailPatch).length > 0) {
-        const existing = await ctx.db
-          .query("job_details")
-          .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
-          .first();
-        if (existing) {
+        if (!existingDetail) {
+          existingDetail = await ctx.db
+            .query("job_details")
+            .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+            .first();
+        }
+        if (existingDetail) {
           const updates: Record<string, any> = {};
           for (const [key, value] of Object.entries(detailPatch)) {
-            if ((existing as any)[key] !== value) {
+            if ((existingDetail as any)[key] !== value) {
               updates[key] = value;
             }
           }
           if (Object.keys(updates).length > 0) {
-            await ctx.db.patch(existing._id, updates);
+            await ctx.db.patch(existingDetail._id, updates);
             jobDetailsUpdated += 1;
           }
         } else {

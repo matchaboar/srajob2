@@ -118,7 +118,6 @@ async def test_listing_workflow_uses_listing_batch_size(monkeypatch):
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
     monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_020))
     monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
-    monkeypatch.setattr(sw.runtime_config, "spidercloud_listing_batch_size", 4)
 
     wf = sw.SpidercloudListingWorkflow()
     summary = await wf.run()
@@ -126,7 +125,7 @@ async def test_listing_workflow_uses_listing_batch_size(monkeypatch):
     assert summary.site_count == 0
     assert calls
     lease_args = calls[0]["args"] or []
-    assert lease_args[1] == 4
+    assert lease_args[1] == sw.runtime_config.spidercloud_listing_batch_size
     assert lease_args[2] == "listing"
 
 

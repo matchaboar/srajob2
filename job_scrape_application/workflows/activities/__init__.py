@@ -5336,10 +5336,13 @@ def _build_job_detail_heuristic_patch(
         patch["remote"] = False
     if description_metadata and description_metadata != row.get("metadata"):
         patch["metadata"] = description_metadata
-    if description_body.strip() and description_body != source_description:
-        patch["description"] = description_body
-    elif cleaned_description.strip() and cleaned_description != source_description:
-        patch["description"] = cleaned_description
+    normalized_description = ""
+    if description_body.strip():
+        normalized_description = description_body
+    elif cleaned_description.strip():
+        normalized_description = cleaned_description
+    if normalized_description:
+        patch["description"] = normalized_description
 
     return patch, records
 

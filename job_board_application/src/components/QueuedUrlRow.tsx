@@ -9,6 +9,9 @@ export interface QueuedUrlRowItem {
   url: string;
   sourceUrl: string;
   provider?: string;
+  urlType?: "listing" | "detail" | null;
+  bucket?: number | null;
+  siteId?: string | null;
   status: QueueStatus;
   createdAt: number;
   scheduledAt?: number | null;
@@ -173,6 +176,10 @@ export function QueuedUrlRow({
   const displayLabel = toDisplayName(label);
   const logoUrl = item.sourceUrl || item.url;
   const showExtras = Boolean(showCompletedAt || showLastError);
+  const metaParts = [
+    item.urlType ? `type: ${item.urlType}` : null,
+    typeof item.bucket === "number" ? `bucket: ${item.bucket}` : null,
+  ].filter(Boolean) as string[];
   const gridClassName = showExtras
     ? "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,3.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1.8fr)_minmax(0,2.2fr)]"
     : "grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_auto_minmax(0,4.5fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]";
@@ -222,7 +229,10 @@ export function QueuedUrlRow({
         </div>
 
         <div className="hidden sm:block text-xs text-slate-400 truncate" title={item.provider ?? ""}>
-          {item.provider ?? "—"}
+          <div>{item.provider ?? "—"}</div>
+          <div className="text-[10px] text-slate-500">
+            {metaParts.length ? metaParts.join(" • ") : "—"}
+          </div>
         </div>
 
         <div className="hidden sm:block text-xs text-slate-400 truncate">

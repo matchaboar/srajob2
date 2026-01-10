@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
@@ -25,6 +25,20 @@ const formatDuration = (start?: number | null, end?: number | null) => {
 
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });
+  const [fullDescription, setFullDescription] = useState<string | null>(null);
+  const [fullDescriptionLoading, setFullDescriptionLoading] = useState(false);
+  const [fullDescriptionError, setFullDescriptionError] = useState<string | null>(null);
+  const [requestedFullDescriptionJobId, setRequestedFullDescriptionJobId] = useState<Id<"jobs"> | null>(null);
+  const fullDescriptionUrl = useQuery(
+    api.jobs.getJobDescriptionUrl,
+    requestedFullDescriptionJobId ? { jobId: requestedFullDescriptionJobId } : "skip"
+  );
+  useEffect(() => {
+    setFullDescription(null);
+    setFullDescriptionLoading(false);
+    setFullDescriptionError(null);
+    setRequestedFullDescriptionJobId(null);
+  }, [jobId]);
   const compensationMeta = useMemo(() => buildCompensationMeta(job), [job]);
   const toOptionalNumber = (value: unknown) => (typeof value === "number" ? value : undefined);
   const toOptionalString = (value: unknown) => {
@@ -55,6 +69,42 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
       },
     []
   );
+  useEffect(() => {
+    if (!requestedFullDescriptionJobId) return;
+    if (fullDescriptionUrl === undefined) return;
+    const jobId = requestedFullDescriptionJobId;
+    if (fullDescriptionUrl === null) {
+      setFullDescriptionLoading(false);
+      setFullDescriptionError("Full description unavailable.");
+      setRequestedFullDescriptionJobId(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch(fullDescriptionUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load (${response.status})`);
+        }
+        const text = await response.text();
+        if (cancelled) return;
+        setFullDescription(text);
+        setFullDescriptionError(null);
+      } catch {
+        if (cancelled) return;
+        setFullDescriptionError("Failed to load full description.");
+      } finally {
+        if (!cancelled) {
+          setFullDescriptionLoading(false);
+          setRequestedFullDescriptionJobId(null);
+        }
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [fullDescriptionUrl, requestedFullDescriptionJobId]);
   const scrapedAt = toOptionalNumber(job?.scrapedAt);
   const postedAtUnknown = (job as { postedAtUnknown?: boolean } | null)?.postedAtUnknown ?? false;
   const postedAtValue = formatDateTime(job?.postedAt);
@@ -71,9 +121,10 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
       : "—";
 
   const description = useMemo(() => {
-    if (!job?.description) return "No description provided.";
-    return job.description;
-  }, [job]);
+    const raw = fullDescription || job?.description || "";
+    if (!raw.trim()) return "No description provided.";
+    return raw;
+  }, [fullDescription, job]);
   const metadata = useMemo(() => {
     const raw = (job as { metadata?: string } | null)?.metadata ?? "";
     const trimmed = raw.trim();
@@ -129,6 +180,14 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
       },
     ];
   }, [formatRelativeTime, job, scrapedAt, toOptionalNumber, toOptionalString]);
+
+  const requestFullDescription = () => {
+    if (!job?._id) return;
+    if (fullDescription || fullDescriptionLoading) return;
+    setFullDescriptionLoading(true);
+    setFullDescriptionError(null);
+    setRequestedFullDescriptionJobId(job._id as Id<"jobs">);
+  };
 
   const handleBack = () => {
     if (onBack) {
@@ -199,7 +258,25 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
         <div className="flex-1 overflow-auto">
           <div className="max-w-6xl lg:max-w-7xl mx-auto px-4 py-5 space-y-4">
             <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-              <div className="text-xs uppercase tracking-wide font-semibold text-slate-500 mb-2">Description</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs uppercase tracking-wide font-semibold text-slate-500">Description</div>
+                {job?.descriptionStorageAvailable && !fullDescription && (
+                  <button
+                    type="button"
+                    onClick={requestFullDescription}
+                    disabled={fullDescriptionLoading}
+                    className="px-2 py-1 text-[11px] rounded border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {fullDescriptionLoading ? "Loading..." : "Read more"}
+                  </button>
+                )}
+                {job?.descriptionStorageAvailable && fullDescription && (
+                  <span className="text-[11px] text-emerald-300">Full</span>
+                )}
+              </div>
+              {fullDescriptionError && (
+                <div className="text-[11px] text-amber-300 mb-2">{fullDescriptionError}</div>
+              )}
               <div className="text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">{description}</div>
             </div>
             {metadata && (

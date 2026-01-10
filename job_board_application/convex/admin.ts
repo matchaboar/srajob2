@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import type { TableNames } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { normalizeCompanyFilterKey } from "./jobs";
+import { deleteDescriptionFromStorage } from "./jobDescriptionStorage";
 
 type AnyDoc = Record<string, any>;
 type WipeTable =
@@ -147,6 +148,7 @@ export const wipeSiteDataByDomainPage = mutation({
           .withIndex("by_job", (q) => q.eq("jobId", row._id))
           .collect();
         for (const detail of details as AnyDoc[]) {
+          await deleteDescriptionFromStorage(ctx, detail.descriptionStorageId);
           await ctx.db.delete(detail._id);
         }
       }
@@ -220,6 +222,7 @@ export const wipeJobsByCompanyPage = mutation({
         .withIndex("by_job", (q) => q.eq("jobId", row._id))
         .collect();
       for (const detail of details as AnyDoc[]) {
+        await deleteDescriptionFromStorage(ctx, detail.descriptionStorageId);
         await ctx.db.delete(detail._id);
       }
       await ctx.db.delete(row._id);
@@ -258,6 +261,7 @@ export const deleteJobsById = mutation({
 
       if (!dryRun) {
         for (const detail of details as AnyDoc[]) {
+          await deleteDescriptionFromStorage(ctx, detail.descriptionStorageId);
           await ctx.db.delete(detail._id);
         }
         if (job) {

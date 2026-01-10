@@ -1,0 +1,90 @@
+import type { Id } from "./_generated/dataModel";
+
+const MAX_CONVEX_STRING_BYTES = 1_000_000;
+const DESCRIPTION_TRUNCATION_SUFFIX = "...";
+const DESCRIPTION_PREVIEW_MAX_BYTES = 25_000;
+
+export const clampStringToBytes = (value: string, maxBytes = MAX_CONVEX_STRING_BYTES) => {
+  const encoder = new TextEncoder();
+  if (encoder.encode(value).length <= maxBytes) return value;
+
+  const suffixBytes = encoder.encode(DESCRIPTION_TRUNCATION_SUFFIX).length;
+  const targetBytes = Math.max(0, maxBytes - suffixBytes);
+  let low = 0;
+  let high = value.length;
+  while (low < high) {
+    const mid = Math.floor((low + high + 1) / 2);
+    const chunk = value.slice(0, mid);
+    const size = encoder.encode(chunk).length;
+    if (size <= targetBytes) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return `${value.slice(0, low)}${DESCRIPTION_TRUNCATION_SUFFIX}`;
+};
+
+export const buildDescriptionPreview = (value: string) => clampStringToBytes(value, DESCRIPTION_PREVIEW_MAX_BYTES);
+
+export const storeDescriptionInStorage = async (
+  ctx: {
+    storage: {
+      delete: (id: Id<"_storage">) => Promise<void>;
+      store?: (blob: Blob) => Promise<Id<"_storage">>;
+    };
+  },
+  description: string,
+  existingStorageId?: Id<"_storage"> | null
+) => {
+  const trimmed = description.trim();
+  if (!trimmed) {
+    if (existingStorageId) {
+      await ctx.storage.delete(existingStorageId);
+    }
+    return { description: undefined, descriptionStorageId: undefined };
+  }
+
+  if (typeof ctx.storage.store === "function") {
+    const storageId = await ctx.storage.store(
+      new Blob([description], { type: "text/plain; charset=utf-8" })
+    );
+    if (existingStorageId) {
+      await ctx.storage.delete(existingStorageId);
+    }
+    return {
+      description: buildDescriptionPreview(description),
+      descriptionStorageId: storageId,
+    };
+  }
+
+  if (existingStorageId) {
+    await ctx.storage.delete(existingStorageId);
+  }
+  return {
+    description: buildDescriptionPreview(description),
+    descriptionStorageId: undefined,
+  };
+};
+
+export const loadDescriptionFromStorage = async (
+  ctx: { storage: { get?: (id: Id<"_storage">) => Promise<Blob | null> } },
+  storageId?: Id<"_storage"> | null
+) => {
+  if (!storageId || typeof ctx.storage.get !== "function") return null;
+  const blob = await ctx.storage.get(storageId);
+  if (!blob) return null;
+  try {
+    return await blob.text();
+  } catch {
+    return null;
+  }
+};
+
+export const deleteDescriptionFromStorage = async (
+  ctx: { storage: { delete: (id: Id<"_storage">) => Promise<void> } },
+  storageId?: Id<"_storage"> | null
+) => {
+  if (!storageId) return;
+  await ctx.storage.delete(storageId);
+};

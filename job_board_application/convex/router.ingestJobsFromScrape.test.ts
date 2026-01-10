@@ -84,7 +84,13 @@ class FakeDb {
 
 describe("ingestJobsFromScrape", () => {
   it("prefers ashby slug over provider company name", async () => {
-    const ctx: any = { db: new FakeDb() };
+    const ctx: any = {
+      db: new FakeDb(),
+      storage: {
+        store: async () => "storage-1",
+        delete: async () => {},
+      },
+    };
     const handler = getHandler(ingestJobsFromScrape);
     const now = Date.now();
 

@@ -113,6 +113,7 @@ DATAMINR_WORKDAY_SALES_DEV_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_dataminr_workday_job_detail_sales_dev_api.json"
 )
 GITHUB_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_github_careers_job_4648_raw.json"
+GITHUB_STAFF_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_github_careers_job_4852_raw.json"
 MITHRIL_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_greenhouse_mithril_job_4604609007_raw.json"
 )
@@ -854,6 +855,56 @@ def test_spidercloud_github_careers_job_detail_not_ignored():
     assert "Senior Service Delivery Engineer" in normalized["title"]
     assert "GitHub" in normalized["description"]
     assert len(normalized["description"]) > 200
+
+
+def test_spidercloud_github_careers_staff_job_detail_extracts_core_fields():
+    payload = _load_fixture(GITHUB_STAFF_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 1_700_000_000_000)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["title"] == "Staff Software Engineer"
+    assert normalized["company"] == "GitHub"
+    assert normalized["location"] == "United States"
+    assert normalized["remote"] is True
+    assert normalized["posted_at"] == 1_767_961_200_000
+    assert normalized["posted_at_unknown"] is False
+
+    description = normalized["description"] or ""
+    assert len(description) > 1500
+    assert "Compensation Range" in description
+    assert "EEO Statement" in description
+    for junk in ("<script", "<html", "gdprConfiguration", "jobDescriptionTemplates"):
+        assert junk not in description
+
+    resolved = _resolve_location_from_dictionary(normalized["location"])
+    assert resolved is not None
+    assert resolved.get("city") is None
+    assert resolved.get("state") is None
+    assert resolved.get("country") == "United States"
+
+
+def test_spidercloud_github_careers_staff_job_detail_extracts_salary_range():
+    payload = _load_fixture(GITHUB_STAFF_DETAIL_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 1_700_000_000_000)  # noqa: SLF001
+    assert normalized is not None
+
+    hints = parse_markdown_hints(normalized["description"] or "")
+    comp_range = hints.get("compensation_range")
+    assert comp_range == {"low": 140400, "high": 372300}
 
 
 @pytest.mark.asyncio

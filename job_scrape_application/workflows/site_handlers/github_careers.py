@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from .base import BaseSiteHandler
@@ -34,6 +34,11 @@ class GithubCareersHandler(BaseSiteHandler):
         host = parsed.hostname or "www.github.careers"
         base = f"{scheme}://{host}/api/jobs"
         return f"{base}?{urlencode(query, doseq=True)}" if query else base
+
+    def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
+        if not self.matches_url(uri):
+            return {}
+        return {"return_format": ["raw_html"]}
 
     def get_links_from_json(self, payload: Any) -> List[str]:
         if not isinstance(payload, dict):

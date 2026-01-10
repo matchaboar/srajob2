@@ -14,6 +14,8 @@ type QueueRow = {
   provider?: string;
   siteId?: string;
   pattern?: string;
+  urlType?: "listing" | "detail";
+  bucket?: number;
   status: "pending" | "processing" | "completed" | "failed" | "invalid";
   attempts?: number;
   lastError?: string;

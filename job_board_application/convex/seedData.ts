@@ -1,5 +1,6 @@
 import { mutation } from "./_generated/server";
 import { buildJobInsert, makeFakeJobSeeds } from "./jobRecords";
+import { storeDescriptionInStorage } from "./jobDescriptionStorage";
 import { normalizeJobUrlKey } from "./jobUrlUtils";
 
 const JOB_URL_BUCKETS = 256;
@@ -39,7 +40,13 @@ export const insertFakeJobs = mutation({
       const jobId = await ctx.db.insert("jobs", buildJobInsert(job, now));
       await recordJobUrlKey(ctx, job.url, jobId);
       if (job.details && Object.keys(job.details).length > 0) {
-        await ctx.db.insert("job_details", { jobId, ...job.details });
+        const { description, ...detailRest } = job.details;
+        const detailPayload: Record<string, any> = { ...detailRest };
+        if (typeof description === "string") {
+          const descriptionFields = await storeDescriptionInStorage(ctx, description);
+          Object.assign(detailPayload, descriptionFields);
+        }
+        await ctx.db.insert("job_details", { jobId, ...detailPayload });
       }
       insertedJobs.push(jobId);
     }

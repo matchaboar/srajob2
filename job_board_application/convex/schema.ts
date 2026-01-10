@@ -75,6 +75,7 @@ const applicationTables = {
   job_details: defineTable({
     jobId: v.id("jobs"),
     description: v.optional(v.string()),
+    descriptionStorageId: v.optional(v.id("_storage")),
     metadata: v.optional(v.string()),
     scrapeUrl: v.optional(v.string()),
     scrapedWith: v.optional(v.string()),
@@ -375,6 +376,9 @@ const applicationTables = {
     .index("by_status_and_scheduled_at", ["status", "scheduledAt"])
     .index("by_status_bucket_scheduled_at", ["status", "bucket", "scheduledAt"])
     .index("by_status_url_type", ["status", "urlType"])
+    .index("by_status_attempts_created_at", ["status", "attempts", "createdAt"])
+    .index("by_status_bucket_attempts_created_at", ["status", "bucket", "attempts", "createdAt"])
+    .index("by_status_url_type_attempts_created_at", ["status", "urlType", "attempts", "createdAt"])
     .index("by_status_attempts_scheduled_at", ["status", "attempts", "scheduledAt"])
     .index("by_type_updated", ["urlType", "updatedAt"])
     .index("by_urlType", ["urlType"]),

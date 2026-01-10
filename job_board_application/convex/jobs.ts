@@ -14,6 +14,11 @@ import {
   inferCountryFromLocation,
 } from "./location";
 import type { Doc, Id } from "./_generated/dataModel";
+import {
+  deleteDescriptionFromStorage,
+  loadDescriptionFromStorage,
+  storeDescriptionInStorage,
+} from "./jobDescriptionStorage";
 
 const TITLE_RE = /^[ \t]*#{1,6}\s+(?<title>.+)$/im;
 const LEVEL_RE =
@@ -513,7 +518,11 @@ type ScrapeQueueInfo = {
   scrapeQueueStatus?: string;
 };
 
-type JobWithDetails = DbJob & Partial<JobDetailFields> & ScrapeQueueInfo;
+type JobWithDetails = DbJob &
+  Partial<JobDetailFields> &
+  ScrapeQueueInfo & {
+    descriptionStorageAvailable?: boolean;
+  };
 
 const ensureLocationFields = async (
   ctx: any,
@@ -596,6 +605,14 @@ const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">): Promise<JobDet
     .first()) as JobDetailDoc | null;
 };
 
+const resolveDescriptionText = async (ctx: any, job: any, details: JobDetailDoc | null) => {
+  const stored = await loadDescriptionFromStorage(ctx, (details as any)?.descriptionStorageId);
+  if (typeof stored === "string" && stored.trim()) return stored;
+  if (typeof details?.description === "string") return details.description;
+  if (typeof (job as any)?.description === "string") return (job as any).description;
+  return "";
+};
+
 const getScrapeQueueByUrl = async (ctx: any, url?: string | null) => {
   if (!url) return null;
   return await ctx.db
@@ -624,8 +641,8 @@ const countAppliedApplications = async (ctx: any, jobIds: Array<Id<"jobs"> | str
 
 const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetails => {
   if (!details) return job;
-  const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
-  return { ...job, ...detailFields };
+  const { jobId: _jobId, _id: _detailId, descriptionStorageId: _storageId, ...detailFields } = details;
+  return { ...job, ...detailFields, descriptionStorageAvailable: Boolean((details as any)?.descriptionStorageId) };
 };
 
 export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof deriveLocationFields>) => {
@@ -1638,12 +1655,7 @@ export const reparseJobFromDescription = mutation({
     if (!job) throw new Error("Job not found");
 
     const details = await getJobDetailsByJobId(ctx, args.jobId);
-    const description =
-      typeof details?.description === "string"
-        ? details.description
-        : typeof (job as any).description === "string"
-          ? (job as any).description
-          : "";
+    const description = await resolveDescriptionText(ctx, job, details);
     const hints = parseMarkdownHints(description);
     const updates = buildUpdatesFromHints(job, hints);
     const derivedCompany = deriveCompanyFromUrl(job.url || "");
@@ -1672,12 +1684,7 @@ export const reparseAllJobs = mutation({
 
     for (const job of jobs) {
       const details = await getJobDetailsByJobId(ctx, job._id);
-      const description =
-        typeof details?.description === "string"
-          ? details.description
-          : typeof (job as any).description === "string"
-            ? (job as any).description
-            : "";
+      const description = await resolveDescriptionText(ctx, job, details);
       const hints = parseMarkdownHints(description);
       const updates = buildUpdatesFromHints(job as any, hints);
       const derivedCompany = deriveCompanyFromUrl((job as any).url || "");
@@ -1760,6 +1767,8 @@ export const listQueuedJobs = query({
         provider: v.optional(v.string()),
         siteId: v.optional(v.id("sites")),
         pattern: v.optional(v.string()),
+        urlType: v.optional(v.union(v.literal("listing"), v.literal("detail"))),
+        bucket: v.optional(v.number()),
         status: v.union(
           v.literal("pending"),
           v.literal("processing"),
@@ -1816,6 +1825,8 @@ export const listQueuedJobs = query({
       provider: row.provider,
       siteId: row.siteId,
       pattern: row.pattern,
+      urlType: row.urlType,
+      bucket: row.bucket,
       status: row.status,
       attempts: row.attempts,
       lastError: row.lastError,
@@ -2011,17 +2022,32 @@ export const getJobDetails = query({
       )
     ).filter(Boolean);
 
+    const descriptionStorageAvailable = Boolean((details as any)?.descriptionStorageId);
     if (!details) {
       const fallbackDescription = typeof job?.description === "string" ? job.description : undefined;
-      return { description: fallbackDescription, applicationCount, scrapeQueueInfo };
+      return { description: fallbackDescription, applicationCount, scrapeQueueInfo, descriptionStorageAvailable: false };
     }
-    const { jobId: _jobId, _id: _detailId, ...detailFields } = details;
+    const { jobId: _jobId, _id: _detailId, descriptionStorageId: _storageId, ...detailFields } = details;
     if (!detailFields.description) {
       if (typeof job?.description === "string") {
         detailFields.description = job.description;
       }
     }
-    return { ...detailFields, applicationCount, scrapeQueueInfo };
+    return { ...detailFields, applicationCount, scrapeQueueInfo, descriptionStorageAvailable };
+  },
+});
+
+export const getJobDescriptionUrl = query({
+  args: {
+    jobId: v.id("jobs"),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const details = await getJobDetailsByJobId(ctx, args.jobId);
+    const storageId = (details as any)?.descriptionStorageId;
+    if (!storageId) return null;
+    const url = await ctx.storage.getUrl(storageId);
+    return url ?? null;
   },
 });
 
@@ -2101,10 +2127,6 @@ export const normalizeDevTestJobs = mutation({
       const comp = 100000 + Math.floor(Math.random() * 90000);
       const loc = pick(locations);
       const { city, state } = splitLocation(loc);
-      const detailPatch = {
-        description:
-          "This is a realistic sample listing used for development. Replace with real scraped data in production.",
-      };
       await ctx.db.patch(j._id, {
         title: pick(titles),
         company: pick(companies),
@@ -2115,6 +2137,12 @@ export const normalizeDevTestJobs = mutation({
         remote: loc.toLowerCase().includes("remote") ?? true,
       });
       const existingDetails = detailByJobId.get(String(j._id));
+      const descriptionFields = await storeDescriptionInStorage(
+        ctx,
+        "This is a realistic sample listing used for development. Replace with real scraped data in production.",
+        (existingDetails as any)?.descriptionStorageId
+      );
+      const detailPatch = { ...descriptionFields };
       if (existingDetails) {
         await ctx.db.patch(existingDetails._id, detailPatch);
       } else {
@@ -2141,6 +2169,14 @@ export const deleteJob = mutation({
     jobId: v.id("jobs"),
   },
   handler: async (ctx, args) => {
+    const details = await ctx.db
+      .query("job_details")
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
+      .collect();
+    for (const detail of details as any[]) {
+      await deleteDescriptionFromStorage(ctx, (detail as any).descriptionStorageId);
+      await ctx.db.delete(detail._id);
+    }
     await ctx.db.delete(args.jobId);
     return { success: true };
   },

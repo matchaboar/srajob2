@@ -125,7 +125,13 @@ class FakeQuery {
   filter(cb: (q: any) => any) {
     const predicate = cb({
       field: (name: string) => name,
-      eq: (field: string, val: any) => (row: QueueRow) => (row as any)[field] === val,
+      eq: (field: string, val: any) => (row: QueueRow) => {
+        const fieldVal = (row as any)[field];
+        if (val === null) {
+          return fieldVal === null || fieldVal === undefined;
+        }
+        return fieldVal === val;
+      },
       lte: (field: string, val: number) => (row: QueueRow) => (row as any)[field] <= val,
       gt: (field: string, val: number) => (row: QueueRow) => (row as any)[field] > val,
       or: (...tests: Array<(row: QueueRow) => boolean>) => (row: QueueRow) =>
@@ -163,7 +169,21 @@ class FakeQuery {
       const expiresAtMin = this.expiresAtMin;
       filtered = filtered.filter((row) => (row as any).expiresAt > expiresAtMin);
     }
-    if (this.ordered && this.indexName === "by_status_attempts_scheduled_at") {
+    if (
+      this.ordered &&
+      (this.indexName === "by_status_attempts_created_at" ||
+        this.indexName === "by_status_bucket_attempts_created_at" ||
+        this.indexName === "by_status_url_type_attempts_created_at")
+    ) {
+      filtered = filtered.slice().sort((a, b) => {
+        const attemptsA = a.attempts ?? 0;
+        const attemptsB = b.attempts ?? 0;
+        if (attemptsA !== attemptsB) return attemptsA - attemptsB;
+        const createdA = a.createdAt ?? 0;
+        const createdB = b.createdAt ?? 0;
+        return createdA - createdB;
+      });
+    } else if (this.ordered && this.indexName === "by_status_attempts_scheduled_at") {
       filtered = filtered.slice().sort((a, b) => {
         const attemptsA = a.attempts ?? 0;
         const attemptsB = b.attempts ?? 0;
@@ -585,6 +605,50 @@ describe("leaseScrapeUrlBatch", () => {
     expect(leasedUrls).toEqual([
       "https://example.com/job/low",
       "https://example.com/job/mid",
+    ]);
+  });
+
+  it("prioritizes oldest createdAt when attempts match", async () => {
+    const now = Date.now();
+    const rows: QueueRow[] = [
+      {
+        _id: "row-newer",
+        url: "https://example.com/job/newer",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 5_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+        siteId: "site-1",
+      },
+      {
+        _id: "row-older",
+        url: "https://example.com/job/older",
+        status: "pending",
+        updatedAt: now - 1_000,
+        createdAt: now - 20_000,
+        scheduledAt: now - 1_000,
+        provider: "spidercloud",
+        attempts: 0,
+        siteId: "site-1",
+      },
+    ];
+
+    const db = new FakeDb(rows);
+    const ctx: any = { db };
+    const handler = getHandler(leaseScrapeUrlBatch);
+
+    const res = await handler(ctx, {
+      provider: "spidercloud",
+      limit: 2,
+      processingExpiryMs: 15 * 60 * 1000,
+    });
+
+    const leasedUrls = res.urls.map((u: any) => u.url);
+    expect(leasedUrls).toEqual([
+      "https://example.com/job/older",
+      "https://example.com/job/newer",
     ]);
   });
 

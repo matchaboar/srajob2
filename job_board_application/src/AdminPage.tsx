@@ -2707,6 +2707,20 @@ function PendingRequestsSection() {
                         <div className="text-[10px] text-slate-500 truncate max-w-[300px]">
                           Src: {row.sourceUrl || "—"}
                         </div>
+                        <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-slate-500">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
+                            provider: {row.provider ?? "—"}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
+                            bucket: {typeof row.bucket === "number" ? row.bucket : "—"}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
+                            type: {row.urlType ?? "—"}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
+                            site: {row.siteId ? String(row.siteId) : "—"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <span
@@ -2732,6 +2746,9 @@ function PendingRequestsSection() {
                       </td>
                       <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
                         <LiveTimer startTime={row.updatedAt || row.createdAt} showAgo />
+                        <div className="text-[10px] text-slate-500">
+                          Sched: {row.scheduledAt ? new Date(row.scheduledAt).toLocaleString() : "—"}
+                        </div>
                       </td>
                     </>
                   )}

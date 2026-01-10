@@ -265,7 +265,7 @@ describe("resetTodayAndRunAllScheduled", () => {
     });
 
     const handler = getHandler(resetTodayAndRunAllScheduled);
-    const result = await handler({ db } as any, {});
+    const result = await handler({ db, storage: { delete: vi.fn(async () => {}) } } as any, {});
 
     expect(result.jobsDeleted).toBe(1);
     expect(result.scrapesDeleted).toBe(2);
@@ -336,7 +336,7 @@ describe("resetTodayAndRunAllScheduled", () => {
     });
 
     const handler = getHandler(resetTodayAndRunAllScheduled);
-    const first = await handler({ db } as any, { batchSize: 2 });
+    const first = await handler({ db, storage: { delete: vi.fn(async () => {}) } } as any, { batchSize: 2 });
 
     expect(first.jobsDeleted).toBe(2);
     expect(first.hasMore).toBe(true);
@@ -347,7 +347,7 @@ describe("resetTodayAndRunAllScheduled", () => {
     expect(siteAfterFirst.completed).toBe(true);
     expect(siteAfterFirst.failed).toBe(true);
 
-    const second = await handler({ db } as any, { batchSize: 2 });
+    const second = await handler({ db, storage: { delete: vi.fn(async () => {}) } } as any, { batchSize: 2 });
 
     expect(second.jobsDeleted).toBe(1);
     expect(second.hasMore).toBe(false);

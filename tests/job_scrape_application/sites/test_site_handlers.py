@@ -99,6 +99,9 @@ def test_github_careers_handler_builds_api_and_links():
         "https://www.github.careers/careers-home/jobs/4822?lang=en-us",
         "https://www.github.careers/careers-home/jobs/4867?lang=en-us",
     ]
+    detail_url = "https://www.github.careers/careers-home/jobs/4852?lang=en-us"
+    config = handler.get_spidercloud_config(detail_url)
+    assert config.get("return_format") == ["raw_html"]
 
 
 def test_avature_handler_matches_and_extracts_links():

@@ -327,6 +327,10 @@ export function JobBoard() {
   const [locallyAppliedJobs, setLocallyAppliedJobs] = useState<Set<JobId>>(new Set());
   const [exitingJobs, setExitingJobs] = useState<Record<string, "apply" | "reject">>({});
   const [locallyWithdrawnJobs] = useState<Set<JobId>>(new Set());
+  const [fullDescriptions, setFullDescriptions] = useState<Record<string, string>>({});
+  const [fullDescriptionLoading, setFullDescriptionLoading] = useState<Record<string, boolean>>({});
+  const [fullDescriptionErrors, setFullDescriptionErrors] = useState<Record<string, string | null>>({});
+  const [requestedFullDescriptionJobId, setRequestedFullDescriptionJobId] = useState<JobId | null>(null);
 
   // Selection state for keyboard navigation
   const [selectedJobId, setSelectedJobId] = useState<SelectionId | null>(null);
@@ -657,6 +661,10 @@ export function JobBoard() {
       }
       : "skip"
   );
+  const requestedDescriptionUrl = useQuery(
+    api.jobs.getJobDescriptionUrl,
+    requestedFullDescriptionJobId ? { jobId: requestedFullDescriptionJobId } : "skip"
+  );
   const selectedJobFull = useMemo(
     () => (selectedJob ? { ...selectedJob, ...(selectedJobDetails ?? {}) } : null),
     [selectedJob, selectedJobDetails]
@@ -664,6 +672,52 @@ export function JobBoard() {
   const selectedAppliedJobFull = useMemo(
     () => (selectedAppliedJob ? { ...selectedAppliedJob, ...(selectedAppliedJobDetails ?? {}) } : null),
     [selectedAppliedJob, selectedAppliedJobDetails]
+  );
+  useEffect(() => {
+    if (!requestedFullDescriptionJobId) return;
+    if (requestedDescriptionUrl === undefined) return;
+    const jobId = requestedFullDescriptionJobId;
+    if (requestedDescriptionUrl === null) {
+      setFullDescriptionLoading((prev) => ({ ...prev, [jobId]: false }));
+      setFullDescriptionErrors((prev) => ({ ...prev, [jobId]: "Full description unavailable." }));
+      setRequestedFullDescriptionJobId(null);
+      return;
+    }
+    let cancelled = false;
+    const loadDescription = async () => {
+      try {
+        const response = await fetch(requestedDescriptionUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load (${response.status})`);
+        }
+        const text = await response.text();
+        if (cancelled) return;
+        setFullDescriptions((prev) => ({ ...prev, [jobId]: text }));
+        setFullDescriptionErrors((prev) => ({ ...prev, [jobId]: null }));
+      } catch {
+        if (cancelled) return;
+        setFullDescriptionErrors((prev) => ({ ...prev, [jobId]: "Failed to load full description." }));
+      } finally {
+        if (!cancelled) {
+          setFullDescriptionLoading((prev) => ({ ...prev, [jobId]: false }));
+          setRequestedFullDescriptionJobId(null);
+        }
+      }
+    };
+    void loadDescription();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedDescriptionUrl, requestedFullDescriptionJobId]);
+  const requestFullDescription = useCallback(
+    (jobId: JobId) => {
+      if (!jobId) return;
+      if (fullDescriptions[jobId] || fullDescriptionLoading[jobId]) return;
+      setFullDescriptionLoading((prev) => ({ ...prev, [jobId]: true }));
+      setFullDescriptionErrors((prev) => ({ ...prev, [jobId]: null }));
+      setRequestedFullDescriptionJobId(jobId);
+    },
+    [fullDescriptions, fullDescriptionLoading]
   );
   const formatDurationLabel = useCallback((ms: number) => {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -966,15 +1020,25 @@ export function JobBoard() {
     return selectedJobFull.compensationReason || selectedCompMeta.reason || "No additional notes.";
   }, [selectedJobFull, selectedCompMeta]);
   const descriptionText = useMemo(() => {
-    const raw = selectedJobFull?.description || selectedJobFull?.job_description || "";
+    const fullDescription = selectedJobFull?._id ? fullDescriptions[selectedJobFull._id] : undefined;
+    const raw = fullDescription || selectedJobFull?.description || selectedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
     return normalizeMarkdown(trimmed);
-  }, [selectedJobFull]);
+  }, [fullDescriptions, selectedJobFull]);
   const descriptionWordCount = useMemo(() => {
     if (!descriptionText) return null;
     return descriptionText.split(/\s+/).filter(Boolean).length;
   }, [descriptionText]);
+  const selectedJobDescriptionState = useMemo(() => {
+    const id = selectedJobFull?._id;
+    return {
+      hasFull: selectedJobFull?.descriptionStorageAvailable === true,
+      loaded: id ? Boolean(fullDescriptions[id]) : false,
+      loading: id ? Boolean(fullDescriptionLoading[id]) : false,
+      error: id ? fullDescriptionErrors[id] ?? null : null,
+    };
+  }, [fullDescriptionErrors, fullDescriptionLoading, fullDescriptions, selectedJobFull]);
   const metadataText = useMemo(() => {
     const raw = (selectedJobFull as { metadata?: string } | null)?.metadata || "";
     const trimmed = raw.trim();
@@ -985,11 +1049,14 @@ export function JobBoard() {
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
-    const raw = selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
+    const fullDescription = selectedAppliedJobFull?._id
+      ? fullDescriptions[selectedAppliedJobFull._id]
+      : undefined;
+    const raw = fullDescription || selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
     return normalizeMarkdown(trimmed);
-  }, [selectedAppliedJobFull]);
+  }, [fullDescriptions, selectedAppliedJobFull]);
   const appliedMetadataText = useMemo(() => {
     const raw = (selectedAppliedJobFull as { metadata?: string } | null)?.metadata || "";
     const trimmed = raw.trim();
@@ -1000,6 +1067,15 @@ export function JobBoard() {
     if (!appliedDescriptionText) return null;
     return appliedDescriptionText.split(/\s+/).filter(Boolean).length;
   }, [appliedDescriptionText]);
+  const selectedAppliedDescriptionState = useMemo(() => {
+    const id = selectedAppliedJobFull?._id;
+    return {
+      hasFull: selectedAppliedJobFull?.descriptionStorageAvailable === true,
+      loaded: id ? Boolean(fullDescriptions[id]) : false,
+      loading: id ? Boolean(fullDescriptionLoading[id]) : false,
+      error: id ? fullDescriptionErrors[id] ?? null : null,
+    };
+  }, [fullDescriptionErrors, fullDescriptionLoading, fullDescriptions, selectedAppliedJobFull]);
   const blurFromIndex =
     keyboardNavActive && keyboardTopIndex !== null ? keyboardTopIndex + 3 : Infinity;
   const scrollToJob = useCallback(
@@ -2406,6 +2482,23 @@ export function JobBoard() {
                               {descriptionWordCount !== null && (
                                 <span>{`${descriptionWordCount} words`}</span>
                               )}
+                              {selectedJobDescriptionState.hasFull && !selectedJobDescriptionState.loaded && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (selectedJobFull?._id) {
+                                      requestFullDescription(selectedJobFull._id);
+                                    }
+                                  }}
+                                  disabled={selectedJobDescriptionState.loading}
+                                  className="px-2 py-1 rounded border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {selectedJobDescriptionState.loading ? "Loading..." : "Read more"}
+                                </button>
+                              )}
+                              {selectedJobDescriptionState.loaded && (
+                                <span className="text-emerald-300">Full</span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => { void handleCopyJobLink(selectedJobFull._id); }}
@@ -2420,6 +2513,9 @@ export function JobBoard() {
                               </button>
                             </div>
                           </div>
+                          {selectedJobDescriptionState.error && (
+                            <div className="text-[11px] text-amber-300 mb-2">{selectedJobDescriptionState.error}</div>
+                          )}
                           <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-72 overflow-y-auto pr-1 space-y-3">
                             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
                               {descriptionText}
@@ -2890,6 +2986,23 @@ export function JobBoard() {
                             {appliedDescriptionWordCount !== null && (
                               <span>{`${appliedDescriptionWordCount} words`}</span>
                             )}
+                            {selectedAppliedDescriptionState.hasFull && !selectedAppliedDescriptionState.loaded && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedAppliedJobFull?._id) {
+                                    requestFullDescription(selectedAppliedJobFull._id);
+                                  }
+                                }}
+                                disabled={selectedAppliedDescriptionState.loading}
+                                className="px-2 py-1 rounded border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {selectedAppliedDescriptionState.loading ? "Loading..." : "Read more"}
+                              </button>
+                            )}
+                            {selectedAppliedDescriptionState.loaded && (
+                              <span className="text-emerald-300">Full</span>
+                            )}
                             <button
                               type="button"
                               onClick={() => { void handleCopyJobLink(selectedAppliedJobFull._id); }}
@@ -2904,6 +3017,9 @@ export function JobBoard() {
                             </button>
                           </div>
                         </div>
+                        {selectedAppliedDescriptionState.error && (
+                          <div className="text-[11px] text-amber-300">{selectedAppliedDescriptionState.error}</div>
+                        )}
                         <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
                           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
                             {appliedDescriptionText}
@@ -3201,7 +3317,7 @@ export function JobBoard() {
                       <div className="text-right">#</div>
                       <div className="w-7" />
                       <div>URL</div>
-                      <div className="hidden sm:block">Provider</div>
+                      <div className="hidden sm:block">Provider / Meta</div>
                       <div className="hidden sm:block">Scheduled</div>
                       <div className="hidden sm:block text-right">Attempts</div>
                       <div className="text-right">Status</div>
@@ -3311,6 +3427,22 @@ export function JobBoard() {
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Provider</div>
                           <div className="text-sm text-slate-200">{selectedQueuedItem.provider ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">URL Type</div>
+                          <div className="text-sm text-slate-200">{selectedQueuedItem.urlType ?? "—"}</div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Bucket</div>
+                          <div className="text-sm text-slate-200 font-mono">
+                            {typeof selectedQueuedItem.bucket === "number" ? selectedQueuedItem.bucket : "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
+                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Site ID</div>
+                          <div className="text-sm text-slate-200 font-mono break-all">
+                            {selectedQueuedItem.siteId ? String(selectedQueuedItem.siteId) : "—"}
+                          </div>
                         </div>
                         <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-3 space-y-1">
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Scheduled</div>

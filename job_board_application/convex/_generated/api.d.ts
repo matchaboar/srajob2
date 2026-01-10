@@ -17,6 +17,7 @@ import type * as filters from "../filters.js";
 import type * as firecrawlWebhookUtil from "../firecrawlWebhookUtil.js";
 import type * as formFiller from "../formFiller.js";
 import type * as http from "../http.js";
+import type * as jobDescriptionStorage from "../jobDescriptionStorage.js";
 import type * as jobRecords from "../jobRecords.js";
 import type * as jobUrlUtils from "../jobUrlUtils.js";
 import type * as jobs from "../jobs.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   firecrawlWebhookUtil: typeof firecrawlWebhookUtil;
   formFiller: typeof formFiller;
   http: typeof http;
+  jobDescriptionStorage: typeof jobDescriptionStorage;
   jobRecords: typeof jobRecords;
   jobUrlUtils: typeof jobUrlUtils;
   jobs: typeof jobs;

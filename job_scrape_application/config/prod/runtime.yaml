@@ -2,8 +2,8 @@
 spidercloud_job_details_timeout_minutes: 15
 
 # Number of Spidercloud job-detail URLs to lease and process per batch; larger batches increase throughput but also per-activity time.
-spidercloud_job_details_batch_size: 50
-spidercloud_listing_batch_size: 4
+spidercloud_job_details_batch_size: 10
+spidercloud_listing_batch_size: 1
 
 # Max concurrent Spidercloud requests per job-detail batch. Set to 1 for sequential processing.
 spidercloud_job_details_concurrency: 4
