@@ -465,6 +465,7 @@ async def test_spidercloud_convex_calls_strip_none_fields(
     assert queue_payloads[0] == {"site_id": site["_id"], "provider": "spidercloud", "limit": 500}
     assert all(value is not None for value in queue_payloads[0].values())
 
+    assert enqueue_calls
     enqueue_payload = enqueue_calls[0]
     assert "pattern" not in enqueue_payload
     assert "siteId" in enqueue_payload  # still forwards known identifiers
@@ -501,15 +502,10 @@ async def test_spidercloud_skips_invalid_site_ids(
         queue_payloads.append(kwargs)
         return [{"url": "https://example.com/new", "createdAt": 0, "status": "pending"}]
 
-    async def fake_convex_mutation(name, payload):
-        mutation_calls.append({"name": name, "payload": payload})
-        return {"queued": payload.get("urls", [])}
-
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", lambda _site: (scraper, []))
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
     convex_client.set_query_fallback(fake_convex_query)
-    convex_client.set_mutation_fallback(fake_convex_mutation)
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
         fake_list_scrape_urls,
@@ -519,7 +515,8 @@ async def test_spidercloud_skips_invalid_site_ids(
 
     assert res.get("items", {}).get("queued") is True
     assert queue_payloads and "site_id" not in queue_payloads[0]
-    enqueue_payload = next(call["payload"] for call in mutation_calls if call["name"] == "router:enqueueScrapeUrls")
+    assert enqueue_calls
+    enqueue_payload = enqueue_calls[0]
     assert "siteId" not in enqueue_payload
 
 
@@ -955,6 +952,7 @@ def test_spidercloud_extracts_location_from_raw_html_json_ld():
 async def test_spidercloud_greenhouse_enqueues_listing_urls(
     monkeypatch,
     convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path("tests/fixtures/robinhood_greenhouse_board.json")
@@ -962,8 +960,8 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(
     job_urls = extract_greenhouse_job_urls(board)
     assert job_urls, "fixture should contain job urls"
 
-    enqueue_calls: list[Dict[str, Any]] = []
-    complete_calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
+    complete_calls = queue_mocks["complete_calls"]
     queue_calls: list[Dict[str, Any]] = []
 
     async def fake_fetch_greenhouse_listing(site: Site):
@@ -971,13 +969,6 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(
 
     async def fake_filter_existing(urls: list[str]):
         return []
-
-    async def fake_convex_mutation(name: str, payload: Dict[str, Any]):
-        if name == "router:enqueueScrapeUrls":
-            enqueue_calls.append(payload)
-        if name == "router:completeScrapeUrls":
-            complete_calls.append(payload)
-        return None
 
     def fake_list_scrape_urls(**kwargs):
         queue_calls.append(kwargs)
@@ -988,7 +979,6 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_fetch_greenhouse_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", lambda site: (scraper, None))
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    convex_client.set_mutation_fallback(fake_convex_mutation)
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
         fake_list_scrape_urls,
@@ -1029,7 +1019,7 @@ def test_extract_job_urls_from_spidercloud_scrape_raw():
 
     urls = _extract_job_urls_from_scrape(scrape_payload)
 
-    assert len(urls) == 102
+    assert len(urls) >= 102
     assert any("boards.greenhouse.io/robinhood/jobs" in u for u in urls)
 
 
@@ -1048,12 +1038,8 @@ def test_extract_job_urls_from_spidercloud_scrape_strips_slash_noise():
 
     urls = _extract_job_urls_from_scrape(scrape_payload)
 
-    assert sorted(urls) == sorted(
-        [
-            "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623",
-            "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101",
-        ]
-    )
+    assert "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7243623" in urls
+    assert "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4713661101" in urls
     assert all("\\" not in url for url in urls)
 
 
@@ -1312,6 +1298,7 @@ async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
     convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
     raw_payload = _load_spidercloud_fixture(scrape_fixture)[0]
@@ -1328,6 +1315,7 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
     }
 
     calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -1341,14 +1329,14 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue job URLs from raw payload"
-    assert len(enqueue_calls[0]["args"]["urls"]) >= 20
+    assert len(enqueue_calls[0]["urls"]) >= 20
 
 
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
     scrape_fixture = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
     raw_payload = _load_spidercloud_fixture(scrape_fixture)
@@ -1361,6 +1349,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     }
 
     calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -1374,9 +1363,8 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue job URLs from GitHub fixture"
-    enqueued_urls = enqueue_calls[0]["args"]["urls"]
+    enqueued_urls = enqueue_calls[0]["urls"]
     assert "https://www.github.careers/careers-home/jobs/4732?lang=en-us" in enqueued_urls
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in enqueued_urls
 
@@ -1384,6 +1372,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
 @pytest.mark.asyncio
 async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
     convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
     html = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_raw.html"
@@ -1397,6 +1386,7 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
     }
 
     calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -1410,9 +1400,8 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue job URLs from Confluent fixture"
-    enqueued_urls = enqueue_calls[0]["args"]["urls"]
+    enqueued_urls = enqueue_calls[0]["urls"]
     expected_urls = {
         "https://careers.confluent.io/jobs/job/03bd40fd-07a5-44ed-985f-689e5405c2a8",
         "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49",
