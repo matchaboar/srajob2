@@ -6,11 +6,10 @@ import type { FormEvent, MouseEvent } from "react";
 import clsx from "clsx";
 import { WorkflowRunsSection } from "./components/WorkflowRunsSection";
 import { LiveTimer } from "./components/LiveTimer";
-import { PROCESS_WEBHOOK_WORKFLOW, SITE_LEASE_WORKFLOW, formatInterval, type WorkflowScheduleMeta } from "./constants/schedules";
 import type { Id } from "../convex/_generated/dataModel";
 
-type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "temporal" | "urlScrapes" | "companyNames";
-type AdminSectionExtended = AdminSection | "pending";
+type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "urlScrapes" | "companyNames";
+type AdminSectionExtended = AdminSection;
 type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 type ScrapeProvider = "fetchfox" | "firecrawl" | "spidercloud" | "fetchfox_spidercloud";
 type ScheduleId = Id<"scrape_schedules">;
@@ -26,9 +25,6 @@ const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
 const ALL_SCHEDULE_DAYS: ScheduleDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const COMMON_SUBDOMAIN_PREFIXES = ["www", "jobs", "careers", "boards", "app", "apply"];
 const DEFAULT_SCHEDULE_STORAGE_KEY = "admin-default-schedule-id";
-const temporalUiBase = (import.meta as any).env?.VITE_TEMPORAL_UI as string | undefined;
-const temporalNamespace = ((import.meta as any).env?.VITE_TEMPORAL_NAMESPACE as string | undefined) ?? "default";
-const resolvedTemporalUiBase = (temporalUiBase || "http://localhost:8233").replace(/\/+$/, "");
 
 const toTitleCaseSlug = (slug: string): string => {
   return slug
@@ -179,197 +175,6 @@ const resolvePipeline = (provider: ScrapeProvider, siteType?: string) => {
   }
   return { crawler: "FetchFox", scraper: "FetchFox", extractor: "FetchFox" };
 };
-
-function TemporalStatusSection() {
-  const [activeTab, setActiveTab] = useState<"active" | "stale">("active");
-  const activeWorkers = useQuery(api.temporal?.getActiveWorkers);
-  const staleWorkers = useQuery(api.temporal?.getStaleWorkers);
-
-  const workers = activeTab === "active" ? activeWorkers : staleWorkers;
-  const mergedWorkers = useMemo(() => {
-    if (!workers) return [] as any[];
-    const byHost = new Map<string, any>();
-    for (const w of workers as any[]) {
-      const existing = byHost.get(w.hostname);
-      if (!existing) {
-        byHost.set(w.hostname, {
-          ...w,
-          workerIds: [w.workerId],
-          latestWorkerId: w.workerId,
-          workflows: w.workflows || [],
-        });
-        continue;
-      }
-
-      // Merge workflows and keep latest heartbeat info
-      const merged: any = {
-        ...existing,
-        lastHeartbeat:
-          (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.lastHeartbeat : existing.lastHeartbeat,
-        latestWorkerId:
-          (w.lastHeartbeat ?? 0) > (existing.lastHeartbeat ?? 0) ? w.workerId : existing.latestWorkerId,
-        temporalAddress: w.temporalAddress ?? existing.temporalAddress,
-        temporalNamespace: w.temporalNamespace ?? existing.temporalNamespace,
-        taskQueue: w.taskQueue ?? existing.taskQueue,
-        workflows: [
-          ...existing.workflows,
-          ...((w.workflows || []).filter((wf: any) => !(existing.workflows || []).some((e: any) => e.id === wf.id))),
-        ],
-        workerIds: Array.from(new Set([...(existing.workerIds || []), w.workerId])),
-      };
-      byHost.set(w.hostname, merged);
-    }
-    return Array.from(byHost.values());
-  }, [workers]);
-
-  if (workers === undefined) {
-    return <div className="text-slate-400 p-4">Loading workers...</div>;
-  }
-
-  return (
-    <div className="bg-slate-900 p-4 rounded border border-slate-800 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Temporal Workers</h2>
-        <div className="flex bg-slate-950 rounded p-0.5 border border-slate-800">
-          <button
-            onClick={() => setActiveTab("active")}
-            className={clsx(
-              "px-3 py-1 text-xs font-medium rounded transition-colors",
-              activeTab === "active" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
-            )}
-          >
-            Active ({activeWorkers?.length || 0})
-          </button>
-          <button
-            onClick={() => setActiveTab("stale")}
-            className={clsx(
-              "px-3 py-1 text-xs font-medium rounded transition-colors",
-              activeTab === "stale" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
-            )}
-          >
-            Stale ({staleWorkers?.length || 0})
-          </button>
-        </div>
-      </div>
-
-      {mergedWorkers.length === 0 ? (
-        <div className="text-slate-400 text-sm p-4 text-center border border-slate-800 rounded bg-slate-950/30">
-          {activeTab === "active" ? (
-            <>
-              No active workers detected.
-              <br />
-              <span className="text-xs text-slate-500 mt-1 block">
-                Start a worker with <code className="bg-slate-900 px-1 rounded">.\start_worker.ps1</code>
-              </span>
-            </>
-          ) : (
-            <>
-              No stale workers.
-              <br />
-              <span className="text-xs text-slate-500 mt-1 block">
-                Workers that haven't sent a heartbeat in 90+ seconds appear here.
-              </span>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {mergedWorkers.map((worker: any) => {
-            const workflowCount = worker.workflows?.length || 0;
-            const isStale = activeTab === "stale";
-
-            return (
-              <div
-                key={worker._id}
-                className={clsx(
-                  "bg-slate-950/50 border rounded p-4",
-                  isStale ? "border-amber-900/30" : "border-slate-800"
-                )}
-              >
-                {/* Worker Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={clsx("w-2 h-2 rounded-full", isStale ? "bg-amber-500" : "bg-green-500")} />
-                      <h3 className="text-sm font-semibold text-white">{worker.hostname}</h3>
-                      <span className="text-xs text-slate-500 font-mono">{worker.latestWorkerId || worker.workerId}</span>
-                    </div>
-                    <div className="text-xs text-slate-400 space-y-0.5">
-                      <div>Queue: <span className="text-slate-300">{worker.taskQueue}</span></div>
-                      <div>Temporal: <span className="text-slate-300">{worker.temporalAddress}</span> / {worker.temporalNamespace}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-slate-500 mb-1">Last heartbeat</div>
-                    <div className="text-sm font-medium font-mono text-slate-200">
-                      <LiveTimer
-                        startTime={worker.lastHeartbeat}
-                        colorize
-                        warnAfterMs={90_000}
-                        dangerAfterMs={5 * 60 * 1000}
-                        showAgo
-                      />
-                    </div>
-                    <div className="text-[10px] text-slate-600 mt-0.5">
-                      {new Date(worker.lastHeartbeat).toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Workflows Section */}
-                <div className="border-t border-slate-800 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-slate-400">
-                      Workflows ({workflowCount})
-                    </span>
-                    {worker.noWorkflowsReason && (
-                      <span className="text-xs text-slate-500 italic">
-                        {worker.noWorkflowsReason}
-                      </span>
-                    )}
-                  </div>
-
-                  {workflowCount > 0 ? (
-                    <div className="overflow-x-auto border border-slate-800 rounded">
-                      <table className="w-full text-left text-xs text-slate-400">
-                        <thead className="text-[10px] uppercase bg-slate-950 text-slate-300">
-                          <tr>
-                            <th className="px-3 py-1.5 border-b border-slate-800">ID</th>
-                            <th className="px-3 py-1.5 border-b border-slate-800">Type</th>
-                            <th className="px-3 py-1.5 border-b border-slate-800">Status</th>
-                            <th className="px-3 py-1.5 border-b border-slate-800">Start Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {worker.workflows.map((wf: any) => (
-                            <tr key={wf.id} className="border-b border-slate-800 hover:bg-slate-800/50 last:border-0">
-                              <td className="px-3 py-1.5 font-mono text-[10px] text-slate-300">{wf.id}</td>
-                              <td className="px-3 py-1.5">{wf.type}</td>
-                              <td className="px-3 py-1.5">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-900/30 text-green-400 border border-green-900">
-                                  {wf.status}
-                                </span>
-                              </td>
-                              <td className="px-3 py-1.5 text-[10px]">{new Date(wf.startTime).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-slate-500 text-center py-2 bg-slate-900/50 rounded border border-slate-800">
-                      No workflows running
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function UrlScrapeListSection() {
   const logs = useQuery(api.router.listUrlScrapeLogs, { limit: 200, includeJobLookup: true });
@@ -669,21 +474,9 @@ function UrlScrapeListSection() {
                   <td className="px-2 py-1 align-middle truncate" title={row.provider || "—"}>{row.provider || "—"}</td>
                   <td className="px-2 py-1 align-middle truncate" title={row.workflow || "—"}>{row.workflow || "—"}</td>
                   <td className="px-2 py-1 align-middle truncate">
-                    {row.workflowId ? (
-                      <a
-                        href={`${resolvedTemporalUiBase}/namespaces/${encodeURIComponent(
-                          temporalNamespace
-                        )}/workflows/${encodeURIComponent(row.workflowId)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-300 hover:text-blue-100 underline truncate block"
-                        title="Open workflow in Temporal UI"
-                      >
-                        {row.workflowId}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
+                    <span className="text-slate-200 font-mono text-[10px]">
+                      {row.workflowId || "—"}
+                    </span>
                   </td>
                   <td className="px-2 py-1 align-middle">
                     <ExpandableJsonCell value={row.requestData} />
@@ -710,7 +503,7 @@ export function AdminPage() {
     const raw = window.location.hash.replace("#admin-", "");
     const [section, query] = raw.split("?");
     const urlParam = new URLSearchParams(query || "").get("url");
-    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "temporal", "pending", "urlScrapes", "companyNames"] as const;
+    const allowed = ["scraper", "activity", "activityRuns", "worker", "database", "urlScrapes", "companyNames"] as const;
     const sec = allowed.includes(section as any) ? (section as AdminSectionExtended) : "scraper";
     return { section: sec, urlParam };
   };
@@ -770,11 +563,7 @@ export function AdminPage() {
             active={section === "worker"}
             onClick={() => setNavState({ section: "worker", runsUrl: null })}
           />
-          <SidebarItem
-            label="Pending Requests"
-            active={section === "pending"}
-            onClick={() => setNavState({ section: "pending", runsUrl: null })}
-          />
+
           <SidebarItem
             label="Database"
             active={section === "database"}
@@ -784,11 +573,6 @@ export function AdminPage() {
             label="URL scrape list"
             active={section === "urlScrapes"}
             onClick={() => setNavState({ section: "urlScrapes", runsUrl: null })}
-          />
-          <SidebarItem
-            label="Temporal Status"
-            active={section === "temporal"}
-            onClick={() => setNavState({ section: "temporal", runsUrl: null })}
           />
         </nav>
       </aside>
@@ -813,10 +597,8 @@ export function AdminPage() {
           {section === "activity" && <ScrapeActivitySection onOpenRuns={(url) => setNavState({ section: "activityRuns", runsUrl: url })} />}
           {section === "activityRuns" && <WorkflowRunsSection url={runsUrl} onBack={() => setNavState({ section: "activity", runsUrl: null })} />}
           {section === "worker" && <WorkerStatusSection />}
-          {section === "pending" && <PendingRequestsSection />}
           {section === "database" && <DatabaseSection />}
           {section === "urlScrapes" && <UrlScrapeListSection />}
-          {section === "temporal" && <TemporalStatusSection />}
         </div>
       </main>
     </div>
@@ -1116,6 +898,8 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
   const [bulkText, setBulkText] = useState("");
   const [bulkSiteType, setBulkSiteType] = useState<"general" | "greenhouse">("general");
   const [bulkScrapeProvider, setBulkScrapeProvider] = useState<ScrapeProvider>("spidercloud");
+  const [dbosStatus, setDbosStatus] = useState<any | null>(null);
+  const [dbosStatusError, setDbosStatusError] = useState<string | null>(null);
 
   const isGreenhouseUrl = useMemo(() => isGreenhouseUrlString(url), [url]);
   const generatedName = useMemo(() => deriveSiteName(url), [url]);
@@ -1145,6 +929,33 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
     if (pattern) setPattern("");
     if (!enabled) setEnabled(true);
   }, [isGreenhouseUrl, siteType, pattern, enabled, selectedScheduleId, scrapeProvider]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadStatus = async () => {
+      try {
+        const res = await fetch("/api/workflows/status");
+        if (!res.ok) {
+          throw new Error(`DBOS status failed (${res.status})`);
+        }
+        const data = await res.json();
+        if (mounted) {
+          setDbosStatus(data);
+          setDbosStatusError(null);
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setDbosStatusError(err?.message ?? "Failed to load DBOS status");
+        }
+      }
+    };
+    void loadStatus();
+    const interval = window.setInterval(loadStatus, 15_000);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!schedules || schedules.length === 0) return;
@@ -1446,6 +1257,26 @@ function ScraperConfigSection({ onOpenCompanyNames }: { onOpenCompanyNames?: () 
           >
             Bulk Import
           </button>
+        </div>
+      </div>
+
+      {dbosStatusError && <div className="text-xs text-amber-300 mb-3">{dbosStatusError}</div>}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+          <div className="text-[10px] uppercase text-slate-500">Listing Pending</div>
+          <div className="mt-2 text-xl font-semibold text-white font-mono">{dbosStatus?.listing?.pending ?? "—"}</div>
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+          <div className="text-[10px] uppercase text-slate-500">Listing Processing</div>
+          <div className="mt-2 text-xl font-semibold text-white font-mono">{dbosStatus?.listing?.processing ?? "—"}</div>
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+          <div className="text-[10px] uppercase text-slate-500">Detail Pending</div>
+          <div className="mt-2 text-xl font-semibold text-white font-mono">{dbosStatus?.detail?.pending ?? "—"}</div>
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+          <div className="text-[10px] uppercase text-slate-500">Detail Processing</div>
+          <div className="mt-2 text-xl font-semibold text-white font-mono">{dbosStatus?.detail?.processing ?? "—"}</div>
         </div>
       </div>
 
@@ -2281,10 +2112,37 @@ function WorkerStatusSection() {
   const failedSites = useQuery(api.sites.listFailedSites, { limit: 100 });
   const retrySite = useMutation(api.sites.retrySite);
   const retryProcessing = useMutation(api.sites.retryProcessing);
-  const resetScrapeUrlProcessing = useMutation(api.router.resetScrapeUrlProcessing);
-  const resetScrapeUrlsByStatus = useMutation(api.router.resetScrapeUrlsByStatus);
   const clearIgnoredJobsForSource = useMutation(api.router.clearIgnoredJobsForSource);
   const scrapeErrors = useQuery(api.router.listScrapeErrors, { limit: 25 });
+  const [dbosStatus, setDbosStatus] = useState<any | null>(null);
+  const [dbosStatusError, setDbosStatusError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadStatus = async () => {
+      try {
+        const res = await fetch("/api/workflows/status");
+        if (!res.ok) {
+          throw new Error(`DBOS status failed (${res.status})`);
+        }
+        const data = await res.json();
+        if (mounted) {
+          setDbosStatus(data);
+          setDbosStatusError(null);
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setDbosStatusError(err?.message ?? "Failed to load DBOS status");
+        }
+      }
+    };
+    void loadStatus();
+    const interval = window.setInterval(loadStatus, 10_000);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const rows: any[] = [];
   if (successfulSites) {
@@ -2303,6 +2161,40 @@ function WorkerStatusSection() {
   return (
     <div className="space-y-4">
       <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-white">DBOS Queue Status</h2>
+          <p className="text-xs text-slate-500">Live snapshot from the DBOS runner.</p>
+        </div>
+        <div className="px-4 py-3">
+          {dbosStatusError && <div className="text-xs text-amber-300">{dbosStatusError}</div>}
+          {!dbosStatus && !dbosStatusError && (
+            <div className="text-xs text-slate-400">Loading DBOS status...</div>
+          )}
+          {dbosStatus && (
+            <div className="grid grid-cols-2 gap-3 text-xs text-slate-300">
+              <div className="rounded border border-slate-800 bg-slate-950/40 p-3">
+                <div className="text-[11px] uppercase text-slate-500">Listing Queue</div>
+                <div className="mt-2 space-y-1">
+                  <div>Pending: <span className="text-white font-mono">{dbosStatus.listing?.pending ?? 0}</span></div>
+                  <div>Processing: <span className="text-white font-mono">{dbosStatus.listing?.processing ?? 0}</span></div>
+                  <div>Completed: <span className="text-white font-mono">{dbosStatus.listing?.completed ?? 0}</span></div>
+                  <div>Failed: <span className="text-white font-mono">{dbosStatus.listing?.failed ?? 0}</span></div>
+                </div>
+              </div>
+              <div className="rounded border border-slate-800 bg-slate-950/40 p-3">
+                <div className="text-[11px] uppercase text-slate-500">Job Detail Queue</div>
+                <div className="mt-2 space-y-1">
+                  <div>Pending: <span className="text-white font-mono">{dbosStatus.detail?.pending ?? 0}</span></div>
+                  <div>Processing: <span className="text-white font-mono">{dbosStatus.detail?.processing ?? 0}</span></div>
+                  <div>Completed: <span className="text-white font-mono">{dbosStatus.detail?.completed ?? 0}</span></div>
+                  <div>Failed: <span className="text-white font-mono">{dbosStatus.detail?.failed ?? 0}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-white">Worker Status</h2>
@@ -2314,14 +2206,6 @@ function WorkerStatusSection() {
             <p className="text-[11px] text-slate-500">
               <span className="text-blue-200 font-semibold">Retry processing</span> replays existing scraped data for
               the site (no new scrape) and re-ingests jobs, while also clearing failures.
-            </p>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Use <span className="text-emerald-200 font-semibold">Reset processing</span> to move any stuck job-detail
-              URLs back to pending for reprocessing.
-            </p>
-            <p className="text-[11px] text-slate-500">
-              <span className="text-indigo-200 font-semibold">Reset completed</span> will reopen finished job-detail
-              URLs (e.g., for re-scrape) and move them back to pending.
             </p>
           </div>
         </div>
@@ -2444,47 +2328,6 @@ function WorkerStatusSection() {
       <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-white">Job detail queue controls</h3>
-            <p className="text-[11px] text-slate-500">Manually reset stuck or completed job-detail URLs.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const res = await resetScrapeUrlProcessing({});
-                    toast.success(`Reset ${res.updated ?? 0} processing URLs to pending`);
-                  } catch (err: any) {
-                    toast.error(err?.message ?? "Failed to reset processing URLs");
-                  }
-                })();
-              }}
-              className="text-[11px] px-2 py-1 rounded border border-emerald-700 bg-emerald-900/30 text-emerald-200 hover:bg-emerald-800/40 transition-colors"
-            >
-              Reset processing
-            </button>
-            <button
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const res = await resetScrapeUrlsByStatus({});
-                    toast.success(`Reset ${res.updated ?? 0} completed URLs to pending`);
-                  } catch (err: any) {
-                    toast.error(err?.message ?? "Failed to reset completed URLs");
-                  }
-                })();
-              }}
-              className="text-[11px] px-2 py-1 rounded border border-indigo-700 bg-indigo-900/30 text-indigo-200 hover:bg-indigo-800/40 transition-colors"
-            >
-              Reset completed
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <div>
             <h2 className="text-sm font-semibold text-white">Scrape Errors</h2>
             <p className="text-xs text-slate-500">Latest Firecrawl/worker failures captured from webhooks.</p>
           </div>
@@ -2531,254 +2374,6 @@ function WorkerStatusSection() {
                   <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
                     {err.createdAt ? new Date(err.createdAt).toLocaleString() : "—"}
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  );
-}
-
-function WorkflowMetaSummary({ workflow }: { workflow: WorkflowScheduleMeta }) {
-  return (
-    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2 mt-1">
-      <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-slate-100 font-medium">
-        {workflow.name}
-      </span>
-      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Schedule: {workflow.scheduleId}</span>
-      <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">
-        Cadence: every {formatInterval(workflow.intervalSeconds)}
-      </span>
-      {workflow.taskQueue && (
-        <span className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-800">Queue: {workflow.taskQueue}</span>
-      )}
-    </div>
-  );
-}
-
-function PendingRequestsSection() {
-  const QUEUE_TABS = [
-    { id: "site_scrapes", label: "Site Scrapes", description: "Full site crawl requests." },
-    { id: "listings", label: "Listings", description: "Job listing URLs (discovery layer)." },
-    { id: "details", label: "Details", description: "Job detail pages (extraction layer)." },
-    { id: "webhooks", label: "Webhooks", description: "Firecrawl webhooks (input layer)." },
-  ] as const;
-  type QueueTab = typeof QUEUE_TABS[number]["id"];
-  const [activeTab, setActiveTab] = useState<QueueTab>("site_scrapes");
-
-  const siteScrapes = useQuery(api.router.listRunRequests, { limit: 50 });
-  const listings = useQuery(api.router.listScrapeQueue, activeTab === "listings" ? { limit: 50, type: "listing" } : "skip");
-  const details = useQuery(api.router.listScrapeQueue, activeTab === "details" ? { limit: 50, type: "detail" } : "skip");
-  const webhooks = useQuery(api.router.listFirecrawlWebhooks, activeTab === "webhooks" ? { limit: 50 } : "skip");
-
-  const data = activeTab === "site_scrapes" ? siteScrapes
-    : activeTab === "listings" ? listings
-      : activeTab === "details" ? details
-        : activeTab === "webhooks" ? webhooks
-          : undefined;
-
-  const activeTabMeta = QUEUE_TABS.find((tab) => tab.id === activeTab);
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-slate-900 border border-slate-800 rounded shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Queued Jobs</h2>
-            <p className="text-xs text-slate-500">{SITE_LEASE_WORKFLOW.description}</p>
-            <WorkflowMetaSummary workflow={SITE_LEASE_WORKFLOW} />
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">
-            {data?.length ?? 0} {activeTab}
-          </span>
-        </div>
-        <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/40">
-          <div className="flex flex-wrap gap-2">
-            {QUEUE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={clsx(
-                  "px-2.5 py-1 rounded text-[11px] font-medium border transition-colors",
-                  activeTab === tab.id
-                    ? "bg-slate-800 text-white border-slate-600 shadow-inner"
-                    : "bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {activeTabMeta && (
-            <p className="text-[11px] text-slate-500 mt-2">{activeTabMeta.description}</p>
-          )}
-        </div>
-        <div className="overflow-auto">
-          <table className="min-w-full text-left text-xs text-slate-200">
-            <thead className="bg-slate-950 text-[11px] uppercase tracking-wide text-slate-400">
-              <tr>
-                {activeTab === "site_scrapes" && (
-                  <>
-                    <th className="px-3 py-2 border-b border-slate-800">Site</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Status</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Elapsed</th>
-                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">ETA</th>
-                  </>
-                )}
-                {(activeTab === "listings" || activeTab === "details") && (
-                  <>
-                    <th className="px-3 py-2 border-b border-slate-800">URL</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Status</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Attempts</th>
-                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Updated</th>
-                  </>
-                )}
-                {activeTab === "webhooks" && (
-                  <>
-                    <th className="px-3 py-2 border-b border-slate-800">Source</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Event</th>
-                    <th className="px-3 py-2 border-b border-slate-800">Processed</th>
-                    <th className="px-3 py-2 border-b border-slate-800 whitespace-nowrap">Received</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {(data ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-3 py-3 text-center text-slate-500">
-                    {data === undefined ? "Loading..." : "No items found."}
-                  </td>
-                </tr>
-              )}
-              {(data ?? []).map((row: any) => (
-                <tr key={row._id} className="hover:bg-slate-800/40 transition-colors">
-                  {activeTab === "site_scrapes" && (
-                    <>
-                      <td className="px-3 py-2">
-                        <div className="text-[11px] text-slate-100 font-semibold truncate max-w-[220px]">
-                          {row.companyName || "—"}
-                        </div>
-                        <div className="text-[10px] text-slate-400 truncate max-w-[220px]">{row.siteUrl || "—"}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">{String(row.siteId)}</div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={clsx(
-                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
-                            row.status === "done"
-                              ? "bg-green-900/30 text-green-200 border-green-800"
-                              : row.status === "processing"
-                                ? "bg-amber-900/30 text-amber-200 border-amber-800"
-                                : "bg-slate-900/50 text-slate-300 border-slate-700"
-                          )}
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-slate-300">
-                        {row.createdAt ? (
-                          <LiveTimer
-                            startTime={row.createdAt}
-                            colorize
-                            warnAfterMs={2 * 60 * 1000}
-                            dangerAfterMs={10 * 60 * 1000}
-                            showAgo
-                          />
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
-                        {row.expectedEta ? new Date(row.expectedEta).toLocaleTimeString() : "—"}
-                      </td>
-                    </>
-                  )}
-                  {(activeTab === "listings" || activeTab === "details") && (
-                    <>
-                      <td className="px-3 py-2">
-                        <div className="text-[11px] text-slate-100 font-mono truncate max-w-[300px]">
-                          {row.url}
-                        </div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[300px]">
-                          Src: {row.sourceUrl || "—"}
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-slate-500">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
-                            provider: {row.provider ?? "—"}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
-                            bucket: {typeof row.bucket === "number" ? row.bucket : "—"}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
-                            type: {row.urlType ?? "—"}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800">
-                            site: {row.siteId ? String(row.siteId) : "—"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={clsx(
-                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
-                            row.status === "completed"
-                              ? "bg-green-900/30 text-green-200 border-green-800"
-                              : row.status === "processing"
-                                ? "bg-amber-900/30 text-amber-200 border-amber-800"
-                                : row.status === "failed" || row.status === "invalid"
-                                  ? "bg-red-900/30 text-red-200 border-red-800"
-                                  : "bg-slate-900/50 text-slate-300 border-slate-700"
-                          )}
-                        >
-                          {row.status}
-                        </span>
-                        {row.lastError && (
-                          <div className="text-[10px] text-red-400 truncate max-w-[100px] mt-0.5">{row.lastError}</div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono">
-                        {row.attempts ?? 0}
-                      </td>
-                      <td className="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">
-                        <LiveTimer startTime={row.updatedAt || row.createdAt} showAgo />
-                        <div className="text-[10px] text-slate-500">
-                          Sched: {row.scheduledAt ? new Date(row.scheduledAt).toLocaleString() : "—"}
-                        </div>
-                      </td>
-                    </>
-                  )}
-                  {activeTab === "webhooks" && (
-                    <>
-                      <td className="px-3 py-2">
-                        <div className="text-[11px] text-slate-100 truncate max-w-[200px]">
-                          {row.sourceUrl || "—"}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-slate-300">
-                        {row.event}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={clsx(
-                            "px-1.5 py-0.5 rounded border text-[10px] font-medium",
-                            row.processed
-                              ? "bg-green-900/30 text-green-200 border-green-800"
-                              : "bg-slate-900/50 text-slate-300 border-slate-700"
-                          )}
-                        >
-                          {row.processed ? "Processed" : "Pending"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono whitespace-nowrap">
-                        {row.receivedAt ? new Date(row.receivedAt).toLocaleString() : "—"}
-                      </td>
-                    </>
-                  )}
                 </tr>
               ))}
             </tbody>

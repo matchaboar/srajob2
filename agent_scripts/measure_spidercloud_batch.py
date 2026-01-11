@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from job_scrape_application.services import convex_query  # noqa: E402
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 
 try:
     from spider import AsyncSpider  # type: ignore
@@ -46,10 +46,7 @@ async def _collect_queue_urls(provider: str, limit: int) -> List[str]:
     urls: List[str] = []
     seen = set()
     for status in ("pending", "processing"):
-        rows = await convex_query(
-            "router:listQueuedScrapeUrls",
-            {"provider": provider, "status": status, "limit": 500},
-        )
+        rows = dbos_queue.list_scrape_urls(provider=provider, status=status, limit=500)
         for row in rows or []:
             url = row.get("url")
             if not isinstance(url, str):

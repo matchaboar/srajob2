@@ -89,7 +89,7 @@ class HeuristicJobDetailsWorkflow:
                 task_start = workflow.now()
                 res = await workflow.execute_activity(
                     ACTIVITY_NAME,
-                    args=[25],
+                    args=[batch_limit],
                     # Allow a long-running batch but cap at the remaining runtime window.
                     start_to_close_timeout=activity_timeout,
                 )

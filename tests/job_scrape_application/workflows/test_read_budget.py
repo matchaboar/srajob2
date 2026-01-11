@@ -8,11 +8,10 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITES_YAML = REPO_ROOT / "job_scrape_application" / "config" / "prod" / "site_schedules.yml"
 
-SCHEDULE_AUDIT_INTERVALS_PER_DAY = 48  # every 30 minutes
-LOCK_CLEAR_INTERVALS_PER_DAY = 720  # every 2 minutes
-MAX_ESTIMATED_GB_PER_DAY = 0.5  # guardrail for read amplification
-MAX_LOCK_CLEAR_GB_PER_DAY = 0.25
-MAX_QUEUE_LIST_GB_PER_DAY = 0.5
+SCHEDULE_CONFIG_REFRESH_SECONDS = 600
+SITES_REFRESH_SECONDS = 300
+MAX_SCHEDULE_READ_GB_PER_DAY = 0.25
+MAX_SITE_READ_GB_PER_DAY = 0.5
 
 
 def _json_size(obj: object) -> int:
@@ -27,14 +26,8 @@ def _load_site_schedule_entries() -> list[dict]:
     return [entry for entry in entries if isinstance(entry, dict)]
 
 
-def test_schedule_audit_read_budget_estimate() -> None:
-    entries = _load_site_schedule_entries()
-    if not entries:
-        assert False, f"No site schedules found at {SITES_YAML}"
-
-    # Approximate the data pulled by schedule_audit: listSites + listSchedules.
-    site_docs = []
-    schedule_docs: dict[str, dict] = {}
+def _build_site_docs(entries: list[dict]) -> list[dict]:
+    site_docs: list[dict] = []
     for idx, entry in enumerate(entries):
         url = entry.get("url") or ""
         schedule = entry.get("schedule") or {}
@@ -46,6 +39,7 @@ def test_schedule_audit_read_budget_estimate() -> None:
                 "type": entry.get("type") or "general",
                 "scrapeProvider": entry.get("scrapeProvider") or "spidercloud",
                 "scheduleId": schedule_name,
+                "enabled": entry.get("enabled", True),
                 "lastRunAt": 0,
                 "manualTriggerAt": 0,
                 "lockExpiresAt": 0,
@@ -53,107 +47,44 @@ def test_schedule_audit_read_budget_estimate() -> None:
                 "failed": False,
             }
         )
-        if schedule_name and schedule_name not in schedule_docs:
-            schedule_docs[schedule_name] = {
-                "_id": schedule_name,
-                "name": schedule_name,
-                "days": schedule.get("days", []),
-                "startTime": schedule.get("startTime", "00:00"),
-                "intervalMinutes": schedule.get("intervalMinutes", 1440),
-                "timezone": schedule.get("timezone", "America/Denver"),
-                "createdAt": 0,
-                "updatedAt": 0,
-            }
-
-    per_run_bytes = sum(_json_size(site) for site in site_docs) + sum(
-        _json_size(sched) for sched in schedule_docs.values()
-    )
-    daily_bytes = per_run_bytes * SCHEDULE_AUDIT_INTERVALS_PER_DAY
-    daily_gb = daily_bytes / 1_000_000_000
-
-    assert daily_gb < MAX_ESTIMATED_GB_PER_DAY, (
-        f"Estimated schedule audit reads {daily_gb:.3f} GB/day, "
-        f"over {MAX_ESTIMATED_GB_PER_DAY} GB/day guardrail."
-    )
+    return site_docs
 
 
-def test_clear_expired_site_locks_read_budget_estimate() -> None:
+def test_dbos_schedule_config_read_budget_estimate() -> None:
     entries = _load_site_schedule_entries()
     if not entries:
         assert False, f"No site schedules found at {SITES_YAML}"
 
-    site_docs = []
-    for idx, entry in enumerate(entries):
-        url = entry.get("url") or ""
-        site_docs.append(
-            {
-                "_id": f"site-{idx}",
-                "url": url,
-                "enabled": entry.get("enabled", True),
-                "scheduleId": (entry.get("schedule") or {}).get("name"),
-                "lockedBy": "worker-x",
-                "lockExpiresAt": 1,
-                "lastRunAt": 0,
-                "failed": False,
-            }
-        )
+    schedule_doc = {
+        "mode": "interval",
+        "time": "08:00",
+        "timezone": "America/Denver",
+        "intervalMinutes": 15,
+        "name": "scrape-every-15",
+    }
 
+    refreshes_per_day = int(86_400 / SCHEDULE_CONFIG_REFRESH_SECONDS)
+    daily_bytes = _json_size(schedule_doc) * refreshes_per_day
+    daily_gb = daily_bytes / 1_000_000_000
+
+    assert daily_gb < MAX_SCHEDULE_READ_GB_PER_DAY, (
+        f"Estimated DBOS schedule config reads {daily_gb:.3f} GB/day, "
+        f"over {MAX_SCHEDULE_READ_GB_PER_DAY} GB/day guardrail."
+    )
+
+
+def test_dbos_site_list_read_budget_estimate() -> None:
+    entries = _load_site_schedule_entries()
+    if not entries:
+        assert False, f"No site schedules found at {SITES_YAML}"
+
+    site_docs = _build_site_docs(entries)
+    refreshes_per_day = int(86_400 / SITES_REFRESH_SECONDS)
     per_run_bytes = sum(_json_size(site) for site in site_docs)
-    daily_bytes = per_run_bytes * LOCK_CLEAR_INTERVALS_PER_DAY
+    daily_bytes = per_run_bytes * refreshes_per_day
     daily_gb = daily_bytes / 1_000_000_000
 
-    assert daily_gb < MAX_LOCK_CLEAR_GB_PER_DAY, (
-        f"Estimated clearExpiredSiteLocks reads {daily_gb:.3f} GB/day, "
-        f"over {MAX_LOCK_CLEAR_GB_PER_DAY} GB/day guardrail."
-    )
-
-
-def test_list_queued_jobs_read_budget_estimate() -> None:
-    fixture = (
-        REPO_ROOT
-        / "tests"
-        / "job_scrape_application"
-        / "workflows"
-        / "fixtures"
-        / "scrape_queue_fixture.json"
-    )
-    if not fixture.exists():
-        assert False, f"Missing scrape queue fixture at {fixture}"
-
-    raw = json.loads(fixture.read_text())
-    rows = raw.get("rows", [])
-    if not rows:
-        assert False, "scrape queue fixture is empty"
-
-    projected_rows = []
-    for row in rows:
-        projected_rows.append(
-            {
-                "_id": row.get("_id"),
-                "url": row.get("url"),
-                "sourceUrl": row.get("sourceUrl"),
-                "provider": row.get("provider"),
-                "siteId": row.get("siteId"),
-                "pattern": row.get("pattern"),
-                "urlType": row.get("urlType"),
-                "bucket": row.get("bucket"),
-                "status": row.get("status"),
-                "attempts": row.get("attempts"),
-                "lastError": row.get("lastError"),
-                "createdAt": row.get("createdAt"),
-                "updatedAt": row.get("updatedAt"),
-                "completedAt": row.get("completedAt"),
-                "scheduledAt": row.get("scheduledAt"),
-            }
-        )
-
-    avg_row_bytes = sum(_json_size(row) for row in projected_rows) / len(projected_rows)
-    page_size = 20
-    polls_per_day = 2880  # every 30s
-    daily_bytes = avg_row_bytes * page_size * polls_per_day
-    daily_gb = daily_bytes / 1_000_000_000
-
-    assert daily_gb < MAX_QUEUE_LIST_GB_PER_DAY, (
-        f"Estimated listQueuedJobs reads {daily_gb:.3f} GB/day (page_size={page_size}, polls/day={polls_per_day}), "
-        f"over {MAX_QUEUE_LIST_GB_PER_DAY} GB/day guardrail."
+    assert daily_gb < MAX_SITE_READ_GB_PER_DAY, (
+        f"Estimated DBOS listSites reads {daily_gb:.3f} GB/day, "
+        f"over {MAX_SITE_READ_GB_PER_DAY} GB/day guardrail."
     )

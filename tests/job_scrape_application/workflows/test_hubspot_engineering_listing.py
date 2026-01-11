@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts
 
@@ -58,6 +62,7 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
     }
 
     calls: list[dict] = []
+    queue_calls: list[dict] = []
 
     async def fake_mutation(name: str, args: dict):
         calls.append({"name": name, "args": args})
@@ -67,16 +72,23 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: dict, *, force_refresh: bool = False) -> dict:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     async def fake_seen(*_args, **_kwargs):
         return []
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [call for call in calls if call["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "store_scrape should enqueue HubSpot engineering job URLs"
+    assert queue_calls, "store_scrape should enqueue HubSpot engineering job URLs"
 
-    urls = enqueue_calls[0]["args"]["urls"]
+    urls = queue_calls[0]["urls"]
     assert "https://www.hubspot.com/careers/jobs/7294272" in urls

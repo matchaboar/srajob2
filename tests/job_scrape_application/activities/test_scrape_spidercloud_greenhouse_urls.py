@@ -33,22 +33,16 @@ async def test_scrape_spidercloud_greenhouse_normalizes_listing_urls(monkeypatch
     }
     captured: Dict[str, Any] = {}
 
-    async def fake_convex_mutation(name: str, payload: Dict[str, Any]) -> None:
-        if name == "router:enqueueScrapeUrls":
-            captured["enqueue"] = payload
-        return None
-
-    async def fake_convex_query(_name: str, _payload: Dict[str, Any]) -> list[Any]:
-        return []
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        captured["enqueue"] = payload
+        return {"queued": len(payload.get("urls", []))}
 
     async def fake_fetch_seen_urls_for_site(*_args: Any, **_kwargs: Any) -> list[str]:
         return []
 
     monkeypatch.setattr(
-        "job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation
-    )
-    monkeypatch.setattr(
-        "job_scrape_application.services.convex_client.convex_query", fake_convex_query
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
     )
     monkeypatch.setattr(activities, "fetch_seen_urls_for_site", fake_fetch_seen_urls_for_site)
 

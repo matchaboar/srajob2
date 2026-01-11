@@ -56,6 +56,7 @@ except ImportError:  # pragma: no cover
 
 sys.path.insert(0, os.path.abspath("."))
 
+from job_scrape_application.dbos_runtime.queue import LeaseResult  # noqa: E402
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 
 
@@ -78,21 +79,27 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
         ]
     }
 
-    mutation_calls: List[Dict[str, Any]] = []
+    queue_calls: List[Dict[str, Any]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        mutation_calls.append({"name": name, "args": args})
-        if name == "router:leaseScrapeUrlBatch":
-            return leased
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("items") or args.get("urls") or [])}
-        raise RuntimeError(f"unexpected mutation {name}")
+    def fake_lease_scrape_url_batch(**_kwargs):
+        return LeaseResult(urls=leased["urls"], skipped_urls=[])
+
+    def fake_complete_scrape_urls(payload: Dict[str, Any]):
+        queue_calls.append(payload)
+        return {"updated": len(payload.get("items") or [])}
 
     async def fake_fetch_seen(source_url: str, pattern: str | None):
         assert source_url == "https://example.com"
         return ["https://example.com/skip-me"]
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        fake_lease_scrape_url_batch,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     res = await acts.lease_scrape_url_batch("spidercloud", 5)
@@ -100,11 +107,11 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
     assert res["urls"] == [leased["urls"][1]]
     assert res["skippedUrls"] == ["https://example.com/skip-me"]
 
-    skip_call = next(call for call in mutation_calls if call["name"] == "router:completeScrapeUrls")
-    items = skip_call["args"].get("items") or []
+    skip_call = queue_calls[0]
+    items = skip_call.get("items") or []
     assert any(item.get("url") == "https://example.com/skip-me" for item in items)
-    assert skip_call["args"]["status"] == "failed"
-    assert "skip_listed_url" in (skip_call["args"].get("error") or "")
+    assert skip_call["status"] == "failed"
+    assert "skip_listed_url" in (skip_call.get("error") or "")
 
 
 @pytest.mark.asyncio
@@ -128,39 +135,46 @@ async def test_lease_scrape_url_batch_keeps_listing_urls_out_of_seen(monkeypatch
         ]
     }
 
-    mutation_calls: List[Dict[str, Any]] = []
+    queue_calls: List[Dict[str, Any]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        mutation_calls.append({"name": name, "args": args})
-        if name == "router:leaseScrapeUrlBatch":
-            return leased
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("items") or args.get("urls") or [])}
-        raise RuntimeError(f"unexpected mutation {name}")
+    def fake_lease_scrape_url_batch(**_kwargs):
+        return LeaseResult(urls=leased["urls"], skipped_urls=[])
+
+    def fake_complete_scrape_urls(payload: Dict[str, Any]):
+        queue_calls.append(payload)
+        return {"updated": len(payload.get("items") or [])}
 
     async def fake_fetch_seen(source_url: str, pattern: str | None):
         assert source_url == "https://www.metacareers.com/jobsearch"
         return [listing_url, detail_url]
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        fake_lease_scrape_url_batch,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     res = await acts.lease_scrape_url_batch("spidercloud", 5)
 
     assert res["urls"] == [leased["urls"][0]]
     assert res["skippedUrls"] == [detail_url]
-    skip_call = next(call for call in mutation_calls if call["name"] == "router:completeScrapeUrls")
-    assert any(item.get("url") == detail_url for item in (skip_call["args"].get("items") or []))
+    skip_call = queue_calls[0]
+    assert any(item.get("url") == detail_url for item in (skip_call.get("items") or []))
 
 
 @pytest.mark.asyncio
 async def test_lease_scrape_url_batch_handles_non_dict_response(monkeypatch):
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        if name == "router:leaseScrapeUrlBatch":
-            return None
-        return {}
+    def fake_lease_scrape_url_batch(**_kwargs):
+        return None
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        fake_lease_scrape_url_batch,
+    )
 
     res = await acts.lease_scrape_url_batch("spidercloud", 2)
 
@@ -191,21 +205,28 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
             ]
         },
     ]
-    mutation_calls: List[str] = []
+    lease_calls: List[int] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        mutation_calls.append(name)
-        if name == "router:leaseScrapeUrlBatch":
-            return lease_payloads.pop(0) if lease_payloads else {"urls": []}
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("items") or args.get("urls") or [])}
-        raise RuntimeError(f"unexpected mutation {name}")
+    def fake_lease_scrape_url_batch(**_kwargs):
+        lease_calls.append(1)
+        payload = lease_payloads.pop(0) if lease_payloads else {"urls": []}
+        return LeaseResult(urls=payload["urls"], skipped_urls=[])
+
+    def fake_complete_scrape_urls(payload: Dict[str, Any]):
+        return {"updated": len(payload.get("items") or [])}
 
     async def fake_fetch_seen(source_url: str, pattern: str | None):
         assert source_url == "https://example.com"
         return ["https://example.com/skip-me"]
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        fake_lease_scrape_url_batch,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     res = await acts.lease_scrape_url_batch("spidercloud", 1)
@@ -216,4 +237,4 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
     assert url_entry["sourceUrl"] == "https://example.com"
     assert url_entry["pattern"] is None
     assert "https://example.com/skip-me" in res.get("skippedUrls", [])
-    assert mutation_calls.count("router:leaseScrapeUrlBatch") == 2
+    assert len(lease_calls) == 2

@@ -4,6 +4,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: &id001
@@ -20,6 +21,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -31,6 +33,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -42,6 +45,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -53,6 +57,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -64,6 +69,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -75,6 +81,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -86,6 +93,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -97,6 +105,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -108,6 +117,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -119,6 +129,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -130,6 +141,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -141,6 +153,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -152,6 +165,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -163,6 +177,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -174,6 +189,7 @@
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -184,6 +200,7 @@
   name: datadog
   enabled: false
   pattern: https://careers.datadoghq.com/detail/**
+  paginationLimit: 3
   schedule:
     name: Every 5 mins checck daily
     days: *id001
@@ -194,6 +211,7 @@
   name: GoDaddy
   enabled: true
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -204,6 +222,7 @@
   name: Confluent
   enabled: true
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -215,6 +234,7 @@
   enabled: true
   type: uber
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -226,6 +246,7 @@
   enabled: true
   type: adobe
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -249,6 +270,7 @@
   enabled: true
   type: general
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -272,6 +294,7 @@
   enabled: true
   type: docusign
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -283,6 +306,7 @@
   enabled: true
   type: ashby
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -306,6 +330,7 @@
   enabled: true
   type: openai
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -317,6 +342,7 @@
   enabled: true
   type: spotify
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -328,6 +354,7 @@
   enabled: true
   type: microsoft
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001
@@ -339,6 +366,7 @@
   enabled: true
   type: meta
   scrapeProvider: spidercloud
+  paginationLimit: 3
   schedule:
     name: weekdays 9:30am
     days: *id001

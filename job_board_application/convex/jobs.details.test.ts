@@ -1,27 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { getJobById, getJobDetails } from "./jobs";
+import {
+  getJobById,
+  getJobDetails,
+  getJobIdByUrl,
+  setJobDescriptionStorage,
+} from "./jobs";
 import { getHandler } from "./__tests__/getHandler";
 
-type JobRow = { _id: string; url: string; location?: string; remote?: boolean; totalCompensation?: number };
-type DetailRow = { _id: string; jobId: string; description?: string; metadata?: string };
-type ApplicationRow = { _id?: string; jobId: string; status: "applied" | "rejected" };
-type QueueRow = { _id: string; url: string; createdAt?: number; completedAt?: number; status?: string };
+type JobRow = {
+  _id: string;
+  url: string;
+  location?: string;
+  remote?: boolean;
+  totalCompensation?: number;
+};
+type DetailRow = {
+  _id: string;
+  jobId: string;
+  description?: string;
+  metadata?: string;
+  descriptionStorageId?: string;
+};
+type ApplicationRow = {
+  _id?: string;
+  jobId: string;
+  status: "applied" | "rejected";
+};
 
 class FakeDb {
   private job: JobRow | null;
   private detail: DetailRow | null;
   private applications: ApplicationRow[];
-  private queue: QueueRow | null;
 
-  constructor(job: JobRow | null, detail: DetailRow | null, applications: ApplicationRow[] = [], queue: QueueRow | null = null) {
+  constructor(
+    job: JobRow | null,
+    detail: DetailRow | null,
+    applications: ApplicationRow[] = [],
+  ) {
     this.job = job ? { ...job } : null;
     this.detail = detail ? { ...detail } : null;
     this.applications = applications.map((app) => ({ ...app }));
-    this.queue = queue ? { ...queue } : null;
   }
 
   get(id: string) {
     if (this.job?._id === id) return this.job;
+    if (this.detail?._id === id) return this.detail;
     return null;
   }
 
@@ -30,7 +53,25 @@ class FakeDb {
       Object.assign(this.job, updates);
       return;
     }
+    if (this.detail?._id === id) {
+      Object.assign(this.detail, updates);
+      return;
+    }
     throw new Error(`Unknown record ${id}`);
+  }
+
+  insert(table: string, payload: Record<string, any>) {
+    if (table === "job_details") {
+      this.detail = {
+        _id: this.detail?._id ?? "detail-1",
+        jobId: payload.jobId,
+        description: payload.description,
+        metadata: payload.metadata,
+        descriptionStorageId: payload.descriptionStorageId,
+      };
+      return this.detail._id;
+    }
+    throw new Error(`Unexpected insert table ${table}`);
   }
 
   query(table: string) {
@@ -40,6 +81,21 @@ class FakeDb {
         withIndex(_name: string, cb: (q: any) => any) {
           const jobId = cb({ eq: (_field: string, value: string) => value });
           const match = detail && detail.jobId === jobId ? detail : null;
+          return {
+            first: async () => match,
+          };
+        },
+      };
+    }
+    if (table === "jobs") {
+      const job = this.job;
+      return {
+        withIndex(name: string, cb: (q: any) => any) {
+          if (name !== "by_url") {
+            throw new Error(`Unexpected jobs index ${name}`);
+          }
+          const url = cb({ eq: (_field: string, value: string) => value });
+          const match = job && job.url === url ? job : null;
           return {
             first: async () => match,
           };
@@ -60,24 +116,15 @@ class FakeDb {
                 field: (fieldName: string) => fieldName,
                 eq: (_field: string, value: string) => value,
               });
-              const matches = applications.filter((app) => app.jobId === jobId && app.status === status);
+              const matches = applications.filter(
+                (app) => app.jobId === jobId && app.status === status,
+              );
               return {
                 collect: async () => matches,
               };
             },
-            collect: async () => applications.filter((app) => app.jobId === jobId),
-          };
-        },
-      };
-    }
-    if (table === "scrape_url_queue") {
-      const queue = this.queue;
-      return {
-        withIndex(_name: string, cb: (q: any) => any) {
-          const url = cb({ eq: (_field: string, value: string) => value });
-          const match = queue && queue.url === url ? queue : null;
-          return {
-            first: async () => match,
+            collect: async () =>
+              applications.filter((app) => app.jobId === jobId),
           };
         },
       };
@@ -91,7 +138,7 @@ describe("getJobDetails", () => {
     const ctx: any = {
       db: new FakeDb(
         { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
-        { _id: "detail-1", jobId: "job-1", description: "Details" }
+        { _id: "detail-1", jobId: "job-1", description: "Details" },
       ),
     };
 
@@ -109,9 +156,12 @@ describe("getJobById", () => {
     const ctx: any = {
       db: new FakeDb(
         { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
-        { _id: "detail-1", jobId: "job-1", description: "Details", metadata: "Location\nRemote" },
-        [],
-        { _id: "queue-1", url: "https://example.com/job/1", createdAt: 1234, completedAt: 2345, status: "completed" }
+        {
+          _id: "detail-1",
+          jobId: "job-1",
+          description: "Details",
+          metadata: "Location\nRemote",
+        },
       ),
     };
 
@@ -121,9 +171,6 @@ describe("getJobById", () => {
     expect(result?._id).toBe("job-1");
     expect(result?.description).toBe("Details");
     expect(result?.metadata).toBe("Location\nRemote");
-    expect(result?.scrapeQueueCreatedAt).toBe(1234);
-    expect(result?.scrapeQueueCompletedAt).toBe(2345);
-    expect(result?.scrapeQueueStatus).toBe("completed");
   });
 });
 
@@ -138,8 +185,52 @@ describe("getJobDetails application counts", () => {
     };
 
     const handler = getHandler(getJobDetails);
-    const result = await handler(ctx, { jobId: "job-1", groupedJobIds: ["job-1", "job-2"] });
+    const result = await handler(ctx, {
+      jobId: "job-1",
+      groupedJobIds: ["job-1", "job-2"],
+    });
 
     expect(result).toMatchObject({ applicationCount: 2 });
+  });
+});
+
+describe("getJobIdByUrl", () => {
+  it("resolves a job id from a trailing slash url", async () => {
+    const ctx: any = {
+      db: new FakeDb(
+        { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
+        null,
+      ),
+    };
+
+    const handler = getHandler(getJobIdByUrl);
+    const result = await handler(ctx, { url: "https://example.com/job/1/" });
+
+    expect(result).toBe("job-1");
+  });
+});
+
+describe("setJobDescriptionStorage", () => {
+  it("writes the storage id into job_details", async () => {
+    const ctx: any = {
+      db: new FakeDb(
+        { _id: "job-1", url: "https://example.com/job/1", location: "Remote" },
+        null,
+      ),
+    };
+
+    const handler = getHandler(setJobDescriptionStorage);
+    await handler(ctx, {
+      jobId: "job-1",
+      description: "Full description",
+      storageId: "storage-1",
+    });
+
+    const detail = (ctx.db as any).detail;
+    expect(detail).toMatchObject({
+      jobId: "job-1",
+      description: "Full description",
+      descriptionStorageId: "storage-1",
+    });
   });
 });

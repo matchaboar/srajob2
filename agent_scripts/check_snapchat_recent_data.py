@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONVEX_DIR = REPO_ROOT / "job_board_application"
 DEFAULT_DOMAINS: Tuple[str, ...] = ("snap.com", "snapchat.com")
-TABLES: Tuple[str, ...] = ("scrape_url_queue", "seen_job_urls", "ignored_jobs")
+TABLES: Tuple[str, ...] = ("seen_job_urls", "ignored_jobs")
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -91,10 +91,6 @@ def _within_cutoff(value: Any, cutoff_ms: int) -> bool:
     return isinstance(value, (int, float)) and int(value) >= cutoff_ms
 
 
-def _collect_recent_queue(rows: List[Dict[str, Any]], cutoff_ms: int) -> List[Dict[str, Any]]:
-    return [row for row in rows if _within_cutoff(row.get("createdAt"), cutoff_ms)]
-
-
 def _collect_recent_ignored(
     rows: List[Dict[str, Any]], patterns: Iterable[str], cutoff_ms: int
 ) -> List[Dict[str, Any]]:
@@ -112,13 +108,12 @@ def _collect_recent_ignored(
 
 async def _run() -> None:
     parser = argparse.ArgumentParser(
-        description="Check recent Snapchat queue/ignored/seen entries in prod and wipe if requested."
+        description="Check recent Snapchat ignored/seen entries in prod and wipe if requested."
     )
     parser.add_argument("--env", choices=["dev", "prod"], default="prod")
     parser.add_argument("--hours", type=float, default=24)
     parser.add_argument("--domain", action="append", default=[])
     parser.add_argument("--company", action="append", default=[])
-    parser.add_argument("--queue-limit", type=int, default=500)
     parser.add_argument("--ignored-limit", type=int, default=400)
     parser.add_argument("--apply", action="store_true", help="Apply wipe (default is dry-run)")
     parser.add_argument("--host-wide", action="store_true", help="Wipe by host (default is path-scoped)")
@@ -149,18 +144,6 @@ async def _run() -> None:
         site_url = site.get("url") or ""
         site_summary: Dict[str, Any] = {"id": site_id, "url": site_url}
 
-        queue_rows: List[Dict[str, Any]] = []
-        if site_id:
-            queue_rows = (
-                await convex_query(
-                    "router:listQueuedScrapeUrls",
-                    {"siteId": site_id, "limit": args.queue_limit},
-                )
-                or []
-            )
-        recent_queue = _collect_recent_queue(queue_rows, cutoff_ms)
-        site_summary["queueRecent"] = len(recent_queue)
-
         ignored_rows = await convex_query("router:listIgnoredJobs", {"limit": args.ignored_limit}) or []
         recent_ignored = _collect_recent_ignored(ignored_rows, patterns, cutoff_ms)
         site_summary["ignoredRecent"] = len(recent_ignored)
@@ -174,7 +157,7 @@ async def _run() -> None:
 
         summary["matchedSites"].append(site_summary)
 
-        if recent_queue or recent_ignored:
+        if recent_ignored:
             any_recent = True
 
     print(json.dumps(summary, indent=2))
@@ -184,7 +167,7 @@ async def _run() -> None:
         return
 
     if not any_recent:
-        print("No recent Snapchat queue/ignored entries found within the cutoff window.")
+        print("No recent Snapchat ignored entries found within the cutoff window.")
         return
 
     wipe_targets = _site_wipe_targets(matched_sites, host_wide=args.host_wide)

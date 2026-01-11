@@ -8,15 +8,17 @@ import pytest
 
 sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import activities as acts  # noqa: E402
-from job_scrape_application.services import convex_client  # noqa: E402
 
 
 @pytest.mark.asyncio
 async def test_record_workflow_run_handles_cancelled(monkeypatch):
-    async def fake_convex_mutation(name: str, args: dict | None = None):
+    def fake_record_run(**_kwargs):
         raise asyncio.CancelledError
 
-    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.dbos_runtime.runs.record_run",
+        fake_record_run,
+    )
 
     # Should not raise on cancellation (best-effort logging only)
     await acts.record_workflow_run({"workflowId": "abc", "status": "cancelled"})
@@ -24,10 +26,13 @@ async def test_record_workflow_run_handles_cancelled(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_record_workflow_run_raises_on_other_errors(monkeypatch):
-    async def fake_convex_mutation(name: str, args: dict | None = None):
+    def fake_record_run(**_kwargs):
         raise ValueError("boom")
 
-    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.dbos_runtime.runs.record_run",
+        fake_record_run,
+    )
 
     with pytest.raises(RuntimeError):
         await acts.record_workflow_run({"workflowId": "abc", "status": "failed"})

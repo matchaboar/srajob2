@@ -18,6 +18,7 @@ FIXTURE_DIR = REPO_ROOT / "tests" / "job_scrape_application" / "workflows" / "fi
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 
 def _load_env(target_env: str) -> None:
     load_dotenv()
@@ -49,26 +50,21 @@ async def _fetch_scrape_logs_by_handler(convex_query, handler_name: str, limit: 
     return filtered
 
 
-async def _fetch_queued_urls_by_handler(convex_query, handler_name: str, limit: int) -> List[Dict[str, Any]]:
+async def _fetch_queued_urls_by_handler(_convex_query, handler_name: str, limit: int) -> List[Dict[str, Any]]:
     """Fetch queued scrape URLs for a specific site handler."""
-    rows = await convex_query(
-        "router:listQueuedScrapeUrls",
-        {"limit": limit, "provider": "spidercloud"},
-    )
+    rows = dbos_queue.list_scrape_urls(provider="spidercloud", limit=limit) or []
     if not isinstance(rows, list):
         return []
-    
+
     # Filter for avature handler
     filtered = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        site_handler = row.get("siteHandler")
         url = row.get("url")
-        if (site_handler and handler_name.lower() in str(site_handler).lower()) or \
-           (url and "avature" in str(url).lower()):
+        if url and handler_name.lower() in str(url).lower():
             filtered.append(row)
-    
+
     return filtered
 
 

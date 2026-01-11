@@ -89,14 +89,15 @@ async def test_fetchfox_crawl_queues_urls_and_passes_skip_list(monkeypatch, data
     async def fake_filter_existing(urls: List[str]):
         return []
 
-    async def fake_convex_query(name: str, args: Dict[str, Any]):
-        if name == "router:listQueuedScrapeUrls":
-            return queued_urls
-        return []
+    def fake_list_scrape_urls(**kwargs):
+        return queued_urls
 
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
 
     site: Site = {
         "_id": "site-1",
@@ -167,7 +168,7 @@ async def test_store_scrape_enqueues_urls_when_no_jobs(monkeypatch, datadog_craw
 
 @pytest.mark.asyncio
 async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_payload):
-    captured_queries: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
     captured_mutations: list[Dict[str, Any]] = []
 
     class FakeFox:
@@ -186,8 +187,8 @@ async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_p
     async def fake_filter_existing(urls: List[str]):
         return []
 
-    async def fake_convex_query(name: str, args: Dict[str, Any]):
-        captured_queries.append({"name": name, "args": args})
+    def fake_list_scrape_urls(**kwargs):
+        queue_calls.append(kwargs)
         return []
 
     async def fake_convex_mutation(name: str, args: Dict[str, Any]):
@@ -196,7 +197,10 @@ async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_p
 
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
     monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
 
     site: Site = {
@@ -207,8 +211,8 @@ async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_p
 
     await acts.crawl_site_fetchfox(site)
 
-    assert captured_queries, "listQueuedScrapeUrls should be invoked"
-    assert all("siteId" not in q["args"] for q in captured_queries if q["name"] == "router:listQueuedScrapeUrls")
+    assert queue_calls, "list_scrape_urls should be invoked"
+    assert all("site_id" not in q for q in queue_calls)
 
     enqueue_calls = [m for m in captured_mutations if m["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls

@@ -20,7 +20,6 @@ GREENHOUSE_BOARD_TABLES: Tuple[str, ...] = (
     "jobs",
     "scrapes",
     "scrape_activity",
-    "scrape_url_queue",
     "seen_job_urls",
     "ignored_jobs",
 )
@@ -28,12 +27,9 @@ TABLES: Tuple[str, ...] = (
     "jobs",
     "scrapes",
     "scrape_activity",
-    "scrape_url_queue",
     "seen_job_urls",
     "ignored_jobs",
     "scrape_errors",
-    "run_requests",
-    "workflow_run_sites",
 )
 
 

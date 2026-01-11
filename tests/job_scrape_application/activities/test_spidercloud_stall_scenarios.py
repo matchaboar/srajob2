@@ -80,18 +80,15 @@ async def test_fetchfox_should_not_skip_stale_processing_urls(monkeypatch):
     now_ms = 1_700_000_000_000
     stale_ms = now_ms - (3 * 60 * 60 * 1000)
 
-    async def fake_convex_query(name: str, args: Dict[str, Any]) -> List[Dict[str, Any]]:
-        if name == "router:listQueuedScrapeUrls":
-            status = args.get("status")
-            if status == "processing":
-                return [
-                    {
-                        "url": "https://example.com/detail/stale-1",
-                        "status": "processing",
-                        "updatedAt": stale_ms,
-                    }
-                ]
-            return []
+    def fake_list_scrape_urls(**kwargs) -> List[Dict[str, Any]]:
+        if kwargs.get("status") == "processing":
+            return [
+                {
+                    "url": "https://example.com/detail/stale-1",
+                    "status": "processing",
+                    "updatedAt": stale_ms,
+                }
+            ]
         return []
 
     async def fake_fetch_seen(_source: str, _pattern: str | None):
@@ -99,7 +96,10 @@ async def test_fetchfox_should_not_skip_stale_processing_urls(monkeypatch):
 
     fake_fetchfox = _FakeFetchFox("fake")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
     monkeypatch.setattr(acts, "FetchFox", lambda api_key: fake_fetchfox)
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "fake-key")
@@ -126,8 +126,8 @@ async def test_fetchfox_should_only_skip_recent_processing_urls(monkeypatch):
     stale_ms = now_ms - (3 * 60 * 60 * 1000)
     fresh_ms = now_ms - (2 * 60 * 1000)
 
-    async def fake_convex_query(name: str, args: Dict[str, Any]) -> List[Dict[str, Any]]:
-        if name == "router:listQueuedScrapeUrls" and args.get("status") == "processing":
+    def fake_list_scrape_urls(**kwargs) -> List[Dict[str, Any]]:
+        if kwargs.get("status") == "processing":
             return [
                 {
                     "url": "https://example.com/detail/stale-2",
@@ -147,7 +147,10 @@ async def test_fetchfox_should_only_skip_recent_processing_urls(monkeypatch):
 
     fake_fetchfox = _FakeFetchFox("fake")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
     monkeypatch.setattr(acts, "FetchFox", lambda api_key: fake_fetchfox)
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", "fake-key")

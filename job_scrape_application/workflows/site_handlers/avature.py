@@ -85,7 +85,7 @@ class AvatureHandler(BaseSiteHandler):
         def _add(url_val: str | None) -> None:
             if not url_val:
                 return
-            cleaned = url_val.strip()
+            cleaned = html_lib.unescape(url_val).strip()
             if not cleaned:
                 return
             if cleaned in seen:
@@ -118,25 +118,43 @@ class AvatureHandler(BaseSiteHandler):
         return self.filter_job_urls(urls)
 
     def _augment_pagination_urls(self, base_url: str, html: str, urls: List[str]) -> List[str]:
-        def _with_job_offset(url_value: str, offset: int) -> str:
-            parsed = urlparse(url_value)
-            params = [
-                (key, value)
-                for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-                if key.lower() != "joboffset"
-            ]
-            params.append(("jobOffset", str(offset)))
-            return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))
-
+        parsed_base = urlparse(base_url)
         base_offset = None
         base_has_offset = False
-        for key, value in parse_qsl(urlparse(base_url).query, keep_blank_values=True):
-            if key.lower() == "joboffset":
+        base_page_size = None
+        base_pairs = parse_qsl(parsed_base.query, keep_blank_values=True)
+        for key, value in base_pairs:
+            lower_key = key.lower()
+            if lower_key == "joboffset":
                 base_has_offset = True
                 try:
                     base_offset = int(value)
                 except Exception:
                     base_offset = None
+            if lower_key == "jobrecordsperpage":
+                try:
+                    base_page_size = int(value)
+                except Exception:
+                    base_page_size = None
+
+        def _with_job_offset(url_value: str, offset: int, page_size: int | None) -> str:
+            parsed = urlparse(url_value)
+            params: list[tuple[str, str]] = []
+            existing_page_size: str | None = None
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+                lower_key = key.lower()
+                if lower_key == "joboffset":
+                    continue
+                if lower_key == "jobrecordsperpage":
+                    existing_page_size = value
+                    continue
+                params.append((key, value))
+            if page_size is not None:
+                params.append(("jobRecordsPerPage", str(page_size)))
+            elif existing_page_size is not None:
+                params.append(("jobRecordsPerPage", existing_page_size))
+            params.append(("jobOffset", str(offset)))
+            return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))
 
         def _infer_page_data() -> tuple[int | None, int | None, int | None, bool]:
             match = AVATURE_PAGE_RANGE_RE.search(html)
@@ -161,18 +179,21 @@ class AvatureHandler(BaseSiteHandler):
 
         augmented: List[str] = []
         current_offset, page_size, total, has_total = _infer_page_data()
+        if page_size is None and base_page_size is not None:
+            page_size = base_page_size
+        normalized_page_size = page_size if page_size is not None else base_page_size
         if base_offset is not None:
             current_offset = base_offset
         should_add_zero = (not base_has_offset) or (current_offset == 0)
         if should_add_zero and not any("joboffset=0" in url.lower() for url in urls):
-            augmented.append(_with_job_offset(base_url, 0))
+            augmented.append(_with_job_offset(base_url, 0, normalized_page_size))
 
         if page_size and current_offset is not None and has_total:
             next_offset = current_offset + page_size
             if total is None or next_offset < total:
                 next_token = f"joboffset={next_offset}"
                 if not any(next_token in url.lower() for url in urls + augmented):
-                    augmented.append(_with_job_offset(base_url, next_offset))
+                    augmented.append(_with_job_offset(base_url, next_offset, normalized_page_size))
 
         return augmented
 
@@ -307,7 +328,31 @@ class AvatureHandler(BaseSiteHandler):
                 continue
             seen.add(canonical)
             cleaned.append(canonical)
+
+        pagination_candidates = [url for url in filtered if "joboffset=" in url.lower()]
+        if pagination_candidates and not any("joboffset=" in url.lower() for url in cleaned):
+            for url in pagination_candidates:
+                normalized = normalize_url(url, base_url=normalized_source) or url
+                try:
+                    parsed = urlparse(normalized)
+                except Exception:
+                    continue
+                job_offset = None
+                for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+                    if key.lower() == "joboffset" and value.isdigit():
+                        job_offset = int(value)
+                        break
+                canonical = _canonical_listing_url(parsed.path or source_path, job_offset)
+                if canonical in seen:
+                    continue
+                seen.add(canonical)
+                cleaned.append(canonical)
+
+        if not cleaned:
+            return filtered
+
         return cleaned
+
 
     def _infer_pagination_base_url(self, html: str, urls: List[str]) -> Optional[str]:
         if not self._has_pagination_signals(html):

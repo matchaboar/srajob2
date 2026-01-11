@@ -80,6 +80,7 @@ async def _run_store_scrape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> list[str]:
     calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -89,8 +90,16 @@ async def _run_store_scrape(
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     monkeypatch.setattr(
         "job_scrape_application.services.convex_client.convex_mutation", fake_mutation
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
     )
 
     scrape_payload: Dict[str, Any] = {
@@ -103,9 +112,8 @@ async def _run_store_scrape(
 
     await store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "store_scrape should enqueue URLs from Meta listing payload"
-    return enqueue_calls[0]["args"]["urls"]
+    assert queue_calls, "store_scrape should enqueue URLs from Meta listing payload"
+    return queue_calls[0]["urls"]
 
 
 def _has_meta_listing_page(urls: list[str], *, page: int | None) -> bool:

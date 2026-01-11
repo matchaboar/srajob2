@@ -8,21 +8,11 @@ vi.mock("@convex-dev/auth/server", () => ({
 import { resetQueuedUrlRetries } from "./jobs";
 
 describe("resetQueuedUrlRetries", () => {
-  it("backfills bucket and scheduledAt when resetting failed rows", async () => {
-    const now = Date.now();
-    const row: any = {
-      _id: "queue-1",
-      url: "https://example.com/jobs/1",
-      sourceUrl: "https://example.com/jobs",
-      status: "failed",
-      attempts: 2,
-      createdAt: now - 10_000,
-      updatedAt: now - 5_000,
-    };
+  it("no-ops now that DBOS handles retries", async () => {
     const patches: Array<{ id: string; updates: Record<string, any> }> = [];
     const ctx: any = {
       db: {
-        get: async (id: string) => (id === row._id ? row : null),
+        get: async () => null,
         patch: async (id: string, updates: Record<string, any>) => {
           patches.push({ id, updates });
         },
@@ -30,14 +20,9 @@ describe("resetQueuedUrlRetries", () => {
     };
     const handler = getHandler(resetQueuedUrlRetries);
 
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
-    await handler(ctx, { id: row._id });
-    nowSpy.mockRestore();
+    const result = await handler(ctx, { id: "queue-1" });
 
-    expect(patches).toHaveLength(1);
-    const update = patches[0].updates;
-    expect(update.status).toBe("pending");
-    expect(update.scheduledAt).toBe(now);
-    expect(typeof update.bucket).toBe("number");
+    expect(result).toEqual({ success: true, skipped: true });
+    expect(patches).toHaveLength(0);
   });
 });

@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from job_scrape_application.services import convex_query  # noqa: E402
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 
 
 def _parse_statuses(raw: str | None) -> List[str]:
@@ -24,13 +24,7 @@ def _parse_statuses(raw: str | None) -> List[str]:
 
 
 async def _fetch_rows(provider: str | None, status: str | None, limit: int) -> List[Dict[str, Any]]:
-    args: Dict[str, Any] = {"limit": limit}
-    if provider:
-        args["provider"] = provider
-    if status:
-        args["status"] = status
-    rows = await convex_query("router:listQueuedScrapeUrls", args)
-    return rows or []
+    return dbos_queue.list_scrape_urls(provider=provider, status=status, limit=limit) or []
 
 
 def _unique_rows(rows: Iterable[Dict[str, Any]], *, max_rows: int) -> List[Dict[str, Any]]:
@@ -55,8 +49,8 @@ def _write_json(path: Path, payload: Dict[str, Any]) -> None:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Export Convex scrape_url_queue rows into a fixture.")
-    parser.add_argument("--provider", default="spidercloud", help="scrape_url_queue provider filter")
+    parser = argparse.ArgumentParser(description="Export DBOS queue rows into a fixture.")
+    parser.add_argument("--provider", default="spidercloud", help="queue provider filter")
     parser.add_argument(
         "--statuses",
         default="pending",
@@ -72,7 +66,7 @@ async def main() -> None:
         "--per-status-limit",
         type=int,
         default=500,
-        help="max rows to fetch per status (Convex cap is 500)",
+        help="max rows to fetch per status (cap is 500)",
     )
     parser.add_argument(
         "--output",

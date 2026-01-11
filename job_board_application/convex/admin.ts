@@ -9,13 +9,10 @@ type WipeTable =
   | "jobs"
   | "scrapes"
   | "scrape_activity"
-  | "scrape_url_queue"
   | "seen_job_urls"
   | "seen_job_url_index"
   | "ignored_jobs"
-  | "scrape_errors"
-  | "run_requests"
-  | "workflow_run_sites";
+  | "scrape_errors";
 
 type SalaryLevel = "junior" | "mid" | "senior" | "staff";
 const SALARY_LEVELS: SalaryLevel[] = ["junior", "mid", "senior", "staff"];
@@ -28,13 +25,10 @@ export const wipeSiteDataByDomainPage = mutation({
       v.literal("jobs"),
       v.literal("scrapes"),
       v.literal("scrape_activity"),
-      v.literal("scrape_url_queue"),
       v.literal("seen_job_urls"),
       v.literal("seen_job_url_index"),
       v.literal("ignored_jobs"),
-      v.literal("scrape_errors"),
-      v.literal("run_requests"),
-      v.literal("workflow_run_sites")
+      v.literal("scrape_errors")
     ),
     dryRun: v.optional(v.boolean()),
     batchSize: v.optional(v.number()),
@@ -75,10 +69,6 @@ export const wipeSiteDataByDomainPage = mutation({
           return ctx.db
             .query("scrape_activity")
             .withIndex("by_source_completed", (q) => q.gte("sourceUrl", prefix).lt("sourceUrl", prefixUpper));
-        case "scrape_url_queue":
-          return ctx.db
-            .query("scrape_url_queue")
-            .withIndex("by_url", (q) => q.gte("url", prefix).lt("url", prefixUpper));
         case "ignored_jobs":
           return ctx.db
             .query("ignored_jobs")
@@ -91,10 +81,6 @@ export const wipeSiteDataByDomainPage = mutation({
           return ctx.db
             .query("seen_job_url_index" as any)
             .withIndex("by_url_source", (q) => q.gte("url", prefix).lt("url", prefixUpper));
-        case "workflow_run_sites":
-          return ctx.db
-            .query("workflow_run_sites")
-            .withIndex("by_site", (q) => q.gte("siteUrl", prefix).lt("siteUrl", prefixUpper));
         default:
           return ctx.db.query(tableName);
       }
@@ -114,9 +100,6 @@ export const wipeSiteDataByDomainPage = mutation({
         case "scrape_activity":
           if (row.siteId && siteIds.has(row.siteId)) return true;
           return matchesUrl(row.sourceUrl);
-        case "scrape_url_queue":
-          if (row.siteId && siteIds.has(row.siteId)) return true;
-          return matchesUrl(row.url) || matchesUrl(row.sourceUrl);
         case "ignored_jobs":
           return matchesUrl(row.url) || matchesUrl(row.sourceUrl);
         case "seen_job_urls":
@@ -126,11 +109,6 @@ export const wipeSiteDataByDomainPage = mutation({
         case "scrape_errors":
           if (row.siteId && siteIdStrings.has(String(row.siteId))) return true;
           return matchesUrl(row.sourceUrl);
-        case "run_requests":
-          if (row.siteId && siteIds.has(row.siteId)) return true;
-          return matchesUrl(row.siteUrl);
-        case "workflow_run_sites":
-          return matchesUrl(row.siteUrl);
         default:
           return false;
       }
@@ -285,6 +263,52 @@ export const deleteJobsById = mutation({
   },
 });
 
+export const deleteJobDetailsByJobIds = mutation({
+  args: {
+    jobIds: v.array(v.id("jobs")),
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    deletedDetails: v.number(),
+    results: v.array(
+      v.object({
+        jobId: v.string(),
+        details: v.number(),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const results: Array<{ jobId: string; details: number }> = [];
+    let deletedDetails = 0;
+
+    for (const jobId of args.jobIds) {
+      const details = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", jobId))
+        .collect();
+      const detailCount = details.length;
+
+      if (!dryRun) {
+        for (const detail of details as AnyDoc[]) {
+          await deleteDescriptionFromStorage(ctx, detail.descriptionStorageId);
+          await ctx.db.delete(detail._id);
+        }
+      }
+
+      deletedDetails += detailCount;
+      results.push({ jobId: String(jobId), details: detailCount });
+    }
+
+    return {
+      dryRun,
+      deletedDetails,
+      results,
+    };
+  },
+});
+
 export const listCompanySalaryMaxima = query({
   args: {
     minCompensation: v.optional(v.number()),
@@ -354,149 +378,3 @@ export const listCompanySalaryMaxima = query({
   },
 });
 
-export const wipeScrapeQueueByStatus = mutation({
-  args: {
-    statuses: v.optional(
-      v.array(v.union(v.literal("pending"), v.literal("processing")))
-    ),
-    limit: v.optional(v.number()),
-    dryRun: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args) => {
-    const statuses: Array<"pending" | "processing"> = args.statuses?.length
-      ? args.statuses
-      : ["pending", "processing"];
-    const limit = Math.max(1, Math.min(args.limit ?? 1000, 5000));
-    const dryRun = args.dryRun ?? false;
-    const deletedByStatus: Record<string, number> = {};
-    let deletedBucketLeases = 0;
-    let deletedWorkerHeartbeats = 0;
-    let hasMore = false;
-
-    for (const status of statuses) {
-      const rows = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status", (q) => q.eq("status", status))
-        .take(limit);
-
-      deletedByStatus[status] = rows.length;
-      if (rows.length >= limit) {
-        hasMore = true;
-      }
-      if (dryRun) continue;
-      for (const row of rows as AnyDoc[]) {
-        await ctx.db.delete(row._id);
-      }
-    }
-
-    const shouldClearInfra =
-      !dryRun && statuses.some((status) => status === "pending" || status === "processing");
-    if (shouldClearInfra) {
-      const bucketLeases = await ctx.db.query("scrape_url_bucket_leases").collect();
-      deletedBucketLeases = bucketLeases.length;
-      for (const row of bucketLeases as AnyDoc[]) {
-        await ctx.db.delete(row._id);
-      }
-
-      const workerHeartbeats = await ctx.db.query("scrape_worker_heartbeats").collect();
-      deletedWorkerHeartbeats = workerHeartbeats.length;
-      for (const row of workerHeartbeats as AnyDoc[]) {
-        await ctx.db.delete(row._id);
-      }
-    }
-
-    return {
-      statuses,
-      limit,
-      dryRun,
-      deletedByStatus,
-      deleted: Object.values(deletedByStatus).reduce((sum, val) => sum + val, 0),
-      hasMore,
-      deletedBucketLeases,
-      deletedWorkerHeartbeats,
-    };
-  },
-});
-
-export const deleteScrapeQueueOlderThanPage = mutation({
-  args: {
-    cutoffMs: v.number(),
-    statuses: v.optional(
-      v.array(
-        v.union(
-          v.literal("pending"),
-          v.literal("processing"),
-          v.literal("completed"),
-          v.literal("failed"),
-          v.literal("invalid")
-        )
-      )
-    ),
-    batchSize: v.optional(v.number()),
-    cursor: v.optional(v.string()),
-    dryRun: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args) => {
-    const cutoffMs = args.cutoffMs;
-    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
-    const cursor = args.cursor ?? null;
-    const dryRun = args.dryRun ?? false;
-    const statuses = args.statuses?.length ? args.statuses : null;
-
-    const page = await ctx.db.query("scrape_url_queue").paginate({ cursor, numItems: batchSize });
-    let deleted = 0;
-    let scanned = 0;
-
-    for (const row of page.page as AnyDoc[]) {
-      scanned += 1;
-      if (statuses && !statuses.includes(row.status)) continue;
-      if (typeof row.createdAt !== "number" || row.createdAt >= cutoffMs) continue;
-      deleted += 1;
-      if (dryRun) continue;
-      await ctx.db.delete(row._id);
-    }
-
-    return {
-      cutoffMs,
-      statuses: statuses ?? ["pending", "processing", "completed", "failed", "invalid"],
-      batchSize,
-      dryRun,
-      scanned,
-      deleted,
-      hasMore: !page.isDone,
-      cursor: page.continueCursor,
-    };
-  },
-});
-
-export const countScrapeQueueMissingUrlType = query({
-  args: {
-    batchSize: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const batchSize = Math.max(1, Math.min(args.batchSize ?? 2000, 5000));
-    let cursor: string | null = null;
-    let missing = 0;
-    let scanned = 0;
-    let isDone = false;
-
-    while (!isDone) {
-      const page = await ctx.db
-        .query("scrape_url_queue")
-        .withIndex("by_status", (q) => q.eq("status", "pending"))
-        .paginate({ cursor, numItems: batchSize });
-
-      for (const row of page.page as AnyDoc[]) {
-        scanned += 1;
-        if (row.urlType !== "listing" && row.urlType !== "detail") {
-          missing += 1;
-        }
-      }
-
-      cursor = page.continueCursor;
-      isDone = page.isDone;
-    }
-
-    return { missing, scanned };
-  },
-});

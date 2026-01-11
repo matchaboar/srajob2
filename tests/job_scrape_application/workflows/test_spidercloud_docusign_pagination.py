@@ -91,6 +91,7 @@ async def _run_store_scrape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[list[str], list[Dict[str, Any]]]:
     calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -103,7 +104,15 @@ async def _run_store_scrape(
     async def fake_fetch_seen(_source: str, _pattern: str | None):
         return []
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     scrape_payload: Dict[str, Any] = {
@@ -116,9 +125,8 @@ async def _run_store_scrape(
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "store_scrape should enqueue URLs from Docusign listing payload"
-    return enqueue_calls[0]["args"]["urls"], calls
+    assert queue_calls, "store_scrape should enqueue URLs from Docusign listing payload"
+    return queue_calls[0]["urls"], calls
 
 
 @pytest.mark.asyncio

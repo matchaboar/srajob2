@@ -17,6 +17,7 @@ CONVEX_DIR = REPO_ROOT / "job_board_application"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 
 def _load_env(target_env: str) -> None:
     load_dotenv()
@@ -55,9 +56,8 @@ async def _fetch_scrape_activity(convex_query) -> List[Dict[str, Any]]:
     return rows if isinstance(rows, list) else []
 
 
-async def _fetch_queue_rows(convex_query, site_id: str, status: str, limit: int) -> List[Dict[str, Any]]:
-    args: Dict[str, Any] = {"siteId": site_id, "status": status, "limit": limit}
-    rows = await convex_query("router:listQueuedScrapeUrls", args)
+async def _fetch_queue_rows(_convex_query, site_id: str, status: str, limit: int) -> List[Dict[str, Any]]:
+    rows = dbos_queue.list_scrape_urls(site_id=site_id, status=status, limit=limit)
     return rows if isinstance(rows, list) else []
 
 
@@ -99,7 +99,7 @@ def _summarize_queue(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Inspect Convex queue + activity for a specific site."
+        description="Inspect DBOS queue + activity for a specific site."
     )
     parser.add_argument("--env", choices=("dev", "prod"), default="prod")
     parser.add_argument("--site-url", dest="site_url", help="Exact site URL to match.")
@@ -108,7 +108,7 @@ async def main() -> None:
         "--queue-limit",
         type=int,
         default=200,
-        help="Max rows to fetch per queue status (Convex cap is 500).",
+        help="Max rows to fetch per queue status (cap is 500).",
     )
     parser.add_argument(
         "--ignored-limit",

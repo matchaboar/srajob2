@@ -17,5 +17,5 @@ Goal: route listing-page URLs to a dedicated worker pool and lease only 4 listin
 - [x] Ruff lint run after Python edits
 
 ## Notes
-- Use `urlType` on `scrape_url_queue` to partition listing vs detail.
+- Use `urlType` on DBOS queue items to partition listing vs detail.
 - Listing workers should only lease 4 URLs at a time.

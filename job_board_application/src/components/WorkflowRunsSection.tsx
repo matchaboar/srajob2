@@ -1,59 +1,23 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LiveTimer } from "./LiveTimer";
 
 type Props = { url: string | null; onBack: () => void };
 
-const temporalUiBase = (import.meta as any).env?.VITE_TEMPORAL_UI as string | undefined;
-const temporalNamespace = ((import.meta as any).env?.VITE_TEMPORAL_NAMESPACE as string | undefined) ?? "default";
-const resolvedTemporalUiBase = (temporalUiBase || "http://localhost:8233").replace(/\/+$/, "");
-
-const formatElapsed = (value: number | null | undefined, now: number) => {
-  if (!value) return { label: "-", tone: "text-slate-600" };
-  const diff = now - value;
-  const totalSeconds = Math.max(0, Math.floor(diff / 1000));
-  const hours = Math.floor(totalSeconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-  const label = `${hours}:${minutes}:${seconds}`;
-  const tone =
-    diff < 3 * 60 * 60 * 1000
-      ? "text-green-400"
-      : diff < 24 * 60 * 60 * 1000
-        ? "text-amber-400"
-        : "text-red-400";
-  return { label, tone };
-};
-
-const formatDuration = (start?: number | null, end?: number | null) => {
-  if (!start || !end) return "-";
-  const diff = Math.max(0, end - start);
-  const seconds = Math.floor(diff / 1000);
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+type PendingWebhookRow = {
+  id: string;
+  receivedAt: number | null;
+  statusUrl: string | null;
+  siteId: string | null;
+  waitingFor: string;
 };
 
 export function WorkflowRunsSection({ url, onBack }: Props) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const runs = useQuery(
-    api.temporal.listWorkflowRunsByUrl,
-    url ? { url, limit: 50 } : { url: "", limit: 50 }
-  );
   const pendingWebhooks = useQuery(api.router.listPendingFirecrawlWebhooks, { limit: 50 });
 
   const pendingForUrl = useMemo(() => {
-    if (!url || !pendingWebhooks || !Array.isArray(pendingWebhooks)) return [];
+    if (!url || !pendingWebhooks || !Array.isArray(pendingWebhooks)) return [] as PendingWebhookRow[];
     return pendingWebhooks
       .map((event: any) => {
         const meta = event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
@@ -71,21 +35,15 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
             null,
           siteId: event?.siteId ?? meta?.siteId ?? null,
           waitingFor: event?.event || "webhook",
-        };
+        } as PendingWebhookRow;
       })
-      .filter(Boolean) as {
-      id: string;
-      receivedAt: number | null;
-      statusUrl: string | null;
-      siteId: string | null;
-      waitingFor: string;
-    }[];
+      .filter(Boolean) as PendingWebhookRow[];
   }, [pendingWebhooks, url]);
 
   if (!url) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded p-4 text-sm text-slate-400">
-        Choose a site from Scrape Activity to view workflow runs.
+        Choose a site from Scrape Activity to view webhook activity.
         <button
           onClick={onBack}
           className="ml-2 text-xs text-blue-300 hover:text-white underline"
@@ -100,7 +58,7 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs text-slate-500">Workflow runs for</div>
+          <div className="text-xs text-slate-500">Webhook activity for</div>
           <div className="text-sm text-slate-200 font-mono break-all">{url}</div>
         </div>
         <button
@@ -110,142 +68,37 @@ export function WorkflowRunsSection({ url, onBack }: Props) {
           Back
         </button>
       </div>
-      {!temporalUiBase && (
-        <div className="text-[11px] text-slate-500">
-          Using default Temporal UI base <span className="font-mono text-slate-300">{resolvedTemporalUiBase}</span>.
-          Set <code className="bg-slate-900 px-1 rounded text-slate-200">VITE_TEMPORAL_UI</code> to your UI host if different.
-        </div>
-      )}
 
-      {runs === undefined && <div className="text-xs text-slate-500">Loading runs...</div>}
-      {runs && runs.length === 0 && <div className="text-xs text-slate-500">No runs recorded yet.</div>}
-      {pendingForUrl.length > 0 && (
-        <div className="border border-amber-800 rounded bg-amber-900/20 p-3 text-[12px] text-amber-100 space-y-2">
-          <div className="text-[11px] uppercase tracking-wide text-amber-200">Waiting for webhooks</div>
+      <div className="bg-slate-900 border border-slate-800 rounded p-4">
+        <div className="text-xs text-slate-500 mb-2">
+          DBOS run metadata lives in SQLite; webhook activity is shown below.
+        </div>
+        {pendingForUrl.length === 0 ? (
+          <div className="text-xs text-slate-500">No pending webhooks for this site.</div>
+        ) : (
           <div className="space-y-2">
-            {pendingForUrl.map((item) => (
-              <div
-                key={`${item.id}-${item.statusUrl ?? "n/a"}`}
-                className="border border-amber-700/60 rounded bg-amber-950/30 p-2"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                  <span className="font-mono text-amber-100">job {item.id}</span>
-                  {item.siteId && (
-                    <span className="text-amber-200/80">
-                      site <span className="font-mono">{item.siteId}</span>
-                    </span>
-                  )}
-                  <span className="text-amber-200/80">waiting for {item.waitingFor}</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-700 bg-amber-900/50 text-[10px]">
-                    <LiveTimer
-                      startTime={item.receivedAt ?? Date.now()}
-                      colorize
-                      warnAfterMs={15 * 60 * 1000}
-                      dangerAfterMs={60 * 60 * 1000}
-                      showAgo
-                      suffixClassName="text-amber-200/70"
-                    />
-                  </span>
+            {pendingForUrl.map((row) => (
+              <div key={row.id} className="border border-slate-800 rounded p-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-slate-200">{row.id}</span>
+                  <span className="text-[10px] text-slate-500">{row.waitingFor}</span>
                 </div>
-                {item.statusUrl && (
-                  <div className="text-[10px] text-amber-200/80 break-all mt-1">
-                    status: <span className="font-mono">{item.statusUrl}</span>
-                  </div>
-                )}
+                <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-slate-400">
+                  {row.receivedAt ? (
+                    <span>
+                      Received <LiveTimer startTime={row.receivedAt} showAgo colorize />
+                    </span>
+                  ) : (
+                    <span>Received -</span>
+                  )}
+                  {row.statusUrl && <span className="truncate">Status URL: {row.statusUrl}</span>}
+                  {row.siteId && <span>Site ID: {row.siteId}</span>}
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
-      {runs && runs.length > 0 && (
-        <div className="space-y-2">
-          {runs.map((run: any) => {
-            const duration = formatDuration(run.startedAt, run.completedAt);
-            const statusColor =
-              run.status === "completed"
-                ? "bg-green-900/30 text-green-200 border-green-800"
-                : "bg-red-900/30 text-red-200 border-red-800";
-            const temporalLink =
-              run.workflowId && run.runId
-                ? `${resolvedTemporalUiBase}/namespaces/${encodeURIComponent(
-                    temporalNamespace
-                  )}/workflows/${encodeURIComponent(run.workflowId)}/${encodeURIComponent(run.runId)}`
-                : null;
-            return (
-              <div key={run._id} className="border border-slate-800 rounded p-3 bg-slate-950/50">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="text-sm text-slate-200 font-mono truncate">{run.runId}</div>
-                  <span className={clsx("text-[10px] px-2 py-1 rounded-full border", statusColor)}>
-                    {run.status}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-slate-300">
-                  <div>
-                    <div className="text-[10px] text-slate-500">Started</div>
-                    <div className="flex items-center gap-2">
-                      <span>{run.startedAt ? new Date(run.startedAt).toLocaleString() : "-"}</span>
-                      {run.startedAt && (
-                        <span
-                          className={clsx(
-                            "text-[10px] font-mono px-2 py-0.5 rounded-full border border-slate-800 bg-slate-950/70",
-                            formatElapsed(run.startedAt, now).tone
-                          )}
-                        >
-                          {formatElapsed(run.startedAt, now).label} ago
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-500">Ended</div>
-                    <div className="flex items-center gap-2">
-                      <span>{run.completedAt ? new Date(run.completedAt).toLocaleString() : "-"}</span>
-                      {run.completedAt && (
-                        <span
-                          className={clsx(
-                            "text-[10px] font-mono px-2 py-0.5 rounded-full border border-slate-800 bg-slate-950/70",
-                            formatElapsed(run.completedAt, now).tone
-                          )}
-                        >
-                          {formatElapsed(run.completedAt, now).label} ago
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-500">Duration</div>
-                    <div>{duration}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-500">Worker</div>
-                    <div className="font-mono text-[11px] text-slate-300 truncate">{run.workerId || "-"}</div>
-                  </div>
-                </div>
-                <div className="mt-2 text-[10px] text-slate-500 flex flex-wrap gap-2">
-                  <span>Workflow: {run.workflowName || run.workflowId}</span>
-                  <span>Sites: {run.siteUrls?.length || 0}</span>
-                  <span>Jobs scraped: {run.jobsScraped ?? 0}</span>
-                  {temporalLink && (
-                    <a
-                      href={temporalLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-300 hover:text-white underline"
-                    >
-                      Open in Temporal UI
-                    </a>
-                  )}
-                </div>
-                {run.error && (
-                  <div className="mt-2 text-[11px] text-red-300 bg-red-900/20 border border-red-800/50 rounded p-2 font-mono break-all">
-                    {run.error}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

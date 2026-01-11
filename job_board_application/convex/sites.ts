@@ -325,15 +325,8 @@ function deriveCostMilliCents(scrape: any): number {
 
 const listScrapeActivityHandler = async (ctx: any) => {
   const now = Date.now();
-  const runCutoff = now - RUN_LOOKBACK_MS;
   const scrapeCutoff = now - SCRAPE_LOOKBACK_MS;
   const sites = await collectWithLimit(ctx.db.query("sites").order("desc"), SITE_LIMIT, 50);
-  const runs = await ctx.db
-    .query("workflow_runs")
-    .withIndex("by_started", (q: any) => q.gte("startedAt", runCutoff))
-    .order("desc")
-    .take(RUN_LIMIT);
-
   const rows = [];
 
   for (const site of sites as any[]) {
@@ -359,20 +352,14 @@ const listScrapeActivityHandler = async (ctx: any) => {
         (s) => (s).completedAt === undefined || (s).completedAt >= scrapeCutoff
       );
       const sortedScrapes = filteredScrapes.sort((a: any, b: any) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
-      const latest = sortedScrapes[0];
+      const latestScrape = sortedScrapes[0];
 
       const totalJobsScraped = filteredScrapes.reduce((sum, s) => sum + ((s as any).jobCount ?? 0), 0);
-      const lastJobsScraped = latest ? ((latest as any).jobCount ?? 0) : 0;
+      const lastJobsScraped = latestScrape ? ((latestScrape as any).jobCount ?? 0) : 0;
 
-      const runsForSite = runs
-        .filter((r: any) => Array.isArray(r.siteUrls) && r.siteUrls.includes(site.url))
-        .sort((a: any, b: any) => (b.completedAt ?? b.startedAt ?? 0) - (a.completedAt ?? a.startedAt ?? 0));
-      const latestRun = runsForSite[0];
-      const latestCompletedRun = runsForSite.find((r: any) => r.status === "completed");
-      const latestAnyRunTime = latestRun ? (latestRun.completedAt ?? latestRun.startedAt ?? 0) : undefined;
-      const latestSuccessTime = latestCompletedRun
-        ? (latestCompletedRun.completedAt ?? latestCompletedRun.startedAt ?? 0)
-        : undefined;
+      const lastScrapeStart = latestScrape?.startedAt;
+      const lastScrapeEnd = latestScrape?.completedAt;
+      const lastRunAt = site.lastRunAt ?? lastScrapeEnd ?? lastScrapeStart;
 
       const updatedAt = Math.max(
         site._creationTime ?? 0,
@@ -390,9 +377,9 @@ const listScrapeActivityHandler = async (ctx: any) => {
         enabled,
         createdAt: site._creationTime ?? 0,
         updatedAt,
-        lastRunAt: latestSuccessTime ?? site.lastRunAt ?? latestAnyRunTime,
-        lastScrapeStart: latest?.startedAt ?? latestRun?.startedAt,
-        lastScrapeEnd: latest?.completedAt ?? latestRun?.completedAt,
+        lastRunAt,
+        lastScrapeStart,
+        lastScrapeEnd,
         lastJobsScraped,
         workerId: typeof site.lockedBy === "string" ? site.lockedBy : undefined,
         lastFailureAt: site.lastFailureAt,

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 import pytest
@@ -69,11 +72,111 @@ from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_fo
 from job_scrape_application.workflows.helpers.scrape_utils import _jobs_from_scrape_items  # noqa: E402
 
 
+@lru_cache(maxsize=None)
+def _read_fixture_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
 def _load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(_read_fixture_text(path))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
+
+
+class FakeConvexClient:
+    def __init__(self) -> None:
+        self.query_handlers: dict[str, Callable[[Dict[str, Any] | None], Any]] = {}
+        self.mutation_handlers: dict[str, Callable[[Dict[str, Any] | None], Any]] = {}
+        self.query_fallback: Callable[..., Any] | None = None
+        self.mutation_fallback: Callable[..., Any] | None = None
+        self.query_calls: list[dict[str, Any]] = []
+        self.mutation_calls: list[dict[str, Any]] = []
+
+    def set_query_handler(self, name: str, handler: Callable[[Dict[str, Any] | None], Any]) -> None:
+        self.query_handlers[name] = handler
+
+    def set_query_response(self, name: str, response: Any) -> None:
+        self.query_handlers[name] = lambda _args: response
+
+    def set_query_fallback(self, handler: Callable[..., Any]) -> None:
+        self.query_fallback = handler
+
+    def set_mutation_handler(self, name: str, handler: Callable[[Dict[str, Any] | None], Any]) -> None:
+        self.mutation_handlers[name] = handler
+
+    def set_mutation_response(self, name: str, response: Any) -> None:
+        self.mutation_handlers[name] = lambda _args: response
+
+    def set_mutation_fallback(self, handler: Callable[..., Any]) -> None:
+        self.mutation_fallback = handler
+
+    async def query(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+        self.query_calls.append({"name": name, "args": args})
+        handler = self.query_handlers.get(name)
+        if handler is None:
+            fallback = self.query_fallback
+            if fallback is None:
+                raise AssertionError(f"unexpected query {name}")
+            result = fallback(name, args)
+        else:
+            result = handler(args)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    async def mutation(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+        self.mutation_calls.append({"name": name, "args": args})
+        handler = self.mutation_handlers.get(name)
+        if handler is None:
+            fallback = self.mutation_fallback
+            if fallback is None:
+                raise AssertionError(f"unexpected mutation {name}")
+            result = fallback(name, args)
+        else:
+            result = handler(args)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+
+@pytest.fixture()
+def convex_client(monkeypatch: pytest.MonkeyPatch) -> FakeConvexClient:
+    client = FakeConvexClient()
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", client.query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", client.mutation)
+    return client
+
+
+@pytest.fixture()
+def queue_mocks(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Dict[str, Any]]]:
+    enqueue_calls: list[Dict[str, Any]] = []
+    complete_calls: list[Dict[str, Any]] = []
+
+    def fake_enqueue(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        enqueue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
+    def fake_complete(payload: Dict[str, Any]) -> Dict[str, Any]:
+        complete_calls.append(payload)
+        return {"updated": len(payload.get("items", []))}
+
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete,
+    )
+    return {"enqueue_calls": enqueue_calls, "complete_calls": complete_calls}
+
+
+@pytest.fixture()
+def workflow_now(monkeypatch: pytest.MonkeyPatch) -> datetime:
+    now = datetime.fromtimestamp(0, tz=timezone.utc)
+    monkeypatch.setattr(sw.workflow, "now", lambda: now)
+    return now
 
 
 def test_spidercloud_workflow_has_schedule():
@@ -204,7 +307,10 @@ async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_greenhouse_listing_fanout(monkeypatch):
+async def test_spidercloud_greenhouse_listing_fanout(
+    monkeypatch,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
+):
     site: Site = {
         "_id": "01hzconvexsiteid123456789abc",
         "url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
@@ -214,8 +320,9 @@ async def test_spidercloud_greenhouse_listing_fanout(monkeypatch):
 
     calls: list[str] = []
     scraper = _make_spidercloud_scraper()
-    enqueue_calls: list[Dict[str, Any]] = []
-    query_calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
+    complete_calls = queue_mocks["complete_calls"]
+    queue_calls: list[Dict[str, Any]] = []
     now_ms = 0
     stale_created = now_ms - (acts.SCRAPE_URL_QUEUE_TTL_MS + 1)
 
@@ -233,33 +340,32 @@ async def test_spidercloud_greenhouse_listing_fanout(monkeypatch):
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", fake_select_scraper)
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr(
-        "job_scrape_application.services.convex_client.convex_mutation",
-        lambda name, payload: enqueue_calls.append({"name": name, "payload": payload}),
-    )
-    async def fake_convex_query(name, payload):
-        query_calls.append({"name": name, "payload": payload})
+    def fake_list_scrape_urls(**kwargs):
+        queue_calls.append(kwargs)
         return [
             {"url": "https://example.com/a", "createdAt": stale_created, "status": "pending"},
             {"url": "https://example.com/b", "createdAt": now_ms, "status": "pending"},
         ]
 
     monkeypatch.setattr(
-        "job_scrape_application.services.convex_client.convex_query",
-        fake_convex_query,
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
     )
 
     res = await acts.scrape_site(site)
 
     assert calls == ["listing"]
-    assert any(call["name"] == "router:enqueueScrapeUrls" for call in enqueue_calls)
+    assert enqueue_calls
     assert any(
-        call["name"] == "router:completeScrapeUrls"
-        and call["payload"].get("status") == "failed"
-        and "https://example.com/a" in call["payload"].get("urls", [])
-        for call in enqueue_calls
+        call.get("status") == "failed"
+        and any(
+            item.get("url") == "https://example.com/a"
+            for item in call.get("items", [])
+            if isinstance(item, dict)
+        )
+        for call in complete_calls
     )
-    assert any(call["name"] == "router:listQueuedScrapeUrls" for call in query_calls)
+    assert queue_calls
     items = res.get("items", {})
     assert items.get("queued") is True
 
@@ -300,7 +406,11 @@ async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_convex_calls_strip_none_fields(monkeypatch):
+async def test_spidercloud_convex_calls_strip_none_fields(
+    monkeypatch,
+    convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
+):
     site: Site = {
         "_id": "01hzconvexsiteid123456789abe",
         "url": "https://api.greenhouse.io/v1/boards/example/jobs",
@@ -310,8 +420,8 @@ async def test_spidercloud_convex_calls_strip_none_fields(monkeypatch):
     }
 
     scraper = _make_spidercloud_scraper()
-    mutation_calls: list[Dict[str, Any]] = []
     queue_payloads: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
     now_ms = int(time.time() * 1000)
 
     async def fake_listing(site_arg: Site):
@@ -331,37 +441,42 @@ async def test_spidercloud_convex_calls_strip_none_fields(monkeypatch):
             return {"existing": []}
         if name == "router:listSeenJobUrlsForSite":
             return {"urls": []}
-        if name == "router:listQueuedScrapeUrls":
-            queue_payloads.append(payload)
-        return [{"url": "https://example.com/new", "createdAt": now_ms, "status": "pending"}]
+        return []
 
-    async def fake_convex_mutation(name, payload):
-        mutation_calls.append({"name": name, "payload": payload})
-        return {"queued": payload.get("urls", [])}
+    def fake_list_scrape_urls(**kwargs):
+        queue_payloads.append(kwargs)
+        return [{"url": "https://example.com/new", "createdAt": now_ms, "status": "pending"}]
 
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", lambda _site: (scraper, []))
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    convex_client.set_query_fallback(fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
 
     res = await acts.scrape_site(site)
 
     assert res.get("items", {}).get("queued") is True
 
-    # listQueuedScrapeUrls should not receive explicit None fields (e.g., status or pattern)
+    # list_scrape_urls should not receive explicit None fields (e.g., status or pattern)
     assert queue_payloads
-    assert queue_payloads[0] == {"siteId": site["_id"], "provider": "spidercloud", "limit": 500}
+    assert queue_payloads[0] == {"site_id": site["_id"], "provider": "spidercloud", "limit": 500}
     assert all(value is not None for value in queue_payloads[0].values())
 
-    enqueue_payload = next(call["payload"] for call in mutation_calls if call["name"] == "router:enqueueScrapeUrls")
+    enqueue_payload = enqueue_calls[0]
     assert "pattern" not in enqueue_payload
     assert "siteId" in enqueue_payload  # still forwards known identifiers
     assert all(value is not None for value in enqueue_payload.values())
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_skips_invalid_site_ids(monkeypatch):
+async def test_spidercloud_skips_invalid_site_ids(
+    monkeypatch,
+    convex_client: FakeConvexClient,
+    queue_mocks: dict[str, list[Dict[str, Any]]],
+):
     site: Site = {
         "_id": "site-1",
         "url": "https://api.greenhouse.io/v1/boards/example/jobs",
@@ -371,7 +486,7 @@ async def test_spidercloud_skips_invalid_site_ids(monkeypatch):
 
     scraper = _make_spidercloud_scraper()
     queue_payloads: list[Dict[str, Any]] = []
-    mutation_calls: list[Dict[str, Any]] = []
+    enqueue_calls = queue_mocks["enqueue_calls"]
 
     async def fake_listing(site_arg: Site):
         return {"job_urls": ["https://example.com/new"]}
@@ -380,8 +495,10 @@ async def test_spidercloud_skips_invalid_site_ids(monkeypatch):
         return []
 
     async def fake_convex_query(name, payload):
-        if name == "router:listQueuedScrapeUrls":
-            queue_payloads.append(payload)
+        return []
+
+    def fake_list_scrape_urls(**kwargs):
+        queue_payloads.append(kwargs)
         return [{"url": "https://example.com/new", "createdAt": 0, "status": "pending"}]
 
     async def fake_convex_mutation(name, payload):
@@ -391,13 +508,17 @@ async def test_spidercloud_skips_invalid_site_ids(monkeypatch):
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", lambda _site: (scraper, []))
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    convex_client.set_query_fallback(fake_convex_query)
+    convex_client.set_mutation_fallback(fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
 
     res = await acts.scrape_site(site)
 
     assert res.get("items", {}).get("queued") is True
-    assert queue_payloads and "siteId" not in queue_payloads[0]
+    assert queue_payloads and "site_id" not in queue_payloads[0]
     enqueue_payload = next(call["payload"] for call in mutation_calls if call["name"] == "router:enqueueScrapeUrls")
     assert "siteId" not in enqueue_payload
 
@@ -409,7 +530,9 @@ def test_strip_none_values_keeps_falsey():
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_ingests_spidercloud_jobs(monkeypatch):
+async def test_store_scrape_ingests_spidercloud_jobs(
+    convex_client: FakeConvexClient,
+):
     """Regression: ensure jobs from spidercloud scrape are sent to Convex ingestion."""
 
     # Minimal spidercloud scrape payload with two normalized jobs
@@ -452,7 +575,7 @@ async def test_store_scrape_ingests_spidercloud_jobs(monkeypatch):
             ingest_calls.append(payload)
         return "ok"
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    convex_client.set_mutation_fallback(fake_convex_mutation)
 
     await acts.store_scrape(scrape_payload)
 
@@ -829,7 +952,10 @@ def test_spidercloud_extracts_location_from_raw_html_json_ld():
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
+async def test_spidercloud_greenhouse_enqueues_listing_urls(
+    monkeypatch,
+    convex_client: FakeConvexClient,
+):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path("tests/fixtures/robinhood_greenhouse_board.json")
     board = load_greenhouse_board(fixture_path.read_text(encoding="utf-8"))
@@ -838,7 +964,7 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
 
     enqueue_calls: list[Dict[str, Any]] = []
     complete_calls: list[Dict[str, Any]] = []
-    query_calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
 
     async def fake_fetch_greenhouse_listing(site: Site):
         return {"job_urls": job_urls}
@@ -853,8 +979,8 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
             complete_calls.append(payload)
         return None
 
-    async def fake_convex_query(name: str, payload: Dict[str, Any]):
-        query_calls.append({"name": name, "payload": payload})
+    def fake_list_scrape_urls(**kwargs):
+        queue_calls.append(kwargs)
         # Return queued rows so the scraper processes them (not stale)
         now_ms = 0
         return [{"url": u, "createdAt": now_ms, "status": "pending"} for u in job_urls]
@@ -862,8 +988,11 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_fetch_greenhouse_listing)
     monkeypatch.setattr(acts, "select_scraper_for_site", lambda site: (scraper, None))
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    convex_client.set_mutation_fallback(fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
 
     site: Site = {
         "_id": "01hzconvexsiteid123456789abh",
@@ -877,7 +1006,7 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(monkeypatch):
     assert enqueue_calls, "should enqueue discovered job urls"
     assert len(enqueue_calls[0]["urls"]) == len(job_urls)
     assert not complete_calls  # job details now processed by dedicated workflow
-    assert query_calls
+    assert queue_calls
     items = res.get("items") if isinstance(res, dict) else {}
     assert items.get("queued") is True
     assert items.get("job_urls")
@@ -1181,7 +1310,9 @@ async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
+async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
+    convex_client: FakeConvexClient,
+):
     scrape_fixture = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
     raw_payload = _load_spidercloud_fixture(scrape_fixture)[0]
     scrape_payload = {
@@ -1206,7 +1337,7 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
             return {"inserted": 0}
         return None
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     await acts.store_scrape(scrape_payload)
 
@@ -1216,7 +1347,9 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(monkeypatch):
+async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
+    convex_client: FakeConvexClient,
+):
     scrape_fixture = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
     raw_payload = _load_spidercloud_fixture(scrape_fixture)
     scrape_payload = {
@@ -1237,7 +1370,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
             return {"inserted": 0}
         return None
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     await acts.store_scrape(scrape_payload)
 
@@ -1249,7 +1382,9 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_jobs_from_confluent_fixture(monkeypatch):
+async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
+    convex_client: FakeConvexClient,
+):
     html = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_confluent_engineering_raw.html"
     ).read_text(encoding="utf-8")
@@ -1271,7 +1406,7 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(monkeypatch):
             return {"inserted": 0}
         return None
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     await acts.store_scrape(scrape_payload)
 
@@ -1748,7 +1883,10 @@ async def test_spidercloud_scrape_site_keeps_listing_seed_when_seen(monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_records_costs_and_ingests(monkeypatch):
+async def test_spidercloud_records_costs_and_ingests(
+    monkeypatch,
+    convex_client: FakeConvexClient,
+):
     total_cost_usd = 0.015
     expected_cost_mc = int(total_cost_usd * 100000)
     scraper = _make_spidercloud_scraper()
@@ -1792,7 +1930,7 @@ async def test_spidercloud_records_costs_and_ingests(monkeypatch):
             return None
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     await acts.store_scrape(scrape_payload)
 
@@ -2458,7 +2596,9 @@ async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_runs_in_workflow(monkeypatch):
+async def test_process_pending_job_details_batch_runs_in_workflow(
+    convex_client: FakeConvexClient,
+):
     # Ensure the heuristic workflow activity can be invoked without errors.
     from job_scrape_application.workflows.activities import process_pending_job_details_batch
 
@@ -2472,8 +2612,8 @@ async def test_process_pending_job_details_batch_runs_in_workflow(monkeypatch):
     async def fake_mutation(name, args=None):
         return {}
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     res = await process_pending_job_details_batch()
     assert res["processed"] == 0

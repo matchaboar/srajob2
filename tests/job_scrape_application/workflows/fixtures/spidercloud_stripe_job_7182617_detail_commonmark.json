@@ -1,0 +1,83 @@
+[
+  [
+    {
+      "content": {
+        "commonmark": "Chat with Stripe sales\nBackend Engineer, Core Technology\n#\n[Stripe logo](https://stripe.com/)\n[Jobs](https://stripe.com/jobs)\n# Jobs\n* [\nOur opportunity\n](https://stripe.com/jobs)\n* [\nLife at Stripe\n](https://stripe.com/jobs/life-at-stripe)\n* [\nBenefits\n](https://stripe.com/jobs/benefits)\n* [\nUniversity\n](https://stripe.com/jobs/university)\nClose mobile navigation\nBackend Engineer, Core Technology\nWho we are\nAbout Stripe\nStripe is a financial infrastructure platform for businesses. Millions of companies - from the world’s largest enterprises to the most ambitious startups - use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase the GDP of the internet, and we have a staggering amount of work ahead. That means you have an unprecedented opportunity to put the global economy within everyone's reach while doing the most important work of your career.\nAbout the Organization\n* Core Infrastructure: We’re the home for Stripe's critical tier0 infrastructure systems (Compute, Networking, DocumentDB, Distributed Caching and High assurance engineering). We build the foundational platform for Stripe products and services to allow them to operate at scale. We drive reliability, availability, efficiency and scalability of these systems.\n* Developer Infrastructure: We’re responsible for the productivity of all developers at Stripe. Ensure Stripe’s engineers have a reliable, fast, and easy-to-use inner dev loop to maximize productivity while building everything from low-latency microservices to large-scale data pipelines and machine learning models.\n* Reliability Insights and Excellence: We build tools and frameworks to introspect and improve reliability across Stripe.\n* Application and Revenue Platform: Building the powerful and scalable infrastructure that powers the company’s innovative application offerings and supports the seamless processing and management of Stripe’s global transaction volumes.\n* Finance Systems: Our mission is to enable effective financial decisions through reliable data, increased efficiency and automation. We support Accounting, Tax, Finance &amp; Strategy (F&amp;S), Finance Operations (FinOps) and Treasury functions across Automation, Data insights and process improvements.\n* Service Platform: We enable engineering teams at Stripe to easily write and ship useful services that correctly, reliably, and efficiently leverage platform capabilities.\n* Team Matching: exact team matching for one of the subteams within one of these orgs will begin during final stages. Please note we may also consider you for different orgs based on your experience, location, etc. More information on our team matching process can be found here.\nWhat you’ll do\nWe’re looking for Software Engineers who are interested in building software services and platforms that impact thousands of employees and millions of Stripe users, regardless of whether they’re an end user, developer, or partner. You will work on projects that span technologies, systems, and processes where you will design, build, test, and ship great code every day.\nResponsibilities\n* Build a great customer experience for internal and external Stripe teams using our infrastructure\n* Participate in roadmap planning and prioritization\n* Deliver value through a strong collaborative approach with multiple customers and stakeholders across Stripe\n* Debug production issues across services and several levels of the stack\n* Who you are\n* We're looking for someone who meets the minimum requirements to be considered for the role. If you meet these requirements, you are encouraged to apply. The preferred qualifications are a bonus, not a requirement.\nMinimum requirements\n* 2-12+ years of industry software engineering experience (does not include internships or co-ops)\n* Ability to write well-factored algorithms and have experience with commonly used data structures and algorithms\n* Hands-on experience contributing to or building large scale distributed systems\n* Strong coding skills in any programming language (we understand new languages can be learned on the job so our interview process is language agnostic)\n* Strong collaboration skills, can work across workstreams within your team and contribute to your peers’ success\n* Have the ability to thrive on a high level of autonomy, responsibility, and think of yourself as entrepreneurial\n* Interest in working as a generalist across varying technologies and stacks to solve problems and delight both internal and external users\nPreferred Qualifications\n* Experience optimizing the end to end performance of distributed systems\n* Focuses on the needs of our users, both internal and external\n* Hold yourself and others to a high bar when working with production\nOffice-assigned Stripes in most of our locations are currently expected to spend at least 50% of the time in a given month in their local office or with users. This expectation may vary depending on role, team and location. For example, Stripes in our Bucharest, Romania site have an 80% in-office expectation, and those in Stripe Delivery Center roles in Mexico City, Mexico and Bengaluru, India work 100% from the office. Also, some teams have greater in-office attendance requirements, to appropriately support our users and workflows, which the hiring manager will discuss. This approach helps strike a balance between bringing people together for in-person collaboration and learning from each other, while supporting flexibility when possible.\nThe annual salary range for this role in the primary location is €85,000 - €159,600. This range may change if you are hired in another location. For sales roles, the range provided is the role’s On Target Earnings (“OTE”) range, meaning that the range includes both the sales commissions/sales bonuses target and annual base salary for the role. This salary range may be inclusive of several career levels at Stripe and will be narrowed during the interview process based on a number of factors, including the candidate’s experience, qualifications, and specific location. Applicants interested in this role and who are not located in the primary location may request the annual salary range for their location during the interview process.\nSpecific benefits and details about what compensation is included in the salary range listed above will vary depending on the applicant’s location and can be discussed in more detail during the interview process. Benefits/additional compensation for this role may include: equity, company bonus or sales commissions/bonuses; retirement plans; health benefits; and wellness stipends.\nOffice locations\nDublin HQ\nTeam\nInfrastructure &amp; Corporate Tech\nJob type\nFull time\n[Apply for this role\n](https://stripe.com/jobs/listing/backend-engineer-core-technology/7182617/apply)\nAt Stripe, we're looking for people with passion, grit, and integrity. You're encouraged to apply even if your experience doesn't precisely match the job description. Your skills and passion will stand out—and set you apart—especially if your career has taken some extraordinary twists and turns. At Stripe, we welcome diverse perspectives and people who think rigorously and aren't afraid to challenge assumptions. Join us."
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0001468215,
+        "bytes_transferred_cost_formatted": "0.0001468214999999999936797224",
+        "compute_cost": 9.549481481481481e-06,
+        "compute_cost_formatted": "0.0000095494814814814816894633",
+        "file_cost": 0.000239853,
+        "file_cost_formatted": "0.0002398529999999999828830255",
+        "total_cost": 0.00040622398148148147,
+        "total_cost_formatted": "0.0004062239814814814588073226",
+        "transform_cost": 1e-05,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 3978,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "Help increase the GDP of the internet as part of our Infrastructure &amp; Corporate Tech team.",
+          "domain": "stripe.com",
+          "extracted_data": null,
+          "file_size": 7311,
+          "final_url": "https://stripe.com/jobs/listing/backend-engineer-core-technology/7182617",
+          "keywords": [
+            "Close mobile navigation Backend Engineer",
+            "Corporate Tech Job type Full time",
+            "Debug production issues",
+            "Hands-on experience contributing",
+            "High assurance engineering",
+            "Office locations Dublin HQ Team Infrastructure",
+            "Stripe Delivery Center roles",
+            "Stripe sales Backend Engineer",
+            "Strong coding skills",
+            "Strong collaboration skills",
+            "annual base salary",
+            "annual salary range",
+            "approach helps strike",
+            "building large scale distributed systems",
+            "building software services",
+            "critical tier0 infrastructure systems",
+            "efficiently leverage platform capabilities",
+            "enable effective financial decisions",
+            "enable engineering teams",
+            "exact team matching",
+            "external users Preferred Qualifications",
+            "financial infrastructure platform",
+            "global transaction volumes",
+            "great customer experience",
+            "greater in-office attendance requirements",
+            "industry software engineering experience",
+            "innovative application offerings",
+            "interview process based",
+            "large-scale data pipelines",
+            "machine learning models",
+            "production Office-assigned Stripes",
+            "salary range listed",
+            "sales bonuses target",
+            "ship great code",
+            "strong collaborative approach",
+            "team matching process",
+            "write well-factored algorithms"
+          ],
+          "og_image": "https://images.stripeassets.com/fzn2n1nzq965/4WQZdQm7sintngjLSCgyJn/33868b126a8b59021fe7db006c5a015e/Stripe_jobs_share.jpg?q=80",
+          "original_url": "https://stripe.com/jobs/search?gh_jid=7182617",
+          "pathname": "/jobs/search?gh_jid=7182617",
+          "resource_type": ".md",
+          "title": "Backend Engineer, Core Technology",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://stripe.com/jobs/listing/backend-engineer-core-technology/7182617"
+    }
+  ]
+]

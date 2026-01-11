@@ -17,7 +17,7 @@ CONVEX_DIR = REPO_ROOT / "job_board_application"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-DEFAULT_TABLES = ["scrape_url_queue", "seen_job_urls"]
+DEFAULT_TABLES = ["seen_job_urls"]
 
 
 def _load_env(target_env: str) -> None:
@@ -144,7 +144,7 @@ async def main() -> None:
     parser.add_argument("--domain", help="Match sites by domain (substring).")
     parser.add_argument(
         "--tables",
-        help="Comma-separated tables to wipe (default: scrape_url_queue,seen_job_urls).",
+        help="Comma-separated tables to wipe (default: seen_job_urls).",
     )
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument("--max-pages", type=int, default=50)

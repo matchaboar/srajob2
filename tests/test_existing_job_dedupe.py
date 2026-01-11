@@ -32,18 +32,19 @@ def test_greenhouse_listing_skips_existing_jobs_when_seen_urls_empty(monkeypatch
             return {"updated": len(args.get("urls", []))}
         raise AssertionError(f"unexpected mutation {name}")
 
-    async def fake_convex_query(name, args):
-        if name == "router:listQueuedScrapeUrls":
-            return [
-                {"url": existing_url, "createdAt": now_ms, "status": "pending"},
-                {"url": new_url, "createdAt": now_ms, "status": "pending"},
-            ]
-        raise AssertionError(f"unexpected query {name}")
+    def fake_list_scrape_urls(**_kwargs):
+        return [
+            {"url": existing_url, "createdAt": now_ms, "status": "pending"},
+            {"url": new_url, "createdAt": now_ms, "status": "pending"},
+        ]
 
     monkeypatch.setattr(activities, "fetch_seen_urls_for_site", fake_fetch_seen_urls_for_site)
     monkeypatch.setattr(activities, "filter_existing_job_urls", fake_filter_existing_job_urls)
     monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
-    monkeypatch.setattr(convex_client, "convex_query", fake_convex_query)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
+        fake_list_scrape_urls,
+    )
 
     site = {
         "_id": "a" * 26,

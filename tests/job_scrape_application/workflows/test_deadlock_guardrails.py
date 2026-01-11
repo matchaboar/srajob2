@@ -127,6 +127,18 @@ def _find_blocking_calls(tree: ast.AST) -> list[str]:
     return offenders
 
 
+def _find_store_scrape_calls(tree: ast.AST) -> list[str]:
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            fn = node.func
+            if isinstance(fn, ast.Name) and fn.id == "store_scrape":
+                offenders.append("call:store_scrape")
+            if isinstance(fn, ast.Attribute) and fn.attr == "store_scrape":
+                offenders.append("call:store_scrape")
+    return offenders
+
+
 def _assert_no_convex_calls(module) -> None:
     path = Path(module.__file__)
     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -145,6 +157,14 @@ def test_workflow_modules_do_not_call_blocking_libs():
         tree = ast.parse(path.read_text(encoding="utf-8"))
         offenders = _find_blocking_calls(tree)
         assert not offenders, f"Workflow module {path} has blocking calls/imports: {offenders}"
+
+
+def test_workflow_modules_do_not_call_store_scrape_directly():
+    for module in (sw, gw, ww, hw):
+        path = Path(module.__file__)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        offenders = _find_store_scrape_calls(tree)
+        assert not offenders, f"Workflow module {path} should not call store_scrape directly: {offenders}"
 
 
 

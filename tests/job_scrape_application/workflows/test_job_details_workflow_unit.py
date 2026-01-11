@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import pytest
@@ -15,6 +15,7 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     pytest.skip("temporalio not installed", allow_module_level=True)
 
+from job_scrape_application.workflows import heuristic_workflow as hw
 from job_scrape_application.workflows import scrape_workflow as sw
 
 
@@ -34,7 +35,11 @@ class _ActivityHarness:
         self.complete_calls: List[Dict[str, Any]] = []
         self.workflow_runs: List[Dict[str, Any]] = []
         self.batch: Dict[str, Any] | None = None
+        self.batch_responses: List[Dict[str, Any] | None] | None = None
+        self.lease_calls = 0
         self.process_result: Dict[str, Any] | None = None
+        self.process_results: List[Dict[str, Any]] | None = None
+        self.process_calls = 0
         self.process_error: Exception | None = None
         self.store_outcomes: List[Any] = []
 
@@ -43,11 +48,27 @@ class _ActivityHarness:
         self.calls.append(name)
 
         if activity is sw.lease_scrape_url_batch:
+            self.lease_calls += 1
+            if self.batch_responses is not None:
+                idx = self.lease_calls - 1
+                if idx < len(self.batch_responses):
+                    return self.batch_responses[idx]
+                return {"urls": []}
+            if self.batch is None:
+                return None
+            if self.lease_calls > 1:
+                return {"urls": []}
             return self.batch
 
         if activity is sw.process_spidercloud_job_batch:
             if self.process_error:
                 raise self.process_error
+            if self.process_results is not None:
+                idx = self.process_calls
+                self.process_calls += 1
+                if idx < len(self.process_results):
+                    return self.process_results[idx]
+                return self.process_results[-1]
             return self.process_result
 
         if activity is sw.complete_scrape_urls:
@@ -377,3 +398,82 @@ async def test_job_details_yields_on_large_batches(monkeypatch):
     await wf.run()
 
     assert sleep_calls, "Expected workflow.sleep to be called to yield in large batches"
+
+
+@pytest.mark.asyncio
+async def test_job_details_workflow_processes_multiple_batches(monkeypatch):
+    harness = _ActivityHarness()
+    harness.batch_responses = [
+        {"urls": [{"url": "https://example.com/a"}]},
+        {"urls": [{"url": "https://example.com/b"}]},
+        {"urls": []},
+    ]
+    harness.process_results = [
+        {"scrapeIds": ["scr-a"], "stored": 1, "invalid": 0, "failed": 0},
+        {"scrapeIds": ["scr-b"], "stored": 1, "invalid": 0, "failed": 0},
+    ]
+
+    monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
+    monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
+    monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
+    monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_070))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    summary = await sw.SpidercloudJobDetailsWorkflow().run()
+
+    assert summary.site_count == 2
+    assert summary.scrape_ids == ["scr-a", "scr-b"]
+
+
+@pytest.mark.asyncio
+async def test_listing_workflow_processes_multiple_batches(monkeypatch):
+    state = {"leases": 0}
+
+    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
+        if activity is sw.lease_scrape_url_batch:
+            state["leases"] += 1
+            if state["leases"] == 1:
+                return {"urls": [{"url": "https://example.com/list/1"}]}
+            if state["leases"] == 2:
+                return {"urls": [{"url": "https://example.com/list/2"}]}
+            return {"urls": []}
+        if activity is sw.process_spidercloud_listing_batch:
+            return {"queued": 1, "listingCompleted": 1}
+        if activity in (sw.record_workflow_run, sw.fail_listing_batch_urls):
+            return None
+        return None
+
+    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute)
+    monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
+    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_080))
+    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
+
+    summary = await sw.SpidercloudListingWorkflow().run()
+
+    assert summary.site_count == 2
+
+
+@pytest.mark.asyncio
+async def test_heuristic_workflow_uses_dynamic_batch_limit(monkeypatch):
+    calls: list[list[int]] = []
+    base_time = datetime(2024, 1, 1, 0, 0, 0)
+    ticks = {"count": 0}
+
+    def fake_now():
+        ticks["count"] += 1
+        return base_time + timedelta(seconds=ticks["count"])
+
+    async def fake_execute(_activity, args=None, **kwargs):  # type: ignore[override]
+        if isinstance(args, list):
+            calls.append(args)
+        if len(calls) == 1:
+            return {"processed": 1, "remaining": 50, "fetched": 50}
+        return {"processed": 0, "remaining": 0, "fetched": 0}
+
+    monkeypatch.setattr(hw.workflow, "execute_activity", fake_execute)
+    monkeypatch.setattr(hw.workflow, "now", fake_now)
+
+    await hw.HeuristicJobDetailsWorkflow().run()
+
+    assert calls[0] == [hw.BATCH_LIMIT_DEFAULT]

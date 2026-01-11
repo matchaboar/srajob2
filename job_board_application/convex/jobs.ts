@@ -15,6 +15,7 @@ import {
 } from "./location";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+  buildDescriptionPreview,
   deleteDescriptionFromStorage,
   loadDescriptionFromStorage,
   storeDescriptionInStorage,
@@ -25,7 +26,8 @@ const LEVEL_RE =
   /\b(?<level>intern|junior|mid(?:-level)?|mid|sr|senior|staff|principal|lead|manager|director|vp|cto|chief technology officer)\b/i;
 const LOCATION_RE =
   /\b(?:location|office|based\s+in)\s*[:\-–]\s*(?<location>[^\n,;]+(?:,\s*[^\n,;]+)?)/i;
-const SIMPLE_LOCATION_LINE_RE = /^[ \t]*(?<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$/m;
+const SIMPLE_LOCATION_LINE_RE =
+  /^[ \t]*(?<location>[A-Z][\w .'-]+,\s*[A-Z][\w .'-]+)\s*$/m;
 const SALARY_RE =
   /\$\s*(?<low>\d{2,3}(?:[.,]\d{3})*)(?:\s*[-–]\s*(?:USD|US\$)?\s*\$?\s*(?<high>\d{2,3}(?:[.,]\d{3})*))?\s*(?<period>per\s+year|per\s+annum|annual|yr|year|\/year|per\s+hour|hr|hour)?/i;
 const SALARY_K_RE =
@@ -33,38 +35,6 @@ const SALARY_K_RE =
 const REMOTE_RE = /\b(remote(-first)?|hybrid|onsite|on-site)\b/i;
 const CITY_STATE_ABBR_RE =
   /\b(?<city>[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)*)\s*,\s*(?<state>[A-Z]{2})\b/g;
-
-const SCRAPE_URL_QUEUE_BUCKETS = 128;
-
-const hashStringToBucket = (value: string, bucketCount: number) => {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) % bucketCount;
-};
-
-const deriveScrapeQueueBucketKey = (params: {
-  url: string;
-  sourceUrl?: string | null;
-  siteId?: string | null;
-}) => {
-  if (params.siteId) return `site:${params.siteId}`;
-  if (params.sourceUrl) return `source:${params.sourceUrl}`;
-  try {
-    const domain = new URL(params.url).hostname.toLowerCase();
-    if (domain) return `domain:${domain}`;
-  } catch {
-    // fall back to url
-  }
-  return `url:${params.url}`;
-};
-
-const deriveScrapeQueueBucket = (params: { url: string; sourceUrl?: string | null; siteId?: string | null }) => {
-  const key = deriveScrapeQueueBucketKey(params);
-  return hashStringToBucket(key, SCRAPE_URL_QUEUE_BUCKETS);
-};
 
 const isUnknownLabel = (value?: string | null) => {
   const normalized = (value || "").trim().toLowerCase();
@@ -77,7 +47,13 @@ const isUnknownLabel = (value?: string | null) => {
     normalized === "not available"
   );
 };
-const UNKNOWN_TITLE_LABELS = new Set(["page_title", "title", "job_title", "untitled", "application"]);
+const UNKNOWN_TITLE_LABELS = new Set([
+  "page_title",
+  "title",
+  "job_title",
+  "untitled",
+  "application",
+]);
 
 const isUnknownJobTitle = (value?: string | null) => {
   const normalized = (value || "").trim().toLowerCase();
@@ -90,11 +66,17 @@ export const deriveEngineerFlag = (title?: string | null) => {
   if (isUnknownJobTitle(title)) return true;
   return (title || "").toLowerCase().includes("engineer");
 };
-const isVersionLabel = (value?: string | null) => /^v\d+$/i.test((value || "").trim());
+const isVersionLabel = (value?: string | null) =>
+  /^v\d+$/i.test((value || "").trim());
 const shouldOverrideCompany = (value?: string | null) => {
   const trimmed = (value || "").trim();
   const normalized = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return isUnknownLabel(value) || trimmed === "Greenhouse" || isVersionLabel(trimmed) || normalized === "ashbyhq";
+  return (
+    isUnknownLabel(value) ||
+    trimmed === "Greenhouse" ||
+    isVersionLabel(trimmed) ||
+    normalized === "ashbyhq"
+  );
 };
 
 const normalizeSortTimestamp = (value: unknown) =>
@@ -193,14 +175,21 @@ export const deriveCompanyFromUrl = (url: string): string => {
     }
 
     let baseHost = hostname;
-    for (const prefix of ["careers.", "jobs.", "boards.", "boards-", "job-", "boards-"]) {
+    for (const prefix of [
+      "careers.",
+      "jobs.",
+      "boards.",
+      "boards-",
+      "job-",
+      "boards-",
+    ]) {
       if (baseHost.startsWith(prefix)) {
         baseHost = baseHost.slice(prefix.length);
         break;
       }
     }
     const parts = baseHost.split(".").filter(Boolean);
-    const name = parts.length >= 2 ? parts[parts.length - 2] : parts[0] ?? "";
+    const name = parts.length >= 2 ? parts[parts.length - 2] : (parts[0] ?? "");
     return toTitleCase(name);
   } catch {
     return "";
@@ -220,11 +209,20 @@ const toInt = (value: string | undefined | null) => {
 const arraysEqual = (a?: string[] | null, b?: string[] | null) =>
   JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 
-const coerceLevelFromHint = (hint: string): "junior" | "mid" | "senior" | "staff" => {
+const coerceLevelFromHint = (
+  hint: string,
+): "junior" | "mid" | "senior" | "staff" => {
   const h = hint.toLowerCase();
   if (h.includes("intern")) return "junior";
   if (h.includes("junior")) return "junior";
-  if (h.includes("staff") || h.includes("principal") || h.includes("lead") || h.includes("director") || h.includes("vp") || h.includes("chief")) {
+  if (
+    h.includes("staff") ||
+    h.includes("principal") ||
+    h.includes("lead") ||
+    h.includes("director") ||
+    h.includes("vp") ||
+    h.includes("chief")
+  ) {
     return "staff";
   }
   if (h.includes("senior") || h === "sr") return "senior";
@@ -301,7 +299,9 @@ export const parseMarkdownHints = (markdown: string) => {
     }
   }
   if (!locationCandidates.length) {
-    const locationLine = lines.find((line) => /(?:^|\b)(location|office|based\s+in)\s*[:\-–]/i.test(line));
+    const locationLine = lines.find((line) =>
+      /(?:^|\b)(location|office|based\s+in)\s*[:\-–]/i.test(line),
+    );
     if (locationLine) {
       addResolvedCandidates(extractExplicitCityStates(locationLine));
     }
@@ -316,7 +316,8 @@ export const parseMarkdownHints = (markdown: string) => {
     }
   }
   if (!locationCandidates.length) {
-    const locMatch = LOCATION_RE.exec(markdown) || SIMPLE_LOCATION_LINE_RE.exec(markdown);
+    const locMatch =
+      LOCATION_RE.exec(markdown) || SIMPLE_LOCATION_LINE_RE.exec(markdown);
     if (locMatch?.groups?.location) {
       locationCandidates.push(locMatch.groups.location.trim());
     }
@@ -340,7 +341,11 @@ export const parseMarkdownHints = (markdown: string) => {
     const token = remoteMatch[1]?.toLowerCase() ?? "";
     if (token.includes("remote")) {
       hints.remote = true;
-    } else if (token.includes("hybrid") || token.includes("on-site") || token.includes("onsite")) {
+    } else if (
+      token.includes("hybrid") ||
+      token.includes("on-site") ||
+      token.includes("onsite")
+    ) {
       hints.remote = false;
     } else {
       hints.remote = false;
@@ -360,17 +365,21 @@ export const parseMarkdownHints = (markdown: string) => {
       const globalRegex = new RegExp(regex.source, flags);
       for (const match of markdown.matchAll(globalRegex)) {
         const groups = match.groups ?? {};
-        const period = typeof groups.period === "string" ? groups.period.toLowerCase() : "";
+        const period =
+          typeof groups.period === "string" ? groups.period.toLowerCase() : "";
         if (period.includes("hour")) continue;
         const raw = (match[0] || "").toLowerCase();
         if (raw.includes("401k")) continue;
 
         const low = toInt(groups.low);
         const high = toInt(groups.high);
-        const normalizedLow = typeof low === "number" ? low * multiplier : undefined;
-        const normalizedHigh = typeof high === "number" ? high * multiplier : undefined;
+        const normalizedLow =
+          typeof low === "number" ? low * multiplier : undefined;
+        const normalizedHigh =
+          typeof high === "number" ? high * multiplier : undefined;
         if (typeof normalizedLow === "number") salaryValues.push(normalizedLow);
-        if (typeof normalizedHigh === "number") salaryValues.push(normalizedHigh);
+        if (typeof normalizedHigh === "number")
+          salaryValues.push(normalizedHigh);
         if (normalizedLow !== undefined || normalizedHigh !== undefined) {
           salaryRanges.push({ low: normalizedLow, high: normalizedHigh });
         }
@@ -389,7 +398,8 @@ export const parseMarkdownHints = (markdown: string) => {
     if (bestRange && (bestRange.low || bestRange.high)) {
       const rangePayload: Record<string, number> = {};
       if (typeof bestRange.low === "number") rangePayload.low = bestRange.low;
-      if (typeof bestRange.high === "number") rangePayload.high = bestRange.high;
+      if (typeof bestRange.high === "number")
+        rangePayload.high = bestRange.high;
       if (Object.keys(rangePayload).length) {
         hints.compensationRange = rangePayload;
       }
@@ -412,17 +422,35 @@ export const parseMarkdownHints = (markdown: string) => {
 export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
   const updates: Record<string, any> = {};
 
-  if (hints.title && typeof job.title === "string" && job.title.toLowerCase().startsWith("job application for")) {
+  if (
+    hints.title &&
+    typeof job.title === "string" &&
+    job.title.toLowerCase().startsWith("job application for")
+  ) {
     updates.title = hints.title;
   }
-  if (!updates.title && hints.title && typeof job.title === "string" && job.title !== hints.title) {
+  if (
+    !updates.title &&
+    hints.title &&
+    typeof job.title === "string" &&
+    job.title !== hints.title
+  ) {
     updates.title = hints.title;
   }
 
-  const normalizedLocations = normalizeLocations(hints.locations ?? hints.location);
+  const normalizedLocations = normalizeLocations(
+    hints.locations ?? hints.location,
+  );
   if (normalizedLocations.length) {
-    const locationInfo = deriveLocationFields({ locations: normalizedLocations, location: normalizedLocations[0] });
-    if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationInfo.primaryLocation) {
+    const locationInfo = deriveLocationFields({
+      locations: normalizedLocations,
+      location: normalizedLocations[0],
+    });
+    if (
+      !job.location ||
+      isUnknownLocationValue(job.location) ||
+      job.location !== locationInfo.primaryLocation
+    ) {
       updates.location = locationInfo.primaryLocation;
     }
     if (!arraysEqual(job.locations, locationInfo.locations)) {
@@ -437,29 +465,42 @@ export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
     if (job.country !== locationInfo.country) {
       updates.country = locationInfo.country;
     }
-    if (locationInfo.locationSearch && job.locationSearch !== locationInfo.locationSearch) {
+    if (
+      locationInfo.locationSearch &&
+      job.locationSearch !== locationInfo.locationSearch
+    ) {
       updates.locationSearch = locationInfo.locationSearch;
     }
-    if ((isUnknownLocationValue(job.city) || !job.city) && locationInfo.city) updates.city = locationInfo.city;
-    if ((isUnknownLocationValue(job.state) || !job.state) && locationInfo.state) updates.state = locationInfo.state;
+    if ((isUnknownLocationValue(job.city) || !job.city) && locationInfo.city)
+      updates.city = locationInfo.city;
+    if ((isUnknownLocationValue(job.state) || !job.state) && locationInfo.state)
+      updates.state = locationInfo.state;
   }
 
-  const remoteCountry = typeof hints.remoteCountry === "string" ? hints.remoteCountry.trim() : "";
+  const remoteCountry =
+    typeof hints.remoteCountry === "string" ? hints.remoteCountry.trim() : "";
   if (remoteCountry) {
     const hasOnlyRemoteLocation =
       normalizedLocations.length === 0 ||
-      (normalizedLocations.length === 1 && normalizedLocations[0].toLowerCase() === "remote");
+      (normalizedLocations.length === 1 &&
+        normalizedLocations[0].toLowerCase() === "remote");
     if (hasOnlyRemoteLocation) {
-      const nextLocations = normalizedLocations.length ? normalizedLocations : ["Remote"];
-      if (!arraysEqual(job.locations, nextLocations)) updates.locations = nextLocations;
+      const nextLocations = normalizedLocations.length
+        ? normalizedLocations
+        : ["Remote"];
+      if (!arraysEqual(job.locations, nextLocations))
+        updates.locations = nextLocations;
       const nextLocationStates = ["Remote"];
-      if (!arraysEqual(job.locationStates, nextLocationStates)) updates.locationStates = nextLocationStates;
+      if (!arraysEqual(job.locationStates, nextLocationStates))
+        updates.locationStates = nextLocationStates;
       if (job.location !== "Remote") updates.location = "Remote";
       const nextCountries = [remoteCountry];
-      if (!arraysEqual(job.countries, nextCountries)) updates.countries = nextCountries;
+      if (!arraysEqual(job.countries, nextCountries))
+        updates.countries = nextCountries;
       if (job.country !== remoteCountry) updates.country = remoteCountry;
       const nextLocationSearch = `Remote ${remoteCountry}`.trim();
-      if (job.locationSearch !== nextLocationSearch) updates.locationSearch = nextLocationSearch;
+      if (job.locationSearch !== nextLocationSearch)
+        updates.locationSearch = nextLocationSearch;
     }
   }
 
@@ -474,13 +515,23 @@ export const buildUpdatesFromHints = (job: any, hints: Record<string, any>) => {
     updates.remote = false;
   }
 
-  if (hints.compensation && (!job.totalCompensation || job.totalCompensation <= 0)) {
+  if (
+    hints.compensation &&
+    (!job.totalCompensation || job.totalCompensation <= 0)
+  ) {
     updates.totalCompensation = hints.compensation;
     updates.compensationUnknown = false;
     updates.compensationReason = "parsed from description";
-  } else if (hints.compensation && job.totalCompensation && job.totalCompensation > 0) {
+  } else if (
+    hints.compensation &&
+    job.totalCompensation &&
+    job.totalCompensation > 0
+  ) {
     // Optionally tighten comp reason if we filled something previously from defaults.
-    if (!job.compensationReason || job.compensationReason === "compensation provided in scrape payload") {
+    if (
+      !job.compensationReason ||
+      job.compensationReason === "compensation provided in scrape payload"
+    ) {
       updates.compensationReason = "parsed from description";
     }
   }
@@ -527,27 +578,55 @@ type JobWithDetails = DbJob &
 const ensureLocationFields = async (
   ctx: any,
   job: DbJob,
-  options: { allowPatch?: boolean } = {}
+  options: { allowPatch?: boolean } = {},
 ) => {
   const hasLocation =
-    typeof job.location === "string" && job.location.trim() && !isUnknownLocationValue(job.location);
+    typeof job.location === "string" &&
+    job.location.trim() &&
+    !isUnknownLocationValue(job.location);
   const hasLocations = Array.isArray(job.locations) && job.locations.length > 0;
-  const hasLocationStates = Array.isArray(job.locationStates) && job.locationStates.length > 0;
+  const hasLocationStates =
+    Array.isArray(job.locationStates) && job.locationStates.length > 0;
   const hasLocationSearch =
-    typeof job.locationSearch === "string" && job.locationSearch.trim() && !isUnknownLocationValue(job.locationSearch);
-  const hasCity = typeof job.city === "string" && job.city.trim() && !isUnknownLocationValue(job.city);
-  const hasState = typeof job.state === "string" && job.state.trim() && !isUnknownLocationValue(job.state);
+    typeof job.locationSearch === "string" &&
+    job.locationSearch.trim() &&
+    !isUnknownLocationValue(job.locationSearch);
+  const hasCity =
+    typeof job.city === "string" &&
+    job.city.trim() &&
+    !isUnknownLocationValue(job.city);
+  const hasState =
+    typeof job.state === "string" &&
+    job.state.trim() &&
+    !isUnknownLocationValue(job.state);
 
-  if (hasLocation && hasLocations && hasLocationStates && hasLocationSearch && hasCity && hasState) {
+  if (
+    hasLocation &&
+    hasLocations &&
+    hasLocationStates &&
+    hasLocationSearch &&
+    hasCity &&
+    hasState
+  ) {
     return job;
   }
 
-  const allowPatch = Boolean(options.allowPatch && typeof ctx.db?.patch === "function");
+  const allowPatch = Boolean(
+    options.allowPatch && typeof ctx.db?.patch === "function",
+  );
   const locationInfo = deriveLocationFields(job);
   const { city, state } = locationInfo;
-  const normalizedCity = isUnknownLocationValue(job.city) ? locationInfo.city : job.city ?? locationInfo.city;
-  const normalizedState = isUnknownLocationValue(job.state) ? locationInfo.state : job.state ?? locationInfo.state;
-  const locationLabel = formatLocationLabel(normalizedCity, normalizedState, job.location ?? locationInfo.primaryLocation);
+  const normalizedCity = isUnknownLocationValue(job.city)
+    ? locationInfo.city
+    : (job.city ?? locationInfo.city);
+  const normalizedState = isUnknownLocationValue(job.state)
+    ? locationInfo.state
+    : (job.state ?? locationInfo.state);
+  const locationLabel = formatLocationLabel(
+    normalizedCity,
+    normalizedState,
+    job.location ?? locationInfo.primaryLocation,
+  );
 
   if (!allowPatch) {
     return {
@@ -562,24 +641,43 @@ const ensureLocationFields = async (
   }
 
   const patched: Record<string, any> = {};
-  if ((isUnknownLocationValue(job.city) || !job.city) && city) patched.city = city;
-  if ((isUnknownLocationValue(job.state) || !job.state) && state) patched.state = state;
-  if (!job.location || isUnknownLocationValue(job.location) || job.location !== locationLabel) {
+  if ((isUnknownLocationValue(job.city) || !job.city) && city)
+    patched.city = city;
+  if ((isUnknownLocationValue(job.state) || !job.state) && state)
+    patched.state = state;
+  if (
+    !job.location ||
+    isUnknownLocationValue(job.location) ||
+    job.location !== locationLabel
+  ) {
     patched.location = locationLabel;
   }
-  if (!Array.isArray(job.locations) || JSON.stringify(job.locations) !== JSON.stringify(locationInfo.locations)) {
+  if (
+    !Array.isArray(job.locations) ||
+    JSON.stringify(job.locations) !== JSON.stringify(locationInfo.locations)
+  ) {
     patched.locations = locationInfo.locations;
   }
-  if (!Array.isArray(job.countries) || JSON.stringify(job.countries) !== JSON.stringify(locationInfo.countries)) {
+  if (
+    !Array.isArray(job.countries) ||
+    JSON.stringify(job.countries) !== JSON.stringify(locationInfo.countries)
+  ) {
     patched.countries = locationInfo.countries;
   }
   if (!job.country || job.country !== locationInfo.country) {
     patched.country = locationInfo.country;
   }
-  if (!Array.isArray(job.locationStates) || JSON.stringify(job.locationStates) !== JSON.stringify(locationInfo.locationStates)) {
+  if (
+    !Array.isArray(job.locationStates) ||
+    JSON.stringify(job.locationStates) !==
+      JSON.stringify(locationInfo.locationStates)
+  ) {
     patched.locationStates = locationInfo.locationStates;
   }
-  if (!job.locationSearch || job.locationSearch !== locationInfo.locationSearch) {
+  if (
+    !job.locationSearch ||
+    job.locationSearch !== locationInfo.locationSearch
+  ) {
     patched.locationSearch = locationInfo.locationSearch;
   }
 
@@ -598,31 +696,39 @@ const ensureLocationFields = async (
   } as DbJob;
 };
 
-const getJobDetailsByJobId = async (ctx: any, jobId: Id<"jobs">): Promise<JobDetailDoc | null> => {
+const getJobDetailsByJobId = async (
+  ctx: any,
+  jobId: Id<"jobs">,
+): Promise<JobDetailDoc | null> => {
   return (await ctx.db
     .query("job_details")
     .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
     .first()) as JobDetailDoc | null;
 };
 
-const resolveDescriptionText = async (ctx: any, job: any, details: JobDetailDoc | null) => {
-  const stored = await loadDescriptionFromStorage(ctx, (details as any)?.descriptionStorageId);
+const resolveDescriptionText = async (
+  ctx: any,
+  job: any,
+  details: JobDetailDoc | null,
+) => {
+  const stored = await loadDescriptionFromStorage(
+    ctx,
+    (details as any)?.descriptionStorageId,
+  );
   if (typeof stored === "string" && stored.trim()) return stored;
   if (typeof details?.description === "string") return details.description;
-  if (typeof (job as any)?.description === "string") return (job as any).description;
+  if (typeof (job as any)?.description === "string")
+    return (job as any).description;
   return "";
 };
 
-const getScrapeQueueByUrl = async (ctx: any, url?: string | null) => {
-  if (!url) return null;
-  return await ctx.db
-    .query("scrape_url_queue")
-    .withIndex("by_url", (q: any) => q.eq("url", url))
-    .first();
-};
-
-const countAppliedApplications = async (ctx: any, jobIds: Array<Id<"jobs"> | string>) => {
-  const unique = Array.from(new Set(jobIds.map((id) => String(id)).filter(Boolean)));
+const countAppliedApplications = async (
+  ctx: any,
+  jobIds: Array<Id<"jobs"> | string>,
+) => {
+  const unique = Array.from(
+    new Set(jobIds.map((id) => String(id)).filter(Boolean)),
+  );
   if (unique.length === 0) return 0;
 
   const counts = await Promise.all(
@@ -633,19 +739,36 @@ const countAppliedApplications = async (ctx: any, jobIds: Array<Id<"jobs"> | str
         .filter((q: any) => q.eq(q.field("status"), "applied"))
         .collect();
       return applications.length;
-    })
+    }),
   );
 
   return counts.reduce((sum, count) => sum + count, 0);
 };
 
-const mergeJobDetails = (job: DbJob, details: JobDetailDoc | null): JobWithDetails => {
+const mergeJobDetails = (
+  job: DbJob,
+  details: JobDetailDoc | null,
+): JobWithDetails => {
   if (!details) return job;
-  const { jobId: _jobId, _id: _detailId, descriptionStorageId: _storageId, ...detailFields } = details;
-  return { ...job, ...detailFields, descriptionStorageAvailable: Boolean((details as any)?.descriptionStorageId) };
+  const {
+    jobId: _jobId,
+    _id: _detailId,
+    descriptionStorageId: _storageId,
+    ...detailFields
+  } = details;
+  return {
+    ...job,
+    ...detailFields,
+    descriptionStorageAvailable: Boolean(
+      (details as any)?.descriptionStorageId,
+    ),
+  };
 };
 
-export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof deriveLocationFields>) => {
+export const computeJobCountry = (
+  job: DbJob,
+  locationInfo?: ReturnType<typeof deriveLocationFields>,
+) => {
   const explicitCountry = job.country?.trim();
   if (explicitCountry) {
     return explicitCountry;
@@ -653,10 +776,14 @@ export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof d
 
   const resolvedLocation =
     locationInfo ??
-    (Array.isArray(job.countries) || Array.isArray(job.locationStates) || job.state ? null : deriveLocationFields(job));
+    (Array.isArray(job.countries) ||
+    Array.isArray(job.locationStates) ||
+    job.state
+      ? null
+      : deriveLocationFields(job));
   const locationCountries = Array.isArray(job.countries)
     ? job.countries
-    : resolvedLocation?.countries ?? [];
+    : (resolvedLocation?.countries ?? []);
 
   const primaryCountry = locationCountries.find((c) => c && c !== "Unknown");
   if (primaryCountry && primaryCountry !== "Other") {
@@ -685,7 +812,7 @@ export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof d
     ? job.locationStates
     : job.state
       ? [job.state]
-      : resolvedLocation?.locationStates ?? [];
+      : (resolvedLocation?.locationStates ?? []);
 
   for (const state of locationStates) {
     const inferred = inferCountryFromLocation(state);
@@ -694,7 +821,9 @@ export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof d
     }
   }
 
-  const hasNonUnknownState = locationStates.some((state) => state && state !== "Unknown" && state !== "Remote");
+  const hasNonUnknownState = locationStates.some(
+    (state) => state && state !== "Unknown" && state !== "Remote",
+  );
   if (hasNonUnknownState) {
     return "United States";
   }
@@ -706,8 +835,10 @@ export const computeJobCountry = (job: DbJob, locationInfo?: ReturnType<typeof d
   return "Unknown";
 };
 
-const normalizeKeyPart = (value?: string | null) => (value ?? "").trim().toLowerCase();
-const normalizeCompanyKey = (value?: string | null) => (value ?? "").trim().toLowerCase();
+const normalizeKeyPart = (value?: string | null) =>
+  (value ?? "").trim().toLowerCase();
+const normalizeCompanyKey = (value?: string | null) =>
+  (value ?? "").trim().toLowerCase();
 
 const COMPANY_SUFFIXES = new Set([
   "inc",
@@ -810,10 +941,16 @@ const parseFilterCursor = (cursor?: string | null) => {
 
   try {
     const parsed = JSON.parse(cursor) as Partial<FilterCursorPayload> | null;
-    if (parsed && typeof parsed === "object" && ("raw" in parsed || "carry" in parsed || "done" in parsed)) {
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      ("raw" in parsed || "carry" in parsed || "done" in parsed)
+    ) {
       return {
         rawCursor: typeof parsed.raw === "string" ? parsed.raw : null,
-        carryIds: Array.isArray(parsed.carry) ? parsed.carry.filter((id): id is string => typeof id === "string") : [],
+        carryIds: Array.isArray(parsed.carry)
+          ? parsed.carry.filter((id): id is string => typeof id === "string")
+          : [],
         rawIsDone: typeof parsed.done === "boolean" ? parsed.done : false,
       };
     }
@@ -824,8 +961,16 @@ const parseFilterCursor = (cursor?: string | null) => {
   return { rawCursor: cursor, carryIds: [] as string[], rawIsDone: false };
 };
 
-const buildFilterCursor = (rawCursor: string | null, carryIds: string[], rawIsDone: boolean) =>
-  JSON.stringify({ raw: rawCursor ?? null, carry: carryIds, done: rawIsDone } satisfies FilterCursorPayload);
+const buildFilterCursor = (
+  rawCursor: string | null,
+  carryIds: string[],
+  rawIsDone: boolean,
+) =>
+  JSON.stringify({
+    raw: rawCursor ?? null,
+    carry: carryIds,
+    done: rawIsDone,
+  } satisfies FilterCursorPayload);
 
 const baseDomainFromHost = (host: string): string => {
   const parts = host.split(".").filter(Boolean);
@@ -844,7 +989,9 @@ const normalizeDomainInput = (value: string): string => {
   if (!trimmed) return "";
 
   try {
-    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    const parsed = new URL(
+      trimmed.includes("://") ? trimmed : `https://${trimmed}`,
+    );
     const host = parsed.hostname.toLowerCase();
     if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(parsed.href);
@@ -853,7 +1000,8 @@ const normalizeDomainInput = (value: string): string => {
     if (ashbySlug) return `${ashbySlug}.ashbyhq.com`;
     return baseDomainFromHost(host);
   } catch {
-    const hostOnly = trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
+    const hostOnly =
+      trimmed.replace(/^https?:\/\//i, "").split("/")[0] || trimmed;
     const host = hostOnly.toLowerCase();
     if (host.endsWith(WORKDAY_HOST_SUFFIX)) return host;
     const greenhouseSlug = greenhouseSlugFromUrl(host);
@@ -865,9 +1013,13 @@ const normalizeDomainInput = (value: string): string => {
 };
 
 export const matchesCompanyFilters = (
-  job: { company?: string | null; companyKey?: string | null; url?: string | null },
+  job: {
+    company?: string | null;
+    companyKey?: string | null;
+    url?: string | null;
+  },
   normalizedCompanyFilters: Set<string>,
-  domainAliasByDomain?: Map<string, string> | null
+  domainAliasByDomain?: Map<string, string> | null,
 ) => {
   if (!normalizedCompanyFilters.size) return true;
   const jobCompanyKey =
@@ -878,7 +1030,9 @@ export const matchesCompanyFilters = (
   if (!domainAliasByDomain || domainAliasByDomain.size === 0) return false;
   const domain = normalizeDomainInput(job.url ?? "");
   if (!domain) return false;
-  const aliasKey = normalizeCompanyFilterKey(domainAliasByDomain.get(domain) ?? "");
+  const aliasKey = normalizeCompanyFilterKey(
+    domainAliasByDomain.get(domain) ?? "",
+  );
   if (!aliasKey) return false;
   return normalizedCompanyFilters.has(aliasKey);
 };
@@ -892,7 +1046,9 @@ const buildJobGroupKey = (job: DbJob) => {
   return `${normalizedTitle}|${normalizedCompany}|${normalizedLevel}|${remoteToken}`;
 };
 
-const mergeStrings = (...candidates: Array<string | string[] | null | undefined>) => {
+const mergeStrings = (
+  ...candidates: Array<string | string[] | null | undefined>
+) => {
   const seen = new Set<string>();
   const merged: string[] = [];
 
@@ -922,15 +1078,24 @@ const mergeStrings = (...candidates: Array<string | string[] | null | undefined>
 
 const pickBestCompJob = (jobs: DbJob[]) => {
   const withKnownComp = jobs.filter(
-    (job) => job.compensationUnknown !== true && typeof job.totalCompensation === "number" && job.totalCompensation > 0
+    (job) =>
+      job.compensationUnknown !== true &&
+      typeof job.totalCompensation === "number" &&
+      job.totalCompensation > 0,
   );
 
   if (withKnownComp.length === 0) return null;
 
-  return withKnownComp.sort((a, b) => (b.totalCompensation ?? 0) - (a.totalCompensation ?? 0))[0];
+  return withKnownComp.sort(
+    (a, b) => (b.totalCompensation ?? 0) - (a.totalCompensation ?? 0),
+  )[0];
 };
 
-export const matchesCountryFilter = (jobCountry: string, countryFilter: string, isOtherCountry: boolean) => {
+export const matchesCountryFilter = (
+  jobCountry: string,
+  countryFilter: string,
+  isOtherCountry: boolean,
+) => {
   if (!countryFilter) return true;
   if (!isOtherCountry) {
     return jobCountry === countryFilter || jobCountry === "Unknown";
@@ -944,22 +1109,40 @@ const runLocationMigration = async (ctx: any, limit = 500) => {
 
   for (const job of jobs) {
     const locationInfo = deriveLocationFields(job);
-    const { city, state, primaryLocation, locations, locationStates, locationSearch, countries, country } = locationInfo;
+    const {
+      city,
+      state,
+      primaryLocation,
+      locations,
+      locationStates,
+      locationSearch,
+      countries,
+      country,
+    } = locationInfo;
     const locationLabel = formatLocationLabel(city, state, primaryLocation);
     const update: Record<string, any> = {};
     if (job.city !== city) update.city = city;
     if (job.state !== state) update.state = state;
     if (job.location !== locationLabel) update.location = locationLabel;
-    if (!Array.isArray(job.locations) || JSON.stringify(job.locations) !== JSON.stringify(locations)) {
+    if (
+      !Array.isArray(job.locations) ||
+      JSON.stringify(job.locations) !== JSON.stringify(locations)
+    ) {
       update.locations = locations;
     }
-    if (!Array.isArray(job.countries) || JSON.stringify(job.countries) !== JSON.stringify(countries)) {
+    if (
+      !Array.isArray(job.countries) ||
+      JSON.stringify(job.countries) !== JSON.stringify(countries)
+    ) {
       update.countries = countries;
     }
     if (job.country !== country) {
       update.country = country;
     }
-    if (!Array.isArray(job.locationStates) || JSON.stringify(job.locationStates) !== JSON.stringify(locationStates)) {
+    if (
+      !Array.isArray(job.locationStates) ||
+      JSON.stringify(job.locationStates) !== JSON.stringify(locationStates)
+    ) {
       update.locationStates = locationStates;
     }
     if (job.locationSearch !== locationSearch) {
@@ -981,7 +1164,14 @@ export const listJobs = query({
     includeRemote: v.optional(v.boolean()),
     state: v.optional(v.string()),
     country: v.optional(v.string()),
-    level: v.optional(v.union(v.literal("junior"), v.literal("mid"), v.literal("senior"), v.literal("staff"))),
+    level: v.optional(
+      v.union(
+        v.literal("junior"),
+        v.literal("mid"),
+        v.literal("senior"),
+        v.literal("staff"),
+      ),
+    ),
     minCompensation: v.optional(v.number()),
     maxCompensation: v.optional(v.number()),
     hideUnknownCompensation: v.optional(v.boolean()),
@@ -1005,21 +1195,28 @@ export const listJobs = query({
     const shouldUseSearch = rawSearch.length > 0;
     const wantsEngineer = args.engineer === true;
 
-    const companyFilters = (args.companies ?? []).map((c) => c.trim()).filter(Boolean);
+    const companyFilters = (args.companies ?? [])
+      .map((c) => c.trim())
+      .filter(Boolean);
     const normalizedCompanyFilters = new Set(
-      companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean)
+      companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean),
     );
     const hasCompanyFilter = normalizedCompanyFilters.size > 0;
-    const singleCompanyFilter = companyFilters.length === 1 ? companyFilters[0] : null;
-    const singleCompanyKey = singleCompanyFilter ? normalizeCompanyFilterKey(singleCompanyFilter) : "";
+    const singleCompanyFilter =
+      companyFilters.length === 1 ? companyFilters[0] : null;
+    const singleCompanyKey = singleCompanyFilter
+      ? normalizeCompanyFilterKey(singleCompanyFilter)
+      : "";
     const requestedPageSize = args.paginationOpts.numItems ?? 50;
     const shouldExcludeApplied = args.excludeApplied !== false;
     const hasAppliedApplications = shouldExcludeApplied
       ? Boolean(
           await ctx.db
             .query("applications")
-            .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "applied"))
-            .first()
+            .withIndex("by_user_status_applied_at", (q) =>
+              q.eq("userId", userId).eq("status", "applied"),
+            )
+            .first(),
         )
       : false;
     const hasRejectedApplications =
@@ -1027,11 +1224,15 @@ export const listJobs = query({
         ? Boolean(
             await ctx.db
               .query("applications")
-              .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "rejected"))
-              .first()
+              .withIndex("by_user_status_applied_at", (q) =>
+                q.eq("userId", userId).eq("status", "rejected"),
+              )
+              .first(),
           )
         : false;
-    const hasUserApplications = shouldExcludeApplied ? hasAppliedApplications || hasRejectedApplications : false;
+    const hasUserApplications = shouldExcludeApplied
+      ? hasAppliedApplications || hasRejectedApplications
+      : false;
     const maxPageSize = hasCompanyFilter || hasUserApplications ? 25 : 50;
     const pageSize = Math.max(1, Math.min(requestedPageSize, maxPageSize));
     const paginationOpts = { ...args.paginationOpts, numItems: pageSize };
@@ -1041,8 +1242,8 @@ export const listJobs = query({
       const aliasRows = await ctx.db.query("domain_aliases").collect();
       domainAliasLookup = new Map();
       for (const row of aliasRows as any[]) {
-        const domain = (row)?.domain?.trim?.() ?? "";
-        const alias = normalizeCompanyFilterKey((row)?.alias ?? "");
+        const domain = row?.domain?.trim?.() ?? "";
+        const alias = normalizeCompanyFilterKey(row?.alias ?? "");
         if (domain && alias) {
           domainAliasLookup.set(domain, alias);
         }
@@ -1054,25 +1255,43 @@ export const listJobs = query({
         return false;
       }
       if (wantsEngineer) {
-        const isEngineer = typeof job.engineer === "boolean" ? job.engineer : deriveEngineerFlag(job.title);
+        const isEngineer =
+          typeof job.engineer === "boolean"
+            ? job.engineer
+            : deriveEngineerFlag(job.title);
         if (!isEngineer) return false;
       }
       if (hasCompanyFilter) {
-        if (!matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasLookup)) {
+        if (
+          !matchesCompanyFilters(
+            job,
+            normalizedCompanyFilters,
+            domainAliasLookup,
+          )
+        ) {
           return false;
         }
       }
 
       // Apply compensation filters
       const compensationUnknown = job.compensationUnknown === true;
-      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : 0;
+      const compValue =
+        typeof job.totalCompensation === "number" ? job.totalCompensation : 0;
       if (args.hideUnknownCompensation && compensationUnknown) {
         return false;
       }
-      if (args.minCompensation !== undefined && !compensationUnknown && compValue < args.minCompensation) {
+      if (
+        args.minCompensation !== undefined &&
+        !compensationUnknown &&
+        compValue < args.minCompensation
+      ) {
         return false;
       }
-      if (args.maxCompensation !== undefined && !compensationUnknown && compValue > args.maxCompensation) {
+      if (
+        args.maxCompensation !== undefined &&
+        !compensationUnknown &&
+        compValue > args.maxCompensation
+      ) {
         return false;
       }
 
@@ -1096,7 +1315,9 @@ export const listJobs = query({
               ? [job.state]
               : (() => {
                   const info = getLocationInfo();
-                  return info.locationStates.length ? info.locationStates : [info.state];
+                  return info.locationStates.length
+                    ? info.locationStates
+                    : [info.state];
                 })();
         if (!statesForFilter.includes(stateFilter)) return false;
       }
@@ -1115,20 +1336,29 @@ export const listJobs = query({
       const [appliedRows, rejectedRows] = await Promise.all([
         ctx.db
           .query("applications")
-          .withIndex("by_user_status_applied_at", (q: any) => q.eq("userId", userId).eq("status", "applied"))
+          .withIndex("by_user_status_applied_at", (q: any) =>
+            q.eq("userId", userId).eq("status", "applied"),
+          )
           .collect(),
         ctx.db
           .query("applications")
-          .withIndex("by_user_status_applied_at", (q: any) => q.eq("userId", userId).eq("status", "rejected"))
+          .withIndex("by_user_status_applied_at", (q: any) =>
+            q.eq("userId", userId).eq("status", "rejected"),
+          )
           .collect(),
       ]);
       appliedJobIds = new Set(
-        [...appliedRows, ...rejectedRows].map((row: any) => String(row.jobId))
+        [...appliedRows, ...rejectedRows].map((row: any) => String(row.jobId)),
       );
       return appliedJobIds;
     };
     const filterOutAppliedJobs = async (jobsToFilter: any[]) => {
-      if (!shouldExcludeApplied || !hasUserApplications || jobsToFilter.length === 0) return jobsToFilter;
+      if (
+        !shouldExcludeApplied ||
+        !hasUserApplications ||
+        jobsToFilter.length === 0
+      )
+        return jobsToFilter;
       const appliedIds = await loadAppliedJobIds();
       return jobsToFilter.filter((job) => !appliedIds.has(String(job._id)));
     };
@@ -1194,9 +1424,14 @@ export const listJobs = query({
       }
       for (const job of fallbackCandidates) {
         const locationInfo = deriveLocationFields(job);
-        const statesForFilter = locationInfo.locationStates.length ? locationInfo.locationStates : [locationInfo.state];
+        const statesForFilter = locationInfo.locationStates.length
+          ? locationInfo.locationStates
+          : [locationInfo.state];
         if (wantsEngineer) {
-          const isEngineer = typeof job.engineer === "boolean" ? job.engineer : deriveEngineerFlag(job.title);
+          const isEngineer =
+            typeof job.engineer === "boolean"
+              ? job.engineer
+              : deriveEngineerFlag(job.title);
           if (!isEngineer) continue;
         }
         if (args.includeRemote === false && job.remote) continue;
@@ -1216,11 +1451,17 @@ export const listJobs = query({
         let query: any = ctx.db.query("jobs");
 
         if (stateFilter) {
-          query = query.withIndex("by_state_posted", (q: any) => q.eq("state", args.state));
+          query = query.withIndex("by_state_posted", (q: any) =>
+            q.eq("state", args.state),
+          );
         } else if (singleCompanyKey) {
-          query = query.withIndex("by_company_key_posted", (q: any) => q.eq("companyKey", singleCompanyKey));
+          query = query.withIndex("by_company_key_posted", (q: any) =>
+            q.eq("companyKey", singleCompanyKey),
+          );
         } else if (wantsEngineer) {
-          query = query.withIndex("by_engineer_posted_scraped", (q: any) => q.eq("engineer", true));
+          query = query.withIndex("by_engineer_posted_scraped", (q: any) =>
+            q.eq("engineer", true),
+          );
         } else {
           query = query.withIndex("by_posted_scraped");
         }
@@ -1254,16 +1495,22 @@ export const listJobs = query({
       if (!needsFilteredPagination) {
         jobs = await buildBaseQuery().paginate(paginationOpts);
       } else {
-        const { rawCursor: initialRawCursor, carryIds, rawIsDone: initialRawIsDone } = parseFilterCursor(
-          paginationOpts.cursor
-        );
+        const {
+          rawCursor: initialRawCursor,
+          carryIds,
+          rawIsDone: initialRawIsDone,
+        } = parseFilterCursor(paginationOpts.cursor);
         let rawCursor = initialRawCursor;
         let rawIsDone = initialRawIsDone;
         const filteredBuffer: any[] = [];
 
         if (carryIds.length > 0) {
-          const carryJobs = await Promise.all(carryIds.map((id) => ctx.db.get(id as Id<"jobs">)));
-          const carryMatches = carryJobs.filter((job) => job && jobPassesFilters(job));
+          const carryJobs = await Promise.all(
+            carryIds.map((id) => ctx.db.get(id as Id<"jobs">)),
+          );
+          const carryMatches = carryJobs.filter(
+            (job) => job && jobPassesFilters(job),
+          );
           const carryWithoutApplied = await filterOutAppliedJobs(carryMatches);
           filteredBuffer.push(...carryWithoutApplied);
         }
@@ -1286,9 +1533,13 @@ export const listJobs = query({
         }
 
         const pageJobs = filteredBuffer.slice(0, pageSize);
-        const carryOverIds = filteredBuffer.slice(pageSize).map((job: any) => String(job._id));
+        const carryOverIds = filteredBuffer
+          .slice(pageSize)
+          .map((job: any) => String(job._id));
         const isDone = rawIsDone && carryOverIds.length === 0;
-        const continueCursor = isDone ? null : buildFilterCursor(rawCursor, carryOverIds, rawIsDone);
+        const continueCursor = isDone
+          ? null
+          : buildFilterCursor(rawCursor, carryOverIds, rawIsDone);
 
         jobs = {
           page: pageJobs,
@@ -1305,7 +1556,9 @@ export const listJobs = query({
     const orderedPage = [...jobs.page].sort(compareNewestJobs);
 
     // Apply remaining filters and then exclude any applied/rejected jobs as needed.
-    const filteredJobs = jobsAlreadyFiltered ? orderedPage : orderedPage.filter(jobPassesFilters);
+    const filteredJobs = jobsAlreadyFiltered
+      ? orderedPage
+      : orderedPage.filter(jobPassesFilters);
     const appliedFilteredJobs = applicationsFiltered
       ? filteredJobs
       : await filterOutAppliedJobs(filteredJobs);
@@ -1328,30 +1581,45 @@ export const listJobs = query({
         // Pick a representative job for compensation display
         const compJob = pickBestCompJob(members as any) || base;
         const normalizedBase = await ensureLocationFields(ctx, base);
-        const { description: _description, locationSearch: _locationSearch, ...listBase } = normalizedBase;
+        const {
+          description: _description,
+          locationSearch: _locationSearch,
+          ...listBase
+        } = normalizedBase;
 
         const allLocations = mergeStrings(
           normalizedBase.locations,
-          members.flatMap((m) => (Array.isArray((m).locations) ? (m).locations : [])),
-          members.map((m) => (m).location),
+          members.flatMap((m) =>
+            Array.isArray(m.locations) ? m.locations : [],
+          ),
+          members.map((m) => m.location),
         );
 
         const locationStatesMerged = Array.from(
           new Set(
-            members.flatMap((m) => {
-              if (Array.isArray((m).locationStates) && (m).locationStates.length) {
-                return (m).locationStates;
-              }
-              if ((m).state) {
-                return [(m).state];
-              }
-              const info = deriveLocationFields(m);
-              return info.locationStates.length ? info.locationStates : [info.state];
-            }).filter(Boolean)
-          )
+            members
+              .flatMap((m) => {
+                if (
+                  Array.isArray(m.locationStates) &&
+                  m.locationStates.length
+                ) {
+                  return m.locationStates;
+                }
+                if (m.state) {
+                  return [m.state];
+                }
+                const info = deriveLocationFields(m);
+                return info.locationStates.length
+                  ? info.locationStates
+                  : [info.state];
+              })
+              .filter(Boolean),
+          ),
         );
 
-        const urls = Array.from(new Set(members.map((m) => (m).url).filter(Boolean)));
+        const urls = Array.from(
+          new Set(members.map((m) => m.url).filter(Boolean)),
+        );
 
         return {
           ...listBase,
@@ -1362,11 +1630,11 @@ export const listJobs = query({
           locationStates: locationStatesMerged,
           url: urls[0],
           alternateUrls: urls,
-          groupedJobIds: members.map((m) => (m)._id),
+          groupedJobIds: members.map((m) => m._id),
           applicationCount: 0,
           userStatus: null, // These jobs don't have user applications by definition
         } as any;
-      })
+      }),
     );
 
     return {
@@ -1393,14 +1661,19 @@ export const searchCompanies = query({
     const baseQuery = searchTerm
       ? ctx.db
           .query("jobs")
-          .withSearchIndex("search_company", (q) => q.search("company", searchTerm))
+          .withSearchIndex("search_company", (q) =>
+            q.search("company", searchTerm),
+          )
       : ctx.db.query("jobs").withIndex("by_posted_scraped").order("desc");
 
     const matches = await baseQuery.take(200);
     const counts = new Map<string, { name: string; count: number }>();
 
     for (const job of matches) {
-      const companyName = typeof (job as any).company === "string" ? (job as any).company.trim() : "";
+      const companyName =
+        typeof (job as any).company === "string"
+          ? (job as any).company.trim()
+          : "";
       if (!companyName) continue;
       const key = companyName.toLowerCase();
       const existing = counts.get(key);
@@ -1440,7 +1713,8 @@ export const refreshCompanySummaries = internalMutation({
     >();
 
     for (const job of jobs as Doc<"jobs">[]) {
-      const rawCompany = typeof job.company === "string" ? job.company.trim() : "";
+      const rawCompany =
+        typeof job.company === "string" ? job.company.trim() : "";
       const companyName = rawCompany.replace(/\s+/g, " ").trim();
       if (!companyName || isUnknownLabel(companyName)) continue;
 
@@ -1474,7 +1748,10 @@ export const refreshCompanySummaries = internalMutation({
       if (!entry.sampleUrl && typeof job.url === "string" && job.url.trim()) {
         entry.sampleUrl = job.url.trim();
       }
-      if (typeof job.postedAt === "number" && job.postedAt > entry.lastPostedAt) {
+      if (
+        typeof job.postedAt === "number" &&
+        job.postedAt > entry.lastPostedAt
+      ) {
         entry.lastPostedAt = job.postedAt;
       }
       const scrapedAt =
@@ -1488,13 +1765,26 @@ export const refreshCompanySummaries = internalMutation({
       }
 
       const compensationUnknown = job.compensationUnknown === true;
-      const compValue = typeof job.totalCompensation === "number" ? job.totalCompensation : null;
+      const compValue =
+        typeof job.totalCompensation === "number"
+          ? job.totalCompensation
+          : null;
       const usdCurrency = normalizeUsdCurrency(job.currencyCode);
-      if (!compensationUnknown && compValue && Number.isFinite(compValue) && compValue > 0 && usdCurrency) {
+      if (
+        !compensationUnknown &&
+        compValue &&
+        Number.isFinite(compValue) &&
+        compValue > 0 &&
+        usdCurrency
+      ) {
         if (!entry.currencyCode) {
           entry.currencyCode = usdCurrency;
         }
-        if (job.level === "junior" || job.level === "mid" || job.level === "senior") {
+        if (
+          job.level === "junior" ||
+          job.level === "mid" ||
+          job.level === "senior"
+        ) {
           const stats = entry.levels[job.level];
           stats.sum += compValue;
           stats.count += 1;
@@ -1503,7 +1793,9 @@ export const refreshCompanySummaries = internalMutation({
     }
 
     const now = Date.now();
-    const existing = (await ctx.db.query("company_summaries").collect()) as Doc<"company_summaries">[];
+    const existing = (await ctx.db
+      .query("company_summaries")
+      .collect()) as Doc<"company_summaries">[];
     const existingByKey = new Map(existing.map((row) => [row.key, row]));
     const seen = new Set<string>();
     let inserted = 0;
@@ -1560,25 +1852,39 @@ export const listCompanySummaries = query({
     }
 
     const limit = Math.max(1, Math.min(args.limit ?? 200, 1000));
-    const summaries = (await ctx.db.query("company_summaries").collect()) as Doc<"company_summaries">[];
+    const summaries = (await ctx.db
+      .query("company_summaries")
+      .collect()) as Doc<"company_summaries">[];
 
     return summaries
       .map((row) => ({
         name: row.name,
         count: row.count,
         avgCompensationJunior:
-          typeof row.avgCompensationJunior === "number" ? row.avgCompensationJunior : null,
-        avgCompensationMid: typeof row.avgCompensationMid === "number" ? row.avgCompensationMid : null,
+          typeof row.avgCompensationJunior === "number"
+            ? row.avgCompensationJunior
+            : null,
+        avgCompensationMid:
+          typeof row.avgCompensationMid === "number"
+            ? row.avgCompensationMid
+            : null,
         avgCompensationSenior:
-          typeof row.avgCompensationSenior === "number" ? row.avgCompensationSenior : null,
-        currencyCode: typeof row.currencyCode === "string" ? row.currencyCode : null,
+          typeof row.avgCompensationSenior === "number"
+            ? row.avgCompensationSenior
+            : null,
+        currencyCode:
+          typeof row.currencyCode === "string" ? row.currencyCode : null,
         sampleUrl: typeof row.sampleUrl === "string" ? row.sampleUrl : null,
-        lastPostedAt: typeof row.lastPostedAt === "number" ? row.lastPostedAt : 0,
-        lastScrapedAt: typeof row.lastScrapedAt === "number" ? row.lastScrapedAt : 0,
+        lastPostedAt:
+          typeof row.lastPostedAt === "number" ? row.lastPostedAt : 0,
+        lastScrapedAt:
+          typeof row.lastScrapedAt === "number" ? row.lastScrapedAt : 0,
       }))
       .sort((a, b) => {
-        if (b.lastPostedAt !== a.lastPostedAt) return b.lastPostedAt - a.lastPostedAt;
-        if (b.lastScrapedAt !== a.lastScrapedAt) return b.lastScrapedAt - a.lastScrapedAt;
+        if (b.lastPostedAt !== a.lastPostedAt)
+          return b.lastPostedAt - a.lastPostedAt;
+        if (b.lastScrapedAt !== a.lastScrapedAt)
+          return b.lastScrapedAt - a.lastScrapedAt;
         return a.name.localeCompare(b.name);
       })
       .slice(0, limit) as CompanySummary[];
@@ -1599,7 +1905,9 @@ export const applyToJob = mutation({
     // Check if user already applied or rejected this job
     const existingApplication = await ctx.db
       .query("applications")
-      .withIndex("by_user_and_job", (q) => q.eq("userId", userId).eq("jobId", args.jobId))
+      .withIndex("by_user_and_job", (q) =>
+        q.eq("userId", userId).eq("jobId", args.jobId),
+      )
       .unique();
 
     if (existingApplication) {
@@ -1630,7 +1938,9 @@ export const rejectJob = mutation({
     // Check if user already has an application for this job
     const existingApplication = await ctx.db
       .query("applications")
-      .withIndex("by_user_and_job", (q) => q.eq("userId", userId).eq("jobId", args.jobId))
+      .withIndex("by_user_and_job", (q) =>
+        q.eq("userId", userId).eq("jobId", args.jobId),
+      )
       .unique();
 
     if (existingApplication) {
@@ -1719,7 +2029,10 @@ export const retagVersionCompany = mutation({
       for (const job of rows) {
         const derived = deriveCompanyFromUrl((job as any).url || "");
         if (!derived || derived === (job as any).company) continue;
-        await ctx.db.patch(job._id, { company: derived, companyKey: deriveCompanyKey(derived) });
+        await ctx.db.patch(job._id, {
+          company: derived,
+          companyKey: deriveCompanyKey(derived),
+        });
         updated += 1;
       }
     }
@@ -1739,7 +2052,9 @@ export const getRecentJobs = query({
       .order("desc")
       .take(20); // Increased from 10 to show more recent jobs
 
-    const normalized = await Promise.all(jobs.map((job: any) => ensureLocationFields(ctx, job)));
+    const normalized = await Promise.all(
+      jobs.map((job: any) => ensureLocationFields(ctx, job)),
+    );
     return normalized;
   },
 });
@@ -1753,15 +2068,15 @@ export const listQueuedJobs = query({
         v.literal("processing"),
         v.literal("completed"),
         v.literal("failed"),
-        v.literal("invalid")
-      )
+        v.literal("invalid"),
+      ),
     ),
     scheduledBefore: v.optional(v.number()),
   },
   returns: v.object({
     page: v.array(
       v.object({
-        _id: v.id("scrape_url_queue"),
+        _id: v.string(),
         url: v.string(),
         sourceUrl: v.string(),
         provider: v.optional(v.string()),
@@ -1774,112 +2089,37 @@ export const listQueuedJobs = query({
           v.literal("processing"),
           v.literal("completed"),
           v.literal("failed"),
-          v.literal("invalid")
+          v.literal("invalid"),
         ),
         attempts: v.optional(v.number()),
         lastError: v.optional(v.string()),
-        createdAt: v.number(),
-        updatedAt: v.number(),
+        createdAt: v.optional(v.number()),
+        updatedAt: v.optional(v.number()),
         completedAt: v.optional(v.number()),
         scheduledAt: v.optional(v.number()),
-      })
+      }),
     ),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
   }),
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new Error("Not authenticated");
-    }
-
-    const now = Date.now();
-    const scheduledBefore = typeof args.scheduledBefore === "number" ? args.scheduledBefore : now;
-    const status = args.status ?? "pending";
-    const hiddenFailedErrors = new Set(["skip_listed_url"]);
-    const orderDirection = status === "completed" || status === "failed" ? "desc" : "asc";
-
-    let query: any = ctx.db.query("scrape_url_queue");
-    if (status === "pending") {
-      query = query
-        .withIndex("by_status", (q: any) => q.eq("status", "pending"))
-        .filter((q: any) =>
-          q.or(q.lte(q.field("scheduledAt"), scheduledBefore), q.eq(q.field("scheduledAt"), null))
-        );
-    } else {
-      query = query.withIndex("by_status", (q: any) => q.eq("status", status));
-      if (status === "failed" && hiddenFailedErrors.size > 0) {
-        query = query.filter((q: any) => q.neq(q.field("lastError"), "skip_listed_url"));
-      }
-    }
-
-    const paginationOpts = {
-      ...args.paginationOpts,
-      numItems: Math.min(args.paginationOpts.numItems ?? 20, 20),
-    };
-    const page = await query.order(orderDirection).paginate(paginationOpts);
-    const rows = page.page.map((row: any) => ({
-      _id: row._id,
-      url: row.url,
-      sourceUrl: row.sourceUrl,
-      provider: row.provider,
-      siteId: row.siteId,
-      pattern: row.pattern,
-      urlType: row.urlType,
-      bucket: row.bucket,
-      status: row.status,
-      attempts: row.attempts,
-      lastError: row.lastError,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      completedAt: row.completedAt,
-      scheduledAt: row.scheduledAt,
-    }));
-
+  handler: async (_ctx, args) => {
+    const requested = args.paginationOpts.numItems ?? 20;
+    const limit = Math.min(Math.max(requested, 1), 20);
     return {
-      page: rows,
-      isDone: page.isDone,
-      continueCursor: page.continueCursor ?? null,
+      page: [] as any[],
+      isDone: true,
+      continueCursor: null,
     };
   },
 });
 
 export const resetQueuedUrlRetries = mutation({
   args: {
-    id: v.id("scrape_url_queue"),
+    id: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new Error("Not authenticated");
-    }
-
-    const row = await ctx.db.get(args.id);
-    if (!row) {
-      throw new Error("Queue item not found");
-    }
-    if (row.status !== "failed") {
-      throw new Error("Queue item is not failed");
-    }
-
-    const now = Date.now();
-    const bucket = deriveScrapeQueueBucket({
-      url: row.url,
-      sourceUrl: (row as any).sourceUrl ?? null,
-      siteId: (row as any).siteId ?? null,
-    });
-    await ctx.db.patch(args.id, {
-      status: "pending",
-      attempts: 0,
-      lastError: undefined,
-      createdAt: now,
-      updatedAt: now,
-      completedAt: undefined,
-      scheduledAt: now,
-      bucket,
-    });
-
-    return { success: true };
+  returns: v.object({ success: v.boolean(), skipped: v.boolean() }),
+  handler: async (_ctx, _args) => {
+    return { success: true, skipped: true };
   },
 });
 
@@ -1893,7 +2133,9 @@ export const getAppliedJobs = query({
 
     const applications = await ctx.db
       .query("applications")
-      .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "applied"))
+      .withIndex("by_user_status_applied_at", (q) =>
+        q.eq("userId", userId).eq("status", "applied"),
+      )
       .order("desc")
       .collect();
 
@@ -1915,9 +2157,10 @@ export const getAppliedJobs = query({
           appliedAt: application.appliedAt,
           userStatus: application.status,
           workerStatus: workerStatus?.status ?? null,
-          workerUpdatedAt: workerStatus?.updatedAt ?? workerStatus?.queuedAt ?? null,
+          workerUpdatedAt:
+            workerStatus?.updatedAt ?? workerStatus?.queuedAt ?? null,
         };
-      })
+      }),
     );
 
     return appliedJobs
@@ -1936,7 +2179,9 @@ export const getRejectedJobs = query({
 
     const applications = await ctx.db
       .query("applications")
-      .withIndex("by_user_status_applied_at", (q) => q.eq("userId", userId).eq("status", "rejected"))
+      .withIndex("by_user_status_applied_at", (q) =>
+        q.eq("userId", userId).eq("status", "rejected"),
+      )
       .order("desc")
       .collect();
 
@@ -1950,7 +2195,7 @@ export const getRejectedJobs = query({
           rejectedAt: application.appliedAt,
           userStatus: application.status,
         };
-      })
+      }),
     );
 
     return rejectedJobs
@@ -1969,14 +2214,65 @@ export const getJobById = query({
 
     const normalized = await ensureLocationFields(ctx, job as any);
     const details = await getJobDetailsByJobId(ctx, args.id);
-    const scrapeQueueRow = await getScrapeQueueByUrl(ctx, normalized.url ?? job.url);
     const merged = mergeJobDetails(normalized, details);
     return {
       ...merged,
-      scrapeQueueCreatedAt: (scrapeQueueRow as any)?.createdAt,
-      scrapeQueueCompletedAt: (scrapeQueueRow as any)?.completedAt,
-      scrapeQueueStatus: (scrapeQueueRow as any)?.status,
     };
+  },
+});
+
+export const getJobIdByUrl = query({
+  args: {
+    url: v.string(),
+  },
+  returns: v.union(v.id("jobs"), v.null()),
+  handler: async (ctx, args) => {
+    const candidate = args.url.trim();
+    if (!candidate) return null;
+    const stripped = candidate.replace(/\/+$/, "");
+    const queryValues =
+      stripped && stripped !== candidate ? [candidate, stripped] : [candidate];
+    for (const value of queryValues) {
+      const match = await ctx.db
+        .query("jobs")
+        .withIndex("by_url", (q: any) => q.eq("url", value))
+        .first();
+      if (match) return match._id;
+    }
+    return null;
+  },
+});
+
+export const setJobDescriptionStorage = internalMutation({
+  args: {
+    jobId: v.id("jobs"),
+    description: v.string(),
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    if (!job) {
+      throw new Error("Job not found");
+    }
+    const preview = buildDescriptionPreview(args.description);
+    const existing = await ctx.db
+      .query("job_details")
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
+      .first();
+    const patch = {
+      description: preview,
+      descriptionStorageId: args.storageId,
+    };
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+      return null;
+    }
+    await ctx.db.insert("job_details", {
+      jobId: args.jobId,
+      ...patch,
+    });
+    return null;
   },
 });
 
@@ -1988,52 +2284,59 @@ export const getJobDetails = query({
   handler: async (ctx, args) => {
     if (!args.jobId) return null;
     const job = await ctx.db.get(args.jobId);
-    const details = await getJobDetailsByJobId(ctx, args.jobId);
-    const jobIds = args.groupedJobIds && args.groupedJobIds.length > 0 ? args.groupedJobIds : [args.jobId];
+    const jobIds =
+      args.groupedJobIds && args.groupedJobIds.length > 0
+        ? Array.from(new Set([args.jobId, ...args.groupedJobIds]))
+        : [args.jobId];
+    const detailEntries = await Promise.all(
+      jobIds.map(async (jobId) => ({
+        jobId,
+        details: await getJobDetailsByJobId(ctx, jobId),
+      })),
+    );
+    const primaryDetailEntry =
+      detailEntries.find(
+        (entry) => entry.jobId === args.jobId && entry.details,
+      ) ?? detailEntries.find((entry) => entry.details);
+    const storageDetailEntry = detailEntries.find(
+      (entry) => (entry.details as any)?.descriptionStorageId,
+    );
+    const descriptionStorageAvailable = Boolean(
+      (storageDetailEntry?.details as any)?.descriptionStorageId,
+    );
+    const descriptionStorageJobId = descriptionStorageAvailable
+      ? storageDetailEntry?.jobId
+      : undefined;
     const applicationCount = await countAppliedApplications(ctx, jobIds);
-    const queueUrls = new Set<string>();
-    if (job?.url) queueUrls.add(job.url);
-    if (Array.isArray((job as any)?.alternateUrls)) {
-      for (const url of (job as any).alternateUrls as any[]) {
-        if (typeof url === "string" && url) queueUrls.add(url);
-      }
-    }
-    const scrapeUrlCandidate = (details as any)?.scrapeUrl ?? (job as any)?.scrapeUrl;
-    if (typeof scrapeUrlCandidate === "string" && scrapeUrlCandidate) {
-      queueUrls.add(scrapeUrlCandidate);
-    }
-    const scrapeQueueInfo = (
-      await Promise.all(
-        Array.from(queueUrls).map(async (url) => {
-          const row = await ctx.db
-            .query("scrape_url_queue")
-            .withIndex("by_url", (q: any) => q.eq("url", url))
-            .first();
-          if (!row) return null;
-          return {
-            url: row.url,
-            status: row.status,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-            completedAt: row.completedAt,
-            scheduledAt: row.scheduledAt,
-          };
-        })
-      )
-    ).filter(Boolean);
 
-    const descriptionStorageAvailable = Boolean((details as any)?.descriptionStorageId);
-    if (!details) {
-      const fallbackDescription = typeof job?.description === "string" ? job.description : undefined;
-      return { description: fallbackDescription, applicationCount, scrapeQueueInfo, descriptionStorageAvailable: false };
+    if (!primaryDetailEntry?.details) {
+      const fallbackDescription =
+        typeof job?.description === "string" ? job.description : undefined;
+      return {
+        description: fallbackDescription,
+        applicationCount,
+        descriptionStorageAvailable,
+        descriptionStorageJobId,
+      };
     }
-    const { jobId: _jobId, _id: _detailId, descriptionStorageId: _storageId, ...detailFields } = details;
+
+    const {
+      jobId: _jobId,
+      _id: _detailId,
+      descriptionStorageId: _storageId,
+      ...detailFields
+    } = primaryDetailEntry.details;
     if (!detailFields.description) {
       if (typeof job?.description === "string") {
         detailFields.description = job.description;
       }
     }
-    return { ...detailFields, applicationCount, scrapeQueueInfo, descriptionStorageAvailable };
+    return {
+      ...detailFields,
+      applicationCount,
+      descriptionStorageAvailable,
+      descriptionStorageJobId,
+    };
   },
 });
 
@@ -2071,7 +2374,9 @@ export const withdrawApplication = mutation({
 
     const existingApplication = await ctx.db
       .query("applications")
-      .withIndex("by_user_and_job", (q) => q.eq("userId", userId).eq("jobId", args.jobId))
+      .withIndex("by_user_and_job", (q) =>
+        q.eq("userId", userId).eq("jobId", args.jobId),
+      )
       .unique();
 
     if (!existingApplication) {
@@ -2091,9 +2396,12 @@ export const normalizeDevTestJobs = mutation({
   handler: async (ctx) => {
     const jobs = await ctx.db.query("jobs").collect();
     const detailRows = await ctx.db.query("job_details").collect();
-    const detailByJobId = new Map(detailRows.map((row: any) => [String(row.jobId), row]));
+    const detailByJobId = new Map(
+      detailRows.map((row: any) => [String(row.jobId), row]),
+    );
     const needsFix = jobs.filter((j: any) => {
-      const tooShort = (s: any) => typeof s === "string" && s.trim().length <= 2;
+      const tooShort = (s: any) =>
+        typeof s === "string" && s.trim().length <= 2;
       const details = detailByJobId.get(String(j._id));
       const description =
         typeof details?.description === "string"
@@ -2106,7 +2414,8 @@ export const normalizeDevTestJobs = mutation({
         tooShort(j.company) ||
         tooShort(j.location) ||
         tooShort(description) ||
-        (typeof j.totalCompensation === "number" && j.totalCompensation <= 10) ||
+        (typeof j.totalCompensation === "number" &&
+          j.totalCompensation <= 10) ||
         j.company === "Health Co"
       );
     });
@@ -2118,12 +2427,25 @@ export const normalizeDevTestJobs = mutation({
       "Full Stack Developer",
       "Data Engineer",
     ];
-    const companies = ["Acme Corp", "SampleSoft", "Initech", "Globex", "Umbrella Labs"];
-    const locations = ["Remote - US", "San Francisco, CA", "New York, NY", "Austin, TX", "Seattle, WA"];
+    const companies = [
+      "Acme Corp",
+      "SampleSoft",
+      "Initech",
+      "Globex",
+      "Umbrella Labs",
+    ];
+    const locations = [
+      "Remote - US",
+      "San Francisco, CA",
+      "New York, NY",
+      "Austin, TX",
+      "Seattle, WA",
+    ];
 
     let updates = 0;
     for (const j of needsFix) {
-      const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+      const pick = (arr: string[]) =>
+        arr[Math.floor(Math.random() * arr.length)];
       const comp = 100000 + Math.floor(Math.random() * 90000);
       const loc = pick(locations);
       const { city, state } = splitLocation(loc);
@@ -2140,7 +2462,7 @@ export const normalizeDevTestJobs = mutation({
       const descriptionFields = await storeDescriptionInStorage(
         ctx,
         "This is a realistic sample listing used for development. Replace with real scraped data in production.",
-        (existingDetails as any)?.descriptionStorageId
+        (existingDetails as any)?.descriptionStorageId,
       );
       const detailPatch = { ...descriptionFields };
       if (existingDetails) {
@@ -2174,7 +2496,10 @@ export const deleteJob = mutation({
       .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
       .collect();
     for (const detail of details as any[]) {
-      await deleteDescriptionFromStorage(ctx, (detail as any).descriptionStorageId);
+      await deleteDescriptionFromStorage(
+        ctx,
+        (detail as any).descriptionStorageId,
+      );
       await ctx.db.delete(detail._id);
     }
     await ctx.db.delete(args.jobId);

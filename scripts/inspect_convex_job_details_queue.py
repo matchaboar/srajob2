@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 from convex import ConvexClient
 from dotenv import load_dotenv
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue
+
 
 def _load_env() -> None:
     repo_root = Path(__file__).resolve().parents[1]
@@ -87,11 +89,7 @@ def main() -> None:
     statuses = ["pending", "processing", "failed", "completed"]
     queue_by_status: Dict[str, List[Dict[str, Any]]] = {}
     for status in statuses:
-        rows = _safe_query(
-            client,
-            "router:listQueuedScrapeUrls",
-            {"status": status, "provider": "spidercloud", "limit": 500},
-        )
+        rows = dbos_queue.list_scrape_urls(provider="spidercloud", status=status, limit=500)
         queue_by_status[status] = rows if isinstance(rows, list) else []
 
     rate_limits_error: Optional[str] = None
@@ -101,9 +99,6 @@ def main() -> None:
         rate_limits_error = str(exc)
         rate_limits = []
     rate_limits = rate_limits if isinstance(rate_limits, list) else []
-
-    active_workers = _safe_query(client, "temporal:getActiveWorkers", {})
-    active_workers = active_workers if isinstance(active_workers, list) else []
 
     summary = {
         "convex_url": url,
@@ -116,15 +111,6 @@ def main() -> None:
                 "lastWindowStart": row.get("lastWindowStart"),
             }
             for row in rate_limits
-        ],
-        "active_workers": [
-            {
-                "workerId": row.get("workerId"),
-                "taskQueue": row.get("taskQueue"),
-                "lastHeartbeat": row.get("lastHeartbeat"),
-                "workflowCount": len(row.get("workflows", [])) if isinstance(row.get("workflows"), list) else 0,
-            }
-            for row in active_workers
         ],
     }
     if rate_limits_error:

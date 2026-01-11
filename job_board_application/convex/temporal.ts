@@ -15,309 +15,75 @@ const DEFAULT_SCHEDULE = {
   taskQueue: "scraper-task-queue",
 };
 
-export const updateStatus = mutation({
-    args: {
-        workerId: v.string(),
-        hostname: v.string(),
-        temporalAddress: v.string(),
-        temporalNamespace: v.string(),
-        taskQueue: v.string(),
-        workflows: v.array(
-            v.object({
-                id: v.string(),
-                type: v.string(),
-                status: v.string(),
-                startTime: v.string(),
-            })
-        ),
-        noWorkflowsReason: v.optional(v.string()),
-    },
-    handler: async (ctx, args) => {
-        const now = Date.now();
+export const getScrapeSchedule = query({
+  args: {},
+  returns: v.object({
+    mode: v.union(v.literal("daily"), v.literal("interval")),
+    time: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    intervalMinutes: v.number(),
+    name: v.string(),
+    catchupWindowHours: v.number(),
+    overlap: v.string(),
+    workflow: v.string(),
+    taskQueue: v.string(),
+  }),
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("schedule_config")
+      .withIndex("by_key", (q) => q.eq("key", SCHEDULE_KEY))
+      .first();
 
-        // Find existing worker record
-        const existing = await ctx.db
-            .query("temporal_status")
-            .withIndex("by_worker_id", (q) => q.eq("workerId", args.workerId))
-            .first();
+    if (!existing) {
+      return DEFAULT_SCHEDULE;
+    }
 
-        if (existing) {
-            // Update existing worker
-            await ctx.db.patch(existing._id, {
-                hostname: args.hostname,
-                temporalAddress: args.temporalAddress,
-                temporalNamespace: args.temporalNamespace,
-                taskQueue: args.taskQueue,
-                workflows: args.workflows,
-                noWorkflowsReason: args.noWorkflowsReason,
-                lastHeartbeat: now,
-            });
-        } else {
-            // Insert new worker
-            await ctx.db.insert("temporal_status", {
-                workerId: args.workerId,
-                hostname: args.hostname,
-                temporalAddress: args.temporalAddress,
-                temporalNamespace: args.temporalNamespace,
-                taskQueue: args.taskQueue,
-                workflows: args.workflows,
-                noWorkflowsReason: args.noWorkflowsReason,
-                lastHeartbeat: now,
-            });
-        }
-    },
-});
-
-// Get all active workers (heartbeat within last 90 seconds)
-export const getActiveWorkers = query({
-    args: {},
-    handler: async (ctx) => {
-        const now = Date.now();
-        const staleThreshold = now - 90 * 1000; // 90 seconds (3x update interval)
-
-        return await ctx.db
-            .query("temporal_status")
-            .withIndex("by_heartbeat", (q) => q.gte("lastHeartbeat", staleThreshold))
-            .collect();
-    },
-});
-
-// Get all stale workers (no heartbeat in last 90 seconds)
-export const getStaleWorkers = query({
-    args: {},
-    handler: async (ctx) => {
-        const now = Date.now();
-        const staleThreshold = now - 90 * 1000; // 90 seconds (3x update interval)
-
-        return await ctx.db
-            .query("temporal_status")
-            .withIndex("by_heartbeat", (q) => q.lt("lastHeartbeat", staleThreshold))
-            .collect();
-    },
-});
-
-// Get single worker by ID
-export const getWorker = query({
-    args: { workerId: v.string() },
-    handler: async (ctx, args) => {
-        return await ctx.db
-            .query("temporal_status")
-            .withIndex("by_worker_id", (q) => q.eq("workerId", args.workerId))
-            .first();
-    },
-});
-
-// Clean up very old stale workers (older than 24 hours)
-export const cleanupOldWorkers = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const now = Date.now();
-        const cleanupThreshold = now - 24 * 60 * 60 * 1000; // 24 hours
-
-        const oldWorkers = await ctx.db
-            .query("temporal_status")
-            .withIndex("by_heartbeat")
-            .filter((q) => q.lt(q.field("lastHeartbeat"), cleanupThreshold))
-            .collect();
-
-        for (const worker of oldWorkers) {
-            await ctx.db.delete(worker._id);
-        }
-
-        return { deleted: oldWorkers.length };
-    },
-});
-
-// Clear all worker records (for schema migration)
-export const clearAllWorkers = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const allWorkers = await ctx.db.query("temporal_status").collect();
-        for (const worker of allWorkers) {
-            await ctx.db.delete(worker._id);
-        }
-    return { deleted: allWorkers.length };
+    return {
+      ...DEFAULT_SCHEDULE,
+      mode: existing.mode,
+      time: existing.time ?? DEFAULT_SCHEDULE.time,
+      timezone: existing.timezone ?? DEFAULT_SCHEDULE.timezone,
+      intervalMinutes: existing.intervalMinutes ?? DEFAULT_SCHEDULE.intervalMinutes,
+      name: existing.key,
+    };
   },
 });
 
-export const recordWorkflowRun = mutation({
-    args: {
-        runId: v.string(),
-        workflowId: v.string(),
-        workflowName: v.optional(v.string()),
-        status: v.string(),
-        startedAt: v.number(),
-        completedAt: v.optional(v.number()),
-        siteUrls: v.array(v.string()),
-        sitesProcessed: v.optional(v.number()),
-        jobsScraped: v.optional(v.number()),
-        workerId: v.optional(v.string()),
-        taskQueue: v.optional(v.string()),
-        error: v.optional(v.union(v.string(), v.null())),
-    },
-    handler: async (ctx, args) => {
-        const existing = await ctx.db
-            .query("workflow_runs")
-            .withIndex("by_run", (q) => q.eq("runId", args.runId))
-            .first();
-
-        let runDocId: Id<"workflow_runs"> | null = null;
-
-        if (existing) {
-            const patch: any = { ...args };
-            // Avoid storing null for error to satisfy TS/Convex types
-            if (patch.error === null) delete patch.error;
-            await ctx.db.patch(existing._id as Id<"workflow_runs">, patch);
-            runDocId = existing._id as Id<"workflow_runs">;
-        } else {
-            const insertArgs: any = { ...args };
-            if (insertArgs.error === null) delete insertArgs.error;
-            runDocId = await ctx.db.insert("workflow_runs", insertArgs);
-        }
-
-        const existingSites = await ctx.db
-            .query("workflow_run_sites")
-            .withIndex("by_run", (q) => q.eq("runId", args.runId))
-            .collect();
-        for (const row of existingSites) {
-            await ctx.db.delete(row._id);
-        }
-
-        const uniqueUrls = Array.from(
-            new Set(
-                (args.siteUrls || [])
-                    .filter((url) => typeof url === "string")
-                    .map((url) => url.trim())
-                    .filter(Boolean)
-            )
-        );
-        if (uniqueUrls.length > 0) {
-            for (const siteUrl of uniqueUrls) {
-                await ctx.db.insert("workflow_run_sites", {
-                    runId: args.runId,
-                    workflowId: args.workflowId,
-                    workflowName: args.workflowName,
-                    status: args.status,
-                    startedAt: args.startedAt,
-                    completedAt: args.completedAt,
-                    siteUrl,
-                    workerId: args.workerId,
-                    taskQueue: args.taskQueue,
-                });
-            }
-        }
-
-        return runDocId;
-    },
-});
-
-export const listWorkflowRunsByUrl = query({
-    args: {
-        url: v.string(),
-        limit: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
-        const lim = args.limit ?? 20;
-        if (!args.url) return [];
-        const siteRuns = await ctx.db
-            .query("workflow_run_sites")
-            .withIndex("by_site", (q) => q.eq("siteUrl", args.url))
-            .order("desc")
-            .take(lim);
-
-        const results: any[] = [];
-        for (const row of siteRuns) {
-            const run = await ctx.db
-                .query("workflow_runs")
-                .withIndex("by_run", (q) => q.eq("runId", row.runId))
-                .first();
-            if (run) {
-                results.push(run);
-            }
-        }
-
-        return results;
-    },
-});
-
-export const listWorkflowRuns = query({
-    args: { limit: v.optional(v.number()) },
-    handler: async (ctx, args) => {
-        const requested = args.limit ?? 50;
-        const lim = Math.min(Math.max(requested, 1), 200);
-        return await ctx.db.query("workflow_runs").withIndex("by_started").order("desc").take(lim);
-    },
-});
-
-// Expose schedule configuration (kept in sync with Temporal schedule creator)
-export const getScrapeSchedule = query({
-    args: {},
-    handler: async (ctx) => {
-        const existing = await ctx.db
-            .query("schedule_config")
-            .withIndex("by_key", (q) => q.eq("key", SCHEDULE_KEY))
-            .first();
-
-        if (!existing) {
-            return DEFAULT_SCHEDULE;
-        }
-
-        return {
-            ...DEFAULT_SCHEDULE,
-            mode: existing.mode,
-            time: existing.time ?? DEFAULT_SCHEDULE.time,
-            timezone: existing.timezone ?? DEFAULT_SCHEDULE.timezone,
-            intervalMinutes: existing.intervalMinutes ?? DEFAULT_SCHEDULE.intervalMinutes,
-            name: existing.key,
-        };
-    },
-});
-
-export const triggerScrapeNow = mutation({
-    args: {
-        url: v.string(),
-    },
-    handler: async (_ctx, args) => {
-        // The worker polls Temporal; we just return a directive so the UI can request it.
-        // The actual immediate run should be triggered by a Temporal client, not Convex.
-        return { requested: true, url: args.url };
-    },
-});
-
 export const setScrapeSchedule = mutation({
-    args: {
-        mode: v.union(v.literal("daily"), v.literal("interval")),
-        time: v.optional(v.string()),
-        timezone: v.optional(v.string()),
-        intervalMinutes: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
-        const now = Date.now();
-        const config = {
-            mode: args.mode,
-            time: args.mode === "daily" ? (args.time ?? DEFAULT_SCHEDULE.time) : undefined,
-            timezone: args.mode === "daily" ? (args.timezone ?? DEFAULT_SCHEDULE.timezone) : undefined,
-            intervalMinutes:
-                args.mode === "interval"
-                    ? args.intervalMinutes ?? DEFAULT_SCHEDULE.intervalMinutes
-                    : DEFAULT_SCHEDULE.intervalMinutes,
-            updatedAt: now,
-        };
+  args: {
+    mode: v.union(v.literal("daily"), v.literal("interval")),
+    time: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    intervalMinutes: v.optional(v.number()),
+  },
+  returns: v.id("schedule_config"),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const config = {
+      mode: args.mode,
+      time: args.mode === "daily" ? (args.time ?? DEFAULT_SCHEDULE.time) : undefined,
+      timezone: args.mode === "daily" ? (args.timezone ?? DEFAULT_SCHEDULE.timezone) : undefined,
+      intervalMinutes:
+        args.mode === "interval"
+          ? args.intervalMinutes ?? DEFAULT_SCHEDULE.intervalMinutes
+          : DEFAULT_SCHEDULE.intervalMinutes,
+      updatedAt: now,
+    };
 
-        const existing = await ctx.db
-            .query("schedule_config")
-            .withIndex("by_key", (q) => q.eq("key", SCHEDULE_KEY))
-            .first();
+    const existing = await ctx.db
+      .query("schedule_config")
+      .withIndex("by_key", (q) => q.eq("key", SCHEDULE_KEY))
+      .first();
 
-        if (existing) {
-            await ctx.db.patch(existing._id as Id<"schedule_config">, config);
-            return existing._id;
-        }
+    if (existing) {
+      await ctx.db.patch(existing._id as Id<"schedule_config">, config);
+      return existing._id as Id<"schedule_config">;
+    }
 
-        return await ctx.db.insert("schedule_config", {
-            key: SCHEDULE_KEY,
-            ...config,
-            createdAt: now,
-        });
-    },
+    return await ctx.db.insert("schedule_config", {
+      key: SCHEDULE_KEY,
+      ...config,
+      createdAt: now,
+    });
+  },
 });

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import inspect
 import os
 import sys
+from collections.abc import Callable
 from typing import Any, Dict
 from pathlib import Path
 import types
@@ -50,8 +52,72 @@ from job_scrape_application.workflows.activities import (  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints, strip_known_nav_blocks  # noqa: E402
 
 
+class FakeConvexClient:
+    def __init__(self) -> None:
+        self.query_handlers: dict[str, Callable[[Dict[str, Any] | None], Any]] = {}
+        self.mutation_handlers: dict[str, Callable[[Dict[str, Any] | None], Any]] = {}
+        self.query_fallback: Callable[[str, Dict[str, Any] | None], Any] | None = None
+        self.mutation_fallback: Callable[[str, Dict[str, Any] | None], Any] | None = None
+        self.query_calls: list[dict[str, Any]] = []
+        self.mutation_calls: list[dict[str, Any]] = []
+
+    def set_query_handler(self, name: str, handler: Callable[[Dict[str, Any] | None], Any]) -> None:
+        self.query_handlers[name] = handler
+
+    def set_query_response(self, name: str, response: Any) -> None:
+        self.query_handlers[name] = lambda _args: response
+
+    def set_query_fallback(self, handler: Callable[[str, Dict[str, Any] | None], Any]) -> None:
+        self.query_fallback = handler
+
+    def set_mutation_handler(self, name: str, handler: Callable[[Dict[str, Any] | None], Any]) -> None:
+        self.mutation_handlers[name] = handler
+
+    def set_mutation_fallback(self, handler: Callable[[str, Dict[str, Any] | None], Any]) -> None:
+        self.mutation_fallback = handler
+
+    def set_mutation_response(self, name: str, response: Any) -> None:
+        self.mutation_handlers[name] = lambda _args: response
+
+    async def query(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+        self.query_calls.append({"name": name, "args": args})
+        handler = self.query_handlers.get(name)
+        if handler is None:
+            fallback = self.query_fallback
+            if fallback is None:
+                raise AssertionError(f"unexpected query {name}")
+            result = fallback(name, args)
+        else:
+            result = handler(args)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    async def mutation(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+        self.mutation_calls.append({"name": name, "args": args})
+        handler = self.mutation_handlers.get(name)
+        if handler is None:
+            fallback = self.mutation_fallback
+            if fallback is None:
+                raise AssertionError(f"unexpected mutation {name}")
+            result = fallback(name, args)
+        else:
+            result = handler(args)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+
+@pytest.fixture()
+def convex_client(monkeypatch: pytest.MonkeyPatch) -> FakeConvexClient:
+    client = FakeConvexClient()
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", client.query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", client.mutation)
+    return client
+
+
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_updates_jobs(monkeypatch):
+async def test_process_pending_job_details_batch_updates_jobs(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job1",
@@ -86,8 +152,8 @@ async def test_process_pending_job_details_batch_updates_jobs(monkeypatch):
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -102,7 +168,7 @@ async def test_process_pending_job_details_batch_updates_jobs(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_ignores_401k(monkeypatch):
+async def test_process_pending_job_details_batch_ignores_401k(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-401k",
@@ -136,8 +202,8 @@ async def test_process_pending_job_details_batch_ignores_401k(monkeypatch):
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -149,7 +215,7 @@ async def test_process_pending_job_details_batch_ignores_401k(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_ignores_company_metrics(monkeypatch, ramp_markdown):
+async def test_process_pending_job_details_batch_ignores_company_metrics(convex_client: FakeConvexClient, ramp_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-ramp",
@@ -183,8 +249,8 @@ async def test_process_pending_job_details_batch_ignores_company_metrics(monkeyp
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -197,7 +263,7 @@ async def test_process_pending_job_details_batch_ignores_company_metrics(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_prefers_job_id_field(monkeypatch):
+async def test_process_pending_job_details_batch_prefers_job_id_field(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-detail-1",
@@ -230,8 +296,8 @@ async def test_process_pending_job_details_batch_prefers_job_id_field(monkeypatc
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -241,7 +307,7 @@ async def test_process_pending_job_details_batch_prefers_job_id_field(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_reports_remaining(monkeypatch):
+async def test_process_pending_job_details_batch_reports_remaining(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remaining",
@@ -277,8 +343,8 @@ async def test_process_pending_job_details_batch_reports_remaining(monkeypatch):
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -289,7 +355,7 @@ async def test_process_pending_job_details_batch_reports_remaining(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_convex_error(monkeypatch):
+async def test_process_pending_job_details_batch_handles_convex_error(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-error",
@@ -316,8 +382,8 @@ async def test_process_pending_job_details_batch_handles_convex_error(monkeypatc
     async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         raise Exception("[Request ID: req-123] Server Error")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -328,7 +394,7 @@ async def test_process_pending_job_details_batch_handles_convex_error(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_update_error_does_not_count_processed(monkeypatch):
+async def test_process_pending_job_details_batch_update_error_does_not_count_processed(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-update-error",
@@ -362,8 +428,8 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
             raise Exception("[Request ID: req-update] Server Error")
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -375,7 +441,7 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_records_request_id_from_headers(monkeypatch):
+async def test_process_pending_job_details_batch_records_request_id_from_headers(convex_client: FakeConvexClient):
     class FakeResponse:
         def __init__(self):
             self.headers = {"x-request-id": "hdr-req"}
@@ -414,8 +480,8 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
             raise HeaderException()
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -424,7 +490,7 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_counts_success_even_if_record_fails(monkeypatch):
+async def test_process_pending_job_details_batch_counts_success_even_if_record_fails(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-record-fail",
@@ -454,8 +520,8 @@ async def test_process_pending_job_details_batch_counts_success_even_if_record_f
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -464,7 +530,7 @@ async def test_process_pending_job_details_batch_counts_success_even_if_record_f
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_includes_heuristic_version(monkeypatch):
+async def test_process_pending_job_details_batch_includes_heuristic_version(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-version",
@@ -498,8 +564,8 @@ async def test_process_pending_job_details_batch_includes_heuristic_version(monk
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     await process_pending_job_details_batch()
 
@@ -508,7 +574,7 @@ async def test_process_pending_job_details_batch_includes_heuristic_version(monk
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_remaining_query_failure(monkeypatch):
+async def test_process_pending_job_details_batch_handles_remaining_query_failure(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remaining-fail",
@@ -538,8 +604,8 @@ async def test_process_pending_job_details_batch_handles_remaining_query_failure
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -548,7 +614,7 @@ async def test_process_pending_job_details_batch_handles_remaining_query_failure
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_query_error_annotates_op(monkeypatch):
+async def test_process_pending_job_details_batch_query_error_annotates_op(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-query-error",
@@ -574,8 +640,8 @@ async def test_process_pending_job_details_batch_query_error_annotates_op(monkey
     async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -585,7 +651,7 @@ async def test_process_pending_job_details_batch_query_error_annotates_op(monkey
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_defaults_domain(monkeypatch):
+async def test_process_pending_job_details_batch_defaults_domain(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job2",
@@ -618,8 +684,8 @@ async def test_process_pending_job_details_batch_defaults_domain(monkeypatch):
             return { "updated": True }
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -632,7 +698,7 @@ async def test_process_pending_job_details_batch_defaults_domain(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_accepts_non_us_location(monkeypatch):
+async def test_process_pending_job_details_batch_accepts_non_us_location(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job3",
@@ -665,8 +731,8 @@ async def test_process_pending_job_details_batch_accepts_non_us_location(monkeyp
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -676,38 +742,41 @@ async def test_process_pending_job_details_batch_accepts_non_us_location(monkeyp
     assert updated[0]["heuristicAttempts"] == 1
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def datadog_markdown() -> str:
     path = Path("tests/fixtures/datadog-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def airbnb_markdown() -> str:
     path = Path("tests/fixtures/airbnb-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
 
-@pytest.fixture
+
+@pytest.fixture(scope="module")
 def airbnb_china_markdown() -> str:
     path = Path("tests/fixtures/airbnb-china-cm.md")
     return path.read_text(encoding="utf-8")
 
-@pytest.fixture
+
+@pytest.fixture(scope="module")
 def stubhub_markdown() -> str:
     path = Path("tests/fixtures/stubhub-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def ramp_markdown() -> str:
     path = Path("tests/fixtures/ramp-procurement-architect.md")
     return path.read_text(encoding="utf-8")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def robinhood_markdown() -> str:
     path = Path("tests/fixtures/robinhood-commonmark-spidercloud.md")
     return path.read_text(encoding="utf-8")
+
 
 
 def test_strip_known_nav_blocks(datadog_markdown):
@@ -863,7 +932,7 @@ def test_build_job_detail_heuristic_patch_preserves_remote_company_override():
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_multiple_locations(monkeypatch, datadog_markdown):
+async def test_process_pending_job_details_batch_handles_multiple_locations(convex_client: FakeConvexClient, datadog_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-datadog",
@@ -900,8 +969,8 @@ async def test_process_pending_job_details_batch_handles_multiple_locations(monk
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -919,7 +988,7 @@ async def test_process_pending_job_details_batch_handles_multiple_locations(monk
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_updates_description_when_cleaned(monkeypatch, datadog_markdown):
+async def test_process_pending_job_details_batch_updates_description_when_cleaned(convex_client: FakeConvexClient, datadog_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-datadog-legacy",
@@ -955,8 +1024,8 @@ async def test_process_pending_job_details_batch_updates_description_when_cleane
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -969,7 +1038,7 @@ async def test_process_pending_job_details_batch_updates_description_when_cleane
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_brazil_location(monkeypatch, airbnb_markdown):
+async def test_process_pending_job_details_batch_handles_brazil_location(convex_client: FakeConvexClient, airbnb_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-airbnb",
@@ -1003,8 +1072,8 @@ async def test_process_pending_job_details_batch_handles_brazil_location(monkeyp
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -1019,7 +1088,7 @@ async def test_process_pending_job_details_batch_handles_brazil_location(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_china_country(monkeypatch, airbnb_china_markdown):
+async def test_process_pending_job_details_batch_handles_china_country(convex_client: FakeConvexClient, airbnb_china_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-airbnb-china",
@@ -1053,8 +1122,8 @@ async def test_process_pending_job_details_batch_handles_china_country(monkeypat
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -1070,7 +1139,7 @@ async def test_process_pending_job_details_batch_handles_china_country(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_stubhub_markdown(monkeypatch, stubhub_markdown):
+async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex_client: FakeConvexClient, stubhub_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-stubhub",
@@ -1105,8 +1174,8 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(monkey
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -1125,7 +1194,7 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(monkey
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_canadian_location(monkeypatch, robinhood_markdown):
+async def test_process_pending_job_details_batch_handles_canadian_location(convex_client: FakeConvexClient, robinhood_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-robinhood",
@@ -1159,8 +1228,8 @@ async def test_process_pending_job_details_batch_handles_canadian_location(monke
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -1183,7 +1252,7 @@ def test_parse_markdown_hints_prefers_us_primary_when_present():
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(monkeypatch):
+async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(convex_client: FakeConvexClient):
     description = (
         "Senior/Staff, Back-end Engineer (Ads Landing)\n"
         "Seoul, South Korea\n"
@@ -1223,8 +1292,8 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 
@@ -1238,7 +1307,7 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
 
 
 @pytest.mark.asyncio
-async def test_process_pending_job_details_defaults_country_for_remote(monkeypatch):
+async def test_process_pending_job_details_defaults_country_for_remote(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remote",
@@ -1273,8 +1342,8 @@ async def test_process_pending_job_details_defaults_country_for_remote(monkeypat
             return {"updated": True}
         raise AssertionError(f"unexpected mutation {name}")
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_query)
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    convex_client.set_query_fallback(fake_query)
+    convex_client.set_mutation_fallback(fake_mutation)
 
     result = await process_pending_job_details_batch()
 

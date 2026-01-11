@@ -7,6 +7,7 @@ import re
 import textwrap
 import sys
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict
 
@@ -16,7 +17,7 @@ ROOT = os.path.abspath(".")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from job_scrape_application.workflows.activities import store_scrape  # noqa: E402
+from job_scrape_application.workflows.activities import process_spidercloud_job_batch, store_scrape  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
     parse_posted_at_with_unknown,
@@ -28,6 +29,7 @@ from job_scrape_application.workflows.helpers.regex_patterns import (  # noqa: E
 from job_scrape_application.workflows.site_handlers.greenhouse import (  # noqa: E402
     GreenhouseHandler,
 )
+from job_scrape_application.workflows.scrapers import spidercloud_scraper  # noqa: E402
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
     SpiderCloudScraper,
     SpidercloudDependencies,
@@ -76,12 +78,16 @@ ASHBY_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_ashby_lambda_job_commonmark.js
 ASHBY_RAMP_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_ashby_ramp_job_detail_raw_html.json"
 )
+ASHBY_RAMP_JOB_URL = "https://jobs.ashbyhq.com/ramp/caf900ec-0107-436b-88bf-2bc24174e6b9"
 NETFLIX_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_listing_page.json"
 NETFLIX_LISTING_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_netflix_listing_page_commonmark.json"
 )
 NETFLIX_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_commonmark.json"
 NETFLIX_RAW_HTML_DETAIL_FIXTURE = FIXTURE_DIR / "spidercloud_netflix_job_detail_790313323421_raw_html.json"
+CISCO_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_cisco_listing_page_1.json"
+DOCUSIGN_LISTING_FIXTURE = FIXTURE_DIR / "spidercloud_docusign_listing_page_1.json"
+ROBINHOOD_DETAIL_API_FIXTURE = FIXTURE_DIR / "spidercloud_robinhood_job_7473695_api.json"
 SNAPCHAT_WORKDAY_DETAIL_FIXTURE = (
     FIXTURE_DIR / "spidercloud_snapchat_workday_job_detail_commonmark.json"
 )
@@ -126,6 +132,15 @@ STRIPE_DETAIL_COMMONMARK_FIXTURE = (
 STRIPE_DUBLIN_DETAIL_COMMONMARK_FIXTURE = (
     FIXTURE_DIR / "spidercloud_stripe_job_6717520_commonmark.json"
 )
+STRIPE_REMOTE_DETAIL_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_stripe_job_7369227_detail_commonmark.json"
+)
+STRIPE_OFFICE_DETAIL_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_stripe_job_6993486_detail_commonmark.json"
+)
+STRIPE_UK_DETAIL_COMMONMARK_FIXTURE = (
+    FIXTURE_DIR / "spidercloud_stripe_job_7451366_detail_commonmark.json"
+)
 COUPANG_QUALIFICATION_MARKDOWN_FIXTURE = (
     FIXTURE_DIR / "markdown_coupang_qualification_title.md"
 )
@@ -151,6 +166,7 @@ META_DETAIL_RAW_FIXTURE = (
 )
 
 
+@lru_cache(maxsize=None)
 def _load_fixture(path: Path) -> Any:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
@@ -158,6 +174,7 @@ def _load_fixture(path: Path) -> Any:
     return payload
 
 
+@lru_cache(maxsize=None)
 def _load_request(path: Path) -> Dict[str, Any] | None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
@@ -221,7 +238,11 @@ def _extract_structured_job_posting_from_raw(raw_html: str) -> Dict[str, Any]:
     return parsed
 
 
+@lru_cache(maxsize=1)
 def _make_scraper() -> SpiderCloudScraper:
+    async def _fetch_seen_urls_for_site(*_args, **_kwargs) -> list[str]:
+        return []
+
     deps = SpidercloudDependencies(
         mask_secret=lambda v: v,
         sanitize_headers=lambda h: h,
@@ -230,9 +251,35 @@ def _make_scraper() -> SpiderCloudScraper:
         log_sync_response=lambda *args, **kwargs: None,
         trim_scrape_for_convex=lambda payload: payload,
         settings=type("cfg", (), {"spider_api_key": "key"}),
-        fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
+        fetch_seen_urls_for_site=_fetch_seen_urls_for_site,
     )
     return SpiderCloudScraper(deps)
+
+
+@pytest.fixture()
+def store_scrape_mocks(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Dict[str, Any]]]:
+    calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
+
+    async def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": 0}
+        return None
+
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
+
+    return {"calls": calls, "queue_calls": queue_calls}
 
 
 def _extract_normalized_from_commonmark(payload: Any) -> Dict[str, Any]:
@@ -247,19 +294,10 @@ def _extract_normalized_from_commonmark(payload: Any) -> Dict[str, Any]:
 async def _run_store_scrape(
     raw_payload: Any,
     source_url: str,
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ) -> tuple[list[str], list[Dict[str, Any]]]:
-    calls: list[Dict[str, Any]] = []
-
-    async def fake_mutation(name: str, args: Dict[str, Any]):
-        calls.append({"name": name, "args": args})
-        if name == "router:insertScrapeRecord":
-            return "scrape-id"
-        if name == "router:ingestJobsFromScrape":
-            return {"inserted": 0}
-        return None
-
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    calls = store_scrape_mocks["calls"]
+    queue_calls = store_scrape_mocks["queue_calls"]
 
     await store_scrape(
         {
@@ -271,20 +309,21 @@ async def _run_store_scrape(
         }
     )
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "store_scrape should enqueue URLs from the GoDaddy listing payload"
-    return enqueue_calls[0]["args"]["urls"], calls
+    assert queue_calls, "store_scrape should enqueue URLs from the GoDaddy listing payload"
+    return queue_calls[0]["urls"], calls
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_godaddy_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_godaddy_listing_extracts_job_links(
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
+):
     raw_payload = _load_fixture(LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
     request = _load_request(LISTING_FIXTURE)
     assert request is not None
     assert request.get("params", {}).get("return_format") == ["raw_html"]
 
-    urls, calls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, calls = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
     insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == source_url
@@ -299,22 +338,26 @@ async def test_spidercloud_godaddy_listing_extracts_job_links(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_mongodb_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_mongodb_listing_extracts_job_links(
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
+):
     raw_payload = _load_fixture(MONGODB_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected MongoDB listing URLs to be extracted"
     assert any("mongodb.com/careers/job" in url and "gh_jid=" in url for url in urls)
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_axon_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_axon_listing_extracts_job_links(
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
+):
     raw_payload = _load_fixture(AXON_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Axon listing URLs to be extracted"
     assert any("job-boards.greenhouse.io/axon/jobs/" in url for url in urls)
@@ -322,12 +365,12 @@ async def test_spidercloud_axon_listing_extracts_job_links(monkeypatch: pytest.M
 
 @pytest.mark.asyncio
 async def test_spidercloud_purestorage_listing_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(PURESTORAGE_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Pure Storage listing URLs to be extracted"
     assert any("boards.greenhouse.io/purestorage/jobs/" in url for url in urls)
@@ -335,12 +378,12 @@ async def test_spidercloud_purestorage_listing_extracts_job_links(
 
 @pytest.mark.asyncio
 async def test_spidercloud_samsara_listing_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(SAMSARA_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Samsara listing URLs to be extracted"
     assert any(
@@ -350,12 +393,12 @@ async def test_spidercloud_samsara_listing_extracts_job_links(
 
 @pytest.mark.asyncio
 async def test_spidercloud_nexhealth_listing_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(NEXHEALTH_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected NexHealth listing URLs to be extracted"
     assert any("nexhealth.com/careers/open-positions" in url for url in urls)
@@ -363,12 +406,12 @@ async def test_spidercloud_nexhealth_listing_extracts_job_links(
 
 @pytest.mark.asyncio
 async def test_spidercloud_rubrik_listing_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(RUBRIK_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Rubrik listing URLs to be extracted"
     assert any("rubrik.com/company/careers" in url and "gh_jid=" in url for url in urls)
@@ -376,23 +419,53 @@ async def test_spidercloud_rubrik_listing_extracts_job_links(
 
 @pytest.mark.asyncio
 async def test_spidercloud_zscaler_listing_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(ZSCALER_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Zscaler listing URLs to be extracted"
     assert any("job-boards.greenhouse.io/zscaler/jobs/" in url for url in urls)
 
 
+def test_spidercloud_docusign_listing_is_ignored():
+    payload = _load_fixture(DOCUSIGN_LISTING_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is None
+
+
+def test_spidercloud_cisco_listing_is_ignored():
+    payload = _load_fixture(CISCO_LISTING_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is None
+
+
 @pytest.mark.asyncio
-async def test_spidercloud_netflix_listing_extracts_job_links(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_netflix_listing_extracts_job_links(
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
+):
     raw_payload = _load_fixture(NETFLIX_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
@@ -400,14 +473,14 @@ async def test_spidercloud_netflix_listing_extracts_job_links(monkeypatch: pytes
 
 @pytest.mark.asyncio
 async def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(NETFLIX_LISTING_COMMONMARK_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
     assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted from commonmark"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
@@ -416,7 +489,7 @@ async def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_LISTING_FIXTURES)
 async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
-    monkeypatch: pytest.MonkeyPatch,
+    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
     fixture_path: Path,
 ):
     raw_payload = _load_fixture(fixture_path)
@@ -424,7 +497,7 @@ async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
 
     assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted from commonmark payload"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
@@ -469,6 +542,21 @@ def test_spidercloud_mongodb_job_detail_normalizes_description():
     hints = parse_markdown_hints(normalized["description"])
     assert hints.get("compensation_range") == {"low": 56576, "high": 82368}
     assert hints.get("compensation") == 69472
+
+
+def test_spidercloud_greenhouse_api_detail_extracts_location():
+    payload = _load_fixture(ROBINHOOD_DETAIL_API_FIXTURE)
+    url = _extract_source_url(payload)
+
+    scraper = _make_scraper()
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw HTML event in fixture"
+
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
+
+    assert normalized is not None
+    assert normalized["location"] == "Luxembourg, Luxembourg"
 
 
 def test_spidercloud_snapchat_job_detail_normalizes_fields():
@@ -1608,6 +1696,41 @@ def test_spidercloud_stripe_office_locations_hint():
     assert hints.get("location") == "Dublin, Ireland"
 
 
+def test_spidercloud_stripe_remote_locations_hint():
+    payload = _load_fixture(STRIPE_REMOTE_DETAIL_COMMONMARK_FIXTURE)
+    commonmark = _extract_commonmark(payload)
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("location") == "United States"
+    assert hints.get("remote") is True
+
+
+def test_spidercloud_stripe_chat_title_skipped():
+    payload = _load_fixture(STRIPE_REMOTE_DETAIL_COMMONMARK_FIXTURE)
+    commonmark = _extract_commonmark(payload)
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("title") == "Indirect Tax Enablement Specialist"
+
+
+def test_spidercloud_stripe_office_locations_split_or():
+    payload = _load_fixture(STRIPE_OFFICE_DETAIL_COMMONMARK_FIXTURE)
+    commonmark = _extract_commonmark(payload)
+    hints = parse_markdown_hints(commonmark)
+
+    locations = hints.get("locations") or []
+    assert any("Seattle" in loc for loc in locations)
+
+
+def test_spidercloud_stripe_office_locations_london():
+    payload = _load_fixture(STRIPE_UK_DETAIL_COMMONMARK_FIXTURE)
+    commonmark = _extract_commonmark(payload)
+    hints = parse_markdown_hints(commonmark)
+
+    locations = hints.get("locations") or []
+    assert any("London" in loc for loc in locations)
+
+
 def test_spidercloud_title_from_markdown_skips_stay_in_the_loop():
     scraper = _make_scraper()
     markdown = "\n".join(
@@ -1662,3 +1785,73 @@ def test_spidercloud_title_from_url_skips_id_like_slugs():
         )  # noqa: SLF001
         == "Untitled"
     )
+
+
+@pytest.mark.asyncio
+async def test_process_spidercloud_job_batch_persists_full_description(monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = _load_fixture(ASHBY_RAMP_DETAIL_FIXTURE)
+    if isinstance(payload, list):
+        if payload and isinstance(payload[0], list) and payload[0]:
+            payload = payload[0][0]
+        elif payload and isinstance(payload[0], dict):
+            payload = payload[0]
+    if not isinstance(payload, dict):
+        raise AssertionError("Expected ashby ramp fixture to yield a dict payload")
+
+    class _FakeClient:
+        def __init__(self, raw_payload: Dict[str, Any]):
+            self.payload = raw_payload
+            self.calls: list[dict[str, Any]] = []
+
+        async def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
+            self.calls.append(
+                {"url": url, "params": params, "stream": stream, "content_type": content_type}
+            )
+            yield self.payload
+
+    class _FakeAsyncSpider:
+        def __init__(self, *args, **kwargs):
+            self.payload = payload
+
+        async def __aenter__(self):
+            return _FakeClient(self.payload)
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return False
+
+    ingest_calls: list[Dict[str, Any]] = []
+
+    async def fake_convex_mutation(name: str, args: Dict[str, Any] | None = None):
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            ingest_calls.append(args or {})
+            return {"inserted": len((args or {}).get("jobs", []))}
+        if name == "router:recordJobDetailHeuristic":
+            return None
+        return None
+
+    async def fake_convex_query(name: str, args: Dict[str, Any] | None = None):  # noqa: ARG001
+        return []
+
+    async def fake_complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:  # noqa: ARG001
+        return {"updated": 1}
+
+    monkeypatch.setattr(spidercloud_scraper, "AsyncSpider", _FakeAsyncSpider)
+    monkeypatch.setattr("job_scrape_application.workflows.activities.settings.spider_api_key", "key")
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr("job_scrape_application.workflows.activities.complete_scrape_urls", fake_complete_scrape_urls)
+
+    result = await process_spidercloud_job_batch(
+        {"urls": [{"url": ASHBY_RAMP_JOB_URL, "sourceUrl": ASHBY_RAMP_JOB_URL}]},
+        persist_scrapes=True,
+    )
+
+    assert result.get("stored") == 1
+    assert ingest_calls, "expected ingestJobsFromScrape to be called"
+    jobs = ingest_calls[0].get("jobs") or []
+    assert len(jobs) == 1
+    description = jobs[0].get("description") or ""
+    assert "Ramp" in description
+    assert len(description) > 200

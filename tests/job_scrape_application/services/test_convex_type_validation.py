@@ -8,8 +8,8 @@ import pytest
 
 sys.path.insert(0, os.path.abspath("."))
 
+from job_scrape_application.dbos_runtime.queue import LeaseResult
 from job_scrape_application.workflows import activities as acts  # noqa: E402
-from job_scrape_application.services import convex_client  # noqa: E402
 
 
 @pytest.mark.asyncio
@@ -18,20 +18,19 @@ async def test_lease_scrape_url_batch_payload_types(monkeypatch):
 
     captured: Dict[str, Any] = {}
 
-    async def fake_convex_mutation(name: str, payload: Dict[str, Any] | None = None):
-        captured["name"] = name
-        captured["payload"] = payload or {}
-        return {"urls": [{"url": "https://example.com/job/1"}]}
+    def fake_lease_scrape_url_batch(**kwargs):
+        captured.update(kwargs)
+        return LeaseResult(urls=[{"url": "https://example.com/job/1"}], skipped_urls=[])
 
-    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        fake_lease_scrape_url_batch,
+    )
 
     res = await acts.lease_scrape_url_batch(provider=None, limit=5)
 
-    assert captured["name"] == "router:leaseScrapeUrlBatch"
-    payload = captured["payload"]
-    assert "provider" not in payload  # None should be stripped
-    assert payload["limit"] == 5
-    assert isinstance(payload["processingExpiryMs"], int)
+    assert captured["provider"] is None
+    assert captured["limit"] == 5
     assert res["urls"] == [{"url": "https://example.com/job/1"}]
     assert res.get("skippedUrls") == []
 

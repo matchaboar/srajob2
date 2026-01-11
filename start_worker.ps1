@@ -3,15 +3,14 @@
 param(
     [switch]$ForceScrapeAll = $false,
     [switch]$ResetWithinSchedule = $false,
-    [switch]$ResetProcessingQueue = $false,
     [switch]$UseProd = $false,
+    [switch]$UseTemporal = $false,
     [string]$EnvFile = ""
 )
 
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 $script:StartWorkerEntryPoint = $false
-$script:ResetProcessingQueueWasSpecified = $PSBoundParameters.ContainsKey("ResetProcessingQueue")
 $script:TemporalContainerStartedByScript = $false
 $script:TemporalContainerName = ""
 $script:TemporalCmd = ""
@@ -592,11 +591,42 @@ function Start-WorkerProcess {
     }
 }
 
+function Start-DbosWorkerProcess {
+    param(
+        [string]$ErrorLogPath,
+        [switch]$WithApi = $true,
+        [int]$ListingConcurrency = 2,
+        [int]$DetailConcurrency = 6
+    )
+
+    $envBlock = @{}
+    foreach ($entry in Get-ChildItem Env:) {
+        $envBlock[$entry.Name] = $entry.Value
+    }
+
+    $workerArgs = @("run", "-m", "job_scrape_application.dbos_runtime.runner")
+    if ($WithApi) {
+        $workerArgs += "--with-api"
+    }
+    $workerArgs += @("--listing-concurrency", $ListingConcurrency)
+    $workerArgs += @("--detail-concurrency", $DetailConcurrency)
+    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath -Environment $envBlock
+    if (-not $proc) {
+        throw "Failed to start DBOS worker process."
+    }
+    return @{
+        Process = $proc
+        Role = "dbos"
+        TaskQueue = "dbos"
+        JobDetailsQueue = ""
+    }
+}
+
 function Stop-ExistingWorkers {
     try {
         if ($IsWindows) {
             $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-                $_.CommandLine -match "job_scrape_application\.workflows\.worker"
+                $_.CommandLine -match "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)"
             }
             foreach ($p in $procs) {
                 try {
@@ -615,7 +645,7 @@ function Stop-ExistingWorkers {
 
         $psOutput = & $psPath -eo pid,args 2>$null
         foreach ($line in $psOutput) {
-            if ($line -match "^\s*(\d+)\s+.*job_scrape_application\.workflows\.worker") {
+            if ($line -match "^\s*(\d+)\s+.*job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)") {
                 $pid = [int]$matches[1]
                 try {
                     Write-Host "[preflight] Stopping stale worker pid=$pid" -ForegroundColor Yellow
@@ -634,7 +664,7 @@ function Get-LocalWorkerCount {
     try {
         if ($IsWindows) {
             $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-                $_.CommandLine -match "job_scrape_application\.workflows\.worker"
+                $_.CommandLine -match "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)"
             }
             return @($procs).Count
         }
@@ -646,7 +676,7 @@ function Get-LocalWorkerCount {
         $psOutput = & $psPath -eo args 2>$null
         $count = 0
         foreach ($line in $psOutput) {
-            if ($line -match "job_scrape_application\.workflows\.worker") {
+            if ($line -match "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)") {
                 $count += 1
             }
         }
@@ -776,11 +806,6 @@ function Stop-WorkerCountTicker {
 }
 
 function Start-WorkerMain {
-    if (-not $script:ResetProcessingQueueWasSpecified -and $script:StartWorkerEntryPoint) {
-        $script:ResetProcessingQueue = $true
-        Write-Host "ResetProcessingQueue not specified; defaulting to reset processing scrape_url_queue rows on startup." -ForegroundColor Yellow
-    }
-
     $errorLogPath = Join-Path "logs" "worker-errors.log"
     if (-not (Test-Path (Split-Path $errorLogPath -Parent))) {
         New-Item -ItemType Directory -Force -Path (Split-Path $errorLogPath -Parent) | Out-Null
@@ -886,6 +911,133 @@ function Start-WorkerMain {
     # Ensure any old worker processes from previous runs are terminated
     Stop-ExistingWorkers
 
+    if ($ForceScrapeAll -or $ResetWithinSchedule) {
+        $resetConvexUrl = $env:CONVEX_HTTP_URL
+        if ($UseProd -and -not $EnvFile -and (Test-Path $prodEnvPath)) {
+            if (-not $resetConvexUrl -or $convexSourcePath -ne $prodEnvPath) {
+                Load-DotEnv $prodEnvPath -Override:$true -SourceMap:$envSourceMap
+                $resetConvexUrl = $env:CONVEX_HTTP_URL
+                $convexSourcePath = $prodEnvPath
+            }
+        }
+
+        if ($UseProd -and $resetConvexUrl) {
+            if ($resetConvexUrl -match "\.convex\.cloud") {
+                Write-Error "CONVEX_HTTP_URL points to .convex.cloud; prod HTTP routes require .convex.site. Skipping forced reset."
+                $resetConvexUrl = $null
+            } elseif ($resetConvexUrl -notmatch "\.convex\.site") {
+                Write-Warning "CONVEX_HTTP_URL does not look like a .convex.site endpoint; forced reset may not hit prod."
+            }
+        }
+
+        if (-not $resetConvexUrl) {
+            Write-Warning "CONVEX_HTTP_URL is not set; cannot reset sites for forced scrape."
+        } else {
+            $respectSchedule = $ResetWithinSchedule.IsPresent
+            if ($respectSchedule) {
+                Write-Host "Resetting active sites (respecting schedules)..."
+            } else {
+                Write-Host "Resetting active sites to force a fresh scrape on first run..."
+            }
+            try {
+                $resetPayload = @{ respectSchedule = $respectSchedule } | ConvertTo-Json -Compress
+                $resetResponse = Invoke-WebRequest -Method POST -Uri "$($resetConvexUrl.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body $resetPayload
+                if ($resetResponse -and $resetResponse.Content) {
+                    Write-Host ("Site reset response: {0}" -f $resetResponse.Content)
+                } else {
+                    Write-Host "Site reset request sent."
+                }
+            } catch {
+                Write-Warning "Failed to reset sites for forced scrape: $_"
+            }
+        }
+    }
+
+    if (-not $UseTemporal) {
+        Write-Host "Starting DBOS workflow runner..." -ForegroundColor Cyan
+        $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
+        $defaultListingConcurrency = 4
+        $defaultDetailConcurrency = 6
+        $listingConcurrency = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_listing_worker_count" -DefaultValue $defaultListingConcurrency
+        $detailConcurrency = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultDetailConcurrency
+        if ($listingConcurrency -lt 1) { $listingConcurrency = $defaultListingConcurrency }
+        if ($detailConcurrency -lt 1) { $detailConcurrency = $defaultDetailConcurrency }
+        $script:WorkerProcesses = @()
+        $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -WithApi -ListingConcurrency $listingConcurrency -DetailConcurrency $detailConcurrency
+        $script:WorkerProcess = $script:WorkerProcesses[0].Process
+        $cancelSub = Register-EngineEvent -SourceIdentifier ConsoleCancelEvent -Action {
+            Write-Host "[signal] Ctrl+C received; beginning shutdown..." -ForegroundColor Red
+            $script:CancelRequested = $true
+            if (-not $script:ShutdownStopwatch) {
+                $script:ShutdownStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            } else {
+                $script:ShutdownStopwatch.Restart()
+            }
+            $timer = $script:ShutdownStopwatch
+            Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses -SkipContainer -Timer $timer -Reason "Ctrl+C"
+            if ($timer -and $timer.IsRunning) {
+                $timer.Stop()
+            }
+            if ($timer) {
+                Write-Host ("[signal] Ctrl+C shutdown finished in {0}s" -f [math]::Round($timer.Elapsed.TotalSeconds, 2)) -ForegroundColor Yellow
+            }
+            Write-Host "[signal] Shutdown requested; exiting loop." -ForegroundColor Red
+        }
+        Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
+        try {
+            $exitCode = $null
+            while ($true) {
+                if ($script:CancelRequested) { break }
+                Invoke-ErrorWatcherTick
+                $exited = $script:WorkerProcesses | Where-Object { $_.Process -and $_.Process.HasExited }
+                if ($exited) {
+                    $exitCode = $exited[0].Process.ExitCode
+                    break
+                }
+                if (-not [Console]::IsInputRedirected) {
+                    try {
+                        if ([Console]::KeyAvailable) {
+                            $key = [Console]::ReadKey($true)
+                            if (($key.Modifiers -band [ConsoleModifiers]::Control) -and $key.Key -eq "R") {
+                                Write-Host "Ctrl+R detected: restarting worker..." -ForegroundColor Yellow
+                                try {
+                                    foreach ($worker in $script:WorkerProcesses) {
+                                        if ($worker.Process -and -not $worker.Process.HasExited) {
+                                            Stop-Process -Id $worker.Process.Id -Force -ErrorAction SilentlyContinue
+                                            Wait-Process -Id $worker.Process.Id -ErrorAction SilentlyContinue
+                                        }
+                                    }
+                                } catch {}
+                                $script:WorkerProcesses = @()
+                                $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -WithApi -ListingConcurrency $listingConcurrency -DetailConcurrency $detailConcurrency
+                                $script:WorkerProcess = $script:WorkerProcesses[0].Process
+                                continue
+                            }
+                        }
+                    } catch {
+                        # Ignore console polling failures in non-interactive sessions.
+                    }
+                }
+                Start-Sleep -Milliseconds 100
+            }
+        } finally {
+            if ($cancelSub) {
+                Unregister-Event -SubscriptionId $cancelSub.Id -ErrorAction SilentlyContinue
+            }
+            Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses -SkipContainer
+        }
+
+        if (-not $script:CancelRequested) {
+            if ($exitCode -eq $null -and $script:WorkerProcesses.Count -gt 0) {
+                $exitCode = $script:WorkerProcesses[0].Process.ExitCode
+            }
+            if ($exitCode -ne 0) {
+                throw "Worker exited unexpectedly (exit $exitCode). See $errorLogPath for details."
+            }
+        }
+        return
+    }
+
     $TemporalHost = ($TemporalAddress -split ":")[0]
     $TemporalPort = 7233
     if ($TemporalAddress -match ":(\d+)$") {
@@ -963,18 +1115,18 @@ function Start-WorkerMain {
         $temporalListening = Test-TemporalPort -TargetHost "localhost" -Port $TemporalPort
     }
 
-            if ($temporalListening) {
-                Write-Host "Port $TemporalPort already reachable; assuming Temporal is running. Skipping container start."
-            } else {
-                $started = Start-TemporaliteContainer -Cmd $cmd -IsPodman:$isPodman -TemporalPort $TemporalPort -TemporalUiPort $TemporalUiPort -TemporalContainerName $TemporalContainerName -TemporalImageName $TemporalImageName -TemporalDockerfile $TemporalDockerfile -TemporalDockerContext $TemporalDockerContext -TemporalComposeFile $TemporalComposeFile
-                if ($started) {
-                    $script:TemporalContainerStartedByScript = $true
-                    $script:TemporalCmd = $cmd
-                    $script:TemporalContainerName = $TemporalContainerName
-                    $script:TemporalUsingPodman = $isPodman
-                    Write-Host "[startup] Started Temporal container $TemporalContainerName via $cmd" -ForegroundColor Cyan
-                }
-            }
+    if ($temporalListening) {
+        Write-Host "Port $TemporalPort already reachable; assuming Temporal is running. Skipping container start."
+    } else {
+        $started = Start-TemporaliteContainer -Cmd $cmd -IsPodman:$isPodman -TemporalPort $TemporalPort -TemporalUiPort $TemporalUiPort -TemporalContainerName $TemporalContainerName -TemporalImageName $TemporalImageName -TemporalDockerfile $TemporalDockerfile -TemporalDockerContext $TemporalDockerContext -TemporalComposeFile $TemporalComposeFile
+        if ($started) {
+            $script:TemporalContainerStartedByScript = $true
+            $script:TemporalCmd = $cmd
+            $script:TemporalContainerName = $TemporalContainerName
+            $script:TemporalUsingPodman = $isPodman
+            Write-Host "[startup] Started Temporal container $TemporalContainerName via $cmd" -ForegroundColor Cyan
+        }
+    }
 
     # Wait for Temporal Port
     Write-Host "Waiting for Temporal Server to be ready on port $TemporalPort..."
@@ -1000,69 +1152,8 @@ function Start-WorkerMain {
 
     Reset-StaleVenv
 
-    if ($ForceScrapeAll -or $ResetWithinSchedule) {
-        $resetConvexUrl = $env:CONVEX_HTTP_URL
-        if ($UseProd -and -not $EnvFile -and (Test-Path $prodEnvPath)) {
-            if (-not $resetConvexUrl -or $convexSourcePath -ne $prodEnvPath) {
-                Load-DotEnv $prodEnvPath -Override:$true -SourceMap:$envSourceMap
-                $resetConvexUrl = $env:CONVEX_HTTP_URL
-                $convexSourcePath = $prodEnvPath
-            }
-        }
-
-        if ($UseProd -and $resetConvexUrl) {
-            if ($resetConvexUrl -match "\.convex\.cloud") {
-                Write-Error "CONVEX_HTTP_URL points to .convex.cloud; prod HTTP routes require .convex.site. Skipping forced reset."
-                $resetConvexUrl = $null
-            } elseif ($resetConvexUrl -notmatch "\.convex\.site") {
-                Write-Warning "CONVEX_HTTP_URL does not look like a .convex.site endpoint; forced reset may not hit prod."
-            }
-        }
-
-        if (-not $resetConvexUrl) {
-            Write-Warning "CONVEX_HTTP_URL is not set; cannot reset sites for forced scrape."
-        } else {
-            $respectSchedule = $ResetWithinSchedule.IsPresent
-            if ($respectSchedule) {
-                Write-Host "Resetting active sites (respecting schedules)..."
-            } else {
-                Write-Host "Resetting active sites to force a fresh scrape on first run..."
-            }
-            try {
-                $resetPayload = @{ respectSchedule = $respectSchedule } | ConvertTo-Json -Compress
-                $resetResponse = Invoke-WebRequest -Method POST -Uri "$($resetConvexUrl.TrimEnd('/'))/api/sites/reset" -ContentType "application/json" -Body $resetPayload
-                if ($resetResponse -and $resetResponse.Content) {
-                    Write-Host ("Site reset response: {0}" -f $resetResponse.Content)
-                } else {
-                    Write-Host "Site reset request sent."
-                }
-            } catch {
-                Write-Warning "Failed to reset sites for forced scrape: $_"
-            }
-        }
-    }
-
-    if ($ResetProcessingQueue) {
-        Write-Host "Resetting scrape_url_queue processing rows back to pending..." -ForegroundColor Yellow
-        try {
-            $convexArgs = "{}"
-            $convexCmd = @("convex", "run")
-            if ($UseProd) { $convexCmd += "--prod" }
-            $convexCmd += "router:resetScrapeUrlProcessing"
-            $convexCmd += $convexArgs
-            Push-Location "job_board_application"
-            try {
-                & npx @convexCmd
-                Assert-LastExit "Reset scrape_url_queue processing rows"
-            } finally {
-                Pop-Location
-            }
-        } catch {
-            Write-Warning "Failed to reset scrape_url_queue processing rows: $($_.Exception.Message)"
-        }
-    }
-
     $JobDetailsQueue = "spidercloud-job-details-queue"
+
     $ListingQueue = "spidercloud-listing-queue"
     $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE = $JobDetailsQueue
     $env:TEMPORAL_LISTING_TASK_QUEUE = $ListingQueue

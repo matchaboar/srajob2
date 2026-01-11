@@ -1740,6 +1740,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "the role",
             "our team",
             "the team",
+            "about the team",
+            "about stripe",
             "what's in it for you",
             "whats in it for you",
             "why this matters",
@@ -1832,6 +1834,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             return False
         if lowered.startswith(("location", "business area", "ref #", "ref#", "description")):
             return False
+        if lowered.startswith("chat ") or "chat with" in lowered or "chat now" in lowered:
+            return False
         if "salary" in lowered or "compensation" in lowered:
             return False
         if _SALARY_RE.search(value) or _SALARY_K_RE.search(value):
@@ -1841,6 +1845,8 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if any(token in lowered for token in ("apply", "direct apply", "apply with ai", "apply now", "back to job search", "save this job")):
             return False
         if any(token in lowered for token in ("cookie", "privacy", "consent")):
+            return False
+        if re.fullmatch(r"\[[^\]]+\]\([^)]+\)", trimmed):
             return False
         if "posted" in lowered and ("ago" in lowered or re.search(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b", lowered)):
             return False
@@ -2101,11 +2107,29 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 break
         return cleaned
 
+    def _clean_location_candidate(value: str) -> str:
+        cleaned = stringify(value)
+        if not cleaned:
+            return ""
+        cleaned = re.sub(r"^remote\s*[-–—]\s*", "remote ", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b(headquarters|hq)\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(WHITESPACE_PATTERN, " ", cleaned).strip(" ,;/\t")
+        remote_match = re.match(r"^remote\s*(?:in|for)?\s+(?P<rest>.+)$", cleaned, flags=re.IGNORECASE)
+        if remote_match:
+            cleaned = remote_match.group("rest").strip(" ,;/\t") or "Remote"
+        return cleaned
+
     def _add_location_candidate(raw: str) -> None:
-        candidate = stringify(raw)
+        candidate = _clean_location_candidate(raw)
         if not candidate:
             return
         lower_candidate = candidate.lower()
+        if re.search(r"\s+(?:or|and)\s+", lower_candidate):
+            for part in re.split(r"\s+(?:or|and)\s+", candidate):
+                part_clean = _clean_location_candidate(part)
+                if part_clean:
+                    location_candidates.append(part_clean)
+            return
         if "remote" in lower_candidate and "," in candidate:
             for part in candidate.split(","):
                 part_clean = part.strip()
@@ -2133,12 +2157,18 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
                 _add_location_candidate(heading_value)
             continue
         lower = t.lower()
-        if lower in {"locations", "office location", "office locations"}:
+        if lower in {"locations", "office location", "office locations", "remote location", "remote locations"}:
             location_section = True
             continue
         if location_section:
             location_section = False
             _add_location_candidate(t)
+            continue
+        if lower.startswith("remote ") and len(t.split()) <= 6:
+            _add_location_candidate(t)
+            continue
+        if lower.startswith("remote-") and len(t.split()) <= 6:
+            _add_location_candidate(t.replace("remote-", "remote ").strip())
             continue
         if work_match := _WORK_FROM_RE.search(t):
             location_text = _trim_inline_location(work_match.group("location"))
@@ -2241,6 +2271,11 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         hints["remote"] = True
     elif has_physical_location:
         hints["remote"] = False
+
+    if hints.get("remote") is True and "location" not in hints:
+        hints["location"] = "Remote"
+        if not hints.get("locations"):
+            hints["locations"] = ["Remote"]
 
     comp_candidates: List[int] = []
     comp_ranges: List[tuple[Optional[int], Optional[int]]] = []

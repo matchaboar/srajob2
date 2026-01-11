@@ -47,7 +47,7 @@ class Settings:
     convex_url: str | None = os.getenv("CONVEX_URL")
 
     # Legacy HTTP router base (e.g., https://your-app.convex.site)
-    convex_http_url: str | None = os.getenv("CONVEX_HTTP_URL")
+    convex_http_url: str | None = os.getenv("CONVEX_HTTP_URL") or os.getenv("CONVEX_SITE_URL")
 
     # API key for FetchFox SDK
     fetchfox_api_key: str | None = os.getenv("FETCHFOX_API_KEY")

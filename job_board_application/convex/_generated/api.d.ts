@@ -13,6 +13,7 @@ import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as companySummaryCron from "../companySummaryCron.js";
 import type * as crons from "../crons.js";
+import type * as dbosActions from "../dbosActions.js";
 import type * as filters from "../filters.js";
 import type * as firecrawlWebhookUtil from "../firecrawlWebhookUtil.js";
 import type * as formFiller from "../formFiller.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   companySummaryCron: typeof companySummaryCron;
   crons: typeof crons;
+  dbosActions: typeof dbosActions;
   filters: typeof filters;
   firecrawlWebhookUtil: typeof firecrawlWebhookUtil;
   formFiller: typeof formFiller;

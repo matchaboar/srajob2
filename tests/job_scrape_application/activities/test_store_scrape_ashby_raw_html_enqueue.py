@@ -200,13 +200,14 @@ async def test_store_scrape_enqueues_ashby_api_pagination_and_extracts_page_two(
         args = args or {}
         if name == "router:insertScrapeRecord":
             return "scrape-id"
-        if name == "router:enqueueScrapeUrls":
-            seen["enqueue"] = args
-            return {"queued": args.get("urls", [])}
         if name == "router:ingestJobsFromScrape":
             seen["ingest"] = args
             return {"inserted": 0}
         return None
+
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        seen["enqueue"] = payload
+        return {"queued": len(payload.get("urls", []))}
 
     async def fake_fetch_seen(_source: str, _pattern: str | None):
         return []
@@ -217,6 +218,10 @@ async def test_store_scrape_enqueues_ashby_api_pagination_and_extracts_page_two(
     monkeypatch.setattr(
         "job_scrape_application.services.convex_client.convex_mutation",
         fake_convex_mutation,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
     )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
     monkeypatch.setattr(AshbyHqHandler, "get_pagination_urls_from_json", fake_pagination)
@@ -266,17 +271,22 @@ async def test_store_scrape_enqueues_ashby_urls_from_raw_html(monkeypatch):
         args = args or {}
         if name == "router:insertScrapeRecord":
             return "scrape-id"
-        if name == "router:enqueueScrapeUrls":
-            seen["enqueue"] = args
-            return {"queued": args.get("urls", [])}
         if name == "router:ingestJobsFromScrape":
             seen["ingest"] = args
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        seen["enqueue"] = payload
+        return {"queued": len(payload.get("urls", []))}
+
     monkeypatch.setattr(
         "job_scrape_application.services.convex_client.convex_mutation",
         fake_convex_mutation,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
     )
 
     await acts.store_scrape(scrape)
@@ -306,13 +316,14 @@ async def test_store_scrape_enqueues_ashby_ramp_urls_from_api(monkeypatch):
         args = args or {}
         if name == "router:insertScrapeRecord":
             return "scrape-id"
-        if name == "router:enqueueScrapeUrls":
-            seen["enqueue"] = args
-            return {"queued": args.get("urls", [])}
         if name == "router:ingestJobsFromScrape":
             seen["ingest"] = args
             return {"inserted": 0}
         return None
+
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        seen["enqueue"] = payload
+        return {"queued": len(payload.get("urls", []))}
 
     async def fake_fetch_seen(_source: str, _pattern: str | None):
         return []
@@ -320,6 +331,10 @@ async def test_store_scrape_enqueues_ashby_ramp_urls_from_api(monkeypatch):
     monkeypatch.setattr(
         "job_scrape_application.services.convex_client.convex_mutation",
         fake_convex_mutation,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
     )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 

@@ -3,7 +3,6 @@ import { listScrapeActivity } from "./sites";
 import { getHandler } from "./__tests__/getHandler";
 
 type Scrape = { _id: string; siteId?: string; sourceUrl: string; completedAt?: number; jobCount?: number };
-type Run = { _id: string; siteUrls: string[]; startedAt: number; completedAt?: number; status?: string };
 
 type QueryTracker = { take: number; collect: number; paginate: number };
 
@@ -32,11 +31,6 @@ class FakeQuery<T extends { [key: string]: any }> {
       if (filters.gte) {
         filtered = filtered.filter((r: any) => (r[filters.gte!.field] ?? 0) >= filters.gte!.value);
       }
-      return new FakeQuery<T>(this.table, filtered, this.tracker);
-    }
-    if (this.table === "workflow_runs") {
-      const cutoff = filters.gte?.value ?? 0;
-      const filtered = this.rows.filter((r: any) => (r.startedAt ?? 0) >= cutoff);
       return new FakeQuery<T>(this.table, filtered, this.tracker);
     }
     return this;
@@ -81,13 +75,6 @@ describe("listScrapeActivity", () => {
       completedAt: now - 90 * 24 * 60 * 60 * 1000,
       jobCount: 3,
     };
-    const recentRun: Run = {
-      _id: "run-1",
-      siteUrls: ["https://example.com"],
-      startedAt: now - 2 * 24 * 60 * 60 * 1000,
-      completedAt: now - 2 * 24 * 60 * 60 * 1000,
-      status: "completed",
-    };
     const ctx: any = {
       db: {
         query: (table: string) => {
@@ -98,9 +85,6 @@ describe("listScrapeActivity", () => {
           }
           if (table === "scrape_activity") {
             return new FakeQuery<Scrape>("scrape_activity", [recentScrape, oldScrape]);
-          }
-          if (table === "workflow_runs") {
-            return new FakeQuery<Run>("workflow_runs", [recentRun]);
           }
           throw new Error(`Unexpected table ${table}`);
         },
@@ -134,11 +118,6 @@ describe("listScrapeActivity", () => {
           if (table === "scrape_activity") {
             return new FakeQuery<Scrape>("scrape_activity", [
               { _id: "scrape-1", siteId: "site-1", sourceUrl: "https://example.com", completedAt: now, jobCount: 0 },
-            ], tracker);
-          }
-          if (table === "workflow_runs") {
-            return new FakeQuery<Run>("workflow_runs", [
-              { _id: "run-1", siteUrls: ["https://example.com"], startedAt: now, status: "completed" },
             ], tracker);
           }
           throw new Error(`Unexpected table ${table}`);

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Run DBOS runner on Convex dev"
+set -euo pipefail
+
+CONVEX_HTTP_URL=https://elegant-magpie-239.convex.site \
+  uv run -m job_scrape_application.dbos_runtime.runner \
+  --with-api \
+  --listing-batch 10 \
+  --detail-batch 10 \
+  --listing-concurrency 1 \
+  --detail-concurrency 2

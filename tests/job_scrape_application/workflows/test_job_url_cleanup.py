@@ -7,15 +7,16 @@ sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.activities import (  # noqa: E402
     _extract_job_urls_from_scrape,
+    _filter_job_urls,
 )
 
 BAD_URL = "https://careers.snap.com/job?id=R0041979)|Engineering|Regular|Bellevue"
 EXPECTED_URL = "https://careers.snap.com/job?id=R0041979"
 
 
-def _build_scrape(provider: str | None) -> dict:
+def _build_scrape(provider: str | None) -> dict[str, object]:
     items = {"job_urls": [BAD_URL]}
-    scrape = {"items": items}
+    scrape: dict[str, object] = {"items": items}
     if provider is not None:
         scrape["provider"] = provider
     return scrape
@@ -28,3 +29,14 @@ def test_extract_job_urls_strips_table_tail_across_providers():
 
         assert EXPECTED_URL in urls
         assert not any("|Engineering" in url or "Bellevue" in url for url in urls)
+
+
+def test_filter_job_urls_falls_back_to_base_rules():
+    urls = [
+        "https://elegant-magpie-239.convex.site/share/job?id=abc&app=https%3A%2F%2Flocalhost%3A5173",
+        "https://boards.greenhouse.io/coreweave/jobs/4607747006",
+    ]
+    filtered = _filter_job_urls(urls, None)  # noqa: SLF001
+
+    assert "https://boards.greenhouse.io/coreweave/jobs/4607747006" in filtered
+    assert "https://elegant-magpie-239.convex.site/share/job?id=abc&app=https%3A%2F%2Flocalhost%3A5173" not in filtered

@@ -39,6 +39,7 @@ async def _run_store_scrape(
     trim_payload: bool = False,
 ) -> tuple[list[str], list[Dict[str, Any]]]:
     calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
@@ -48,7 +49,15 @@ async def _run_store_scrape(
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
 
     scrape_payload: Dict[str, Any] = {
         "sourceUrl": source_url,
@@ -62,9 +71,8 @@ async def _run_store_scrape(
 
     await store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "store_scrape should enqueue URLs from Avature listing payload"
-    return enqueue_calls[0]["args"]["urls"], calls
+    assert queue_calls, "store_scrape should enqueue URLs from Avature listing payload"
+    return queue_calls[0]["urls"], calls
 
 
 @pytest.mark.asyncio

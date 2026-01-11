@@ -115,6 +115,7 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     if not candidate:
         return None
     candidate = fix_scheme_slashes(candidate)
+    candidate = candidate.replace("\\/", "/")
     candidate = candidate.replace("\\", "/")
     lower = candidate.lower()
     if lower.startswith(("mailto:", "tel:", "javascript:", "#")):

@@ -660,7 +660,8 @@ class BaseSiteHandler(ABC):
     def is_api_detail_url(self, uri: str) -> bool:
         return False
 
-    def filter_job_urls(self, urls: List[str]) -> List[str]:
+    @classmethod
+    def filter_job_urls_basic(cls, urls: List[str]) -> List[str]:
         filtered: List[str] = []
         seen: set[str] = set()
         for url in urls:
@@ -673,11 +674,14 @@ class BaseSiteHandler(ABC):
             lower = cleaned.lower()
             if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
                 continue
-            if self._looks_like_non_job_detail_url(cleaned):
+            if cls._looks_like_non_job_detail_url(cleaned):
                 continue
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    def filter_job_urls(self, urls: List[str]) -> List[str]:
+        return self.filter_job_urls_basic(urls)
 
     def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
         return self.filter_job_urls(urls)

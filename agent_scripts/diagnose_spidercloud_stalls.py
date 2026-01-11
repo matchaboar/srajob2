@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 from job_scrape_application.services import convex_query  # noqa: E402
 
 try:
@@ -150,13 +151,7 @@ def _latest_eligible_time(schedule: Dict[str, Any] | None, now_ms: int) -> Optio
 
 
 async def _list_queue(status: Optional[str], provider: Optional[str], limit: int) -> List[Dict[str, Any]]:
-    args: Dict[str, Any] = {"limit": limit}
-    if status:
-        args["status"] = status
-    if provider:
-        args["provider"] = provider
-    rows = await convex_query("router:listQueuedScrapeUrls", args)
-    return rows or []
+    return dbos_queue.list_scrape_urls(provider=provider, status=status, limit=limit) or []
 
 
 def _summarize_queue(rows: List[Dict[str, Any]], now_ms: int, expire_minutes: int) -> Dict[str, Any]:
@@ -239,31 +234,6 @@ async def _gather_site_schedule_summary(now_ms: int) -> Dict[str, Any]:
     }
 
 
-async def _gather_temporal_status() -> Dict[str, Any]:
-    active = await convex_query("temporal:getActiveWorkers", {}) or []
-    stale = await convex_query("temporal:getStaleWorkers", {}) or []
-    runs = await convex_query("temporal:listWorkflowRuns", {"limit": 50}) or []
-    task_queues = sorted({str(row.get("taskQueue")) for row in active if row.get("taskQueue")})
-    by_workflow = Counter([str(r.get("workflowName") or "") for r in runs])
-    return {
-        "activeWorkers": len(active),
-        "staleWorkers": len(stale),
-        "taskQueues": task_queues,
-        "recentWorkflowCounts": dict(by_workflow),
-        "recentWorkflowSamples": [
-            {
-                "workflowName": r.get("workflowName"),
-                "status": r.get("status"),
-                "startedAt": _fmt_dt(r.get("startedAt")),
-                "completedAt": _fmt_dt(r.get("completedAt")),
-                "taskQueue": r.get("taskQueue"),
-                "error": r.get("error"),
-            }
-            for r in runs[:8]
-        ],
-    }
-
-
 async def _gather_scrape_errors() -> Dict[str, Any]:
     rows = await convex_query("router:listScrapeErrors", {"limit": 50}) or []
     by_event = Counter([str(r.get("event") or "") for r in rows])
@@ -339,9 +309,9 @@ async def _spidercloud_batch_test(
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Diagnose Convex/Temporal stalls for SpiderCloud job details.")
+    parser = argparse.ArgumentParser(description="Diagnose DBOS queue stalls for SpiderCloud job details.")
     parser.add_argument("--env", default="prod", choices=["dev", "prod"])
-    parser.add_argument("--provider", default="spidercloud", help="scrape_url_queue provider filter")
+    parser.add_argument("--provider", default="spidercloud", help="queue provider filter")
     parser.add_argument("--limit", type=int, default=500, help="per-status queue fetch limit (max 500)")
     parser.add_argument("--test-batch", type=int, default=0, help="run spidercloud batch test with N urls")
     parser.add_argument("--test-status", default="pending", help="queue status to source batch test urls from")
@@ -371,7 +341,6 @@ async def main() -> None:
             "completed": _summarize_queue(completed, now_ms, expire_minutes),
         },
         "sites": await _gather_site_schedule_summary(now_ms),
-        "temporal": await _gather_temporal_status(),
         "scrapeErrors": await _gather_scrape_errors(),
     }
 

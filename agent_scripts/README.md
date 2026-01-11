@@ -38,7 +38,7 @@ Quick reference for the helper scripts in `agent_scripts/`. Always run via `uv r
     - `uv run agent_scripts/wipe_company_convex.py --env prod --domain bloomberg.avature.net`
     - `uv run agent_scripts/wipe_company_convex.py --env prod --company lambda`
 - `export_scrape_queue_fixture.py`
-  - Exports `scrape_url_queue` rows into a fixture JSON.
+  - Exports DBOS queue rows into a fixture JSON.
   - Example: `uv run agent_scripts/export_scrape_queue_fixture.py --provider spidercloud --statuses pending,processing`
 - `export_site_schedules.py`
   - Exports Convex schedules into `job_scrape_application/config/<env>/site_schedules.yml`.

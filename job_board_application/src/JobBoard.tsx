@@ -23,7 +23,7 @@ const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as con
 const SCRAPE_QUEUE_PROCESSING_EXPIRY_MS = 20 * 60 * 1000;
 type TargetState = (typeof TARGET_STATES)[number];
 type JobId = Id<"jobs">;
-type QueueId = Id<"scrape_url_queue">;
+type QueueId = string;
 type SelectionId = JobId | QueueId;
 type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
@@ -709,13 +709,16 @@ export function JobBoard() {
       cancelled = true;
     };
   }, [requestedDescriptionUrl, requestedFullDescriptionJobId]);
+  const resolveDescriptionStorageId = (job?: { _id?: JobId | null; descriptionStorageJobId?: JobId | null } | null) =>
+    (job?.descriptionStorageJobId ?? job?._id) ?? null;
   const requestFullDescription = useCallback(
-    (jobId: JobId) => {
-      if (!jobId) return;
-      if (fullDescriptions[jobId] || fullDescriptionLoading[jobId]) return;
-      setFullDescriptionLoading((prev) => ({ ...prev, [jobId]: true }));
-      setFullDescriptionErrors((prev) => ({ ...prev, [jobId]: null }));
-      setRequestedFullDescriptionJobId(jobId);
+    (job?: { _id?: JobId | null; descriptionStorageJobId?: JobId | null } | null) => {
+      const storageJobId = resolveDescriptionStorageId(job);
+      if (!storageJobId) return;
+      if (fullDescriptions[storageJobId] || fullDescriptionLoading[storageJobId]) return;
+      setFullDescriptionLoading((prev) => ({ ...prev, [storageJobId]: true }));
+      setFullDescriptionErrors((prev) => ({ ...prev, [storageJobId]: null }));
+      setRequestedFullDescriptionJobId(storageJobId);
     },
     [fullDescriptions, fullDescriptionLoading]
   );
@@ -1020,7 +1023,8 @@ export function JobBoard() {
     return selectedJobFull.compensationReason || selectedCompMeta.reason || "No additional notes.";
   }, [selectedJobFull, selectedCompMeta]);
   const descriptionText = useMemo(() => {
-    const fullDescription = selectedJobFull?._id ? fullDescriptions[selectedJobFull._id] : undefined;
+    const storageJobId = resolveDescriptionStorageId(selectedJobFull);
+    const fullDescription = storageJobId ? fullDescriptions[storageJobId] : undefined;
     const raw = fullDescription || selectedJobFull?.description || selectedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
@@ -1031,12 +1035,12 @@ export function JobBoard() {
     return descriptionText.split(/\s+/).filter(Boolean).length;
   }, [descriptionText]);
   const selectedJobDescriptionState = useMemo(() => {
-    const id = selectedJobFull?._id;
+    const storageJobId = resolveDescriptionStorageId(selectedJobFull);
     return {
       hasFull: selectedJobFull?.descriptionStorageAvailable === true,
-      loaded: id ? Boolean(fullDescriptions[id]) : false,
-      loading: id ? Boolean(fullDescriptionLoading[id]) : false,
-      error: id ? fullDescriptionErrors[id] ?? null : null,
+      loaded: storageJobId ? Boolean(fullDescriptions[storageJobId]) : false,
+      loading: storageJobId ? Boolean(fullDescriptionLoading[storageJobId]) : false,
+      error: storageJobId ? fullDescriptionErrors[storageJobId] ?? null : null,
     };
   }, [fullDescriptionErrors, fullDescriptionLoading, fullDescriptions, selectedJobFull]);
   const metadataText = useMemo(() => {
@@ -1049,9 +1053,8 @@ export function JobBoard() {
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
-    const fullDescription = selectedAppliedJobFull?._id
-      ? fullDescriptions[selectedAppliedJobFull._id]
-      : undefined;
+    const storageJobId = resolveDescriptionStorageId(selectedAppliedJobFull);
+    const fullDescription = storageJobId ? fullDescriptions[storageJobId] : undefined;
     const raw = fullDescription || selectedAppliedJobFull?.description || selectedAppliedJobFull?.job_description || "";
     const trimmed = raw.trim();
     if (!trimmed) return "No description available.";
@@ -1068,12 +1071,12 @@ export function JobBoard() {
     return appliedDescriptionText.split(/\s+/).filter(Boolean).length;
   }, [appliedDescriptionText]);
   const selectedAppliedDescriptionState = useMemo(() => {
-    const id = selectedAppliedJobFull?._id;
+    const storageJobId = resolveDescriptionStorageId(selectedAppliedJobFull);
     return {
       hasFull: selectedAppliedJobFull?.descriptionStorageAvailable === true,
-      loaded: id ? Boolean(fullDescriptions[id]) : false,
-      loading: id ? Boolean(fullDescriptionLoading[id]) : false,
-      error: id ? fullDescriptionErrors[id] ?? null : null,
+      loaded: storageJobId ? Boolean(fullDescriptions[storageJobId]) : false,
+      loading: storageJobId ? Boolean(fullDescriptionLoading[storageJobId]) : false,
+      error: storageJobId ? fullDescriptionErrors[storageJobId] ?? null : null,
     };
   }, [fullDescriptionErrors, fullDescriptionLoading, fullDescriptions, selectedAppliedJobFull]);
   const blurFromIndex =
@@ -2487,7 +2490,7 @@ export function JobBoard() {
                                   type="button"
                                   onClick={() => {
                                     if (selectedJobFull?._id) {
-                                      requestFullDescription(selectedJobFull._id);
+                                      requestFullDescription(selectedJobFull);
                                     }
                                   }}
                                   disabled={selectedJobDescriptionState.loading}
@@ -2991,7 +2994,7 @@ export function JobBoard() {
                                 type="button"
                                 onClick={() => {
                                   if (selectedAppliedJobFull?._id) {
-                                    requestFullDescription(selectedAppliedJobFull._id);
+                                    requestFullDescription(selectedAppliedJobFull);
                                   }
                                 }}
                                 disabled={selectedAppliedDescriptionState.loading}

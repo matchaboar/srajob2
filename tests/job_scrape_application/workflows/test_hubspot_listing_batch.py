@@ -83,14 +83,20 @@ async def test_hubspot_listing_batch_enqueues_raw_html_and_pagination(
             }
 
     calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
+    complete_calls: list[Dict[str, Any]] = []
 
     async def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
-        if name == "router:enqueueScrapeUrls":
-            return {"queued": len(args.get("urls", []))}
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("items", []))}
         return None
+
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
+    def fake_complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
+        complete_calls.append(payload)
+        return {"updated": len(payload.get("items", []))}
 
     async def fake_query(*_args, **_kwargs):
         return None
@@ -107,6 +113,14 @@ async def test_hubspot_listing_batch_enqueues_raw_html_and_pagination(
     )
     monkeypatch.setattr(
         "job_scrape_application.services.convex_client.convex_query", fake_query
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
     )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
     monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
@@ -126,10 +140,9 @@ async def test_hubspot_listing_batch_enqueues_raw_html_and_pagination(
     result = await acts.process_spidercloud_listing_batch(batch)
     assert result.get("queued")
 
-    enqueue_calls = [call for call in calls if call["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "expected listing batch to enqueue HubSpot URLs"
+    assert queue_calls, "expected listing batch to enqueue HubSpot URLs"
 
-    urls = enqueue_calls[0]["args"]["urls"]
+    urls = queue_calls[0]["urls"]
     for job_id in expected_job_ids:
         assert f"https://www.hubspot.com/careers/jobs/{job_id}" in urls
     assert source_url in urls

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Any, Iterable, Optional
+from urllib.parse import parse_qsl, urlparse
+
+sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.site_handlers import AvatureHandler
 
@@ -104,6 +109,21 @@ def _detail_links(handler: AvatureHandler, payload: Any) -> list[str]:
     return [link for link in links if "/careers/jobdetail/" in link.lower()]
 
 
+def _query_pairs_without_offset(url: str) -> list[tuple[str, str]]:
+    parsed = urlparse(url)
+    return [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() != "joboffset"
+    ]
+
+
+def _joboffset_is_last(url: str) -> bool:
+    parsed = urlparse(url)
+    pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    return bool(pairs) and pairs[-1][0].lower() == "joboffset"
+
+
 def test_avature_pagination_fixtures_traverse_three_pages():
     handler = AvatureHandler()
 
@@ -137,6 +157,26 @@ def test_avature_pagination_fixtures_traverse_three_pages():
 
     page_3_links = _pagination_links(handler, _load_html(PAGE_3))
     assert any("joboffset=36" in link.lower() for link in page_3_links)
+
+
+def test_avature_pagination_preserves_configured_query_params():
+    handler = AvatureHandler()
+    base_request = _load_request(PAGE_1)
+    assert base_request is not None
+    base_url = base_request.get("url")
+    assert isinstance(base_url, str)
+    base_pairs = _query_pairs_without_offset(base_url)
+    assert base_pairs
+
+    for page in (PAGE_1, PAGE_2, PAGE_3):
+        html = _load_html(page)
+        links = handler.get_links_from_raw_html(html)
+        filtered = handler.filter_job_urls_for_site(links, base_url)
+        pagination_links = [link for link in filtered if "joboffset=" in link.lower()]
+        assert pagination_links
+        for link in pagination_links:
+            assert _query_pairs_without_offset(link) == base_pairs
+            assert _joboffset_is_last(link)
 
 
 def test_avature_fixture_strips_trailing_html_tag_fragments():

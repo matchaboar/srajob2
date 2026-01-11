@@ -275,10 +275,38 @@ class SpiderCloudScraper(BaseScraper):
         cleaned = raw.strip()
         if not cleaned:
             return None
+
+        def _raw_decode_json(value: str) -> Any | None:
+            decoder = json.JSONDecoder()
+            idx = 0
+            length = len(value)
+            values: list[Any] = []
+            while idx < length:
+                while idx < length and value[idx].isspace():
+                    idx += 1
+                if idx >= length:
+                    break
+                try:
+                    result, end = decoder.raw_decode(value, idx)
+                except json.JSONDecodeError:
+                    break
+                values.append(result)
+                idx = end
+                while idx < length and value[idx].isspace():
+                    idx += 1
+                if idx < length and value[idx] in {",", ";"}:
+                    idx += 1
+            if not values:
+                return None
+            return values[0] if len(values) == 1 else values
+
         try:
             return json.loads(cleaned, strict=False)
         except Exception:
             pass
+        decoded = _raw_decode_json(cleaned)
+        if decoded is not None:
+            return decoded
         try:
             unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
         except Exception:
@@ -288,7 +316,8 @@ class SpiderCloudScraper(BaseScraper):
         try:
             return json.loads(unescaped, strict=False)
         except Exception:
-            return None
+            pass
+        return _raw_decode_json(unescaped)
 
     def _html_to_markdown(self, raw_html: str) -> str:
         """Convert HTML to markdown (or plain text fallback)."""
@@ -1997,11 +2026,26 @@ class SpiderCloudScraper(BaseScraper):
             "absoluteUrl",
         )
         if isinstance(jobs, list):
+            nested_url_keys = url_keys + ("canonical_url", "canonicalUrl")
             for job in jobs:
                 if not isinstance(job, dict):
                     continue
                 for key in url_keys:
                     value = job.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return True
+                data_block = job.get("data") if isinstance(job.get("data"), dict) else None
+                if isinstance(data_block, dict):
+                    for key in nested_url_keys:
+                        value = data_block.get(key)
+                        if isinstance(value, str) and value.strip():
+                            return True
+                    slug = data_block.get("slug") or data_block.get("req_id")
+                    if isinstance(slug, str) and slug.strip():
+                        return True
+                meta_block = job.get("meta_data") if isinstance(job.get("meta_data"), dict) else None
+                if isinstance(meta_block, dict):
+                    value = meta_block.get("canonical_url")
                     if isinstance(value, str) and value.strip():
                         return True
         positions = payload.get("positions")
@@ -2156,12 +2200,15 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         greenhouse_payload = None
-        if handler and handler.name == "greenhouse" and listing_payload is None:
-            for text in gather_strings(events):
-                payload = self._extract_greenhouse_payload_from_text(text)
-                if self._is_greenhouse_job_payload(payload):
-                    greenhouse_payload = payload
-                    break
+        if handler and handler.name == "greenhouse":
+            if isinstance(listing_payload, dict) and self._is_greenhouse_job_payload(listing_payload):
+                greenhouse_payload = listing_payload
+            elif listing_payload is None:
+                for text in gather_strings(events):
+                    payload = self._extract_greenhouse_payload_from_text(text)
+                    if self._is_greenhouse_job_payload(payload):
+                        greenhouse_payload = payload
+                        break
 
         structured_payload = self._extract_structured_job_posting(events)
         structured_title = None
@@ -2288,6 +2335,7 @@ class SpiderCloudScraper(BaseScraper):
         if handler and handler.is_listing_url(url):
             if (
                 not cleaned_markdown.strip()
+                or cleaned_markdown_len < 200
                 or looks_like_job_listing_page(candidate_title, cleaned_markdown, url)
                 or not structured_present
             ):

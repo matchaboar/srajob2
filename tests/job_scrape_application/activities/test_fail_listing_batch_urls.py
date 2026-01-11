@@ -79,24 +79,24 @@ async def test_fail_listing_batch_urls_marks_failed(monkeypatch):
         ]
     }
 
-    mutation_calls: List[Dict[str, Any]] = []
+    queue_calls: List[Dict[str, Any]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        mutation_calls.append({"name": name, "args": args})
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("items") or [])}
-        raise RuntimeError(f"unexpected mutation {name}")
+    def fake_complete_scrape_urls(payload: Dict[str, Any]):
+        queue_calls.append(payload)
+        return {"updated": len(payload.get("items") or [])}
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
+    )
 
     res = await acts.fail_listing_batch_urls(batch, "batch_failed")
 
     assert res["updated"] == 2
-    call = mutation_calls[0]
-    assert call["name"] == "router:completeScrapeUrls"
-    assert call["args"]["status"] == "failed"
-    assert call["args"]["error"] == "batch_failed"
-    items = call["args"]["items"]
+    call = queue_calls[0]
+    assert call["status"] == "failed"
+    assert call["error"] == "batch_failed"
+    items = call["items"]
     assert all(item.get("isListingUrl") is True for item in items)
     assert items[0]["attempts"] == 2
     assert items[0]["provider"] == "spidercloud"
@@ -107,11 +107,14 @@ async def test_fail_listing_batch_urls_marks_failed(monkeypatch):
 async def test_fail_listing_batch_urls_noop_when_empty(monkeypatch):
     calls: list[dict[str, Any]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
-        calls.append({"name": name, "args": args})
+    def fake_complete_scrape_urls(payload: Dict[str, Any]):
+        calls.append(payload)
         return {"updated": 1}
 
-    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete_scrape_urls,
+    )
 
     res = await acts.fail_listing_batch_urls({"urls": []})
 

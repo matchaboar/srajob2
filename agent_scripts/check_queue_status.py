@@ -17,6 +17,7 @@ CONVEX_DIR = REPO_ROOT / "job_board_application"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 
 def _load_env(target_env: str) -> None:
     load_dotenv()
@@ -58,7 +59,7 @@ async def _safe_query(convex_query, name: str, args: Dict[str, Any], timeout: in
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Summarize scrape_url_queue rows for sites.")
+    parser = argparse.ArgumentParser(description="Summarize DBOS queue rows for sites.")
     parser.add_argument("companies", nargs="+", help="Company names to match against sites.")
     parser.add_argument(
         "--env",
@@ -70,7 +71,7 @@ async def main() -> None:
         "--limit",
         type=int,
         default=500,
-        help="Max scrape_url_queue rows per site (default: 500).",
+        help="Max queue rows per site (default: 500).",
     )
     parser.add_argument(
         "--timeout-secs",
@@ -121,23 +122,7 @@ async def main() -> None:
         site_id = site.get("_id")
         if not isinstance(site_id, str):
             continue
-        rows = await _safe_query(
-            convex_query,
-            "router:listQueuedScrapeUrls",
-            {"siteId": site_id, "limit": args.limit},
-            args.timeout_secs,
-        )
-        if isinstance(rows, dict) and rows.get("_error"):
-            summary["sites"].append(
-                {
-                    "id": site_id,
-                    "name": site.get("name"),
-                    "url": site.get("url"),
-                    "type": site.get("type"),
-                    "error": rows.get("_error"),
-                }
-            )
-            continue
+        rows = dbos_queue.list_scrape_urls(site_id=site_id, limit=args.limit) or []
         if not isinstance(rows, list):
             rows = []
         counts = _extract_url_counts(rows)

@@ -63,7 +63,6 @@ const hostFromUrl = (url: string): string => {
     return "";
   }
 };
-const SCRAPE_URL_QUEUE_BUCKETS = 128;
 const JOB_URL_BUCKETS = 256;
 const hashStringToBucket = (value: string, bucketCount: number) => {
   let hash = 2166136261;
@@ -72,25 +71,6 @@ const hashStringToBucket = (value: string, bucketCount: number) => {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) % bucketCount;
-};
-const deriveScrapeQueueBucketKey = (params: {
-  url: string;
-  sourceUrl?: string | null;
-  siteId?: string | null;
-}) => {
-  if (params.siteId) return `site:${params.siteId}`;
-  if (params.sourceUrl) return `source:${params.sourceUrl}`;
-  const domain = hostFromUrl(params.url);
-  if (domain) return `domain:${domain}`;
-  return `url:${params.url}`;
-};
-const deriveScrapeQueueBucket = (params: {
-  url: string;
-  sourceUrl?: string | null;
-  siteId?: string | null;
-}) => {
-  const key = deriveScrapeQueueBucketKey(params);
-  return hashStringToBucket(key, SCRAPE_URL_QUEUE_BUCKETS);
 };
 
 const normalizeIgnoredDomainInput = (value: string): string => {
@@ -355,38 +335,6 @@ export const backfillJobDetailScrapeUrl = migrations.define({
         await ctx.db.insert("job_details", { jobId: job._id, scrapeUrl: parsed.scrapeUrl });
       }
     }
-  },
-});
-
-export const deriveScrapeQueueScheduledAt = (doc: any): number => {
-  if (typeof doc?.createdAt === "number") return doc.createdAt;
-  if (typeof doc?.updatedAt === "number") return doc.updatedAt;
-  return Date.now();
-};
-
-export const backfillScrapeQueueScheduledAt = migrations.define({
-  table: "scrape_url_queue",
-  migrateOne: async (ctx, doc) => {
-    if (doc.scheduledAt === undefined || doc.scheduledAt === null) {
-      const scheduledAt = deriveScrapeQueueScheduledAt(doc);
-      await ctx.db.patch(doc._id, { scheduledAt });
-    }
-  },
-});
-
-export const backfillScrapeQueueBuckets = migrations.define({
-  table: "scrape_url_queue",
-  migrateOne: async (ctx, doc) => {
-    const existing = (doc as any).bucket;
-    if (typeof existing === "number" && !Number.isNaN(existing)) return;
-    const url = (doc as any).url;
-    if (typeof url !== "string" || !url.trim()) return;
-    const bucket = deriveScrapeQueueBucket({
-      url,
-      sourceUrl: (doc as any).sourceUrl ?? null,
-      siteId: (doc as any).siteId ?? null,
-    });
-    await ctx.db.patch(doc._id, { bucket });
   },
 });
 

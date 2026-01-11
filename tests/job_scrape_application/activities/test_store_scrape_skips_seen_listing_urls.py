@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
+import sys
 from typing import Any, Dict, List
 
 import pytest
+
+sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts
 
@@ -17,6 +21,7 @@ async def test_store_scrape_enqueues_detail_urls_from_listing_payload(monkeypatc
     job_url = "https://explore.jobs.netflix.net/careers/job/790313345439"
 
     mutation_calls: List[Dict[str, Any]] = []
+    queue_calls: List[Dict[str, Any]] = []
 
     async def fake_convex_mutation(name: str, args: Dict[str, Any]):
         mutation_calls.append({"name": name, "args": args})
@@ -26,11 +31,19 @@ async def test_store_scrape_enqueues_detail_urls_from_listing_payload(monkeypatc
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     async def fake_fetch_seen(source: str, pattern: str | None):
         assert source == source_url
         return [listing_url]
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     scrape_payload: Dict[str, Any] = {
@@ -50,10 +63,9 @@ async def test_store_scrape_enqueues_detail_urls_from_listing_payload(monkeypatc
     await acts.store_scrape(scrape_payload)
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in mutation_calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert len(enqueue_calls) == 2, "expected listing URLs to be re-enqueued on next schedule"
-    first_args = enqueue_calls[0]["args"]
-    second_args = enqueue_calls[1]["args"]
+    assert len(queue_calls) == 2, "expected listing URLs to be re-enqueued on next schedule"
+    first_args = queue_calls[0]
+    second_args = queue_calls[1]
     assert first_args["urls"] == [job_url]
     assert second_args["urls"] == [job_url]
     assert first_args["urlTypes"] == ["detail"]
@@ -71,6 +83,7 @@ async def test_listing_urls_scraped_by_job_details_worker_enqueue_jobs(monkeypat
     job_url = "https://example.com/jobs/123"
 
     mutation_calls: List[Dict[str, Any]] = []
+    queue_calls: List[Dict[str, Any]] = []
 
     async def fake_convex_mutation(name: str, args: Dict[str, Any]):
         mutation_calls.append({"name": name, "args": args})
@@ -80,11 +93,19 @@ async def test_listing_urls_scraped_by_job_details_worker_enqueue_jobs(monkeypat
             return {"inserted": 0}
         return None
 
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     async def fake_fetch_seen(source: str, pattern: str | None):
         assert source == source_url
         return [listing_url]
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
 
     scrape_payload: Dict[str, Any] = {
@@ -103,7 +124,6 @@ async def test_listing_urls_scraped_by_job_details_worker_enqueue_jobs(monkeypat
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [c for c in mutation_calls if c["name"] == "router:enqueueScrapeUrls"]
-    assert enqueue_calls, "expected enqueueScrapeUrls to be called"
-    assert enqueue_calls[0]["args"]["urls"] == [job_url]
-    assert enqueue_calls[0]["args"]["urlTypes"] == ["detail"]
+    assert queue_calls, "expected enqueueScrapeUrls to be called"
+    assert queue_calls[0]["urls"] == [job_url]
+    assert queue_calls[0]["urlTypes"] == ["detail"]

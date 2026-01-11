@@ -18,6 +18,7 @@ CONVEX_DIR = REPO_ROOT / "job_board_application"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from job_scrape_application.dbos_runtime import queue as dbos_queue  # noqa: E402
 from job_scrape_application.workflows.site_handlers import get_site_handler  # noqa: E402
 
 _convex_query = None
@@ -60,13 +61,7 @@ def _is_listing_url(url: str) -> bool:
 
 
 async def _list_queue(status: str, provider: str | None, limit: int) -> List[Dict[str, Any]]:
-    if _convex_query is None:
-        raise RuntimeError("convex_query not initialized; call _load_env before querying Convex")
-    args: Dict[str, Any] = {"limit": limit, "status": status}
-    if provider:
-        args["provider"] = provider
-    rows = await _convex_query("router:listQueuedScrapeUrls", args)
-    return rows or []
+    return dbos_queue.list_scrape_urls(provider=provider, status=status, limit=limit) or []
 
 
 async def _fetch_seen_urls(source_url: str, pattern: str | None) -> List[str]:
