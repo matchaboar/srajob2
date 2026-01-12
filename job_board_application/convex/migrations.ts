@@ -19,6 +19,8 @@ export const runScrapeActivityBackfill = migrations.runner(internal.migrations.b
 export const runJobDetailScrapeUrlBackfill = migrations.runner(internal.migrations.backfillJobDetailScrapeUrl);
 export const runIgnoredJobCompanyBackfill = migrations.runner(internal.migrations.backfillIgnoredJobCompanies);
 export const runJobUrlKeyBackfill = migrations.runner(internal.migrations.backfillJobUrlKeys);
+export const runPurgeScrapes = migrations.runner(internal.migrations.purgeScrapes);
+export const runPurgeScrapeActivity = migrations.runner(internal.migrations.purgeScrapeActivity);
 
 type JobId = Id<"jobs">;
 
@@ -296,6 +298,20 @@ export const backfillScrapeActivity = migrations.define({
       completedAt,
       jobCount: countJobs((doc as any).items),
     });
+  },
+});
+
+export const purgeScrapes = migrations.define({
+  table: "scrapes",
+  migrateOne: async (ctx, doc) => {
+    await ctx.db.delete(doc._id);
+  },
+});
+
+export const purgeScrapeActivity = migrations.define({
+  table: "scrape_activity",
+  migrateOne: async (ctx, doc) => {
+    await ctx.db.delete(doc._id);
   },
 });
 

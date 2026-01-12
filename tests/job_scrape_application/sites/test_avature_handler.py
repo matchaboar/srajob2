@@ -95,7 +95,21 @@ class TestAvatureHandler:
         assert len(filtered) == 3
         assert all(url in filtered for url in urls)
 
+    def test_filter_job_urls_normalizes_detail_suffixes(self):
+        """Test normalization of job detail URLs with extra segments."""
+        urls = [
+            "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/12949)/nNew",
+            "https://bloomberg.avature.net/careers/JobDetail/12949?source=foo",
+        ]
+        filtered = self.handler.filter_job_urls(urls)
+
+        assert filtered == [
+            "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/12949",
+            "https://bloomberg.avature.net/careers/JobDetail/12949?source=foo",
+        ]
+
     def test_filter_job_urls_invalid(self):
+
         """Test filtering removes invalid URLs."""
         urls = [
             "https://company.avature.net/careers/SaveJob/12345",  # Contains /savejob

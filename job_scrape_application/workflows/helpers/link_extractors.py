@@ -26,6 +26,7 @@ def gather_strings(value: Any) -> list[str]:
 
 
 _SLASH_RUN_RE = re.compile(r"/{2,}")
+_CONTROL_ESCAPE_RE = re.compile(r"(?:\\[nrt]|[\r\n\t])")
 _WRAPPER_PAIRS = {
     '"': '"',
     "'": "'",
@@ -67,6 +68,10 @@ def _strip_html_tail(candidate: str) -> str:
 
 def strip_wrapping_url(candidate: str) -> str:
     cleaned = candidate.strip()
+    if cleaned:
+        match = _CONTROL_ESCAPE_RE.search(cleaned)
+        if match:
+            cleaned = cleaned[: match.start()].rstrip()
     while cleaned:
         closing = _WRAPPER_PAIRS.get(cleaned[0])
         if not closing or cleaned[-1] != closing:

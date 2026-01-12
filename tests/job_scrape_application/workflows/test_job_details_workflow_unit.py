@@ -4,6 +4,7 @@ import asyncio
 import os
 import sys
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Any, Dict, List
 
 import pytest
@@ -100,6 +101,14 @@ class _ActivityHarness:
         return asyncio.create_task(_runner())
 
 
+@pytest.fixture(autouse=True)
+def _fast_workflow_checkpoint(monkeypatch):
+    async def _noop_checkpoint(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(sw, "workflow_checkpoint", _noop_checkpoint)
+
+
 @pytest.mark.asyncio
 async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
     harness = _ActivityHarness()
@@ -175,26 +184,36 @@ async def test_listing_batch_failure_records_reason(monkeypatch):
     except ActivityError as exc:
         listing_error = exc
 
+    state = {"leases": 0}
+
     async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
         if activity is sw.lease_scrape_url_batch:
-            return batch
+            state["leases"] += 1
+            return batch if state["leases"] == 1 else {"urls": []}
         if activity is sw.process_spidercloud_listing_batch:
             if listing_error is None:
                 raise AssertionError("listing_error not set")
             raise listing_error
-        if activity is sw.fail_listing_batch_urls:
-            if isinstance(args, list) and len(args) > 1:
-                captured_error["error"] = args[1]
+        if activity is sw.complete_scrape_urls:
+            payload = args[0] if isinstance(args, list) else args
+            if isinstance(payload, dict):
+                captured_error["error"] = payload.get("error")
             return None
         if activity is sw.record_workflow_run:
             payload = args[0] if isinstance(args, list) else args
             if isinstance(payload, dict):
                 recorded_runs.append(payload)
             return None
-        if activity is sw.complete_scrape_urls:
-            return None
         return None
 
+    def fake_decision(_exc, *, source=None):
+        return SimpleNamespace(
+            action="fail",
+            error=sw._format_failure_reason(listing_error) if listing_error else "unknown",
+            retry_after_seconds=None,
+        )
+
+    monkeypatch.setattr(sw, "decision_for_exception", fake_decision)
     monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute)
     monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
     monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_060))
@@ -337,6 +356,14 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
     except ActivityError as exc:
         harness.process_error = exc
 
+    def fake_decision(_exc, *, source=None):
+        return SimpleNamespace(
+            action="fail",
+            error=sw._format_failure_reason(harness.process_error) if harness.process_error else "unknown",
+            retry_after_seconds=None,
+        )
+
+    monkeypatch.setattr(sw, "decision_for_exception", fake_decision)
     monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", True)
     monkeypatch.setattr(sw.workflow, "execute_activity", harness.execute)
     monkeypatch.setattr(sw.workflow, "start_activity", harness.start_activity)
@@ -372,13 +399,14 @@ async def test_job_details_batch_failure_releases_urls(monkeypatch):
 @pytest.mark.asyncio
 async def test_job_details_yields_on_large_batches(monkeypatch):
     harness = _ActivityHarness()
+    item_count = 26
     harness.batch = {
-        "urls": [{"url": f"https://example.com/{idx}"} for idx in range(60)],
+        "urls": [{"url": f"https://example.com/{idx}"} for idx in range(item_count)],
     }
     harness.process_result = {
         "scrapes": [
             {"subUrls": [f"https://example.com/{idx}"], "sourceUrl": f"https://example.com/{idx}"}
-            for idx in range(60)
+            for idx in range(item_count)
         ]
     }
 
@@ -440,7 +468,7 @@ async def test_listing_workflow_processes_multiple_batches(monkeypatch):
             return {"urls": []}
         if activity is sw.process_spidercloud_listing_batch:
             return {"queued": 1, "listingCompleted": 1}
-        if activity in (sw.record_workflow_run, sw.fail_listing_batch_urls):
+        if activity in (sw.record_workflow_run, sw.complete_scrape_urls):
             return None
         return None
 

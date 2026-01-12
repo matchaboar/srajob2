@@ -16,10 +16,50 @@ from .queue import (
 )
 from .runs import last_completed_at, record_run
 from .sqlite import initialize_schema, now_ms
+from ..services import telemetry
 from ..services.convex_client import convex_query
-from ..workflows.activities import process_spidercloud_job_batch, process_spidercloud_listing_batch
+from ..workflows import activities as workflow_activities
+from ..workflows.helpers.spidercloud_error_strategy import decision_for_exception
 
 logger = logging.getLogger("dbos.runner")
+
+ActivityHandler = Callable[..., Awaitable[object]]
+
+
+def _load_activity_handler(name: str) -> ActivityHandler:
+    handler = getattr(workflow_activities, name, None)
+    if handler is None:
+        available = [
+            attr
+            for attr in (
+                "process_spidercloud_job_batch",
+                "process_spidercloud_listing_batch",
+            )
+            if hasattr(workflow_activities, attr)
+        ]
+        message = (
+            f"Missing workflow activity '{name}'. "
+            f"Available: {', '.join(available) if available else 'none'}"
+        )
+        logger.error(message)
+        try:
+            telemetry.emit_posthog_exception(
+                RuntimeError(message),
+                properties={"activityName": name},
+            )
+        except Exception:
+            pass
+        raise RuntimeError(message)
+    return handler
+
+
+def _setup_logging() -> None:
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    posthog_handler = telemetry.build_posthog_log_handler(level=logging.INFO)
+    if posthog_handler is not None:
+        handlers.append(posthog_handler)
+    logging.basicConfig(level=logging.INFO, handlers=handlers, force=True)
+
 
 SCHEDULE_WORKFLOW_NAME = "listing-schedule"
 SCHEDULE_POLL_SECONDS = 60
@@ -41,15 +81,24 @@ async def _process_listing_batch(batch: LeaseResult) -> None:
     if not batch.urls:
         return
     try:
-        await process_spidercloud_listing_batch({"urls": batch.urls})
+        handler = _load_activity_handler("process_spidercloud_listing_batch")
+        await handler({"urls": batch.urls})
     except Exception as exc:
-        logger.exception("Listing batch failed")
+        decision = decision_for_exception(exc, source="spidercloud_api")
+        logger.exception(
+            "Listing batch failed action=%s reason=%s",
+            decision.action,
+            decision.error,
+        )
         if batch.urls:
+            status = "pending" if decision.action == "retry" else "failed"
             payload = {
                 "items": [{"id": row.get("_id"), "url": row.get("url")} for row in batch.urls],
-                "status": "failed",
-                "error": str(exc),
+                "status": status,
+                "error": decision.error,
             }
+            if status == "pending" and decision.retry_after_seconds is not None:
+                payload["runAfterMs"] = int(decision.retry_after_seconds * 1000)
             complete_scrape_urls(payload)
 
 
@@ -57,14 +106,22 @@ async def _process_detail_batch(batch: LeaseResult) -> None:
     if not batch.urls:
         return
     try:
-        await process_spidercloud_job_batch({"urls": batch.urls}, persist_scrapes=True)
+        handler = _load_activity_handler("process_spidercloud_job_batch")
+        await handler({"urls": batch.urls}, persist_scrapes=True)
     except Exception as exc:
-        logger.exception("Detail batch failed")
+        decision = decision_for_exception(exc, source="spidercloud_api")
+        logger.exception(
+            "Detail batch failed action=%s reason=%s",
+            decision.action,
+            decision.error,
+        )
         payload = {
             "items": [{"id": row.get("_id"), "url": row.get("url")} for row in batch.urls],
-            "status": "failed",
-            "error": str(exc),
+            "status": "pending" if decision.action == "retry" else "failed",
+            "error": decision.error,
         }
+        if payload["status"] == "pending" and decision.retry_after_seconds is not None:
+            payload["runAfterMs"] = int(decision.retry_after_seconds * 1000)
         complete_scrape_urls(payload)
 
 
@@ -230,7 +287,7 @@ def main() -> None:
     parser.add_argument("--api-port", type=int, default=8080)
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    _setup_logging()
 
     if args.with_api:
         logger.info("Starting DBOS API at %s:%s", args.api_host, args.api_port)

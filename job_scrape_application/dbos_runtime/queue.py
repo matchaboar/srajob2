@@ -231,6 +231,11 @@ def complete_scrape_urls(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(items, list) or not isinstance(status, str):
         return {"updated": 0}
     error = payload.get("error") if isinstance(payload.get("error"), str) else None
+    run_after_ms = payload.get("runAfterMs")
+    if isinstance(run_after_ms, (int, float)):
+        run_after_ms = int(run_after_ms)
+    else:
+        run_after_ms = None
 
     updated = 0
     with transaction() as conn:
@@ -244,7 +249,10 @@ def complete_scrape_urls(payload: dict[str, Any]) -> dict[str, Any]:
             row = _find_row(conn, row_id=row_id, url=url)
             if row is None:
                 continue
-            _update_status(conn, row["id"], status, error=error)
+            if status == STATUS_PENDING:
+                _requeue_item(conn, row["id"], run_after_ms=run_after_ms, error=error)
+            else:
+                _update_status(conn, row["id"], status, error=error)
             updated += 1
             if status == STATUS_COMPLETED and row.get("dedupe_key"):
                 conn.execute(
@@ -377,6 +385,27 @@ def _find_row(conn, *, row_id: str | None, url: str | None) -> dict[str, Any] | 
         if row is not None:
             return dict(row)
     return None
+
+
+def _requeue_item(
+    conn,
+    row_id: str,
+    *,
+    run_after_ms: int | None = None,
+    error: str | None = None,
+) -> None:
+    now = now_ms()
+    delay_ms = max(int(run_after_ms), 0) if isinstance(run_after_ms, (int, float)) else 0
+    run_after = now + delay_ms
+    conn.execute(
+        """
+        UPDATE queue_items
+        SET status = ?, run_after = ?, processing_started_at = NULL,
+            completed_at = NULL, updated_at = ?, error = ?
+        WHERE id = ?
+        """,
+        (STATUS_PENDING, run_after, now, error, row_id),
+    )
 
 
 def _update_status(conn, row_id: str, status: str, *, error: str | None = None) -> None:

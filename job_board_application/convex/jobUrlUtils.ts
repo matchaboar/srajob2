@@ -14,6 +14,8 @@ const parseUrlSafe = (value: string, base?: string): URL | null => {
 const isAshbyHost = (host: string) => host.endsWith("ashbyhq.com");
 const isAvatureHost = (host: string) => host.endsWith("avature.net") || host.endsWith("avature.com");
 const isHubspotHost = (host: string) => host.endsWith("hubspot.com");
+const isConvexShareHost = (host: string) =>
+  host.endsWith(".convex.site") || host.endsWith(".convex.cloud");
 
 export function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null {
   if (typeof rawUrl !== "string") return null;
@@ -32,11 +34,14 @@ export function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string 
   }
   if (path.length > 1) path = path.replace(/\/+$/, "");
 
-  if (isAvatureHost(host) && /\/(savejob|searchjobs|jobsearch)/i.test(path)) {
+  if (isAvatureHost(host) && /(\/savejob|\/searchjobs|\/jobsearch)/i.test(path)) {
     return null;
   }
   if (isHubspotHost(host) && path.toLowerCase().startsWith("/careers/jobs/")) {
     if (parsed.searchParams.has("hubs_signup-cta")) return null;
+  }
+  if (isConvexShareHost(host) && path.toLowerCase().startsWith("/share/job")) {
+    return null;
   }
 
   if (sourceUrl) {

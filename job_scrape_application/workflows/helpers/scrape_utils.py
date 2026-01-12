@@ -293,6 +293,8 @@ _NAV_MENU_TERMS = set(_NAV_MENU_SEQUENCE + ["Careers"])
 # language deeper in the text.
 _ERROR_LANDING_PHRASES = (
     "page not found",
+    "page was not found",
+    "requested page was not found",
     "job not found",
     "posting not found",
     "we can't find what you're looking for",
@@ -1458,14 +1460,21 @@ def _register_location_key(value: str, entry: dict[str, Any], track_city: bool =
 for _entry in _LOCATION_ENTRIES:
     city = (_entry.get("city") or "").strip()
     state = (_entry.get("state") or "").strip() or "Unknown"
-    country = (_entry.get("country") or "").strip() or None
+    country = (_entry.get("country") or "").strip()
+    country = country or None
     remote_only = bool(_entry.get("remoteOnly"))
     state_abbr = _STATE_ABBR_BY_NAME.get(state)
     record = {"city": city, "state": state, "country": country, "remoteOnly": remote_only}
-    country_key = _normalize_location_key(country)
-    if country_key and country_key not in _COUNTRY_KEY_TO_LABEL:
+    country_key = _normalize_location_key(country) if country else None
+    if country_key and country_key not in _COUNTRY_KEY_TO_LABEL and isinstance(country, str):
         _COUNTRY_KEY_TO_LABEL[country_key] = country
-    aliases = set([city, *(_entry.get("aliases") or [])])
+    aliases_raw = _entry.get("aliases")
+    aliases_list = aliases_raw if isinstance(aliases_raw, list) else []
+    aliases = {
+        alias
+        for alias in [city, *aliases_list]
+        if isinstance(alias, str) and alias.strip()
+    }
     for alias in aliases:
         _register_location_key(alias, record, track_city=True)
         _register_location_key(f"{alias}, {state}", record)
@@ -2656,7 +2665,7 @@ def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[in
 
 
 def extract_description(row: Dict[str, Any]) -> str:
-    for key in ("description", "job_description", "desc", "body", "summary", "content"):
+    for key in ("job_description", "description", "desc", "body", "summary", "content"):
         val = row.get(key)
         if isinstance(val, str) and val.strip():
             return val.strip()
@@ -2664,6 +2673,23 @@ def extract_description(row: Dict[str, Any]) -> str:
         return json.dumps(row, ensure_ascii=False)
     except Exception:
         return str(row)
+
+
+def looks_like_truncated_description(
+    description: str,
+    *,
+    min_chars: int = 300,
+    min_words: int = 60,
+) -> bool:
+    if not isinstance(description, str):
+        return False
+    cleaned = description.strip()
+    if not cleaned:
+        return False
+    if not cleaned.rstrip().endswith(("...", "…")):
+        return False
+    word_count = len(re.findall(r"\w+", cleaned))
+    return len(cleaned) < min_chars or word_count < min_words
 
 
 def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
@@ -2974,15 +3000,17 @@ class _JobRowNormalizer:
             return None
         if looks_like_error_landing(raw_title or title, description):
             return None
-        if len(description) > self.max_description_chars:
-            description = description[: self.max_description_chars]
 
         hints = parse_markdown_hints(description)
         company = apply_company_hint(company, hints)
-        total_comp, used_default_comp = parse_compensation(
+        compensation_result = parse_compensation(
             row.get("total_compensation") or row.get("salary") or row.get("compensation"),
             with_meta=True,
         )
+        if isinstance(compensation_result, tuple):
+            total_comp, used_default_comp = compensation_result
+        else:
+            total_comp, used_default_comp = compensation_result, True
         raw_reason = row.get("compensation_reason") or row.get("compensationReason")
         reason = raw_reason.strip() if isinstance(raw_reason, str) and raw_reason.strip() else None
 
@@ -3036,8 +3064,6 @@ class _JobRowNormalizer:
         context: _JobBuildContext,
     ) -> Optional[Dict[str, Any]]:
         description = stringify(row.get("description") or "")
-        if len(description) > self.max_description_chars:
-            description = description[: self.max_description_chars]
         hints = parse_markdown_hints(description)
         compensation_unknown = bool(row.get("compensation_unknown"))
         raw_reason = row.get("compensation_reason") or row.get("compensationReason")
@@ -3184,7 +3210,8 @@ def trim_scrape_for_convex(
     failed_items: list[Any] = []
     page_links: list[str] = []
     sample_limit = min(10, max_items)
-    sample_string_limit = min(max_description, 400)
+    sample_string_limit = 400
+    normalized_limit = max(max_items, 400)
     seen_urls: set[str] = set()
 
     def _extract_url(value: Any) -> str | None:
@@ -3197,6 +3224,70 @@ def trim_scrape_for_convex(
             if isinstance(candidate, str) and candidate.strip():
                 return candidate.strip()
         return None
+
+    def _looks_like_apply_or_auth_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        segments = [seg for seg in (parsed.path or "").lower().split("/") if seg]
+        apply_segments = {"apply", "application", "hvhapply"}
+        auth_segments = {
+            "login",
+            "signin",
+            "sign-in",
+            "sign_in",
+            "logout",
+            "signout",
+            "sign-out",
+            "sign_out",
+            "register",
+            "signup",
+            "sign-up",
+        }
+        return any(seg in apply_segments or seg in auth_segments for seg in segments)
+
+    def _looks_like_job_detail_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        query = (parsed.query or "").lower()
+        if "gh_jid=" in query:
+            return True
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower()
+        if host.endswith("ashbyhq.com"):
+            segments = [seg for seg in path.split("/") if seg]
+            return len(segments) >= 2
+        if not any(token in path for token in ("/job", "/jobs", "/career", "/careers", "/position", "/positions")):
+            return False
+        segments = [seg for seg in path.split("/") if seg]
+        for idx, seg in enumerate(segments):
+            if seg in {"job", "jobs", "career", "careers", "position", "positions"}:
+                return idx + 1 < len(segments)
+        return False
+
+    def _looks_like_listing_url(url: str) -> bool:
+        if _url_is_listing_root(url):
+            return True
+        if _url_suggests_listing(url):
+            return True
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        path = (parsed.path or "").lower()
+        if path.endswith("/jobs") or path.endswith("/jobs/"):
+            return True
+        if "page=" in (parsed.query or "") and "/jobs" in path and "/jobs/job/" not in path:
+            return True
+        return False
+
+    def _should_keep_normalized_url(url: str) -> bool:
+        if _looks_like_apply_or_auth_url(url):
+            return False
+        return _looks_like_job_detail_url(url) or _looks_like_listing_url(url)
 
     drop_sample_keys = {
         "_raw",
@@ -3216,15 +3307,15 @@ def trim_scrape_for_convex(
         new_row = dict(row)
         new_row.pop("_raw", None)
         desc = stringify(new_row.get("description", ""))
-        if len(desc) > max_description:
-            new_row["description"] = desc[:max_description]
+        if desc:
+            new_row["description"] = desc
         job_desc = stringify(
             new_row.get("job_description")
             or new_row.get("jobDescription")
             or ""
         )
-        if job_desc and len(job_desc) > max_description:
-            new_row["job_description"] = job_desc[:max_description]
+        if job_desc:
+            new_row["job_description"] = job_desc
         for title_key in ("title", "job_title", "jobTitle"):
             title_val = new_row.get(title_key)
             if isinstance(title_val, str) and len(title_val) > max_title_chars:
@@ -3235,6 +3326,8 @@ def trim_scrape_for_convex(
                 new_row.pop(key, None)
                 continue
             value = new_row.get(key)
+            if key in {"description", "job_description", "jobDescription"}:
+                continue
             if isinstance(value, str) and len(value) > sample_string_limit:
                 new_row[key] = value[:sample_string_limit]
             elif isinstance(value, (dict, list)):
@@ -3249,13 +3342,12 @@ def trim_scrape_for_convex(
             truncated = normalized_count > max_items
             for row in raw_normalized:
                 url_val = _extract_url(row)
-                if url_val and len(normalized_urls) < max_items and url_val not in seen_urls:
+                if url_val and url_val not in seen_urls:
                     seen_urls.add(url_val)
-                    normalized_urls.append({"url": url_val})
+                    if len(normalized_urls) < normalized_limit:
+                        normalized_urls.append({"url": url_val})
                 if len(normalized_samples) < sample_limit and isinstance(row, dict):
                     normalized_samples.append(_trim_sample_row(row))
-                if len(normalized_urls) >= max_items and len(normalized_samples) >= sample_limit:
-                    break
         else:
             truncated = False
         raw_ignored = items.get("ignored")
@@ -3290,7 +3382,7 @@ def trim_scrape_for_convex(
         except Exception:
             page_links = []
         if page_links:
-            trimmed_items["page_links"] = dedupe_str_list(page_links, limit=2000)
+            trimmed_items["page_links"] = dedupe_str_list(page_links)
 
     def _copy_meta(key: str, value: Any) -> None:
         if value is None:
@@ -3338,7 +3430,7 @@ def trim_scrape_for_convex(
                 _copy_meta(key, items.get(key))
         raw_job_urls = items.get("job_urls") if "job_urls" in items else items.get("jobUrls")
         if isinstance(raw_job_urls, list):
-            deduped_job_urls = dedupe_str_list(raw_job_urls, limit=2000)
+            deduped_job_urls = dedupe_str_list(raw_job_urls)
             if deduped_job_urls:
                 trimmed_items["job_urls"] = deduped_job_urls
         aux_limit = min(max_items, 50)
@@ -3356,7 +3448,7 @@ def trim_scrape_for_convex(
     if page_links:
         existing_job_urls = trimmed_items.get("job_urls") if isinstance(trimmed_items, dict) else None
         if not isinstance(existing_job_urls, list) or not existing_job_urls:
-            trimmed_items["job_urls"] = dedupe_str_list(page_links, limit=2000)
+            trimmed_items["job_urls"] = dedupe_str_list(page_links)
 
     if raw_preview:
         if truncated:
@@ -3506,10 +3598,35 @@ def _jobs_from_scrape_items(
 ) -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     normalized = None
+    normalized_sample = None
     if isinstance(items, dict):
         normalized = items.get("normalized")
+        normalized_sample = items.get("normalizedSample")
     if not isinstance(normalized, list):
         return jobs
+
+    def _row_has_details(row: Any) -> bool:
+        if not isinstance(row, dict):
+            return False
+        detail_keys = (
+            "title",
+            "job_title",
+            "jobTitle",
+            "company",
+            "description",
+            "job_description",
+            "jobDescription",
+            "location",
+            "remote",
+            "level",
+        )
+        return any(row.get(key) for key in detail_keys)
+
+    if isinstance(normalized_sample, list) and normalized_sample:
+        has_details = any(_row_has_details(row) for row in normalized)
+        sample_has_details = any(_row_has_details(row) for row in normalized_sample)
+        if sample_has_details and (not normalized or not has_details):
+            normalized = normalized_sample
 
     context = _JobBuildContext(
         default_posted_at=default_posted_at,
@@ -3542,6 +3659,7 @@ __all__ = [
     "derive_company_from_url",
     "extract_description",
     "extract_raw_body_from_fetchfox_result",
+    "looks_like_truncated_description",
     "fetch_seen_urls_for_site",
     "looks_like_job_listing_page",
     "normalize_fetchfox_items",

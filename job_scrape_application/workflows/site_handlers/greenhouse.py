@@ -242,7 +242,7 @@ class GreenhouseHandler(BaseSiteHandler):
             return self._apply_page_links_config(
                 {
                 "request": "chrome",
-                "return_format": ["raw_html"],
+                "return_format": ["commonmark", "raw_html"],
                 "follow_redirects": True,
                 "redirect_policy": "Loose",
                 "external_domains": ["*"],
@@ -252,7 +252,7 @@ class GreenhouseHandler(BaseSiteHandler):
         return self._apply_page_links_config(
             {
             "request": "chrome",
-            "return_format": ["raw_html"],
+            "return_format": ["commonmark", "raw_html"],
             "follow_redirects": True,
             "redirect_policy": "Loose",
             "external_domains": ["*"],

@@ -46,17 +46,17 @@ runtime_config = RuntimeConfig(
     spidercloud_job_details_timeout_minutes=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_timeout_minutes",
-        15,
+        4,
     ),
     spidercloud_job_details_batch_size=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_batch_size",
-        10,
+        20,
     ),
     spidercloud_listing_batch_size=_coerce_int(
         _raw_runtime_config,
         "spidercloud_listing_batch_size",
-        1,
+        5,
     ),
     spidercloud_job_details_concurrency=_coerce_int(
         _raw_runtime_config,

@@ -58,7 +58,7 @@ async def test_process_batch_rewrites_greenhouse_detail_urls(monkeypatch):
     )
 
     # Act
-    res = await process_spidercloud_job_batch(batch)
+    res = await process_spidercloud_job_batch(batch, persist_scrapes=False)
 
     # Assert: upstream scrape call received API URL
     assert captured["urls"] == [
@@ -93,7 +93,7 @@ async def test_process_batch_leaves_non_greenhouse_urls(monkeypatch):
         lambda: scraper,
     )
 
-    res = await process_spidercloud_job_batch(batch)
+    res = await process_spidercloud_job_batch(batch, persist_scrapes=False)
     scrapes = res.get("scrapes")
     assert isinstance(scrapes, list) and scrapes
     assert scrapes[0]["subUrls"] == [url]
@@ -117,7 +117,7 @@ async def test_process_batch_does_not_rewrite_ashby_urls(monkeypatch):
         lambda: scraper,
     )
 
-    res = await process_spidercloud_job_batch(batch)
+    res = await process_spidercloud_job_batch(batch, persist_scrapes=False)
     assert captured["urls"] == [url]
     scrapes = res.get("scrapes")
     assert isinstance(scrapes, list) and scrapes

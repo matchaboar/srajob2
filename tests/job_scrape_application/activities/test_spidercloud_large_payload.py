@@ -47,7 +47,7 @@ async def test_spidercloud_job_batch_payload_is_reasonably_capped(monkeypatch):
     monkeypatch.setattr(activities, "_make_spidercloud_scraper", lambda: _StubSpidercloud(raw_html))
 
     batch = _batch_for_urls(["https://jobs.ashbyhq.com/lambda/1"])
-    result = await activities.process_spidercloud_job_batch(batch)
+    result = await activities.process_spidercloud_job_batch(batch, persist_scrapes=False)
 
     scrapes = result.get("scrapes") or []
     assert scrapes, "expected at least one scrape payload"
@@ -64,7 +64,7 @@ async def test_spidercloud_job_batch_total_payload_is_reasonably_capped(monkeypa
 
     urls = [f"https://jobs.ashbyhq.com/lambda/{i}" for i in range(10)]
     batch = _batch_for_urls(urls)
-    result = await activities.process_spidercloud_job_batch(batch)
+    result = await activities.process_spidercloud_job_batch(batch, persist_scrapes=False)
 
     total_size = len(json.dumps(result).encode("utf-8"))
 
@@ -106,7 +106,7 @@ async def test_spidercloud_job_batch_only_converts_greenhouse_urls(monkeypatch):
         ]
     }
 
-    await activities.process_spidercloud_job_batch(batch)
+    await activities.process_spidercloud_job_batch(batch, persist_scrapes=False)
 
     assert captured["urls"] == [
         "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7278362",

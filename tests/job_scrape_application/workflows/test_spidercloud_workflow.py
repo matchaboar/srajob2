@@ -1959,7 +1959,7 @@ async def test_spidercloud_job_details_splits_cost_per_url(monkeypatch):
 
     batch = {"urls": [{"url": url, "sourceUrl": "https://example.com/boards/listing"} for url in urls]}
 
-    result = await acts.process_spidercloud_job_batch(batch)
+    result = await acts.process_spidercloud_job_batch(batch, persist_scrapes=False)
     scrapes = result["scrapes"]
 
     assert len(scrapes) == len(urls)
@@ -2456,7 +2456,7 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
     await sw.SpidercloudJobDetailsWorkflow().run()  # type: ignore[call-arg]
 
     assert len(leased_batches) >= 2
-    second_batch = leased_batches[-1]
+    second_batch = next(batch for batch in reversed(leased_batches) if batch)
     assert len(second_batch) == batch_size
     assert set(second_batch) == set(urls[1:] + [new_url])
 

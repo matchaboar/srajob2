@@ -955,6 +955,8 @@ function Start-WorkerMain {
 
     if (-not $UseTemporal) {
         Write-Host "Starting DBOS workflow runner..." -ForegroundColor Cyan
+        Write-Host "DBOS does not expose a UI; see logs/worker-start.log and logs/worker-errors.log." -ForegroundColor DarkGray
+        Write-Host "For a workflow UI, run with -UseTemporal to enable Temporal Web." -ForegroundColor DarkGray
         $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
         $defaultListingConcurrency = 4
         $defaultDetailConcurrency = 6
@@ -1032,6 +1034,14 @@ function Start-WorkerMain {
                 $exitCode = $script:WorkerProcesses[0].Process.ExitCode
             }
             if ($exitCode -ne 0) {
+                if (Test-Path $errorLogPath) {
+                    Write-Host "[error] Last 50 lines of ${errorLogPath}:" -ForegroundColor Red
+                    try {
+                        Get-Content -Path $errorLogPath -Tail 50 | ForEach-Object { Write-Host $_ }
+                    } catch {
+                        Write-Host "[error] Unable to read ${errorLogPath}: $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
                 throw "Worker exited unexpectedly (exit $exitCode). See $errorLogPath for details."
             }
         }

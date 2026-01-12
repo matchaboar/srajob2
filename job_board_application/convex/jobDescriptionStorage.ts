@@ -2,7 +2,7 @@ import type { Id } from "./_generated/dataModel";
 
 const MAX_CONVEX_STRING_BYTES = 1_000_000;
 const DESCRIPTION_TRUNCATION_SUFFIX = "...";
-const DESCRIPTION_PREVIEW_MAX_BYTES = 25_000;
+const DESCRIPTION_PREVIEW_MAX_BYTES = 4_000;
 
 export const clampStringToBytes = (value: string, maxBytes = MAX_CONVEX_STRING_BYTES) => {
   const encoder = new TextEncoder();

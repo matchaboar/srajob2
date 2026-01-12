@@ -302,14 +302,17 @@ const applicationTables = {
     createdAt: v.number(),
   })
     .index("by_source", ["sourceUrl"])
-    .index("by_source_url", ["sourceUrl", "url"]),
+    .index("by_source_url", ["sourceUrl", "url"])
+    .index("by_created_at", ["createdAt"]),
 
   seen_job_url_index: defineTable({
     sourceUrl: v.string(),
     url: v.string(),
     seenJobUrlId: v.optional(v.id("seen_job_urls")),
     createdAt: v.number(),
-  }).index("by_url_source", ["url", "sourceUrl"]),
+  })
+    .index("by_url_source", ["url", "sourceUrl"])
+    .index("by_created_at", ["createdAt"]),
 
   ignored_jobs: defineTable({
     url: v.string(),

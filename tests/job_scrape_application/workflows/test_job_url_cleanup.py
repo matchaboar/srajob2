@@ -40,3 +40,21 @@ def test_filter_job_urls_falls_back_to_base_rules():
 
     assert "https://boards.greenhouse.io/coreweave/jobs/4607747006" in filtered
     assert "https://elegant-magpie-239.convex.site/share/job?id=abc&app=https%3A%2F%2Flocalhost%3A5173" not in filtered
+
+
+def test_extract_job_urls_from_scrape_filters_non_job_direct_urls():
+    scrape = {
+        "items": {
+            "job_urls": [
+                "https://affable-kiwi-46.convex.site/share/job?id=k17583qrd0qbncmjhmnkn4djx17z0c6r&app=https%3A%2F%2Fsrajob.netlify.app",
+                "https://www.linkedin.com/company/adobe",
+                "https://careers.adobe.com/us/en/job/123456/Senior-Engineer",
+            ]
+        }
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://careers.adobe.com/us/en/job/123456/Senior-Engineer" in urls
+    assert "https://affable-kiwi-46.convex.site/share/job?id=k17583qrd0qbncmjhmnkn4djx17z0c6r&app=https%3A%2F%2Fsrajob.netlify.app" not in urls
+    assert "https://www.linkedin.com/company/adobe" not in urls

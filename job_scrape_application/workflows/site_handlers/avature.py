@@ -207,6 +207,12 @@ class AvatureHandler(BaseSiteHandler):
             if not cleaned or cleaned in seen:
                 continue
             lower = cleaned.lower()
+            if "/careers/jobdetail/" in lower:
+                normalized = self._normalize_job_detail_url(cleaned)
+                if not normalized:
+                    continue
+                cleaned = normalized
+                lower = cleaned.lower()
             if "/savejob" in lower or "/login" in lower or "/register" in lower:
                 continue
             if "/careers/" not in lower:
@@ -220,9 +226,47 @@ class AvatureHandler(BaseSiteHandler):
                 )
             ):
                 continue
+            if cleaned in seen:
+                continue
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    @staticmethod
+    def _normalize_job_detail_url(url: str) -> str | None:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return None
+        path = parsed.path or ""
+        lower_path = path.lower()
+        token = "/careers/jobdetail/"
+        idx = lower_path.find(token)
+        if idx < 0:
+            return url
+        prefix = path[: idx + len(token)]
+        tail = path[idx + len(token) :]
+        segments = [segment for segment in tail.split("/") if segment]
+        if not segments:
+            return None
+        slug = None
+        job_id_segment = None
+        if len(segments) == 1:
+            job_id_segment = segments[0]
+        else:
+            slug = segments[0]
+            job_id_segment = segments[1]
+        if slug and slug.isdigit():
+            job_id_segment = slug
+            slug = None
+        job_id_match = re.match(r"^(?P<id>\d+)", job_id_segment or "")
+        if not job_id_match:
+            return None
+        job_id = job_id_match.group("id")
+        normalized_segments = [segment for segment in (slug, job_id) if segment]
+        normalized_path = prefix + "/".join(normalized_segments)
+        normalized_path = normalized_path.rstrip("/")
+        return urlunparse(parsed._replace(path=normalized_path))
 
     def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
         filtered = self.filter_job_urls(urls)

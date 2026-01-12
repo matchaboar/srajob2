@@ -4274,64 +4274,9 @@ export const insertScrapeRecord = mutation({
     request: v.optional(v.any()),
     providerRequest: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
-    let trimmedItems = trimScrapeItemsForStorage(args.items);
-    let storedArgs: any = { ...args, items: trimmedItems };
-    let storedSize = estimateJsonSize(storedArgs);
-    if (storedSize > MAX_SCRAPE_RECORD_BYTES) {
-      trimmedItems = hardTrimScrapeItemsForStorage(trimmedItems);
-      storedArgs = { ...storedArgs, items: trimmedItems };
-      storedSize = estimateJsonSize(storedArgs);
-      console.warn(
-        `insertScrapeRecord payload trimmed (${storedSize} bytes after hard trim)`,
-      );
-    }
-    if (storedSize > MAX_SCRAPE_RECORD_BYTES) {
-      const minimalItems: Record<string, any> = {
-        normalized: Array.isArray(trimmedItems?.normalized)
-          ? trimmedItems.normalized.slice(0, 25)
-          : [],
-      };
-      if (typeof trimmedItems?.normalizedCount === "number") {
-        minimalItems.normalizedCount = trimmedItems.normalizedCount;
-      }
-      for (const key of [
-        "provider",
-        "workflowName",
-        "requestedFormat",
-        "kind",
-      ]) {
-        if (trimmedItems && trimmedItems[key] !== undefined) {
-          minimalItems[key] = trimmedItems[key];
-        }
-      }
-      storedArgs = { ...storedArgs, items: minimalItems };
-      if (Array.isArray(storedArgs.subUrls)) {
-        storedArgs.subUrls = storedArgs.subUrls.slice(0, 50);
-      }
-      storedArgs.request = storedArgs.request
-        ? clampRequestSnapshot(storedArgs.request)
-        : storedArgs.request;
-      storedArgs.providerRequest = storedArgs.providerRequest
-        ? shrinkPayload(storedArgs.providerRequest, 500)
-        : storedArgs.providerRequest;
-      delete storedArgs.response;
-      delete storedArgs.asyncResponse;
-      storedSize = estimateJsonSize(storedArgs);
-      console.warn(
-        `insertScrapeRecord payload trimmed to minimal (${storedSize} bytes)`,
-      );
-    }
-    logScrapePayloadSize("insertScrapeRecord", storedArgs);
-    const id = await ctx.db.insert("scrapes", storedArgs);
-    await ctx.db.insert("scrape_activity", {
-      sourceUrl: args.sourceUrl,
-      siteId: args.siteId,
-      startedAt: args.startedAt,
-      completedAt: args.completedAt,
-      jobCount: countJobs(args.items),
-    });
-    return id;
+  returns: v.string(),
+  handler: async (_ctx, _args) => {
+    return "scrape-skipped";
   },
 });
 
@@ -4546,6 +4491,9 @@ export const ingestJobsFromScrape = mutation({
           ctx,
           description,
         );
+        if (descriptionFields.description) {
+          await ctx.db.patch(jobId, { description: descriptionFields.description });
+        }
         Object.assign(detailRow, descriptionFields);
       }
       if (metadata !== undefined) detailRow.metadata = metadata;

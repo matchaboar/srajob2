@@ -87,7 +87,10 @@ async def test_process_spidercloud_job_batch_normalizes_confluent_job_detail(mon
     monkeypatch.setattr(spidercloud_scraper, "AsyncSpider", _FakeAsyncSpider)
     monkeypatch.setattr("job_scrape_application.workflows.activities.settings.spider_api_key", "key")
 
-    res = await process_spidercloud_job_batch({"urls": [{"url": JOB_URL, "sourceUrl": JOB_URL}]})
+    res = await process_spidercloud_job_batch(
+        {"urls": [{"url": JOB_URL, "sourceUrl": JOB_URL}]},
+        persist_scrapes=False,
+    )
 
     scrapes = res.get("scrapes") or []
     assert scrapes, "expected spidercloud scrapes to be returned"

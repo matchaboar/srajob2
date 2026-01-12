@@ -309,6 +309,446 @@ export const deleteJobDetailsByJobIds = mutation({
   },
 });
 
+export const deleteRecentJobsPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    untilMs: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    untilMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deletedJobs: v.number(),
+    deletedDetails: v.number(),
+    deletedJobUrlKeys: v.number(),
+    deletedSeenUrls: v.number(),
+    deletedSeenUrlIndex: v.number(),
+    deletedIgnoredJobs: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 200, 2000));
+    const untilMs = args.untilMs ?? Date.now();
+
+    if (untilMs <= args.sinceMs) {
+      throw new Error("untilMs must be greater than sinceMs");
+    }
+
+    const page = await ctx.db
+      .query("jobs")
+      .withIndex("by_scraped_at", (q) =>
+        q.gte("scrapedAt", args.sinceMs).lt("scrapedAt", untilMs),
+      )
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deletedJobs = 0;
+    let deletedDetails = 0;
+    let deletedJobUrlKeys = 0;
+    let deletedSeenUrls = 0;
+    let deletedSeenUrlIndex = 0;
+    let deletedIgnoredJobs = 0;
+
+    for (const job of page.page as AnyDoc[]) {
+      deletedJobs += 1;
+
+      const details = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", job._id))
+        .collect();
+      deletedDetails += details.length;
+
+      const urlKeys = await ctx.db
+        .query("job_url_keys")
+        .withIndex("by_url", (q) => q.eq("url", job.url))
+        .collect();
+      deletedJobUrlKeys += urlKeys.length;
+
+      const seenIndexRows = await (ctx.db as any)
+        .query("seen_job_url_index")
+        .withIndex("by_url_source", (q: any) => q.eq("url", job.url))
+        .collect();
+      deletedSeenUrlIndex += seenIndexRows.length;
+      const seenUrlIds = new Set<any>();
+      for (const row of seenIndexRows as AnyDoc[]) {
+        if (row.seenJobUrlId) {
+          seenUrlIds.add(row.seenJobUrlId);
+        }
+      }
+      deletedSeenUrls += seenUrlIds.size;
+
+      const ignored = await ctx.db
+        .query("ignored_jobs")
+        .withIndex("by_url", (q) => q.eq("url", job.url))
+        .collect();
+      deletedIgnoredJobs += ignored.length;
+
+      if (!dryRun) {
+        for (const detail of details as AnyDoc[]) {
+          await deleteDescriptionFromStorage(ctx, detail.descriptionStorageId);
+          await ctx.db.delete(detail._id);
+        }
+        for (const row of urlKeys as AnyDoc[]) {
+          await ctx.db.delete(row._id);
+        }
+        for (const row of seenIndexRows as AnyDoc[]) {
+          await ctx.db.delete(row._id);
+        }
+        for (const seenId of seenUrlIds) {
+          await ctx.db.delete(seenId);
+        }
+        for (const row of ignored as AnyDoc[]) {
+          await ctx.db.delete(row._id);
+        }
+        await ctx.db.delete(job._id);
+      }
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      untilMs,
+      batchSize,
+      scanned: page.page.length,
+      deletedJobs,
+      deletedDetails,
+      deletedJobUrlKeys,
+      deletedSeenUrls,
+      deletedSeenUrlIndex,
+      deletedIgnoredJobs,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentScrapesPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    untilMs: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    untilMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    const untilMs = args.untilMs ?? Date.now();
+
+    if (untilMs <= args.sinceMs) {
+      throw new Error("untilMs must be greater than sinceMs");
+    }
+
+    const page = await ctx.db
+      .query("scrapes")
+      .withIndex("by_completedAt", (q) =>
+        q.gte("completedAt", args.sinceMs).lt("completedAt", untilMs),
+      )
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      untilMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentScrapeActivityPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    untilMs: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    untilMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    const untilMs = args.untilMs ?? Date.now();
+
+    if (untilMs <= args.sinceMs) {
+      throw new Error("untilMs must be greater than sinceMs");
+    }
+
+    const page = await ctx.db
+      .query("scrape_activity")
+      .withIndex("by_completedAt", (q) =>
+        q.gte("completedAt", args.sinceMs).lt("completedAt", untilMs),
+      )
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      untilMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentScrapeErrorsPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    untilMs: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    untilMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+    const untilMs = args.untilMs ?? Date.now();
+
+    if (untilMs <= args.sinceMs) {
+      throw new Error("untilMs must be greater than sinceMs");
+    }
+
+    const page = await ctx.db
+      .query("scrape_errors")
+      .withIndex("by_created", (q) =>
+        q.gte("createdAt", args.sinceMs).lt("createdAt", untilMs),
+      )
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      untilMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentSeenJobUrlsPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+
+    const page = await ctx.db
+      .query("seen_job_urls")
+      .withIndex("by_created_at", (q) => q.gte("createdAt", args.sinceMs))
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+        const indexRow = await (ctx.db as any)
+          .query("seen_job_url_index")
+          .withIndex("by_url_source", (q: any) =>
+            q.eq("url", row.url).eq("sourceUrl", row.sourceUrl),
+          )
+          .first();
+        if (indexRow) {
+          await ctx.db.delete(indexRow._id);
+        }
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentSeenJobUrlIndexPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+
+    const page = await (ctx.db as any)
+      .query("seen_job_url_index")
+      .withIndex("by_created_at", (q: any) => q.gte("createdAt", args.sinceMs))
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
+export const deleteRecentIgnoredJobsPage = mutation({
+  args: {
+    sinceMs: v.number(),
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    sinceMs: v.number(),
+    batchSize: v.number(),
+    scanned: v.number(),
+    deleted: v.number(),
+    hasMore: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
+
+    const page = await ctx.db
+      .query("ignored_jobs")
+      .withIndex("by_created_at", (q) => q.gte("createdAt", args.sinceMs))
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    let deleted = 0;
+    if (!dryRun) {
+      for (const row of page.page as AnyDoc[]) {
+        await ctx.db.delete(row._id);
+        deleted += 1;
+      }
+    } else {
+      deleted = page.page.length;
+    }
+
+    return {
+      dryRun,
+      sinceMs: args.sinceMs,
+      batchSize,
+      scanned: page.page.length,
+      deleted,
+      hasMore: !page.isDone,
+      cursor: page.continueCursor,
+    };
+  },
+});
+
 export const listCompanySalaryMaxima = query({
   args: {
     minCompensation: v.optional(v.number()),

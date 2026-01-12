@@ -38,7 +38,7 @@ async def test_record_workflow_run_raises_on_other_errors(monkeypatch):
         await acts.record_workflow_run({"workflowId": "abc", "status": "failed"})
 
 
-def test_trim_scrape_for_convex_truncates_and_strips_raw():
+def test_trim_scrape_for_convex_preserves_descriptions_and_strips_raw():
     long_description = "x" * 2000
     long_title = "t" * 1000
     scrape = {
@@ -63,13 +63,14 @@ def test_trim_scrape_for_convex_truncates_and_strips_raw():
     )
 
     items = trimmed["items"]
-    assert len(items["normalized"]) == 1  # limited by max_items
+    assert len(items["normalized"]) == 2
     assert items["normalized"][0] == {"url": "https://example.com/1"}
+    assert items["normalized"][1] == {"url": "https://example.com/2"}
     assert items["normalizedCount"] == 2
     sample = items.get("normalizedSample", [])
     assert sample
-    assert len(sample[0]["description"]) == 100  # truncated description
-    assert len(sample[0]["job_description"]) == 100
+    assert sample[0]["description"] == long_description
+    assert sample[0]["job_description"] == long_description
     assert len(sample[0]["title"]) == 50
     assert len(sample[0]["job_title"]) == 50
     assert "raw" not in items
@@ -156,3 +157,27 @@ def test_jobs_from_scrape_items_filters_and_defaults():
     assert job.get("compensationUnknown") is True
     assert "compensationReason" in job
     assert job["postedAt"] == 1234
+
+
+def test_jobs_from_scrape_items_uses_normalized_sample_for_descriptions():
+    items = {
+        "normalized": [{"url": "https://example.com/1"}],
+        "normalizedSample": [
+            {
+                "url": "https://example.com/1",
+                "title": "Engineer",
+                "company": "Example",
+                "description": "Full description content",
+                "location": "Remote",
+                "remote": True,
+                "level": "mid",
+            }
+        ],
+    }
+
+    jobs = acts._jobs_from_scrape_items(items, default_posted_at=1234)
+
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job["description"] == "Full description content"
+    assert job["title"] == "Engineer"

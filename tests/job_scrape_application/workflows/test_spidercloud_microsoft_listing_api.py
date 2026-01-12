@@ -160,6 +160,7 @@ async def test_store_scrape_enqueues_microsoft_listing_pagination(
     }
 
     calls: list[dict] = []
+    enqueue_calls: list[dict] = []
 
     async def fake_mutation(name: str, args: dict):
         calls.append({"name": name, "args": args})
@@ -169,25 +170,32 @@ async def test_store_scrape_enqueues_microsoft_listing_pagination(
             return {"inserted": 0}
         return None
 
+    def fake_enqueue(payload: dict, *, force_refresh: bool = False) -> dict:
+        enqueue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
     async def fake_seen(*_args, **_kwargs):
         return []
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue,
+    )
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
 
     await acts.store_scrape(scrape_payload)
 
-    enqueue_calls = [call for call in calls if call["name"] == "router:enqueueScrapeUrls"]
     assert enqueue_calls, "store_scrape should enqueue Microsoft URLs"
 
-    urls = enqueue_calls[0]["args"]["urls"]
+    urls = enqueue_calls[0]["urls"]
     assert any(url.startswith("https://apply.careers.microsoft.com/careers/job/") for url in urls)
     assert any(
         "/api/pcsx/search" in url and f"start={expected_next_start}" in url
         for url in urls
     )
 
-    delays = enqueue_calls[0]["args"].get("delaysMs") or []
+    delays = enqueue_calls[0].get("delaysMs") or []
     delay_for_listing = None
     for url, delay in zip(urls, delays):
         if "/api/pcsx/search" in url and f"start={expected_next_start}" in url:

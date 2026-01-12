@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 import types
+from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
@@ -129,3 +131,58 @@ async def test_store_job_descriptions_via_http_posts_payload(monkeypatch):
             "json": {"jobId": "job-123", "description": "Full description"},
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_store_job_descriptions_via_http_skips_truncated_description(monkeypatch):
+    calls: List[Dict[str, Any]] = []
+    looked_up: List[Dict[str, Any]] = []
+
+    async def fake_convex_query(name: str, args: Dict[str, Any] | None = None):
+        looked_up.append({"name": name, "args": args})
+        return "job-123"
+
+    class FakeResponse:
+        def __init__(self, status_code: int, text: str):
+            self.status_code = status_code
+            self.text = text
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url: str, json: Dict[str, Any]):
+            calls.append({"url": url, "json": json})
+            return FakeResponse(200, "ok")
+
+    fixture = Path("tests/fixtures/spidercloud_affable_kiwi_job_detail_raw.json")
+    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    entry = payload[0][0] if isinstance(payload[0], list) else payload[0]
+    snippet = entry["metadata"]["raw"]["description"]
+
+    monkeypatch.setattr(acts.settings, "convex_http_url", "https://example.convex.site")
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr(acts.httpx, "AsyncClient", FakeClient)
+
+    jobs = [
+        {
+            "url": entry["url"],
+            "description": snippet,
+        }
+    ]
+
+    await acts._store_job_descriptions_via_http(
+        jobs,
+        "https://affable-kiwi-46.convex.site",
+        "spidercloud",
+        "workflow",
+    )
+
+    assert looked_up == []
+    assert calls == []

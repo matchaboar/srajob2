@@ -229,6 +229,21 @@ def test_normalize_single_row_skips_error_landing_page():
     assert normalized is None
 
 
+def test_normalize_single_row_skips_requested_page_not_found():
+    row = {
+        "title": "Senior Software Engineer",
+        "url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/12949",
+        "description": """
+        The requested page was not found.
+        Sorry, the page you’re looking for might have been removed.
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
 @pytest.mark.parametrize(
     "url",
     [

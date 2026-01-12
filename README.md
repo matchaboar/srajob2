@@ -10,7 +10,7 @@ Utilities for job scraping and application automation.
 
 Examples of supported site handlers include Greenhouse (e.g., xAI, Verkada), Workday, Avature, Netflix, Uber, HubSpot (www.hubspot.com/careers/jobs), Microsoft Careers (apply.careers.microsoft.com), Meta (metacareers.com/jobsearch), OpenAI (openai.com/careers), Life at Spotify (lifeatspotify.com/jobs), Notion (www.notion.com/careers), and Docusign (careers.docusign.com/api/jobs).
 
-## Run workers to scrape jobs in temporal 
+## Run workers to scrape jobs in temporal
 
 Use the `-ForceScrapeAll` switch with `start_worker.ps1` to reset active sites and force every scheduled site to run right away (even if not scheduled at the moment). For production convex, use `-UseProd`.
 
@@ -19,6 +19,11 @@ Example:
 ```powershell
 ./start_worker.ps1 -ForceScrapeAll -UseProd
 ```
+
+## Workflow monitoring
+
+- Run with `-UseTemporal` to enable Temporal Web; `start_worker.ps1` prints the URL (default `http://localhost:8233`).
+- DBOS mode has no UI; use `logs/worker-start.log` and `logs/worker-errors.log` for status and failures.
 
 # deployment - Convex db and UI
 

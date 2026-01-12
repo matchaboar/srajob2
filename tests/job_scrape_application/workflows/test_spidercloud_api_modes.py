@@ -22,7 +22,10 @@ from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # n
     SpidercloudDependencies,
 )
 from job_scrape_application.workflows.site_handlers.greenhouse import GreenhouseHandler  # noqa: E402
-from job_scrape_application.workflows.helpers.scrape_utils import parse_posted_at_with_unknown  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
+    parse_posted_at_with_unknown,
+    trim_scrape_for_convex,
+)
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -143,7 +146,7 @@ async def test_batch_params_use_raw_for_greenhouse_api(monkeypatch):
 
     call = fake_client.calls[0]
     assert "raw_html" in call["params"]["return_format"]
-    assert "commonmark" not in call["params"]["return_format"]
+    assert "commonmark" in call["params"]["return_format"]
     assert call["params"]["request"] == "chrome"
     assert call["params"]["preserve_host"] is False
 
@@ -262,7 +265,7 @@ async def test_batch_params_use_raw_for_ashby_job_detail(monkeypatch):
 
     call = fake_client.calls[0]
     assert "raw_html" in call["params"]["return_format"]
-    assert "commonmark" not in call["params"]["return_format"]
+    assert "commonmark" in call["params"]["return_format"]
 
 
 @pytest.mark.asyncio
@@ -275,7 +278,8 @@ async def test_batch_params_use_commonmark_for_confluent_listing(monkeypatch):
     await scraper._scrape_urls_batch([url], source_url=url)
 
     call = fake_client.calls[0]
-    assert call["params"]["return_format"] == ["raw_html"]
+    assert "raw_html" in call["params"]["return_format"]
+    assert "commonmark" in call["params"]["return_format"]
     assert call["params"]["request"] == "chrome"
     assert call["params"]["preserve_host"] is True
 
@@ -320,6 +324,39 @@ async def test_batch_params_use_raw_for_avature_listing(monkeypatch):
     call = fake_client.calls[0]
     assert "raw_html" in call["params"]["return_format"]
     assert call["params"]["request"] == "chrome"
+
+
+@pytest.mark.asyncio
+async def test_scrape_urls_batch_keeps_full_description_when_untrimmed(monkeypatch):
+    async def _fetch_seen_urls(*_args, **_kwargs):
+        return []
+
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=trim_scrape_for_convex,
+        settings=type("cfg", (), {"spider_api_key": "key"}),
+        fetch_seen_urls_for_site=_fetch_seen_urls,
+    )
+    scraper = SpiderCloudScraper(deps)
+    long_body = "### Senior Software Engineer\n" + "Body " + ("x" * 600)
+    fake_client = _FakeClient([{"commonmark": long_body}])
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    url = "https://example.com/job/1"
+    result = await scraper._scrape_urls_batch([url], source_url=url, trim_payload=False)
+
+    items = result.get("items")
+    assert isinstance(items, dict)
+    normalized = items.get("normalized")
+    assert isinstance(normalized, list) and normalized
+    description = normalized[0].get("description")
+    assert isinstance(description, str)
+    assert "Senior Software Engineer" in description
+    assert len(description) > 500
 
 
 @pytest.mark.asyncio

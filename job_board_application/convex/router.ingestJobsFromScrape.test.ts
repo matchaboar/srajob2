@@ -80,6 +80,22 @@ class FakeDb {
     }
     throw new Error(`Unsupported insert table ${table}`);
   }
+
+  patch(id: string, payload: any) {
+    if (id.startsWith("jobs-")) {
+      const existing = this.jobs.get(id);
+      if (!existing) throw new Error(`Missing job ${id}`);
+      this.jobs.set(id, { ...existing, ...payload });
+      return;
+    }
+    if (id.startsWith("job_details-")) {
+      const index = this.jobDetails.findIndex((row) => row._id === id);
+      if (index === -1) throw new Error(`Missing job detail ${id}`);
+      this.jobDetails[index] = { ...this.jobDetails[index], ...payload };
+      return;
+    }
+    throw new Error(`Unsupported patch id ${id}`);
+  }
 }
 
 describe("ingestJobsFromScrape", () => {

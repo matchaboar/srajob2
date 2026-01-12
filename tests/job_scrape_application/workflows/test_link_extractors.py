@@ -116,6 +116,18 @@ def test_normalize_url_strips_unbalanced_trailing_paren():
     assert normalize_url(url) == "https://careers.snap.com/job?id=R0041979"
 
 
+def test_normalize_url_strips_escaped_newline_tail():
+    url = (
+        "https://bloomberg.avature.net/careers/JobDetail/"
+        "Senior-Software-Engineer-Buy-Side/15596)\\nNew"
+    )
+
+    assert (
+        normalize_url(url)
+        == "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Buy-Side/15596"
+    )
+
+
 def test_normalize_url_list_dedupes_and_filters():
     urls = [
         "https://example.com/jobs/1",

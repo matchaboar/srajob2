@@ -684,7 +684,8 @@ class BaseSiteHandler(ABC):
         return self.filter_job_urls_basic(urls)
 
     def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
-        return self.filter_job_urls(urls)
+        base_filtered = self.filter_job_urls_basic(urls)
+        return self.filter_job_urls(base_filtered)
 
     @staticmethod
     def _looks_like_non_job_detail_url(url: str) -> bool:

@@ -23,7 +23,6 @@ from ..helpers.scrape_utils import (
     _normalize_section_heading,
     _extract_job_markdown_from_json,
     _strip_embedded_theme_json,
-    MAX_JOB_DESCRIPTION_CHARS,
     UNKNOWN_COMPENSATION_REASON,
     apply_company_hint,
     coerce_level,
@@ -73,6 +72,10 @@ from ..helpers.regex_patterns import (
     _SALARY_RE,
     _TITLE_BAR_RE,
     _TITLE_IN_BAR_RE,
+)
+from ..helpers.spidercloud_error_strategy import (
+    decision_for_exception,
+    decision_for_status_code,
 )
 from ..site_handlers import BaseSiteHandler, get_site_handler
 from ...services import telemetry
@@ -157,6 +160,48 @@ JOB_TITLE_KEYWORDS = {
 
 
 logger = logging.getLogger("temporal.worker.activities")
+
+
+def _summarize_failed_items(
+    failed_items: List[Dict[str, Any]],
+    *,
+    sample_limit: int = 3,
+) -> Dict[str, Any]:
+    reason_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    retryable_count = 0
+    sample_urls: list[str] = []
+    sample_reasons: list[str] = []
+
+    for item in failed_items:
+        if not isinstance(item, dict):
+            continue
+        reason = item.get("reason")
+        if isinstance(reason, str) and reason:
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        status = item.get("status")
+        if isinstance(status, (int, str)):
+            status_key = str(status)
+            status_counts[status_key] = status_counts.get(status_key, 0) + 1
+        if item.get("retryable") is True:
+            retryable_count += 1
+        url = item.get("url")
+        if isinstance(url, str) and url and len(sample_urls) < sample_limit:
+            sample_urls.append(url)
+        if isinstance(reason, str) and reason and len(sample_reasons) < sample_limit:
+            sample_reasons.append(reason)
+
+    def _sorted_counts(counts: dict[str, int]) -> dict[str, int]:
+        return {key: counts[key] for key in sorted(counts)}
+
+    return {
+        "failedCount": len(failed_items),
+        "reasonCounts": _sorted_counts(reason_counts),
+        "statusCounts": _sorted_counts(status_counts),
+        "retryableCount": retryable_count,
+        "sampleUrls": sample_urls,
+        "sampleReasons": sample_reasons,
+    }
 
 
 class CaptchaDetectedError(Exception):
@@ -260,10 +305,7 @@ class SpiderCloudScraper(BaseScraper):
 
     def _trim_scrape_payload(self, scrape_payload: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            return self.deps.trim_scrape_for_convex(
-                scrape_payload,
-                max_description=MAX_JOB_DESCRIPTION_CHARS,
-            )
+            return self.deps.trim_scrape_for_convex(scrape_payload)
         except TypeError as exc:
             if "max_description" not in str(exc):
                 raise
@@ -597,12 +639,24 @@ class SpiderCloudScraper(BaseScraper):
                 val = value.get(key)
                 if not isinstance(val, str) or not val.strip():
                     continue
+                if key in {"commonmark", "markdown", "content", "text", "body", "result", "raw"}:
+                    if len(val.strip()) < min_description_len:
+                        html_candidate = value.get("raw_html") or value.get("html")
+                        if isinstance(html_candidate, str) and html_candidate.strip():
+                            continue
                 looks_like_html = key in {"html", "raw_html"} or ("<" in val and ">" in val)
                 if looks_like_html and "<pre" in val.lower():
                     extracted = _job_description_from_pre(val)
                     if extracted:
                         return extracted
-                return _markdown_from_html(val) if looks_like_html else val
+                if looks_like_html:
+                    rendered = _markdown_from_html(val)
+                    if self._is_placeholder_description(rendered) and len(rendered.strip()) < min_description_len:
+                        continue
+                    return rendered
+                if self._is_placeholder_description(val) and len(val.strip()) < min_description_len:
+                    continue
+                return val
             return None
 
         def _walk(value: Any) -> Optional[str]:
@@ -620,7 +674,14 @@ class SpiderCloudScraper(BaseScraper):
                     extracted = _job_description_from_pre(value)
                     if extracted:
                         return extracted
-                return _markdown_from_html(value) if looks_like_html else value
+                if looks_like_html:
+                    rendered = _markdown_from_html(value)
+                    if self._is_placeholder_description(rendered) and len(rendered.strip()) < min_description_len:
+                        return None
+                    return rendered
+                if self._is_placeholder_description(value) and len(value.strip()) < min_description_len:
+                    return None
+                return value
             if isinstance(value, dict):
                 metadata_candidate = _metadata_description(value)
                 content_val = value.get("content")
@@ -661,6 +722,23 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         return _walk(obj)
+
+    @staticmethod
+    def _coerce_return_formats(value: Any) -> List[str]:
+        if isinstance(value, str):
+            cleaned = value.strip()
+            return [cleaned] if cleaned else []
+        if isinstance(value, list):
+            return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        return []
+
+    @classmethod
+    def _merge_return_formats(cls, base: Any, override: Any) -> List[str]:
+        merged: List[str] = []
+        for item in cls._coerce_return_formats(base) + cls._coerce_return_formats(override):
+            if item not in merged:
+                merged.append(item)
+        return merged
 
     def _extract_credits(self, obj: Any) -> Optional[float]:
         """Heuristically pull a credit usage number from a payload."""
@@ -1600,6 +1678,36 @@ class SpiderCloudScraper(BaseScraper):
         # Reject IDs masquerading as titles (e.g., numeric requisition IDs).
         return bool(re.fullmatch(MIN_THREE_DIGIT_PATTERN, stripped))
 
+    def _is_placeholder_description(self, description: str) -> bool:
+        cleaned = description.strip().lower().rstrip(":.!?")
+        if not cleaned:
+            return True
+        normalized = re.sub(r"\s+", " ", cleaned)
+        if self._is_placeholder_title(normalized):
+            return True
+        placeholders = {
+            "full",
+            "full time",
+            "full-time",
+            "fulltime",
+            "part time",
+            "part-time",
+            "parttime",
+            "contract",
+            "contractor",
+            "temporary",
+            "temp",
+            "internship",
+            "intern",
+            "remote",
+            "hybrid",
+            "on site",
+            "on-site",
+            "onsite",
+        }
+        normalized_compact = normalized.replace(" ", "")
+        return normalized in placeholders or normalized_compact in placeholders
+
     def _title_is_metadata_value(self, markdown: str, title: str) -> bool:
         if not markdown or not title:
             return False
@@ -2178,6 +2286,7 @@ class SpiderCloudScraper(BaseScraper):
             if isinstance(extracted, str) and extracted.strip():
                 parsed_markdown = extracted
         raw_markdown = parsed_markdown
+        min_description_len = 80
         if handler:
             normalized_markdown, normalized_title = handler.normalize_markdown(parsed_markdown)
             if isinstance(normalized_markdown, str) and normalized_markdown.strip():
@@ -2230,6 +2339,8 @@ class SpiderCloudScraper(BaseScraper):
                     handler_description = extractor(structured_payload)
                     if isinstance(handler_description, str) and handler_description.strip():
                         structured_description = handler_description.strip()
+            if structured_description and self._is_placeholder_description(structured_description):
+                structured_description = None
             structured_location = self._location_from_job_posting(structured_payload)
             structured_company = self._company_from_structured_payload(structured_payload)
         if structured_description and not structured_present:
@@ -2254,6 +2365,8 @@ class SpiderCloudScraper(BaseScraper):
 
         cleaned_markdown = strip_known_nav_blocks(parsed_markdown or "")
         cleaned_markdown = _strip_embedded_theme_json(cleaned_markdown)
+        if self._is_placeholder_description(cleaned_markdown) and len(cleaned_markdown.strip()) < min_description_len:
+            cleaned_markdown = ""
         raw_cleaned_markdown = strip_known_nav_blocks(raw_markdown or "")
         raw_cleaned_markdown = _strip_embedded_theme_json(raw_cleaned_markdown)
         if len(cleaned_markdown.strip()) < 200:
@@ -2432,7 +2545,7 @@ class SpiderCloudScraper(BaseScraper):
                     title_source = "markdown"
         if from_content and not title_matches_required_keywords(title):
             logger.info(
-                "SpiderCloud dropping job due to missing required keyword url=%s title=%s",
+                "SpiderCloud dropping job due to missing required keyword url=%s job_title=%s",
                 url,
                 title,
             )
@@ -2748,7 +2861,19 @@ class SpiderCloudScraper(BaseScraper):
             if api_url and api_url != url:
                 request_url = api_url
                 logger.debug("SpiderCloud using api_url=%s original_url=%s", request_url, url)
-            local_params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(request_url)))
+            handler_config = handler.normalize_spidercloud_config(handler.get_spidercloud_config(request_url))
+            if handler_config:
+                handler_config = dict(handler_config)
+                if "return_format" in handler_config:
+                    handler_formats = self._coerce_return_formats(handler_config.get("return_format"))
+                    if "raw" in handler_formats:
+                        merged_formats = handler_formats
+                    else:
+                        merged_formats = self._merge_return_formats(local_params.get("return_format"), handler_formats)
+                        if "raw_html" in merged_formats and "commonmark" not in merged_formats:
+                            merged_formats.insert(0, "commonmark")
+                    handler_config["return_format"] = merged_formats
+                local_params.update(handler_config)
 
         try:
             async for chunk in self._iterate_scrape_response(
@@ -2797,16 +2922,25 @@ class SpiderCloudScraper(BaseScraper):
             raise
         except Exception as exc:  # noqa: BLE001
             logger.error("SpiderCloud scrape failed url=%s error=%s", url, exc)
+            decision = decision_for_exception(exc, source="spidercloud_api")
             self._emit_scrape_log(
                 event="scrape.single_url.failed",
                 level="error",
                 site_url=url,
                 api_url=request_url,
-                data={"attempt": attempt},
+                data={
+                    "attempt": attempt,
+                    "errorType": decision.error_type,
+                    "retryAfterSeconds": decision.retry_after_seconds,
+                },
                 exc=exc,
                 capture_exception=True,
             )
-            raise ApplicationError(f"SpiderCloud scrape failed for {url}: {exc}") from exc
+            raise ApplicationError(
+                f"SpiderCloud scrape failed for {url}: {exc}",
+                type=decision.error_type,
+                non_retryable=decision.action in {"fail", "halt"},
+            ) from exc
 
         logger.debug(
             "SpiderCloud stream parsed url=%s events=%s markdown_fragments=%s credit_candidates=%s",
@@ -2922,16 +3056,27 @@ class SpiderCloudScraper(BaseScraper):
                 if http_status is not None:
                     break
 
-        if http_status == 404:
-            fallback_title = self._title_from_url(url)
-            ignored_entry = {
+        if http_status is not None and http_status != 200:
+            decision = decision_for_status_code(http_status, source="spidercloud_page")
+            failed_entry = {
                 "url": url,
-                "reason": "http_404",
-                "title": fallback_title,
-                "description": markdown_text or "Job not found",
+                "reason": f"http_{http_status}",
+                "status": http_status,
+                "errorType": decision.error_type,
+                "retryable": decision.action == "retry",
+                "retryAfterSeconds": decision.retry_after_seconds,
             }
-            self._last_ignored_job = ignored_entry
-            return {
+            ignored_entry = None
+            if http_status == 404:
+                fallback_title = self._title_from_url(url)
+                ignored_entry = {
+                    "url": url,
+                    "reason": "http_404",
+                    "title": fallback_title,
+                    "description": markdown_text or "Job not found",
+                }
+                self._last_ignored_job = ignored_entry
+            payload = {
                 "normalized": None,
                 "raw": {
                     "url": url,
@@ -2944,9 +3089,11 @@ class SpiderCloudScraper(BaseScraper):
                 "creditsUsed": credits_used,
                 "costMilliCents": cost_milli_cents,
                 "startedAt": started_at,
-                "ignored": ignored_entry,
-                "failed": {"url": url, "reason": "http_404", "status": http_status},
+                "failed": failed_entry,
             }
+            if ignored_entry:
+                payload["ignored"] = ignored_entry
+            return payload
         require_keywords = attempt <= 1
         normalized = self._normalize_job(
             url,
@@ -3001,11 +3148,14 @@ class SpiderCloudScraper(BaseScraper):
     async def _scrape_urls_batch(
         self,
         urls: List[str],
-        *,
         source_url: str,
-        pattern: Optional[str] = None,
-        posted_at_by_url: Optional[Dict[str, int]] = None,
+        pattern: str | None = None,
+        *,
+        posted_at_by_url: Dict[str, int] | None = None,
+        trim_payload: bool = True,
     ) -> Dict[str, Any]:
+
+
         def _safe_json_size(payload: Any) -> Optional[int]:
             try:
                 return len(json.dumps(payload, ensure_ascii=False))
@@ -3092,9 +3242,10 @@ class SpiderCloudScraper(BaseScraper):
 
         use_raw_html = any(_wants_raw_html(cfg) for cfg in handler_configs)
         preserve_host = all(cfg.get("preserve_host", True) for cfg in handler_configs)
-        requested_format = "raw_html" if use_raw_html else "commonmark"
+        return_formats = ["commonmark", "raw_html"] if use_raw_html else ["commonmark"]
+        requested_format = return_formats
         params: Dict[str, Any] = {
-            "return_format": ["raw_html"] if use_raw_html else ["commonmark"],
+            "return_format": return_formats,
             "metadata": True,
             "request": "chrome",
             "follow_redirects": True,
@@ -3131,7 +3282,6 @@ class SpiderCloudScraper(BaseScraper):
                     attempt = 0
                     result: Dict[str, Any] | None = None
                     proxy: Optional[str] = None
-                    last_error: BaseException | None = None
                     while attempt <= CAPTCHA_RETRY_LIMIT:
                         attempt += 1
                         local_params = dict(params)
@@ -3191,31 +3341,58 @@ class SpiderCloudScraper(BaseScraper):
                                 url,
                                 timeout_seconds,
                             )
-                            last_error = exc
+                            decision = decision_for_exception(exc, source="spidercloud_timeout")
                             self._emit_scrape_log(
                                 event="scrape.single_url.timeout",
                                 level="error",
                                 site_url=url,
-                                data={"timeoutSeconds": timeout_seconds, "attempt": attempt},
+                                data={
+                                    "timeoutSeconds": timeout_seconds,
+                                    "attempt": attempt,
+                                    "errorType": decision.error_type,
+                                    "retryAfterSeconds": decision.retry_after_seconds,
+                                },
                                 exc=exc,
                                 capture_exception=True,
                             )
-                            break
+                            failed_entry = {
+                                "url": url,
+                                "reason": decision.error,
+                                "errorType": decision.error_type,
+                                "retryable": decision.action == "retry",
+                                "retryAfterSeconds": decision.retry_after_seconds,
+                            }
+                            if decision.status_code is not None:
+                                failed_entry["status"] = decision.status_code
+                            return idx, url, {"failed": failed_entry}
+                        except ApplicationError as exc:
+                            decision = decision_for_exception(exc, source="spidercloud_api")
+                            if decision.action == "halt":
+                                raise
+                            failed_entry = {
+                                "url": url,
+                                "reason": decision.error,
+                                "errorType": decision.error_type,
+                                "retryable": decision.action == "retry",
+                                "retryAfterSeconds": decision.retry_after_seconds,
+                            }
+                            if decision.status_code is not None:
+                                failed_entry["status"] = decision.status_code
+                            return idx, url, {"failed": failed_entry}
                         except Exception:
                             # Bubble up unexpected errors
                             raise
 
                     if not result:
                         logger.warning("SpiderCloud skipping url after retries url=%s", url)
-                        if last_error is None:
-                            self._emit_scrape_log(
-                                event="scrape.single_url.no_result",
-                                level="error",
-                                site_url=url,
-                                data={"attempts": attempt},
-                                exc=ValueError("SpiderCloud scrape returned empty result"),
-                                capture_exception=True,
-                            )
+                        self._emit_scrape_log(
+                            event="scrape.single_url.no_result",
+                            level="error",
+                            site_url=url,
+                            data={"attempts": attempt},
+                            exc=ValueError("SpiderCloud scrape returned empty result"),
+                            capture_exception=True,
+                        )
                         return idx, url, None
 
                     if marketing_url and isinstance(result, dict):
@@ -3361,10 +3538,33 @@ class SpiderCloudScraper(BaseScraper):
             max_markdown_len,
         )
         if failed_items:
+            failure_summary = _summarize_failed_items(failed_items)
             logger.warning(
-                "SpiderCloud batch failures source=%s failed=%s",
+                "SpiderCloud batch failures source=%s failed=%s reasons=%s retryable=%s statuses=%s sample_urls=%s",
                 source_url,
-                len(failed_items),
+                failure_summary["failedCount"],
+                failure_summary["reasonCounts"],
+                failure_summary["retryableCount"],
+                failure_summary["statusCounts"],
+                failure_summary["sampleUrls"],
+            )
+            self._emit_scrape_log(
+                event="scrape.batch.failures",
+                level="warn",
+                site_url=source_url,
+                data={
+                    "pattern": pattern,
+                    "seedCount": len(urls),
+                    "normalizedCount": len(normalized_items),
+                    "rawCount": len(raw_items),
+                    "ignoredCount": len(ignored_items),
+                    "failedCount": failure_summary["failedCount"],
+                    "failedReasonCounts": failure_summary["reasonCounts"],
+                    "failedStatusCounts": failure_summary["statusCounts"],
+                    "failedRetryableCount": failure_summary["retryableCount"],
+                    "failedSampleUrls": failure_summary["sampleUrls"],
+                    "failedSampleReasons": failure_summary["sampleReasons"],
+                },
             )
         logger.info(
             "SpiderCloud batch complete source=%s urls=%s items=%s cost_mc=%s cost_usd=%s",
@@ -3387,11 +3587,18 @@ class SpiderCloudScraper(BaseScraper):
                 f"cost_cents={cost_cents_display} "
                 f"cost_usd={cost_usd_display}"
             ),
-            metadata={"pattern": pattern, "seed": len(urls)},
+            metadata={
+                "pattern": pattern,
+                "seed": len(urls),
+                "queued": len(raw_items),
+                "max_markdown_len": max_markdown_len,
+                "raw_bytes": raw_payload_bytes,
+                "trimmed_bytes": trimmed_payload_bytes,
+            },
             response=trimmed,
         )
+        return trimmed if trim_payload else scrape_payload
 
-        return trimmed
 
     async def scrape_site(
         self,
@@ -3837,6 +4044,7 @@ class SpiderCloudScraper(BaseScraper):
             source_url=source_url,
             pattern=None,
             posted_at_by_url=posted_at_by_url,
+            trim_payload=False,
         )
         items = scrape_payload.get("items") if isinstance(scrape_payload, dict) else {}
         normalized = items.get("normalized") if isinstance(items, dict) else []

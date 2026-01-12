@@ -67,6 +67,7 @@ from ..helpers.scrape_utils import (
     normalize_fetchfox_items,
     normalize_firecrawl_items,
     trim_scrape_for_convex,
+    looks_like_truncated_description,
 )
 from ..helpers.link_extractors import (
     gather_strings,
@@ -181,6 +182,90 @@ def _strip_none_values(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Remove keys whose values are None so Convex does not receive nulls."""
 
     return {k: v for k, v in payload.items() if v is not None}
+
+
+def _is_base_listing_page(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return True
+    params = parse_qs(parsed.query)
+    for key in ("page", "from", "start", "offset", "joboffset", "jobOffset"):
+        raw_val = params.get(key, [None])[0]
+        if raw_val is None:
+            continue
+        try:
+            page_val = int(raw_val)
+        except Exception:
+            continue
+        if page_val > 0:
+            return False
+    return True
+
+
+def _build_listing_zero_url_context(
+    scrape_payload: Dict[str, Any],
+    base_url: str | None,
+) -> Dict[str, Any]:
+    if not base_url:
+        return {}
+    items_block = scrape_payload.get("items") if isinstance(scrape_payload, dict) else {}
+    raw_block = items_block.get("raw") if isinstance(items_block, dict) else None
+    raw_items: list[Any]
+    if isinstance(raw_block, list):
+        raw_items = raw_block
+    elif isinstance(raw_block, dict):
+        raw_items = [raw_block]
+    else:
+        raw_items = []
+
+    normalized_target = normalize_url(base_url) or base_url
+    selected_raw: Dict[str, Any] | None = None
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        raw_url = raw.get("url")
+        if not isinstance(raw_url, str):
+            continue
+        normalized_raw = normalize_url(raw_url) or raw_url
+        if normalized_raw == normalized_target:
+            selected_raw = raw
+            break
+    if selected_raw is None:
+        for raw in raw_items:
+            if isinstance(raw, dict):
+                selected_raw = raw
+                break
+
+    markdown_val = None
+    html_val = None
+    events_val = None
+    links_val = None
+    selected_url = None
+    if selected_raw:
+        selected_url = selected_raw.get("url") if isinstance(selected_raw.get("url"), str) else None
+        markdown_val = (
+            selected_raw.get("markdown")
+            or selected_raw.get("commonmark")
+            or selected_raw.get("content")
+        )
+        html_val = selected_raw.get("raw_html") or selected_raw.get("html")
+        events_val = selected_raw.get("events")
+        links_val = selected_raw.get("job_urls") or selected_raw.get("links")
+
+    context = {
+        "pageUrl": base_url,
+        "pageUrlMatched": selected_url,
+        "rawItemsCount": len(raw_items) if raw_items else None,
+        "markdownLength": len(markdown_val) if isinstance(markdown_val, str) else None,
+        "eventCount": len(events_val) if isinstance(events_val, list) else None,
+        "linkCount": len(links_val) if isinstance(links_val, list) else None,
+        "markdownSample": _shrink_payload(markdown_val, 6000),
+        "htmlSample": _shrink_payload(html_val, 6000),
+        "eventSample": _shrink_payload(events_val, 3000),
+        "linkSample": links_val[:50] if isinstance(links_val, list) else None,
+    }
+    return _strip_none_values(context)
 
 
 def _get_activity_worker_id() -> str | None:
@@ -312,6 +397,8 @@ async def _store_job_descriptions_via_http(
         for job in jobs:
             description = job.get("description")
             if not isinstance(description, str) or not description.strip():
+                continue
+            if looks_like_truncated_description(description):
                 continue
             raw_url = job.get("url")
             if not isinstance(raw_url, str) or not raw_url.strip():
@@ -2007,14 +2094,101 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         ordered = [url for _, url in sorted(indexed, key=_page_key)]
         return ordered[:limit]
 
-    async def _enqueue_from_scrape(scrape_payload: Dict[str, Any], entry: Dict[str, Any]) -> int:
-        urls = _extract_job_urls_from_scrape(scrape_payload)
-        if not urls:
-            return 0
+    async def _enqueue_from_scrape(
+        scrape_payload: Dict[str, Any],
+        entry: Dict[str, Any],
+        requested_urls: list[str],
+    ) -> int:
+        extracted_urls = _extract_job_urls_from_scrape(scrape_payload)
         source_url = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
         handler = get_site_handler(source_url) if source_url else None
-        urls = _filter_job_urls(urls, handler, _is_probable_listing_url)
+
+        def _select_base_listing_url() -> str | None:
+            for candidate in requested_urls:
+                if not isinstance(candidate, str) or not candidate.strip():
+                    continue
+                if handler:
+                    if not handler.is_listing_url(candidate):
+                        continue
+                elif not _is_probable_listing_url(candidate):
+                    continue
+                if _is_base_listing_page(candidate):
+                    return candidate
+            return None
+
+        base_listing_url = _select_base_listing_url()
+        base_page_context = _build_listing_zero_url_context(scrape_payload, base_listing_url)
+        base_link_count = base_page_context.get("linkCount") if base_page_context else None
+
+        def _sample_urls(values: Iterable[str], limit: int = 10) -> list[str]:
+            return [val for idx, val in enumerate(values) if idx < limit]
+
+        def _should_warn_zero_urls() -> bool:
+            if not base_listing_url:
+                return False
+            if handler:
+                if not handler.is_listing_url(base_listing_url):
+                    return False
+            elif not _is_probable_listing_url(base_listing_url):
+                return False
+            return _is_base_listing_page(base_listing_url)
+
+        def _emit_zero_url_warning(reason: str, details: Dict[str, Any] | None = None) -> None:
+            if not _should_warn_zero_urls():
+                return
+            payload = {
+                "event": "scrape.listing.zero_urls",
+                "level": "warn",
+                "siteUrl": base_listing_url or source_url,
+                "data": _strip_none_values(
+                    {
+                        "provider": entry.get("provider") or scrape_payload.get("provider") or "spidercloud",
+                        "sourceUrl": source_url,
+                        "listingUrl": base_listing_url,
+                        "pattern": entry.get("pattern"),
+                        "siteId": entry.get("siteId"),
+                        "reason": reason,
+                        "extractedCount": len(extracted_urls),
+                        "requestedUrlCount": len(requested_urls),
+                        "requestedUrlSample": _sample_urls(requested_urls),
+                        "details": details,
+                        "pageContext": base_page_context if not extracted_urls else None,
+                    }
+                ),
+            }
+            try:
+                telemetry.emit_posthog_log(payload)
+            except Exception:
+                pass
+
+        if not extracted_urls:
+            _emit_zero_url_warning("no_extracted_urls")
+            return 0
+
+        if isinstance(base_link_count, int) and base_link_count == 0:
+            _emit_zero_url_warning(
+                "base_page_no_urls",
+                _strip_none_values(
+                    {
+                        "basePageContext": base_page_context or None,
+                        "basePageLinkCount": base_link_count,
+                    }
+                ),
+            )
+
+        urls = _filter_job_urls(extracted_urls, handler, _is_probable_listing_url)
+        invalid_urls = [url for url in extracted_urls if url not in urls]
         if not urls:
+            _emit_zero_url_warning(
+                "filtered_invalid_urls",
+                _strip_none_values(
+                    {
+                        "invalidCount": len(invalid_urls),
+                        "invalidSample": _sample_urls(invalid_urls),
+                        "extractedSample": _sample_urls(extracted_urls),
+                    }
+                ),
+            )
             return 0
 
         job_urls: list[str] = []
@@ -2030,11 +2204,23 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 job_urls.append(url)
 
         pagination_limit = await _resolve_pagination_limit(entry)
+        listing_urls_before_pagination = list(listing_urls)
+        pagination_dropped: list[str] = []
         if pagination_limit and listing_urls:
-            listing_urls = _limit_listing_urls(listing_urls, pagination_limit, source_url, handler)
+            limited_listing_urls = _limit_listing_urls(
+                listing_urls,
+                pagination_limit,
+                source_url,
+                handler,
+            )
+            pagination_dropped = [
+                url for url in listing_urls_before_pagination if url not in limited_listing_urls
+            ]
+            listing_urls = limited_listing_urls
 
+        seen_listing: set[str] = set()
+        listing_urls_before_seen = list(listing_urls)
         if listing_urls and source_url:
-            seen_listing: set[str] = set()
             try:
                 seen_listing = set(
                     u
@@ -2051,7 +2237,10 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 seen_listing = {u for u in seen_listing if not handler.is_listing_url(u)}
             if seen_listing:
                 listing_urls = [u for u in listing_urls if u not in seen_listing]
+        listing_seen_dropped = [url for url in listing_urls_before_seen if url in seen_listing]
 
+        job_urls_before_existing = list(job_urls)
+        existing_set: set[str] = set()
         if job_urls:
             try:
                 existing_jobs = await filter_existing_job_urls(job_urls)
@@ -2060,8 +2249,29 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
             existing_set = {u for u in existing_jobs if isinstance(u, str)}
             if existing_set:
                 job_urls = [u for u in job_urls if u not in existing_set]
+        job_existing_dropped = [url for url in job_urls_before_existing if url in existing_set]
 
         if not job_urls and not listing_urls:
+            _emit_zero_url_warning(
+                "filtered_to_zero",
+                _strip_none_values(
+                    {
+                        "invalidCount": len(invalid_urls),
+                        "invalidSample": _sample_urls(invalid_urls),
+                        "listingCount": len(listing_urls_before_pagination),
+                        "listingSample": _sample_urls(listing_urls_before_pagination),
+                        "listingPaginationDroppedCount": len(pagination_dropped),
+                        "listingPaginationDroppedSample": _sample_urls(pagination_dropped),
+                        "listingSeenDroppedCount": len(listing_seen_dropped),
+                        "listingSeenDroppedSample": _sample_urls(listing_seen_dropped),
+                        "jobCount": len(job_urls_before_existing),
+                        "jobSample": _sample_urls(job_urls_before_existing),
+                        "jobExistingDroppedCount": len(job_existing_dropped),
+                        "jobExistingDroppedSample": _sample_urls(job_existing_dropped),
+                        "paginationLimit": pagination_limit,
+                    }
+                ),
+            )
             return 0
 
         merged_urls = job_urls + listing_urls
@@ -2126,7 +2336,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         base_payload.setdefault("provider", "spidercloud")
         base_payload.setdefault("workflowName", "SpidercloudListing")
         entry = entry_by_key.get((source_url, pattern)) or {}
-        return await _enqueue_from_scrape(base_payload, entry)
+        return await _enqueue_from_scrape(base_payload, entry, urls)
 
     tasks: list[asyncio.Task[int]] = []
     for (source_url, pattern), urls in groups.items():
@@ -4308,9 +4518,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             parsed = urlparse(url)
         except Exception:
             return False
+        host = (parsed.hostname or "").lower()
         path = (parsed.path or "").lower()
         if not path:
             return False
+        if host.endswith(".convex.site") and path.startswith("/share/job"):
+            return True
+        if host.endswith("linkedin.com") and path.startswith("/company"):
+            return True
         segments = [seg for seg in path.split("/") if seg]
         for seg in segments:
             if seg in _NON_JOB_PATH_SEGMENTS:
@@ -4391,8 +4606,6 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         return re.sub(INVALID_JSON_ESCAPE_PATTERN, "", value)
 
     url_re = re.compile(URL_PATTERN)
-    escaped_url_re = re.compile(r"https?:\\/\\/[^\s\"'<>]+")
-    escaped_url_re = re.compile(r"https?:\\/\\/[^\s\"'<>]+")
 
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
         links: list[tuple[str, Optional[str], Optional[str]]] = []

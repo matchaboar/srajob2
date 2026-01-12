@@ -59,10 +59,10 @@ def test_greenhouse_handler_rewrites_and_formats():
         "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     )
     config = handler.get_spidercloud_config(api_url)
-    assert config.get("return_format") == ["raw_html"]
+    assert config.get("return_format") == ["commonmark", "raw_html"]
     assert config.get("preserve_host") is False
     config = handler.get_spidercloud_config(detail)
-    assert config.get("return_format") == ["raw_html"]
+    assert config.get("return_format") == ["commonmark", "raw_html"]
     assert config.get("preserve_host") is True
 
 

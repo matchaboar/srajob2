@@ -24,13 +24,12 @@ def test_greenhouse_listing_skips_existing_jobs_when_seen_urls_empty(monkeypatch
 
     enqueued_payloads = []
 
-    async def fake_convex_mutation(name, args):
-        if name == "router:enqueueScrapeUrls":
-            enqueued_payloads.append(args)
-            return {"queued": args.get("urls", [])}
-        if name == "router:completeScrapeUrls":
-            return {"updated": len(args.get("urls", []))}
-        raise AssertionError(f"unexpected mutation {name}")
+    def fake_enqueue(payload: dict, *, force_refresh: bool = False):
+        enqueued_payloads.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
+    def fake_complete(payload: dict):
+        return {"updated": len(payload.get("items", []))}
 
     def fake_list_scrape_urls(**_kwargs):
         return [
@@ -40,7 +39,14 @@ def test_greenhouse_listing_skips_existing_jobs_when_seen_urls_empty(monkeypatch
 
     monkeypatch.setattr(activities, "fetch_seen_urls_for_site", fake_fetch_seen_urls_for_site)
     monkeypatch.setattr(activities, "filter_existing_job_urls", fake_filter_existing_job_urls)
-    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        fake_enqueue,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
+        fake_complete,
+    )
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
         fake_list_scrape_urls,

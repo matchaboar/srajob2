@@ -2059,6 +2059,36 @@ export const getRecentJobs = query({
   },
 });
 
+export const listJobsByScrapedAt = query({
+  args: {
+    scrapedAfter: v.number(),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("jobs"),
+      url: v.string(),
+      scrapedAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const limit = Math.max(1, Math.min(args.limit ?? 200, 2000));
+    const jobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_scraped_at", (q) => q.gte("scrapedAt", args.scrapedAfter))
+      .order("desc")
+      .take(limit);
+
+    return jobs
+      .filter((job) => typeof job.scrapedAt === "number")
+      .map((job) => ({
+        _id: job._id,
+        url: job.url,
+        scrapedAt: job.scrapedAt as number,
+      }));
+  },
+});
+
 export const listQueuedJobs = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -2264,6 +2294,7 @@ export const setJobDescriptionStorage = internalMutation({
       description: preview,
       descriptionStorageId: args.storageId,
     };
+    await ctx.db.patch(job._id, { description: preview });
     if (existing) {
       await ctx.db.patch(existing._id, patch);
       return null;
