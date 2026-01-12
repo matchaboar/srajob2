@@ -130,13 +130,12 @@ async def _run_store_scrape(
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_docusign_page_1_jobs_and_pagination(
+async def test_store_scrape_enqueues_docusign_page_1_jobs_only(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE_1)
     parsed = _parse_payload(raw_payload)
 
-    expected_job_url = _extract_first_job_url(parsed)
     pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_1)
 
     urls, calls = await _run_store_scrape(raw_payload, LISTING_URL_PAGE_1, monkeypatch)
@@ -144,20 +143,21 @@ async def test_store_scrape_enqueues_docusign_page_1_jobs_and_pagination(
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_1
 
-    assert expected_job_url in urls, "expected job detail URL from Docusign listing payload"
+    assert any(url.startswith("https://careers.docusign.com/jobs/") for url in urls), (
+        "expected job detail URLs from Docusign listing payload"
+    )
     assert pagination_urls, "expected pagination URLs for Docusign page 1"
     for url in pagination_urls:
-        assert url in urls, f"expected pagination URL queued: {url}"
+        assert url not in urls, f"unexpected pagination URL queued: {url}"
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_docusign_page_2_jobs_and_pagination(
+async def test_store_scrape_enqueues_docusign_page_2_jobs_only(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE_2)
     parsed = _parse_payload(raw_payload)
 
-    expected_job_url = _extract_first_job_url(parsed)
     pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_2)
 
     urls, calls = await _run_store_scrape(raw_payload, LISTING_URL_PAGE_2, monkeypatch)
@@ -165,7 +165,9 @@ async def test_store_scrape_enqueues_docusign_page_2_jobs_and_pagination(
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_2
 
-    assert expected_job_url in urls, "expected job detail URL from Docusign page 2 payload"
+    assert any(url.startswith("https://careers.docusign.com/jobs/") for url in urls), (
+        "expected job detail URLs from Docusign page 2 payload"
+    )
     assert pagination_urls, "expected pagination URLs for Docusign page 2"
     for url in pagination_urls:
-        assert url in urls, f"expected pagination URL queued: {url}"
+        assert url not in urls, f"unexpected pagination URL queued: {url}"

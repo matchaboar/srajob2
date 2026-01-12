@@ -1,0 +1,35 @@
+{
+  "data": [
+    {
+      "id": 19780,
+      "account_id": 1415,
+      "title": "Data Center Site Operations Manager",
+      "listed": true,
+      "ats_job": {
+        "job_description": "<p>Voltage Park is your enterprise AI factory.</p>",
+        "workplace": "office",
+        "employment_type": "full_time",
+        "ats_department": {
+          "name": "Operations",
+          "depth": 1
+        },
+        "offices": [
+          {
+            "name": "Lisle, Illinois",
+            "location": "Lisle, Illinois",
+            "country": "United States",
+            "state": "Illinois",
+            "city": "Lisle"
+          }
+        ]
+      }
+    }
+  ],
+  "meta": {
+    "count": 17,
+    "page": 1,
+    "items": 99,
+    "pages": 1
+  },
+  "errors": []
+}

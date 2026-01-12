@@ -43,29 +43,25 @@ def _extract_source_url(payload: Any) -> str:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("fixture_path", "expected_pages", "expected_job_ids"),
+    ("fixture_path", "expected_job_ids"),
     [
         (
             FIXTURE_PAGE_1,
-            ("page=2", "page=3", "page=4"),
             ("5986323", "7294272"),
         ),
         (
             FIXTURE_PAGE_2,
-            ("page=3", "page=4"),
             ("5986324", "5986325"),
         ),
         (
             FIXTURE_PAGE_3,
-            ("page=4",),
             ("5986326", "5986327"),
         ),
     ],
 )
-async def test_hubspot_listing_batch_enqueues_raw_html_and_pagination(
+async def test_hubspot_listing_batch_enqueues_job_urls_only(
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: Path,
-    expected_pages: tuple[str, ...],
     expected_job_ids: tuple[str, ...],
 ) -> None:
     raw_payload = _load_fixture(fixture_path)
@@ -145,7 +141,5 @@ async def test_hubspot_listing_batch_enqueues_raw_html_and_pagination(
     urls = queue_calls[0]["urls"]
     for job_id in expected_job_ids:
         assert f"https://www.hubspot.com/careers/jobs/{job_id}" in urls
-    assert source_url in urls
-    for page_fragment in expected_pages:
-        assert any(page_fragment in url for url in urls)
-    assert not any("page=5" in url for url in urls)
+    assert source_url not in urls
+    assert not any("page=" in url for url in urls)

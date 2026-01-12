@@ -186,3 +186,65 @@ async def test_store_job_descriptions_via_http_skips_truncated_description(monke
 
     assert looked_up == []
     assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_store_job_descriptions_via_http_uses_greenhouse_api_lookup(monkeypatch):
+    calls: List[Dict[str, Any]] = []
+    looked_up: List[str] = []
+
+    async def fake_convex_query(name: str, args: Dict[str, Any] | None = None):
+        assert name == "jobs:getJobIdByUrl"
+        url = (args or {}).get("url", "")
+        looked_up.append(url)
+        if url == "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4716145101":
+            return "job-4716145101"
+        return None
+
+    class FakeResponse:
+        def __init__(self, status_code: int, text: str):
+            self.status_code = status_code
+            self.text = text
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url: str, json: Dict[str, Any]):
+            calls.append({"url": url, "json": json})
+            return FakeResponse(200, "ok")
+
+    monkeypatch.setattr(acts.settings, "convex_http_url", "https://example.convex.site")
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr(acts.httpx, "AsyncClient", FakeClient)
+
+    jobs = [
+        {
+            "url": "https://boards.greenhouse.io/stubhubinc/jobs/4716145101",
+            "description": "Full description",
+        }
+    ]
+
+    await acts._store_job_descriptions_via_http(
+        jobs,
+        "https://boards.greenhouse.io/stubhubinc",
+        "spidercloud",
+        "workflow",
+    )
+
+    assert "https://boards.greenhouse.io/stubhubinc/jobs/4716145101" in looked_up
+    assert (
+        "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4716145101" in looked_up
+    )
+    assert calls == [
+        {
+            "url": "https://example.convex.site/api/job-description",
+            "json": {"jobId": "job-4716145101", "description": "Full description"},
+        }
+    ]

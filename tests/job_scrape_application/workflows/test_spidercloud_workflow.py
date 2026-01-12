@@ -68,6 +68,7 @@ from job_scrape_application.workflows.site_handlers import GreenhouseHandler  # 
 from job_scrape_application.workflows.site_handlers import GithubCareersHandler  # noqa: E402
 from job_scrape_application.workflows.site_handlers import AshbyHqHandler  # noqa: E402
 from job_scrape_application.workflows.scrapers import spidercloud_scraper as sc_scraper  # noqa: E402
+from job_scrape_application.workflows.helpers.link_extractors import normalize_url_list  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_for_convex  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import _jobs_from_scrape_items  # noqa: E402
 
@@ -677,6 +678,46 @@ async def test_spidercloud_greenhouse_listing_regex_uses_event_payload(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_spidercloud_avature_listing_extracts_job_detail_links(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_bloomberg_avature_search_page_1.json"
+    )
+    raw_events = _load_spidercloud_fixture(fixture_path)
+    raw_text = ""
+    url = "https://bloomberg.avature.net/careers/SearchJobs"
+    if isinstance(raw_events, list) and raw_events and isinstance(raw_events[0], list) and raw_events[0]:
+        first = raw_events[0][0]
+        if isinstance(first, dict):
+            content = first.get("content")
+            if isinstance(content, dict):
+                raw_text = content.get("raw", "")
+            if isinstance(first.get("url"), str):
+                url = first["url"]
+
+    async def fake_fetch(_api_url: str, _handler):
+        return raw_text, raw_events
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+
+    site: Site = {
+        "_id": "s-avature",
+        "url": url,
+        "type": "avature",
+    }
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+
+    assert listing["job_urls"], "expected Avature job detail URLs"
+    assert all("/careers/jobdetail/" in item.lower() for item in listing["job_urls"])
+    assert (
+        "https://bloomberg.avature.net/careers/JobDetail/"
+        "Senior-Software-Engineer-Buy-Side/15596"
+        in listing["job_urls"]
+    )
+
+
+@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_invalid_json_returns_empty(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -800,6 +841,42 @@ async def test_spidercloud_greenhouse_listing_parses_raw_response_fixture(monkey
 
     assert "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002" in listing["job_urls"]
     assert listing["raw"] and "jobs" in listing["raw"]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_greenhouse_listing_prefers_listing_slug(monkeypatch):
+    scraper = _make_spidercloud_scraper()
+    fixture_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_datadog_greenhouse_listing_raw.json"
+    )
+    raw_payload = _load_spidercloud_fixture(fixture_path)
+    raw_events = raw_payload if isinstance(raw_payload, list) else [raw_payload]
+    raw_text = ""
+    for event in raw_events:
+        if isinstance(event, dict):
+            content = event.get("content")
+            if isinstance(content, str):
+                raw_text = content
+                break
+
+    async def fake_fetch(_api_url: str, _handler):
+        return raw_text, raw_events
+
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
+
+    site: Site = {
+        "_id": "01hzconvexsiteid123456789ac6",
+        "url": "https://api.greenhouse.io/v1/boards/datadog/jobs",
+        "type": "greenhouse",
+    }
+
+    listing = await scraper.fetch_greenhouse_listing(site)
+
+    assert "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/6652564" in listing["job_urls"]
+    assert (
+        "https://boards-api.greenhouse.io/v1/boards/datadoghq/jobs/6652564"
+        not in listing["job_urls"]
+    )
 
 
 @pytest.mark.asyncio
@@ -1752,6 +1829,21 @@ def test_extract_greenhouse_json_markdown_preserves_content():
     assert text.count("\n") >= 5
 
 
+def test_greenhouse_handler_normalizes_marketing_url_variants():
+    handler = GreenhouseHandler()
+    urls = [
+        "https://www.coupang.jobs/en/jobs?gh_jid=7130163",
+        "https://www.coupang.jobs/en/jobs?gh/_jid=7130163",
+        "https://www.coupang.jobs/en/jobs?gh//_jid=7130163/",
+        "https://www.coupang.jobs/en/jobs?gh_jid=7130163/",
+    ]
+
+    normalized = handler.filter_job_urls(urls)
+
+    assert normalized == ["https://www.coupang.jobs/en/jobs?gh_jid=7130163"]
+    assert handler.is_listing_url(normalized[0]) is False
+
+
 @pytest.mark.asyncio
 async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
     seen_url = "https://example.com/jobs/skip-me"
@@ -2242,7 +2334,6 @@ def test_extract_job_urls_from_confluent_spidercloud_commonmark_fixture():
     urls = _extract_job_urls_from_scrape(trimmed)  # noqa: SLF001
 
     expected = {
-        "https://careers.confluent.io/jobs/job/03bd40fd-07a5-44ed-985f-689e5405c2a8",
         "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49",
         "https://careers.confluent.io/jobs/job/5400cdd0-87bf-4df5-aed8-3f526715fa4a",
         "https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1",
@@ -2252,6 +2343,106 @@ def test_extract_job_urls_from_confluent_spidercloud_commonmark_fixture():
         "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
     }
     assert expected.issubset(set(urls))
+
+
+def test_extract_job_urls_prefers_raw_html_over_markdown():
+    source_url = "https://careers.confluent.io/jobs"
+    scrape = {
+        "sourceUrl": source_url,
+        "items": {
+            "provider": "spidercloud",
+            "raw": {
+                "raw_html": '<a href="/jobs/job/abc123">Job</a>',
+                "markdown": "See https://careers.confluent.io/jobs/job/markdown123",
+            },
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    assert "https://careers.confluent.io/jobs/job/abc123" in urls
+    assert "https://careers.confluent.io/jobs/job/markdown123" not in urls
+
+
+def test_extract_job_urls_filters_greenhouse_page_link_noise():
+    source_url = "https://api.greenhouse.io/v1/boards/airbnb/jobs"
+    bad_urls = [
+        "https://careers.airbnb.com/fr",
+        "https://api.greenhouse.io/search",
+        (
+            "https://careers.airbnb.com/wp-content/themes/airbnb-careers/assets/images/"
+            "menu-close.svg"
+        ),
+        (
+            "https://careers.airbnb.com/wp-json/oembed/1.0/embed?"
+            "url=https%3A%2F%2Fcareers.airbnb.com%2Fpositions%2F7381450%2F&format=xml&l"
+        ),
+        "https://api.greenhouse.io/trust",
+        "https://boards.greenhouse.io/embed/job_board/js?for=airbnb",
+        "https://www.hmsa.com/help-center/transparency-in-coverage-machine-readable-files",
+        "https://api.greenhouse.io/",
+        "https://careers.airbnb.com/search",
+        "https://api.greenhouse.io/v1/boards/airbnb/a,a.exports,i",
+    ]
+    good_urls = [
+        "https://careers.airbnb.com/positions/7381450",
+        "https://boards.greenhouse.io/airbnb/jobs/123456",
+    ]
+    scrape = {
+        "sourceUrl": source_url,
+        "items": {
+            "provider": "spidercloud",
+            "raw": {
+                "raw_html": "<html><body>Listings</body></html>",
+                "page_links": bad_urls + good_urls,
+            },
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+
+    for url in good_urls:
+        assert url in urls
+    for url in bad_urls:
+        assert url not in urls
+
+
+def test_extract_job_urls_filters_datadog_page_link_noise():
+    source_url = "https://api.greenhouse.io/v1/boards/datadog/jobs"
+    good_urls = [
+        "https://careers.datadoghq.com/detail/7319730/?gh_jid=7319730",
+        "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/6652564",
+    ]
+    bad_urls = [
+        "https://careers.datadoghq.com/all-jobs/?s=software%20engineer",
+        "https://careers.datadoghq.com/locations/",
+        "https://careers.datadoghq.com/",
+        "https://careers.datadoghq.com/blog",
+        "https://boards.greenhouse.io/embed/job_board/js?for=datadog",
+        "https://api.greenhouse.io/search",
+    ]
+    scrape = {
+        "sourceUrl": source_url,
+        "items": {
+            "provider": "spidercloud",
+            "raw": {
+                "raw_html": "<html><body>Datadog listings</body></html>",
+                "page_links": bad_urls + good_urls,
+            },
+        },
+    }
+
+    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    normalized_candidates = normalize_url_list(bad_urls + good_urls, base_url=source_url)
+    urls_set = set(urls)
+    valid = [url for url in normalized_candidates if url in urls_set]
+    invalid = [url for url in normalized_candidates if url not in urls_set]
+
+    print("datadog filtering valid:", valid)
+    print("datadog filtering invalid:", invalid)
+
+    assert set(valid) == set(normalize_url_list(good_urls, base_url=source_url))
+    assert set(invalid) == set(normalize_url_list(bad_urls, base_url=source_url))
 
 
 def test_extract_job_urls_from_scrape_filters_confluent_location_urls():

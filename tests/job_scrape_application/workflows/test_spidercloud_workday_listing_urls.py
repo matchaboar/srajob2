@@ -68,3 +68,24 @@ def test_spidercloud_workday_listing_extracts_job_urls_from_events():
     )
     assert urls, "expected job URLs extracted from Workday listing HTML"
     assert any("JR1652" in url or "Software-Engineer" in url for url in urls)
+
+
+def test_spidercloud_workday_listing_filters_non_job_urls():
+    payload = _load_fixture()
+    event = _extract_first_event(payload)
+    assert event is not None, "expected a Workday listing event payload"
+
+    handler = get_site_handler(SOURCE_URL)
+    assert handler is not None and handler.name == "workday"
+
+    scraper = _make_scraper()
+    urls = scraper._extract_listing_job_urls_from_events(  # noqa: SLF001
+        handler,
+        [event],
+        "",
+        base_url=SOURCE_URL,
+    )
+
+    assert urls
+    assert all(handler.matches_url(url) for url in urls)
+    assert all("/job/" in url.lower() or handler.is_listing_url(url) for url in urls)

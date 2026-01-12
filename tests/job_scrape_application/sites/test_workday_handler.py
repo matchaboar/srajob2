@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable, Optional
+from urllib.parse import urlparse
 
 from job_scrape_application.workflows.site_handlers import WorkdayHandler
 
@@ -87,3 +89,24 @@ def test_workday_handler_extracts_job_links_and_pagination():
     assert 20 in offsets
     assert 180 in offsets
     assert len(offsets) <= 10
+
+
+def test_workday_handler_filters_listing_links_from_fixture():
+    handler = WorkdayHandler()
+    html = _load_html(FIXTURE)
+    links = handler.get_links_from_raw_html(html)
+    canonical_match = re.search(r'rel="canonical" href="([^"]+)"', html)
+    assert canonical_match is not None
+    listing_url = canonical_match.group(1)
+
+    noisy = links + [
+        "http://www.coupang.com",
+        "https://privacy.coupang.com/en/center",
+    ]
+    filtered = handler.filter_job_urls_for_site(noisy, listing_url)
+
+    assert filtered
+    assert all(handler.matches_url(url) for url in filtered)
+    assert any("/job/" in url.lower() for url in filtered)
+    assert any("offset=" in url.lower() for url in filtered)
+    assert not any(urlparse(url).hostname == "www.coupang.com" for url in filtered)

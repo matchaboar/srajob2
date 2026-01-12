@@ -187,7 +187,7 @@ def test_extract_job_urls_from_ashby_ramp_api_fixture():
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_ashby_api_pagination_and_extracts_page_two(monkeypatch):
+async def test_store_scrape_enqueues_ashby_job_urls_only(monkeypatch):
     payload = _load_api_payload()
     page_1, page_2 = _split_jobs_payload(payload)
     page_1_urls = set(_expected_ashby_job_urls(page_1))
@@ -241,8 +241,8 @@ async def test_store_scrape_enqueues_ashby_api_pagination_and_extracts_page_two(
     assert enqueue_args, "enqueueScrapeUrls should be called"
     enqueued = enqueue_args.get("urls") if isinstance(enqueue_args, dict) else []
     assert isinstance(enqueued, list)
-    assert pagination_url in enqueued
     assert page_1_urls.issubset(set(enqueued))
+    assert pagination_url not in enqueued
     assert page_1_urls
     assert page_2_urls.isdisjoint(set(enqueued))
 

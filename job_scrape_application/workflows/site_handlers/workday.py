@@ -359,7 +359,7 @@ class WorkdayHandler(BaseSiteHandler):
             if not isinstance(url, str):
                 continue
             cleaned = url.strip()
-            if not cleaned or cleaned in seen:
+            if not cleaned:
                 continue
             lower = cleaned.lower()
             if lower.startswith(("mailto:", "tel:", "javascript:")):
@@ -371,9 +371,18 @@ class WorkdayHandler(BaseSiteHandler):
             if parsed and parsed.hostname and not self.matches_url(cleaned):
                 continue
             path = (parsed.path if parsed else cleaned).lower()
-            if "/job/" in path or self.is_listing_url(cleaned):
-                seen.add(cleaned)
-                filtered.append(cleaned)
+            if self.is_api_detail_url(cleaned):
+                candidate = cleaned
+            elif "/job/" in path:
+                candidate = self.get_api_uri(cleaned) or cleaned
+            elif self.is_listing_url(cleaned):
+                candidate = cleaned
+            else:
+                continue
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            filtered.append(candidate)
         return filtered
 
     @staticmethod

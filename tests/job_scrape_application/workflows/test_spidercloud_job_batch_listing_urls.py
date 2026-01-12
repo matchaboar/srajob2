@@ -14,7 +14,7 @@ from job_scrape_application.workflows import activities as acts  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_job_batch_includes_listing_urls(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_spidercloud_job_batch_skips_listing_urls(monkeypatch: pytest.MonkeyPatch) -> None:
     listing_url = (
         "https://apply.careers.microsoft.com/api/pcsx/search"
         "?domain=microsoft.com&query=software%20engineer&start=10"
@@ -51,5 +51,5 @@ async def test_spidercloud_job_batch_includes_listing_urls(monkeypatch: pytest.M
     assert result.get("scrapes"), "Expected scrape payloads to be returned"
     assert captured, "Expected scraper to be invoked"
     flattened = [url for group in captured for url in group]
-    assert listing_url in flattened
+    assert listing_url not in flattened
     assert detail_url in flattened

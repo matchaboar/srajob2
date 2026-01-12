@@ -609,6 +609,35 @@ class SpidercloudJobDetailsWorkflow:
                                         return source_val.strip()
                                     return None
 
+                                def _is_http_404_entry(entry: Any) -> bool:
+                                    if not isinstance(entry, dict):
+                                        return False
+                                    status = entry.get("status") or entry.get("httpStatus")
+                                    if isinstance(status, (int, float)) and int(status) == 404:
+                                        return True
+                                    reason = entry.get("reason")
+                                    if isinstance(reason, str) and "404" in reason.lower():
+                                        return True
+                                    error_type = entry.get("errorType")
+                                    return isinstance(error_type, str) and "404" in error_type.lower()
+
+                                def _extract_http_404_urls(scrape: dict[str, Any]) -> list[str]:
+                                    items = scrape.get("items")
+                                    if not isinstance(items, dict):
+                                        return []
+                                    urls: list[str] = []
+                                    for key in ("failed", "ignored"):
+                                        entries = items.get(key)
+                                        if not isinstance(entries, list):
+                                            continue
+                                        for entry in entries:
+                                            if not _is_http_404_entry(entry):
+                                                continue
+                                            url_val = entry.get("url")
+                                            if isinstance(url_val, str) and url_val.strip():
+                                                urls.append(url_val.strip())
+                                    return urls
+
                                 def _build_items(values: list[str]) -> list[dict[str, str]]:
                                     return [{"url": value} for value in values if isinstance(value, str)]
 
@@ -631,8 +660,20 @@ class SpidercloudJobDetailsWorkflow:
                                         schedule_to_close_timeout=timedelta(seconds=20),
                                     )
 
+                                http_404_urls: list[str] = []
+                                http_404_seen: set[str] = set()
+
                                 for idx, scrape in enumerate(scrapes):
                                     if not isinstance(scrape, dict):
+                                        continue
+                                    http_404_candidates = _extract_http_404_urls(scrape)
+                                    if http_404_candidates:
+                                        for candidate in http_404_candidates:
+                                            if candidate in http_404_seen:
+                                                continue
+                                            http_404_seen.add(candidate)
+                                            http_404_urls.append(candidate)
+                                        await _yield_if_needed(idx, every=25)
                                         continue
                                     url_val = _scrape_url(scrape)
                                     try:
@@ -663,6 +704,11 @@ class SpidercloudJobDetailsWorkflow:
                                     invalid_urls,
                                     "invalid",
                                     error="invalid_job_data",
+                                )
+                                await _complete_urls(
+                                    http_404_urls,
+                                    "failed",
+                                    error="http_404",
                                 )
                                 await _complete_urls(
                                     failed_urls,
@@ -761,6 +807,8 @@ class SpidercloudListingWorkflow:
         wf_logger = get_workflow_logger()
         max_run_duration = timedelta(minutes=runtime_config.spidercloud_job_details_processing_expire_minutes)
         run_started = _workflow_now()
+        max_batches_per_run = 1
+        batches_processed = 0
 
         async def _log(event: str, *, level: str = "info", data: dict | None = None):
             msg = f"SpidercloudListing | event={event} | data={data}"
@@ -774,7 +822,7 @@ class SpidercloudListingWorkflow:
         await _log("workflow.start")
 
         try:
-            while True:
+            while batches_processed < max_batches_per_run:
                 if _workflow_now() - run_started > max_run_duration:
                     break
                 await workflow_checkpoint(
@@ -819,6 +867,8 @@ class SpidercloudListingWorkflow:
                 urls = batch.get("urls") if isinstance(batch, dict) else None
                 if not urls:
                     break
+
+                batches_processed += 1
 
                 await workflow_checkpoint(
                     "listing.before_log_batch_leased",

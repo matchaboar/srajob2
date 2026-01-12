@@ -511,10 +511,10 @@ site_schedules:
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://jobs.ashbyhq.com/voltagepark.com
+- url: https://careers.kula.ai/voltagepark
   name: voltage park
   enabled: true
-  type: general
+  type: kula
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:

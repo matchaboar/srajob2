@@ -6,6 +6,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -26,6 +27,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -46,6 +48,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -66,6 +69,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -86,6 +90,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -106,6 +111,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -126,6 +132,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -146,6 +153,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -166,6 +174,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -186,6 +195,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -206,6 +216,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -226,6 +237,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -246,6 +258,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -266,6 +279,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -286,6 +300,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -306,6 +321,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -325,6 +341,7 @@
       "name": "datadog",
       "enabled": false,
       "pattern": "https://careers.datadoghq.com/detail/**",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Every 5 mins checck daily",
         "days": [
@@ -344,6 +361,7 @@
       "name": "GoDaddy",
       "enabled": true,
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -363,6 +381,7 @@
       "name": "Confluent",
       "enabled": true,
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -383,6 +402,7 @@
       "enabled": true,
       "type": "uber",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -403,6 +423,7 @@
       "enabled": true,
       "type": "adobe",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -423,7 +444,7 @@
       "enabled": true,
       "type": "cisco",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 5,
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -444,6 +465,7 @@
       "enabled": true,
       "type": "general",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -464,6 +486,7 @@
       "enabled": true,
       "type": "workday",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -484,6 +507,7 @@
       "enabled": true,
       "type": "docusign",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -504,6 +528,7 @@
       "enabled": true,
       "type": "ashby",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -545,6 +570,7 @@
       "enabled": true,
       "type": "openai",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -565,6 +591,7 @@
       "enabled": true,
       "type": "spotify",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -585,6 +612,7 @@
       "enabled": true,
       "type": "microsoft",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [
@@ -605,6 +633,7 @@
       "enabled": true,
       "type": "meta",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "weekdays 9:30am",
         "days": [

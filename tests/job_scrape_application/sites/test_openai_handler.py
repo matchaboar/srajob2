@@ -99,6 +99,24 @@ def test_openai_handler_matches_and_extracts_links():
     assert not any("/careers/search" in link for link in links)
 
 
+def test_openai_handler_filters_listing_links_from_fixture():
+    handler = OpenAICareersHandler()
+    listing_url = "https://openai.com/careers/search/?q=engineer"
+    html = _load_html(FIXTURE)
+    links = handler.get_links_from_raw_html(html)
+
+    noisy = links + [
+        "https://openai.com/careers/search/?q=engineer",
+        "https://openai.com/research",
+        "https://privacy.openai.com",
+    ]
+    filtered = handler.filter_job_urls_for_site(noisy, listing_url)
+
+    assert filtered
+    assert all(link.startswith("https://openai.com/careers/") for link in filtered)
+    assert not any("/careers/search" in link for link in filtered)
+
+
 def test_openai_handler_spidercloud_config():
     handler = OpenAICareersHandler()
     listing_url = "https://openai.com/careers/search/?q=engineer"

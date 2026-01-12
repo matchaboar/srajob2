@@ -40,6 +40,21 @@ def test_notion_handler_matches_and_extracts_links():
     assert "https://www.forbes.com/" not in links
 
 
+def test_notion_handler_filters_fixture_links():
+    handler = NotionCareersHandler()
+    markdown = _load_commonmark()
+    links = handler.get_links_from_markdown(markdown)
+
+    noisy = links + [
+        "https://jobs.ashbyhq.com/other/123",
+        "https://www.notion.com/blog",
+    ]
+    filtered = handler.filter_job_urls(noisy)
+
+    assert filtered
+    assert all(link.startswith("https://jobs.ashbyhq.com/notion/") for link in filtered)
+
+
 def test_notion_handler_spidercloud_config_uses_commonmark():
     handler = NotionCareersHandler()
     config = handler.get_spidercloud_config("https://www.notion.com/careers")

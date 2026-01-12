@@ -83,7 +83,7 @@ def test_confluent_jobs_page_two_extracts_jobs_and_next_page():
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_enqueues_confluent_pagination(monkeypatch):
+async def test_store_scrape_enqueues_confluent_job_urls_only(monkeypatch):
     html = _load_html(PAGE_1)
     scrape_payload = {
         "sourceUrl": SOURCE_URL,
@@ -120,16 +120,8 @@ async def test_store_scrape_enqueues_confluent_pagination(monkeypatch):
 
     await acts.store_scrape(scrape_payload)
 
-    assert queue_calls, "store_scrape should enqueue Confluent pagination URLs"
+    assert queue_calls, "store_scrape should enqueue Confluent job URLs"
 
     urls = queue_calls[0]["urls"]
-    assert "https://careers.confluent.io/jobs/?page=2" in urls
     assert any(url.startswith("https://careers.confluent.io/jobs/job/") for url in urls)
-
-    delays = queue_calls[0].get("delaysMs") or []
-    delay_for_page_2 = None
-    for url, delay in zip(urls, delays):
-        if url == "https://careers.confluent.io/jobs/?page=2":
-            delay_for_page_2 = delay
-            break
-    assert delay_for_page_2 is not None and delay_for_page_2 > 0
+    assert "https://careers.confluent.io/jobs/?page=2" not in urls

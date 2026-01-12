@@ -15,7 +15,9 @@ from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E40
     parse_posted_at,
     strip_known_nav_blocks,
 )
-from job_scrape_application.workflows.site_handlers.ashby import AshbyHqHandler  # noqa: E402
+from job_scrape_application.workflows.site_handlers.kula_careers import (  # noqa: E402
+    KulaCareersHandler,
+)
 
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -48,14 +50,14 @@ def test_voltage_park_fixture_core_fields():
     title = normalize_title_from_bar(job.get("title") or "")
     company = normalize_company_hint(job.get("company") or "")
 
-    assert title == "Voltagepark.Com"
+    assert title == "Data Center Site Operations Manager"
     assert company == "voltage park"
-    assert job.get("location") == "Unknown"
+    assert job.get("location") == "Lisle, Illinois, United States"
     assert job.get("remote") is False
 
     city, state, country = _split_location_components(job.get("location"), job.get("country"))
-    assert city is None
-    assert state is None
+    assert city == "Lisle"
+    assert state == "Illinois"
     assert country == "United States"
 
 
@@ -75,15 +77,15 @@ def test_voltage_park_fixture_compensation_range_is_empty():
     assert comp_range.get("high") is None
 
 
-def test_voltage_park_fixture_strips_javascript_prompt():
+def test_voltage_park_fixture_strips_application_form():
     job = _load_job()
     cleaned = strip_known_nav_blocks(job.get("description") or "")
-    assert "enable javascript to run this app" not in cleaned.lower()
+    assert "apply for this job" not in cleaned.lower()
+    assert "autofill application" not in cleaned.lower()
 
 
-def test_ashby_handler_marks_voltage_park_listing_url():
-    job = _load_job()
-    url = job.get("url") or ""
-    handler = AshbyHqHandler()
-    assert handler.is_listing_url(url)
-    assert handler.is_listing_url(f"{url}/123") is False
+def test_kula_handler_marks_voltage_park_listing_url():
+    handler = KulaCareersHandler()
+    listing_url = "https://careers.kula.ai/voltagepark"
+    assert handler.is_listing_url(listing_url)
+    assert handler.is_listing_url(f"{listing_url}/19780") is False

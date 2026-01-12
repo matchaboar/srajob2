@@ -113,3 +113,36 @@ async def test_spidercloud_job_batch_only_converts_greenhouse_urls(monkeypatch):
         "https://www.github.careers/careers-home/jobs/4797?lang=en-us",
         "https://careers-githubinc.icims.com/jobs/4797/login",
     ]
+
+
+@pytest.mark.asyncio
+async def test_spidercloud_job_batch_prefers_listing_slug_for_greenhouse(monkeypatch):
+    captured: Dict[str, Any] = {}
+
+    class _CaptureScraper:
+        async def scrape_greenhouse_jobs(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+            captured["urls"] = payload["urls"]
+            return {
+                "scrape": {
+                    "provider": "spidercloud",
+                    "sourceUrl": payload.get("source_url"),
+                    "items": {"normalized": [], "raw": [], "provider": "spidercloud"},
+                }
+            }
+
+    monkeypatch.setattr(activities, "_make_spidercloud_scraper", lambda: _CaptureScraper())
+
+    batch = {
+        "urls": [
+            {
+                "url": "https://boards.greenhouse.io/datadoghq/jobs/6652564?gh_jid=6652564",
+                "sourceUrl": "https://api.greenhouse.io/v1/boards/datadog/jobs",
+            }
+        ]
+    }
+
+    await activities.process_spidercloud_job_batch(batch, persist_scrapes=False)
+
+    assert captured["urls"] == [
+        "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/6652564"
+    ]

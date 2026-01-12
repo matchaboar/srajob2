@@ -80,6 +80,23 @@ def test_greenhouse_handler_builds_api_from_job_boards_url():
     assert api_url == "https://boards-api.greenhouse.io/v1/boards/xai/jobs/5012607007"
 
 
+def test_greenhouse_handler_builds_api_from_custom_domain_locale_path():
+    handler = GreenhouseHandler()
+    url = (
+        "https://www.coupang.jobs/en/jobs/7471081/"
+        "seniorstaff-android-engineer-streaming-player-coupang-play/"
+    )
+    api_url = handler.get_api_uri(url)
+    assert api_url == "https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7471081"
+
+
+def test_greenhouse_handler_builds_api_from_job_board_path():
+    handler = GreenhouseHandler()
+    url = "https://app.careerpuck.com/job-board/lyft/job/8304477002?gh_jid=8304477002"
+    api_url = handler.get_api_uri(url)
+    assert api_url == "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8304477002"
+
+
 def test_github_careers_handler_builds_api_and_links():
     handler = GithubCareersHandler()
     url = "https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100"

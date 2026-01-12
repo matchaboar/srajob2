@@ -76,7 +76,7 @@ async def _run_store_scrape(
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_avature_page_1_adds_joboffset_zero_and_next(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_avature_page_1_enqueues_job_urls_only(monkeypatch: pytest.MonkeyPatch):
     raw_payload = _load_fixture(PAGE_1)
     source_url = _extract_url(raw_payload)
 
@@ -86,19 +86,14 @@ async def test_spidercloud_avature_page_1_adds_joboffset_zero_and_next(monkeypat
     assert insert_calls[0]["args"].get("sourceUrl") == source_url
 
     assert urls, "expected Avature listing URLs to be extracted"
-    assert any("joboffset=0" in url.lower() for url in urls)
-    assert any("joboffset=12" in url.lower() for url in urls)
+    assert not any("joboffset=0" in url.lower() for url in urls)
+    assert not any("joboffset=12" in url.lower() for url in urls)
     assert any("/careers/JobDetail/" in url for url in urls), "expected job detail URLs from page links"
     assert all("<" not in url for url in urls)
-    assert (
-        "https://bloomberg.avature.net/careers/JobDetail/"
-        "Senior-Software-Engineer-Buy-Side/15596"
-        in urls
-    )
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_avature_page_2_adds_next_offset(monkeypatch: pytest.MonkeyPatch):
+async def test_spidercloud_avature_page_2_enqueues_job_urls_only(monkeypatch: pytest.MonkeyPatch):
     raw_payload = _load_fixture(PAGE_2)
     source_url = _extract_url(raw_payload)
 
@@ -108,7 +103,7 @@ async def test_spidercloud_avature_page_2_adds_next_offset(monkeypatch: pytest.M
     assert insert_calls[0]["args"].get("sourceUrl") == source_url
 
     assert urls, "expected Avature listing URLs to be extracted"
-    assert any("joboffset=24" in url.lower() for url in urls)
+    assert not any("joboffset=24" in url.lower() for url in urls)
 
 
 @pytest.mark.asyncio

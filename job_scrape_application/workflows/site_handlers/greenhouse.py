@@ -4,9 +4,10 @@ import json
 import re
 import html as html_lib
 from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from .base import BaseSiteHandler
+from ..helpers.link_extractors import normalize_url, strip_wrapping_url
 from ..helpers.regex_patterns import (
     HORIZONTAL_WHITESPACE_PATTERN,
     HTML_LINE_BREAK_PATTERN,
@@ -25,6 +26,19 @@ class GreenhouseHandler(BaseSiteHandler):
     name = "greenhouse"
     site_type = "greenhouse"
 
+    _BOARD_SLUG_OVERRIDES = {
+        "datadoghq": "datadog",
+    }
+
+    def _normalize_slug(self, slug: Optional[str]) -> Optional[str]:
+        if not isinstance(slug, str):
+            return None
+        cleaned = slug.strip()
+        if not cleaned:
+            return None
+        override = self._BOARD_SLUG_OVERRIDES.get(cleaned.lower())
+        return override or cleaned
+
     @classmethod
     def matches_url(cls, url: str) -> bool:
         if "gh_jid" in url:
@@ -34,6 +48,69 @@ class GreenhouseHandler(BaseSiteHandler):
         except Exception:
             return False
         return "greenhouse.io" in host
+
+    def is_listing_url(self, url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        if self._extract_job_id_from_url(url):
+            return False
+        if self.is_api_detail_url(url) or self.get_api_uri(url):
+            return False
+        host = (parsed.hostname or "").lower()
+        if not host:
+            return False
+        path = (parsed.path or "").lower().rstrip("/")
+        if host.endswith("greenhouse.io") and path.endswith("/jobs"):
+            return True
+        if host.endswith("boards.greenhouse.io"):
+            parts = [p for p in path.split("/") if p]
+            return len(parts) <= 2
+        return False
+
+    def filter_job_urls(self, urls: List[str]) -> List[str]:
+        filtered: List[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not isinstance(url, str):
+                continue
+            cleaned = strip_wrapping_url(url)
+            if not cleaned:
+                continue
+            normalized = normalize_url(cleaned) or cleaned.strip()
+            if not normalized:
+                continue
+            normalized = self._canonicalize_gh_jid_url(normalized)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            filtered.append(normalized)
+        return filtered
+
+    def _canonicalize_gh_jid_url(self, url: str) -> str:
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return url
+        if not parsed.query:
+            return url
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        gh_jid_value: Optional[str] = None
+        gh_keys: list[str] = []
+        for key, values in params.items():
+            normalized_key = re.sub(r"_+", "_", key.replace("/", "_")).lower()
+            if normalized_key == "gh_jid":
+                gh_keys.append(key)
+                if values and gh_jid_value is None:
+                    gh_jid_value = str(values[0]).strip().strip("/")
+        if gh_jid_value is None:
+            return url
+        for key in gh_keys:
+            params.pop(key, None)
+        params["gh_jid"] = [gh_jid_value]
+        query = urlencode(params, doseq=True)
+        return urlunparse(parsed._replace(query=query))
 
     def _extract_slug_from_url(self, url: str) -> Optional[str]:
         try:
@@ -45,21 +122,28 @@ class GreenhouseHandler(BaseSiteHandler):
         if board_param:
             slug = board_param[0].strip()
             if slug:
-                return slug
+                return self._normalize_slug(slug)
         parts = [p for p in parsed.path.split("/") if p]
         if "boards" in parts:
             idx = parts.index("boards")
             if idx + 1 < len(parts):
-                return parts[idx + 1]
+                return self._normalize_slug(parts[idx + 1])
         if len(parts) >= 2 and parts[0] == "v1" and parts[1] == "boards":
             if len(parts) >= 3:
-                return parts[2]
-        if len(parts) >= 2 and parts[1] == "jobs":
-            return parts[0]
+                return self._normalize_slug(parts[2])
+        if "job-board" in parts:
+            idx = parts.index("job-board")
+            if idx + 1 < len(parts):
+                candidate = parts[idx + 1]
+                if candidate and candidate not in {"job", "jobs"}:
+                    return self._normalize_slug(candidate)
         host = (parsed.hostname or "").lower()
-        host_parts = host.split(".")
-        if len(host_parts) >= 3 and host_parts[-2] != "greenhouse":
-            return host_parts[-2]
+        if host and "greenhouse.io" not in host:
+            host_parts = host.split(".")
+            if len(host_parts) >= 2 and host_parts[-2]:
+                return self._normalize_slug(host_parts[-2])
+        if len(parts) >= 2 and parts[1] == "jobs":
+            return self._normalize_slug(parts[0])
         return None
 
     def _extract_job_id_from_url(self, url: str) -> Optional[str]:

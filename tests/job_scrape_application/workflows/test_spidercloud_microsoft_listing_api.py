@@ -131,7 +131,7 @@ def test_microsoft_handler_extracts_job_urls_and_pagination(
 @pytest.mark.asyncio
 @pytest.mark.asyncio
 @pytest.mark.parametrize("fixture_path,source_url", PAGE_FIXTURES)
-async def test_store_scrape_enqueues_microsoft_listing_pagination(
+async def test_store_scrape_enqueues_microsoft_job_urls_only(
     monkeypatch,
     fixture_path: Path,
     source_url: str,
@@ -190,15 +190,7 @@ async def test_store_scrape_enqueues_microsoft_listing_pagination(
 
     urls = enqueue_calls[0]["urls"]
     assert any(url.startswith("https://apply.careers.microsoft.com/careers/job/") for url in urls)
-    assert any(
+    assert not any(
         "/api/pcsx/search" in url and f"start={expected_next_start}" in url
         for url in urls
     )
-
-    delays = enqueue_calls[0].get("delaysMs") or []
-    delay_for_listing = None
-    for url, delay in zip(urls, delays):
-        if "/api/pcsx/search" in url and f"start={expected_next_start}" in url:
-            delay_for_listing = delay
-            break
-    assert delay_for_listing is not None and delay_for_listing > 0

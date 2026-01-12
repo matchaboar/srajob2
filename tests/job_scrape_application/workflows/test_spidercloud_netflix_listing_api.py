@@ -50,6 +50,23 @@ def test_spidercloud_extract_json_payload_supports_netflix_positions():
     assert positions
 
 
+def test_netflix_handler_filters_links_from_api_payload():
+    scraper = _make_scraper()
+    fixture = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_netflix_api_page_1.json"
+    )
+    payload = _load_spidercloud_fixture(fixture)
+    parsed = scraper._extract_json_payload(payload)
+    assert isinstance(parsed, dict)
+
+    handler = NetflixHandler()
+    links = handler.get_links_from_json(parsed)
+    filtered = handler.filter_job_urls(links + ["https://privacy.coupang.com/en/center"])
+
+    assert filtered
+    assert all("/careers/job/" in url.lower() or "api/apply/v2/jobs" in url for url in filtered)
+
+
 def test_netflix_api_payload_generates_pagination_urls():
     scraper = _make_scraper()
     fixture = Path(

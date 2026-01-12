@@ -43,6 +43,24 @@ def test_hubspot_handler_matches_and_extracts_links():
     assert not any("hubs_signup-cta=" in link for link in links)
 
 
+def test_hubspot_handler_filters_listing_links_from_fixture():
+    handler = HubspotCareersHandler()
+    listing_url = "https://www.hubspot.com/careers/jobs?page=1"
+    html = LISTING_FIXTURE.read_text(encoding="utf-8")
+    links = handler.get_links_from_raw_html(html)
+
+    noisy = links + [
+        "https://www.hubspot.com",
+        "https://privacy.hubspot.com",
+        "https://www.hubspot.com/careers/jobs/5986323?hubs_signup-cta=careers-apply",
+    ]
+    filtered = handler.filter_job_urls_for_site(noisy, listing_url)
+
+    assert filtered
+    assert all(link.startswith("https://www.hubspot.com/careers/jobs") for link in filtered)
+    assert "https://privacy.hubspot.com" not in filtered
+
+
 def test_hubspot_handler_normalizes_markdown():
     handler = HubspotCareersHandler()
     markdown = DETAIL_FIXTURE.read_text(encoding="utf-8")

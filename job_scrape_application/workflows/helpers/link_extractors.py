@@ -27,6 +27,7 @@ def gather_strings(value: Any) -> list[str]:
 
 _SLASH_RUN_RE = re.compile(r"/{2,}")
 _CONTROL_ESCAPE_RE = re.compile(r"(?:\\[nrt]|[\r\n\t])")
+_UNICODE_ESCAPE_RE = re.compile(r"\\u([0-9a-fA-F]{4})")
 _WRAPPER_PAIRS = {
     '"': '"',
     "'": "'",
@@ -50,10 +51,20 @@ def _strip_table_tail(candidate: str) -> str:
 
 def _strip_trailing_brackets(candidate: str) -> str:
     cleaned = candidate
-    while cleaned.endswith(")") and cleaned.count("(") < cleaned.count(")"):
-        cleaned = cleaned[:-1]
-    while cleaned.endswith("]") and cleaned.count("[") < cleaned.count("]"):
-        cleaned = cleaned[:-1]
+    while cleaned:
+        if cleaned.endswith(")") and cleaned.count("(") < cleaned.count(")"):
+            cleaned = cleaned[:-1]
+            continue
+        if cleaned.endswith("]") and cleaned.count("[") < cleaned.count("]"):
+            cleaned = cleaned[:-1]
+            continue
+        if cleaned.endswith("[") and cleaned.count("[") > cleaned.count("]"):
+            cleaned = cleaned[:-1]
+            continue
+        if cleaned.endswith("(") and cleaned.count("(") > cleaned.count(")"):
+            cleaned = cleaned[:-1]
+            continue
+        break
     return cleaned.rstrip(".,")
 
 
@@ -92,6 +103,19 @@ def fix_scheme_slashes(candidate: str) -> str:
     return candidate
 
 
+def _decode_unicode_escapes(candidate: str) -> str:
+    if "\\u" not in candidate:
+        return candidate
+
+    def _replace(match: re.Match[str]) -> str:
+        codepoint = int(match.group(1), 16)
+        if codepoint > 0x7F:
+            return match.group(0)
+        return chr(codepoint)
+
+    return _UNICODE_ESCAPE_RE.sub(_replace, candidate)
+
+
 def _normalize_http_url(candidate: str) -> str:
     if not candidate.startswith(("http://", "https://")):
         return candidate
@@ -119,9 +143,10 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     candidate = strip_wrapping_url(candidate)
     if not candidate:
         return None
-    candidate = fix_scheme_slashes(candidate)
+    candidate = _decode_unicode_escapes(candidate)
     candidate = candidate.replace("\\/", "/")
     candidate = candidate.replace("\\", "/")
+    candidate = fix_scheme_slashes(candidate)
     lower = candidate.lower()
     if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
         return None
@@ -253,7 +278,17 @@ def extract_job_urls_from_json_payload(value: Any) -> list[str]:
         jobs = payload.get("jobs") if isinstance(payload, dict) else None
         if not isinstance(jobs, list):
             jobs = None
-        url_keys = ("jobUrl", "applyUrl", "jobPostingUrl", "postingUrl", "url")
+        url_keys = (
+            "jobUrl",
+            "applyUrl",
+            "jobPostingUrl",
+            "postingUrl",
+            "url",
+            "absolute_url",
+            "absoluteUrl",
+            "canonical_url",
+            "canonicalUrl",
+        )
         urls: list[str] = []
         seen_local: set[str] = set()
         if isinstance(jobs, list):

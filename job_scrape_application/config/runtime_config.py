@@ -51,7 +51,7 @@ runtime_config = RuntimeConfig(
     spidercloud_job_details_batch_size=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_batch_size",
-        20,
+        10,
     ),
     spidercloud_listing_batch_size=_coerce_int(
         _raw_runtime_config,

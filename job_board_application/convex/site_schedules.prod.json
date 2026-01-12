@@ -6,6 +6,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -26,6 +27,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -46,6 +48,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -66,6 +69,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -86,6 +90,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -106,6 +111,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -126,6 +132,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -146,6 +153,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -166,6 +174,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -186,6 +195,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -206,6 +216,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -226,6 +237,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -246,6 +258,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -266,6 +279,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -286,6 +300,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -306,6 +321,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -326,6 +342,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -346,6 +363,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -366,6 +384,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -386,6 +405,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -406,6 +426,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -426,6 +447,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -446,6 +468,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -466,6 +489,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -486,6 +510,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -506,6 +531,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -526,6 +552,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -546,6 +573,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -566,6 +594,7 @@
       "enabled": true,
       "type": "avature",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -586,6 +615,7 @@
       "enabled": true,
       "type": "workday",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -606,6 +636,7 @@
       "enabled": true,
       "type": "adobe",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -626,7 +657,7 @@
       "enabled": true,
       "type": "cisco",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 5,
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -647,6 +678,7 @@
       "enabled": true,
       "type": "general",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -667,6 +699,7 @@
       "enabled": true,
       "type": "docusign",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -688,6 +721,7 @@
       "type": "general",
       "scrapeProvider": "spidercloud",
       "pattern": "https://careers.snap.com/job**",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -708,6 +742,7 @@
       "enabled": true,
       "type": "workday",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -729,6 +764,7 @@
       "type": "netflix",
       "scrapeProvider": "spidercloud",
       "pattern": "https://explore.jobs.netflix.net/careers/job/**",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -749,6 +785,7 @@
       "enabled": true,
       "type": "ashby",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -769,6 +806,7 @@
       "enabled": true,
       "type": "ashby",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -790,6 +828,7 @@
       "type": "ashby",
       "scrapeProvider": "spidercloud",
       "pattern": "https://jobs.ashbyhq.com/lambda/*",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -810,6 +849,7 @@
       "enabled": true,
       "type": "ashby",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -830,6 +870,7 @@
       "enabled": true,
       "type": "ashby",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -845,11 +886,12 @@
       }
     },
     {
-      "url": "https://jobs.ashbyhq.com/voltagepark.com",
+      "url": "https://careers.kula.ai/voltagepark",
       "name": "voltage park",
       "enabled": true,
-      "type": "general",
+      "type": "kula",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -870,6 +912,7 @@
       "enabled": true,
       "type": "general",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -890,6 +933,7 @@
       "enabled": true,
       "type": "openai",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -910,6 +954,7 @@
       "enabled": true,
       "type": "microsoft",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -930,6 +975,7 @@
       "enabled": true,
       "type": "general",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -950,6 +996,7 @@
       "enabled": true,
       "type": "spotify",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -970,6 +1017,7 @@
       "enabled": true,
       "type": "notion",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -1011,6 +1059,7 @@
       "enabled": true,
       "type": "uber",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -1031,6 +1080,7 @@
       "enabled": true,
       "type": "meta",
       "scrapeProvider": "spidercloud",
+      "paginationLimit": 3,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [

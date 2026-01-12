@@ -113,3 +113,39 @@ async def test_store_scrape_logs_ignored_with_unknown_title(monkeypatch):
     assert inserted, "Expected insertIgnoredJob to be called"
     assert inserted[0]["title"] == "Unknown"
     assert inserted[0]["description"] is None
+
+
+@pytest.mark.asyncio
+async def test_store_scrape_skips_http_404_ignored(monkeypatch):
+    calls: List[Tuple[str, Dict[str, Any]]] = []
+
+    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+        calls.append((name, args))
+        if name == "router:insertScrapeRecord":
+            return "scrape-ignored-404"
+        return {"queued": args.get("urls", [])}
+
+    monkeypatch.setattr(convex_client, "convex_mutation", fake_convex_mutation)
+
+    payload = {
+        "provider": "spidercloud",
+        "workflowName": "SpidercloudJobDetails",
+        "sourceUrl": "https://example.com/list",
+        "items": {
+            "provider": "spidercloud",
+            "normalized": [],
+            "ignored": [
+                {
+                    "url": "https://example.com/jobs/404",
+                    "reason": "http_404",
+                    "title": "Not Found",
+                    "description": "Job not found",
+                }
+            ],
+        },
+    }
+
+    await acts.store_scrape(payload)
+
+    inserted = [args for name, args in calls if name == "router:insertIgnoredJob"]
+    assert not inserted, "Expected http_404 ignored entries to be skipped"

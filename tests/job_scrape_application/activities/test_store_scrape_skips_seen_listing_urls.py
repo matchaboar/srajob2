@@ -63,7 +63,7 @@ async def test_store_scrape_enqueues_detail_urls_from_listing_payload(monkeypatc
     await acts.store_scrape(scrape_payload)
     await acts.store_scrape(scrape_payload)
 
-    assert len(queue_calls) == 2, "expected listing URLs to be re-enqueued on next schedule"
+    assert len(queue_calls) == 2, "expected detail URLs to be enqueued on each run"
     first_args = queue_calls[0]
     second_args = queue_calls[1]
     assert first_args["urls"] == [job_url]

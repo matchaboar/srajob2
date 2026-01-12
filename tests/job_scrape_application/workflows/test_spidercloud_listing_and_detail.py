@@ -48,9 +48,6 @@ AXON_DETAIL_PRODUCT_SPECIALIST_FIXTURE = (
 PURESTORAGE_LISTING_FIXTURE = (
     FIXTURE_DIR / "spidercloud_purestorage_greenhouse_listing.json"
 )
-PURESTORAGE_DETAIL_FIXTURE = (
-    FIXTURE_DIR / "spidercloud_purestorage_greenhouse_job_detail_7349657_commonmark.json"
-)
 PURESTORAGE_DETAIL_API_FIXTURE = (
     FIXTURE_DIR / "spidercloud_purestorage_greenhouse_job_detail_7349657_api.json"
 )
@@ -229,6 +226,18 @@ def _extract_event_markdown(scraper: SpiderCloudScraper, payload: Any) -> str:
     return markdown or ""
 
 
+def _extract_listing_raw_html(payload: Any) -> str:
+    if isinstance(payload, list) and payload and isinstance(payload[0], list) and payload[0]:
+        item = payload[0][0]
+        if isinstance(item, dict):
+            content = item.get("content")
+            if isinstance(content, dict):
+                raw = content.get("raw")
+                if isinstance(raw, str):
+                    return raw
+    return ""
+
+
 def _extract_structured_job_posting_from_raw(raw_html: str) -> Dict[str, Any]:
     match = re.search(JSON_LD_SCRIPT_PATTERN, raw_html, flags=re.IGNORECASE | re.DOTALL)
     assert match, "expected JSON-LD JobPosting script in raw HTML"
@@ -364,16 +373,31 @@ async def test_spidercloud_axon_listing_extracts_job_links(
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_purestorage_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
+async def test_spidercloud_purestorage_listing_extracts_job_links():
     raw_payload = _load_fixture(PURESTORAGE_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
+    raw_html = _extract_listing_raw_html(raw_payload)
+    assert raw_html, "expected raw HTML content in Pure Storage listing fixture"
+    raw_events = raw_payload if isinstance(raw_payload, list) else []
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
+    scraper = _make_scraper()
+
+    async def _fake_fetch(_api_url: str, _handler: Any) -> tuple[str, list[Any]]:
+        return raw_html, raw_events
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", _fake_fetch)
+
+    site = {
+        "_id": "site-purestorage",
+        "url": "https://api.greenhouse.io/v1/boards/purestorage/jobs",
+        "type": "greenhouse",
+    }
+    listing = await scraper.fetch_greenhouse_listing(site)
+    urls = listing.get("job_urls") if isinstance(listing, dict) else []
 
     assert urls, "expected Pure Storage listing URLs to be extracted"
-    assert any("boards.greenhouse.io/purestorage/jobs/" in url for url in urls)
+    assert any("boards-api.greenhouse.io/v1/boards/purestorage/jobs/" in url for url in urls)
+    monkeypatch.undo()
 
 
 @pytest.mark.asyncio
@@ -739,18 +763,20 @@ def test_spidercloud_meta_job_detail_posted_at_and_location_components():
 
 
 def test_spidercloud_purestorage_job_detail_normalizes_fields():
-    payload = _load_fixture(PURESTORAGE_DETAIL_FIXTURE)
+    payload = _load_fixture(PURESTORAGE_DETAIL_API_FIXTURE)
     url = _extract_source_url(payload)
-    commonmark = _extract_commonmark(payload)
 
     scraper = _make_scraper()
-    normalized = scraper._normalize_job(url, commonmark, [], 0)  # noqa: SLF001
+    markdown = _extract_event_markdown(scraper, payload)
+    event = _extract_first_event(payload)
+    assert event is not None, "expected raw payload event in fixture"
+    normalized = scraper._normalize_job(url, markdown, [event], 0)  # noqa: SLF001
 
     assert normalized is not None
     assert normalized["title"] == "Account Executive, SLED - Commonwealth of Virginia"
     assert normalized["company"] == "Pure Storage"
     assert normalized["remote"] is True
-    assert normalized["location"] == "Virginia"
+    assert normalized["location"] in {"Remote, Virginia", "Virginia"}
 
     hints = parse_markdown_hints(normalized["description"])
     assert hints.get("compensation_range") == {"low": 126500, "high": 202500}

@@ -428,6 +428,87 @@ export const deleteRecentJobsPage = mutation({
   },
 });
 
+export const listRecentSeenJobUrls = query({
+  args: {
+    sinceMs: v.number(),
+    sampleLimit: v.optional(v.number()),
+    sourceLimit: v.optional(v.number()),
+    batchSize: v.optional(v.number()),
+  },
+  returns: v.object({
+    sinceMs: v.number(),
+    untilMs: v.number(),
+    seenUrls: v.number(),
+    seenUrlIndex: v.number(),
+    sample: v.array(
+      v.object({
+        sourceUrl: v.string(),
+        url: v.string(),
+        createdAt: v.number(),
+      }),
+    ),
+    sources: v.array(
+      v.object({
+        sourceUrl: v.string(),
+        count: v.number(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const sinceMs = args.sinceMs;
+    const untilMs = Date.now();
+    const sampleLimit = Math.max(1, Math.min(args.sampleLimit ?? 25, 200));
+    const sourceLimit = Math.max(1, Math.min(args.sourceLimit ?? 50, 200));
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 2000, 5000));
+
+    const sampleRows = await ctx.db
+      .query("seen_job_urls")
+      .withIndex("by_created_at", (q) => q.gte("createdAt", sinceMs))
+      .order("desc")
+      .take(sampleLimit);
+
+    const sample = sampleRows.map((row: AnyDoc) => ({
+      sourceUrl: row.sourceUrl,
+      url: row.url,
+      createdAt: row.createdAt,
+    }));
+
+    const seenRows = await ctx.db
+      .query("seen_job_urls")
+      .withIndex("by_created_at", (q) => q.gte("createdAt", sinceMs))
+      .collect();
+
+    const sourceCounts = new Map<string, number>();
+    for (const row of seenRows as AnyDoc[]) {
+      const sourceUrl = row.sourceUrl ?? "";
+      if (sourceUrl) {
+        sourceCounts.set(sourceUrl, (sourceCounts.get(sourceUrl) ?? 0) + 1);
+      }
+    }
+    const seenUrls = seenRows.length;
+
+    const seenIndexRows = await (ctx.db as any)
+      .query("seen_job_url_index")
+      .withIndex("by_created_at", (q: any) => q.gte("createdAt", sinceMs))
+      .collect();
+    const seenUrlIndex = seenIndexRows.length;
+
+    const sources = Array.from(sourceCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, sourceLimit)
+      .map(([sourceUrl, count]) => ({ sourceUrl, count }));
+
+    return {
+      sinceMs,
+      untilMs,
+      seenUrls,
+      seenUrlIndex,
+      sample,
+      sources,
+    };
+  },
+});
+
 export const deleteRecentScrapesPage = mutation({
   args: {
     sinceMs: v.number(),

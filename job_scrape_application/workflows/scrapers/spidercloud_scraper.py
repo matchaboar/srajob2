@@ -1972,6 +1972,17 @@ class SpiderCloudScraper(BaseScraper):
 
         def _find_jobs_payload(node: Any) -> Optional[Dict[str, Any]]:
             if isinstance(node, dict):
+                for key in ("raw", "raw_html", "html", "text", "body", "result"):
+                    candidate = node.get(key)
+                    if isinstance(candidate, str) and candidate.strip():
+                        if "{" in candidate or "[" in candidate:
+                            parsed = _parse_json_text(candidate)
+                            if parsed is None:
+                                parsed = self._try_parse_json(candidate)
+                            if parsed is not None:
+                                found = _find_jobs_payload(parsed)
+                                if found:
+                                    return found
                 jobs = node.get("jobs")
                 if isinstance(jobs, list):
                     return node
@@ -2069,6 +2080,8 @@ class SpiderCloudScraper(BaseScraper):
 
         for text in (t for t in gather_strings(value) if isinstance(t, str) and t.strip()):
             parsed = _parse_json_text(text)
+            if parsed is None:
+                parsed = self._try_parse_json(text)
             if parsed is not None:
                 found = _find_jobs_payload(parsed)
                 if found:
@@ -2870,10 +2883,10 @@ class SpiderCloudScraper(BaseScraper):
                         merged_formats = handler_formats
                     else:
                         merged_formats = self._merge_return_formats(local_params.get("return_format"), handler_formats)
-                        if "raw_html" in merged_formats and "commonmark" not in merged_formats:
-                            merged_formats.insert(0, "commonmark")
                     handler_config["return_format"] = merged_formats
                 local_params.update(handler_config)
+        if "return_page_links" not in local_params:
+            local_params["return_page_links"] = True
 
         try:
             async for chunk in self._iterate_scrape_response(
@@ -2984,6 +2997,11 @@ class SpiderCloudScraper(BaseScraper):
                 listing_job_urls = self._extract_listing_job_urls(handler, raw_events, markdown_text)
             except Exception:
                 listing_job_urls = []
+        if handler and handler.name == "greenhouse" and not listing_job_urls:
+            try:
+                listing_job_urls = self._extract_listing_job_urls(handler, raw_events, markdown_text)
+            except Exception:
+                listing_job_urls = []
         if handler and handler.is_listing_url(url) and not listing_job_urls:
             try:
                 listing_job_urls = self._extract_listing_job_urls_from_events(
@@ -3010,6 +3028,14 @@ class SpiderCloudScraper(BaseScraper):
                     handler,
                     raw_events,
                     markdown_text,
+                )
+            except Exception:
+                listing_job_urls = []
+        if handler and handler.name == "greenhouse" and not listing_job_urls:
+            try:
+                listing_job_urls = self._regex_extract_job_urls_from_events(
+                    markdown_text,
+                    raw_events,
                 )
             except Exception:
                 listing_job_urls = []
@@ -3840,6 +3866,41 @@ class SpiderCloudScraper(BaseScraper):
             except Exception:
                 raw_text = str(payload)
 
+        if handler and handler.name == "avature":
+            listing_urls = self._extract_listing_job_urls_from_events(
+                handler,
+                raw_events,
+                raw_text,
+                base_url=url,
+            )
+            job_urls = [
+                url
+                for url in listing_urls
+                if isinstance(url, str) and "/careers/jobdetail/" in url.lower()
+            ]
+            if not job_urls:
+                job_urls = [url for url in listing_urls if isinstance(url, str) and url.strip()]
+            completed_at = int(time.time() * 1000)
+            logger.info(
+                "SpiderCloud avature listing parsed url=%s job_urls=%s duration_ms=%s",
+                url,
+                len(job_urls),
+                completed_at - started_at,
+            )
+            self.deps.log_sync_response(
+                self.provider,
+                action="greenhouse_board",
+                url=url,
+                summary=f"job_urls={len(job_urls)}",
+                metadata={"siteId": site.get("_id")},
+            )
+            return {
+                "raw": raw_text,
+                "job_urls": job_urls,
+                "startedAt": started_at,
+                "completedAt": completed_at,
+            }
+
         try:
             board = load_greenhouse_board(payload or raw_text or {})
             # Structured extraction first. Do not filter by required keywords here.
@@ -3867,17 +3928,51 @@ class SpiderCloudScraper(BaseScraper):
                     job_id = getattr(job, "id", None)
                     if job_id is None:
                         continue
-                    api_url = (
-                        handler.get_api_uri(f"https://boards.greenhouse.io/{slug}/jobs/{job_id}")
-                        if handler
-                        else None
-                    )
-                    api_url = api_url or f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                    api_url = None
+                    if slug:
+                        if handler:
+                            api_url = handler.get_api_uri(
+                                f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"
+                            )
+                        if not api_url:
+                            api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                    if not api_url and handler:
+                        api_url = handler.get_api_uri(job.absolute_url)
+                    if not api_url:
+                        continue
                     if api_url not in seen_api:
                         seen_api.add(api_url)
                         api_urls.append(api_url)
                 if api_urls:
                     job_urls = api_urls
+                elif slug:
+                    inferred_api_urls: list[str] = []
+                    seen_inferred: set[str] = set()
+                    for job_url in job_urls:
+                        if not isinstance(job_url, str) or not job_url.strip():
+                            continue
+                        job_id: str | None = None
+                        if handler:
+                            job_id = handler._extract_job_id_from_url(job_url)  # noqa: SLF001
+                        if not job_id:
+                            match = re.search(JOB_ID_PATH_PATTERN, job_url)
+                            if match:
+                                job_id = match.group(1)
+                        if not job_id:
+                            continue
+                        if handler:
+                            api_url = handler.get_api_uri(
+                                f"https://boards.greenhouse.io/{slug}/jobs/{job_id}"
+                            )
+                        else:
+                            api_url = None
+                        if not api_url:
+                            api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+                        if api_url not in seen_inferred:
+                            seen_inferred.add(api_url)
+                            inferred_api_urls.append(api_url)
+                    if inferred_api_urls:
+                        job_urls = inferred_api_urls
 
             # If structured extraction yields nothing (or a single item), fall back to regex
             # parsing so we still return a useful list for downstream workflows.

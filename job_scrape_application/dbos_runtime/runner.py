@@ -5,6 +5,7 @@ import asyncio
 import logging
 import threading
 from typing import Awaitable, Callable
+from urllib.parse import parse_qs, urlparse
 
 from .api import serve as serve_api
 from .queue import (
@@ -20,6 +21,7 @@ from ..services import telemetry
 from ..services.convex_client import convex_query
 from ..workflows import activities as workflow_activities
 from ..workflows.helpers.spidercloud_error_strategy import decision_for_exception
+from ..workflows.site_handlers import get_site_handler
 
 logger = logging.getLogger("dbos.runner")
 
@@ -69,6 +71,48 @@ SITES_REFRESH_SECONDS = 300
 
 _SCHEDULE_CACHE: tuple[int, dict[str, object]] | None = None
 _SITES_CACHE: tuple[int, list[dict[str, object]]] | None = None
+
+
+def _dedupe_urls(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
+
+
+def _limit_listing_urls(urls: list[str], limit: int | None) -> list[str]:
+    if not urls:
+        return []
+    deduped = _dedupe_urls(urls)
+    if not limit or limit <= 0:
+        return deduped
+    filtered: list[str] = []
+    for url in deduped:
+        try:
+            parsed = urlparse(url)
+            params = parse_qs(parsed.query)
+        except Exception:
+            params = {}
+        page_val = None
+        for key in ("page", "from", "start", "offset"):
+            value = params.get(key, [None])[0]
+            if value is None:
+                continue
+            try:
+                page_val = int(value)
+            except Exception:
+                page_val = None
+            if page_val is not None:
+                break
+        if page_val is None or page_val <= limit:
+            filtered.append(url)
+    if len(filtered) <= limit:
+        return filtered
+    return filtered[:limit]
 
 
 def _reset_cache() -> None:
@@ -200,13 +244,28 @@ async def _enqueue_listing_sites() -> int:
         url = site.get("url")
         if not isinstance(url, str) or not url.strip():
             continue
+        site_type = site.get("type") if isinstance(site.get("type"), str) else None
+        pagination_limit = site.get("paginationLimit")
+        if isinstance(pagination_limit, (int, float)):
+            pagination_limit = int(pagination_limit)
+        else:
+            pagination_limit = None
+        handler = get_site_handler(url, site_type)
+        listing_urls = [url.strip()]
+        if handler:
+            pagination_urls = handler.get_pagination_urls_from_listing(url)
+            if pagination_urls:
+                listing_urls.extend(pagination_urls)
+        listing_urls = _limit_listing_urls(listing_urls, pagination_limit)
+        if not listing_urls:
+            continue
         payload = {
-            "urls": [url],
+            "urls": listing_urls,
             "sourceUrl": url,
             "provider": site.get("scrapeProvider") or "spidercloud",
             "siteId": site.get("_id"),
             "pattern": site.get("pattern"),
-            "urlTypes": ["listing"],
+            "urlTypes": ["listing"] * len(listing_urls),
         }
         result = enqueue_scrape_urls(payload)
         if isinstance(result, dict) and isinstance(result.get("queued"), int):
