@@ -430,3 +430,91 @@ class AvatureHandler(BaseSiteHandler):
         if match:
             return match.group(0)
         return None
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
+        """
+        Clean Avature job markdown by removing cookie consent banners and footer UI noise.
+
+        Avature markdown typically has this structure:
+        - Line 0: Title
+        - Line 1: - Job ID
+        - Line 2: - Company name
+        - Lines 3-17: Cookie consent dialog (about 200+ words), ends with "[Save and Close](#)"
+        - Line 18+: Actual job content (duplicate title, location, requirements, etc.)
+        - Last ~40 lines: Footer (Apply Now buttons, video transcripts, Similar jobs, etc.)
+
+        We remove the cookie consent and footer sections.
+        Returns cleaned description without modifying title extraction.
+        """
+        if not markdown:
+            return "", None
+
+        lines = markdown.splitlines()
+        if not lines:
+            return "", None
+
+        # Find the cookie consent section - it starts with "Your choice" and ends with "Save and Close"
+        cookie_start = -1
+        cookie_end = -1
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            # Cookie consent starts with this phrase
+            if "Your choice regarding cookies on this website" in stripped:
+                cookie_start = i
+            # Cookie consent ends with the "Save and Close" button
+            if "Save and Close" in stripped or "[Save and Close]" in stripped:
+                cookie_end = i + 1  # Skip this line too
+                break
+
+        # Find where the footer starts (search from after cookie section)
+        # Footer contains: Apply Now, Back to Job Search, Save this Job, video transcripts, Similar jobs
+        footer_start = len(lines)
+        search_start = cookie_end if cookie_end > 0 else 0
+        for i in range(search_start, len(lines)):
+            stripped = lines[i].strip()
+            # Check for footer markers - be more specific to avoid false positives
+            if any(marker in stripped for marker in [
+                "Apply Now",
+                "Back to Job Search",
+                "Save this Job",
+                "What makes the culture",
+                "# Transcript",
+                "##\nSimilar jobs",
+            ]) and len(stripped) < 100:  # Footer markers are usually short lines
+                footer_start = i
+                break
+
+        # Build cleaned content
+        if cookie_start >= 0 and cookie_end >= 0:
+            # Keep first 3 lines (title, job ID, company), skip cookie section, keep content until footer
+            content_lines = lines[cookie_end:footer_start]
+            cleaned_lines = lines[:cookie_start] + content_lines
+        else:
+            # No cookie section found, just remove footer
+            cleaned_lines = lines[:footer_start]
+
+        cleaned = "\n".join(cleaned_lines).strip()
+        return cleaned, None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        """
+        Extract location from Avature job markdown.
+
+        Avature typically has:
+        Location
+        <city>
+        Business Area
+        """
+        if not markdown:
+            return None
+
+        lines = markdown.splitlines()
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped == "Location" and i + 1 < len(lines):
+                # Next line should be the location
+                location = lines[i + 1].strip()
+                if location and location not in ("Business Area", "##"):
+                    return html_lib.unescape(location)
+        return None

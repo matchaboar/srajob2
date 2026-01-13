@@ -1077,7 +1077,7 @@ def test_spidercloud_bloomberg_avature_employee_engagement_normalizes_fields():
     assert normalized is not None
     assert normalized["title"] == "Team Lead/Product Manager - Employee Engagement Systems"
     assert normalized["company"] == "Bloomberg"
-    assert normalized["location"] == "New York, NY"
+    assert normalized["location"] == "New York"  # Avature markdown has "New York" without state
     assert normalized["remote"] is False
     assert normalized["posted_at"] == 1_700_000_000_000
     assert normalized["posted_at_unknown"] is True
@@ -1105,7 +1105,7 @@ def test_spidercloud_bloomberg_avature_employee_engagement_parses_location_and_s
     normalized = _extract_normalized_from_commonmark(payload)
     hints = parse_markdown_hints(normalized.get("description") or "")
 
-    assert hints.get("location") == "New York, NY"
+    assert hints.get("location") == "New York, NY"  # Parsed from description text, not Location field
     resolved = _resolve_location_from_dictionary(hints.get("location") or "")
     assert resolved is not None
     assert resolved.get("city") == "New York"
@@ -1131,7 +1131,7 @@ def test_spidercloud_bloomberg_avature_genai_normalizes_fields():
     assert title.startswith("Technical Product Manager")
     assert "CTO Office" in title
     assert normalized.get("company") == "Bloomberg"
-    assert normalized.get("location") == "New York, NY"
+    assert normalized.get("location") == "New York"  # Avature markdown has "New York" without state
     assert normalized.get("remote") is False
     assert normalized.get("posted_at") == 1_700_000_000_000
     assert normalized.get("posted_at_unknown") is True
@@ -1142,7 +1142,7 @@ def test_spidercloud_bloomberg_avature_genai_parses_location_and_salary():
     normalized = _extract_normalized_from_commonmark(payload)
     hints = parse_markdown_hints(normalized.get("description") or "")
 
-    assert hints.get("location") == "New York, NY"
+    assert hints.get("location") == "New York, NY"  # Parsed from description text, not Location field
     resolved = _resolve_location_from_dictionary(hints.get("location") or "")
     assert resolved is not None
     assert resolved.get("city") == "New York"
@@ -1191,7 +1191,7 @@ def test_spidercloud_bloomberg_avature_identity_services_normalizes_fields():
     assert normalized is not None
     assert normalized["title"] == "Identity Services Technical Product Manager - CTO Office"
     assert normalized["company"] == "Bloomberg"
-    assert normalized["location"] == "New York, NY"
+    assert normalized["location"] == "New York"  # Avature markdown has "New York" without state
     assert normalized["remote"] is False
     assert normalized["posted_at"] == BLOOMBERG_IDENTITY_SERVICES_POSTED_AT
     assert normalized["posted_at_unknown"] is True
@@ -1219,7 +1219,7 @@ def test_spidercloud_bloomberg_avature_identity_services_parses_location_and_sal
     normalized = _extract_normalized_from_commonmark(payload)
     hints = parse_markdown_hints(normalized.get("description") or "")
 
-    assert hints.get("location") == "New York, NY"
+    assert hints.get("location") == "New York, NY"  # Parsed from description text, not Location field
     resolved = _resolve_location_from_dictionary(hints.get("location") or "")
     assert resolved is not None
     assert resolved.get("city") == "New York"

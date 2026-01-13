@@ -6889,3 +6889,97 @@ def _build_log_message(payload: Dict[str, Any]) -> str:
         return f"{event or 'workflow.log'} | workflow_id={workflow_id}"
 
     return " | ".join(parts)
+
+
+@activity.defn
+async def record_throughput_metrics(window_seconds: int = 60) -> dict[str, Any]:
+    """
+    Calculate and log throughput metrics for job detail scraping.
+
+    This activity tracks:
+    - URLs processed per minute (throughput)
+    - Queue depth (pending, processing)
+    - Failed URLs in window
+    - Current system utilization
+
+    Args:
+        window_seconds: Time window in seconds to calculate metrics over (default: 60)
+
+    Returns:
+        Dictionary containing throughput metrics and queue status
+    """
+    from ...dbos_runtime.sqlite import transaction, now_ms
+
+    logger = activity.logger
+
+    now = now_ms()
+    window_start = now - (window_seconds * 1000)
+
+    with transaction() as conn:
+        # URLs completed in window
+        completed_row = conn.execute(
+            """
+            SELECT COUNT(*) as count FROM queue_items
+            WHERE queue_name = ? AND status = ? AND completed_at >= ?
+            """,
+            (dbos_queue.QUEUE_DETAIL, dbos_queue.STATUS_COMPLETED, window_start)
+        ).fetchone()
+        completed = completed_row["count"] if completed_row else 0
+
+        # Current queue state
+        processing_row = conn.execute(
+            """
+            SELECT COUNT(*) as count FROM queue_items
+            WHERE queue_name = ? AND status = ?
+            """,
+            (dbos_queue.QUEUE_DETAIL, dbos_queue.STATUS_PROCESSING)
+        ).fetchone()
+        processing = processing_row["count"] if processing_row else 0
+
+        pending_row = conn.execute(
+            """
+            SELECT COUNT(*) as count FROM queue_items
+            WHERE queue_name = ? AND status = ?
+            """,
+            (dbos_queue.QUEUE_DETAIL, dbos_queue.STATUS_PENDING)
+        ).fetchone()
+        pending = pending_row["count"] if pending_row else 0
+
+        # Failed in window
+        failed_row = conn.execute(
+            """
+            SELECT COUNT(*) as count FROM queue_items
+            WHERE queue_name = ? AND status = ? AND completed_at >= ?
+            """,
+            (dbos_queue.QUEUE_DETAIL, dbos_queue.STATUS_FAILED, window_start)
+        ).fetchone()
+        failed = failed_row["count"] if failed_row else 0
+
+    # Calculate throughput
+    throughput_per_min = (completed / window_seconds) * 60 if window_seconds > 0 else 0
+
+    metrics = {
+        "throughputPerMinute": round(throughput_per_min, 2),
+        "completedInWindow": completed,
+        "failedInWindow": failed,
+        "currentlyProcessing": processing,
+        "pending": pending,
+        "windowSeconds": window_seconds,
+        "timestamp": now,
+    }
+
+    # Emit to telemetry
+    telemetry.emit_posthog_log({
+        "event": "throughput.metrics",
+        "level": "info",
+        **metrics
+    })
+
+    # Log summary
+    logger.info(
+        f"Throughput: {throughput_per_min:.1f} URLs/min | "
+        f"Completed: {completed} | Failed: {failed} | "
+        f"Queue: {pending} pending, {processing} processing"
+    )
+
+    return metrics

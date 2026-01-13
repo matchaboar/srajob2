@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -17,6 +18,10 @@ class KulaCareersHandler(BaseSiteHandler):
     name = "kula"
     site_type = "kula"
     supports_listing_api = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._extracted_company: Optional[str] = None
 
     @classmethod
     def matches_url(cls, url: str) -> bool:
@@ -240,3 +245,155 @@ class KulaCareersHandler(BaseSiteHandler):
         query["page"] = [str(page)]
         new_query = urlencode(query, doseq=True)
         return urlunparse(parsed._replace(query=new_query))
+
+    def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
+        """
+        Extract company name from Kula job markdown.
+
+        Kula markdown structure has the company name in the title:
+        - Line 0: "Job Title - Company Name" (e.g., "Manager of Infrastructure Engineering (Observability) - Voltage Park")
+
+        Returns the company name extracted from the title during normalize_markdown.
+        """
+        # Return company extracted during normalize_markdown
+        if self._extracted_company:
+            return self._extracted_company
+
+        # Fallback: try to extract directly from payload if normalize_markdown wasn't called yet
+        if not isinstance(payload, dict):
+            return None
+
+        # Try to get markdown content from payload
+        content = payload.get("content", {})
+        if not isinstance(content, dict):
+            return None
+
+        markdown = content.get("commonmark") or content.get("markdown")
+        if not isinstance(markdown, str) or not markdown:
+            return None
+
+        # Get first line which contains the title
+        lines = markdown.splitlines()
+        if not lines:
+            return None
+
+        first_line = lines[0].strip()
+        if not first_line:
+            return None
+
+        # Company name follows " - " in the title
+        # Format: "Job Title - Company Name"
+        if " - " in first_line:
+            parts = first_line.split(" - ")
+            if len(parts) >= 2:
+                company = parts[-1].strip()  # Take last part in case there are multiple " - "
+                if company:
+                    return company
+
+        return None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        """
+        Extract location from Kula job markdown.
+
+        Kula markdown structure:
+        - Line 0: Job title with company (e.g., "Job Title - Company Name")
+        - Line 1-7: Markdown links and metadata
+        - Line 8: Location (e.g., "Redmond, Washington, United States")
+        - Line 9+: Job description content
+
+        Returns the location string if found.
+        """
+        if not markdown:
+            return None
+
+        lines = markdown.splitlines()
+        # Location is typically on line 8, after job metadata
+        # Look for lines that match location patterns (city, state/region, country)
+        for i, line in enumerate(lines[:15]):  # Check first 15 lines
+            stripped = line.strip()
+            if not stripped or len(stripped) < 5:
+                continue
+            # Skip lines that are clearly not locations
+            if stripped.startswith(("#", "*", "-", "[", "!", "Job type:", "Apply", "Return")):
+                continue
+            # Location lines often have commas and contain geographic terms
+            if "," in stripped and not stripped.startswith("USD"):
+                # Check if it looks like a location (city, state/country pattern)
+                parts = [p.strip() for p in stripped.split(",")]
+                if len(parts) >= 2 and all(len(p) > 1 for p in parts):
+                    return stripped
+
+        return None
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
+        """
+        Clean Kula job markdown by removing application form content.
+
+        Kula markdown structure:
+        - Line 0: Job title with company
+        - Lines 1-9: Metadata and "Apply for this position" button
+        - Lines 10-56: Actual job description content
+        - Lines 57+: Application form ("Apply for this position", "Autofill application", etc.)
+
+        Note: "Apply for this position" appears multiple times:
+        - Line 9: Header button (keep)
+        - Line 57+: Start of form (cut here)
+
+        Returns cleaned description and optionally extracted title.
+        """
+        if not markdown:
+            return "", None
+
+        lines = markdown.splitlines()
+        if not lines:
+            return "", None
+
+        # Find where the application form starts
+        # Use unique indicators that only appear in the form section
+        form_start_idx = None
+        form_indicators = [
+            "Autofill application",
+            "Save time by importing your resume",
+            "Upload your file",
+            "Personal Information",
+            "First name*",
+            "ADDITIONAL INFORMATION",
+            "EEOC Statement",
+        ]
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            for indicator in form_indicators:
+                if indicator in stripped:
+                    form_start_idx = i
+                    break
+            if form_start_idx is not None:
+                break
+
+        # If form_start_idx is found, also check for "Apply for this position"
+        # on the line before it (which is the second occurrence)
+        if form_start_idx is not None:
+            if form_start_idx > 0 and "Apply for this position" in lines[form_start_idx - 1]:
+                form_start_idx = form_start_idx - 1
+            lines = lines[:form_start_idx]
+
+        # Join back and clean up
+        cleaned = "\n".join(lines).strip()
+
+        # Extract title and company from first line if available
+        title = None
+        if lines:
+            first_line = lines[0].strip()
+            # Title is on line 0, format: "Job Title - Company Name"
+            if first_line and not first_line.startswith(("[", "#", "*")):
+                title = first_line
+                # Extract company name from title and store it
+                if " - " in first_line:
+                    parts = first_line.split(" - ")
+                    if len(parts) >= 2:
+                        company = parts[-1].strip()
+                        if company:
+                            self._extracted_company = company
+
+        return cleaned, title

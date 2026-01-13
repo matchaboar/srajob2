@@ -346,3 +346,91 @@ class NetflixHandler(BaseSiteHandler):
         params = self._ensure_pagination_params(params, start=0, num=DEFAULT_PAGE_SIZE)
         query = urlencode(params, doseq=True)
         return urlunparse(parsed._replace(query=query))
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
+        """
+        Clean Netflix job markdown by removing JSON config blocks and metadata.
+
+        Netflix markdown has this structure:
+        - Line 0: Title with separators (e.g., "Job Title | Location | Netflix")
+        - Line 1: Large JSON config block starting with backtick
+        - Line 2: Empty backticks ``
+        - Line 3: "** All Jobs"
+        - Line 4+: Heading with job title
+        - Middle lines: Actual job description
+        - Last few lines: JSON config blocks (domain config, display_banner, etc.)
+
+        Returns cleaned description and optionally extracted title.
+        """
+        if not markdown:
+            return "", None
+
+        lines = markdown.splitlines()
+        if not lines:
+            return "", None
+
+        # Extract title from heading (line starting with # after "** All Jobs")
+        title: Optional[str] = None
+        title_idx: Optional[int] = None
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                # Found a heading - extract the title
+                heading_text = stripped.lstrip("#").strip()
+                if heading_text and heading_text not in {"All Jobs", "Job Description"}:
+                    title = heading_text
+                    title_idx = idx
+                    break
+
+        # Find where content starts (after "** All Jobs" or first heading)
+        start_idx = 0
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            # Skip initial title line with separators
+            if idx == 0 and "|" in stripped:
+                start_idx = idx + 1
+                continue
+            # Skip JSON config blocks (backtick lines)
+            if stripped.startswith("`") and ("{" in stripped or stripped == "`" or stripped == "``"):
+                start_idx = idx + 1
+                continue
+            # Skip "** All Jobs"
+            if stripped == "** All Jobs":
+                start_idx = idx + 1
+                continue
+            # Found actual content - use this as start
+            if stripped and not stripped.startswith("`"):
+                break
+
+        # Find where content ends (before trailing JSON blocks)
+        end_idx = len(lines)
+        # Check last few lines for JSON blocks
+        for idx in range(len(lines) - 1, max(start_idx, len(lines) - 10), -1):
+            stripped = lines[idx].strip()
+            # Stop at JSON blocks
+            if stripped.startswith("`") and ("{" in stripped or stripped == "`"):
+                end_idx = idx
+            # If we hit real content, stop scanning
+            elif stripped and not stripped.startswith("`"):
+                break
+
+        # Extract content lines
+        content_lines = lines[start_idx:end_idx]
+
+        # Clean up individual lines
+        cleaned_lines: List[str] = []
+        for line in content_lines:
+            stripped = line.strip()
+            # Skip empty backtick lines
+            if stripped == "`" or stripped == "``":
+                continue
+            # Skip "Apply Now" buttons
+            if stripped.lower() == "apply now":
+                continue
+            cleaned_lines.append(line)
+
+        # Join and clean up excessive newlines
+        cleaned = "\n".join(cleaned_lines)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+        return cleaned or markdown, title

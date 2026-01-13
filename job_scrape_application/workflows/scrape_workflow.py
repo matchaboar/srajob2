@@ -578,6 +578,10 @@ class SpidercloudJobDetailsWorkflow:
                 if not urls:
                     break
 
+                # Track timing for throughput measurement
+                lease_time = _workflow_now_ms()
+                await _log("batch.leased", data={"count": len(urls), "time_ms": lease_time})
+
                 try:
                     res = await workflow.execute_activity(
                         process_spidercloud_job_batch,
@@ -587,6 +591,15 @@ class SpidercloudJobDetailsWorkflow:
                         ),
                     )
                     await _safe_workflow_sleep(0)
+
+                    # Log batch processing completion with timing
+                    process_time = _workflow_now_ms()
+                    duration = process_time - lease_time
+                    await _log("batch.processed", data={
+                        "count": len(urls),
+                        "duration_ms": duration,
+                        "urls_per_second": round(len(urls) / (duration / 1000), 2) if duration > 0 else 0
+                    })
                     if isinstance(res, dict):
                         scrape_ids_payload = res.get("scrapeIds")
                         if isinstance(scrape_ids_payload, list):
@@ -662,6 +675,10 @@ class SpidercloudJobDetailsWorkflow:
 
                                 http_404_urls: list[str] = []
                                 http_404_seen: set[str] = set()
+
+                                # Log storage start timing
+                                storage_time = _workflow_now_ms()
+                                await _log("storage.started", data={"count": len(scrapes), "time_ms": storage_time})
 
                                 for idx, scrape in enumerate(scrapes):
                                     if not isinstance(scrape, dict):

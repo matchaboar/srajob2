@@ -27,7 +27,10 @@
       "Bash(npx convex dev:*)",
       "Bash(npx convex deploy:*)",
       "Bash(source job_board_application/.env.production)",
-      "Bash(export CONVEX_HTTP_URL)"
+      "Bash(export CONVEX_HTTP_URL)",
+      "Bash(python:*)",
+      "Bash(PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python:*)",
+      "WebFetch(domain:affable-kiwi-46.convex.site)"
     ]
   },
   "outputStyle": "default"

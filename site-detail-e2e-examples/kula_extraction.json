@@ -1,0 +1,31 @@
+{
+  "site_id": "kula",
+  "detail_url": "https://careers.kula.ai/voltagepark/20818",
+  "source_url": "https://careers.kula.ai/voltagepark/20818",
+  "extracted_jobs": [
+    {
+      "title": "Manager of Infrastructure Engineering (Observability) - Voltage Park",
+      "description_preview": "Manager of Infrastructure Engineering (Observability) - Voltage Park Return to jobs list ](https://careers.kula.ai/voltagepark) ![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub) Manager of Infrastructure Engineering (Observability) Job type: Full Time \u00b7 Department: Infrastructure Engineering \u00b7 Work type: On-Site \u00b7 USD 160000 - 210000 / year Redmond, Washington, United States Apply for this position Voltage Park...",
+      "description_word_count": 650,
+      "location": "Redmond, Washington, United States",
+      "is_remote": false,
+      "posted_at": 1768283751995,
+      "posted_at_unknown": true,
+      "company": "Voltage Park",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.kula.ai/voltagepark/20818",
+      "cost_milli_cents": 146
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

@@ -1,0 +1,14 @@
+site_id: netflix
+detail_url: https://explore.jobs.netflix.net/careers/job/790313551266
+expected:
+  title: Software Engineer L5, Ads Campaign Management
+  company: Netflix
+  location_contains: New York
+  is_remote: false
+  level: mid
+  description_min_words: 300
+  description_not_contains: '{"domain":'
+  description_not_contains_2: '{"display_banner":'
+  description_not_contains_3: '{"themeOptions":'
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

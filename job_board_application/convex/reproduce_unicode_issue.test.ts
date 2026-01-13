@@ -102,7 +102,7 @@ describe("ingestJobsFromScrape unicode handling", () => {
             ],
         });
 
-        const job = Array.from(ctx.db.jobs.values())[0];
+        const job = Array.from(ctx.db.jobs.values())[0] as any;
         expect(job?.title).toBe("Senior Software Engineer, Guest & Host");
     });
 });

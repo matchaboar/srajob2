@@ -118,6 +118,65 @@ cat ./site-detail-e2e-examples/SITE_NAME_extraction.json
 
 Ensure `detail_url` in the assertion file matches `request.url` in the fixture.
 
+## Debugging Production Jobs
+
+For debugging specific user-submitted jobs with extraction issues, use the **automated mise task**:
+
+### Quick Start (Automated)
+```bash
+# Run the automated workflow
+mise run fix_job_extraction https://srajob.netlify.app/job/k57abc123xyz
+```
+
+This automatically:
+1. ✅ Fetches job data from Convex prod
+2. ✅ Downloads SpiderCloud fixture to debug folder
+3. ✅ Creates placeholder assertion file
+4. ✅ Launches Claude Code with full context
+
+**Then you just need to:**
+1. Fill in assertion TODOs (location, level, etc.)
+2. Run debug test
+3. Fix handler if needed
+4. Verify fix
+
+### Manual Workflow (if needed)
+```bash
+# 1. Fetch the job page
+PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python agent_scripts/dump_spidercloud_response.py \
+  "https://explore.jobs.netflix.net/careers/job/790313551266" \
+  --out tests/job_scrape_application/workflows/fixtures/debug/netflix_790313551266_detail.json \
+  --use-handler-config
+
+# 2. Create assertion file at tests/job_scrape_application/workflows/assertions/debug/netflix_790313551266.yml
+
+# 3. Run the debug test
+uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py -v
+
+# 4. Check extraction output
+cat ./site-detail-e2e-examples/netflix_extraction.json
+```
+
+### Why Use Debug Fixtures?
+- **Isolated testing**: Test specific production jobs without affecting the main test suite
+- **Rapid iteration**: Quickly test fixes for reported issues
+- **Clear workflow**: Fixture → Assertions → Test → Fix → Verify
+- **Preserved examples**: Keep examples of edge cases for future reference
+
+### Debug Fixture Structure
+```
+fixtures/debug/
+├── README.md                           # Full documentation
+├── {site}_{job_id}_detail.json        # Job fixture
+└── ...
+
+assertions/debug/
+├── {site}_{job_id}.yml                # Job assertions
+└── ...
+```
+
+See `tests/job_scrape_application/workflows/fixtures/debug/README.md` for detailed documentation.
+
 ## Debugging Workflow
 
 See `DEBUGGING.md` for detailed debugging procedures including:
