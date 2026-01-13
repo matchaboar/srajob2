@@ -273,38 +273,25 @@ class GreenhouseHandler(BaseSiteHandler):
                     urls.append(cleaned)
         return urls
 
-    def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
-        def _pick_date(node: Any) -> Any | None:
-            if not isinstance(node, dict):
-                return None
-            for key in (
-                "first_published",
-                "firstPublished",
-                "created_at",
-                "createdAt",
-                "updated_at",
-                "updatedAt",
-            ):
-                value = node.get(key)
-                if isinstance(value, str):
-                    cleaned = value.strip()
-                    if cleaned:
-                        return cleaned
-                elif isinstance(value, (int, float)):
-                    return value
+    def _pick_date_value(self, node: Any, keys: tuple[str, ...]) -> Any | None:
+        """Extract a date value from a node by checking the given keys in order."""
+        if not isinstance(node, dict):
             return None
+        for key in keys:
+            value = node.get(key)
+            if isinstance(value, str):
+                cleaned = value.strip()
+                if cleaned:
+                    return cleaned
+            elif isinstance(value, (int, float)):
+                return value
+        return None
 
-        if not isinstance(payload, dict):
-            return None
-
-        direct = _pick_date(payload)
-        if direct is not None:
-            return direct
-
+    def _find_job_node(self, payload: Any, url: str | None) -> Any | None:
+        """Find the matching job node in a jobs list based on URL or job_id."""
         jobs = payload.get("jobs")
         if not isinstance(jobs, list) or not url:
             return None
-
         job_id = self._extract_job_id_from_url(url)
         for job in jobs:
             if not isinstance(job, dict):
@@ -312,14 +299,62 @@ class GreenhouseHandler(BaseSiteHandler):
             if job_id is not None:
                 candidate_id = job.get("id") or job.get("job_id") or job.get("internal_job_id")
                 if candidate_id is not None and str(candidate_id) == str(job_id):
-                    matched = _pick_date(job)
-                    if matched is not None:
-                        return matched
+                    return job
             absolute_url = job.get("absolute_url")
             if isinstance(absolute_url, str) and absolute_url.strip() == url:
-                matched = _pick_date(job)
-                if matched is not None:
-                    return matched
+                return job
+        return None
+
+    def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
+        """Extract posted_at, prioritizing updated_at over first_published.
+
+        This ensures the "posted" date reflects when the job was last updated,
+        which is more relevant for job seekers.
+        """
+        # Priority: updated_at > first_published > created_at
+        keys = (
+            "updated_at",
+            "updatedAt",
+            "first_published",
+            "firstPublished",
+            "created_at",
+            "createdAt",
+        )
+
+        if not isinstance(payload, dict):
+            return None
+
+        direct = self._pick_date_value(payload, keys)
+        if direct is not None:
+            return direct
+
+        matched_job = self._find_job_node(payload, url)
+        if matched_job is not None:
+            return self._pick_date_value(matched_job, keys)
+
+        return None
+
+    def extract_first_published(self, payload: Any, url: str | None = None) -> Any | None:
+        """Extract the first_published date for preserving original posting date.
+
+        Returns the first_published date if present, or None if not available.
+        This is used to populate postingFirstPublishedAt in the database.
+        """
+        keys = (
+            "first_published",
+            "firstPublished",
+        )
+
+        if not isinstance(payload, dict):
+            return None
+
+        direct = self._pick_date_value(payload, keys)
+        if direct is not None:
+            return direct
+
+        matched_job = self._find_job_node(payload, url)
+        if matched_job is not None:
+            return self._pick_date_value(matched_job, keys)
 
         return None
 
@@ -349,10 +384,11 @@ class GreenhouseHandler(BaseSiteHandler):
                 }
             )
         if self.is_api_detail_url(uri):
+            # API detail URLs return raw JSON, use "raw" format (same as listing API)
             return self._apply_page_links_config(
                 {
-                "request": "chrome",
-                "return_format": ["commonmark", "raw_html"],
+                "request": "basic",
+                "return_format": ["raw"],
                 "follow_redirects": True,
                 "redirect_policy": "Loose",
                 "external_domains": ["*"],
@@ -436,3 +472,53 @@ class GreenhouseHandler(BaseSiteHandler):
             return markdown, None
 
         return markdown, None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        """
+        Extract location from Greenhouse API JSON response.
+        The JSON contains location.name and offices[].name fields.
+        Handles both:
+        - Raw JSON wrapped in triple backticks (commonmark format)
+        - Raw HTML with JSON in <pre> tags
+        """
+        if not markdown:
+            return None
+
+        content = markdown.strip()
+
+        # Handle triple backticks (commonmark format)
+        if content.startswith("```") and content.endswith("```"):
+            content = content.strip("`\n ")
+
+        # Handle raw HTML with <pre> tags containing JSON
+        if "<pre>" in content and "</pre>" in content:
+            pre_match = re.search(r"<pre>({.+})</pre>", content, flags=re.DOTALL)
+            if pre_match:
+                content = html_lib.unescape(pre_match.group(1))
+
+        # Try to parse as JSON
+        try:
+            unescaped = content.replace("\\_", "_").replace("\\#", "#").replace("\\*", "*")
+            data = json.loads(unescaped)
+            if not isinstance(data, dict):
+                return None
+
+            # Try location.name first (Greenhouse API format)
+            location = data.get("location")
+            if isinstance(location, dict):
+                name = location.get("name")
+                if isinstance(name, str) and name.strip():
+                    return name.strip()
+
+            # Fall back to offices[].name
+            offices = data.get("offices")
+            if isinstance(offices, list) and offices:
+                for office in offices:
+                    if isinstance(office, dict):
+                        name = office.get("name") or office.get("location")
+                        if isinstance(name, str) and name.strip():
+                            return name.strip()
+        except Exception:
+            pass
+
+        return None

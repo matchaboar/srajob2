@@ -4,7 +4,8 @@
       "Bash(ls:*)",
       "Bash(xargs:*)",
       "Bash(uv run pytest:*)",
-      "Bash(pnpm run test:*)"
+      "Bash(pnpm run test:*)",
+      "Bash(cut:*)"
     ]
   }
 }

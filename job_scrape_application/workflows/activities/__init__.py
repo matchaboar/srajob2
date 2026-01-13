@@ -400,13 +400,25 @@ async def _lookup_job_id_for_url(url: str) -> Optional[str]:
         try:
             result = await convex_query("jobs:getJobIdByUrl", {"url": candidate})
         except Exception as exc:
+            logger.debug(
+                "Job ID lookup failed for candidate %s: %s",
+                candidate,
+                exc,
+                exc_info=exc,
+            )
             last_exc = exc
             continue
         if result:
             return result
 
     if last_exc is not None:
-        logger.warning("Failed to lookup job id for %s: %s", url, last_exc)
+        logger.warning(
+            "Failed to lookup job id for %s (tried %d candidates): %s",
+            url,
+            len(candidates),
+            last_exc,
+            exc_info=last_exc,
+        )
     return None
 
 
@@ -768,19 +780,22 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
         }
 
     pending_urls = [u for u in urls if u not in skip_set]
-    existing = await filter_existing_job_urls(pending_urls)
-    existing_set = set(existing) | skip_set
-    urls_to_scrape = [u for u in urls if u not in existing_set]
+    # Use filter_new_job_urls for efficiency - returns only non-existing URLs (less network transfer)
+    new_urls = await filter_new_job_urls(pending_urls)
+    new_urls_set = set(new_urls)
+    existing_urls = [u for u in pending_urls if u not in new_urls_set]
+    skipped_existing = len(existing_urls)
+    urls_to_scrape = new_urls
     posted_ats_to_enqueue: list[int | None] | None = None
     if posted_at_by_url and urls_to_scrape:
         posted_ats_to_enqueue = [posted_at_by_url.get(url) for url in urls_to_scrape]
         if not any(isinstance(val, (int, float)) for val in posted_ats_to_enqueue):
             posted_ats_to_enqueue = None
     logger.info(
-        "SpiderCloud greenhouse urls total=%s pending=%s existing=%s to_scrape=%s",
+        "SpiderCloud greenhouse urls total=%s pending=%s skipped_existing=%s to_scrape=%s",
         len(urls),
         len(pending_urls),
-        len(existing_set),
+        skipped_existing,
         len(urls_to_scrape),
     )
 
@@ -847,7 +862,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
         except Exception:
             pass
 
-    urls_to_scrape = [u for u in fresh_urls if u not in existing_set]
+    urls_to_scrape = [u for u in fresh_urls if u in new_urls_set]
 
     # Listing flow now only enqueues; job detail scrape handled by separate workflow.
     return {
@@ -857,7 +872,7 @@ async def _scrape_spidercloud_greenhouse(scraper: SpiderCloudScraper, site: Site
             "normalized": [],
             "provider": scraper.provider,
             "job_urls": urls,
-            "existing": list(existing_set),
+            "existing": existing_urls,
             "queued": True,
             "queuedCount": len(urls_to_scrape),
         },
@@ -1355,14 +1370,15 @@ async def crawl_site_fetchfox(
         seen_urls.add(cleaned)
         unique_urls.append(cleaned)
 
-    existing_jobs: list[str] = []
+    # Use filter_new_job_urls for efficiency - returns only non-existing URLs (less network transfer)
+    new_urls: list[str] = []
     try:
-        existing_jobs = await filter_existing_job_urls(unique_urls)
+        new_urls = await filter_new_job_urls(unique_urls)
     except Exception:
-        existing_jobs = []
+        new_urls = unique_urls  # On error, proceed with all URLs
 
-    skip_set.update(u for u in existing_jobs if isinstance(u, str))
-    candidates = [u for u in unique_urls if u not in skip_set]
+    new_urls_set = set(new_urls)
+    candidates = [u for u in unique_urls if u not in skip_set and u in new_urls_set]
     handler = get_site_handler(source_url) if isinstance(source_url, str) and source_url else None
     if candidates:
         filtered_candidates: list[str] = []
@@ -1398,7 +1414,7 @@ async def crawl_site_fetchfox(
             enqueued = []
 
 
-    skipped_urls = [u for u in unique_urls if u in skip_set]
+    skipped_urls = [u for u in unique_urls if u in skip_set or u not in new_urls_set]
 
     _log_sync_response(
         "fetchfox",
@@ -1514,6 +1530,32 @@ async def filter_existing_job_urls(urls: List[str]) -> List[str]:
         return []
 
     return [u for u in existing if isinstance(u, str)]
+
+
+async def filter_new_job_urls(urls: List[str]) -> List[str]:
+    """
+    Return only URLs that do NOT exist in Convex jobs table.
+
+    More efficient than filter_existing_job_urls when most URLs already exist,
+    as it returns only the new URLs (less network transfer).
+    """
+
+    cleaned = [u for u in urls if isinstance(u, str) and u.strip()]
+    if not cleaned:
+        return []
+    from ...services.convex_client import convex_query
+
+    try:
+        data = await convex_query("router:filterNewJobUrls", {"urls": cleaned})
+    except Exception:
+        # Re-raise so caller can use fallback logic (assume all URLs are new)
+        raise
+
+    new_urls = data.get("new", []) if isinstance(data, dict) else []
+    if not isinstance(new_urls, list):
+        return []
+
+    return [u for u in new_urls if isinstance(u, str)]
 
 
 @activity.defn
@@ -1742,6 +1784,8 @@ async def process_spidercloud_job_batch(
 
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
+    # Track siteId by (source_url, pattern) key for dedup recording
+    site_id_by_group: dict[tuple[str, str | None], str] = {}
     source_url_hint = ""
     attempt_entries: list[dict[str, Any]] = []
     for row in batch.get("urls", []):
@@ -1770,6 +1814,10 @@ async def process_spidercloud_job_batch(
         if isinstance(posted_at_val, (int, float)):
             mapping = posted_at_groups.setdefault(key, {})
             mapping[normalize_url(normalized_url) or normalized_url] = int(posted_at_val)
+        # Track siteId for this group (used for seen_job_urls recording)
+        site_id_val = row.get("siteId")
+        if isinstance(site_id_val, str) and site_id_val.strip() and key not in site_id_by_group:
+            site_id_by_group[key] = site_id_val.strip()
 
     await _record_scrape_url_attempts(attempt_entries)
 
@@ -1779,9 +1827,71 @@ async def process_spidercloud_job_batch(
             response.update({"scrapeIds": [], "stored": 0, "invalid": 0, "failed": 0})
         return response
 
+    # Filter out URLs that already exist in Convex to avoid wasting SpiderCloud credits
+    all_urls_to_check: list[str] = []
+    for urls in groups.values():
+        all_urls_to_check.extend(urls)
+
+    new_urls_set: set[str] = set()
+    skipped_existing_count = 0
+    if all_urls_to_check:
+        try:
+            new_urls = await filter_new_job_urls(all_urls_to_check)
+            new_urls_set = set(new_urls)
+            skipped_existing_count = len(all_urls_to_check) - len(new_urls_set)
+        except Exception:
+            # On error, proceed with all URLs to avoid blocking scraping
+            new_urls_set = set(all_urls_to_check)
+
+    # Filter groups to only include new URLs (when some were skipped)
+    if skipped_existing_count > 0:
+        filtered_groups: dict[tuple[str, str | None], list[str]] = {}
+        for key, urls in groups.items():
+            filtered_urls = [u for u in urls if u in new_urls_set]
+            if filtered_urls:
+                filtered_groups[key] = filtered_urls
+        groups = filtered_groups
+
+        # Mark skipped URLs as completed in the queue
+        skipped_items: list[dict[str, Any]] = []
+        for row in batch.get("urls", []):
+            if not isinstance(row, dict):
+                continue
+            url_val = row.get("url")
+            if not isinstance(url_val, str):
+                continue
+            # Check if this URL was skipped (not in new_urls_set)
+            normalized_url = _to_greenhouse_api_url(url_val, row.get("sourceUrl"))
+            if normalized_url not in new_urls_set:
+                item: dict[str, Any] = {"url": url_val}
+                row_id = row.get("_id") or row.get("id")
+                if isinstance(row_id, str):
+                    item["id"] = row_id
+                skipped_items.append(item)
+        if skipped_items:
+            try:
+                dbos_queue.complete_scrape_urls(
+                    {"items": skipped_items, "status": "completed", "error": "already_exists_in_jobs"}
+                )
+            except Exception:
+                pass
+
+        logger.info(
+            "SpiderCloud job batch dedup: total=%d new=%d skipped=%d",
+            len(all_urls_to_check),
+            len(new_urls_set),
+            skipped_existing_count,
+        )
+
+    if not groups:
+        response = {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
+        if persist_scrapes:
+            response.update({"scrapeIds": [], "stored": 0, "invalid": 0, "failed": 0, "skippedExisting": skipped_existing_count})
+        return response
+
     scraper = _make_spidercloud_scraper()
 
-    async def _scrape_group(urls: list[str], source_url: str, pattern: str | None) -> list[Dict[str, Any]]:
+    async def _scrape_group(urls: list[str], source_url: str, pattern: str | None, site_id: str | None = None) -> list[Dict[str, Any]]:
         payload: Dict[str, Any] = {
             "urls": urls,
             "source_url": source_url or (urls[0] if urls else ""),
@@ -1804,6 +1914,9 @@ async def process_spidercloud_job_batch(
 
         base_payload.setdefault("provider", "spidercloud")
         base_payload.setdefault("workflowName", "SpidercloudJobDetails")
+        # Add siteId for seen_job_urls recording during ingestJobsFromScrape
+        if site_id:
+            base_payload.setdefault("siteId", site_id)
 
         scrapes: list[Dict[str, Any]] = []
         items = base_payload.get("items") if isinstance(base_payload, dict) else {}
@@ -1889,13 +2002,16 @@ async def process_spidercloud_job_batch(
         urls: list[str],
         source_url: str,
         pattern: str | None,
+        site_id: str | None = None,
     ) -> list[Dict[str, Any]]:
         async with semaphore:
-            return await _scrape_group(urls, source_url, pattern)
+            return await _scrape_group(urls, source_url, pattern, site_id)
 
     tasks: list[asyncio.Task[list[Dict[str, Any]]]] = []
     for (source_url, pattern), urls in groups.items():
-        tasks.append(asyncio.create_task(_scrape_group_with_limit(urls, source_url, pattern)))
+        # Look up siteId for this group to pass to store_scrape for seen_job_urls recording
+        group_site_id = site_id_by_group.get((source_url, pattern))
+        tasks.append(asyncio.create_task(_scrape_group_with_limit(urls, source_url, pattern, group_site_id)))
 
     if tasks:
         results = await asyncio.gather(*tasks)
@@ -2313,12 +2429,22 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
 
         should_warn_zero_urls = _should_warn_zero_urls()
 
-        def _emit_zero_url_warning(reason: str, details: Dict[str, Any] | None = None) -> None:
+        def _emit_listing_event(
+            event: str,
+            level: str,
+            reason: str,
+            details: Dict[str, Any] | None = None,
+        ) -> None:
             if not should_warn_zero_urls:
                 return
+            # Extract SpiderCloud request params from providerRequest
+            provider_request = scrape_payload.get("providerRequest") if isinstance(scrape_payload, dict) else None
+            request_params = None
+            if isinstance(provider_request, dict):
+                request_params = provider_request.get("params")
             payload = {
-                "event": "scrape.listing.zero_urls",
-                "level": "warn",
+                "event": event,
+                "level": level,
                 "siteUrl": base_listing_url or source_url,
                 "data": _strip_none_values(
                     {
@@ -2331,6 +2457,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                         "extractedCount": len(extracted_urls),
                         "requestedUrlCount": len(requested_urls),
                         "requestedUrlSample": _sample_urls(requested_urls),
+                        "requestParams": request_params,
                         "details": details,
                         "pageContext": base_page_context if not extracted_urls else None,
                     }
@@ -2340,6 +2467,18 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 telemetry.emit_posthog_log(payload)
             except Exception:
                 pass
+
+        def _emit_zero_url_warning(reason: str, details: Dict[str, Any] | None = None) -> None:
+            # ERROR level - no job URLs found on the page at all
+            _emit_listing_event("scrape.listing.zero_urls", "error", reason, details)
+
+        def _emit_skip_all_seen_urls(reason: str, details: Dict[str, Any] | None = None) -> None:
+            # WARN level - all URLs already exist in Convex DB
+            _emit_listing_event("scrape.listing.skip_all_seen_urls", "warn", reason, details)
+
+        def _emit_skip_all_invalid_urls(reason: str, details: Dict[str, Any] | None = None) -> None:
+            # WARN level - all URLs are invalid
+            _emit_listing_event("scrape.listing.skip_all_invalid_urls", "warn", reason, details)
 
         def _emit_listing_url_counts(reason: str, details: Dict[str, Any]) -> None:
             payload = {
@@ -2443,6 +2582,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
             )
 
         force_detail_urls = False
+        converted_urls: list[str] = []
         if detail_url_override:
             urls = [detail_url_override]
             invalid_urls = []
@@ -2455,7 +2595,9 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 pattern=entry.get("pattern"),
                 source_url=source_url,
             )
-            invalid_urls = [url for url in extracted_urls if url not in urls]
+            converted_urls, invalid_urls = _classify_filtered_urls(
+                extracted_urls, urls, handler, source_url
+            )
 
         if not urls:
             invalid_details = _strip_none_values(
@@ -2465,7 +2607,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                     "extractedSample": _sample_urls(extracted_urls),
                 }
             )
-            _emit_zero_url_warning("filtered_invalid_urls", invalid_details)
+            _emit_skip_all_invalid_urls("filtered_invalid_urls", invalid_details)
             _emit_listing_url_counts(
                 "filtered_invalid_urls",
                 {
@@ -2530,19 +2672,43 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         listing_seen_dropped = [url for url in listing_urls_before_seen if url in seen_listing]
 
         job_urls_before_existing = list(job_urls)
-        existing_set: set[str] = set()
+        # Use filter_new_job_urls for efficiency - returns only non-existing URLs (less network transfer)
+        filter_new_job_urls_fallback = False
+        filter_new_job_urls_error: str | None = None
         if job_urls:
             try:
-                existing_jobs = await filter_existing_job_urls(job_urls)
+                new_job_urls = await filter_new_job_urls(job_urls)
+            except Exception as exc:
+                filter_new_job_urls_fallback = True
+                filter_new_job_urls_error = str(exc)[:200]
+                new_job_urls = job_urls  # On error, proceed with all URLs
+            new_job_urls_set = set(new_job_urls)
+            job_urls = [u for u in job_urls if u in new_job_urls_set]
+        else:
+            new_job_urls_set = set()
+        job_existing_dropped = [url for url in job_urls_before_existing if url not in new_job_urls_set]
+
+        # Log if fallback was triggered - this indicates a Convex query failure
+        if filter_new_job_urls_fallback:
+            try:
+                telemetry.emit_posthog_log({
+                    "event": "scrape.listing.filter_new_job_urls_fallback",
+                    "level": "warn",
+                    "siteUrl": base_listing_url or source_url,
+                    "data": _strip_none_values({
+                        "sourceUrl": source_url,
+                        "siteId": entry.get("siteId"),
+                        "jobUrlCount": len(job_urls_before_existing),
+                        "error": filter_new_job_urls_error,
+                        "fallbackAction": "proceed_with_all_urls",
+                    }),
+                })
             except Exception:
-                existing_jobs = []
-            existing_set = {u for u in existing_jobs if isinstance(u, str)}
-            if existing_set:
-                job_urls = [u for u in job_urls if u not in existing_set]
-        job_existing_dropped = [url for url in job_urls_before_existing if url in existing_set]
+                pass
 
         if not job_urls:
             skip_reasons: list[dict[str, str]] = []
+            skip_reasons.extend({"url": url, "reason": "url_converted"} for url in converted_urls)
             skip_reasons.extend({"url": url, "reason": "invalid_url"} for url in invalid_urls)
             skip_reasons.extend(
                 {"url": url, "reason": "listing_from_scrape_ignored"}
@@ -2569,14 +2735,26 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                     "listingSeenDroppedSample": _sample_urls(listing_seen_dropped),
                     "jobCount": len(job_urls_before_existing),
                     "jobSample": _sample_urls(job_urls_before_existing),
+                    "jobNewCount": len(new_job_urls_set),
                     "jobExistingDroppedCount": len(job_existing_dropped),
                     "jobExistingDroppedSample": _sample_urls(job_existing_dropped),
+                    "jobFilterFallback": filter_new_job_urls_fallback or None,
                     "skipReasonCount": len(skip_reasons),
                     "skipReasons": _sample_skip_reasons(skip_reasons),
                     "paginationLimit": pagination_limit,
                 }
             )
-            _emit_zero_url_warning("filtered_to_zero", zero_details)
+            # Determine the appropriate event based on why URLs were filtered
+            # If all job URLs were dropped because they already exist in DB, use WARN level
+            all_seen = (
+                len(job_urls_before_existing) > 0
+                and len(job_existing_dropped) == len(job_urls_before_existing)
+                and len(invalid_urls) == 0
+            )
+            if all_seen:
+                _emit_skip_all_seen_urls("filtered_to_zero", zero_details)
+            else:
+                _emit_zero_url_warning("filtered_to_zero", zero_details)
             _emit_listing_url_counts(
                 "filtered_to_zero",
                 {
@@ -2586,18 +2764,23 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                     "listingPaginationDroppedCount": len(pagination_dropped),
                     "listingSeenDroppedCount": len(listing_seen_dropped),
                     "jobCount": len(job_urls_before_existing),
+                    "jobNewCount": len(new_job_urls_set),
                     "jobExistingDroppedCount": len(job_existing_dropped),
+                    "jobFilterFallback": filter_new_job_urls_fallback or None,
                     "skipReasonCount": len(skip_reasons),
                     "skipReasons": zero_details.get("skipReasons"),
                 },
             )
-            return 0, should_warn_zero_urls
+            # Only mark as failed if this is a listing page AND not all URLs were just skipped
+            # If all URLs were skipped because they already exist, don't treat as error
+            return 0, should_warn_zero_urls and not all_seen
 
         merged_urls = job_urls
         url_types = ["detail"] * len(merged_urls)
         delays_ms: list[int] | None = None
 
         skip_reasons: list[dict[str, str]] = []
+        skip_reasons.extend({"url": url, "reason": "url_converted"} for url in converted_urls)
         skip_reasons.extend({"url": url, "reason": "invalid_url"} for url in invalid_urls)
         skip_reasons.extend(
             {"url": url, "reason": "listing_from_scrape_ignored"} for url in listing_urls_extracted
@@ -2639,7 +2822,9 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                     "listingPaginationDroppedCount": len(pagination_dropped),
                     "listingSeenDroppedCount": len(listing_seen_dropped),
                     "jobCount": len(job_urls_before_existing),
+                    "jobNewCount": len(new_job_urls_set),
                     "jobExistingDroppedCount": len(job_existing_dropped),
+                    "jobFilterFallback": filter_new_job_urls_fallback or None,
                     "queuedListingCount": 0,
                     "queuedDetailCount": len(job_urls),
                     "queuedTotal": len(job_urls),
@@ -4418,18 +4603,21 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     "urlSample": urls[:5] if urls else None,
                 },
             )
-            existing_jobs: list[str] = []
+            # Use filter_new_job_urls for efficiency - returns only non-existing URLs (less network transfer)
             skip_existing_job_filter = bool(handler and handler.name == "ashby") or had_listing_urls
+            new_job_urls_set: set[str] = set()
             if job_urls and not skip_existing_job_filter:
                 try:
-                    existing_jobs = await filter_existing_job_urls(job_urls)
+                    new_job_urls = await filter_new_job_urls(job_urls)
+                    new_job_urls_set = set(new_job_urls)
                 except Exception:
-                    existing_jobs = []
-            existing_job_set = {u for u in existing_jobs if isinstance(u, str)}
+                    new_job_urls_set = set(job_urls)  # On error, proceed with all URLs
+            else:
+                new_job_urls_set = set(job_urls) if job_urls else set()
             existing_job_set_ready = True
-            if existing_job_set:
-                job_urls = [u for u in job_urls if u not in existing_job_set]
-                urls = [u for u in urls if u not in existing_job_set]
+            if job_urls and len(new_job_urls_set) < len(job_urls):
+                job_urls = [u for u in job_urls if u in new_job_urls_set]
+                urls = [u for u in urls if u in new_job_urls_set]
 
             if not job_urls and isinstance(raw_items_block, dict):
                 raw_payload = raw_items_block.get("raw")
@@ -4487,14 +4675,16 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
 
         if invalid_reason == "no_normalized_jobs" and extracted_job_urls:
             unique_job_urls = list(dict.fromkeys(extracted_job_urls))
-            existing_set = existing_job_set
-            if not existing_job_set_ready:
+            # Use filter_new_job_urls for efficiency - returns only non-existing URLs (less network transfer)
+            new_urls_set = new_job_urls_set if existing_job_set_ready else None
+            if new_urls_set is None:
                 try:
-                    existing_jobs = await filter_existing_job_urls(unique_job_urls)
+                    new_urls = await filter_new_job_urls(unique_job_urls)
+                    new_urls_set = set(new_urls)
                 except Exception:
-                    existing_jobs = []
-                existing_set = {u for u in existing_jobs if isinstance(u, str)}
-            if existing_set and len(existing_set) >= len(unique_job_urls):
+                    new_urls_set = set(unique_job_urls)  # On error, assume all are new
+            # If no new URLs, all jobs already exist
+            if len(new_urls_set) == 0:
                 invalid_reason = None
                 await _log_workflow_event(
                     "scrape.jobs_skipped",
@@ -4727,6 +4917,54 @@ def _handler_allows_url(handler: BaseSiteHandler, url: str) -> bool:
     if handler.name == "netflix" and host.endswith("jobs.netflix.com"):
         return path.startswith("/locations")
     return False
+
+
+def _classify_filtered_urls(
+    extracted_urls: list[str],
+    filtered_urls: list[str],
+    handler: BaseSiteHandler | None,
+    source_url: str | None = None,
+) -> tuple[list[str], list[str]]:
+    """
+    Classify URLs that were filtered out as either converted/transformed or truly invalid.
+
+    Returns:
+        (converted_urls, invalid_urls) where:
+        - converted_urls: URLs that were successfully converted/transformed (e.g., job-boards -> boards-api)
+        - invalid_urls: URLs that were actually invalid/filtered out
+    """
+    if not extracted_urls:
+        return [], []
+
+    converted_urls: list[str] = []
+    invalid_urls: list[str] = []
+    filtered_set = set(filtered_urls)
+
+    for url in extracted_urls:
+        # If the URL is in the filtered list, skip (it wasn't filtered out)
+        if url in filtered_set:
+            continue
+
+        # Check if this URL was converted/transformed by the handler
+        was_converted = False
+        if handler:
+            if handler.name == "greenhouse":
+                # Check if this URL converts to one of the filtered URLs
+                api_url = handler.get_api_uri(url, source_url=source_url)
+                if api_url and api_url in filtered_set:
+                    was_converted = True
+            elif handler.name in {"microsoft_careers", "workday"}:
+                # Check if this URL converts to one of the filtered URLs
+                api_url = handler.get_api_uri(url)
+                if api_url and api_url in filtered_set:
+                    was_converted = True
+
+        if was_converted:
+            converted_urls.append(url)
+        else:
+            invalid_urls.append(url)
+
+    return converted_urls, invalid_urls
 
 
 def _filter_job_urls(
@@ -6983,3 +7221,142 @@ async def record_throughput_metrics(window_seconds: int = 60) -> dict[str, Any]:
     )
 
     return metrics
+
+
+@activity.defn
+async def batch_store_scrapes_background(
+    scrapes: list[dict[str, Any]],
+    url_completion_data: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Store scrapes asynchronously without blocking workflow progression.
+
+    This activity enables pipeline parallelism by allowing storage operations
+    to complete in the background while the workflow continues processing
+    new batches.
+
+    Args:
+        scrapes: List of scrape payloads to store
+        url_completion_data: Metadata for completing URLs in queue (contains urls list)
+
+    Returns:
+        Dictionary containing:
+        - operationId: Unique ID for this storage operation
+        - stored: Count of successfully stored scrapes
+        - scrapeIds: List of scrape IDs from Convex
+        - failed: Count of failed stores
+        - invalid: Count of invalid scrapes
+    """
+    import uuid
+
+    logger = activity.logger
+    operation_id = str(uuid.uuid4())
+    scrape_ids: list[str] = []
+    failed_urls: list[str] = []
+    invalid_urls: list[str] = []
+    completed_urls: list[str] = []
+
+    def _extract_url_from_scrape(scrape: dict[str, Any]) -> str | None:
+        """Extract URL from scrape payload for tracking."""
+        # Try subUrls first
+        sub_urls = scrape.get("subUrls")
+        if isinstance(sub_urls, list):
+            for entry in sub_urls:
+                if isinstance(entry, str) and entry.strip():
+                    return entry.strip()
+
+        # Try sourceUrl
+        source_val = scrape.get("sourceUrl")
+        if isinstance(source_val, str) and source_val.strip():
+            return source_val.strip()
+
+        return None
+
+    async def _complete_urls_batch(urls: list[str], status: str, error: str | None = None) -> None:
+        """Helper to complete URLs in queue with given status."""
+        if not urls:
+            return
+
+        payload: dict[str, Any] = {
+            "items": [{"url": url} for url in urls if isinstance(url, str)],
+            "status": status,
+        }
+        if error:
+            payload["error"] = error
+
+        try:
+            await complete_scrape_urls(payload)
+        except Exception as e:
+            logger.warning(f"Failed to complete URLs in queue: {e}")
+
+    # Store scrapes concurrently with configurable limit
+    # This allows us to use more Convex capacity while respecting the 128 action limit
+    max_concurrent_stores = max(1, min(
+        runtime_config.spidercloud_job_details_concurrency,
+        10  # Cap at 10 concurrent stores per activity
+    ))
+    semaphore = asyncio.Semaphore(max_concurrent_stores)
+
+    async def _store_one_scrape(scrape: dict[str, Any]) -> dict[str, Any]:
+        """Store a single scrape with semaphore limiting."""
+        async with semaphore:
+            url = _extract_url_from_scrape(scrape)
+            try:
+                scrape_id = await store_scrape(scrape)
+                return {"status": "completed", "url": url, "scrape_id": scrape_id}
+            except ApplicationError as exc:
+                if exc.type == "invalid_scrape":
+                    logger.info(f"Invalid scrape for URL {url}: {exc}")
+                    return {"status": "invalid", "url": url, "error": str(exc)}
+                else:
+                    logger.warning(f"Failed to store scrape for URL {url}: {exc}")
+                    return {"status": "failed", "url": url, "error": str(exc)}
+            except Exception as e:
+                logger.error(f"Unexpected error storing scrape for URL {url}: {e}")
+                return {"status": "failed", "url": url, "error": str(e)}
+
+    # Process all scrapes concurrently (with semaphore limiting concurrency)
+    valid_scrapes = [s for s in scrapes if isinstance(s, dict)]
+    if valid_scrapes:
+        logger.info(f"Storing {len(valid_scrapes)} scrapes with max {max_concurrent_stores} concurrent")
+        tasks = [_store_one_scrape(scrape) for scrape in valid_scrapes]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Collect results
+        for result in results:
+            if isinstance(result, dict):
+                status = result.get("status")
+                url = result.get("url")
+                scrape_id = result.get("scrape_id")
+
+                if status == "completed" and scrape_id:
+                    scrape_ids.append(scrape_id)
+                    if url:
+                        completed_urls.append(url)
+                elif status == "invalid" and url:
+                    invalid_urls.append(url)
+                elif status == "failed" and url:
+                    failed_urls.append(url)
+            elif isinstance(result, Exception):
+                logger.error(f"Unexpected exception in storage: {result}")
+                # Can't extract URL from exception, so just log it
+
+    # Complete URLs in queue with appropriate status
+    await _complete_urls_batch(completed_urls, "completed")
+    await _complete_urls_batch(invalid_urls, "invalid", error="invalid_job_data")
+    await _complete_urls_batch(failed_urls, "failed", error="store_failed")
+
+    result = {
+        "operationId": operation_id,
+        "stored": len(scrape_ids),
+        "scrapeIds": scrape_ids,
+        "failed": len(failed_urls),
+        "invalid": len(invalid_urls)
+    }
+
+    logger.info(
+        f"Background storage complete: operation={operation_id}, "
+        f"stored={len(scrape_ids)}, failed={len(failed_urls)}, invalid={len(invalid_urls)}"
+    )
+
+    return result

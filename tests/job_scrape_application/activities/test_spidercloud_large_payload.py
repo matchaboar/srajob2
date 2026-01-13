@@ -41,6 +41,17 @@ def _batch_for_urls(urls: List[str]) -> Dict[str, Any]:
     }
 
 
+async def _passthrough_filter_new_job_urls(urls: List[str]) -> List[str]:
+    """Mock that returns all URLs as new (no filtering)."""
+    return urls
+
+
+@pytest.fixture(autouse=True)
+def _mock_filter_new_job_urls(monkeypatch):
+    """Automatically mock filter_new_job_urls to return all URLs for these tests."""
+    monkeypatch.setattr(activities, "filter_new_job_urls", _passthrough_filter_new_job_urls)
+
+
 @pytest.mark.asyncio
 async def test_spidercloud_job_batch_payload_is_reasonably_capped(monkeypatch):
     raw_html = "<html>" + ("x" * (1024 * 1024)) + "</html>"

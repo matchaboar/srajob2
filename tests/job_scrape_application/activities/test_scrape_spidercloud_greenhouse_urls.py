@@ -40,11 +40,15 @@ async def test_scrape_spidercloud_greenhouse_normalizes_listing_urls(monkeypatch
     async def fake_fetch_seen_urls_for_site(*_args: Any, **_kwargs: Any) -> list[str]:
         return []
 
+    async def fake_filter_new_job_urls(urls: list[str]) -> list[str]:
+        return urls  # All URLs are "new"
+
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
     monkeypatch.setattr(activities, "fetch_seen_urls_for_site", fake_fetch_seen_urls_for_site)
+    monkeypatch.setattr(activities, "filter_new_job_urls", fake_filter_new_job_urls)
 
     res = await activities._scrape_spidercloud_greenhouse(scraper, site, [])
 

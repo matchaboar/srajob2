@@ -30,7 +30,15 @@
       "Bash(export CONVEX_HTTP_URL)",
       "Bash(python:*)",
       "Bash(PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python:*)",
-      "WebFetch(domain:affable-kiwi-46.convex.site)"
+      "WebFetch(domain:affable-kiwi-46.convex.site)",
+      "Bash(curl:*)",
+      "Bash(1)",
+      "Bash(npx tsc:*)",
+      "Bash(CONVEX_HTTP_URL=https://affable-kiwi-46.convex.site uv run pytest:*)",
+      "Bash(PYTHONPATH=.. uv run:*)",
+      "Bash(uv run dbos start --help:*)",
+      "Bash(uv run dbos --help:*)",
+      "mcp__posthog__logs-query"
     ]
   },
   "outputStyle": "default"

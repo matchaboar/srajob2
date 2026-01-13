@@ -211,6 +211,17 @@ class BaseSiteHandler(ABC):
     def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
         return self._extract_posted_at_from_payload(payload, url)
 
+    def extract_first_published(self, payload: Any, url: str | None = None) -> Any | None:
+        """Extract the first_published date if available.
+
+        Returns the original publication date for jobs that have both
+        first_published and updated_at timestamps. Greenhouse is the
+        primary site that provides this data.
+
+        Override in subclasses to extract site-specific first_published dates.
+        """
+        return None
+
     def extract_company(self, payload: Any, url: str | None = None) -> Optional[str]:
         return None
 

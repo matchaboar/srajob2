@@ -3,11 +3,10 @@
     "url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003",
     "params": {
       "return_format": [
-        "commonmark",
-        "raw_html"
+        "raw"
       ],
       "metadata": true,
-      "request": "chrome",
+      "request": "basic",
       "follow_redirects": true,
       "redirect_policy": "Loose",
       "external_domains": [

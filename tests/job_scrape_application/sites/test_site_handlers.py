@@ -58,9 +58,12 @@ def test_greenhouse_handler_rewrites_and_formats():
     assert handler.get_listing_api_uri("https://api.greenhouse.io/v1/boards/robinhood/jobs") == (
         "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     )
+    # API detail URLs (boards-api.greenhouse.io) should use raw format for JSON
     config = handler.get_spidercloud_config(api_url)
-    assert config.get("return_format") == ["commonmark", "raw_html"]
+    assert config.get("return_format") == ["raw"]
+    assert config.get("request") == "basic"
     assert config.get("preserve_host") is False
+    # Marketing site detail URLs should still use commonmark/raw_html for HTML
     config = handler.get_spidercloud_config(detail)
     assert config.get("return_format") == ["commonmark", "raw_html"]
     assert config.get("preserve_host") is True

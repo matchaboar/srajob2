@@ -1821,31 +1821,81 @@ class SpiderCloudScraper(BaseScraper):
             "limit": 1,
         }
         spider_params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(request_url)))
-        try:
-            async with AsyncSpider(api_key=api_key) as client:
-                scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
-                response = scrape_fn(  # type: ignore[call-arg]
+
+        # Retry up to 2 additional times for empty responses from SpiderCloud
+        # On retries, use chrome request type with proxy
+        max_attempts = 3
+        payload: Optional[Dict[str, Any]] = None
+
+        for attempt in range(1, max_attempts + 1):
+            # Build params for this attempt - add proxy on retries
+            attempt_params = dict(spider_params)
+            if attempt > 1:
+                # Use proxy on retry attempts (residential first, then isp)
+                proxy = CAPTCHA_PROXY_SEQUENCE[min(attempt - 2, len(CAPTCHA_PROXY_SEQUENCE) - 1)]
+                attempt_params["proxy"] = proxy
+                attempt_params["request"] = "chrome"  # Ensure chrome request type
+
+            try:
+                async with AsyncSpider(api_key=api_key) as client:
+                    scrape_fn = getattr(client, "scrape_url", None) or getattr(client, "crawl_url")
+                    response = scrape_fn(  # type: ignore[call-arg]
+                        request_url,
+                        params=attempt_params,
+                        stream=False,
+                        content_type="application/json",
+                    )
+                    raw_events: list[Any] = []
+                    async for chunk in self._iterate_scrape_response(response):
+                        raw_events.append(chunk)
+                    payload = self._extract_json_payload(raw_events)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Site API fetch failed handler=%s url=%s attempt=%s/%s proxy=%s error=%s",
+                    handler.name,
                     request_url,
-                    params=spider_params,
-                    stream=False,
-                    content_type="application/json",
+                    attempt,
+                    max_attempts,
+                    attempt_params.get("proxy"),
+                    exc,
                 )
-                raw_events: list[Any] = []
-                async for chunk in self._iterate_scrape_response(response):
-                    raw_events.append(chunk)
-                payload = self._extract_json_payload(raw_events)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "Site API fetch failed handler=%s url=%s error=%s",
+                if attempt < max_attempts:
+                    await asyncio.sleep(0.5 * attempt)  # Brief backoff before retry
+                continue
+
+            if isinstance(payload, dict):
+                if attempt > 1:
+                    logger.info(
+                        "Site API fetch succeeded after retry handler=%s url=%s attempt=%s proxy=%s",
+                        handler.name,
+                        request_url,
+                        attempt,
+                        attempt_params.get("proxy"),
+                    )
+                break
+
+            # Empty response - log details at ERROR level and retry
+            raw_events_summary = {
+                "count": len(raw_events),
+                "types": [type(e).__name__ for e in raw_events[:5]],
+                "sample": str(raw_events)[:500] if raw_events else "empty",
+            }
+            logger.error(
+                "Site API fetch returned empty response handler=%s url=%s attempt=%s/%s proxy=%s raw_events=%s",
                 handler.name,
                 request_url,
-                exc,
+                attempt,
+                max_attempts,
+                attempt_params.get("proxy"),
+                raw_events_summary,
             )
-            return None
+            if attempt < max_attempts:
+                await asyncio.sleep(0.5 * attempt)  # Brief backoff before retry
 
         if not isinstance(payload, dict):
-            logger.warning(
-                "Site API fetch returned non-dict handler=%s url=%s payload_type=%s",
+            logger.error(
+                "Site API fetch returned non-dict after %s attempts handler=%s url=%s payload_type=%s",
+                max_attempts,
                 handler.name,
                 request_url,
                 type(payload).__name__ if payload is not None else "none",
@@ -2671,15 +2721,12 @@ class SpiderCloudScraper(BaseScraper):
             return any(part != country_lower for part in hint_parts)
 
         location = structured_location or greenhouse_location or handler_location or location_hint
-        if greenhouse_location and location_hint:
-            greenhouse_label = greenhouse_location.strip()
-            greenhouse_country = _normalize_country_label(greenhouse_label)
-            if (
-                greenhouse_country
-                and greenhouse_label.lower() == greenhouse_country.lower()
-                and _hint_more_specific_than_country(location_hint, greenhouse_label)
-            ):
-                location = location_hint
+        # NOTE: Previously we had logic to prefer location_hint over greenhouse_location
+        # when greenhouse_location was just a country name and location_hint seemed more
+        # specific. However, this caused bugs because location_hint is parsed from markdown
+        # description text and can pick up random city names mentioned in the text (e.g.,
+        # Airbnb's "San Francisco home" origin story). The greenhouse_location from the
+        # JSON API is authoritative and should be trusted.
         if structured_location and location_hint:
             structured_label = structured_location.strip()
             hint_label = location_hint.strip()
@@ -2801,6 +2848,24 @@ class SpiderCloudScraper(BaseScraper):
                 posted_at_unknown = False
                 break
 
+        # Extract first_published for sites that have it (primarily Greenhouse)
+        first_published: int | None = None
+        if handler:
+            extractor = getattr(handler, "extract_first_published", None)
+            if callable(extractor):
+                # Try various sources for first_published
+                raw_first_published = None
+                for source in [listing_payload, outer_greenhouse_payload, structured_payload]:
+                    if source is not None:
+                        value = extractor(source, url)
+                        if _is_nonempty(value):
+                            raw_first_published = value
+                            break
+                if raw_first_published is not None:
+                    parsed_first_published = parse_posted_at(raw_first_published, now_ms=now_ms)
+                    if parsed_first_published != now_ms:
+                        first_published = parsed_first_published
+
         # Final validation: reject pages with invalid titles or non-job content
         if is_invalid_job_title(title):
             self._last_ignored_job = {
@@ -2846,6 +2911,7 @@ class SpiderCloudScraper(BaseScraper):
             "url": url,
             "posted_at": posted_at,
             "posted_at_unknown": posted_at_unknown,
+            "first_published": first_published,
         }
 
     def _consume_chunk(self, chunk: Any, buffer: str) -> Tuple[str, List[Any]]:
@@ -2909,6 +2975,27 @@ class SpiderCloudScraper(BaseScraper):
         *,
         attempt: int = 0,
     ) -> Dict[str, Any]:
+        """DEPRECATED: Use _scrape_single_url_sync instead.
+
+        This streaming mode method is deprecated. The synchronous JSON mode
+        (_scrape_single_url_sync) provides better reliability, simpler parsing,
+        and correct hint extraction from JSON payloads (e.g., location, company).
+
+        The streaming mode has issues with:
+        - Complex JSONL chunk handling and escape removal
+        - Double-parsing that can lose raw JSON content needed for hint extraction
+        - Edge cases with malformed streaming responses
+
+        To switch to sync mode, set runtime_config.spidercloud_single_request_mode = True
+        """
+        import warnings
+        warnings.warn(
+            "_scrape_single_url (streaming mode) is deprecated. "
+            "Use _scrape_single_url_sync (single request mode) instead. "
+            "Set runtime_config.spidercloud_single_request_mode = True",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         buffer = ""
         raw_events: List[Any] = []
         markdown_parts: List[str] = []
@@ -3319,15 +3406,27 @@ class SpiderCloudScraper(BaseScraper):
         while isinstance(raw_result, list) and raw_result:
             raw_result = raw_result[0]
 
+        # If we end up with an empty list or non-dict, treat as empty response
+        # This happens when SpiderCloud returns [[]] or similar empty structures
         if not isinstance(raw_result, dict):
-            return {
-                "normalized": None,
-                "raw": {"url": original_url, "events": [], "markdown": ""},
-                "job_urls": [],
-                "costMilliCents": None,
-                "startedAt": started_at,
-                "failed": {"url": original_url, "reason": "invalid_response"},
-            }
+            # If it's an empty list, this is a valid "no results" response, not an error
+            # Construct a synthetic empty response and continue with normal flow
+            if isinstance(raw_result, list):
+                raw_result = {
+                    "content": {"commonmark": "", "raw": ""},
+                    "status": 200,
+                    "url": original_url,
+                }
+            else:
+                # Truly invalid response (string, number, etc.)
+                return {
+                    "normalized": None,
+                    "raw": {"url": original_url, "events": [], "markdown": ""},
+                    "job_urls": [],
+                    "costMilliCents": None,
+                    "startedAt": started_at,
+                    "failed": {"url": original_url, "reason": "invalid_response"},
+                }
 
         # Extract content directly from JSON (no JSONL parsing needed)
         markdown_text = self._extract_content_from_sync_response(raw_result)
@@ -3382,16 +3481,19 @@ class SpiderCloudScraper(BaseScraper):
                 payload["ignored"] = ignored_entry
             return payload
 
-        # Normalize the markdown (same as streaming mode)
+        # Extract title from API response for Greenhouse-style handlers
+        # Note: Don't pre-normalize markdown_text - _normalize_job needs the raw
+        # content for hint extraction (location, company, etc from JSON payloads)
         gh_title = None
         if handler and handler.is_api_detail_url(original_url):
-            markdown_text, gh_title = handler.normalize_markdown(markdown_text)
+            _, gh_title = handler.normalize_markdown(markdown_text)
             if gh_title:
                 raw_result = dict(raw_result)
                 raw_result["title"] = gh_title
                 raw_result["gh_api_title"] = True
 
-        # Normalize job details
+        # Normalize job details - pass raw markdown_text so _normalize_job can
+        # extract hints from JSON payloads before normalizing the description
         require_keywords = attempt <= 1
         normalized = self._normalize_job(
             original_url,

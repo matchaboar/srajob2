@@ -1,258 +1,176 @@
 #!/usr/bin/env bash
 # [MISE] description="Fix job extraction issues using Claude Code with automated fixture generation"
 # [USAGE] arg "<url>" help="Job share URL from Convex prod (e.g., https://srajob.netlify.app/job/abc123)" default=""
+# [USAGE] option "--url <url>" help="Override the detail URL to fetch (use when Convex URL differs from canonical)"
+# [USAGE] option "--dry-run" help="Show what would be generated without fetching"
 
 set -e
 
 # Check if URL provided
 if [ -z "${usage_url}" ]; then
-  echo "Usage: mise run fix_job_extraction <job_share_url>"
+  echo "Usage: mise run fix_job_extraction <job_share_url> [--url <detail_url>] [--dry-run]"
   echo ""
   echo "Example:"
   echo "  mise run fix_job_extraction https://srajob.netlify.app/job/k57abc123xyz"
+  echo "  mise run fix_job_extraction k57abc123xyz --url https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/123"
   echo ""
   echo "This script will:"
   echo "  1. Extract the job ID from the URL"
   echo "  2. Fetch job details from Convex prod"
-  echo "  3. Automatically fetch SpiderCloud fixture to debug folder"
-  echo "  4. Create placeholder assertion file"
-  echo "  5. Launch Claude Code to write assertions and fix the issue"
+  echo "  3. Automatically fetch SpiderCloud fixture to per-company debug folder"
+  echo "  4. Create assertion file with proper expected values"
+  echo "  5. Launch Claude Code to verify assertions and fix any issues"
+  echo ""
+  echo "Features:"
+  echo "  - Per-company folder organization (fixtures/debug/{company}/)"
+  echo "  - Date-based filenames to preserve history"
+  echo "  - Remote company override awareness"
+  echo "  - URL canonicalization (marketing -> API URLs)"
   exit 1
 fi
 
-# Extract job ID from URL
-# Supports formats:
-#   https://srajob.netlify.app/job/k57abc123xyz
-#   https://affable-kiwi-46.convex.site/share/job?id=k57abc123xyz&app=...
-#   k57abc123xyz (raw ID)
-JOB_ID=""
-if [[ "${usage_url}" =~ /job/([a-zA-Z0-9_]+) ]]; then
-  JOB_ID="${BASH_REMATCH[1]}"
-elif [[ "${usage_url}" =~ [\?\&]id=([a-zA-Z0-9_]+) ]]; then
-  JOB_ID="${BASH_REMATCH[1]}"
-elif [[ "${usage_url}" =~ ^[a-zA-Z0-9_]+$ ]]; then
-  JOB_ID="${usage_url}"
-else
-  echo "Error: Could not extract job ID from URL: ${usage_url}" >&2
-  echo "Expected format: https://srajob.netlify.app/job/<job_id>, share URL with ?id=<job_id>, or just <job_id>" >&2
+# Build Python script arguments
+PYTHON_ARGS="${usage_url}"
+if [ -n "${usage_url_2}" ]; then
+  # --url option was provided
+  PYTHON_ARGS="${PYTHON_ARGS} --url ${usage_url_2}"
+fi
+if [ "${usage_dry_run}" = "true" ]; then
+  PYTHON_ARGS="${PYTHON_ARGS} --dry-run"
+fi
+
+# Create temp file for script output
+TEMP_OUTPUT=$(mktemp /tmp/fixture_gen_XXXXXX.json)
+trap "rm -f ${TEMP_OUTPUT}" EXIT
+
+# Run the improved fixture generation script
+echo "Running fixture generation..."
+PYTHONPATH=. uv run python agent_scripts/generate_debug_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
+
+# Extract JSON output from the script
+JSON_OUTPUT=$(grep -A 100 "=== JSON Output ===" "${TEMP_OUTPUT}" | tail -n +2 | head -20)
+
+if [ -z "${JSON_OUTPUT}" ]; then
+  echo "Error: Failed to parse script output"
   exit 1
 fi
 
-echo "Job ID: ${JOB_ID}"
+# Parse JSON fields (requires jq)
+FIXTURE_PATH=$(echo "${JSON_OUTPUT}" | jq -r '.fixture_path // empty')
+ASSERTION_PATH=$(echo "${JSON_OUTPUT}" | jq -r '.assertion_path // empty')
+IDENTIFIER=$(echo "${JSON_OUTPUT}" | jq -r '.identifier // empty')
+DETAIL_URL=$(echo "${JSON_OUTPUT}" | jq -r '.detail_url // empty')
+COMPANY=$(echo "${JSON_OUTPUT}" | jq -r '.company // empty')
+HANDLER=$(echo "${JSON_OUTPUT}" | jq -r '.handler // empty')
+REMOTE_OVERRIDE=$(echo "${JSON_OUTPUT}" | jq -r '.remote_override // false')
+JOB_ID=$(echo "${JSON_OUTPUT}" | jq -r '.job_id // empty')
 
-# Create temp file for job data
-TEMP_FILE=$(mktemp /tmp/job_data_XXXXXX.json)
-trap "rm -f ${TEMP_FILE}" EXIT
-
-# Fetch job from Convex prod
-echo "Fetching job from Convex prod..."
-cd job_board_application
-
-JOB_DATA=$(npx convex run --prod jobs:getJobById "{\"id\":\"${JOB_ID}\"}" 2>/dev/null || echo "null")
-
-if [ "${JOB_DATA}" == "null" ] || [ -z "${JOB_DATA}" ]; then
-  echo "Error: Job not found in Convex prod: ${JOB_ID}" >&2
+if [ -z "${IDENTIFIER}" ]; then
+  echo "Error: Failed to extract identifier from script output"
   exit 1
 fi
 
-# Save job data to temp file
-echo "${JOB_DATA}" > "${TEMP_FILE}"
-
-# Extract key fields for display
-TITLE=$(echo "${JOB_DATA}" | jq -r '.title // "N/A"')
-COMPANY=$(echo "${JOB_DATA}" | jq -r '.company // "N/A"')
-LOCATION=$(echo "${JOB_DATA}" | jq -r '.location // "N/A"')
-JOB_URL=$(echo "${JOB_DATA}" | jq -r '.url // "N/A"')
-REMOTE=$(echo "${JOB_DATA}" | jq -r '.remote // false')
-LEVEL=$(echo "${JOB_DATA}" | jq -r '.level // "N/A"')
-DESCRIPTION_LEN=$(echo "${JOB_DATA}" | jq -r '.description | length // 0')
-
-echo ""
-echo "=== Job Details ==="
-echo "Title:       ${TITLE}"
-echo "Company:     ${COMPANY}"
-echo "Location:    ${LOCATION}"
-echo "Remote:      ${REMOTE}"
-echo "Level:       ${LEVEL}"
-echo "Desc Length: ${DESCRIPTION_LEN} chars"
-echo "Job URL:     ${JOB_URL}"
-echo ""
-
-cd ..
-
-# Extract site name from URL (e.g., "netflix" from "explore.jobs.netflix.net")
-SITE_NAME=""
-if [[ "${JOB_URL}" =~ https?://([^/]+) ]]; then
-  DOMAIN="${BASH_REMATCH[1]}"
-  # Try to extract company name from domain
-  # Examples: explore.jobs.netflix.net -> netflix, boards.greenhouse.io -> greenhouse
-  if [[ "${DOMAIN}" =~ jobs\.([a-z0-9]+)\. ]]; then
-    SITE_NAME="${BASH_REMATCH[1]}"
-  elif [[ "${DOMAIN}" =~ ([a-z0-9]+)\.greenhouse\.io ]]; then
-    SITE_NAME="${BASH_REMATCH[1]}"
-  elif [[ "${DOMAIN}" =~ ([a-z0-9]+)\.ashbyhq\.com ]]; then
-    SITE_NAME="${BASH_REMATCH[1]}"
-  elif [[ "${DOMAIN}" =~ careers\.([a-z0-9]+)\. ]]; then
-    SITE_NAME="${BASH_REMATCH[1]}"
-  else
-    # Fallback: use first part of domain
-    SITE_NAME=$(echo "${DOMAIN}" | cut -d'.' -f1)
-  fi
-fi
-
-# If we couldn't extract site name, use company name
-if [ -z "${SITE_NAME}" ] && [ "${COMPANY}" != "N/A" ]; then
-  SITE_NAME=$(echo "${COMPANY}" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
-fi
-
-# Create identifier for debug fixture (site_jobid)
-IDENTIFIER="${SITE_NAME}_${JOB_ID}"
-
-echo "=== Automated Setup ==="
-echo "Identifier: ${IDENTIFIER}"
-
-# Create debug directories if they don't exist
-mkdir -p tests/job_scrape_application/workflows/fixtures/debug
-mkdir -p tests/job_scrape_application/workflows/assertions/debug
-
-# Define paths
-FIXTURE_PATH="tests/job_scrape_application/workflows/fixtures/debug/${IDENTIFIER}_detail.json"
-ASSERTION_PATH="tests/job_scrape_application/workflows/assertions/debug/${IDENTIFIER}.yml"
-
-# Fetch SpiderCloud fixture
-echo "Fetching SpiderCloud fixture..."
-if PYTHONPATH=. uv run python agent_scripts/dump_spidercloud_response.py "${JOB_URL}" --out "${FIXTURE_PATH}" --use-handler-config 2>&1; then
-  echo "✓ Fixture saved to: ${FIXTURE_PATH}"
-else
-  echo "⚠ Warning: Failed to fetch SpiderCloud fixture. Continuing anyway..."
-fi
-
-# Create placeholder assertion file if it doesn't exist
-if [ ! -f "${ASSERTION_PATH}" ]; then
-  echo "Creating placeholder assertion file..."
-  cat > "${ASSERTION_PATH}" << EOF
-site_id: ${SITE_NAME}
-detail_url: ${JOB_URL}
-expected:
-  # TODO: Fill in the expected values below by examining the fixture
-  # Run: uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py -v
-  # Check: cat ./site-detail-e2e-examples/${SITE_NAME}_extraction.json
-
-  title: "${TITLE}"
-  company: "${COMPANY}"
-  location_contains: "FILL_THIS"  # e.g., "New York", "San Francisco"
-  is_remote: ${REMOTE}
-  level: mid  # junior, mid, senior, staff
-  description_min_words: 300  # Adjust based on expected content
-  description_not_contains: '{"'  # Ensure no JSON blocks
-  cost_milli_cents_min: 1
-  posted_at_not_null: true
-EOF
-  echo "✓ Placeholder assertion created: ${ASSERTION_PATH}"
-else
-  echo "✓ Assertion file already exists: ${ASSERTION_PATH}"
+# If dry-run, exit here
+if [ "${usage_dry_run}" = "true" ]; then
+  echo ""
+  echo "Dry run complete. Re-run without --dry-run to generate files."
+  exit 0
 fi
 
 echo ""
 echo "=== Files Ready ==="
 echo "Fixture:    ${FIXTURE_PATH}"
 echo "Assertions: ${ASSERTION_PATH}"
+echo "Identifier: ${IDENTIFIER}"
 echo ""
 
 # Build the Claude Code prompt
-PROMPT="I need help fixing job extraction for this job from Convex prod.
+REMOTE_NOTE=""
+if [ "${REMOTE_OVERRIDE}" = "true" ]; then
+  REMOTE_NOTE="
+## Remote Company Override
+This company (${COMPANY}) is in \`remote_companies.yaml\`, so all jobs are marked \`remote: true\` regardless of the job description content.
+"
+fi
+
+PROMPT="I need help verifying and fixing job extraction for this debug fixture.
 
 ## Job ID: ${JOB_ID}
 
-## Current Extracted Data:
-- Title: ${TITLE}
-- Company: ${COMPANY}
-- Location: ${LOCATION}
-- Remote: ${REMOTE}
-- Level: ${LEVEL}
-- Description Length: ${DESCRIPTION_LEN} chars
-- Original Job URL: ${JOB_URL}
-
-## Full Job Data (from Convex):
-\$(cat ${TEMP_FILE})
-
-## ✅ Automated Setup Complete
-
-The fixture and placeholder assertion file have been created:
+## Files Generated:
 - **Fixture**: ${FIXTURE_PATH}
 - **Assertions**: ${ASSERTION_PATH}
+- **Test identifier**: ${IDENTIFIER}
+${REMOTE_NOTE}
+## Your Tasks:
 
-## 🎯 Your Tasks:
-
-### 1. Write Assertions (Manual - Required)
-The placeholder assertion file needs proper values. Edit:
-\`${ASSERTION_PATH}\`
-
-Fill in these fields by examining the fixture:
-- \`location_contains\`: Extract actual location from job posting
-- \`level\`: Determine correct level (junior/mid/senior/staff)
-- \`description_min_words\`: Set appropriate minimum (usually 300+)
-- \`description_not_contains\`: Add patterns that should NOT appear (e.g., JSON blocks, metadata)
-
-**Tip**: Look at the fixture to see what content is available:
+### 1. Review Assertions
+The assertion file was auto-generated with sensible defaults. Review and verify:
 \`\`\`bash
-python -c \"
-import json
-with open('${FIXTURE_PATH}', 'r') as f:
-    data = json.load(f)
-    item = data[0][0]
-    md = item['content']['commonmark']
-    print('Markdown length:', len(md))
-    lines = md.split('\\\n')
-    print('First 30 lines:')
-    for i, line in enumerate(lines[:30]):
-        print(f'{i:3d}: {line[:100]}')
-\"
+cat ${ASSERTION_PATH}
 \`\`\`
 
-### 2. Run Debug Test
+Check these fields are accurate:
+- \`location_contains\`: Verify against actual job posting
+- \`level\`: junior/mid/senior/staff based on title
+- \`is_remote\`: Should be \`true\` if company is in remote_companies.yaml
+
+### 2. Run the Debug Test
 \`\`\`bash
 uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
 \`\`\`
 
-This will show what's being extracted and what's failing.
-
 ### 3. Check Extraction Output
 \`\`\`bash
-cat ./site-detail-e2e-examples/${SITE_NAME}_extraction.json
+cat ./site-detail-e2e-examples/${HANDLER}_extraction.json
 \`\`\`
 
 Look for:
-- Word count (too low?)
-- JSON blocks in description
-- Wrong location parsing
-- Missing fields
+- Word count (should be > 300 for most job descriptions)
+- JSON blocks in description (should NOT appear)
+- Correct location parsing
+- Correct remote status
 
-### 4. Fix the Handler
-Edit: \`job_scrape_application/workflows/site_handlers/${SITE_NAME}.py\`
+### 4. Fix Issues (if test fails)
 
-Common fixes:
-- Implement/update \`normalize_markdown()\` to clean description
-- Add \`extract_location_hint()\` for better location parsing
-- Update regex patterns for title/company extraction
+#### If location is wrong:
+- Check site handler: \`job_scrape_application/workflows/site_handlers/${HANDLER}.py\`
+- May need to implement/update \`extract_location_hint()\`
 
-Example from Netflix fix:
-- **Problem**: Description had JSON blocks (122 words)
-- **Solution**: Implemented \`normalize_markdown()\` to strip JSON
-- **Result**: Clean 1010-word description
+#### If description has JSON blocks:
+- Implement/update \`normalize_markdown()\` in the handler
+
+#### If remote status is wrong:
+- Check if company should be in \`remote_companies.yaml\`
+- Check handler's remote detection logic
 
 ### 5. Verify Fix
 \`\`\`bash
 # Re-run debug test
-uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py -v
+uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
 
-# Ensure main test still passes
-uv run pytest \"tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py::test_job_detail_extraction_accuracy[${SITE_NAME}]\" -v
+# Ensure main tests still pass
+uv run pytest tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py -v --tb=short
 \`\`\`
 
-## 📚 Reference
+## Reference Files
+- Site handlers: \`job_scrape_application/workflows/site_handlers/\`
+- Remote companies config: \`job_scrape_application/config/prod/remote_companies.yaml\`
+- Main extraction logic: \`job_scrape_application/workflows/scrapers/spidercloud_scraper.py\`
 
-See \`tests/job_scrape_application/workflows/fixtures/debug/README.md\` for full documentation on the debug workflow."
+## Debug Folder Structure
+Fixtures are organized per-company with date-based naming:
+\`\`\`
+tests/job_scrape_application/workflows/
+├── fixtures/debug/
+│   └── {company}/
+│       └── {handler}_{short_id}_{date}_detail.json
+└── assertions/debug/
+    └── {company}/
+        └── {handler}_{short_id}_{date}.yml
+\`\`\`
+
+This preserves history and allows multiple fixtures per company."
 
 # Launch Claude Code
 echo "Launching Claude Code..."

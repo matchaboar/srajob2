@@ -39,17 +39,31 @@ logger = logging.getLogger(__name__)
 
 
 def _get_debug_fixtures() -> list[tuple[str, Path, Path]]:
-    """Get all debug fixture files and their assertion files."""
+    """Get all debug fixture files and their assertion files.
+
+    Supports both flat and per-company folder organization:
+    - Flat: fixtures/debug/{id}_detail.json + assertions/debug/{id}.yml
+    - Nested: fixtures/debug/{company}/{id}_detail.json + assertions/debug/{company}/{id}.yml
+    """
     if not FIXTURE_DIR.exists():
         return []
 
     fixtures = []
-    for fixture_file in FIXTURE_DIR.glob("*_detail.json"):
-        # Extract identifier from filename (e.g., "netflix_790313551266" from "netflix_790313551266_detail.json")
+
+    # Search recursively for all *_detail.json files
+    for fixture_file in FIXTURE_DIR.rglob("*_detail.json"):
+        # Extract identifier from filename (e.g., "greenhouse_abc12345_20250113" from "greenhouse_abc12345_20250113_detail.json")
         identifier = fixture_file.stem.replace("_detail", "")
 
-        # Find matching assertion file
-        assertion_file = ASSERTIONS_DIR / f"{identifier}.yml"
+        # Find matching assertion file in the same relative folder structure
+        # e.g., fixtures/debug/airbnb/foo.json -> assertions/debug/airbnb/foo.yml
+        relative_path = fixture_file.relative_to(FIXTURE_DIR)
+        assertion_file = ASSERTIONS_DIR / relative_path.parent / f"{identifier}.yml"
+
+        # Also check flat structure (for backwards compatibility)
+        if not assertion_file.exists():
+            assertion_file = ASSERTIONS_DIR / f"{identifier}.yml"
+
         if assertion_file.exists():
             fixtures.append((identifier, fixture_file, assertion_file))
 

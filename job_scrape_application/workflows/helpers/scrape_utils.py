@@ -2310,6 +2310,10 @@ class _JobRowNormalizer:
         if state.compensation_reason:
             normalized_row["compensation_reason"] = state.compensation_reason
         normalized_row["compensation_unknown"] = state.compensation_unknown
+        # Pass through first_published if available (from SpiderCloud scraper)
+        raw_first_published = row.get("first_published")
+        if isinstance(raw_first_published, (int, float)) and raw_first_published > 0:
+            normalized_row["first_published"] = int(raw_first_published)
 
         return normalized_row
 
@@ -2391,6 +2395,10 @@ class _JobRowNormalizer:
             job["compensationReason"] = f"{context.scraped_with} extracted compensation"
         else:
             job["compensationReason"] = "compensation provided in scrape payload"
+        # Pass through first_published if available
+        raw_first_published = row.get("first_published")
+        if isinstance(raw_first_published, (int, float)) and raw_first_published > 0:
+            job["postingFirstPublishedAt"] = int(raw_first_published)
 
         return job
 

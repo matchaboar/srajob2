@@ -2412,8 +2412,18 @@ export function JobBoard() {
                               <LiveTimer
                                 startTime={selectedJobFull.postedAt}
                                 showAgo
+                                showSeconds={false}
                                 className={selectedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
                               />
+                            </span>
+                          )}
+                          {typeof (selectedJobFull as any).postingFirstPublishedAt === "number" &&
+                            (selectedJobFull as any).postingFirstPublishedAt !== selectedJobFull.postedAt && (
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800/50 text-slate-400 border border-slate-700"
+                              title={`Originally posted: ${new Date((selectedJobFull as any).postingFirstPublishedAt).toLocaleDateString()}`}
+                            >
+                              First posted {new Date((selectedJobFull as any).postingFirstPublishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                             </span>
                           )}
                         </div>
@@ -2939,6 +2949,7 @@ export function JobBoard() {
                             <LiveTimer
                               startTime={selectedAppliedJobFull.postedAt}
                               showAgo
+                              showSeconds={false}
                               className={selectedAppliedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
                             />
                           </span>
@@ -3131,6 +3142,7 @@ export function JobBoard() {
                               <LiveTimer
                                 startTime={selectedRejectedJob.postedAt}
                                 showAgo
+                                showSeconds={false}
                                 className={selectedRejectedJob.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
                               />
                             </span>

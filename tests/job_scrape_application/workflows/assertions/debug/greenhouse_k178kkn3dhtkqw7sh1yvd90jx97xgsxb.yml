@@ -1,0 +1,12 @@
+site_id: greenhouse
+detail_url: https://boards.greenhouse.io/airbnb/jobs/7362663
+expected:
+  title: "Staff Software Engineer, Search Infrastructure"
+  company: "Airbnb"
+  location_contains: "Brazil"
+  is_remote: false
+  level: staff
+  description_min_words: 300
+  description_not_contains: '{"'
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

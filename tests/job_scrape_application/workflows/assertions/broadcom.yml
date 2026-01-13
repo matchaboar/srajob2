@@ -1,5 +1,11 @@
 site_id: broadcom
-detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/IC-Design-Engineer_R023525
+detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-2/R-D-Engineer-IC-Design-4_R024388
 expected:
-  skip: true
-  skip_reason: Listing and detail fixtures are out of sync - first job in listing doesn't match detail fixture
+  title: Firmware Engineer
+  company_contains: Broadcom
+  location_contains: Irvine
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

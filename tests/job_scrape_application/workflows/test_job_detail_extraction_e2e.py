@@ -143,6 +143,7 @@ def _validate_job_against_assertions(
     - level: Exact match for level (junior/mid/senior/staff)
     - description_min_words: Minimum word count for description
     - description_contains: Partial match in description (case-insensitive)
+    - description_not_contains: Ensure substring is NOT in description (case-insensitive)
     - cost_milli_cents_min: Minimum cost value
     - cost_milli_cents_max: Maximum cost value
     - posted_at_not_null: Check that posted_at is present
@@ -265,6 +266,17 @@ def _validate_job_against_assertions(
             actual=f"[{job.description_word_count} words]",
             passed=passed,
             message=f"Description should contain '{exp_substr}'" if not passed else "Description contains expected substring",
+        ))
+
+    if "description_not_contains" in expected:
+        exp_substr = expected["description_not_contains"]
+        passed = exp_substr.lower() not in job.description.lower()
+        results.append(AssertionResult(
+            field="description_not_contains",
+            expected=f"NOT '{exp_substr}'",
+            actual=f"[{job.description_word_count} words]" + (" (FOUND)" if not passed else ""),
+            passed=passed,
+            message=f"Description should NOT contain '{exp_substr}'" if not passed else "Description does not contain forbidden substring",
         ))
 
     # Cost assertions
@@ -594,6 +606,10 @@ class WorkflowTestModule:
         async def fake_filter_existing_job_urls(urls: List[str]) -> List[str]:
             return []
 
+        async def fake_filter_new_job_urls(urls: List[str]) -> List[str]:
+            # Return all URLs as "new" so they get scraped
+            return urls
+
         self.monkeypatch.setattr(
             "job_scrape_application.services.convex_client.convex_query",
             fake_convex_query,
@@ -608,6 +624,9 @@ class WorkflowTestModule:
         )
         self.monkeypatch.setattr(
             acts, "filter_existing_job_urls", fake_filter_existing_job_urls
+        )
+        self.monkeypatch.setattr(
+            acts, "filter_new_job_urls", fake_filter_new_job_urls
         )
 
         # Mock HTTP description upload

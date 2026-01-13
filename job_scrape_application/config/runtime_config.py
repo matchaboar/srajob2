@@ -16,7 +16,7 @@ class RuntimeConfig:
     temporal_general_worker_count: int
     temporal_job_details_worker_count: int
     temporal_listing_worker_count: int
-    spidercloud_single_request_mode: bool  # Use synchronous JSON instead of JSONL streaming
+    spidercloud_single_request_mode: bool  # RECOMMENDED: Use synchronous JSON (streaming mode is DEPRECATED)
 
 
 def _load_runtime_yaml() -> Dict[str, Any]:
@@ -101,6 +101,65 @@ runtime_config = RuntimeConfig(
     spidercloud_single_request_mode=_coerce_bool(
         _raw_runtime_config,
         "spidercloud_single_request_mode",
-        True,  # Enabled by default - use synchronous JSON instead of JSONL streaming
+        True,  # Default True - streaming mode is DEPRECATED and has hint extraction bugs
     ),
 )
+
+
+def _validate_runtime_config() -> None:
+    """Validate runtime configuration and warn about potential issues."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Check if concurrency × workers might exceed Convex 128 action limit
+    # Formula: workers × concurrent_storage × 2 (mutations per store) × 2 (pipeline parallelism)
+    max_concurrent_storage = runtime_config.temporal_job_details_worker_count * runtime_config.spidercloud_job_details_concurrency
+    estimated_convex_actions = max_concurrent_storage * 2  # 2 mutations per store typically
+
+    # With pipeline parallelism, we might have 2 batches in flight per worker
+    peak_convex_actions = estimated_convex_actions * 2
+
+    if peak_convex_actions > 128:
+        logger.warning(
+            f"Configuration may exceed Convex 128 action limit: "
+            f"{runtime_config.temporal_job_details_worker_count} workers × "
+            f"{runtime_config.spidercloud_job_details_concurrency} concurrent × "
+            f"2 mutations × 2 (pipeline) = ~{peak_convex_actions} peak actions. "
+            f"Convex will auto-enqueue excess (adds latency). "
+            f"Consider reducing workers or concurrency if you see queue buildup."
+        )
+
+    # Warn if HTTP timeout is too high
+    if runtime_config.spidercloud_http_timeout_seconds > 600:
+        logger.warning(
+            f"HTTP timeout is very high: {runtime_config.spidercloud_http_timeout_seconds}s. "
+            f"Consider reducing to 300-600s for faster failure detection."
+        )
+
+    # Warn if batch size is too small (inefficient)
+    if runtime_config.spidercloud_job_details_batch_size < 10:
+        logger.info(
+            f"Batch size is small: {runtime_config.spidercloud_job_details_batch_size}. "
+            f"Consider increasing to 15-20 for better throughput with pipeline parallelism."
+        )
+
+    # Calculate expected throughput
+    # Rough estimate: workers × (batch_size / estimated_batch_time_minutes)
+    # Assume ~30-60s per batch with concurrency and pipeline parallelism
+    estimated_batch_time_minutes = 1.0  # Optimistic with good concurrency
+    estimated_throughput = (
+        runtime_config.temporal_job_details_worker_count *
+        runtime_config.spidercloud_job_details_batch_size /
+        estimated_batch_time_minutes
+    )
+
+    logger.info(
+        f"Runtime config loaded: {runtime_config.temporal_job_details_worker_count} workers, "
+        f"batch_size={runtime_config.spidercloud_job_details_batch_size}, "
+        f"concurrency={runtime_config.spidercloud_job_details_concurrency}. "
+        f"Estimated throughput: ~{estimated_throughput:.0f} URLs/min (target: 100 URLs/min)"
+    )
+
+
+# Validate configuration on module load
+_validate_runtime_config()

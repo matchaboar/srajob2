@@ -3035,6 +3035,62 @@ export const findExistingJobUrls = query({
   },
 });
 
+/**
+ * More efficient version that returns only non-existing URLs.
+ * Reduces network transfer when most URLs already exist.
+ */
+export const filterNewJobUrls = query({
+  args: {
+    urls: v.array(v.string()),
+  },
+  returns: v.object({ new: v.array(v.string()) }),
+  handler: async (ctx, args) => {
+    const existingSet = new Set<string>();
+    const unique = Array.from(new Set(args.urls));
+    const candidatesByUrl = new Map<string, string[]>();
+    const candidateBuckets = new Map<number, Set<string>>();
+
+    for (const url of unique) {
+      const candidates = buildJobUrlCandidates(url);
+      if (!candidates.length) continue;
+      candidatesByUrl.set(url, candidates);
+      for (const candidate of candidates) {
+        const bucket = deriveJobUrlBucket(candidate);
+        let bucketSet = candidateBuckets.get(bucket);
+        if (!bucketSet) {
+          bucketSet = new Set<string>();
+          candidateBuckets.set(bucket, bucketSet);
+        }
+        bucketSet.add(candidate);
+      }
+    }
+
+    const bucketMatches = new Set<string>();
+    for (const [bucket, candidates] of candidateBuckets.entries()) {
+      const rows = await ctx.db
+        .query("job_url_keys")
+        .withIndex("by_bucket", (q: any) => q.eq("bucket", bucket))
+        .collect();
+      for (const row of rows as any[]) {
+        if (row && typeof row.url === "string" && candidates.has(row.url)) {
+          bucketMatches.add(row.url);
+        }
+      }
+    }
+
+    for (const url of unique) {
+      const candidates = candidatesByUrl.get(url) ?? [];
+      if (candidates.some((candidate) => bucketMatches.has(candidate))) {
+        existingSet.add(url);
+      }
+    }
+
+    // Return only URLs that don't exist
+    const newUrls = unique.filter((url) => !existingSet.has(url));
+    return { new: newUrls };
+  },
+});
+
 const wildcardToRegex = (pattern: string) => {
   const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, "\\$&");
   const withWildcards = escaped
@@ -4456,6 +4512,7 @@ export const ingestJobsFromScrape = mutation({
         url: v.string(),
         postedAt: v.number(),
         postedAtUnknown: v.optional(v.boolean()),
+        postingFirstPublishedAt: v.optional(v.number()),
         scrapedAt: v.optional(v.number()),
         scrapedWith: v.optional(v.string()),
         workflowName: v.optional(v.string()),
@@ -4581,6 +4638,9 @@ export const ingestJobsFromScrape = mutation({
         compensationUnknown,
         compensationReason,
         postedAtUnknown: job.postedAtUnknown,
+        ...(typeof job.postingFirstPublishedAt === "number"
+          ? { postingFirstPublishedAt: job.postingFirstPublishedAt }
+          : {}),
         ...(descriptionValue ? { description: descriptionValue } : {}),
       };
 
@@ -5026,6 +5086,7 @@ export function extractJobs(
   scrapeUrl?: string;
   postedAt?: number;
   postedAtUnknown?: boolean;
+  postingFirstPublishedAt?: number;
 }[] {
   const rawList: any[] = [];
   const seedUrlKeys = collectSeedUrlKeys(items);
@@ -5270,6 +5331,13 @@ export function extractJobs(
         row.postedAt ?? row.posted_at,
         Date.now(),
       );
+      // Extract first_published for jobs that have both first_published and updated_at
+      const rawFirstPublished =
+        row.first_published ?? row.firstPublished ?? row.postingFirstPublishedAt;
+      const postingFirstPublishedAt =
+        typeof rawFirstPublished === "number" && rawFirstPublished > 0
+          ? rawFirstPublished
+          : undefined;
       const compensationReason =
         typeof row.compensationReason === "string" &&
           row.compensationReason.trim()
@@ -5299,6 +5367,7 @@ export function extractJobs(
         scrapeUrl,
         postedAt,
         postedAtUnknown,
+        postingFirstPublishedAt,
       };
     })
     .filter((j): j is NonNullable<typeof j> => Boolean(j)); // require a URL + title to keep signal

@@ -2550,6 +2550,7 @@ export const deleteJob = mutation({
     jobId: v.id("jobs"),
   },
   handler: async (ctx, args) => {
+    // Delete job_details
     const details = await ctx.db
       .query("job_details")
       .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
@@ -2561,6 +2562,26 @@ export const deleteJob = mutation({
       );
       await ctx.db.delete(detail._id);
     }
+
+    // Delete job_url_keys entries
+    const urlKeys = await ctx.db
+      .query("job_url_keys")
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
+      .collect();
+    for (const urlKey of urlKeys as any[]) {
+      await ctx.db.delete(urlKey._id);
+    }
+
+    // Delete applications
+    const applications = await ctx.db
+      .query("applications")
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
+      .collect();
+    for (const application of applications as any[]) {
+      await ctx.db.delete(application._id);
+    }
+
+    // Finally delete the job itself
     await ctx.db.delete(args.jobId);
     return { success: true };
   },

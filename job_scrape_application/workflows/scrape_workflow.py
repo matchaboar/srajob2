@@ -12,6 +12,7 @@ from temporalio.exceptions import ActivityError, ApplicationError, TimeoutError
 with workflow.unsafe.imports_passed_through():
     from .activities import (
         SPIDERCLOUD_BATCH_SIZE,
+        batch_store_scrapes_background,
         complete_scrape_urls,
         complete_site,
         crawl_site_fetchfox,
@@ -552,6 +553,9 @@ class SpidercloudJobDetailsWorkflow:
         max_run_duration = timedelta(minutes=runtime_config.spidercloud_job_details_processing_expire_minutes)
         run_started = _workflow_now()
 
+        # Track background storage operations for pipeline parallelism
+        storage_tasks: list[Any] = []
+
         async def _log(event: str, *, level: str = "info", data: dict | None = None):
             msg = f"SpidercloudJobDetails | event={event} | data={data}"
             if level == "error":
@@ -607,21 +611,6 @@ class SpidercloudJobDetailsWorkflow:
                         if not settings.persist_scrapes_in_activity:
                             scrapes = res.get("scrapes")
                             if isinstance(scrapes, list) and scrapes:
-                                completed_urls: list[str] = []
-                                invalid_urls: list[str] = []
-                                failed_urls: list[str] = []
-
-                                def _scrape_url(scrape: dict[str, Any]) -> str | None:
-                                    sub_urls = scrape.get("subUrls")
-                                    if isinstance(sub_urls, list):
-                                        for entry in sub_urls:
-                                            if isinstance(entry, str) and entry.strip():
-                                                return entry.strip()
-                                    source_val = scrape.get("sourceUrl")
-                                    if isinstance(source_val, str) and source_val.strip():
-                                        return source_val.strip()
-                                    return None
-
                                 def _is_http_404_entry(entry: Any) -> bool:
                                     if not isinstance(entry, dict):
                                         return False
@@ -651,87 +640,52 @@ class SpidercloudJobDetailsWorkflow:
                                                 urls.append(url_val.strip())
                                     return urls
 
-                                def _build_items(values: list[str]) -> list[dict[str, str]]:
-                                    return [{"url": value} for value in values if isinstance(value, str)]
-
-                                async def _complete_urls(
-                                    values: list[str],
-                                    status_val: str,
-                                    error: str | None = None,
-                                ) -> None:
-                                    if not values:
-                                        return
-                                    payload: dict[str, Any] = {
-                                        "items": _build_items(values),
-                                        "status": status_val,
-                                    }
-                                    if error:
-                                        payload["error"] = error
-                                    await workflow.execute_activity(
-                                        complete_scrape_urls,
-                                        args=[payload],
-                                        schedule_to_close_timeout=timedelta(seconds=20),
-                                    )
-
+                                # Handle HTTP 404 URLs separately (they don't need storage)
                                 http_404_urls: list[str] = []
                                 http_404_seen: set[str] = set()
+                                scrapes_to_store: list[dict[str, Any]] = []
 
-                                # Log storage start timing
-                                storage_time = _workflow_now_ms()
-                                await _log("storage.started", data={"count": len(scrapes), "time_ms": storage_time})
-
-                                for idx, scrape in enumerate(scrapes):
+                                for scrape in scrapes:
                                     if not isinstance(scrape, dict):
                                         continue
                                     http_404_candidates = _extract_http_404_urls(scrape)
                                     if http_404_candidates:
                                         for candidate in http_404_candidates:
-                                            if candidate in http_404_seen:
-                                                continue
-                                            http_404_seen.add(candidate)
-                                            http_404_urls.append(candidate)
-                                        await _yield_if_needed(idx, every=25)
-                                        continue
-                                    url_val = _scrape_url(scrape)
-                                    try:
-                                        scrape_id = await workflow.execute_activity(
-                                            store_scrape,
-                                            args=[scrape],
-                                            schedule_to_close_timeout=timedelta(minutes=3),
-                                            start_to_close_timeout=timedelta(minutes=3),
-                                        )
-                                        if isinstance(scrape_id, str):
-                                            scrape_ids.append(scrape_id)
-                                        if isinstance(url_val, str):
-                                            completed_urls.append(url_val)
-                                    except ApplicationError as exc:
-                                        if exc.type == "invalid_scrape":
-                                            if isinstance(url_val, str):
-                                                invalid_urls.append(url_val)
-                                        else:
-                                            if isinstance(url_val, str):
-                                                failed_urls.append(url_val)
-                                    except Exception:
-                                        if isinstance(url_val, str):
-                                            failed_urls.append(url_val)
-                                    await _yield_if_needed(idx, every=25)
+                                            if candidate not in http_404_seen:
+                                                http_404_seen.add(candidate)
+                                                http_404_urls.append(candidate)
+                                    else:
+                                        scrapes_to_store.append(scrape)
 
-                                await _complete_urls(completed_urls, "completed")
-                                await _complete_urls(
-                                    invalid_urls,
-                                    "invalid",
-                                    error="invalid_job_data",
-                                )
-                                await _complete_urls(
-                                    http_404_urls,
-                                    "failed",
-                                    error="http_404",
-                                )
-                                await _complete_urls(
-                                    failed_urls,
-                                    "failed",
-                                    error="store_scrape_failed",
-                                )
+                                # Complete HTTP 404 URLs immediately
+                                if http_404_urls:
+                                    await workflow.execute_activity(
+                                        complete_scrape_urls,
+                                        args=[{
+                                            "items": [{"url": url} for url in http_404_urls],
+                                            "status": "failed",
+                                            "error": "http_404"
+                                        }],
+                                        schedule_to_close_timeout=timedelta(seconds=20),
+                                    )
+
+                                # Fire-and-forget storage for valid scrapes (NON-BLOCKING)
+                                if scrapes_to_store:
+                                    storage_time = _workflow_now_ms()
+                                    await _log("storage.background", data={
+                                        "count": len(scrapes_to_store),
+                                        "time_ms": storage_time
+                                    })
+
+                                    storage_task = workflow.start_activity(
+                                        batch_store_scrapes_background,
+                                        args=[scrapes_to_store, {"batch_id": batch.get("id"), "urls": urls}],
+                                        schedule_to_close_timeout=timedelta(minutes=5),
+                                    )
+                                    storage_tasks.append(storage_task)
+
+                                    # Track estimated count optimistically
+                                    await _log("storage.queued", data={"estimated_count": len(scrapes_to_store)})
                     site_count += 1
                 except Exception as exc:  # noqa: BLE001
                     decision = decision_for_exception(exc, source="spidercloud_api")
@@ -778,6 +732,30 @@ class SpidercloudJobDetailsWorkflow:
                     if decision.action == "halt":
                         break
                     continue
+
+            # Wait for all background storage to complete before finishing
+            if storage_tasks:
+                await _log("storage.wait", data={"pending": len(storage_tasks)})
+                storage_results = await asyncio.gather(*storage_tasks, return_exceptions=True)
+
+                # Collect actual scrape IDs from completed storage operations
+                for result in storage_results:
+                    if isinstance(result, dict):
+                        ids = result.get("scrapeIds", [])
+                        if isinstance(ids, list):
+                            scrape_ids.extend([sid for sid in ids if isinstance(sid, str)])
+                        stored = result.get("stored", 0)
+                        failed = result.get("failed", 0)
+                        invalid = result.get("invalid", 0)
+                        await _log("storage.complete", data={
+                            "stored": stored,
+                            "failed": failed,
+                            "invalid": invalid
+                        })
+                    elif isinstance(result, Exception):
+                        await _log("storage.error", level="error", data={
+                            "error": str(result)
+                        })
 
             return ScrapeSummary(site_count=site_count, scrape_ids=scrape_ids)
         except Exception as exc:  # noqa: BLE001

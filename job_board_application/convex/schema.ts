@@ -32,6 +32,9 @@ const applicationTables = {
     url: v.string(),
     postedAt: v.number(),
     postedAtUnknown: v.optional(v.boolean()),
+    // When a job has first_published and updated_at, postedAt uses updated_at
+    // and postingFirstPublishedAt preserves the original first_published date
+    postingFirstPublishedAt: v.optional(v.number()),
     scrapedAt: v.optional(v.number()),
     // Optional flag to identify internal/test rows not meant for UI
     test: v.optional(v.boolean()),
@@ -70,7 +73,8 @@ const applicationTables = {
   })
     .index("by_bucket", ["bucket"])
     .index("by_bucket_url", ["bucket", "url"])
-    .index("by_url", ["url"]),
+    .index("by_url", ["url"])
+    .index("by_job", ["jobId"]),
 
   job_details: defineTable({
     jobId: v.id("jobs"),
