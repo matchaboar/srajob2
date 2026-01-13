@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import math
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 import sys
@@ -66,11 +67,36 @@ def _strip_none(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {key: value for key, value in payload.items() if value is not None}
 
 
-async def _push_to_convex(entries: List[Dict[str, Any]]) -> None:
-    schedules = await convex_query("router:listSchedules", {}) or []
-    schedule_map = {
-        _schedule_key(row.get("name", "")): row for row in schedules if isinstance(row, dict)
-    }
+def _coerce_pagination_limit(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        numeric_value = float(value)
+    elif isinstance(value, str):
+        try:
+            numeric_value = float(value)
+        except ValueError:
+            return None
+    else:
+        return None
+
+    if not math.isfinite(numeric_value):
+        return None
+
+    num = math.floor(numeric_value)
+    if num < 0:
+        return None
+    return num
+
+
+async def _push_to_convex(entries: List[Dict[str, Any]], *, skip_sync: bool = False) -> None:
+    if skip_sync:
+        schedule_map: Dict[str, Dict[str, Any]] = {}
+    else:
+        schedules = await convex_query("router:listSchedules", {}) or []
+        schedule_map = {
+            _schedule_key(row.get("name", "")): row for row in schedules if isinstance(row, dict)
+        }
     schedule_ids: Dict[str, str] = {}
 
     for entry in entries:
@@ -111,6 +137,7 @@ async def _push_to_convex(entries: List[Dict[str, Any]]) -> None:
             "type": entry.get("type"),
             "scrapeProvider": entry.get("scrapeProvider"),
             "pattern": entry.get("pattern"),
+            "paginationLimit": _coerce_pagination_limit(entry.get("paginationLimit")),
             "scheduleId": schedule_id,
             "enabled": bool(entry.get("enabled", True)),
         }
@@ -138,10 +165,16 @@ async def main() -> None:
         default="Weekdays every 2 hours @ {startTime}",
         help="Schedule name template. Use {startTime} to include start time.",
     )
-    parser.add_argument(
+    push_group = parser.add_mutually_exclusive_group()
+    push_group.add_argument(
         "--no-push",
         action="store_true",
         help="Only update YAML; skip pushing to Convex.",
+    )
+    push_group.add_argument(
+        "--skipsync",
+        action="store_true",
+        help="Push the current YAML to Convex without downloading existing schedule metadata.",
     )
     args = parser.parse_args()
 
@@ -162,7 +195,10 @@ async def main() -> None:
     _write_yaml(yaml_path, payload)
     print(f"Updated schedules in {yaml_path}")
 
-    if not args.no_push:
+    if args.skipsync:
+        await _push_to_convex(updated_entries, skip_sync=True)
+        print("Pushed schedules to Convex without downloading existing schedules.")
+    elif not args.no_push:
         await _push_to_convex(updated_entries)
         print("Pushed schedules to Convex.")
 

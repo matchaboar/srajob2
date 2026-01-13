@@ -1,0 +1,31 @@
+{
+  "site_id": "notion",
+  "detail_url": "https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297",
+  "source_url": "https://jobs.ashbyhq.com/notion",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Mid-Market",
+      "description_preview": "# Account Executive, Mid-Market ABOUT US: Notion helps you build beautiful tools for your life\u2019s work. In today's world of endless apps and tabs, Notion provides one place for teams to get everything done, seamlessly connecting docs, notes, projects, calendar, and email\u2014with AI built in to find answers and automate...",
+      "description_word_count": 730,
+      "location": "New York, United States",
+      "is_remote": false,
+      "posted_at": 1768275438929,
+      "posted_at_unknown": true,
+      "company": "Notion",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297",
+      "cost_milli_cents": 20
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

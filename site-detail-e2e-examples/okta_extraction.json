@@ -1,0 +1,31 @@
+{
+  "site_id": "okta",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7378568",
+  "source_url": "https://api.greenhouse.io/v1/boards/okta/jobs",
+  "extracted_jobs": [
+    {
+      "title": "ABX Marketing Manager",
+      "description_preview": "ABX Marketing Manager Get to know Okta Okta is The World\u2019s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business...",
+      "description_word_count": 1028,
+      "location": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+      "is_remote": false,
+      "posted_at": 1762969924000,
+      "posted_at_unknown": false,
+      "company": "Okta",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7378568",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

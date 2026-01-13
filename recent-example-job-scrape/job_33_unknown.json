@@ -1,0 +1,29 @@
+{
+  "_creationTime": 1768266600008.606,
+  "_id": "k176bn7s0cydsm6p4ygefasdd57z4291",
+  "city": "Unknown",
+  "company": "Unknown",
+  "companyKey": "unknown",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266549550,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266596763,
+  "state": "Unknown",
+  "title": "#Page Block Perp5Eobrki",
+  "totalCompensation": 0,
+  "url": "#page-block-perp5eobrki"
+}

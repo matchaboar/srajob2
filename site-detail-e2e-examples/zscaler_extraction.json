@@ -1,0 +1,31 @@
+{
+  "site_id": "zscaler",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+  "source_url": "https://api.greenhouse.io/v1/boards/zscaler/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive",
+      "description_preview": "Account Executive About Zscaler Zscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location. Here, impact in your role...",
+      "description_word_count": 702,
+      "location": "Tokyo, JPN",
+      "is_remote": false,
+      "posted_at": 1751362620000,
+      "posted_at_unknown": false,
+      "company": "Zscaler",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

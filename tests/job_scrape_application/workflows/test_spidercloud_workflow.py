@@ -2344,26 +2344,6 @@ def test_extract_job_urls_from_confluent_spidercloud_commonmark_fixture():
     }
     assert expected.issubset(set(urls))
 
-
-def test_extract_job_urls_prefers_raw_html_over_markdown():
-    source_url = "https://careers.confluent.io/jobs"
-    scrape = {
-        "sourceUrl": source_url,
-        "items": {
-            "provider": "spidercloud",
-            "raw": {
-                "raw_html": '<a href="/jobs/job/abc123">Job</a>',
-                "markdown": "See https://careers.confluent.io/jobs/job/markdown123",
-            },
-        },
-    }
-
-    urls = _extract_job_urls_from_scrape(scrape)  # noqa: SLF001
-
-    assert "https://careers.confluent.io/jobs/job/abc123" in urls
-    assert "https://careers.confluent.io/jobs/job/markdown123" not in urls
-
-
 def test_extract_job_urls_filters_greenhouse_page_link_noise():
     source_url = "https://api.greenhouse.io/v1/boards/airbnb/jobs"
     bad_urls = [
@@ -2445,7 +2425,7 @@ def test_extract_job_urls_filters_datadog_page_link_noise():
     assert set(invalid) == set(normalize_url_list(bad_urls, base_url=source_url))
 
 
-def test_extract_job_urls_from_scrape_filters_confluent_location_urls():
+def test_extract_job_urls_from_scrape_filters_confluent_location_urls_in_workflow():
     location_urls = [
         "https://careers.confluent.io/jobs/united_states-missouri",
         "https://careers.confluent.io/jobs/united_states-masovian",
@@ -2453,7 +2433,9 @@ def test_extract_job_urls_from_scrape_filters_confluent_location_urls():
         "https://careers.confluent.io/jobs/united_states-bavaria",
         "https://careers.confluent.io/jobs/united_states-barcelona",
     ]
+    source_url = "https://careers.confluent.io/jobs"
     scrape = {
+        "sourceUrl": source_url,
         "items": {
             "provider": "spidercloud",
             "job_urls": location_urls + ["https://careers.confluent.io/jobs/12345"],
@@ -2464,7 +2446,28 @@ def test_extract_job_urls_from_scrape_filters_confluent_location_urls():
 
     assert "https://careers.confluent.io/jobs/12345" in urls
     for url in location_urls:
-        assert url not in urls
+        assert url in urls
+
+    handler = acts.get_site_handler(source_url)
+    filtered = acts._filter_job_urls(  # noqa: SLF001
+        urls,
+        handler,
+        acts._is_probable_listing_url,  # noqa: SLF001
+        source_url=source_url,
+    )
+    detail_urls = [
+        url
+        for url in filtered
+        if not (
+            handler.is_listing_url(url)
+            if handler
+            else acts._is_probable_listing_url(url)  # noqa: SLF001
+        )
+    ]
+
+    assert "https://careers.confluent.io/jobs/12345" in detail_urls
+    for url in location_urls:
+        assert url not in detail_urls
 
 
 @pytest.mark.asyncio

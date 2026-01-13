@@ -1,0 +1,30 @@
+{
+  "_creationTime": 1768266659861.6848,
+  "_id": "k1756b0z917zzzjnr701tzzcc97z46b5",
+  "city": "Unknown",
+  "company": "Robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Aktien-Token Krypto entdecken | Robinhood EU Another year of progress, minted. Look back at what we\u2019ve built in 2025. [See highlights](https://robinhood.com/eu/en/campaign/2025minted). ![One place for all your investments ](https://images.ctfassets.net/ilblxxee70tt/6DXGzd2boLMbeX1uooWWrf/693b35c0bd1e49baaf6033c8a00bd17f/EU_Web_Landing_Hero_Desktop_Short.jpg) # All Ihre Investments an einem Ort Hier finden Sie alles, was Sie f\u00fcr Ihre ersten Investments brauchen. Von Aktien-Token (Stock Tokens) bis Krypto \u2013 kaufen, verkaufen und verwalten Sie alles an einem Ort. [Jetzt loslegen](https://robinhood.com/signup/?lang=de) ![Entdecken Stock Token](https://images.ctfassets.net/ilblxxee70tt/3bC37WS1BotuxeLQ3RJVgh/18b52f02f45f5149d34385158b29daca/Stock-Tokens-UI-DE-Desktop.png) ### Investieren ### Loslegen mit Aktien-Token Entdecken Sie \u00fcber 2.000 Aktien-Token (Stock Tokens), die mit NVIDIA, Microsoft, Apple, dem Vanguard S&amp;P 500 ETF und mehr verkn\u00fcpft sind. Aktien-Token sind Derivate, die den Preis...",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266559549,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266632285,
+  "state": "Unknown",
+  "title": "All Ihre Investments an einem Ort",
+  "totalCompensation": 65000,
+  "url": "https://robinhood.com/"
+}

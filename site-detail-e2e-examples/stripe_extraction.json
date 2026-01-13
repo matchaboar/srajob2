@@ -1,0 +1,31 @@
+{
+  "site_id": "stripe",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7374078",
+  "source_url": "https://api.greenhouse.io/v1/boards/stripe/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, AI Sales",
+      "description_preview": "Account Executive, AI Sales Who we are About Stripe Stripe is a financial infrastructure platform for businesses. Millions of companies - from the world\u2019s largest enterprises to the most ambitious startups - use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase...",
+      "description_word_count": 473,
+      "location": "SF",
+      "is_remote": false,
+      "posted_at": 1763144793000,
+      "posted_at_unknown": false,
+      "company": "Stripe",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7374078",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

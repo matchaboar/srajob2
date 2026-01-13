@@ -1,0 +1,33 @@
+{
+  "_creationTime": 1768266635205.6218,
+  "_id": "k17cjvb1ytah39hbtapwe28yzd7z54ve",
+  "city": "Toronto",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "Canada"
+  ],
+  "country": "Canada",
+  "currencyCode": "CAD",
+  "description": "Software Developer, Backend Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role As a Software Developer, you will be building and owning certain backend services and infrastructure that power our core financial products. You will also gain a unique look into how the US financial systems...",
+  "engineer": false,
+  "level": "mid",
+  "location": "Toronto, Canada",
+  "locationSearch": "Toronto Canada",
+  "locationStates": [
+    "Canada"
+  ],
+  "locations": [
+    "Toronto, Canada"
+  ],
+  "postedAt": 1720726709000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266572982,
+  "state": "Canada",
+  "title": "Software Developer, Backend",
+  "totalCompensation": 129500,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/6087178)Toronto"
+}

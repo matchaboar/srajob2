@@ -1,0 +1,31 @@
+{
+  "site_id": "spotify",
+  "detail_url": "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
+  "source_url": "https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing",
+  "extracted_jobs": [
+    {
+      "title": "Data Scientist",
+      "description_preview": "# Data Scientist ### Growth Analytics (Performance Marketing) Link copied to clipboard. ](https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing#) Data, Research &amp; Insights ](https://www.lifeatspotify.com/job-categories/data-research-insights) Data Permanent New York We are looking for a Data Scientist to join the Business Analytics team at Spotify. In this role, you\u2019ll shape Spotify\u2019s performance marketing and growth strategy by developing...",
+      "description_word_count": 821,
+      "location": "New York, NY",
+      "is_remote": false,
+      "posted_at": 1768275443188,
+      "posted_at_unknown": true,
+      "company": "Spotify",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
+      "cost_milli_cents": 209
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

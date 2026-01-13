@@ -1,0 +1,11 @@
+site_id: bloomberg
+detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494
+expected:
+  title: Senior Software Engineer - Employee Engagement & Discovery - 16494 - Bloomberg
+  company: Bloomberg
+  location: New York, NY
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

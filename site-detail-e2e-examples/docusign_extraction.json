@@ -1,0 +1,31 @@
+{
+  "site_id": "docusign",
+  "detail_url": "https://careers.docusign.com/jobs/27215?lang=en-us",
+  "source_url": "https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false",
+  "extracted_jobs": [
+    {
+      "title": "Software Engineer",
+      "description_preview": "Software Engineer in Seattle, Washington | Docusign [ Back ](<javascript: history.go(-1)>) # Software Engineer CAROUSEL\\_PARAGRAPH * Engineering * Seattle, Washington * 09/04/2025 Share Job ### Share Job [](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png) ## Job Description ## Company Overview Docusign brings agreements to life. Over 1.5 million customers and more than a billion people in...",
+      "description_word_count": 1315,
+      "location": "Seattle, WA",
+      "is_remote": false,
+      "posted_at": 1768275432344,
+      "posted_at_unknown": true,
+      "company": "Docusign",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.docusign.com/jobs/27215?lang=en-us",
+      "cost_milli_cents": 460
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

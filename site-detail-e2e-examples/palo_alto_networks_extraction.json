@@ -1,0 +1,31 @@
+{
+  "site_id": "palo_alto_networks",
+  "detail_url": "https://jobs.paloaltonetworks.com/en/job/rotterdam/regional-sales-manager-netherlands/47263/82062440800",
+  "source_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+  "extracted_jobs": [
+    {
+      "title": "Regional Sales Manager - Netherlands",
+      "description_preview": "Our Mission At Palo Alto Networks\u00ae everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
+      "description_word_count": 794,
+      "location": "Rotterdam, 11, NL",
+      "is_remote": true,
+      "posted_at": 1768275441342,
+      "posted_at_unknown": true,
+      "company": "Palo Alto Networks",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://jobs.paloaltonetworks.com/en/job/rotterdam/regional-sales-manager-netherlands/47263/82062440800",
+      "cost_milli_cents": 77
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

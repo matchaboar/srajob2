@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest:*)",
+      "Bash(uv run python -m pytest:*)",
+      "Bash(uv run python:*)",
+      "Bash(find:*)",
+      "Bash(mise run:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(__NEW_LINE_ea1a0cb187f2b807__ echo \"=== CONFIGURATION EXPORTS ===\")",
+      "Bash(__NEW_LINE_ea1a0cb187f2b807__ echo \"\")",
+      "Bash(pytest:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(python3:*)",
+      "Bash(tail:*)",
+      "Bash(npx convex run:*)",
+      "Bash(npx --version:*)",
+      "Bash(npx convex --help:*)",
+      "Bash(npx convex data --help:*)",
+      "Bash(uvx ruff check:*)",
+      "WebSearch",
+      "Bash(uv run grep:*)",
+      "Bash(uv run python3:*)",
+      "Bash(npx convex dev:*)",
+      "Bash(npx convex deploy:*)",
+      "Bash(source job_board_application/.env.production)",
+      "Bash(export CONVEX_HTTP_URL)"
+    ]
+  },
+  "outputStyle": "default"
+}

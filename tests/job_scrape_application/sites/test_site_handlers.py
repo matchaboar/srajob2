@@ -307,7 +307,7 @@ def test_meta_careers_handler_matches_and_extracts_links():
 
     config = handler.get_spidercloud_config(listing_url)
     assert config.get("request") == "chrome"
-    assert config.get("return_format") == ["raw_html"]
+    assert config.get("return_format") == ["commonmark", "raw_html"]
     assert config.get("return_page_links") is True
     assert isinstance(config.get("execution_scripts"), dict)
     assert "*" in config.get("execution_scripts")
@@ -318,12 +318,14 @@ def test_meta_careers_handler_matches_and_extracts_links():
     html = (
         '<a href="/profile/job_details/677160418622314">Job</a>'
         '<a href="/jobs/100000000000000/">Job 2</a>'
+        '<a href="/profile/job_details/727671609895617)[###">Job 3</a>'
         '<a href="/jobsearch/?teams[0]=Software%20Engineering&page=2">Next</a>'
         '<a href="/culture">Culture</a>'
     )
     links = handler.get_links_from_raw_html(html)
     assert "https://www.metacareers.com/profile/job_details/677160418622314" in links
     assert "https://www.metacareers.com/profile/job_details/100000000000000" in links
+    assert "https://www.metacareers.com/profile/job_details/727671609895617" in links
     assert any("jobsearch" in link and "page=2" in link for link in links)
     assert "https://www.metacareers.com/culture" not in links
 

@@ -1,0 +1,30 @@
+{
+  "_creationTime": 1768266652061.849,
+  "_id": "k17bhb4vkwasfzdwg5jy4ckvqx7z4qp0",
+  "city": "Unknown",
+  "company": "Hracuity",
+  "companyKey": "hracuity",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Applicant Accommodation Form This form should not be used for customer inquiries. ![](https://robinhood.hracuity.net/webform/getlogo/752875e4-42ba-4dff-9951-fd51e315997e) Select Logo ** Supported file extensions: .jpg, .jpeg, .png Our team is here to enable an inclusive and welcoming interview experience for all candidates. If you need a reasonable accommodation, our team is here to enable an unbiased, barrier-free, and equitable interview experience. ** Name:\\* ** Email:\\* ** Phone Number:\\* ** Applying for:\\* ** What is your role?\\* Please selectCandidateRecruiter ** Are you submitting a request for yourself or on behalf of a candidate?\\* Please selectSubmitting on behalf of myselfSubmitting on behalf of my candidate ** Are...",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266562428,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266596763,
+  "state": "Unknown",
+  "title": "Applicant Accommodation Form",
+  "totalCompensation": 0,
+  "url": "https://robinhood.hracuity.net/webform/index/752875e4-42ba-4dff-9951-fd51e315997e"
+}

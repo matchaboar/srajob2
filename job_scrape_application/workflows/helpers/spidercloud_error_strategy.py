@@ -11,35 +11,29 @@ except Exception:  # pragma: no cover - temporal not always available in tests
     ApplicationError = None  # type: ignore[assignment]
 
 
-SPIDERCLOUD_RETRYABLE_STATUS = {204, 429, 500, 503}
+SPIDERCLOUD_RETRYABLE_STATUS = {429}
 SPIDERCLOUD_FATAL_STATUS = {401, 402}
 SPIDERCLOUD_NON_RETRYABLE_STATUS = {400, 403, 404, 413}
 
 SPIDERCLOUD_FATAL_TYPES = {"spidercloud_payment_required", "spidercloud_unauthorized"}
 SPIDERCLOUD_RETRYABLE_TYPES = {
-    "spidercloud_timeout",
     "spidercloud_rate_limit",
-    "spidercloud_service_unavailable",
-    "spidercloud_server_error",
 }
 SPIDERCLOUD_NON_RETRYABLE_TYPES = {
     "spidercloud_bad_request",
     "spidercloud_payload_too_large",
+    "spidercloud_timeout",
+    "spidercloud_service_unavailable",
+    "spidercloud_server_error",
 }
 
 _RETRY_AFTER_SECONDS = {
-    204: 30,
     429: 120,
-    500: 60,
-    503: 120,
 }
 _DEFAULT_RETRY_AFTER_SECONDS = 60
 _TIMEOUT_RETRY_AFTER_SECONDS = 120
 _RETRY_AFTER_BY_TYPE = {
-    "spidercloud_timeout": _TIMEOUT_RETRY_AFTER_SECONDS,
     "spidercloud_rate_limit": 120,
-    "spidercloud_service_unavailable": 120,
-    "spidercloud_server_error": 60,
 }
 
 
@@ -140,6 +134,21 @@ def _error_type_for_status(status_code: int | None, *, source: str | None) -> st
     return f"{prefix}_{reason}"
 
 
+def _is_spidercloud_rate_limit(
+    status_code: int | None,
+    *,
+    error_type: str | None,
+    source: str | None,
+) -> bool:
+    if error_type and "rate_limit" in error_type:
+        return True
+    if status_code != 429:
+        return False
+    if not source:
+        return False
+    return source.startswith("spidercloud_api")
+
+
 def decision_for_status_code(
     status_code: int | None,
     *,
@@ -155,7 +164,11 @@ def decision_for_status_code(
             error_type=inferred_error_type,
             status_code=status_code,
         ).decide(SpidercloudErrorContext(status_code, inferred_error_type, message, source))
-    if status_code in SPIDERCLOUD_RETRYABLE_STATUS:
+    if status_code in SPIDERCLOUD_RETRYABLE_STATUS and _is_spidercloud_rate_limit(
+        status_code,
+        error_type=inferred_error_type,
+        source=source,
+    ):
         reason = _reason_for_status(status_code) or "retryable_error"
         retry_after = _RETRY_AFTER_SECONDS.get(status_code, _DEFAULT_RETRY_AFTER_SECONDS)
         return RetryableSpidercloudErrorStrategy(
@@ -229,9 +242,8 @@ def decision_for_exception(exc: BaseException, *, source: str | None = None) -> 
         status_code = _parse_status_code_from_message(message)
 
     if message and "timeout" in message.lower():
-        return RetryableSpidercloudErrorStrategy(
+        return NonRetryableSpidercloudErrorStrategy(
             error="timeout",
-            retry_after_seconds=_TIMEOUT_RETRY_AFTER_SECONDS,
             error_type=error_type or "spidercloud_timeout",
             status_code=status_code,
         ).decide(SpidercloudErrorContext(status_code, error_type, message, source))

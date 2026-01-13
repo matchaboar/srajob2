@@ -1,0 +1,31 @@
+{
+  "site_id": "pinterest",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414",
+  "source_url": "https://api.greenhouse.io/v1/boards/pinterest/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Business Development Lead, Data Partnerships",
+      "description_preview": "Business Development Lead, Data Partnerships About Pinterest: Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we\u2019re on a mission to bring everyone the inspiration to create a life they...",
+      "description_word_count": 764,
+      "location": "San Francisco, CA, US; Remote, US",
+      "is_remote": true,
+      "posted_at": 1765403916000,
+      "posted_at_unknown": false,
+      "company": "Pinterest",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

@@ -19,6 +19,7 @@
 ## Global tooling rules (must follow)
 - Use `pwsh` for PowerShell (PowerShell 7).
 - Do not run Python directly. Use `uv run <script.py>`.
+- To save time on pytest, use `--lf` to re-run only the failing tests from last run.
 - For non-repo Python modules, use `uvx <module>`.
 - If you edit any Python file, run `uvx ruff check` and fix issues.
 - Long-running commands (e.g., `npm run test`) must use a 100s timeout.
@@ -148,3 +149,7 @@
 - Add tests alongside existing suites in `tests/` when changing behavior.
 - For new scraping behavior, update fixtures and corresponding tests together.
 - For workflow changes, update tests in `tests/job_scrape_application/`.
+- Job detail extraction tests: `tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py`.
+- Assertion files for extraction validation: `tests/job_scrape_application/workflows/assertions/`.
+- See `DEBUGGING.md` for detailed debugging procedures.
+- See `CLAUDE.md` for Claude Code-specific guidance.

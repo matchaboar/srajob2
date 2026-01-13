@@ -1,0 +1,31 @@
+{
+  "site_id": "snapchat",
+  "detail_url": "https://careers.snap.com/job?id=R0043679",
+  "source_url": "https://careers.snap.com/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Staff Desense Engineer",
+      "description_preview": "# Staff Desense Engineer Boulder Los Angeles Full time Posted 27 days ago [Snap Inc](https://www.snap.com/en-US/?lang=en-US) is a technology company. We believe the camera presents the greatest opportunity to improve the way people live and communicate. Snap contributes to human progress by empowering people to express themselves, live in the moment,...",
+      "description_word_count": 866,
+      "location": "Los Angeles, CA",
+      "is_remote": false,
+      "posted_at": 1765942634997,
+      "posted_at_unknown": false,
+      "company": "Snap",
+      "level": "staff",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.snap.com/job?id=R0043679",
+      "cost_milli_cents": 99
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

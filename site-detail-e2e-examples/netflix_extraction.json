@@ -1,0 +1,31 @@
+{
+  "site_id": "netflix",
+  "detail_url": "https://explore.jobs.netflix.net/careers/job/790313552306",
+  "source_url": "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
+  "extracted_jobs": [
+    {
+      "title": "Site Reliability Engineer L5 - Live SRE",
+      "description_preview": "Site Reliability Engineer L5 - Live SRE | USA - Remote | Netflix `` ** All Jobs # Site Reliability Engineer L5 - Live SRE USA - Remote Apply Now #### Job Posting Date 01-12-2026 #### Job Requisition ID JR38115 #### Teams Engineering #### Work Type Remote Netflix is one...",
+      "description_word_count": 513,
+      "location": "Remote",
+      "is_remote": true,
+      "posted_at": 1768275435550,
+      "posted_at_unknown": true,
+      "company": "Netflix",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://explore.jobs.netflix.net/careers/job/790313552306",
+      "cost_milli_cents": 940
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

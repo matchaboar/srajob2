@@ -16,6 +16,7 @@ class RuntimeConfig:
     temporal_general_worker_count: int
     temporal_job_details_worker_count: int
     temporal_listing_worker_count: int
+    spidercloud_single_request_mode: bool  # Use synchronous JSON instead of JSONL streaming
 
 
 def _load_runtime_yaml() -> Dict[str, Any]:
@@ -40,6 +41,15 @@ def _coerce_int(config: Dict[str, Any], key: str, default: int) -> int:
     return default
 
 
+def _coerce_bool(config: Dict[str, Any], key: str, default: bool) -> bool:
+    value = config.get(key)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ("true", "1", "yes")
+    return default
+
+
 _raw_runtime_config = _load_runtime_yaml()
 
 runtime_config = RuntimeConfig(
@@ -51,7 +61,7 @@ runtime_config = RuntimeConfig(
     spidercloud_job_details_batch_size=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_batch_size",
-        10,
+        1,  # Single URL per request in single_request_mode
     ),
     spidercloud_listing_batch_size=_coerce_int(
         _raw_runtime_config,
@@ -61,7 +71,7 @@ runtime_config = RuntimeConfig(
     spidercloud_job_details_concurrency=_coerce_int(
         _raw_runtime_config,
         "spidercloud_job_details_concurrency",
-        4,
+        10,  # Increased for single_request_mode
     ),
     spidercloud_job_details_processing_expire_minutes=_coerce_int(
         _raw_runtime_config,
@@ -87,5 +97,10 @@ runtime_config = RuntimeConfig(
         _raw_runtime_config,
         "temporal_listing_worker_count",
         4,
+    ),
+    spidercloud_single_request_mode=_coerce_bool(
+        _raw_runtime_config,
+        "spidercloud_single_request_mode",
+        True,  # Enabled by default - use synchronous JSON instead of JSONL streaming
     ),
 )

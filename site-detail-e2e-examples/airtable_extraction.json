@@ -1,0 +1,31 @@
+{
+  "site_id": "airtable",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7883535002",
+  "source_url": "https://api.greenhouse.io/v1/boards/airtable/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Commercial Accounts",
+      "description_preview": "Account Executive, Commercial Accounts Airtable is the no-code app platform that empowers people closest to the work to accelerate their most critical business processes. More than 500,000 organizations, including 80% of the Fortune 100, rely on Airtable to transform how work gets done. Location: Austin, Texas (Hybrid)&nbsp; As a New...",
+      "description_word_count": 651,
+      "location": "Austin, TX",
+      "is_remote": false,
+      "posted_at": 1741017760000,
+      "posted_at_unknown": false,
+      "company": "Airtable",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7883535002",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

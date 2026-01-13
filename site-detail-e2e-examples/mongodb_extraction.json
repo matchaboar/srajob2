@@ -1,0 +1,31 @@
+{
+  "site_id": "mongodb",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+  "source_url": "https://api.greenhouse.io/v1/boards/mongodb/jobs",
+  "extracted_jobs": [
+    {
+      "title": "2026 - Analytics Engineering Intern, NYC",
+      "description_preview": "2026 - Analytics Engineering Intern, NYC We're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines. What...",
+      "description_word_count": 959,
+      "location": "New York City",
+      "is_remote": false,
+      "posted_at": 1762884941000,
+      "posted_at_unknown": false,
+      "company": "MongoDB",
+      "level": "junior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

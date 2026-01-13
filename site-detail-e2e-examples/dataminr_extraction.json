@@ -1,0 +1,31 @@
+{
+  "site_id": "dataminr",
+  "detail_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
+  "source_url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer",
+  "extracted_jobs": [
+    {
+      "title": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
+      "description_preview": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in...",
+      "description_word_count": 1049,
+      "location": "San Antonio, TX",
+      "is_remote": false,
+      "posted_at": 1767916800000,
+      "posted_at_unknown": false,
+      "company": "Dataminr",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

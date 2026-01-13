@@ -1,0 +1,31 @@
+{
+  "site_id": "purestorage",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7457367",
+  "source_url": "https://api.greenhouse.io/v1/boards/purestorage/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Central Government, Japan",
+      "description_preview": "Account Executive, Central Government, Japan We\u2019re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry. This type of work\u2014work that changes the world\u2014is what the tech...",
+      "description_word_count": 806,
+      "location": "Tokyo, Japan",
+      "is_remote": false,
+      "posted_at": 1766715182000,
+      "posted_at_unknown": false,
+      "company": "Pure Storage",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7457367",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

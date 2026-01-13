@@ -1,0 +1,30 @@
+{
+  "_creationTime": 1768266633385.0398,
+  "_id": "k178ddw6yp3b1r01pk75jzavk97z4gzg",
+  "city": "Unknown",
+  "company": "Coupang",
+  "companyKey": "coupang",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Easy Privacy Notice \u2013 Coupang! Privacy Notice Center(ENG) #### [Privacy Notice](https://privacy.coupang.com/en/center/coupang/) #### [Easy Privacy Notice](https://privacy.coupang.com/en/easy/) #### [Information Security / Privacy Certifications](https://privacy.coupang.com/en/security/status) #### [Announcements](https://privacy.coupang.com/en/notice/) ##### [Coupang Privacy Notice](https://privacy.coupang.com/en/center/coupang/) ##### [Coupang Visual Data Processing Policy](https://privacy.coupang.com/en/center/cctv/) ##### [Information security / Privacy certification acquired](https://privacy.coupang.com/en/security/status) ##### [Information security / Privacy certification history](https://privacy.coupang.com/en/security/history) ## Coupang collects and uses the minimum amount of personal information necessary for the Customer to use the service. **Member registration**: User ID, password, name, mobile phone number **Coupang &gt; Purchasing Products**: Name, mobile number, address, email **Coupang Eats &gt; Ordering Delivery**: Address, location information **Coupang Play**: Nickname ## Coupang provides personal information...",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266567393,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266600516,
+  "state": "Unknown",
+  "title": "Easy Privacy Notice \u2013 Coupang! Privacy Notice Center(ENG)",
+  "totalCompensation": 0,
+  "url": "https://privacy.coupang.com/en/easy"
+}

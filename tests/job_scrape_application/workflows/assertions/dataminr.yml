@@ -1,0 +1,10 @@
+site_id: dataminr
+detail_url: https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954
+expected:
+  title: Field Services Engineer, USAF (Onsite in San Antonio, TX)
+  company: Dataminr
+  location: San Antonio, TX
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1

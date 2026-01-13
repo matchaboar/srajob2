@@ -1,0 +1,32 @@
+{
+  "_creationTime": 1768266576474.1978,
+  "_id": "k17cqp5rze88jq3r69pjspdkf97z4erj",
+  "city": "Bellevue",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Senior Software Engineer, Security AI Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role We are building an elite team, applying frontier technologies to the world\u2019s biggest financial problems. We\u2019re looking for bold thinkers. Sharp problem-solvers. Builders who are wired to make an impact. Robinhood isn\u2019t...",
+  "engineer": true,
+  "level": "senior",
+  "location": "Bellevue, Washington",
+  "locationSearch": "Bellevue Washington United States",
+  "locationStates": [
+    "Washington"
+  ],
+  "locations": [
+    "Bellevue, Washington"
+  ],
+  "postedAt": 1767912381000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266572982,
+  "state": "Washington",
+  "title": "Senior Software Engineer, Security AI",
+  "totalCompensation": 203500,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/7489829)Bellevue"
+}

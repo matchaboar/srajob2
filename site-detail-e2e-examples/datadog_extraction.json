@@ -1,0 +1,31 @@
+{
+  "site_id": "datadog",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+  "source_url": "https://api.greenhouse.io/v1/boards/datadog/jobs",
+  "extracted_jobs": [
+    {
+      "title": "AI Research Engineer - Datadog AI Research (DAIR)",
+      "description_preview": "AI Research Engineer - Datadog AI Research (DAIR) As a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production. Building on...",
+      "description_word_count": 965,
+      "location": "Paris, France",
+      "is_remote": false,
+      "posted_at": 1756305260000,
+      "posted_at_unknown": false,
+      "company": "Datadog",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+      "cost_milli_cents": 4
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

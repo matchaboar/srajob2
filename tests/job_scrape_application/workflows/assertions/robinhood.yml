@@ -1,0 +1,11 @@
+site_id: robinhood
+detail_url: https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135
+expected:
+  title: Android Developer
+  company: Robinhood
+  location: Toronto, Canada
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

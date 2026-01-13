@@ -1,0 +1,5 @@
+site_id: broadcom
+detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/IC-Design-Engineer_R023525
+expected:
+  skip: true
+  skip_reason: Listing and detail fixtures are out of sync - first job in listing doesn't match detail fixture

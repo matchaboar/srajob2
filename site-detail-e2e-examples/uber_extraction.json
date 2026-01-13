@@ -1,0 +1,31 @@
+{
+  "site_id": "uber",
+  "detail_url": "https://www.uber.com/careers/list/149889",
+  "source_url": "https://www.uber.com/us/en/careers/list?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington",
+  "extracted_jobs": [
+    {
+      "title": "Business Development Lead, US Regional Grocery",
+      "description_preview": "Business Development Lead, US Regional Grocery - Chicago, Illinois | Uber Careers [Skip to main content](#main) [](https://www.uber.com/careers/list?query=) # Business Development Lead, US Regional Grocery Sales, Sales &amp; Account Management Los Angeles, California | New York, New York | Seattle, Washington | Miami, Florida | Chicago, Illinois | San Francisco, California...",
+      "description_word_count": 989,
+      "location": "San Francisco, CA",
+      "is_remote": false,
+      "posted_at": 1768275444298,
+      "posted_at_unknown": true,
+      "company": "Uber",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://www.uber.com/careers/list/149889",
+      "cost_milli_cents": 130
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

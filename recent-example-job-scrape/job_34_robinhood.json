@@ -1,0 +1,29 @@
+{
+  "_creationTime": 1768266599422.2341,
+  "_id": "k178px0ngf5ggfgdyam4takjcd7z5ghd",
+  "city": "Unknown",
+  "company": "Robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "engineer": true,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266549550,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266596763,
+  "state": "Unknown",
+  "title": "Untitled",
+  "totalCompensation": 0,
+  "url": "https://investors.robinhood.com/static-files/f5fdb972-e47f-45f3-9c29-cb479fb6aba4"
+}

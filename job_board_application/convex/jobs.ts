@@ -101,6 +101,17 @@ const compareNewestJobs = (a: any, b: any) => {
   return bScraped - aScraped;
 };
 
+const compareScrapedJobs = (a: any, b: any) => {
+  const aScraped = normalizeSortTimestamp(a.scrapedAt);
+  const bScraped = normalizeSortTimestamp(b.scrapedAt);
+  if (aScraped !== bScraped) {
+    return bScraped - aScraped;
+  }
+  const aPosted = normalizeSortTimestamp(a.postedAt);
+  const bPosted = normalizeSortTimestamp(b.postedAt);
+  return bPosted - aPosted;
+};
+
 const toTitleCase = (value: string) => {
   const cleaned = value.replace(/[^a-z0-9]+/gi, " ").trim();
   if (!cleaned) return "";
@@ -670,7 +681,7 @@ const ensureLocationFields = async (
   if (
     !Array.isArray(job.locationStates) ||
     JSON.stringify(job.locationStates) !==
-      JSON.stringify(locationInfo.locationStates)
+    JSON.stringify(locationInfo.locationStates)
   ) {
     patched.locationStates = locationInfo.locationStates;
   }
@@ -777,8 +788,8 @@ export const computeJobCountry = (
   const resolvedLocation =
     locationInfo ??
     (Array.isArray(job.countries) ||
-    Array.isArray(job.locationStates) ||
-    job.state
+      Array.isArray(job.locationStates) ||
+      job.state
       ? null
       : deriveLocationFields(job));
   const locationCountries = Array.isArray(job.countries)
@@ -1179,6 +1190,7 @@ export const listJobs = query({
     useSearch: v.optional(v.boolean()),
     engineer: v.optional(v.boolean()),
     excludeApplied: v.optional(v.boolean()),
+    sortBy: v.optional(v.union(v.literal("posted"), v.literal("scraped"))),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -1194,6 +1206,7 @@ export const listJobs = query({
     const stateFilter = (args.state ?? "").trim();
     const shouldUseSearch = rawSearch.length > 0;
     const wantsEngineer = args.engineer === true;
+    const sortByScraped = args.sortBy === "scraped";
 
     const companyFilters = (args.companies ?? [])
       .map((c) => c.trim())
@@ -1211,24 +1224,24 @@ export const listJobs = query({
     const shouldExcludeApplied = args.excludeApplied !== false;
     const hasAppliedApplications = shouldExcludeApplied
       ? Boolean(
-          await ctx.db
-            .query("applications")
-            .withIndex("by_user_status_applied_at", (q) =>
-              q.eq("userId", userId).eq("status", "applied"),
-            )
-            .first(),
-        )
+        await ctx.db
+          .query("applications")
+          .withIndex("by_user_status_applied_at", (q) =>
+            q.eq("userId", userId).eq("status", "applied"),
+          )
+          .first(),
+      )
       : false;
     const hasRejectedApplications =
       shouldExcludeApplied && !hasAppliedApplications
         ? Boolean(
-            await ctx.db
-              .query("applications")
-              .withIndex("by_user_status_applied_at", (q) =>
-                q.eq("userId", userId).eq("status", "rejected"),
-              )
-              .first(),
-          )
+          await ctx.db
+            .query("applications")
+            .withIndex("by_user_status_applied_at", (q) =>
+              q.eq("userId", userId).eq("status", "rejected"),
+            )
+            .first(),
+        )
         : false;
     const hasUserApplications = shouldExcludeApplied
       ? hasAppliedApplications || hasRejectedApplications
@@ -1314,11 +1327,11 @@ export const listJobs = query({
             : job.state
               ? [job.state]
               : (() => {
-                  const info = getLocationInfo();
-                  return info.locationStates.length
-                    ? info.locationStates
-                    : [info.state];
-                })();
+                const info = getLocationInfo();
+                return info.locationStates.length
+                  ? info.locationStates
+                  : [info.state];
+              })();
         if (!statesForFilter.includes(stateFilter)) return false;
       }
       if (hasCountryFilter) {
@@ -1389,12 +1402,14 @@ export const listJobs = query({
         })
         .take(SEARCH_LIMIT);
 
+      const compareFn = sortByScraped ? compareScrapedJobs : compareNewestJobs;
+
       jobs = {
-        page: matches.sort(compareNewestJobs),
+        page: matches.sort(compareFn),
         isDone: true,
         continueCursor: null,
       };
-    } else if (stateFilter) {
+    } else if (stateFilter && !sortByScraped) {
       const SEARCH_LIMIT = 200;
       const matches = await ctx.db
         .query("jobs")
@@ -1450,25 +1465,35 @@ export const listJobs = query({
       const buildBaseQuery = () => {
         let query: any = ctx.db.query("jobs");
 
-        if (stateFilter) {
-          query = query.withIndex("by_state_posted", (q: any) =>
-            q.eq("state", args.state),
-          );
-        } else if (singleCompanyKey) {
-          query = query.withIndex("by_company_key_posted", (q: any) =>
-            q.eq("companyKey", singleCompanyKey),
-          );
-        } else if (wantsEngineer) {
-          query = query.withIndex("by_engineer_posted_scraped", (q: any) =>
-            q.eq("engineer", true),
-          );
+        if (sortByScraped) {
+          if (wantsEngineer) {
+            query = query.withIndex("by_engineer_scraped_posted", (q: any) =>
+              q.eq("engineer", true),
+            );
+          } else {
+            query = query.withIndex("by_scraped_posted");
+          }
         } else {
-          query = query.withIndex("by_posted_scraped");
+          if (stateFilter) {
+            query = query.withIndex("by_state_posted", (q: any) =>
+              q.eq("state", args.state),
+            );
+          } else if (singleCompanyKey) {
+            query = query.withIndex("by_company_key_posted", (q: any) =>
+              q.eq("companyKey", singleCompanyKey),
+            );
+          } else if (wantsEngineer) {
+            query = query.withIndex("by_engineer_posted_scraped", (q: any) =>
+              q.eq("engineer", true),
+            );
+          } else {
+            query = query.withIndex("by_posted_scraped");
+          }
         }
 
         query = query.order("desc");
 
-        if (wantsEngineer && stateFilter) {
+        if (wantsEngineer && stateFilter && !sortByScraped) {
           query = query.filter((q: any) => q.eq(q.field("engineer"), true));
         }
         if (args.includeRemote === false) {
@@ -1476,6 +1501,9 @@ export const listJobs = query({
         }
         if (args.level) {
           query = query.filter((q: any) => q.eq(q.field("level"), args.level));
+        }
+        if (stateFilter && sortByScraped) {
+          query = query.filter((q: any) => q.eq(q.field("state"), args.state));
         }
         if (rawSearch && args.state) {
           query = query.filter((q: any) => q.eq(q.field("state"), args.state));
@@ -1525,7 +1553,7 @@ export const listJobs = query({
           rawCursor = page.continueCursor;
           rawIsDone = page.isDone;
           if (page.page.length) {
-            const orderedPage = [...page.page].sort(compareNewestJobs);
+            const orderedPage = [...page.page].sort(sortByScraped ? compareScrapedJobs : compareNewestJobs);
             const pageMatches = orderedPage.filter(jobPassesFilters);
             const pageWithoutApplied = await filterOutAppliedJobs(pageMatches);
             filteredBuffer.push(...pageWithoutApplied);
@@ -1553,7 +1581,7 @@ export const listJobs = query({
 
     // Ensure descending order by postedAt then scrapedAt for all paths,
     // with unknown postedAt entries pushed after known ones when scrapedAt matches.
-    const orderedPage = [...jobs.page].sort(compareNewestJobs);
+    const orderedPage = [...jobs.page].sort(sortByScraped ? compareScrapedJobs : compareNewestJobs);
 
     // Apply remaining filters and then exclude any applied/rejected jobs as needed.
     const filteredJobs = jobsAlreadyFiltered
@@ -1660,10 +1688,10 @@ export const searchCompanies = query({
     const limit = Math.max(1, Math.min(args.limit ?? 12, 50));
     const baseQuery = searchTerm
       ? ctx.db
-          .query("jobs")
-          .withSearchIndex("search_company", (q) =>
-            q.search("company", searchTerm),
-          )
+        .query("jobs")
+        .withSearchIndex("search_company", (q) =>
+          q.search("company", searchTerm),
+        )
       : ctx.db.query("jobs").withIndex("by_posted_scraped").order("desc");
 
     const matches = await baseQuery.take(200);

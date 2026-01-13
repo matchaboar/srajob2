@@ -1,0 +1,33 @@
+{
+  "_creationTime": 1768266602032.626,
+  "_id": "k17f2jk5nrsrrama8wemh5q3h57z55py",
+  "city": "Toronto",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "Canada"
+  ],
+  "country": "Canada",
+  "currencyCode": "CAD",
+  "description": "Senior Staff Software Developer, Developer Infrastructure Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role At Robinhood, Developer Infrastructure is the backbone that enables every engineer to deliver exceptional software \u2014 faster, safer, and at scale. We design and build the systems, platforms, and experiences that...",
+  "engineer": false,
+  "level": "senior",
+  "location": "Toronto, Canada",
+  "locationSearch": "Toronto Canada",
+  "locationStates": [
+    "Canada"
+  ],
+  "locations": [
+    "Toronto, Canada"
+  ],
+  "postedAt": 1748986609000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266572982,
+  "state": "Canada",
+  "title": "Senior Staff Software Developer, Developer Infrastructure",
+  "totalCompensation": 231500,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/6913966)Toronto"
+}

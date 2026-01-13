@@ -1,0 +1,31 @@
+{
+  "site_id": "robinhood",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+  "source_url": "https://api.greenhouse.io/v1/boards/robinhood/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Android Developer",
+      "description_preview": "Android Developer Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the...",
+      "description_word_count": 762,
+      "location": "Toronto, Canada",
+      "is_remote": false,
+      "posted_at": 1707869010000,
+      "posted_at_unknown": false,
+      "company": "Robinhood",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

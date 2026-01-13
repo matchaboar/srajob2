@@ -4,7 +4,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: &id001
@@ -21,7 +21,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -33,7 +33,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -45,7 +45,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -57,7 +57,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -69,7 +69,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -81,7 +81,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -93,7 +93,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -105,7 +105,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -117,7 +117,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -129,7 +129,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -141,7 +141,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -153,7 +153,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -165,7 +165,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -177,7 +177,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -189,7 +189,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -201,7 +201,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -213,7 +213,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -225,7 +225,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -237,7 +237,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -249,7 +249,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -261,7 +261,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -273,7 +273,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -285,7 +285,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -297,7 +297,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -309,7 +309,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -321,7 +321,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -333,7 +333,7 @@ site_schedules:
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -393,7 +393,7 @@ site_schedules:
   enabled: true
   type: general
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -480,7 +480,7 @@ site_schedules:
   type: ashby
   scrapeProvider: spidercloud
   pattern: https://jobs.ashbyhq.com/lambda/*
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -492,7 +492,7 @@ site_schedules:
   enabled: true
   type: ashby
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001
@@ -504,7 +504,7 @@ site_schedules:
   enabled: true
   type: ashby
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -516,7 +516,7 @@ site_schedules:
   enabled: true
   type: kula
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 08:00
     days: *id001
@@ -576,19 +576,7 @@ site_schedules:
   enabled: true
   type: spotify
   scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: Weekdays every 2 hours @ 09:30
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 120.0
-    timezone: America/Denver
-- url: https://www.notion.com/careers
-  name: notion
-  enabled: true
-  type: notion
-  scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
     name: Weekdays every 2 hours @ 09:30
     days: *id001

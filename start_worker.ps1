@@ -578,7 +578,7 @@ function Start-WorkerProcess {
     }
 
     $workerArgs = @("run", "python", "-u", "-m", "job_scrape_application.workflows.worker")
-    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath -Environment $envBlock
+    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -Environment $envBlock
     if (-not $proc) {
         throw "Failed to start worker process."
     }
@@ -610,7 +610,7 @@ function Start-DbosWorkerProcess {
     }
     $workerArgs += @("--listing-concurrency", $ListingConcurrency)
     $workerArgs += @("--detail-concurrency", $DetailConcurrency)
-    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -RedirectStandardError $ErrorLogPath -Environment $envBlock
+    $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -Environment $envBlock
     if (-not $proc) {
         throw "Failed to start DBOS worker process."
     }

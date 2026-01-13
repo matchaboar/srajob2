@@ -25,6 +25,16 @@ Example:
 - Run with `-UseTemporal` to enable Temporal Web; `start_worker.ps1` prints the URL (default `http://localhost:8233`).
 - DBOS mode has no UI; use `logs/worker-start.log` and `logs/worker-errors.log` for status and failures.
 
+## Site workflow sample output
+
+Generate a markdown summary of the fixture-driven listing workflow output:
+
+```bash
+uv run agent_scripts/export_site_workflow_sample_output.py
+```
+
+This writes `site-wf-sample-output.md` in the repo root.
+
 # deployment - Convex db and UI
 
 - `./job_board_application`

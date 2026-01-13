@@ -58,6 +58,7 @@ from ..helpers.scrape_utils import (
     _strip_ashby_application_url,
     build_firecrawl_schema,
     derive_company_from_url,
+    is_invalid_job_url,
     normalize_compensation_value,
     parse_markdown_hints,
     parse_posted_at,
@@ -144,7 +145,7 @@ from ...services import telemetry
 from ...dbos_runtime import queue as dbos_queue
 _log_provider_dispatch = log_provider_dispatch
 
-DEFAULT_PAGINATION_LIMIT = 3
+DEFAULT_PAGINATION_LIMIT = 0
 _log_sync_response = log_sync_response
 _build_request_snapshot = build_request_snapshot
 _build_provider_status_url = build_provider_status_url
@@ -1542,6 +1543,42 @@ async def complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
     return res if isinstance(res, dict) else {"updated": 0}
 
 
+async def _record_scrape_url_attempts(entries: list[dict[str, Any]]) -> None:
+    if not entries:
+        return
+    try:
+        from ...services.convex_client import convex_mutation
+    except Exception:
+        return
+
+    now = int(time.time() * 1000)
+    payload: list[dict[str, Any]] = []
+    for entry in entries:
+        url_val = entry.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        source_val = entry.get("sourceUrl")
+        provider_val = entry.get("provider")
+        attempts_val = entry.get("attempts")
+        attempt_payload: dict[str, Any] = {
+            "url": url_val,
+            "sourceUrl": source_val if isinstance(source_val, str) else None,
+            "provider": provider_val if isinstance(provider_val, str) else None,
+            "attemptedAt": now,
+        }
+        if isinstance(attempts_val, (int, float)):
+            attempt_payload["queueAttempt"] = int(attempts_val)
+        payload.append(attempt_payload)
+
+    if not payload:
+        return
+
+    try:
+        await convex_mutation("router:recordScrapeUrlAttempts", {"attempts": payload})
+    except Exception:
+        return
+
+
 @activity.defn
 async def lease_scrape_url_batch(
     provider: Optional[str] = None,
@@ -1706,6 +1743,7 @@ async def process_spidercloud_job_batch(
     groups: dict[tuple[str, str | None], list[str]] = {}
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
+    attempt_entries: list[dict[str, Any]] = []
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
             continue
@@ -1727,10 +1765,13 @@ async def process_spidercloud_job_batch(
         key = (source_val, pattern_val)
         normalized_url = _to_greenhouse_api_url(url_val, source_val)
         groups.setdefault(key, []).append(normalized_url)
+        attempt_entries.append(row)
         posted_at_val = row.get("postedAt")
         if isinstance(posted_at_val, (int, float)):
             mapping = posted_at_groups.setdefault(key, {})
             mapping[normalize_url(normalized_url) or normalized_url] = int(posted_at_val)
+
+    await _record_scrape_url_attempts(attempt_entries)
 
     if not groups:
         response = {"provider": "spidercloud", "items": {"normalized": []}, "sourceUrl": source_url_hint}
@@ -2045,6 +2086,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
     posted_at_groups: dict[tuple[str, str | None], Dict[str, int]] = {}
     source_url_hint = ""
     pagination_limit_cache: dict[str, Optional[int]] = {}
+    attempt_entries: list[dict[str, Any]] = []
 
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
@@ -2063,10 +2105,20 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         key = (source_val, pattern_val)
         entry_by_key.setdefault(key, row)
         groups.setdefault(key, []).append(cleaned_url)
+        attempt_entries.append(
+            {
+                "url": cleaned_url,
+                "sourceUrl": source_val,
+                "provider": row.get("provider") if isinstance(row.get("provider"), str) else None,
+                "attempts": row.get("attempts"),
+            }
+        )
         posted_at_val = row.get("postedAt")
         if isinstance(posted_at_val, (int, float)):
             mapping = posted_at_groups.setdefault(key, {})
             mapping[normalize_url(cleaned_url) or cleaned_url] = int(posted_at_val)
+
+    await _record_scrape_url_attempts(attempt_entries)
 
     if not groups:
         return {"queued": 0, "listingCompleted": 0, "sourceUrl": source_url_hint}
@@ -2076,8 +2128,11 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
 
     async def _resolve_pagination_limit(entry: Dict[str, Any]) -> Optional[int]:
         limit_val = entry.get("paginationLimit")
-        if isinstance(limit_val, (int, float)) and limit_val > 0:
-            return int(limit_val)
+        if isinstance(limit_val, (int, float)):
+            limit_int = int(limit_val)
+            if limit_int <= 0:
+                return 0
+            return limit_int
         site_id = _convex_site_id(entry.get("siteId"))
         if not site_id:
             return DEFAULT_PAGINATION_LIMIT
@@ -2090,8 +2145,12 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         limit = None
         if isinstance(site, dict):
             site_limit = site.get("paginationLimit")
-            if isinstance(site_limit, (int, float)) and site_limit > 0:
-                limit = int(site_limit)
+            if isinstance(site_limit, (int, float)):
+                site_limit_int = int(site_limit)
+                if site_limit_int <= 0:
+                    limit = 0
+                else:
+                    limit = site_limit_int
         if limit is None:
             limit = DEFAULT_PAGINATION_LIMIT
         pagination_limit_cache[site_id] = limit
@@ -3897,6 +3956,10 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                 site_id = payload.get("siteId")
                 for start in range(0, len(jobs), INGEST_CHUNK_SIZE):
                     chunk = jobs[start : start + INGEST_CHUNK_SIZE]
+                    # Log each job URL being posted to Convex
+                    job_urls = [job.get("url") for job in chunk if isinstance(job, dict) and job.get("url")]
+                    logger.info("Posting %d job detail(s) to Convex: %s", len(chunk), ", ".join(job_urls[:5]) + ("..." if len(job_urls) > 5 else ""))
+
                     ingest_payload: Dict[str, Any] = {"jobs": chunk}
                     if site_id is not None:
                         ingest_payload["siteId"] = site_id
@@ -4689,9 +4752,12 @@ def _filter_job_urls(
             normalized = normalize_url(stripped) or stripped.strip()
             if not normalized or normalized in seen:
                 continue
+            # Filter out URLs that don't match the handler's domain
+            if not _handler_allows_url(handler, normalized):
+                continue
             seen.add(normalized)
             cleaned.append(normalized)
-        filtered = [handler.get_api_uri(url) or url for url in cleaned]
+        filtered = [handler.get_api_uri(url, source_url=source_url) or url for url in cleaned]
     else:
         base_filtered = BaseSiteHandler.filter_job_urls_basic(urls)
         filtered = handler.filter_job_urls(base_filtered) if handler else base_filtered
@@ -5093,6 +5159,48 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     def _clean_invalid_json_escapes(value: str) -> str:
         return re.sub(INVALID_JSON_ESCAPE_PATTERN, "", value)
 
+    def _parse_raw_json_value(value: Any) -> Any | None:
+        if isinstance(value, (dict, list)):
+            return value
+        if not isinstance(value, str) or not value.strip():
+            return None
+        cleaned = _clean_invalid_json_escapes(_strip_code_fences(value))
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            parsed_items: list[Any] = []
+            for line in cleaned.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    parsed_line = json.loads(line)
+                except Exception:
+                    continue
+                parsed_items.append(parsed_line)
+            if parsed_items:
+                return parsed_items
+            return None
+
+    def _collect_parsed_raw_values(value: Any) -> list[Any]:
+        parsed_values: list[Any] = []
+
+        def _add(parsed: Any | None) -> None:
+            if parsed is None:
+                return
+            if isinstance(parsed, list):
+                for entry in parsed:
+                    _add(entry)
+                return
+            parsed_values.append(parsed)
+
+        if isinstance(value, list):
+            for entry in value:
+                _add(_parse_raw_json_value(entry))
+        else:
+            _add(_parse_raw_json_value(value))
+        return parsed_values
+
     url_re = re.compile(URL_PATTERN)
 
     def _extract_from_text(text: str) -> list[tuple[str, Optional[str], Optional[str]]]:
@@ -5247,8 +5355,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         for value in values:
             if not isinstance(value, str):
                 continue
-            cleaned = strip_wrapping_url(value)
+            normalized = normalize_url(value, base_url=source_url)
+            cleaned = normalized or strip_wrapping_url(value)
             if not cleaned or cleaned in seen:
+                continue
+            # Filter out non-job URLs (social media, convex share links, privacy pages, etc.)
+            if is_invalid_job_url(cleaned):
                 continue
             seen.add(cleaned)
             deduped.append(cleaned)
@@ -5329,6 +5441,9 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         return normalized
 
     def _normalize_direct_url(value: str) -> str | None:
+        normalized = normalize_url(value, base_url=source_url)
+        if normalized:
+            return _strip_ashby_application_url(normalized)
         cleaned = strip_wrapping_url(value.strip())
         if not cleaned:
             return None
@@ -5375,7 +5490,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if not isinstance(job_urls_val, list):
             job_urls_val = items.get("jobUrls")
         if isinstance(job_urls_val, list) and job_urls_val:
-            return _dedupe_raw_urls(job_urls_val)
+            deduped = _dedupe_raw_urls(job_urls_val)
+            if handler:
+                filtered = handler.filter_job_urls(deduped)
+                if filtered:
+                    return filtered
+            return deduped
 
     def _collect_html_candidates(value: Any) -> list[str]:
         candidates: list[str] = []
@@ -5470,6 +5590,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             link_urls.extend([link for link in raw_links if isinstance(link, str) and link.strip()])
 
         raw_val = items.get("raw")
+        parsed_raw_values = _collect_parsed_raw_values(raw_val)
         raw_html_candidates = _collect_html_candidates(raw_val)
         has_raw_html = bool(raw_html_candidates)
         if isinstance(raw_val, dict):
@@ -5478,6 +5599,20 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 link_urls.extend(
                     [link for link in raw_job_urls if isinstance(link, str) and link.strip()]
                 )
+        if parsed_raw_values:
+            for parsed_value in parsed_raw_values:
+                if not isinstance(parsed_value, dict):
+                    continue
+                raw_job_urls = parsed_value.get("job_urls") or parsed_value.get("jobUrls")
+                if isinstance(raw_job_urls, list):
+                    link_urls.extend(
+                        [link for link in raw_job_urls if isinstance(link, str) and link.strip()]
+                    )
+                raw_links_val = parsed_value.get("links") or parsed_value.get("page_links")
+                if isinstance(raw_links_val, list):
+                    link_urls.extend(
+                        [link for link in raw_links_val if isinstance(link, str) and link.strip()]
+                    )
         raw_links = extract_links_from_payload(raw_val)
         if not raw_links:
             raw_links = extract_links_from_payload(
@@ -5485,6 +5620,14 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 collect_all=True,
                 scan_strings=not has_raw_html,
             )
+        if parsed_raw_values:
+            parsed_links = extract_links_from_payload(
+                parsed_raw_values,
+                collect_all=True,
+                scan_strings=False,
+            )
+            if parsed_links:
+                raw_links.extend(parsed_links)
         if raw_links:
             link_urls.extend(raw_links)
         if not link_urls and isinstance(raw_val, (dict, list, str)):
@@ -5522,13 +5665,28 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                                         json_payload = BaseSiteHandler._extract_json_payload_from_html(text)  # noqa: SLF001
                                         if json_payload is not None:
                                             break
+                                # Also check commonmark field (used by Kula and other APIs that return JSON in markdown)
+                                if json_payload is None:
+                                    commonmark_text = content.get("commonmark")
+                                    if isinstance(commonmark_text, str) and commonmark_text.strip():
+                                        # commonmark often contains JSON wrapped in code fences
+                                        json_payload = _parse_raw_json_value(commonmark_text)
                             if json_payload is not None:
                                 break
                         if isinstance(item, str) and item.strip():
                             json_payload = BaseSiteHandler._extract_json_payload_from_html(item)  # noqa: SLF001
+                            if json_payload is None:
+                                parsed_item = _parse_raw_json_value(item)
+                                if isinstance(parsed_item, dict):
+                                    json_payload = parsed_item
                         if json_payload is not None:
                             break
                     if json_payload is not None:
+                        break
+            if not json_payload and parsed_raw_values:
+                for parsed_value in parsed_raw_values:
+                    if isinstance(parsed_value, dict):
+                        json_payload = parsed_value
                         break
             if json_payload:
                 handler_urls = handler.get_links_from_json(json_payload)
@@ -5598,10 +5756,15 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             merged = _merge_pagination_urls(merged)
             merged = BaseSiteHandler.drop_source_listing_url(merged, source_url)
             return merged
-        if link_urls and not parseable_content:
+    if link_urls and not parseable_content:
             merged = _merge_pagination_urls(link_urls)
             merged = BaseSiteHandler.drop_source_listing_url(merged, source_url)
             return merged
+
+    def _handler_looks_like_job_detail_url(url: str, handler: BaseSiteHandler | None) -> bool:
+        if handler and hasattr(handler, "_looks_like_job_detail_url"):
+            return handler._looks_like_job_detail_url(url)
+        return _looks_like_job_detail_url(url)
 
     if isinstance(items, dict):
         raw_val = items.get("raw")

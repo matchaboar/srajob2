@@ -18,6 +18,22 @@ class GithubCareersHandler(BaseSiteHandler):
             return False
         return host.endswith("github.careers")
 
+    def is_listing_url(self, url: str) -> bool:
+        if not self.matches_url(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        parts = [segment for segment in (parsed.path or "").split("/") if segment]
+        if len(parts) < 2:
+            return False
+        if parts[0] != "careers-home" or parts[1] != "jobs":
+            return False
+        if len(parts) == 2:
+            return True
+        return parts[2] == "categories"
+
     def get_listing_api_uri(self, uri: str) -> Optional[str]:
         if not self.matches_url(uri):
             return None

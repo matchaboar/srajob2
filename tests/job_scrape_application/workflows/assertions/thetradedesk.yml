@@ -1,0 +1,11 @@
+site_id: thetradedesk
+detail_url: https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828165007
+expected:
+  title: 2026 China Data Science Internship - Deep Learning Focus
+  company: The Trade Desk
+  location: Shanghai
+  is_remote: false
+  level: junior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

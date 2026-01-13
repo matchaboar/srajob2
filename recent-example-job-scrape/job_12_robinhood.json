@@ -1,0 +1,29 @@
+{
+  "_creationTime": 1768266651627.9678,
+  "_id": "k178qnh5s6k4bb066tncb34kfx7z4ng9",
+  "city": "Unknown",
+  "company": "Robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "engineer": true,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266559548,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266599308,
+  "state": "Unknown",
+  "title": "Untitled",
+  "totalCompensation": 0,
+  "url": "https://esg.robinhood.com/"
+}

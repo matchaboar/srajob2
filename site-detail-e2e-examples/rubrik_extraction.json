@@ -1,0 +1,31 @@
+{
+  "site_id": "rubrik",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/7310036",
+  "source_url": "https://api.greenhouse.io/v1/boards/rubrik/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive",
+      "description_preview": "Account Executive Rubrik\u2019s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the...",
+      "description_word_count": 878,
+      "location": "Germany, Remote",
+      "is_remote": true,
+      "posted_at": 1761748291000,
+      "posted_at_unknown": false,
+      "company": "Rubrik Job Board",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/7310036",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

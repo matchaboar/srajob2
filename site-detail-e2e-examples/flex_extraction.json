@@ -1,0 +1,31 @@
+{
+  "site_id": "flex",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4646623005",
+  "source_url": "https://api.greenhouse.io/v1/boards/flex/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, SMB",
+      "description_preview": "Account Executive, SMB Flex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It\u2019s hard to believe that it\u2019s 2026 and paying rent on time is expensive, inflexible, and difficult. We\u2019re here to change that! Flex enables our users to pay rent throughout the...",
+      "description_word_count": 558,
+      "location": "New York, New York, United States",
+      "is_remote": false,
+      "posted_at": 1767737918000,
+      "posted_at_unknown": false,
+      "company": "Flex",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4646623005",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

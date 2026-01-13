@@ -166,7 +166,7 @@ describe("JobBoard query skipping", () => {
     window.location.hash = "#live";
     render(<JobBoard />);
 
-    expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toEqual({});
+    expect(findQueryCall(api.jobs.getRecentJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
@@ -176,7 +176,7 @@ describe("JobBoard query skipping", () => {
     const queuedCall = findPaginatedQueryCall(api.jobs.listQueuedJobs);
     expect(queuedCall?.[1]).toBe("skip");
     const jobsCall = findPaginatedQueryCall(api.jobs.listJobs);
-    expect(jobsCall?.[1]).toBe("skip");
+    expect(jobsCall?.[1]).not.toBe("skip");
   });
 
   it("fetches ignored jobs only on the ignored tab", () => {

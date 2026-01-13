@@ -1,0 +1,31 @@
+{
+  "site_id": "lambda",
+  "detail_url": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+  "source_url": "https://jobs.ashbyhq.com/lambda",
+  "extracted_jobs": [
+    {
+      "title": "Senior Software Engineer - AI Cloud",
+      "description_preview": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU. If you'd...",
+      "description_word_count": 513,
+      "location": "San Francisco, Seattle, California, Washington, United States",
+      "is_remote": false,
+      "posted_at": 1756252800000,
+      "posted_at_unknown": false,
+      "company": "Lambda",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+      "cost_milli_cents": 19
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

@@ -1,0 +1,32 @@
+{
+  "_creationTime": 1768266646363.9685,
+  "_id": "k1730qyt1dpb3kqcb7d6k031px7z59pt",
+  "city": "Menlo Park",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Software Engineer, Backend Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role We are building an elite team, applying frontier technologies to the world\u2019s biggest financial problems. We\u2019re looking for bold thinkers. Sharp problem-solvers. Builders who are wired to make an impact. Robinhood isn\u2019t a place...",
+  "engineer": true,
+  "level": "mid",
+  "location": "Menlo Park, California",
+  "locationSearch": "Menlo Park California United States",
+  "locationStates": [
+    "California"
+  ],
+  "locations": [
+    "Menlo Park, California"
+  ],
+  "postedAt": 1758988620000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266572982,
+  "state": "California",
+  "title": "Software Engineer, Backend",
+  "totalCompensation": 171000,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/7263592)Menlo"
+}

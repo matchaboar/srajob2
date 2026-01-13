@@ -1,0 +1,29 @@
+{
+  "_creationTime": 1768266619996.0818,
+  "_id": "k179zcbw03zk3gfqpa3d4ayee97z4m2r",
+  "city": "Unknown",
+  "company": "Europa",
+  "companyKey": "europa",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266567141,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266570510,
+  "state": "Unknown",
+  "title": "Members En",
+  "totalCompensation": 0,
+  "url": "https://www.edpb.europa.eu/about-edpb/about-edpb/members_en"
+}

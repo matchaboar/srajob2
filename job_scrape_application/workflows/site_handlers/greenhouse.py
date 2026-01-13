@@ -8,18 +8,23 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from .base import BaseSiteHandler
 from ..helpers.link_extractors import normalize_url, strip_wrapping_url
+from ...components.models.greenhouse import (
+    extract_greenhouse_job_urls,
+    load_greenhouse_board,
+)
 from ..helpers.regex_patterns import (
-    HORIZONTAL_WHITESPACE_PATTERN,
     HTML_LINE_BREAK_PATTERN,
     HTML_LIST_ITEM_OPEN_PATTERN,
     HTML_PARAGRAPH_CLOSE_PATTERN,
     HTML_PARAGRAPH_OPEN_PATTERN,
     HTML_SCRIPT_OR_STYLE_BLOCK_PATTERN,
     HTML_TAG_PATTERN,
+    HORIZONTAL_WHITESPACE_PATTERN,
     JOB_ID_PATH_PATTERN,
     LINE_WRAPPED_WHITESPACE_PATTERN,
     MULTI_NEWLINE_PATTERN,
 )
+
 
 
 class GreenhouseHandler(BaseSiteHandler):
@@ -28,6 +33,7 @@ class GreenhouseHandler(BaseSiteHandler):
 
     _BOARD_SLUG_OVERRIDES = {
         "datadoghq": "datadog",
+        "hioscar": "oscar",
     }
 
     def _normalize_slug(self, slug: Optional[str]) -> Optional[str]:
@@ -183,13 +189,25 @@ class GreenhouseHandler(BaseSiteHandler):
             return False
         return parts[3] == "jobs" and len(parts) == 4
 
-    def get_api_uri(self, uri: str) -> Optional[str]:
+    def get_api_uri(self, uri: str, source_url: Optional[str] = None) -> Optional[str]:
         if self.is_api_detail_url(uri):
             return uri
         job_id = self._extract_job_id_from_url(uri)
         if not job_id:
             return None
         slug = self._extract_slug_from_url(uri)
+        # If source_url is an API URL, prefer its board slug over domain-derived slug
+        if source_url:
+            source_slug = self._extract_slug_from_url(source_url)
+            if source_slug:
+                try:
+                    parsed = urlparse(uri)
+                    uri_host = (parsed.hostname or "").lower()
+                    # Only override if the uri slug came from a non-API domain
+                    if uri_host and "greenhouse.io" not in uri_host:
+                        slug = source_slug
+                except Exception:
+                    pass
         if not slug:
             return None
         return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
@@ -231,6 +249,14 @@ class GreenhouseHandler(BaseSiteHandler):
     def get_links_from_json(self, payload: Any) -> List[str]:
         if not isinstance(payload, dict):
             return []
+        try:
+            board = load_greenhouse_board(payload)
+        except Exception:
+            board = None
+        if board is not None:
+            urls = extract_greenhouse_job_urls(board)
+            if urls:
+                return urls
         jobs = payload.get("jobs")
         if not isinstance(jobs, list):
             return []
@@ -358,6 +384,26 @@ class GreenhouseHandler(BaseSiteHandler):
             content = content.strip("`\n ")
 
         def _html_to_text(html_body: str) -> str:
+            # Handle literal \uXXXX escape sequences in the content
+            # These appear when the Greenhouse API returns encoded content
+            if "\\u00" in html_body:
+                try:
+                    # Decode literal unicode escapes (e.g., \u0026 -> &)
+                    html_body = html_body.encode("utf-8").decode("unicode_escape")
+                    # Then re-decode UTF-8 multi-byte sequences that were split
+                    html_body = html_body.encode("latin-1").decode("utf-8")
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    # Fallback: just decode unicode escapes
+                    try:
+                        html_body = html_body.encode("utf-8").decode("unicode_escape")
+                    except (UnicodeDecodeError, UnicodeEncodeError):
+                        pass
+            else:
+                # Handle improperly decoded UTF-8 bytes (chars in 0x80-0xff range)
+                try:
+                    html_body = html_body.encode("latin-1").decode("utf-8")
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    pass
             html_body = html_lib.unescape(html_body or "")
             html_body = re.sub(HTML_LINE_BREAK_PATTERN, "\n", html_body, flags=re.IGNORECASE)
             html_body = re.sub(HTML_PARAGRAPH_CLOSE_PATTERN, "\n\n", html_body, flags=re.IGNORECASE)
@@ -376,7 +422,10 @@ class GreenhouseHandler(BaseSiteHandler):
             return html_body.strip()
 
         try:
-            data = json.loads(content)
+            # Unescape markdown backslash escapes (e.g., \_ -> _) before parsing JSON
+            # SpiderCloud returns commonmark format which escapes special characters
+            unescaped = content.replace("\\_", "_").replace("\\#", "#").replace("\\*", "*")
+            data = json.loads(unescaped)
             title = data.get("title") if isinstance(data, dict) else None
             desc = _html_to_text(data.get("content") or "") if isinstance(data, dict) else ""
             if title and desc:

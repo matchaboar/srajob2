@@ -1,0 +1,31 @@
+{
+  "site_id": "microsoft",
+  "detail_url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556656640&domain=microsoft.com&hl=en",
+  "source_url": "https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1",
+  "extracted_jobs": [
+    {
+      "title": "Senior Software Engineer - CoreAI",
+      "description_preview": "Senior Software Engineer - CoreAI in Redmond, WA, US | Microsoft Work Location: onsite Overview The Azure AI Knowledge team is leading the way to deliver the next chapter in retrieval augmented generation by combining knowledge with Agents at scale. We are expanding Azure AI Search, to meet the demands...",
+      "description_word_count": 887,
+      "location": "Redmond, WA",
+      "is_remote": false,
+      "posted_at": 1768261409000,
+      "posted_at_unknown": false,
+      "company": "Microsoft",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556656640&domain=microsoft.com&hl=en",
+      "cost_milli_cents": 4
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

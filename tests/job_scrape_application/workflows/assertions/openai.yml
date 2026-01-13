@@ -1,0 +1,10 @@
+site_id: openai
+detail_url: https://openai.com/careers/software-engineer-distributed-data-systems-(sora)-san-francisco
+expected:
+  title: Software Engineer, Distributed Data Systems (Sora)
+  company: Openai
+  location: San Francisco, CA
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1

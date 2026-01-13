@@ -1,0 +1,31 @@
+{
+  "site_id": "hubspot",
+  "detail_url": "https://www.hubspot.com/careers/jobs/5986323",
+  "source_url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Corporate - Benelux",
+      "description_preview": "## Account Executive, Corporate - Benelux ### Sales ### Remote - Netherlands **HubSpot Philosophy and Product** We believe the world has changed. We see businesses using more kinds of software, not less, that all needs to work together. To help our customers grow better in this environment, HubSpot is evolving...",
+      "description_word_count": 937,
+      "location": "Netherlands",
+      "is_remote": true,
+      "posted_at": 1768275443792,
+      "posted_at_unknown": true,
+      "company": "HubSpot",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://www.hubspot.com/careers/jobs/5986323",
+      "cost_milli_cents": 150
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

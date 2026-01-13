@@ -11,6 +11,7 @@ from .api import serve as serve_api
 from .queue import (
     LeaseResult,
     complete_scrape_urls,
+    detail_queue_has_pending,
     enqueue_scrape_urls,
     lease_scrape_url_batch,
     queue_status,
@@ -71,6 +72,8 @@ SITES_REFRESH_SECONDS = 300
 
 _SCHEDULE_CACHE: tuple[int, dict[str, object]] | None = None
 _SITES_CACHE: tuple[int, list[dict[str, object]]] | None = None
+_DETAIL_QUEUE_STATUS_ERROR_LOG_MS = 60_000
+_LAST_DETAIL_QUEUE_STATUS_ERROR_MS: int | None = None
 
 
 def _dedupe_urls(values: list[str]) -> list[str]:
@@ -119,6 +122,24 @@ def _reset_cache() -> None:
     global _SCHEDULE_CACHE, _SITES_CACHE
     _SCHEDULE_CACHE = None
     _SITES_CACHE = None
+
+
+def _detail_queue_pending() -> bool:
+    global _LAST_DETAIL_QUEUE_STATUS_ERROR_MS
+    try:
+        return detail_queue_has_pending()
+    except Exception as exc:
+        now = now_ms()
+        if (
+            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS is None
+            or now - _LAST_DETAIL_QUEUE_STATUS_ERROR_MS > _DETAIL_QUEUE_STATUS_ERROR_LOG_MS
+        ):
+            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS = now
+            logger.warning(
+                "Failed to read detail queue status; listing priority disabled. error=%s",
+                exc,
+            )
+        return False
 
 
 async def _process_listing_batch(batch: LeaseResult) -> None:
@@ -176,6 +197,7 @@ async def _run_queue_loop(
     poll_interval: float,
     max_in_flight: int,
     handler: Callable[[LeaseResult], Awaitable[None]],
+    pause_when: Callable[[], bool] | None = None,
 ) -> None:
     semaphore = asyncio.Semaphore(max(1, max_in_flight))
 
@@ -186,6 +208,9 @@ async def _run_queue_loop(
             semaphore.release()
 
     while True:
+        if pause_when and pause_when():
+            await asyncio.sleep(poll_interval)
+            continue
         if semaphore.locked():
             await asyncio.sleep(poll_interval)
             continue
@@ -247,9 +272,9 @@ async def _enqueue_listing_sites() -> int:
         site_type = site.get("type") if isinstance(site.get("type"), str) else None
         pagination_limit = site.get("paginationLimit")
         if isinstance(pagination_limit, (int, float)):
-            pagination_limit = int(pagination_limit)
+            pagination_limit = max(0, int(pagination_limit))
         else:
-            pagination_limit = None
+            pagination_limit = 0
         handler = get_site_handler(url, site_type)
         listing_urls = [url.strip()]
         if handler:
@@ -281,6 +306,12 @@ async def _run_schedule_loop() -> None:
         now = now_ms()
         if now - last_run >= interval_ms:
             started_at = now
+            if _detail_queue_pending():
+                logger.info(
+                    "Skipping listing schedule; detail queue has pending items.",
+                )
+                await asyncio.sleep(SCHEDULE_POLL_SECONDS)
+                continue
             try:
                 queued = await _enqueue_listing_sites()
                 record_run(
@@ -321,6 +352,7 @@ async def run_worker(
             poll_interval=listing_poll,
             max_in_flight=listing_concurrency,
             handler=_process_listing_batch,
+            pause_when=_detail_queue_pending,
         ),
         _run_queue_loop(
             url_type="detail",
@@ -336,11 +368,11 @@ async def run_worker(
 def main() -> None:
     parser = argparse.ArgumentParser(description="DBOS workflow runner")
     parser.add_argument("--listing-batch", type=int, default=25)
-    parser.add_argument("--detail-batch", type=int, default=50)
+    parser.add_argument("--detail-batch", type=int, default=1)  # Single URL per request in SINGLE_REQUEST_MODE
     parser.add_argument("--listing-poll", type=float, default=1.0)
     parser.add_argument("--detail-poll", type=float, default=0.5)
     parser.add_argument("--listing-concurrency", type=int, default=2)
-    parser.add_argument("--detail-concurrency", type=int, default=6)
+    parser.add_argument("--detail-concurrency", type=int, default=10)  # Increased for SINGLE_REQUEST_MODE
     parser.add_argument("--with-api", action="store_true")
     parser.add_argument("--api-host", default="0.0.0.0")
     parser.add_argument("--api-port", type=int, default=8080)

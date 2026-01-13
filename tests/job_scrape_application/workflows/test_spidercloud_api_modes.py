@@ -14,8 +14,6 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
-    CAPTCHA_PROXY_SEQUENCE,
-    CAPTCHA_RETRY_LIMIT,
     CaptchaDetectedError,
     SPIDERCLOUD_BATCH_SIZE,
     SpiderCloudScraper,
@@ -505,57 +503,6 @@ def test_normalize_job_extracts_microsoft_posted_ts_from_detail_payload():
     assert normalized["posted_at"] == expected_posted_at
     assert normalized["posted_at_unknown"] is expected_unknown
 
-
-@pytest.mark.asyncio
-async def test_captcha_retry_uses_proxy_sequence(monkeypatch):
-    scraper = _make_scraper()
-    client = _CaptchaClient({"commonmark": "# Title\nBody"})
-
-    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: client)
-
-    payload = await scraper._scrape_urls_batch(["https://careers.confluent.io/jobs/united_states"], source_url="https://careers.confluent.io/jobs/united_states")
-
-    # Ensure we retried with proxies.
-    assert payload.get("items") is not None
-    # First call no proxy, subsequent call uses first proxy option.
-    assert client.calls[0]["params"].get("proxy") is None
-    expected_proxy = CAPTCHA_PROXY_SEQUENCE[0] if CAPTCHA_PROXY_SEQUENCE else None
-    assert client.calls[1]["params"].get("proxy") == expected_proxy
-    assert len(client.calls) == 2
-
-
-@pytest.mark.asyncio
-async def test_captcha_gives_up_after_limit(monkeypatch):
-    scraper = _make_scraper()
-
-    class _AlwaysCaptcha:
-        def __init__(self):
-            self.calls: list[dict[str, Any]] = []
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            return False
-
-        async def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
-            self.calls.append({"params": params})
-            raise CaptchaDetectedError("captcha", "blocked", [])
-
-    client = _AlwaysCaptcha()
-    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: client)
-
-    payload = await scraper._scrape_urls_batch(["https://careers.confluent.io/jobs/united_states"], source_url="https://careers.confluent.io/jobs/united_states")
-
-    assert payload["items"]["normalized"] == []
-    assert payload["items"]["failed"]
-    assert payload["items"]["failed"][0]["reason"] == "captcha_failed"
-    assert len(client.calls) == CAPTCHA_RETRY_LIMIT + 1
-    proxies_seen = [c["params"].get("proxy") for c in client.calls]
-    assert proxies_seen[0] is None
-    assert proxies_seen[1] == CAPTCHA_PROXY_SEQUENCE[0]
-    # last retry should cap at available proxies
-    assert proxies_seen[-1] == CAPTCHA_PROXY_SEQUENCE[min(CAPTCHA_RETRY_LIMIT - 1, len(CAPTCHA_PROXY_SEQUENCE) - 1)]
 
 
 @pytest.mark.asyncio

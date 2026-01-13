@@ -1,0 +1,31 @@
+{
+  "site_id": "thetradedesk",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828165007",
+  "source_url": "https://api.greenhouse.io/v1/boards/thetradedesk/jobs",
+  "extracted_jobs": [
+    {
+      "title": "2026 China Data Science Internship - Deep Learning Focus",
+      "description_preview": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai) The Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale....",
+      "description_word_count": 1100,
+      "location": "Shanghai",
+      "is_remote": false,
+      "posted_at": 1755157810000,
+      "posted_at_unknown": false,
+      "company": "The Trade Desk",
+      "level": "junior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828165007",
+      "cost_milli_cents": 4
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

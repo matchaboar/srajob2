@@ -288,6 +288,33 @@ def queue_status() -> dict[str, Any]:
     return {"listing": listing, "detail": detail}
 
 
+def detail_queue_has_pending(*, include_processing: bool = False) -> bool:
+    initialize_schema()
+    with transaction() as conn:
+        if include_processing:
+            row = conn.execute(
+                """
+                SELECT COUNT(1) AS total
+                FROM queue_items
+                WHERE queue_name = ?
+                  AND status IN (?, ?)
+                """,
+                (QUEUE_DETAIL, STATUS_PENDING, STATUS_PROCESSING),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT COUNT(1) AS total
+                FROM queue_items
+                WHERE queue_name = ?
+                  AND status = ?
+                """,
+                (QUEUE_DETAIL, STATUS_PENDING),
+            ).fetchone()
+    total = row["total"] if row else 0
+    return int(total or 0) > 0
+
+
 def list_scrape_urls(
     *,
     provider: str | None = None,

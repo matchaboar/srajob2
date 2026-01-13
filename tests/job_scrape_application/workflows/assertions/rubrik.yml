@@ -1,0 +1,11 @@
+site_id: rubrik
+detail_url: https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/7310036
+expected:
+  title: Account Executive
+  company: Rubrik Job Board
+  location: Germany, Remote
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

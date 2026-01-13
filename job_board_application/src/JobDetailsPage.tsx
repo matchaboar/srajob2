@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { buildCompensationMeta } from "./lib/compensation";
+import { LiveTimer } from "./components/LiveTimer";
 
 const formatDateTime = (value?: number) => {
   if (typeof value !== "number") return "Unknown";
@@ -107,8 +108,7 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
   }, [fullDescriptionUrl, requestedFullDescriptionJobId]);
   const scrapedAt = toOptionalNumber(job?.scrapedAt);
   const postedAtUnknown = (job as { postedAtUnknown?: boolean } | null)?.postedAtUnknown ?? false;
-  const postedAtValue = formatDateTime(job?.postedAt);
-  const postedAtLabel = postedAtUnknown ? `${postedAtValue}?` : postedAtValue;
+  // postedAtLabel removed as valid replacement logic is now inline or via LiveTimer component usage
   const scrapeQueueCreatedAt = toOptionalNumber((job as { scrapeQueueCreatedAt?: number } | null)?.scrapeQueueCreatedAt);
   const scrapeQueueCompletedAt = toOptionalNumber(
     (job as { scrapeQueueCompletedAt?: number } | null)?.scrapeQueueCompletedAt
@@ -297,9 +297,15 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
               )}
               <span>
                 <span className="text-slate-500">Posted:</span>{" "}
-                <span className={postedAtUnknown ? "text-slate-600" : "text-emerald-300"}>
-                  {postedAtLabel}
-                </span>
+                {job?.postedAt ? (
+                  <LiveTimer
+                    startTime={job.postedAt}
+                    showAgo
+                    className={postedAtUnknown ? "text-slate-600" : "text-emerald-300"}
+                  />
+                ) : (
+                  <span className="text-slate-600">Unknown</span>
+                )}
               </span>
               <span>
                 <span className="text-slate-500">Scraped:</span> {formatDateTime(job.scrapedAt)}
@@ -326,11 +332,10 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
                       <span className="flex items-center gap-2">
                         <span className="font-semibold">{step.label}</span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${
-                            step.checked
-                              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                              : "border-amber-500/40 bg-amber-500/10 text-amber-100"
-                          }`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${step.checked
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-100"
+                            }`}
                         >
                           {step.status || (step.checked ? "Completed" : "Pending")}
                         </span>

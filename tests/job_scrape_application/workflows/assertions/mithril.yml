@@ -1,0 +1,11 @@
+site_id: mithril
+detail_url: https://boards-api.greenhouse.io/v1/boards/mithril/jobs/4965590007
+expected:
+  title: General Application - Exceptional Talent
+  company: Mithril
+  location: San Francisco Bay Area
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

@@ -112,8 +112,8 @@ def test_spidercloud_trim_reduces_large_payload() -> None:
 
 def test_spidercloud_failed_item_summary() -> None:
     failures = [
-        {"url": "https://example.com/a", "reason": "timeout", "status": 504, "retryable": True},
-        {"url": "https://example.com/b", "reason": "timeout", "status": 504, "retryable": True},
+        {"url": "https://example.com/a", "reason": "timeout", "status": 504, "retryable": False},
+        {"url": "https://example.com/b", "reason": "timeout", "status": 504, "retryable": False},
         {"url": "https://example.com/c", "reason": "captcha_failed", "retryable": False},
         {"url": "https://example.com/d", "reason": "captcha_failed", "status": 403, "retryable": False},
     ]
@@ -123,6 +123,6 @@ def test_spidercloud_failed_item_summary() -> None:
     assert summary["failedCount"] == 4
     assert summary["reasonCounts"] == {"captcha_failed": 2, "timeout": 2}
     assert summary["statusCounts"] == {"403": 1, "504": 2}
-    assert summary["retryableCount"] == 2
+    assert summary["retryableCount"] == 0
     assert summary["sampleUrls"] == ["https://example.com/a", "https://example.com/b"]
     assert summary["sampleReasons"] == ["timeout", "timeout"]

@@ -1,0 +1,31 @@
+{
+  "site_id": "coinbase",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7404504",
+  "source_url": "https://api.greenhouse.io/v1/boards/coinbase/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Accounting Intern",
+      "description_preview": "Accounting Intern Ready to be pushed beyond what you think you\u2019re capable of? At Coinbase, our mission is to increase economic freedom in the world. It\u2019s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform \u2014 and with it, the...",
+      "description_word_count": 1051,
+      "location": "Hybrid - New York, NY",
+      "is_remote": false,
+      "posted_at": 1763432663000,
+      "posted_at_unknown": false,
+      "company": "Coinbase Careers Page",
+      "level": "junior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7404504",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

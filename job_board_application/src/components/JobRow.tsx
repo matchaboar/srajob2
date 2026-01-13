@@ -165,12 +165,15 @@ export function JobRow({
                                 )
                             ) : (
                                 postedAt ? (
-                                    <span className="text-[10px] text-slate-500 font-medium truncate">
-                                        {new Date(postedAt).toLocaleDateString(undefined, {
-                                            month: "short",
-                                            day: "numeric",
-                                        })}
-                                    </span>
+                                    <LiveTimer
+                                        startTime={postedAt}
+                                        colorize={isSelected}
+                                        warnAfterMs={24 * 60 * 60 * 1000} // e.g. warn after 1 day
+                                        dangerAfterMs={3 * 24 * 60 * 60 * 1000} // e.g. danger after 3 days
+                                        showSeconds={isSelected}
+                                        showAgo
+                                        className="text-[10px] font-mono text-slate-500 truncate"
+                                    />
                                 ) : (
                                     <span className="text-[11px] text-slate-600">Unknown</span>
                                 )

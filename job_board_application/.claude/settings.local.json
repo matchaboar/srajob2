@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(pnpm run test:*)"
+    ]
+  }
+}

@@ -6,7 +6,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -27,7 +27,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -48,7 +48,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -69,7 +69,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -90,7 +90,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -111,7 +111,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -132,7 +132,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -153,7 +153,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -174,7 +174,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -195,7 +195,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -216,7 +216,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -237,7 +237,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -258,7 +258,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -279,7 +279,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -300,7 +300,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -321,7 +321,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -342,7 +342,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -363,7 +363,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -384,7 +384,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -405,7 +405,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -426,7 +426,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -447,7 +447,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -468,7 +468,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -489,7 +489,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 08:00",
         "days": [
@@ -510,7 +510,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -531,7 +531,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -552,7 +552,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [
@@ -573,7 +573,7 @@
       "enabled": true,
       "type": "greenhouse",
       "scrapeProvider": "spidercloud",
-      "paginationLimit": 3,
+      "paginationLimit": 0,
       "schedule": {
         "name": "Weekdays every 2 hours @ 09:30",
         "days": [

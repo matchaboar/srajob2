@@ -1,0 +1,11 @@
+site_id: zscaler
+detail_url: https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007
+expected:
+  title: Account Executive
+  company: Zscaler
+  location: Tokyo, JPN
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

@@ -87,7 +87,8 @@ def test_filter_job_urls_limits_to_handler_domain():
 
     filtered = _filter_job_urls(urls, handler)  # noqa: SLF001
 
-    assert "https://boards.greenhouse.io/airbnb/jobs/1234567" in filtered
+    # Greenhouse handler transforms board URLs to API format
+    assert "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/1234567" in filtered
     assert "https://careers.airbnb.com/help" not in filtered
 
 

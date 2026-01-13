@@ -560,7 +560,7 @@ const resolveCompanyForUrl = async (
     greenhouseSlug && isVersionLabel(trimmedCurrent)
       ? ""
       : ashbySlug &&
-          (normalizedCurrent === "ashbyhq" || normalizedCurrent === "ashby")
+        (normalizedCurrent === "ashbyhq" || normalizedCurrent === "ashby")
         ? ""
         : trimmedCurrent;
 
@@ -891,8 +891,8 @@ http.route({
       const body = await request.json();
       const urls: string[] = Array.isArray(body?.urls)
         ? (body.urls as any[])
-            .filter((u) => typeof u === "string" && u.trim())
-            .map((u) => String(u))
+          .filter((u) => typeof u === "string" && u.trim())
+          .map((u) => String(u))
         : [];
 
       if (urls.length === 0) {
@@ -931,8 +931,8 @@ http.route({
 
     const urls = Array.isArray(body?.urls)
       ? (body.urls as any[])
-          .filter((u) => typeof u === "string" && u.trim())
-          .map((u) => String(u))
+        .filter((u) => typeof u === "string" && u.trim())
+        .map((u) => String(u))
       : undefined;
 
     const res = await ctx.runQuery(api.router.listSeenJobUrlsForSite, {
@@ -1969,8 +1969,8 @@ export const completeSite = mutation({
     if (!site) throw new Error("Site not found");
     const scheduleConfig = site.scheduleId
       ? scheduleFromRow(
-          await ctx.db.get(site.scheduleId as Id<"scrape_schedules">),
-        )
+        await ctx.db.get(site.scheduleId as Id<"scrape_schedules">),
+      )
       : null;
     const nextEligibleAt = deriveNextEligibleAt({
       hasSchedule: !!site.scheduleId,
@@ -2467,6 +2467,7 @@ export const upsertSite = mutation({
     ),
     pattern: v.optional(v.string()),
     scheduleId: v.optional(v.id("scrape_schedules")),
+    paginationLimit: v.optional(v.number()),
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -2501,6 +2502,7 @@ export const upsertSite = mutation({
       scrapeProvider,
       pattern: args.pattern,
       scheduleId: args.scheduleId,
+      paginationLimit: args.paginationLimit,
       enabled: args.enabled,
       nextEligibleAt,
     };
@@ -3538,8 +3540,8 @@ http.route({
     const metadataCandidate = body?.metadata;
     const metadata =
       metadataCandidate &&
-      typeof metadataCandidate === "object" &&
-      !Array.isArray(metadataCandidate)
+        typeof metadataCandidate === "object" &&
+        !Array.isArray(metadataCandidate)
         ? metadataCandidate
         : {};
     const dataArray = Array.isArray(body?.data) ? body.data : [];
@@ -3548,8 +3550,8 @@ http.route({
     );
     const dataMetadata =
       firstData &&
-      typeof firstData.metadata === "object" &&
-      !Array.isArray(firstData.metadata)
+        typeof firstData.metadata === "object" &&
+        !Array.isArray(firstData.metadata)
         ? (firstData.metadata as Record<string, any>)
         : undefined;
 
@@ -3909,8 +3911,8 @@ const rawJobUrlsFromItems = (items: any): string[] => {
   if (!items || typeof items !== "object") return [];
   return Array.isArray(items.raw?.job_urls)
     ? (items.raw.job_urls as any[]).filter(
-        (u) => typeof u === "string" && u.trim(),
-      )
+      (u) => typeof u === "string" && u.trim(),
+    )
     : [];
 };
 
@@ -3986,8 +3988,8 @@ const buildUrlLogEntriesForScrape = (
   const rawUrlCount = rawJobUrls.length;
   const seedUrls = Array.isArray(scrape.items?.seedUrls)
     ? (scrape.items.seedUrls as any[]).filter(
-        (u) => typeof u === "string" && u.trim(),
-      )
+      (u) => typeof u === "string" && u.trim(),
+    )
     : [];
 
   const requestSnapshot = firstDefined(
@@ -4085,12 +4087,12 @@ const buildUrlLogEntriesForScrape = (
       }),
     ).length > 0
       ? stripUndefined({
-          asyncState,
-          status: statusValue,
-          statusUrl,
-          webhookId,
-          batchId,
-        })
+        asyncState,
+        status: statusValue,
+        statusUrl,
+        webhookId,
+        batchId,
+      })
       : undefined);
   const asyncResponse = sanitizeForLog(asyncFallback);
 
@@ -4280,6 +4282,78 @@ export const insertScrapeRecord = mutation({
   },
 });
 
+export const recordScrapeUrlAttempts = mutation({
+  args: {
+    attempts: v.array(
+      v.object({
+        url: v.string(),
+        sourceUrl: v.optional(v.string()),
+        provider: v.optional(v.string()),
+        queueAttempt: v.optional(v.number()),
+        status: v.optional(v.string()),
+        attemptedAt: v.optional(v.number()),
+      }),
+    ),
+  },
+  returns: v.object({ updated: v.number(), inserted: v.number() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let updated = 0;
+    let inserted = 0;
+
+    for (const attempt of args.attempts) {
+      const url = normalizeQueueUrl(attempt.url);
+      if (!url) continue;
+      const sourceUrl = normalizeQueueUrl(attempt.sourceUrl ?? "") || "";
+      const attemptedAt =
+        typeof attempt.attemptedAt === "number" ? attempt.attemptedAt : now;
+      const existing = await ctx.db
+        .query("scrape_url_attempts")
+        .withIndex("by_url_source", (q) =>
+          q.eq("url", url).eq("sourceUrl", sourceUrl),
+        )
+        .first();
+
+      if (existing) {
+        const patch: Record<string, any> = {
+          attemptCount: (existing.attemptCount ?? 0) + 1,
+          lastAttemptAt: attemptedAt,
+        };
+        if (typeof attempt.queueAttempt === "number") {
+          patch.lastQueueAttempt = attempt.queueAttempt;
+        }
+        if (typeof attempt.status === "string" && attempt.status.trim()) {
+          patch.lastStatus = attempt.status.trim();
+        }
+        if (typeof attempt.provider === "string" && attempt.provider.trim()) {
+          patch.provider = attempt.provider.trim();
+        }
+        await ctx.db.patch(existing._id, patch);
+        updated += 1;
+        continue;
+      }
+
+      await ctx.db.insert("scrape_url_attempts", {
+        url,
+        sourceUrl,
+        provider:
+          typeof attempt.provider === "string" ? attempt.provider.trim() : undefined,
+        attemptCount: 1,
+        lastAttemptAt: attemptedAt,
+        lastQueueAttempt:
+          typeof attempt.queueAttempt === "number" ? attempt.queueAttempt : undefined,
+        lastStatus:
+          typeof attempt.status === "string" && attempt.status.trim()
+            ? attempt.status.trim()
+            : undefined,
+      });
+      inserted += 1;
+    }
+
+    return { updated, inserted };
+  },
+});
+
 export const listScrapes = query({
   args: {
     limit: v.optional(v.number()),
@@ -4346,6 +4420,12 @@ export const listUrlScrapeLogs = query({
   },
 });
 
+const decodeUnicodeEscapes = (value: string) => {
+  return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, group) =>
+    String.fromCharCode(parseInt(group, 16))
+  );
+};
+
 export const ingestJobsFromScrape = mutation({
   args: {
     jobs: v.array(
@@ -4406,7 +4486,17 @@ export const ingestJobsFromScrape = mutation({
     const aliasCache = new Map<string, string | null>();
 
     let inserted = 0;
-    for (const job of args.jobs) {
+    for (const rawJob of args.jobs) {
+      const job = {
+        ...rawJob,
+        title: decodeUnicodeEscapes(rawJob.title),
+        company: decodeUnicodeEscapes(rawJob.company),
+        description: decodeUnicodeEscapes(rawJob.description),
+        location: decodeUnicodeEscapes(rawJob.location),
+        locations: rawJob.locations?.map(decodeUnicodeEscapes),
+        city: rawJob.city ? decodeUnicodeEscapes(rawJob.city) : undefined,
+        state: rawJob.state ? decodeUnicodeEscapes(rawJob.state) : undefined,
+      };
       if (sourceUrlForSeen) {
         await recordSeenJobUrl(ctx, sourceUrlForSeen, job.url);
       }
@@ -4414,7 +4504,6 @@ export const ingestJobsFromScrape = mutation({
         .query("jobs")
         .withIndex("by_url", (q) => q.eq("url", job.url))
         .first();
-      if (dup) continue;
 
       const locationSeed = job.locations ?? [job.location];
       const locationInfo = deriveLocationFields({
@@ -4429,7 +4518,7 @@ export const ingestJobsFromScrape = mutation({
       const compensationUnknown = job.compensationUnknown === true;
       const compensationReason =
         typeof job.compensationReason === "string" &&
-        job.compensationReason.trim()
+          job.compensationReason.trim()
           ? job.compensationReason.trim()
           : compensationUnknown
             ? UNKNOWN_COMPENSATION_REASON
@@ -4462,7 +4551,16 @@ export const ingestJobsFromScrape = mutation({
         typeof jobEngineer === "boolean"
           ? jobEngineer
           : deriveEngineerFlag(job.title);
-      const jobId = await ctx.db.insert("jobs", {
+      const descriptionFields = await storeDescriptionInStorage(
+        ctx,
+        description,
+      );
+      const descriptionValue =
+        typeof descriptionFields.description === "string"
+          ? descriptionFields.description
+          : undefined;
+
+      const jobPayload = {
         ...jobFields,
         engineer,
         company: resolvedCompany,
@@ -4483,18 +4581,24 @@ export const ingestJobsFromScrape = mutation({
         compensationUnknown,
         compensationReason,
         postedAtUnknown: job.postedAtUnknown,
-      });
+        ...(descriptionValue ? { description: descriptionValue } : {}),
+      };
+
+      let jobId: Id<"jobs">;
+      if (dup) {
+        await ctx.db.patch(dup._id, jobPayload);
+        jobId = dup._id;
+      } else {
+        jobId = await ctx.db.insert("jobs", jobPayload);
+        inserted += 1;
+      }
       await recordJobUrlKey(ctx, job.url, jobId);
       const detailRow: any = { jobId };
-      if (description !== undefined) {
-        const descriptionFields = await storeDescriptionInStorage(
-          ctx,
-          description,
-        );
-        if (descriptionFields.description) {
-          await ctx.db.patch(jobId, { description: descriptionFields.description });
-        }
-        Object.assign(detailRow, descriptionFields);
+      if (descriptionFields.descriptionStorageId !== undefined) {
+        detailRow.descriptionStorageId = descriptionFields.descriptionStorageId;
+      }
+      if (descriptionFields.description !== undefined) {
+        detailRow.description = descriptionFields.description;
       }
       if (metadata !== undefined) detailRow.metadata = metadata;
       if (scrapeUrl !== undefined) detailRow.scrapeUrl = scrapeUrl;
@@ -4508,7 +4612,15 @@ export const ingestJobsFromScrape = mutation({
         detailRow.heuristicLastTried = heuristicLastTried;
       if (heuristicVersion !== undefined)
         detailRow.heuristicVersion = heuristicVersion;
-      await ctx.db.insert("job_details", detailRow);
+      const existingDetail = await ctx.db
+        .query("job_details")
+        .withIndex("by_job", (q) => q.eq("jobId", jobId))
+        .first();
+      if (existingDetail) {
+        await ctx.db.patch(existingDetail._id, detailRow);
+      } else {
+        await ctx.db.insert("job_details", detailRow);
+      }
       inserted += 1;
     }
     return { inserted };
@@ -5141,18 +5253,18 @@ export function extractJobs(
       const compensationSource: any = (
         Array.isArray(row.metadata)
           ? (row.metadata.find?.(
-              (m: any) => m?.value_type === "currency_range" && m?.value,
-            ) ?? null)
+            (m: any) => m?.value_type === "currency_range" && m?.value,
+          ) ?? null)
           : null
       )?.value;
 
       const { value: totalCompensation, unknown: compensationUnknown } =
         parseComp(
           compensationSource ??
-            row.totalCompensation ??
-            row.total_compensation ??
-            row.salary ??
-            row.compensation,
+          row.totalCompensation ??
+          row.total_compensation ??
+          row.salary ??
+          row.compensation,
         );
       const { value: postedAt, unknown: postedAtUnknown } = parsePostedAt(
         row.postedAt ?? row.posted_at,
@@ -5160,10 +5272,10 @@ export function extractJobs(
       );
       const compensationReason =
         typeof row.compensationReason === "string" &&
-        row.compensationReason.trim()
+          row.compensationReason.trim()
           ? row.compensationReason.trim()
           : typeof row.compensation_reason === "string" &&
-              row.compensation_reason.trim()
+            row.compensation_reason.trim()
             ? row.compensation_reason.trim()
             : compensationSource
               ? "pay range provided in metadata"
@@ -5357,7 +5469,7 @@ export const reparseRecentCompanyJobs = mutation({
       const compensationUnknown = parsed.compensationUnknown === true;
       const compensationReason =
         typeof parsed.compensationReason === "string" &&
-        parsed.compensationReason.trim()
+          parsed.compensationReason.trim()
           ? parsed.compensationReason.trim()
           : compensationUnknown
             ? UNKNOWN_COMPENSATION_REASON

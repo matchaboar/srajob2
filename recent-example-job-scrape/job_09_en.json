@@ -1,0 +1,30 @@
+{
+  "_creationTime": 1768266652629.075,
+  "_id": "k17eb51jyzwqkjnddh7x9c54xs7z50ym",
+  "city": "Unknown",
+  "company": "En",
+  "companyKey": "en",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Sign In | Greenhouse Recruiting\n[](https://www.greenhouse.io/)\n# Better hiring, all-together.\nNext\n![](https://recruiting.cdn.greenhouse.io/assets/sessions/Google-Icon-19522a3e4db2b5ff84a3098b1aad489935156561a6fba761bca20e515c4d5cbc.svg)\nSign in with Google\n](https://api.greenhouse.io/users/auth/google_oauth2)\nnoun\\_Next\\_3025204\nCreated with Sketch.\nKeep me signed in\n[Forgot your password?](https://api.greenhouse.io/users/password/new)\nSign in\nSign in\n[Continue to SSO](#)\n[Forgot your password?](https://api.greenhouse.io/users/password/new)",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266590313,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266600516,
+  "state": "Unknown",
+  "title": "Sign In",
+  "totalCompensation": 0,
+  "url": "https://api.greenhouse.io/en/land/jobsnotice"
+}

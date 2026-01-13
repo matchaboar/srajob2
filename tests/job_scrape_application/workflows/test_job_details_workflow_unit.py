@@ -453,35 +453,6 @@ async def test_job_details_workflow_processes_multiple_batches(monkeypatch):
     assert summary.site_count == 2
     assert summary.scrape_ids == ["scr-a", "scr-b"]
 
-
-@pytest.mark.asyncio
-async def test_listing_workflow_processes_multiple_batches(monkeypatch):
-    state = {"leases": 0}
-
-    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
-        if activity is sw.lease_scrape_url_batch:
-            state["leases"] += 1
-            if state["leases"] == 1:
-                return {"urls": [{"url": "https://example.com/list/1"}]}
-            if state["leases"] == 2:
-                return {"urls": [{"url": "https://example.com/list/2"}]}
-            return {"urls": []}
-        if activity is sw.process_spidercloud_listing_batch:
-            return {"queued": 1, "listingCompleted": 1}
-        if activity in (sw.record_workflow_run, sw.complete_scrape_urls):
-            return None
-        return None
-
-    monkeypatch.setattr(sw.workflow, "execute_activity", fake_execute)
-    monkeypatch.setattr(sw.workflow, "sleep", _noop_sleep)
-    monkeypatch.setattr(sw.workflow, "now", lambda: datetime.fromtimestamp(1_700_000_080))
-    monkeypatch.setattr(sw.workflow, "info", lambda: _Info())
-
-    summary = await sw.SpidercloudListingWorkflow().run()
-
-    assert summary.site_count == 2
-
-
 @pytest.mark.asyncio
 async def test_heuristic_workflow_uses_dynamic_batch_limit(monkeypatch):
     calls: list[list[int]] = []

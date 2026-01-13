@@ -1,0 +1,30 @@
+{
+  "_creationTime": 1768266631009.9177,
+  "_id": "k17cfye6mw4gjq25cbktep31sn7z4zc6",
+  "city": "Unknown",
+  "company": "Coupang",
+  "companyKey": "coupang",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "0",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266567141,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266600516,
+  "state": "Unknown",
+  "title": "Www.Coupang.Com",
+  "totalCompensation": 0,
+  "url": "http://www.coupang.com"
+}

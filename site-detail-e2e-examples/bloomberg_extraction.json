@@ -1,0 +1,31 @@
+{
+  "site_id": "bloomberg",
+  "detail_url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494",
+  "source_url": "https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0",
+  "extracted_jobs": [
+    {
+      "title": "Senior Software Engineer - Employee Engagement & Discovery - 16494 - Bloomberg",
+      "description_preview": "Senior Software Engineer - Employee Engagement &amp; Discovery - 16494 - Bloomberg Senior Software Engineer - Employee Engagement &amp; Discovery Location New York Business Area Engineering and CTO Ref # ## Description &amp; Requirements ## Our mission: We believe that empowering Bloomberg employees with world-class tools to collaborate, discover information,...",
+      "description_word_count": 661,
+      "location": "New York, NY",
+      "is_remote": false,
+      "posted_at": 1768275428004,
+      "posted_at_unknown": true,
+      "company": "Bloomberg",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494",
+      "cost_milli_cents": 142
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

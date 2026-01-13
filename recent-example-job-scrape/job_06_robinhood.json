@@ -1,0 +1,34 @@
+{
+  "_creationTime": 1768266660257.8484,
+  "_id": "k176vtghwqnmnta5agz1hyzxbn7z5ngg",
+  "city": "Menlo Park",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Senior Software Engineer, Backend Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team(s) + role(s) Crypto Robinhood\u2019s Crypto engineering builds the end-to-end platform for trading, custody , and on-chain operations that power our crypto experience \u2014 from pre-trade flows to execution and post-trade lifecycle. - Focus areas: trading...",
+  "engineer": true,
+  "level": "senior",
+  "location": "Menlo Park, California",
+  "locationSearch": "Menlo Park California United States New York",
+  "locationStates": [
+    "California",
+    "New York"
+  ],
+  "locations": [
+    "Menlo Park, California",
+    "New York, New York"
+  ],
+  "postedAt": 1758988532000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266632285,
+  "state": "California",
+  "title": "Senior Software Engineer, Backend",
+  "totalCompensation": 203500,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/7264931"
+}

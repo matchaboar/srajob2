@@ -260,6 +260,18 @@ const applicationTables = {
     .index("by_completedAt", ["completedAt"])
     .index("by_startedAt", ["startedAt"]),
 
+  scrape_url_attempts: defineTable({
+    url: v.string(),
+    sourceUrl: v.string(),
+    provider: v.optional(v.string()),
+    attemptCount: v.number(),
+    lastAttemptAt: v.number(),
+    lastQueueAttempt: v.optional(v.number()),
+    lastStatus: v.optional(v.string()),
+  })
+    .index("by_url_source", ["url", "sourceUrl"])
+    .index("by_url", ["url"]),
+
   firecrawl_webhooks: defineTable({
     jobId: v.string(),
     event: v.string(),

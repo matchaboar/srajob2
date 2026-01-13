@@ -1,0 +1,31 @@
+{
+  "site_id": "together_ai",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187681007",
+  "source_url": "https://api.greenhouse.io/v1/boards/togetherai/jobs",
+  "extracted_jobs": [
+    {
+      "title": "AI Researcher, Core ML",
+      "description_preview": "AI Researcher, Core ML About the Role As an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will be working on developing novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that go beyond state-of-the-arts. As a team,...",
+      "description_word_count": 500,
+      "location": "San Francisco",
+      "is_remote": false,
+      "posted_at": 1705417187000,
+      "posted_at_unknown": false,
+      "company": "Together AI",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187681007",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

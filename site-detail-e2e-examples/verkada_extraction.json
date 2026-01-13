@@ -1,0 +1,31 @@
+{
+  "site_id": "verkada",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/verkada/jobs/4991227007",
+  "source_url": "https://api.greenhouse.io/v1/boards/verkada/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, ASEAN",
+      "description_preview": "Account Executive, ASEAN Who We Are Verkada is transforming how organizations protect their people and places with an integrated, AI-powered platform. A leader in cloud physical security, Verkada helps organizations strengthen safety and efficiency through one connected software platform that includes solutions for video security, access control, air quality sensors,...",
+      "description_word_count": 633,
+      "location": "Singapore",
+      "is_remote": false,
+      "posted_at": 1765419633000,
+      "posted_at_unknown": false,
+      "company": "Verkada",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/verkada/jobs/4991227007",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

@@ -692,7 +692,7 @@ class BaseSiteHandler(ABC):
         try:
             parsed = urlparse(url)
         except Exception:
-            return False
+            return True
         if parsed.scheme and parsed.scheme not in {"http", "https"}:
             return True
         host = (parsed.hostname or "").lower()
@@ -721,6 +721,11 @@ class BaseSiteHandler(ABC):
             ):
                 return False
             return True
+        # Kula: URLs like /account_name/job_id are job detail URLs.
+        if host.endswith("careers.kula.ai"):
+            segments = [seg for seg in path.split("/") if seg]
+            if len(segments) >= 2 and segments[1].isdigit():
+                return False
         if any(token in path for token in ("http://", "https://", "http:/", "https:/")):
             return True
         if path.endswith("/careers/list") or path.endswith("/careers/list/"):

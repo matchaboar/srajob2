@@ -17,6 +17,30 @@ _MAX_RETRIES = int(os.getenv("CONVEX_MAX_RETRIES", "2"))
 _BACKOFF_BASE_SECONDS = 0.5
 _BACKOFF_MAX_SECONDS = 4.0
 _RETRY_ON_TIMEOUT = os.getenv("CONVEX_RETRY_ON_TIMEOUT", "1") == "1"
+_DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR = "description_preview_word_limit_exceeded"
+
+
+def _max_description_word_count(args: Mapping[str, Any] | None) -> int | None:
+    if not isinstance(args, Mapping):
+        return None
+
+    jobs = args.get("jobs")
+    if isinstance(jobs, list):
+        max_count = 0
+        for job in jobs:
+            if not isinstance(job, Mapping):
+                continue
+            description = job.get("description")
+            if isinstance(description, str):
+                count = len(description.split())
+                max_count = max(max_count, count)
+        return max_count or None
+
+    description = args.get("description")
+    if isinstance(description, str):
+        return len(description.split())
+
+    return None
 
 
 async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any:
@@ -85,7 +109,7 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
     client = get_client()
     try:
         return await _call_with_retry(client.mutation, name, args)
-    except Exception:
+    except Exception as exc:
         try:
             payload = {
                 "event": "convex.mutation_failed",
@@ -94,6 +118,15 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
             if isinstance(args, Mapping):
                 payload["argKeys"] = list(args.keys())
             telemetry.emit_posthog_log(payload)
+            if _DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR in str(exc):
+                violation_payload = {
+                    "event": "convex.description_preview_violation",
+                    "name": name,
+                }
+                max_words = _max_description_word_count(args)
+                if max_words is not None:
+                    violation_payload["maxDescriptionWords"] = max_words
+                telemetry.emit_posthog_log(violation_payload)
         except Exception:
             pass
         raise

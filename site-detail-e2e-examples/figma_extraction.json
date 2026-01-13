@@ -1,0 +1,31 @@
+{
+  "site_id": "figma",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5426468004",
+  "source_url": "https://api.greenhouse.io/v1/boards/figma/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Enterprise",
+      "description_preview": "Account Executive, Enterprise Figma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma\u2019s platform helps teams bring ideas to life\u2014whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams...",
+      "description_word_count": 993,
+      "location": "San Francisco, CA \u2022 New York, NY \u2022 United States",
+      "is_remote": false,
+      "posted_at": 1738108649000,
+      "posted_at_unknown": false,
+      "company": "Figma",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5426468004",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

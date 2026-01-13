@@ -1,0 +1,32 @@
+{
+  "_creationTime": 1768266635481.9336,
+  "_id": "k17e0hx0f9b9b8zpaxe9g9g9nd7z44db",
+  "city": "Bellevue",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Software Backend Engineer, Credit Cards \\u0026 Banking Platform Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role The Money Platform Team is the foundation of Robinhood's innovative credit card and money products. We design and build the critical systems that power seamless, customer-centric financial experiences. Our...",
+  "engineer": true,
+  "level": "mid",
+  "location": "Bellevue, Washington",
+  "locationSearch": "Bellevue Washington United States",
+  "locationStates": [
+    "Washington"
+  ],
+  "locations": [
+    "Bellevue, Washington"
+  ],
+  "postedAt": 1754887094000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266572982,
+  "state": "Washington",
+  "title": "Software Backend Engineer, Credit Cards \\u0026 Banking Platform",
+  "totalCompensation": 171000,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/7022255)Bellevue"
+}

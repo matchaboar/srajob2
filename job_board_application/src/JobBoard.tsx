@@ -469,7 +469,7 @@ export function JobBoard() {
 
   const { results, status, loadMore } = usePaginatedQuery<typeof api.jobs.listJobs>(
     api.jobs.listJobs,
-    isJobsTab ? {
+    isJobsTab || isLiveTab ? {
       search: throttledFilters.search.trim() || undefined,
       state: throttledFilters.state ?? undefined,
       country: throttledFilters.country?.trim() || undefined,
@@ -481,6 +481,7 @@ export function JobBoard() {
       engineer: throttledFilters.engineer ? true : undefined,
       companies: throttledFilters.companies.length > 0 ? throttledFilters.companies : undefined,
       excludeApplied: true,
+      sortBy: isLiveTab ? "scraped" : undefined,
     } : "skip",
     { initialNumItems: jobsPageSize } // Load more items for the dense list
   );
@@ -593,7 +594,7 @@ export function JobBoard() {
       setOpenIgnoredCompany(null);
     }
   }, [ignoredGroups, openIgnoredCompany]);
-  const shouldFetchRecentJobs = isJobsTab || isLiveTab;
+  const shouldFetchRecentJobs = isJobsTab; // Disabled for Live tab as we now use listJobs
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
   const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
   const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
@@ -776,19 +777,7 @@ export function JobBoard() {
     const base = typeof selectedQueuedItem.updatedAt === "number" ? selectedQueuedItem.updatedAt : selectedQueuedItem.createdAt;
     return base + SCRAPE_QUEUE_PROCESSING_EXPIRY_MS;
   }, [selectedQueuedItem]);
-  const formatPostedLabel = useCallback((timestamp: number) => {
-    const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
-    const dateLabel = new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    return `${dateLabel} • ${days}d ago`;
-  }, []);
-  const formatPostedDisplay = useCallback(
-    (timestamp: number, unknown?: boolean) => `${formatPostedLabel(timestamp)}${unknown ? "?" : ""}`,
-    [formatPostedLabel]
-  );
-  const postedAtClassName = useCallback(
-    (unknown?: boolean) => (unknown ? "text-slate-300" : "text-emerald-300"),
-    []
-  );
+  // Removed formatPostedLabel, formatPostedDisplay, postedAtClassName in favor of LiveTimer
   const formatQueueTimestamp = useCallback((timestamp?: number | null) => {
     if (typeof timestamp !== "number") return "—";
     return new Date(timestamp).toLocaleString();
@@ -960,7 +949,7 @@ export function JobBoard() {
     }
 
     return details;
-  }, [selectedJobFull, selectedCompMeta, formatLevelLabel, formatPostedLabel, selectedJobLocations]);
+  }, [selectedJobFull, selectedCompMeta, formatLevelLabel, selectedJobLocations]);
   const jobUrlDetail = useMemo<(DetailItem & { value: string }) | null>(() => {
     const entry = selectedJobDetailItems.find((item) => item.label === "Job URL");
     if (entry && typeof entry.value === "string") {
@@ -1830,7 +1819,7 @@ export function JobBoard() {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400">
-          {activeTab === "jobs" && (
+          {(activeTab === "jobs" || activeTab === "live") && (
             <button
               onClick={() => setFiltersOpen((prev) => !prev)}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:border-blue-500 hover:text-white transition-colors text-xs font-medium"
@@ -1904,7 +1893,7 @@ export function JobBoard() {
       </AnimatePresence>
 
       <div className="flex flex-1 overflow-hidden">
-        {activeTab === "jobs" && (
+        {(activeTab === "jobs" || activeTab === "live") && (
           filtersReady ? (
             <>
               {filtersOpen && (
@@ -2331,7 +2320,7 @@ export function JobBoard() {
                           <div className="hidden sm:block">Location(s)</div>
                           <div className="text-right">Salary</div>
                           <div className="text-right hidden sm:block">Posted</div>
-                          <div className="text-right hidden sm:block">Scraped</div>
+                          <div className={`text-right ${activeTab === "live" ? "block" : "hidden sm:block"}`}>Scraped</div>
                         </div>
                       </div>
                     </div>
@@ -2407,21 +2396,24 @@ export function JobBoard() {
                               {formatLevelLabel(selectedJobFull.level)}
                             </span>
                           )}
-                        {!selectedCompMeta.isUnknown && (
-                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            <span
+                          {!selectedCompMeta.isUnknown && (
+                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
+                              <span
                                 className={selectedCompColorClass}
                                 title={selectedCompMeta.reason}
                               >
                                 {selectedCompMeta.display}
                               </span>
-                          </span>
+                            </span>
                           )}
                           {typeof selectedJobFull.postedAt === "number" && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span className={postedAtClassName(selectedJobFull.postedAtUnknown)}>
-                                Posted {formatPostedDisplay(selectedJobFull.postedAt, selectedJobFull.postedAtUnknown)}
-                              </span>
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              Posted{" "}
+                              <LiveTimer
+                                startTime={selectedJobFull.postedAt}
+                                showAgo
+                                className={selectedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
+                              />
                             </span>
                           )}
                         </div>
@@ -2942,10 +2934,13 @@ export function JobBoard() {
                           </span>
                         )}
                         {typeof selectedAppliedJobFull.postedAt === "number" && (
-                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            <span className={postedAtClassName(selectedAppliedJobFull.postedAtUnknown)}>
-                              Posted {formatPostedDisplay(selectedAppliedJobFull.postedAt, selectedAppliedJobFull.postedAtUnknown)}
-                            </span>
+                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                            Posted{" "}
+                            <LiveTimer
+                              startTime={selectedAppliedJobFull.postedAt}
+                              showAgo
+                              className={selectedAppliedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
+                            />
                           </span>
                         )}
                       </div>
@@ -3131,10 +3126,13 @@ export function JobBoard() {
                             </span>
                           )}
                           {typeof selectedRejectedJob.postedAt === "number" && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span className={postedAtClassName(selectedRejectedJob.postedAtUnknown)}>
-                                Posted {formatPostedDisplay(selectedRejectedJob.postedAt, selectedRejectedJob.postedAtUnknown)}
-                              </span>
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              Posted{" "}
+                              <LiveTimer
+                                startTime={selectedRejectedJob.postedAt}
+                                showAgo
+                                className={selectedRejectedJob.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
+                              />
                             </span>
                           )}
                         </div>
@@ -3211,26 +3209,7 @@ export function JobBoard() {
           </div>
         )}
 
-        {activeTab === "live" && (
-          <div className="flex-1 p-6 overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4 text-white">Live Feed</h2>
-            <div className="space-y-2">
-              {recentJobs?.map(job => (
-                <div key={job._id} className="group flex items-center justify-between px-4 py-2 border-b border-slate-800 hover:bg-slate-900 transition-colors cursor-default">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <h3 className="text-sm font-medium text-slate-300 truncate group-hover:text-white">{job.title}</h3>
-                    <span className="text-xs text-slate-500 truncate">{job.company}</span>
-                  </div>
-                  <span className="text-xs text-slate-600 whitespace-nowrap ml-4 font-mono">
-                    {new Date(job.postedAt).toLocaleString(undefined, {
-                      month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {activeTab === "queued" && (
           <div className="flex-1 flex bg-slate-950 overflow-hidden">

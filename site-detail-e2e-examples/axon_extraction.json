@@ -1,0 +1,31 @@
+{
+  "site_id": "axon",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/7586761003",
+  "source_url": "https://api.greenhouse.io/v1/boards/axon/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Executive, Campus",
+      "description_preview": "Account Executive, Campus Join Axon and be a Force for Good. At Axon, we\u2019re on a mission to Protect Life. We\u2019re explorers, pursuing society\u2019s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with candor and...",
+      "description_word_count": 1010,
+      "location": "Indiana-Remote",
+      "is_remote": true,
+      "posted_at": 1768237513000,
+      "posted_at_unknown": false,
+      "company": "Axon",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/7586761003",
+      "cost_milli_cents": 3
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

@@ -1,0 +1,162 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+    "params": {
+      "return_format": [
+        "commonmark",
+        "raw_html"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": "```\n{\"absolute\\_url\":\"https://boards.greenhouse.io/robinhood/jobs/5702135?t=gh\\_src=\\\\u0026gh\\_jid=5702135\",\"data\\_compliance\":[{\"type\":\"gdpr\",\"requires\\_consent\":false,\"requires\\_processing\\_consent\":false,\"requires\\_retention\\_consent\":false,\"retention\\_period\":null,\"demographic\\_data\\_consent\\_applies\":false}],\"internal\\_job\\_id\":2785697,\"location\":{\"name\":\"Toronto, Canada\"},\"metadata\":[{\"id\":4288026,\"name\":\"Careers Page Bucket\",\"value\":\"ENGINEERING \\\\u0026 SECURITY\",\"value\\_type\":\"single\\_select\"}],\"id\":5702135,\"updated\\_at\":\"2026-01-05T17:04:03-05:00\",\"requisition\\_id\":\"1566\",\"title\":\"Android Developer\",\"company\\_name\":\"Robinhood\",\"first\\_published\":\"2024-02-13T19:03:30-05:00\",\"language\":\"en\",\"content\":\"\\\\u0026lt;div class=\\\\u0026quot;content-intro\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;h2\\\\u0026gt;Join us in building the future of finance.\\\\u0026lt;/h2\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Our mission is to democratize finance for all. \\\\u0026lt;a href=\\\\u0026quot;https://www.cerulli.com/press-releases/cerulli-anticipates-124-trillion-in-wealth-will-transfer-through-2048\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;An estimated $124 trillion of assets\\\\u0026lt;/a\\\\u0026gt; will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;h2\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;About the team + role \\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h2\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;We’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;We’re looking for passionate and skilled developers who lead by example, building up the product and people around them through hard work, mentorship, and proven best practices.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Learn more about some of our available roles below!\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Support Products:\\\\u0026lt;/strong\\\\u0026gt; The Support Products team owns the end to end customer facing support experience including chat and phone channel, user triage experience, support entry point, help center and more.\\\\u0026lt;br\\\\u0026gt;\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Crypto: \\\\u0026lt;/strong\\\\u0026gt;As a member of our Crypto team you will help ship Robinhood\\\\u0026#39;s new standalone wallet app, while also improving the crypto experience within Robinhhood\\\\u0026#39;s flagship application. Learn more what the crypto team is up to \\\\u0026lt;a href=\\\\u0026quot;https://robinhood.com/web3-wallet/\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;here\\\\u0026lt;/a\\\\u0026gt;\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Activation:\\\\u0026lt;/strong\\\\u0026gt; Sherwood is focused on creating the best in class news experience in the RH trading app. As a member of the Sherwood team you will\\\\u0026amp;nbsp; help deliver actionable, accessible financial news to retail traders at any point in their investing journey.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h2\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;What you’ll do\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h2\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Work with a fast-growing team to revolutionize finance at speed and scale\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Build smooth, stable, and elegant products with Kotlin and the newest Android APIs\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Own features from inception to design, implementation, and launch\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Work cross-functionally with Product Designers, Product Managers, Backend Developers, and Data team\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Work with Kotlin, Android SDK \\\\u0026amp;amp; Jetpack Compose, MVVM, Coroutines \\\\u0026amp;amp; Flow (preferred) OR RxJava, and Retrofit \\\\u0026amp;amp; Room\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h2\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;What you bring \\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h2\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;1.5+ years of professional Android development experience building consumer Android applications at scale, preferably in Kotlin and Compose\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Attention to detail, passion for writing clean, readable and\\\\u0026amp;nbsp; maintainable code\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Proficiency in Kotlin or Java, and Jetpack\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Motivation to improve Robinhood’s app and codebase to ensure the highest quality for our customers\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Strong product sense and ability to collaborate with Product Managers and Designers\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Excellent communication skills and passion for solving technical challenges\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Bachelor’s degree in Computer Science or a related field preferred; equivalent training or work experience also acceptable\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026amp;nbsp;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h2\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;What we offer\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h2\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Market competitive and pay equity-focused compensation structure\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;100% paid health insurance for employees with 90% coverage for dependents\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Annual lifestyle wallet for personal wellness, learning and development, and more!\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Lifetime maximum benefit for family forming and fertility benefits\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Dedicated mental health support for employees and eligible dependents\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Generous time away including company holidays, paid time off, sick time, parental leave, and more!\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Lively office environment with catered meals, fully stocked kitchens, and geo-specific commuter benefits\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Our team is committed to providing an inclusive and welcoming interview experience for all candidates. If you require a specific accommodation during the application or interview process due to a physical or mental condition, please complete this\\\\u0026amp;nbsp;\\\\u0026lt;a class=\\\\u0026quot;c-link\\\\u0026quot; href=\\\\u0026quot;https://robinhood.hracuity.net/webform/index/752875e4-42ba-4dff-9951-fd51e315997e\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot; data-stringify-link=\\\\u0026quot;https://robinhood.hracuity.net/webform/index/752875e4-42ba-4dff-9951-fd51e315997e\\\\u0026quot; data-sk=\\\\u0026quot;tooltip\\_parent\\\\u0026quot;\\\\u0026gt;Applicant Accommodation Form\\\\u0026lt;/a\\\\u0026gt; to notify our team. The form should only be completed if you need a specific accommodation.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;AI Usage Disclosure:\\\\u0026lt;/strong\\\\u0026gt; Robinhood uses artificial intelligence (AI) tools to support parts of our recruiting process. These tools enhance the efficiency and consistency of our hiring process; however, all hiring decisions are made by our hiring teams.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Vacancy Notice: \\\\u0026lt;/strong\\\\u0026gt;This job posting represents an existing vacancy that we are actively seeking to fill.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;content-pay-transparency\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;pay-input\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;description\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;In addition to the base pay range listed below, this role is also eligible for bonus opportunities + equity + benefits.\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Base pay for the successful applicant will depend on a variety of job-related factors, which may include education, training, experience, location, business needs, or market demands. The expected base pay range for this role is based on the location where the work will be performed.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;text-decoration: underline;\\\\u0026quot;\\\\u0026gt;Base Pay Range:\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;title\\\\u0026quot;\\\\u0026gt;Toronto, ON\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;pay-range\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span\\\\u0026gt;$119,000\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span class=\\\\u0026quot;divider\\\\u0026quot;\\\\u0026gt;\\\\u0026amp;mdash;\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span\\\\u0026gt;$140,000 CAD\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;content-conclusion\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;Click \\\\u0026lt;a href=\\\\u0026quot;https://careers.robinhood.com/benefits\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;here\\\\u0026lt;/a\\\\u0026gt; to learn more about our Total Rewards, which vary by region and entity.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;If our mission energizes you and you’re ready to build the future of finance, we look forward to seeing your application.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Robinhood provides equal opportunity for all applicants, offers reasonable accommodations upon request, and complies with applicable equal employment and privacy laws. Inclusion is built into how we hire and work—welcoming different backgrounds, perspectives, and experiences so everyone can do their best. Please review the\\\\u0026amp;nbsp;\\\\u0026lt;a href=\\\\u0026quot;https://careers.robinhood.com/applicantprivacypolicy\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;Privacy Policy\\\\u0026lt;/a\\\\u0026gt; for your country of application.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\",\"departments\":[{\"id\":84615,\"name\":\"Brokerage Engineering\",\"child\\_ids\":[],\"parent\\_id\":null}],\"offices\":[{\"id\":100784,\"name\":\"Toronto, Canada\",\"location\":null,\"child\\_ids\":[],\"parent\\_id\":null}]}\n```",
+          "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://boards.greenhouse.io/robinhood/jobs/5702135?t=gh_src=\\u0026gh_jid=5702135\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":2785697,\"location\":{\"name\":\"Toronto, Canada\"},\"metadata\":[{\"id\":4288026,\"name\":\"Careers Page Bucket\",\"value\":\"ENGINEERING \\u0026 SECURITY\",\"value_type\":\"single_select\"}],\"id\":5702135,\"updated_at\":\"2026-01-05T17:04:03-05:00\",\"requisition_id\":\"1566\",\"title\":\"Android Developer\",\"company_name\":\"Robinhood\",\"first_published\":\"2024-02-13T19:03:30-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;h2\\u0026gt;Join us in building the future of finance.\\u0026lt;/h2\\u0026gt;\\n\\u0026lt;p\\u0026gt;Our mission is to democratize finance for all. \\u0026lt;a href=\\u0026quot;https://www.cerulli.com/press-releases/cerulli-anticipates-124-trillion-in-wealth-will-transfer-through-2048\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;An estimated $124 trillion of assets\\u0026lt;/a\\u0026gt; will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;h2\\u0026gt;\\u0026lt;strong\\u0026gt;About the team + role \\u0026lt;/strong\\u0026gt;\\u0026lt;/h2\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;We’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;We’re looking for passionate and skilled developers who lead by example, building up the product and people around them through hard work, mentorship, and proven best practices.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Learn more about some of our available roles below!\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Support Products:\\u0026lt;/strong\\u0026gt; The Support Products team owns the end to end customer facing support experience including chat and phone channel, user triage experience, support entry point, help center and more.\\u0026lt;br\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Crypto: \\u0026lt;/strong\\u0026gt;As a member of our Crypto team you will help ship Robinhood\\u0026#39;s new standalone wallet app, while also improving the crypto experience within Robinhhood\\u0026#39;s flagship application. Learn more what the crypto team is up to \\u0026lt;a href=\\u0026quot;https://robinhood.com/web3-wallet/\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;here\\u0026lt;/a\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Activation:\\u0026lt;/strong\\u0026gt; Sherwood is focused on creating the best in class news experience in the RH trading app. As a member of the Sherwood team you will\\u0026amp;nbsp; help deliver actionable, accessible financial news to retail traders at any point in their investing journey.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h2\\u0026gt;\\u0026lt;strong\\u0026gt;What you’ll do\\u0026lt;/strong\\u0026gt;\\u0026lt;/h2\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Work with a fast-growing team to revolutionize finance at speed and scale\\u0026lt;/span\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Build smooth, stable, and elegant products with Kotlin and the newest Android APIs\\u0026lt;/span\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Own features from inception to design, implementation, and launch\\u0026lt;/span\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Work cross-functionally with Product Designers, Product Managers, Backend Developers, and Data team\\u0026lt;/span\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Work with Kotlin, Android SDK \\u0026amp;amp; Jetpack Compose, MVVM, Coroutines \\u0026amp;amp; Flow (preferred) OR RxJava, and Retrofit \\u0026amp;amp; Room\\u0026lt;/span\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h2\\u0026gt;\\u0026lt;strong\\u0026gt;What you bring \\u0026lt;/strong\\u0026gt;\\u0026lt;/h2\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;1.5+ years of professional Android development experience building consumer Android applications at scale, preferably in Kotlin and Compose\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Attention to detail, passion for writing clean, readable and\\u0026amp;nbsp; maintainable code\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proficiency in Kotlin or Java, and Jetpack\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Motivation to improve Robinhood’s app and codebase to ensure the highest quality for our customers\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong product sense and ability to collaborate with Product Managers and Designers\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Excellent communication skills and passion for solving technical challenges\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Bachelor’s degree in Computer Science or a related field preferred; equivalent training or work experience also acceptable\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h2\\u0026gt;\\u0026lt;strong\\u0026gt;What we offer\\u0026lt;/strong\\u0026gt;\\u0026lt;/h2\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Market competitive and pay equity-focused compensation structure\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;100% paid health insurance for employees with 90% coverage for dependents\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Annual lifestyle wallet for personal wellness, learning and development, and more!\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Lifetime maximum benefit for family forming and fertility benefits\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Dedicated mental health support for employees and eligible dependents\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Generous time away including company holidays, paid time off, sick time, parental leave, and more!\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Lively office environment with catered meals, fully stocked kitchens, and geo-specific commuter benefits\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;Our team is committed to providing an inclusive and welcoming interview experience for all candidates. If you require a specific accommodation during the application or interview process due to a physical or mental condition, please complete this\\u0026amp;nbsp;\\u0026lt;a class=\\u0026quot;c-link\\u0026quot; href=\\u0026quot;https://robinhood.hracuity.net/webform/index/752875e4-42ba-4dff-9951-fd51e315997e\\u0026quot; target=\\u0026quot;_blank\\u0026quot; data-stringify-link=\\u0026quot;https://robinhood.hracuity.net/webform/index/752875e4-42ba-4dff-9951-fd51e315997e\\u0026quot; data-sk=\\u0026quot;tooltip_parent\\u0026quot;\\u0026gt;Applicant Accommodation Form\\u0026lt;/a\\u0026gt; to notify our team. The form should only be completed if you need a specific accommodation.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;AI Usage Disclosure:\\u0026lt;/strong\\u0026gt; Robinhood uses artificial intelligence (AI) tools to support parts of our recruiting process. These tools enhance the efficiency and consistency of our hiring process; however, all hiring decisions are made by our hiring teams.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Vacancy Notice: \\u0026lt;/strong\\u0026gt;This job posting represents an existing vacancy that we are actively seeking to fill.\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-pay-transparency\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-input\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;description\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;In addition to the base pay range listed below, this role is also eligible for bonus opportunities + equity + benefits.\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Base pay for the successful applicant will depend on a variety of job-related factors, which may include education, training, experience, location, business needs, or market demands. The expected base pay range for this role is based on the location where the work will be performed.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;text-decoration: underline;\\u0026quot;\\u0026gt;Base Pay Range:\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;title\\u0026quot;\\u0026gt;Toronto, ON\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-range\\u0026quot;\\u0026gt;\\u0026lt;span\\u0026gt;$119,000\\u0026lt;/span\\u0026gt;\\u0026lt;span class=\\u0026quot;divider\\u0026quot;\\u0026gt;\\u0026amp;mdash;\\u0026lt;/span\\u0026gt;\\u0026lt;span\\u0026gt;$140,000 CAD\\u0026lt;/span\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;Click \\u0026lt;a href=\\u0026quot;https://careers.robinhood.com/benefits\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;here\\u0026lt;/a\\u0026gt; to learn more about our Total Rewards, which vary by region and entity.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;If our mission energizes you and you’re ready to build the future of finance, we look forward to seeing your application.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Robinhood provides equal opportunity for all applicants, offers reasonable accommodations upon request, and complies with applicable equal employment and privacy laws. Inclusion is built into how we hire and work—welcoming different backgrounds, perspectives, and experiences so everyone can do their best. Please review the\\u0026amp;nbsp;\\u0026lt;a href=\\u0026quot;https://careers.robinhood.com/applicantprivacypolicy\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;Privacy Policy\\u0026lt;/a\\u0026gt; for your country of application.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":84615,\"name\":\"Brokerage Engineering\",\"child_ids\":[],\"parent_id\":null}],\"offices\":[{\"id\":100784,\"name\":\"Toronto, Canada\",\"location\":null,\"child_ids\":[],\"parent_id\":null}]}</pre><div class=\"json-formatter-container\"></div></html>"
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 5.0370555555555565e-06,
+          "compute_cost_formatted": "0.0000050370555555555558612370",
+          "file_cost": 1.7311500000000002e-05,
+          "file_cost_formatted": "0.0000173114999999999998048228",
+          "total_cost": 3.234855555555556e-05,
+          "total_cost_formatted": "0.0000323485555555555562211713",
+          "transform_cost": 1e-05,
+          "transform_cost_formatted": "0.0000100000000000000005551115"
+        },
+        "duration_elasped_ms": 2897,
+        "error": null,
+        "links": [],
+        "metadata": {
+          "commonmark": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 11875,
+            "final_url": null,
+            "keywords": [
+              "AI Usage Disclosure",
+              "Annual lifestyle wallet",
+              "Applicant Accommodation Form",
+              "Base Pay Range",
+              "Careers Page Bucket",
+              "Dedicated mental health support",
+              "Excellent communication skills",
+              "Lifetime maximum benefit",
+              "Lively office environment",
+              "RH trading app",
+              "Strong product sense",
+              "Support Products team owns",
+              "accessible financial news",
+              "applicable equal employment",
+              "base pay range listed",
+              "bonus opportunities + equity + benefits",
+              "class news experience",
+              "end customer facing support experience including chat",
+              "expected base pay range",
+              "fully stocked kitchens",
+              "geo-specific commuter benefits",
+              "including company holidays",
+              "interview process due",
+              "job posting represents",
+              "motivated Android Developers",
+              "newest Android APIs",
+              "offers reasonable accommodations",
+              "paid health insurance",
+              "pay equity-focused compensation structure",
+              "professional Android development experience building consumer Android applications",
+              "related field preferred",
+              "solving technical challenges",
+              "standalone wallet app",
+              "support entry point",
+              "team + role",
+              "user triage experience",
+              "welcoming interview experience"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+            "pathname": "/v1/boards/robinhood/jobs/5702135",
+            "resource_type": ".md",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          },
+          "raw": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 11515,
+            "final_url": null,
+            "keywords": [
+              "AI Usage Disclosure",
+              "Annual lifestyle wallet",
+              "Applicant Accommodation Form",
+              "Base Pay Range",
+              "Careers Page Bucket",
+              "Dedicated mental health support",
+              "Excellent communication skills",
+              "Lifetime maximum benefit",
+              "Lively office environment",
+              "RH trading app",
+              "Strong product sense",
+              "Support Products team owns",
+              "accessible financial news",
+              "applicable equal employment",
+              "base pay range listed",
+              "bonus opportunities + equity + benefits",
+              "class news experience",
+              "end customer facing support experience including chat",
+              "expected base pay range",
+              "fully stocked kitchens",
+              "geo-specific commuter benefits",
+              "including company holidays",
+              "interview process due",
+              "job posting represents",
+              "motivated Android Developers",
+              "newest Android APIs",
+              "offers reasonable accommodations",
+              "paid health insurance",
+              "pay equity-focused compensation structure",
+              "professional Android development experience building consumer Android applications",
+              "related field preferred",
+              "solving technical challenges",
+              "standalone wallet app",
+              "support entry point",
+              "team + role",
+              "user triage experience",
+              "welcoming interview experience"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+            "pathname": "/v1/boards/robinhood/jobs/5702135",
+            "resource_type": ".html",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          }
+        },
+        "status": 200,
+        "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135"
+      }
+    ]
+  ]
+}

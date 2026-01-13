@@ -1,0 +1,31 @@
+{
+  "site_id": "confluent",
+  "detail_url": "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+  "source_url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+  "extracted_jobs": [
+    {
+      "title": "Staff Software Engineer II - Kora Storage",
+      "description_preview": "Confluent Careers [](https://careers.confluent.io/) [Life at confluent](https://careers.confluent.io/life-at-confluent)[Belonging](https://careers.confluent.io/belonging) Our Teams [early talent](https://careers.confluent.io/early-talent) [Open Positions](https://careers.confluent.io/jobs) [Life at confluent](https://careers.confluent.io/life-at-confluent)[Belonging](https://careers.confluent.io/belonging) Our Teams [early talent](https://careers.confluent.io/early-talent) [Open Positions](https://careers.confluent.io/jobs)[&lt; Back to Confluent.io](https://www.confluent.io/) # Staff Software Engineer II - Kora Storage Engineering Remote, United States R03993 [Apply Now](9f38c542-fe09-4fb1-bae2-09e3b789119b/apply) ##### Description We\u2019re not just building better tech. We\u2019re rewriting how...",
+      "description_word_count": 996,
+      "location": "United States",
+      "is_remote": false,
+      "posted_at": 1768275428737,
+      "posted_at_unknown": true,
+      "company": "Confluent",
+      "level": "staff",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+      "cost_milli_cents": 32
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

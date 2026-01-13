@@ -91,4 +91,4 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
     assert queue_calls, "store_scrape should enqueue HubSpot engineering job URLs"
 
     urls = queue_calls[0]["urls"]
-    assert "https://www.hubspot.com/careers/jobs/7294272" in urls
+    assert 'https://www.hubspot.com/careers/jobs/7442960' in urls

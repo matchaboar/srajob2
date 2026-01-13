@@ -300,6 +300,59 @@ class WorkdayHandler(BaseSiteHandler):
         if not markdown:
             return "", None
 
+        # Handle JSON in raw HTML (Workday API responses with <pre> tags)
+        stripped_text = markdown.strip()
+        if "<pre>{" in stripped_text:
+            import json
+            match = re.search(r"<pre>({.+})</pre>", stripped_text, re.DOTALL)
+            if match:
+                json_content = match.group(1)
+                try:
+                    parsed = json.loads(json_content)
+                    posting_info = parsed.get("jobPostingInfo", {})
+                    if isinstance(posting_info, dict):
+                        title = posting_info.get("title")
+                        description = posting_info.get("jobDescription", "")
+                        # Convert HTML description to readable text
+                        if description:
+                            description = html_lib.unescape(description)
+                            # Remove HTML tags
+                            description = re.sub(r"<[^>]+>", " ", description)
+                            description = re.sub(r"\s+", " ", description).strip()
+                        return description or markdown, title
+                except Exception:
+                    pass
+
+        # Handle JSON in code fences (Workday API responses)
+        if stripped_text.startswith("```"):
+            lines_raw = stripped_text.split("\n")
+            # Find start and end of code fence content
+            start_idx_json = 1 if len(lines_raw) > 1 else 0
+            end_idx_json = len(lines_raw)
+            for i in range(len(lines_raw) - 1, 0, -1):
+                if lines_raw[i].strip() == "```":
+                    end_idx_json = i
+                    break
+            json_content = "\n".join(lines_raw[start_idx_json:end_idx_json]).strip()
+            if json_content.startswith("{"):
+                try:
+                    import json
+                    parsed = json.loads(json_content)
+                    # Extract from jobPostingInfo
+                    posting_info = parsed.get("jobPostingInfo", {})
+                    if isinstance(posting_info, dict):
+                        title = posting_info.get("title")
+                        description = posting_info.get("jobDescription", "")
+                        # Convert HTML description to text
+                        if description:
+                            description = html_lib.unescape(description)
+                            # Remove HTML tags
+                            description = re.sub(r"<[^>]+>", " ", description)
+                            description = re.sub(r"\s+", " ", description).strip()
+                        return description or markdown, title
+                except Exception:
+                    pass
+
         lines = markdown.splitlines()
         title: Optional[str] = None
         start_idx: Optional[int] = None

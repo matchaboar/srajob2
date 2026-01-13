@@ -1,12 +1,12 @@
-
-- url: https://api.greenhouse.io/v1/boards/robinhood/jobs
-  name: Robinhood
+site_schedules:
+- url: https://api.greenhouse.io/v1/boards/airbnb/jobs
+  name: airbnb
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: &id001
     - mon
     - tue
@@ -14,232 +14,355 @@
     - thu
     - fri
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/mongodb/jobs
-  name: MongoDB
+- url: https://api.greenhouse.io/v1/boards/airtable/jobs
+  name: airtable
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/nexhealth/jobs
-  name: NexHealth
-  enabled: true
-  type: greenhouse
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/okta/jobs
-  name: Okta
-  enabled: true
-  type: greenhouse
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/axon/jobs
-  name: Axon
+  name: axon
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/coinbase/jobs
+  name: coinbase
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/coreweave/jobs
+  name: coreweave
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/coupang/jobs
+  name: coupang
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/datadog/jobs
+  name: datadog
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/figma/jobs
+  name: figma
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/flex/jobs
-  name: Flex
+  name: flex
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://boards-api.greenhouse.io/v1/boards/Airbnb/jobs
-  name: Airbnb
+- url: https://api.greenhouse.io/v1/boards/lyft/jobs
+  name: lyft
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://boards-api.greenhouse.io/v1/boards/Coupang/jobs
-  name: Coupang
+- url: https://api.greenhouse.io/v1/boards/mithril/jobs
+  name: Mithril
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/mongodb/jobs
+  name: mongodb
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/nexhealth/jobs
+  name: nexhealth
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/okta/jobs
+  name: okta
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/oscar/jobs
+  name: Oscar
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/pinterest/jobs
+  name: pinterest
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/purestorage/jobs
-  name: PureStorage
+  name: purestorage
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/robinhood/jobs
+  name: robinhood
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/rubrik/jobs
+  name: rubrik
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/samsara/jobs
-  name: Samsara
+  name: samsara
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/stripe/jobs
-  name: Stripe
+  name: stripe
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/zscaler/jobs
-  name: Zscaler
+- url: https://api.greenhouse.io/v1/boards/stubhubinc/jobs
+  name: stubhub
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/thetradedesk/jobs
+  name: theTradeDesk
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/togetherai/jobs
+  name: together.ai
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/verkada/jobs
+  name: verkada
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://api.greenhouse.io/v1/boards/twilio/jobs
+  name: twilio
+  enabled: true
+  type: greenhouse
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://api.greenhouse.io/v1/boards/xai/jobs
   name: xAI
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/verkada/jobs
-  name: Verkada
+- url: https://api.greenhouse.io/v1/boards/zscaler/jobs
+  name: zscaler
   enabled: true
   type: greenhouse
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://api.greenhouse.io/v1/boards/twilio/jobs
-  name: Twilio
+- url: https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0
+  name: Bloomberg
   enabled: true
-  type: greenhouse
+  type: avature
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs
-  name: Stubhub
+- url: https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f
+  name: broadcom
   enabled: true
-  type: greenhouse
+  type: workday
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://careers.datadoghq.com/all-jobs/?s=software%20engineer
-  name: datadog
-  enabled: false
-  pattern: https://careers.datadoghq.com/detail/**
-  paginationLimit: 3
-  schedule:
-    name: Every 5 mins checck daily
-    days: *id001
-    startTime: 08:00
-    intervalMinutes: 5.0
-    timezone: America/Denver
-- url: https://careers.godaddy/jobs/search?page=1&query=engineer&country_codes%5B%5D=US
-  name: GoDaddy
-  enabled: true
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
-  name: Confluent
-  enabled: true
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://www.uber.com/us/en/careers/list/?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington
-  name: Uber
-  enabled: true
-  type: uber
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://careers.adobe.com/us/en/search-results?keywords=engineer
   name: Adobe
@@ -248,10 +371,10 @@
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1
   name: Cisco
@@ -260,34 +383,22 @@
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States
-  name: Palo Alto Networks
+- url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
+  name: Confluent
   enabled: true
   type: general
   scrapeProvider: spidercloud
-  paginationLimit: 3
+  paginationLimit: 0
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
     days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/?q=engineer
-  name: Dataminr
-  enabled: true
-  type: workday
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
+    startTime: 08:00
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
   name: Docusign
@@ -296,58 +407,145 @@
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://careers.snap.com/jobs
+  name: snapchat
+  enabled: true
+  type: general
+  scrapeProvider: spidercloud
+  pattern: https://careers.snap.com/job**
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://jobs.ashbyhq.com/notion
-  name: Notion
+- url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer
+  name: Dataminr
+  enabled: true
+  type: workday
+  scrapeProvider: spidercloud
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date
+  name: Netflix
+  enabled: true
+  type: netflix
+  scrapeProvider: spidercloud
+  pattern: https://explore.jobs.netflix.net/careers/job/**
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.ashbyhq.com/Serval
+  name: Serval
   enabled: true
   type: ashby
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
     days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
+    startTime: 08:00
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;
-  name: HubSpot
+- url: https://jobs.ashbyhq.com/factory
+  name: Ashbyhq
   enabled: true
-  type: hubspot
+  type: ashby
   scrapeProvider: spidercloud
-  paginationLimit: 4
+  paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.ashbyhq.com/lambda
+  name: Lambda
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  pattern: https://jobs.ashbyhq.com/lambda/*
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://openai.com/careers/search/?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
+- url: https://jobs.ashbyhq.com/notion
+  name: notion
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.ashbyhq.com/ramp
+  name: ramp
+  enabled: true
+  type: ashby
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://careers.kula.ai/voltagepark
+  name: voltage park
+  enabled: true
+  type: kula
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States
+  name: Palo Alto Networks
+  enabled: true
+  type: general
+  scrapeProvider: spidercloud
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://openai.com/careers/search?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
   name: OpenAI
   enabled: true
   type: openai
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
-    timezone: America/Denver
-- url: https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing
-  name: Spotify
-  enabled: true
-  type: spotify
-  scrapeProvider: spidercloud
-  paginationLimit: 3
-  schedule:
-    name: weekdays 9:30am
-    days: *id001
-    startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1
   name: Microsoft
@@ -356,10 +554,58 @@
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
+  name: Github
+  enabled: true
+  type: general
+  scrapeProvider: spidercloud
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 08:00
+    days: *id001
+    startTime: 08:00
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing
+  name: Spotify
+  enabled: true
+  type: spotify
+  scrapeProvider: spidercloud
+  paginationLimit: 0
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;
+  name: HubSpot
+  enabled: true
+  type: hubspot
+  scrapeProvider: spidercloud
+  paginationLimit: 4
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
+    timezone: America/Denver
+- url: https://www.uber.com/us/en/careers/list?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington
+  name: Uber
+  enabled: true
+  type: uber
+  scrapeProvider: spidercloud
+  paginationLimit: 3
+  schedule:
+    name: Weekdays every 2 hours @ 09:30
+    days: *id001
+    startTime: 09:30
+    intervalMinutes: 120.0
     timezone: America/Denver
 - url: https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ
   name: Meta Careers
@@ -368,8 +614,8 @@
   scrapeProvider: spidercloud
   paginationLimit: 3
   schedule:
-    name: weekdays 9:30am
+    name: Weekdays every 2 hours @ 09:30
     days: *id001
     startTime: 09:30
-    intervalMinutes: 1440.0
+    intervalMinutes: 120.0
     timezone: America/Denver

@@ -25,12 +25,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import os
 import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import yaml
 from dotenv import load_dotenv
@@ -60,6 +61,13 @@ AVATURE_BLOOMBERG_PAGE_2_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=12"
 AVATURE_BLOOMBERG_PAGE_3_URL = f"{AVATURE_BLOOMBERG_URL}&jobOffset=24"
 GODADDY_SEARCH_URL = "https://careers.godaddy/jobs/search?page=1&query=engineer&country_codes%5B%5D=US"
 GODADDY_DETAIL_URL = "https://careers.godaddy/jobs/principal-security-engineer-florida-united-states"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
     (
@@ -151,6 +159,7 @@ FIXTURES: Tuple[Tuple[str, str, Dict[str, Any]], ...] = (
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
 SCHEDULE_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
+SINGLE_REQUEST_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/single_request")
 
 
 def _slugify(value: str) -> str:
@@ -169,19 +178,49 @@ def _load_schedule_entries(env: str) -> List[Dict[str, Any]]:
     return [entry for entry in entries if isinstance(entry, dict) and entry.get("enabled", True)]
 
 
-def _extract_listing_job_urls(payload: Dict[str, Any]) -> List[str]:
-    items = payload.get("items") if isinstance(payload, dict) else None
-    if isinstance(items, dict):
-        job_urls = items.get("job_urls")
-        if isinstance(job_urls, list):
-            urls = [url for url in job_urls if isinstance(url, str) and url.strip()]
-            if urls:
-                return urls
-    try:
-        urls = workflow_activities._extract_job_urls_from_scrape(payload)  # noqa: SLF001
-    except Exception:
-        urls = []
-    return [url for url in urls if isinstance(url, str) and url.strip()]
+def _detail_url_from_scrape(scrape_payload: Dict[str, Any], source_url: str) -> str | None:
+    items = scrape_payload.get("items") if isinstance(scrape_payload, dict) else None
+    if not isinstance(items, dict):
+        return None
+    normalized = items.get("normalized")
+    if not isinstance(normalized, list):
+        return None
+    saw_description = False
+    for row in normalized:
+        if not isinstance(row, dict):
+            continue
+        description = row.get("description") or row.get("job_description")
+        if not isinstance(description, str) or not description.strip():
+            continue
+        saw_description = True
+        for key in ("url", "job_url", "absolute_url", "apply_url"):
+            value = row.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    if saw_description and source_url:
+        return source_url
+    return None
+
+
+def _extract_listing_job_urls(
+    payload: Dict[str, Any],
+    source_url: str,
+    pattern: str | None,
+) -> List[str]:
+    if not isinstance(payload, dict):
+        return []
+    extracted = workflow_activities._extract_job_urls_from_scrape(payload)  # noqa: SLF001
+    handler = get_site_handler(source_url) if source_url else None
+    detail_override = _detail_url_from_scrape(payload, source_url) if not extracted else None
+    if detail_override:
+        return [detail_override]
+    return workflow_activities._filter_job_urls(  # noqa: SLF001
+        extracted,
+        handler,
+        workflow_activities._is_probable_listing_url,  # noqa: SLF001
+        pattern=pattern,
+        source_url=source_url,
+    )
 
 
 class _FixtureCaptureSpider:
@@ -252,6 +291,45 @@ async def _collect_response(response: Any) -> Any:
     return response
 
 
+def _normalize_capture(value: Any) -> Any:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, dict):
+        return {key: _normalize_capture(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [_normalize_capture(item) for item in value]
+    return value
+
+
+async def _capture_workflow_scrape(
+    url: str,
+    *,
+    source_url: str,
+    pattern: str | None,
+    label: str,
+) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    captures: List[Dict[str, Any]] = []
+    original_async_spider = spidercloud_scraper.AsyncSpider
+    try:
+        spidercloud_scraper.AsyncSpider = (
+            lambda api_key, captures=captures: _FixtureCaptureSpider(api_key, captures)
+        )
+        scraper = workflow_activities._make_spidercloud_scraper()
+        payload = await scraper._scrape_urls_batch(
+            [url],
+            source_url=source_url,
+            pattern=pattern,
+        )
+    finally:
+        spidercloud_scraper.AsyncSpider = original_async_spider
+    if not captures:
+        raise SystemExit(f"No SpiderCloud response captured for {label} {url}")
+    capture = _normalize_capture(captures[0])
+    if not isinstance(capture, dict):
+        raise SystemExit(f"Unexpected SpiderCloud capture for {label} {url}")
+    return capture, payload
+
+
 async def _fetch_schedule_fixtures(
     *,
     env: str,
@@ -272,184 +350,81 @@ async def _fetch_schedule_fixtures(
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    original_async_spider = spidercloud_scraper.AsyncSpider
-    try:
-        for entry in entries:
-            url = entry.get("url")
-            if not isinstance(url, str) or not url.strip():
-                continue
-            slug = _slugify(str(entry.get("name") or url))
-            pattern = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
-            listing_path = output_dir / f"{slug}_listing.json"
-            detail_path = output_dir / f"{slug}_detail.json"
+    for entry in entries:
+        url = entry.get("url")
+        if not isinstance(url, str) or not url.strip():
+            continue
+        slug = _slugify(str(entry.get("name") or url))
+        pattern = entry.get("pattern") if isinstance(entry.get("pattern"), str) else None
+        listing_path = output_dir / f"{slug}_listing.json"
+        detail_path = output_dir / f"{slug}_detail.json"
 
-            captures: List[Dict[str, Any]] = []
-            spidercloud_scraper.AsyncSpider = (
-                lambda api_key, captures=captures: _FixtureCaptureSpider(api_key, captures)
-            )
-            scraper = workflow_activities._make_spidercloud_scraper()
-            listing_payload = await scraper._scrape_urls_batch(
-                [url],
-                source_url=url,
-                pattern=pattern,
-            )
-            if not captures:
-                raise SystemExit(f"No SpiderCloud response captured for listing {url}")
-            listing_capture = captures[0]
-            # Convert bytes to string in listing_capture before JSON serialization
-            def decode_bytes(value: bytes) -> str:
-                return value.decode("utf-8", errors="replace")
-
-            def bytes_to_str(obj):
-                if isinstance(obj, bytes):
-                    return decode_bytes(obj)
-                if isinstance(obj, dict):
-                    return {k: bytes_to_str(v) for k, v in obj.items()}
-                if isinstance(obj, list):
-                    return [bytes_to_str(i) for i in obj]
-                return obj
-
-            listing_capture_clean = bytes_to_str(listing_capture)
-            listing_path.write_text(
-                json.dumps(listing_capture_clean, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            listing_job_urls = _extract_listing_job_urls(listing_payload)
-            listing_response = (
-                listing_capture_clean.get("response")
-                if isinstance(listing_capture_clean, dict)
-                else None
-            )
-            parsed_response: Any = listing_response
-            if isinstance(listing_response, list):
-                parsed_items: list[Any] = []
-                for entry in listing_response:
-                    if isinstance(entry, str):
-                        try:
-                            parsed_items.append(json.loads(entry))
-                        except json.JSONDecodeError:
-                            parsed_items.append(entry)
-                    else:
-                        parsed_items.append(entry)
-                parsed_response = parsed_items
-            if not listing_job_urls:
+        listing_capture_clean, listing_payload = await _capture_workflow_scrape(
+            url,
+            source_url=url,
+            pattern=pattern,
+            label="listing",
+        )
+        listing_path.write_text(
+            json.dumps(listing_capture_clean, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        listing_job_urls = _extract_listing_job_urls(listing_payload, url, pattern)
+        if not listing_job_urls:
+            raw_response = listing_capture_clean.get("response")
+            if raw_response:
                 listing_job_urls = _extract_listing_job_urls(
-                    {"items": {"raw": parsed_response}, "sourceUrl": url}
+                    {"items": {"raw": raw_response}, "sourceUrl": url},
+                    url,
+                    pattern,
                 )
-            listing_url_key = url.rstrip("/").lower()
-            listing_job_urls = [
-                job_url
-                for job_url in listing_job_urls
-                if isinstance(job_url, str) and job_url.rstrip("/").lower() != listing_url_key
-            ]
-            if not listing_job_urls:
-                ashby_ids: set[str] = set()
+        listing_url_key = url.rstrip("/").lower()
+        listing_job_urls = [
+            job_url
+            for job_url in listing_job_urls
+            if isinstance(job_url, str) and job_url.rstrip("/").lower() != listing_url_key
+        ]
+        if not listing_job_urls:
+            raise SystemExit(f"No job URLs extracted for listing {url}")
 
-                def _collect_ids(text: str) -> None:
-                    ashby_ids.update(re.findall(r'jobId":"([0-9a-f-]+)"', text))
-                    ashby_ids.update(re.findall(r'jobId\\":\\"([0-9a-f-]+)', text))
-                    ashby_ids.update(re.findall(r'jobPostingId":"([0-9a-f-]+)"', text))
-                    ashby_ids.update(
-                        re.findall(r'jobPostingId\\":\\"([0-9a-f-]+)', text)
-                    )
-
-                def _walk_raw(node: Any) -> None:
-                    if isinstance(node, dict):
-                        content = node.get("content")
-                        raw_html = content.get("raw") if isinstance(content, dict) else None
-                        if isinstance(raw_html, str):
-                            _collect_ids(raw_html)
-                        for value in node.values():
-                            _walk_raw(value)
-                    elif isinstance(node, list):
-                        for child in node:
-                            _walk_raw(child)
-                    elif isinstance(node, str):
-                        _collect_ids(node)
-
-                _walk_raw(parsed_response)
-
-                if ashby_ids:
-                    slug = url.rstrip("/").split("/")[-1]
-                    listing_job_urls = [
-                        f"https://jobs.ashbyhq.com/{slug}/{job_id}"
-                        for job_id in sorted(ashby_ids)
-                    ]
-                listing_job_urls = [
-                    job_url
-                    for job_url in listing_job_urls
-                    if isinstance(job_url, str) and job_url.rstrip("/").lower() != listing_url_key
-                ]
-            if not listing_job_urls:
-                source_host = urlparse(url).hostname or ""
-                candidate_urls: set[str] = set()
-
-                def _collect_urls(text: str) -> None:
-                    for match in re.findall(r"https?://[^\s\"'<>]+", text):
-                        candidate_urls.add(match.rstrip(").,]"))
-
-                def _walk_urls(node: Any) -> None:
-                    if isinstance(node, dict):
-                        for value in node.values():
-                            _walk_urls(value)
-                    elif isinstance(node, list):
-                        for child in node:
-                            _walk_urls(child)
-                    elif isinstance(node, str):
-                        _collect_urls(node)
-
-                _walk_urls(parsed_response)
-                listing_job_urls = [
-                    candidate
-                    for candidate in sorted(candidate_urls)
-                    if not source_host or (urlparse(candidate).hostname or "") == source_host
-                ]
-                listing_job_urls = [
-                    job_url
-                    for job_url in listing_job_urls
-                    if isinstance(job_url, str) and job_url.rstrip("/").lower() != listing_url_key
-                ]
-            if not listing_job_urls:
-                raise SystemExit(f"No job URLs extracted for listing {url}")
-
+        handler = get_site_handler(url)
+        detail_url: str | None = None
+        for candidate in listing_job_urls:
+            if not isinstance(candidate, str) or not candidate.strip():
+                continue
+            normalized = (
+                candidate
+                if candidate.startswith(("http://", "https://"))
+                else urljoin(url, candidate)
+            )
+            candidate_handler = handler or get_site_handler(normalized)
+            if candidate_handler:
+                if candidate_handler.is_listing_url(normalized):
+                    continue
+            elif workflow_activities._is_probable_listing_url(normalized):  # noqa: SLF001
+                continue
+            detail_url = normalized
+            break
+        if detail_url is None:
             detail_url = listing_job_urls[0]
             if not detail_url.startswith(("http://", "https://")):
                 detail_url = urljoin(url, detail_url)
-            handler = get_site_handler(detail_url) or get_site_handler(url)
-            if handler and handler.name == "greenhouse":
-                api_url = handler.get_api_uri(detail_url)
-                if api_url:
-                    detail_url = api_url
-            captures = []
-            spidercloud_scraper.AsyncSpider = (
-                lambda api_key, captures=captures: _FixtureCaptureSpider(api_key, captures)
-            )
-            scraper = workflow_activities._make_spidercloud_scraper()
-            await scraper._scrape_urls_batch(
-                [detail_url],
-                source_url=url,
-                pattern=pattern,
-            )
-            if not captures:
-                raise SystemExit(f"No SpiderCloud response captured for detail {detail_url}")
-            detail_capture = captures[0]
-            def bytes_to_str_in_detail(obj):
-                if isinstance(obj, bytes):
-                    return decode_bytes(obj)
-                if isinstance(obj, dict):
-                    return {k: bytes_to_str_in_detail(v) for k, v in obj.items()}
-                if isinstance(obj, list):
-                    return [bytes_to_str_in_detail(i) for i in obj]
-                return obj
-
-            detail_capture_clean = bytes_to_str_in_detail(detail_capture)
-            detail_path.write_text(
-                json.dumps(detail_capture_clean, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            print(f"Wrote {listing_path} and {detail_path}")
-    finally:
-        spidercloud_scraper.AsyncSpider = original_async_spider
+        handler = get_site_handler(detail_url) or handler
+        if handler and handler.name == "greenhouse":
+            api_url = handler.get_api_uri(detail_url, source_url=url)
+            if api_url:
+                detail_url = api_url
+        detail_capture_clean, _ = await _capture_workflow_scrape(
+            detail_url,
+            source_url=url,
+            pattern=pattern,
+            label="detail",
+        )
+        detail_path.write_text(
+            json.dumps(detail_capture_clean, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        logger.info(f"Wrote {listing_path} and {detail_path}")
 
 
 async def main() -> None:
@@ -479,6 +454,17 @@ async def main() -> None:
         default=str(SCHEDULE_FIXTURE_DIR),
         help="Output directory for schedule fixtures.",
     )
+    parser.add_argument(
+        "--single-request-mode",
+        action="store_true",
+        default=True,
+        help="Generate fixtures for single request mode (stream=False). Default: True",
+    )
+    parser.add_argument(
+        "--legacy-stream-mode",
+        action="store_true",
+        help="Generate fixtures for legacy streaming mode (stream=True, JSONL).",
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -486,10 +472,28 @@ async def main() -> None:
     if not api_key:
         raise SystemExit("SPIDER_API_KEY (or SPIDER_KEY) is not set in environment/.env")
 
+    # Determine fixture mode (single request vs legacy streaming)
+    use_single_request = args.single_request_mode and not args.legacy_stream_mode
+
+    # Set runtime config to match requested mode
+    # This affects how _capture_workflow_scrape calls the scraper
+    from job_scrape_application.config import runtime_config as _rc
+    object.__setattr__(_rc, "spidercloud_single_request_mode", use_single_request)
+
     if args.schedule_env:
+        # Determine output directory based on mode
+        if use_single_request and args.schedule_out == str(SCHEDULE_FIXTURE_DIR):
+            output_dir = SINGLE_REQUEST_FIXTURE_DIR
+            logger.info("Using single request mode, output to: %s", output_dir)
+        else:
+            output_dir = Path(args.schedule_out)
+            logger.info("Using %s mode, output to: %s",
+                       "single request" if use_single_request else "legacy stream",
+                       output_dir)
+
         await _fetch_schedule_fixtures(
             env=args.schedule_env,
-            output_dir=Path(args.schedule_out),
+            output_dir=output_dir,
             only=args.schedule_only,
             limit=args.schedule_limit,
         )
@@ -520,7 +524,7 @@ async def main() -> None:
                 return_format = params.get("return_format")
                 if isinstance(return_format, str):
                     params["return_format"] = [return_format]
-                print(f"Fetching {url} -> {filename} via {endpoint}")
+                logger.info(f"Fetching {url} -> {filename} via {endpoint}")
                 response = await _collect_response(
                     client.scrape_url(
                         url,
@@ -534,9 +538,9 @@ async def main() -> None:
                     "response": response,
                 }
                 path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
-                print(f"  wrote {path} ({len(json.dumps(fixture))} bytes)")
+                logger.info(f"  wrote {path} ({len(json.dumps(fixture))} bytes)")
             except Exception as exc:  # noqa: BLE001
-                print(f"  failed to fetch {filename}: {exc}")
+                logger.error(f"  failed to fetch {filename}: {exc}")
 
 
 if __name__ == "__main__":

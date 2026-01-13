@@ -1,0 +1,140 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
+    "params": {
+      "return_format": [
+        "commonmark",
+        "raw_html"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": "```\n{\"absolute\\_url\":\"http://www.hioscar.com/careers/7452951?gh\\_jid=7452951\",\"data\\_compliance\":[{\"type\":\"gdpr\",\"requires\\_consent\":false,\"requires\\_processing\\_consent\":false,\"requires\\_retention\\_consent\":false,\"retention\\_period\":null,\"demographic\\_data\\_consent\\_applies\":false}],\"internal\\_job\\_id\":3312671,\"location\":{\"name\":\"Georgia, United States\"},\"metadata\":[{\"id\":157143,\"name\":\"Job Description\",\"value\":null,\"value\\_type\":\"long\\_text\"},{\"id\":4676693,\"name\":\"Work Style\",\"value\":\"Remote\",\"value\\_type\":\"single\\_select\"}],\"id\":7452951,\"updated\\_at\":\"2025-12-30T17:42:03-05:00\",\"requisition\\_id\":\"R0008138\",\"title\":\"1099 Physician - APP Supervision\",\"company\\_name\":\"Oscar Health\",\"first\\_published\":\"2025-12-30T17:38:43-05:00\",\"language\":\"en\",\"content\":\"\\\\u0026lt;p\\\\u0026gt;Hi, we\\\\u0026#39;re Oscar Medical Group. We\\\\u0026#39;re hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, \\\\u0026amp;amp; Oscar Primary Care.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;At Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;About the role:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;You will be a supervising physician to Advanced Practice Providers providing care services to Oscar Health members via telemedicine. You are not expected to provide patient care.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Work Location:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Oscar Medical Group is a blended work culture where everyone, regardless of work type or location, feels connected to their teammates, our culture and our mission.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;This is a remote / work-from-home role. \\\\u0026lt;strong\\\\u0026gt;You must reside in: Georgia.\\\\u0026lt;/strong\\\\u0026gt; #LI-Remote\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Pay Transparency:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;$300 per APP per month for APP Supervision duties. Oscar Medical Group will cover your malpractice insurance.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Responsibilities:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Provide direct oversight and supervision of nurse practitioners and physician assistants within state by state regulations\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Collaborate with MAs, RNs, and other providers across service lines\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Compliance with all applicable laws and regulations\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Other duties as assigned\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Requirements:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Board-certification in Internal Medicine, Family Medicine or Emergency Medicine\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;MD or DO from an accredited medical school\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Supervision experience of Nurse Practitioners (NP) and Physician Assistants (PA)\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Must live in Georgia\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Must have an active state license in Georgia\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;3+ years clinical experience in urgent care, ER or outpatient family medicine practice\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Bonus points:\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;2+ years of Telemedicine experience\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Fluent in Spanish\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Must have a compact license or be eligible for IMLCC (Interstate Medical Licensure Compact)\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Licensed in OMG states: MI, IL, CT, PA, NC, OK, VA, TX, FL, OH\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;content-conclusion\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;This is an authentic Oscar Health job opportunity. Learn more about how you can safeguard yourself from recruitment fraud\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;a href=\\\\u0026quot;http://hioscar.com/careers/recruitment-fraud-alert\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt; \\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;here\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/a\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;.\\\\u0026amp;nbsp;\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;At Oscar, being an Equal Opportunity Employer means more than upholding discrimination-free hiring practices. It means that we cultivate an environment where people can be their most authentic selves and find both belonging and support. We\\\\u0026#39;re on a mission to change health care -- an experience made whole by our unique backgrounds and perspectives.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Pay Transparency:\\\\u0026amp;nbsp; \\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Final offer amounts, within the base pay set forth above, are determined by factors including your relevant skills, education, and experience. \\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Full-time employees are eligible for benefits including: medical, dental, and vision benefits, 11 paid holidays, paid sick time, paid parental leave, 401(k) plan participation, life and disability insurance, and paid wellness time and reimbursements.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Artificial Intelligence (AI): \\\\u0026lt;/strong\\\\u0026gt;Our \\\\u0026lt;a href=\\\\u0026quot;http://hioscar.com/careers/ai-guidelines\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;AI Guidelines\\\\u0026lt;/a\\\\u0026gt; outline the acceptable use of artificial intelligence for candidates and detail how we use AI to support our recruiting efforts.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;Reasonable Accommodation: \\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;Oscar applicants are considered solely based on their qualifications, without regard to applicant’s disability or need for accommodation. Any Oscar applicant who requires reasonable accommodations during the application process should contact the Oscar Benefits Team (accommodations@hioscar.com) to make the need for an accommodation known.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-weight: 400;\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;California Residents:\\\\u0026lt;/strong\\\\u0026gt; For information about our collection, use, and disclosure of applicants’ personal information as well as applicants’ rights over their personal information, please see our \\\\u0026lt;a href=\\\\u0026quot;https://www.hioscar.com/legal/privacy/\\\\u0026quot;\\\\u0026gt;Privacy Policy\\\\u0026lt;/a\\\\u0026gt;.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\",\"departments\":[{\"id\":72783,\"name\":\"Virtual\",\"child\\_ids\":[],\"parent\\_id\":null}],\"offices\":[{\"id\":69320,\"name\":\"Remote (Georgia)\",\"location\":\"Georgia, United States\",\"child\\_ids\":[],\"parent\\_id\":67492}]}\n```",
+          "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"http://www.hioscar.com/careers/7452951?gh_jid=7452951\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":3312671,\"location\":{\"name\":\"Georgia, United States\"},\"metadata\":[{\"id\":157143,\"name\":\"Job Description\",\"value\":null,\"value_type\":\"long_text\"},{\"id\":4676693,\"name\":\"Work Style\",\"value\":\"Remote\",\"value_type\":\"single_select\"}],\"id\":7452951,\"updated_at\":\"2025-12-30T17:42:03-05:00\",\"requisition_id\":\"R0008138\",\"title\":\"1099 Physician - APP Supervision\",\"company_name\":\"Oscar Health\",\"first_published\":\"2025-12-30T17:38:43-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;p\\u0026gt;Hi, we\\u0026#39;re Oscar Medical Group. We\\u0026#39;re hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, \\u0026amp;amp; Oscar Primary Care.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;At Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;About the role:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;You will be a supervising physician to Advanced Practice Providers providing care services to Oscar Health members via telemedicine. You are not expected to provide patient care.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Work Location:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Oscar Medical Group is a blended work culture where everyone, regardless of work type or location, feels connected to their teammates, our culture and our mission.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;This is a remote / work-from-home role. \\u0026lt;strong\\u0026gt;You must reside in: Georgia.\\u0026lt;/strong\\u0026gt; #LI-Remote\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Pay Transparency:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;$300 per APP per month for APP Supervision duties. Oscar Medical Group will cover your malpractice insurance.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Responsibilities:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Provide direct oversight and supervision of nurse practitioners and physician assistants within state by state regulations\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Collaborate with MAs, RNs, and other providers across service lines\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Compliance with all applicable laws and regulations\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Other duties as assigned\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Requirements:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Board-certification in Internal Medicine, Family Medicine or Emergency Medicine\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;MD or DO from an accredited medical school\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Supervision experience of Nurse Practitioners (NP) and Physician Assistants (PA)\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;\\u0026lt;strong\\u0026gt;Must live in Georgia\\u0026lt;/strong\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;\\u0026lt;strong\\u0026gt;Must have an active state license in Georgia\\u0026lt;/strong\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;3+ years clinical experience in urgent care, ER or outpatient family medicine practice\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Bonus points:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;2+ years of Telemedicine experience\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Fluent in Spanish\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Must have a compact license or be eligible for IMLCC (Interstate Medical Licensure Compact)\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Licensed in OMG states: MI, IL, CT, PA, NC, OK, VA, TX, FL, OH\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;This is an authentic Oscar Health job opportunity. Learn more about how you can safeguard yourself from recruitment fraud\\u0026lt;/span\\u0026gt;\\u0026lt;a href=\\u0026quot;http://hioscar.com/careers/recruitment-fraud-alert\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt; \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;here\\u0026lt;/span\\u0026gt;\\u0026lt;/a\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;.\\u0026amp;nbsp;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;At Oscar, being an Equal Opportunity Employer means more than upholding discrimination-free hiring practices. It means that we cultivate an environment where people can be their most authentic selves and find both belonging and support. We\\u0026#39;re on a mission to change health care -- an experience made whole by our unique backgrounds and perspectives.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Pay Transparency:\\u0026amp;nbsp; \\u0026lt;/strong\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Final offer amounts, within the base pay set forth above, are determined by factors including your relevant skills, education, and experience. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Full-time employees are eligible for benefits including: medical, dental, and vision benefits, 11 paid holidays, paid sick time, paid parental leave, 401(k) plan participation, life and disability insurance, and paid wellness time and reimbursements.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Artificial Intelligence (AI): \\u0026lt;/strong\\u0026gt;Our \\u0026lt;a href=\\u0026quot;http://hioscar.com/careers/ai-guidelines\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;AI Guidelines\\u0026lt;/a\\u0026gt; outline the acceptable use of artificial intelligence for candidates and detail how we use AI to support our recruiting efforts.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Reasonable Accommodation: \\u0026lt;/strong\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Oscar applicants are considered solely based on their qualifications, without regard to applicant’s disability or need for accommodation. Any Oscar applicant who requires reasonable accommodations during the application process should contact the Oscar Benefits Team (accommodations@hioscar.com) to make the need for an accommodation known.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;California Residents:\\u0026lt;/strong\\u0026gt; For information about our collection, use, and disclosure of applicants’ personal information as well as applicants’ rights over their personal information, please see our \\u0026lt;a href=\\u0026quot;https://www.hioscar.com/legal/privacy/\\u0026quot;\\u0026gt;Privacy Policy\\u0026lt;/a\\u0026gt;.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":72783,\"name\":\"Virtual\",\"child_ids\":[],\"parent_id\":null}],\"offices\":[{\"id\":69320,\"name\":\"Remote (Georgia)\",\"location\":\"Georgia, United States\",\"child_ids\":[],\"parent_id\":67492}]}</pre><div class=\"json-formatter-container\"></div></html>"
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 3.7943333333333332e-06,
+          "compute_cost_formatted": "0.0000037943333333333333314830",
+          "file_cost": 1.233e-05,
+          "file_cost_formatted": "0.0000123299999999999992938982",
+          "total_cost": 2.6124333333333333e-05,
+          "total_cost_formatted": "0.0000261243333333333331804926",
+          "transform_cost": 1e-05,
+          "transform_cost_formatted": "0.0000100000000000000005551115"
+        },
+        "duration_elasped_ms": 2033,
+        "error": null,
+        "links": [],
+        "metadata": {
+          "commonmark": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 8412,
+            "final_url": null,
+            "keywords": [
+              "Advanced Practice Providers providing care services",
+              "Equal Opportunity Employer means",
+              "Final offer amounts",
+              "Interstate Medical Licensure Compact",
+              "Oscar Benefits Team",
+              "Oscar Health members",
+              "Oscar Medical Group",
+              "Oscar Primary Care",
+              "Provide direct oversight",
+              "Virtual Health Assessment",
+              "Virtual Urgent Care",
+              "accredited medical school",
+              "active state license",
+              "authentic Oscar Health job opportunity",
+              "base pay set",
+              "blended work culture",
+              "change health care --",
+              "considered solely based",
+              "healthcare delivery system",
+              "outpatient family medicine practice",
+              "paid parental leave",
+              "paid sick time",
+              "paid wellness time",
+              "provide patient care",
+              "provide regulatory APP supervision",
+              "upholding discrimination-free hiring practices"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
+            "pathname": "/v1/boards/oscar/jobs/7452951",
+            "resource_type": ".md",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          },
+          "raw": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 8194,
+            "final_url": null,
+            "keywords": [
+              "Advanced Practice Providers providing care services",
+              "Equal Opportunity Employer means",
+              "Final offer amounts",
+              "Interstate Medical Licensure Compact",
+              "Oscar Benefits Team",
+              "Oscar Health members",
+              "Oscar Medical Group",
+              "Oscar Primary Care",
+              "Provide direct oversight",
+              "Virtual Health Assessment",
+              "Virtual Urgent Care",
+              "accredited medical school",
+              "active state license",
+              "authentic Oscar Health job opportunity",
+              "base pay set",
+              "blended work culture",
+              "change health care --",
+              "considered solely based",
+              "healthcare delivery system",
+              "outpatient family medicine practice",
+              "paid parental leave",
+              "paid sick time",
+              "paid wellness time",
+              "provide patient care",
+              "provide regulatory APP supervision",
+              "upholding discrimination-free hiring practices"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
+            "pathname": "/v1/boards/oscar/jobs/7452951",
+            "resource_type": ".html",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          }
+        },
+        "status": 200,
+        "url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "_creationTime": 1768266641830.3215,
+  "_id": "k171zbgwbf6hh39taztyeqryks7z4sf9",
+  "city": "Bellevue",
+  "company": "robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "description": "Senior Product Designer, Growth Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you\u2019re ready to be at the epicenter of this historic cultural and financial shift, keep reading. About the team + role We are building an elite team, applying frontier technologies to the world\u2019s biggest financial problems. We\u2019re looking for bold thinkers. Sharp problem-solvers. Builders who are wired to make an impact. Robinhood isn\u2019t a...",
+  "engineer": false,
+  "level": "senior",
+  "location": "Bellevue, Washington",
+  "locationSearch": "Bellevue Washington United States",
+  "locationStates": [
+    "Washington"
+  ],
+  "locations": [
+    "Bellevue, Washington"
+  ],
+  "postedAt": 1738610273000,
+  "postedAtUnknown": false,
+  "remote": false,
+  "scrapedAt": 1768266633109,
+  "state": "Washington",
+  "title": "Senior Product Designer, Growth",
+  "totalCompensation": 175750,
+  "url": "https://boards.greenhouse.io/robinhood/jobs/6494244)Bellevue"
+}

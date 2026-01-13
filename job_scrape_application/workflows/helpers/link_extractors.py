@@ -49,6 +49,26 @@ def _strip_table_tail(candidate: str) -> str:
     return candidate
 
 
+def _truncate_at_unbalanced_paren(candidate: str) -> str:
+    """Truncate URL at the first unbalanced closing paren.
+
+    Markdown links like [Title](https://example.com/job/123)Location cause the
+    URL regex to capture text after the closing paren. This function finds where
+    the paren balance goes negative and truncates there.
+    """
+    if ")" not in candidate:
+        return candidate
+    paren_depth = 0
+    for i, char in enumerate(candidate):
+        if char == "(":
+            paren_depth += 1
+        elif char == ")":
+            paren_depth -= 1
+            if paren_depth < 0:
+                return candidate[:i]
+    return candidate
+
+
 def _strip_trailing_brackets(candidate: str) -> str:
     cleaned = candidate
     while cleaned:
@@ -77,6 +97,28 @@ def _strip_html_tail(candidate: str) -> str:
     return candidate[:cut].rstrip()
 
 
+def _strip_embedded_url_quotes(candidate: str) -> str:
+    if '"' not in candidate and "'" not in candidate:
+        return candidate
+    prefix = ""
+    working = candidate
+    if candidate.startswith("//"):
+        prefix = "//"
+        working = f"https:{candidate}"
+    try:
+        parsed = urlparse(working)
+    except Exception:
+        return candidate
+    path = parsed.path or ""
+    if '"' not in path and "'" not in path:
+        return candidate
+    cleaned_path = path.replace('"', "").replace("'", "")
+    rebuilt = urlunparse(parsed._replace(path=cleaned_path))
+    if prefix:
+        return rebuilt.replace("https:", "", 1)
+    return rebuilt
+
+
 def strip_wrapping_url(candidate: str) -> str:
     cleaned = candidate.strip()
     if cleaned:
@@ -89,6 +131,7 @@ def strip_wrapping_url(candidate: str) -> str:
             break
         cleaned = cleaned[1:-1].strip()
     cleaned = _strip_table_tail(cleaned)
+    cleaned = _truncate_at_unbalanced_paren(cleaned)
     cleaned = _strip_trailing_brackets(cleaned)
     cleaned = _strip_html_tail(cleaned)
     return cleaned
@@ -147,16 +190,34 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     candidate = candidate.replace("\\/", "/")
     candidate = candidate.replace("\\", "/")
     candidate = fix_scheme_slashes(candidate)
+    candidate = _strip_embedded_url_quotes(candidate)
+    if candidate.startswith(("http://", "https://")):
+        try:
+            parsed = urlparse(candidate)
+        except Exception:
+            parsed = None
+        if parsed and not parsed.netloc and base_url:
+            path = parsed.path or ""
+            if path:
+                path = f"/{path.lstrip('/')}"
+                return _normalize_http_url(urljoin(base_url, path))
     lower = candidate.lower()
     if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
         return None
     if candidate.startswith(("http://", "https://")):
         return _normalize_http_url(candidate)
     if candidate.startswith("//"):
+        if candidate.startswith("///"):
+            if not base_url:
+                return None
+            return _normalize_http_url(urljoin(base_url, f"/{candidate.lstrip('/')}"))
         if not base_url:
             return None
         scheme = urlparse(base_url).scheme or "https"
-        return _normalize_http_url(f"{scheme}:{candidate}")
+        normalized = _normalize_http_url(f"{scheme}:{candidate}")
+        if normalized and urlparse(normalized).netloc:
+            return normalized
+        return _normalize_http_url(urljoin(base_url, f"/{candidate.lstrip('/')}"))
     if base_url:
         joined = urljoin(base_url, candidate)
         return _normalize_http_url(joined)

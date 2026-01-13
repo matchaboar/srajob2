@@ -4,7 +4,7 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
-from ..helpers.regex_patterns import CONFLUENT_JOB_PATH_PATTERN
+from ..helpers.regex_patterns import CONFLUENT_JOB_PATH_PATTERN, DIGIT_PATTERN
 from .base import BaseSiteHandler
 
 
@@ -36,7 +36,15 @@ class ConfluentHandler(BaseSiteHandler):
         path = (parsed.path or "").lower()
         if not path.startswith("/jobs"):
             return False
-        return "/jobs/job/" not in path
+        if "/jobs/job/" in path:
+            return False
+        segments = [seg for seg in path.split("/") if seg]
+        if len(segments) == 1:
+            return True
+        slug = segments[1]
+        if slug == "job":
+            return False
+        return not re.search(DIGIT_PATTERN, slug)
 
     def get_spidercloud_config(self, uri: str) -> dict[str, Any]:
         if self.is_listing_url(uri):

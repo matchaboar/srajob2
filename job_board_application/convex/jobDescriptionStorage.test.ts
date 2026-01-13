@@ -78,4 +78,15 @@ describe("jobDescriptionStorage", () => {
 
     expect(del).not.toHaveBeenCalled();
   });
+
+  it("truncates previews to 100 words", () => {
+    const words = Array.from({ length: 120 }, (_, idx) => `word${idx}`);
+    const description = words.join(" ");
+
+    const preview = buildDescriptionPreview(description);
+    const trimmed = preview.endsWith("...") ? preview.slice(0, -3) : preview;
+    const wordCount = trimmed.trim().split(/\s+/).length;
+
+    expect(wordCount).toBe(100);
+  });
 });

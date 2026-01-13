@@ -1,0 +1,31 @@
+{
+  "site_id": "stubhub",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101",
+  "source_url": "https://api.greenhouse.io/v1/boards/stubhubinc/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Analytics Engineer II",
+      "description_preview": "Analytics Engineer II StubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth, we\u2019re here to delight them all the way from the moment they start looking for a ticket until they step...",
+      "description_word_count": 765,
+      "location": "Los Angeles, California, United States",
+      "is_remote": false,
+      "posted_at": 1762126051000,
+      "posted_at_unknown": false,
+      "company": "StubHub",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

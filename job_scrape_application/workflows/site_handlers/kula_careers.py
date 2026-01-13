@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from ..helpers.link_extractors import fix_scheme_slashes, strip_wrapping_url
 from .base import BaseSiteHandler
 
 KULA_HOST = "careers.kula.ai"
@@ -144,7 +145,8 @@ class KulaCareersHandler(BaseSiteHandler):
             elif cleaned.startswith("/"):
                 cleaned = f"https://{KULA_HOST}{cleaned}"
             normalized.append(cleaned)
-        return self.filter_job_urls(normalized)
+        # For Kula, URLs are already properly formatted, so return as-is
+        return normalized
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
@@ -191,6 +193,26 @@ class KulaCareersHandler(BaseSiteHandler):
         if segments[0] == "api":
             return False
         return segments[1].isdigit()
+
+    @classmethod
+    def filter_job_urls_basic(cls, urls: List[str]) -> List[str]:
+        filtered: List[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not isinstance(url, str):
+                continue
+            cleaned = strip_wrapping_url(url)
+            if not cleaned or cleaned in seen:
+                continue
+            cleaned = fix_scheme_slashes(cleaned)
+            lower = cleaned.lower()
+            if lower.startswith(("mailto:", "tel:", "javascript:", "#")):
+                continue
+            if cls._looks_like_non_job_detail_url(cleaned):
+                continue
+            seen.add(cleaned)
+            filtered.append(cleaned)
+        return filtered
 
     def _extract_page_param(self, url: str | None) -> Optional[int]:
         if not url:

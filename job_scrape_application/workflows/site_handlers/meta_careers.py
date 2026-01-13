@@ -64,7 +64,7 @@ class MetaCareersHandler(BaseSiteHandler):
             "preserve_host": True,
         }
         if self.is_listing_url(uri):
-            base_config["return_format"] = ["raw_html"]
+            base_config["return_format"] = ["commonmark", "raw_html"]
             script = self._build_execution_script()
             base_config["execution_scripts"] = {"*": script}
             base_config["exuecution_scripts"] = {"*": script}
@@ -124,11 +124,24 @@ class MetaCareersHandler(BaseSiteHandler):
             job_id = job.get("id") if isinstance(job, dict) else None
             if job_id is None:
                 continue
-            job_id_str = str(job_id).strip()
+            job_id_str = self._normalize_job_id(str(job_id))
             if not job_id_str or not _JOB_ID_RE.match(job_id_str):
                 continue
             _add(urljoin(META_BASE_URL, f"/profile/job_details/{job_id_str}"))
         return urls
+
+    def _normalize_job_id(self, value: str | None) -> Optional[str]:
+        if not value:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        if _JOB_ID_RE.match(cleaned):
+            return cleaned
+        match = re.match(r"(?P<job_id>\d+)", cleaned)
+        if match:
+            return match.group("job_id")
+        return None
 
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
@@ -151,13 +164,15 @@ class MetaCareersHandler(BaseSiteHandler):
                 continue
             if lower_path.startswith(JOB_DETAIL_PROFILE_PATH):
                 segments = [seg for seg in path.split("/") if seg]
-                job_id = segments[2] if len(segments) >= 3 else ""
-                if not job_id or not _JOB_ID_RE.match(job_id):
+                raw_job_id = segments[2] if len(segments) >= 3 else ""
+                job_id = self._normalize_job_id(raw_job_id)
+                if not job_id:
                     continue
                 normalized = urljoin(META_BASE_URL, f"/profile/job_details/{job_id}")
             elif lower_path.startswith(JOB_DETAIL_PATH):
-                job_id = path.strip("/").split("/")[-1]
-                if not job_id or not _JOB_ID_RE.match(job_id):
+                raw_job_id = path.strip("/").split("/")[-1]
+                job_id = self._normalize_job_id(raw_job_id)
+                if not job_id:
                     continue
                 normalized = urljoin(META_BASE_URL, f"/profile/job_details/{job_id}")
             elif lower_path.startswith(JOBSEARCH_PATH):

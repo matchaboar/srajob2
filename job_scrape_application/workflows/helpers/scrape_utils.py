@@ -16,6 +16,81 @@ from ...constants import is_remote_company, title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
 
 from .link_extractors import dedupe_str_list, extract_links_from_payload
+from .compensation_parsing import (
+    DEFAULT_TOTAL_COMPENSATION,
+    HOURLY_TO_ANNUAL_MULTIPLIER,
+    MAX_TOTAL_COMPENSATION,
+    MIN_TOTAL_COMPENSATION,
+    UNKNOWN_COMPENSATION_REASON,
+    normalize_compensation_value,
+    parse_compensation,
+)
+from .timestamp_parsing import (
+    _RELATIVE_POSTED_MIN_DAYS,
+    _RELATIVE_TIME_RE,
+    _parse_relative_posted_at,
+    parse_posted_at,
+    parse_posted_at_with_unknown,
+)
+from .company_normalization import (
+    _COMPANY_SUFFIX_RE,
+    _GENERIC_COMPANY_HINTS,
+    _JOB_BOARD_COMPANY_TOKENS,
+    apply_company_hint,
+    derive_company_from_url,
+    is_generic_company_name,
+    normalize_company_hint,
+    normalize_title_from_bar,
+)
+from .location_normalization import (
+    _CITY_KEYWORD_KEYS,
+    _CITY_KEYWORDS,
+    _COUNTRY_KEY_TO_LABEL,
+    _LOCATION_DICTIONARY,
+    _LOCATION_DICTIONARY_KEYS,
+    _LOCATION_ENTRIES,
+    _STATE_ABBR_BY_KEY,
+    _STATE_ABBR_BY_NAME,
+    _STATE_NAME_BY_ABBR,
+    _find_city_in_text,
+    _format_location_label,
+    _is_plausible_location,
+    _normalize_country_label,
+    _normalize_location_key,
+    _normalize_locations,
+    _normalize_us_city_state,
+    _register_location_key,
+    _reorder_by_us_preference,
+    _resolve_location_from_dictionary,
+)
+from .url_handling import (
+    _apply_url_candidates,
+    _first_url,
+    _score_apply_url,
+    _strip_ashby_application_url,
+    prefer_apply_url,
+)
+from .page_detection import (
+    _ERROR_LANDING_PHRASES,
+    _INVALID_TITLE_PATTERNS,
+    _INVALID_TITLE_RE,
+    _JOB_DETAIL_MARKERS,
+    _LISTING_CARD_APPLY_MARKERS,
+    _LISTING_CARD_POSTED_RE,
+    _LISTING_FILTER_TERMS,
+    _LISTING_URL_TOKENS,
+    _NON_JOB_DOMAINS,
+    _NON_JOB_URL_PATTERNS,
+    _description_mentions_listing_url,
+    _looks_like_listing_card_snippet,
+    _url_is_listing_root,
+    _url_suggests_listing,
+    is_invalid_job_title,
+    is_invalid_job_url,
+    looks_like_error_landing,
+    looks_like_job_listing_page,
+    looks_like_non_job_page,
+)
 from .regex_patterns import (
     DIGIT_PATTERN,
     ERROR_404_PATTERN,
@@ -55,10 +130,6 @@ from .regex_patterns import (
     _TITLE_LOCATION_PAREN_RE,
     _WORK_FROM_RE,
 )
-DEFAULT_TOTAL_COMPENSATION = 0
-MIN_TOTAL_COMPENSATION = 30_000
-MAX_TOTAL_COMPENSATION = 5_000_000
-HOURLY_TO_ANNUAL_MULTIPLIER = 2080
 # Limit used when persisting entire scrape payloads to Convex (keep scrape docs <1MB).
 MAX_SCRAPE_DESCRIPTION_CHARS = 8000
 # Higher ceiling for the actual job documents so the UI can render full descriptions.
@@ -67,7 +138,101 @@ MAX_JOB_DESCRIPTION_CHARS = 200_000
 MAX_TITLE_CHARS = 500
 # Backward compat alias (used only inside this module previously).
 MAX_DESCRIPTION_CHARS = MAX_SCRAPE_DESCRIPTION_CHARS
-UNKNOWN_COMPENSATION_REASON = "pending markdown structured extraction"
+
+# Patterns for HTML to text conversion
+_HTML_BR_PATTERN = re.compile(r"<br\s*/?>", flags=re.IGNORECASE)
+_HTML_P_OPEN_PATTERN = re.compile(r"<p[^>]*>", flags=re.IGNORECASE)
+_HTML_P_CLOSE_PATTERN = re.compile(r"</p>", flags=re.IGNORECASE)
+_HTML_LI_PATTERN = re.compile(r"<li[^>]*>", flags=re.IGNORECASE)
+_HTML_HEADING_PATTERN = re.compile(r"<h[1-6][^>]*>", flags=re.IGNORECASE)
+_HTML_DIV_CLOSE_PATTERN = re.compile(r"</(?:div|section|article)>", flags=re.IGNORECASE)
+_HTML_ALL_TAGS_PATTERN = re.compile(r"<[^>]+>")
+
+
+def _html_description_to_text(html_content: str) -> str:
+    """Convert HTML job description to readable plain text.
+
+    This handles common HTML patterns from job board APIs (Greenhouse, Workday)
+    where the description contains HTML tags like <p>, <li>, <br>, etc.
+    Also handles double-escaped unicode sequences like \\u0026lt; from Greenhouse API.
+    """
+    if not html_content:
+        return html_content
+
+    text = html_content
+
+    # Handle literal \uXXXX escape sequences in the content
+    # These appear when APIs return encoded content that wasn't properly decoded
+    if "\\u00" in text:
+        try:
+            # Decode literal unicode escapes (e.g., \u0026 -> &)
+            text = text.encode("utf-8").decode("unicode_escape")
+            # Then re-decode UTF-8 multi-byte sequences that were split
+            text = text.encode("latin-1").decode("utf-8")
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            # Fallback: just decode unicode escapes
+            try:
+                text = text.encode("utf-8").decode("unicode_escape")
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
+    else:
+        # Handle improperly decoded UTF-8 bytes (chars in 0x80-0xff range)
+        try:
+            text = text.encode("latin-1").decode("utf-8")
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
+
+    # Unescape HTML entities (handles &lt; &gt; &amp; etc.)
+    text = html_lib.unescape(text)
+
+    # Check if it still looks like HTML after unescaping
+    if "<" not in text or ">" not in text:
+        return text.strip()
+
+    # Convert line breaks
+    text = _HTML_BR_PATTERN.sub("\n", text)
+
+    # Convert paragraph boundaries to double newlines
+    text = _HTML_P_OPEN_PATTERN.sub("\n\n", text)
+    text = _HTML_P_CLOSE_PATTERN.sub("\n", text)
+
+    # Convert list items to bullet points
+    text = _HTML_LI_PATTERN.sub("\n- ", text)
+
+    # Convert headings to newlines with emphasis
+    text = _HTML_HEADING_PATTERN.sub("\n\n## ", text)
+
+    # Convert div/section closes to newlines
+    text = _HTML_DIV_CLOSE_PATTERN.sub("\n", text)
+
+    # Strip all remaining HTML tags
+    text = _HTML_ALL_TAGS_PATTERN.sub("", text)
+
+    # Decode any remaining HTML entities (in case of double-encoding)
+    text = html_lib.unescape(text)
+
+    # Normalize whitespace: collapse multiple spaces (but preserve newlines)
+    lines = text.splitlines()
+    cleaned_lines = []
+    for line in lines:
+        cleaned = " ".join(line.split())
+        cleaned_lines.append(cleaned)
+
+    # Collapse multiple consecutive empty lines to at most 2
+    result_lines: List[str] = []
+    empty_count = 0
+    for line in cleaned_lines:
+        if not line:
+            empty_count += 1
+            if empty_count <= 2:
+                result_lines.append(line)
+        else:
+            empty_count = 0
+            result_lines.append(line)
+
+    return "\n".join(result_lines).strip()
+
+
 _AVATURE_TAIL_MARKERS = (
     "back to job search",
     "similar jobs",
@@ -106,30 +271,6 @@ _GENERIC_DROP_LINE_SUBSTRINGS = (
     "enable javascript to run this app",
 )
 _JUNK_UPPER_LINE_RE = re.compile(r"^[A-Z0-9_.]{8,}$")
-_COMPANY_SUFFIX_RE = re.compile(
-    r"(,?\s*(inc|inc\.|llc|ltd|limited|corp|corporation|co|company)\.?)$",
-    flags=re.IGNORECASE,
-)
-_GENERIC_COMPANY_HINTS = {
-    "careers",
-    "career",
-    "jobs",
-    "job",
-    "careers home",
-    "job description",
-}
-_JOB_BOARD_COMPANY_TOKENS = {
-    "ashby",
-    "avature",
-    "brassring",
-    "greenhouse",
-    "icims",
-    "jibeapply",
-    "lever",
-    "smartrecruiters",
-    "taleo",
-    "workday",
-}
 _EMBEDDED_JSON_MIN_LEN = 200
 _EMBEDDED_JSON_HUGE_LEN = 1200
 _DESCRIPTION_SECTION_MARKERS = {
@@ -184,194 +325,7 @@ _METADATA_LABEL_KEYS = {
 }
 
 
-def _score_apply_url(url: str) -> int:
-    """Prefer company-hosted URLs over Greenhouse API endpoints.
-
-    Higher scores are better. We want to avoid sending applicants to
-    boards-api/api.greenhouse.io when a marketing/careers link exists.
-    """
-
-    try:
-        host = (urlparse(url).hostname or "").lower()
-    except Exception:
-        host = ""
-
-    if "boards-api.greenhouse.io" in host or host.startswith("api.greenhouse.io"):
-        return 0  # least preferred: raw API endpoints
-    if host.endswith("greenhouse.io"):
-        return 1  # fallback: hosted Greenhouse job page
-    if host:
-        return 2  # best: company-owned domain
-    return -1
-
-
-def normalize_compensation_value(value: Any) -> Optional[int]:
-    if not isinstance(value, (int, float)):
-        return None
-    comp = int(value)
-    if comp <= MIN_TOTAL_COMPENSATION or comp >= MAX_TOTAL_COMPENSATION:
-        return None
-    return comp
-
-
-def _strip_ashby_application_url(url: str) -> str:
-    """Return the Ashby job overview URL when given an /application URL."""
-
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        return url
-    host = (parsed.hostname or "").lower()
-    if not host.endswith("ashbyhq.com"):
-        return url
-    path = parsed.path or ""
-    stripped_path = path.rstrip("/")
-    if not stripped_path.endswith("/application"):
-        return url
-    trimmed = stripped_path[: -len("/application")] or "/"
-    return parsed._replace(path=trimmed).geturl()
-
-
-def _apply_url_candidates(row: Dict[str, Any]) -> List[str]:
-    """Collect plausible apply URLs from a normalized/raw row."""
-
-    fields = (
-        "apply_url",
-        "applyUrl",
-        "company_url",
-        "companyUrl",
-        "absolute_apply_url",
-        "absoluteApplyUrl",
-        "absolute_applyUrl",
-        "absolute_apply_url",
-        "absolute_url",
-        "absoluteUrl",
-        "job_url",
-        "jobUrl",
-        "url",
-        "link",
-        "href",
-        "_url",
-    )
-
-    candidates: List[str] = []
-    for key in fields:
-        val = row.get(key)
-        if isinstance(val, str) and val.strip():
-            candidates.append(val.strip())
-    return candidates
-
-
-def prefer_apply_url(row: Dict[str, Any]) -> Optional[str]:
-    """Return the preferred apply URL with a bias toward company domains."""
-
-    candidates = _apply_url_candidates(row)
-    if not candidates:
-        return None
-
-    best = None
-    best_score = -2
-    seen: set[str] = set()
-    for candidate in candidates:
-        if candidate in seen:
-            continue
-        normalized = _strip_ashby_application_url(candidate)
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        score = _score_apply_url(normalized)
-        if score > best_score:
-            best = normalized
-            best_score = score
-
-    return best
 _NAV_MENU_TERMS = set(_NAV_MENU_SEQUENCE + ["Careers"])
-
-# Phrases that typically appear on error/expired job landing pages. We only
-# evaluate the first few hundred characters of title+body to avoid false
-# positives from legitimate descriptions that happen to contain similar
-# language deeper in the text.
-_ERROR_LANDING_PHRASES = (
-    "page not found",
-    "page was not found",
-    "requested page was not found",
-    "job not found",
-    "posting not found",
-    "we can't find what you're looking for",
-    "we can’t find what you're looking for",
-    "could not find what you're looking for",
-    "couldn't find what you're looking for",
-    "no longer available",
-    "no longer accepting applications",
-    "no longer taking applications",
-    "position has been filled",
-    "position filled",
-    "job has been filled",
-    "job posting has expired",
-    "posting has expired",
-    "job has expired",
-    "job is closed",
-    "posting is closed",
-)
-_LISTING_FILTER_TERMS = (
-    "open positions",
-    "open position",
-    "search for opportunities",
-    "search for jobs",
-    "search jobs",
-    "select department",
-    "select country",
-    "select location",
-    "select city",
-    "select state",
-    "select category",
-    "search category",
-    "all locations",
-    "all teams",
-    "all roles",
-    "all types",
-    "view openings",
-    "available in multiple locations",
-    "job fairs",
-    "work programs",
-    "view all jobs",
-    "filter by",
-)
-_LISTING_CARD_APPLY_MARKERS = (
-    "direct apply",
-    "apply with ai",
-    "apply now",
-    "view job",
-    "view details",
-)
-_LISTING_URL_TOKENS = {
-    "jobs",
-    "careers",
-    "career",
-    "positions",
-    "openings",
-}
-_LISTING_CARD_POSTED_RE = re.compile(r"\bposted\b.{0,40}\bago\b")
-_RELATIVE_TIME_RE = re.compile(
-    r"\b(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b",
-    flags=re.IGNORECASE,
-)
-_RELATIVE_POSTED_MIN_DAYS = 30
-_JOB_DETAIL_MARKERS = (
-    "responsibilities",
-    "requirements",
-    "qualifications",
-    "what you'll do",
-    "what you will do",
-    "about the role",
-    "about the position",
-    "who you are",
-    "benefits",
-    "compensation",
-    "salary",
-    "equal opportunity",
-)
-
 
 def build_job_template() -> Dict[str, str]:
     return {
@@ -509,20 +463,11 @@ def _first_string(value: Any) -> Optional[str]:
     return None
 
 
-def _first_url(value: Any) -> Optional[str]:
-    candidate = _first_string(value)
-    if not candidate:
-        return None
-    if candidate.startswith(("http://", "https://")):
-        return candidate
-    return None
-
-
 def _is_job_detail_payload(node: dict[str, Any]) -> bool:
-    desc = node.get("jobDescription") or node.get("description")
+    desc = node.get("jobDescription") or node.get("description") or node.get("content")
     if not isinstance(desc, str) or len(desc.strip()) < 80:
         return False
-    if "jobDescription" in node:
+    if "jobDescription" in node or "content" in node:
         return True
     for key in (
         "positionUrl",
@@ -563,6 +508,22 @@ def _extract_job_markdown_from_json(markdown: str) -> Optional[str]:
     if not markdown:
         return None
     trimmed = markdown.strip()
+    if not trimmed:
+        return None
+    # Strip code fence markers if present (e.g., ```json\n{...}\n```)
+    if trimmed.startswith("```"):
+        # Remove opening fence line
+        lines = trimmed.split("\n", 1)
+        if len(lines) > 1:
+            trimmed = lines[1]
+        else:
+            trimmed = ""
+        # Remove closing fence
+        if trimmed.rstrip().endswith("```"):
+            trimmed = trimmed.rstrip()[:-3].rstrip()
+        trimmed = trimmed.strip()
+        # Strip markdown escape sequences (e.g., \_ -> _) common in code blocks
+        trimmed = trimmed.replace("\\_", "_")
     if not trimmed or not trimmed.startswith(("{", "[")):
         return None
     payload = _parse_lenient_json(trimmed)
@@ -571,8 +532,16 @@ def _extract_job_markdown_from_json(markdown: str) -> Optional[str]:
     job_payload = _find_job_detail_payload(payload)
     if not job_payload:
         return None
-    description = job_payload.get("jobDescription") or job_payload.get("description")
-    if not isinstance(description, str) or not description.strip():
+    raw_description = (
+        job_payload.get("jobDescription")
+        or job_payload.get("description")
+        or job_payload.get("content")  # Greenhouse API uses 'content' field
+    )
+    if not isinstance(raw_description, str) or not raw_description.strip():
+        return None
+    # Convert HTML description to readable text (handles HTML entities and tags)
+    description = _html_description_to_text(raw_description)
+    if not description:
         return None
     title = _first_string(job_payload.get("name"))
     if not title:
@@ -581,6 +550,10 @@ def _extract_job_markdown_from_json(markdown: str) -> Optional[str]:
         title = _first_string(job_payload.get("jobTitle"))
     if not title:
         title = _first_string(job_payload.get("job_title"))
+    # Normalize title whitespace and decode HTML entities
+    if title:
+        title = " ".join(title.split())
+        title = html_lib.unescape(title)
     location = (
         _first_string(job_payload.get("standardizedLocations"))
         or _first_string(job_payload.get("locations"))
@@ -1167,436 +1140,6 @@ def _is_html_tag_line(line: str) -> bool:
     return not _HTML_TAG_RE.sub("", stripped).strip()
 
 
-def looks_like_error_landing(title: str | None, description: str) -> bool:
-    """Heuristically detect generic error/expired landing pages.
-
-    Many career sites return a branded 404/"job closed" page that still contains
-    navigation text. These pages shouldn't be stored as jobs. We look for strong
-    error phrases and the presence of "404" near the top of the combined
-    title+body.
-    """
-
-    haystack = f"{title or ''} {description or ''}".lower()
-    sample = re.sub(WHITESPACE_PATTERN, " ", haystack)[:700]
-
-    if re.search(ERROR_404_PATTERN, sample):
-        return True
-
-    for phrase in _ERROR_LANDING_PHRASES:
-        if phrase in sample:
-            return True
-
-    return False
-
-
-def _url_suggests_listing(url: str | None) -> bool:
-    if not url:
-        return False
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        return False
-    segments = [seg for seg in (parsed.path or "").split("/") if seg]
-    for idx, seg in enumerate(segments[:-1]):
-        if seg not in {"job", "jobs", "career", "careers"}:
-            continue
-        slug = segments[idx + 1]
-        if not slug or re.search(DIGIT_PATTERN, slug):
-            return False
-        normalized = _normalize_location_key(slug.replace("-", " ").replace("_", " "))
-        if not normalized:
-            return False
-        if normalized in _COUNTRY_KEY_TO_LABEL:
-            return True
-        for state_name in _STATE_ABBR_BY_NAME:
-            if _normalize_location_key(state_name) in normalized:
-                return True
-        if "remote" in normalized:
-            return True
-    return False
-
-
-def _url_is_listing_root(url: str | None) -> bool:
-    if not url:
-        return False
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        return False
-    segments = [seg for seg in (parsed.path or "").split("/") if seg]
-    if not segments:
-        return False
-    if any(re.search(DIGIT_PATTERN, seg) for seg in segments):
-        return False
-    return segments[-1].lower() in _LISTING_URL_TOKENS
-
-
-def _description_mentions_listing_url(description: str) -> bool:
-    if not description:
-        return False
-    for match in re.findall(r"https?://\S+", description):
-        cleaned = match.rstrip(").,;]\"'")
-        if _url_is_listing_root(cleaned):
-            return True
-    return False
-
-
-def _looks_like_listing_card_snippet(
-    sample: str,
-    description: str,
-    url: str | None,
-    detail_hits: int,
-) -> bool:
-    if detail_hits:
-        return False
-    trimmed = description.strip()
-    if not trimmed or len(trimmed) > 500:
-        return False
-    word_count = len(re.findall(r"\w+", trimmed))
-    if word_count > 120:
-        return False
-    line_count = len([line for line in description.splitlines() if line.strip()])
-    if line_count > 14:
-        return False
-    apply_hits = sum(1 for marker in _LISTING_CARD_APPLY_MARKERS if marker in sample)
-    if apply_hits == 0:
-        return False
-    listing_url_present = _description_mentions_listing_url(description) or _url_is_listing_root(url)
-    if not listing_url_present:
-        return False
-    posted_hit = bool(_LISTING_CARD_POSTED_RE.search(sample)) or ("posted" in sample and "ago" in sample)
-    if posted_hit:
-        return True
-    return apply_hits >= 2 and word_count <= 80
-
-
-def looks_like_job_listing_page(title: str | None, description: str, url: str | None = None) -> bool:
-    """Heuristically detect job board listing/filter pages rather than a single job."""
-
-    if not description:
-        return False
-    haystack = f"{title or ''} {description or ''}".lower()
-    sample = re.sub(WHITESPACE_PATTERN, " ", haystack)[:2000]
-    link_hits = description.count("](")
-    marker_hits = sum(1 for marker in _LISTING_FILTER_TERMS if marker in sample)
-    select_hits = len(_LISTING_SELECT_RE.findall(sample))
-    table_hits = bool(_LISTING_TABLE_HEADER_RE.search(sample))
-    detail_hits = sum(1 for marker in _JOB_DETAIL_MARKERS if marker in sample)
-
-    if "open positions" in sample and ("search for opportunities" in sample or select_hits >= 1):
-        return True
-    if table_hits and link_hits >= 5:
-        return True
-    if marker_hits >= 4:
-        return True
-    if marker_hits >= 3 and select_hits >= 1:
-        return True
-    if select_hits >= 3 and marker_hits >= 1:
-        return True
-    if link_hits >= 8 and marker_hits >= 2:
-        return True
-    if marker_hits >= 2 and _url_suggests_listing(url):
-        return True
-    if _looks_like_listing_card_snippet(sample, description, url, detail_hits):
-        return True
-    if detail_hits >= 2 and marker_hits <= 2 and select_hits < 2:
-        return False
-
-    return False
-
-
-
-def _normalize_location_key(value: str) -> str:
-    normalized = unicodedata.normalize("NFKD", value)
-    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
-    lowered = normalized.lower()
-    lowered = re.sub(PARENTHETICAL_PATTERN, " ", lowered)
-    lowered = re.sub(NON_ALNUM_SPACE_PATTERN, " ", lowered)
-    lowered = re.sub(WHITESPACE_PATTERN, " ", lowered)
-    return lowered.strip()
-
-
-_STATE_NAME_BY_ABBR: dict[str, str] = {
-    "AL": "Alabama",
-    "AK": "Alaska",
-    "AZ": "Arizona",
-    "AR": "Arkansas",
-    "CA": "California",
-    "CO": "Colorado",
-    "CT": "Connecticut",
-    "DC": "District of Columbia",
-    "DE": "Delaware",
-    "FL": "Florida",
-    "GA": "Georgia",
-    "HI": "Hawaii",
-    "IA": "Iowa",
-    "ID": "Idaho",
-    "IL": "Illinois",
-    "IN": "Indiana",
-    "KS": "Kansas",
-    "KY": "Kentucky",
-    "LA": "Louisiana",
-    "MA": "Massachusetts",
-    "MD": "Maryland",
-    "ME": "Maine",
-    "MI": "Michigan",
-    "MN": "Minnesota",
-    "MO": "Missouri",
-    "MS": "Mississippi",
-    "MT": "Montana",
-    "NC": "North Carolina",
-    "ND": "North Dakota",
-    "NE": "Nebraska",
-    "NH": "New Hampshire",
-    "NJ": "New Jersey",
-    "NM": "New Mexico",
-    "NV": "Nevada",
-    "NY": "New York",
-    "OH": "Ohio",
-    "OK": "Oklahoma",
-    "OR": "Oregon",
-    "PA": "Pennsylvania",
-    "RI": "Rhode Island",
-    "SC": "South Carolina",
-    "SD": "South Dakota",
-    "TN": "Tennessee",
-    "TX": "Texas",
-    "UT": "Utah",
-    "VA": "Virginia",
-    "VT": "Vermont",
-    "WA": "Washington",
-    "WI": "Wisconsin",
-    "WV": "West Virginia",
-    "WY": "Wyoming",
-}
-_STATE_ABBR_BY_NAME: dict[str, str] = {name: abbr for abbr, name in _STATE_NAME_BY_ABBR.items()}
-_STATE_ABBR_BY_KEY: dict[str, str] = {
-    _normalize_location_key(name): abbr for name, abbr in _STATE_ABBR_BY_NAME.items()
-}
-
-
-def _normalize_us_city_state(value: str) -> Optional[str]:
-    if "," not in value:
-        return None
-    parts = [part.strip() for part in value.split(",") if part.strip()]
-    if len(parts) != 2:
-        return None
-    city, state_raw = parts
-    if not city or city.lower() == "remote":
-        return None
-    state_key = _normalize_location_key(state_raw)
-    state_abbr = _STATE_ABBR_BY_KEY.get(state_key)
-    if not state_abbr:
-        state_upper = state_raw.strip().upper()
-        if state_upper in _STATE_NAME_BY_ABBR:
-            state_abbr = state_upper
-    if not state_abbr:
-        return None
-    return f"{city}, {state_abbr}"
-
-
-def _format_location_label(city: str | None, state: str | None, country: str | None = None) -> str:
-    clean_city = (city or "").strip()
-    clean_state = (state or "").strip()
-    clean_country = (country or "").strip()
-
-    country_lower = clean_country.lower()
-    state_label = clean_state
-    if clean_state and country_lower in {"united states", "usa", "us", "united states of america"}:
-        state_label = _STATE_ABBR_BY_NAME.get(clean_state, clean_state)
-
-    if clean_city.lower() == "remote" or clean_state.lower() == "remote":
-        return "Remote"
-
-    if clean_city and state_label and clean_city != "Unknown" and state_label != "Unknown":
-        return f"{clean_city}, {state_label}"
-    if clean_city and clean_country and clean_country != "Unknown":
-        return f"{clean_city}, {clean_country}"
-    if clean_city and clean_city != "Unknown":
-        return clean_city
-    if state_label and state_label != "Unknown":
-        return state_label
-    if clean_country and clean_country != "Unknown":
-        return clean_country
-    return "Unknown"
-
-
-_LOCATION_DICT_PATH = Path(__file__).resolve().parents[3] / "job_board_application" / "convex" / "locationDictionary.json"
-try:
-    _raw_location_entries = json.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
-except FileNotFoundError:
-    _raw_location_entries = []
-
-_LOCATION_ENTRIES: list[dict[str, Any]] = []
-if isinstance(_raw_location_entries, list):
-    _LOCATION_ENTRIES = [entry for entry in _raw_location_entries if isinstance(entry, dict)]
-elif isinstance(_raw_location_entries, dict):
-    for city_key, value in _raw_location_entries.items():
-        if isinstance(value, list):
-            for entry in value:
-                if isinstance(entry, dict):
-                    if "city" not in entry:
-                        entry = {**entry, "city": city_key}
-                    _LOCATION_ENTRIES.append(entry)
-        elif isinstance(value, dict):
-            if "city" not in value:
-                value = {**value, "city": city_key}
-            _LOCATION_ENTRIES.append(value)
-
-_LOCATION_DICTIONARY: dict[str, dict[str, Any]] = {}
-_CITY_KEYWORDS: dict[str, dict[str, Any]] = {}
-_COUNTRY_KEY_TO_LABEL: dict[str, str] = {}
-
-
-def _register_location_key(value: str, entry: dict[str, Any], track_city: bool = False) -> None:
-    key = _normalize_location_key(value)
-    if not key or key in _LOCATION_DICTIONARY:
-        return
-    _LOCATION_DICTIONARY[key] = entry
-    if track_city and not entry.get("remoteOnly"):
-        _CITY_KEYWORDS[key] = entry
-
-
-for _entry in _LOCATION_ENTRIES:
-    city = (_entry.get("city") or "").strip()
-    state = (_entry.get("state") or "").strip() or "Unknown"
-    country = (_entry.get("country") or "").strip()
-    country = country or None
-    remote_only = bool(_entry.get("remoteOnly"))
-    state_abbr = _STATE_ABBR_BY_NAME.get(state)
-    record = {"city": city, "state": state, "country": country, "remoteOnly": remote_only}
-    country_key = _normalize_location_key(country) if country else None
-    if country_key and country_key not in _COUNTRY_KEY_TO_LABEL and isinstance(country, str):
-        _COUNTRY_KEY_TO_LABEL[country_key] = country
-    aliases_raw = _entry.get("aliases")
-    aliases_list = aliases_raw if isinstance(aliases_raw, list) else []
-    aliases = {
-        alias
-        for alias in [city, *aliases_list]
-        if isinstance(alias, str) and alias.strip()
-    }
-    for alias in aliases:
-        _register_location_key(alias, record, track_city=True)
-        _register_location_key(f"{alias}, {state}", record)
-        if country:
-            _register_location_key(f"{alias}, {country}", record)
-        if state_abbr:
-            _register_location_key(f"{alias}, {state_abbr}", record)
-
-_LOCATION_DICTIONARY_KEYS: list[tuple[str, dict[str, Any]]] = sorted(
-    _LOCATION_DICTIONARY.items(), key=lambda item: len(item[0]), reverse=True
-)
-_CITY_KEYWORD_KEYS: list[str] = sorted(_CITY_KEYWORDS.keys(), key=len, reverse=True)
-
-
-def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> Optional[dict[str, Any]]:
-    normalized = _normalize_location_key(value)
-    if not normalized:
-        return None
-    country_label = _normalize_country_label(value)
-    if country_label:
-        return {"city": None, "state": None, "country": country_label}
-
-    direct = _LOCATION_DICTIONARY.get(normalized)
-    if direct and (allow_remote or not direct.get("remoteOnly")):
-        return direct
-
-    for key, entry in _LOCATION_DICTIONARY_KEYS:
-        if not allow_remote and entry.get("remoteOnly"):
-            continue
-        if entry.get("remoteOnly"):
-            if normalized == key:
-                return entry
-            continue
-        if key and len(key) >= 3 and re.search(
-            LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE.format(key=re.escape(key)),
-            normalized,
-        ):
-            return entry
-    return None
-
-
-def _find_city_in_text(text: str) -> Optional[dict[str, Any]]:
-    normalized_text = _normalize_location_key(text)
-    for key in _CITY_KEYWORD_KEYS:
-        idx = normalized_text.find(key)
-        if idx == -1:
-            continue
-        before_ok = idx == 0 or normalized_text[idx - 1] == " "
-        after_ok = idx + len(key) == len(normalized_text) or normalized_text[idx + len(key)] == " "
-        if before_ok and after_ok:
-            entry = _CITY_KEYWORDS.get(key)
-            if entry:
-                return entry
-    return None
-
-
-def _normalize_country_label(value: str) -> Optional[str]:
-    key = _normalize_location_key(value)
-    if not key:
-        return None
-    return _COUNTRY_KEY_TO_LABEL.get(key)
-
-
-def normalize_company_hint(value: Any) -> Optional[str]:
-    if not isinstance(value, str):
-        return None
-    cleaned = value.strip()
-    if not cleaned:
-        return None
-    cleaned = cleaned.replace("\u200b", "").replace("\ufeff", "").strip()
-    cleaned = re.sub(r"^[#*\-\u2022]+", "", cleaned).strip()
-    cleaned = re.sub(r"^[*_`]+", "", cleaned).strip()
-    cleaned = re.sub(r"[*_`]+$", "", cleaned).strip()
-    cleaned = cleaned.strip("[](){}<>\"'")
-    cleaned = cleaned.strip(" ,;:-–—")
-    cleaned = _COMPANY_SUFFIX_RE.sub("", cleaned).strip(" ,")
-    lowered = cleaned.lower()
-    if " at " in lowered:
-        cleaned = cleaned.rsplit(" at ", 1)[-1].strip()
-        cleaned = _COMPANY_SUFFIX_RE.sub("", cleaned).strip(" ,")
-    if not cleaned:
-        return None
-    normalized_key = re.sub(NON_ALNUM_PATTERN, " ", cleaned).strip().lower()
-    if not normalized_key or normalized_key in _GENERIC_COMPANY_HINTS:
-        return None
-    return cleaned
-
-
-def normalize_title_from_bar(title: str) -> str:
-    if not isinstance(title, str) or not title.strip():
-        return title
-    match = _TITLE_IN_BAR_COMPANY_RE.match(title) or _TITLE_IN_BAR_RE.match(title) or _TITLE_BAR_RE.match(title)
-    if match:
-        cleaned = stringify(match.group("title"))
-        return cleaned or title
-    return title
-
-
-def is_generic_company_name(value: str | None) -> bool:
-    if not value:
-        return True
-    normalized = re.sub(NON_ALNUM_PATTERN, "", value.lower())
-    if not normalized:
-        return True
-    if normalized in {"unknown", "unknowncompany"}:
-        return True
-    return normalized in _JOB_BOARD_COMPANY_TOKENS
-
-
-def apply_company_hint(company: str, hints: Dict[str, Any]) -> str:
-    hint = normalize_company_hint(hints.get("company"))
-    if not hint:
-        return company
-    if is_generic_company_name(company):
-        return hint
-    normalized_company = re.sub(NON_ALNUM_PATTERN, "", company.lower())
-    normalized_hint = re.sub(NON_ALNUM_PATTERN, "", hint.lower())
-    if normalized_company and normalized_company == normalized_hint and hint != company:
-        return hint
-    return company
-
-
 def _to_int(value: str) -> Optional[int]:
     try:
         cleaned = value.strip()
@@ -1612,107 +1155,6 @@ def _to_int(value: str) -> Optional[int]:
         return int(digits)
     except Exception:
         return None
-
-
-def _normalize_locations(locations: List[str]) -> List[str]:
-    seen: set[str] = set()
-    normalized: List[str] = []
-    for raw in locations:
-        if not raw:
-            continue
-        for part in re.split(LOCATION_SPLIT_PATTERN, raw):
-            candidate = stringify(part)
-            if not candidate:
-                continue
-            candidate = re.sub(WHITESPACE_PATTERN, " ", candidate).strip(" ,;/\t")
-            if not candidate:
-                continue
-            if not _is_plausible_location(candidate):
-                continue
-            resolved = _resolve_location_from_dictionary(candidate)
-            if not resolved:
-                state_key = _normalize_location_key(candidate)
-                state_abbr = _STATE_ABBR_BY_KEY.get(state_key)
-                if not state_abbr:
-                    state_upper = candidate.strip().upper()
-                    if state_upper in _STATE_NAME_BY_ABBR:
-                        state_abbr = state_upper
-                if state_abbr:
-                    state_name = _STATE_NAME_BY_ABBR.get(state_abbr, state_abbr)
-                    if state_name not in seen:
-                        seen.add(state_name)
-                        normalized.append(state_name)
-                    continue
-                us_city_state = _normalize_us_city_state(candidate)
-                if us_city_state and us_city_state not in seen:
-                    seen.add(us_city_state)
-                    normalized.append(us_city_state)
-                    continue
-                country_label = _normalize_country_label(candidate)
-                if country_label and country_label not in seen:
-                    seen.add(country_label)
-                    normalized.append(country_label)
-                continue
-            label = _format_location_label(resolved.get("city"), resolved.get("state"), resolved.get("country"))
-            if label and label not in seen:
-                seen.add(label)
-                normalized.append(label)
-    normalized = _reorder_by_us_preference(normalized)
-    return normalized
-
-
-def _reorder_by_us_preference(locations: List[str]) -> List[str]:
-    prioritized = list(locations)
-
-    def find_index(allow_remote: bool) -> int:
-        for idx, loc in enumerate(prioritized):
-            resolved = _resolve_location_from_dictionary(loc)
-            if not resolved:
-                continue
-            country = (resolved.get("country") or "").strip()
-            is_remote = (resolved.get("city") or "").lower() == "remote" or (resolved.get("state") or "").lower() == "remote"
-            if not allow_remote and is_remote:
-                continue
-            if country == "United States":
-                return idx
-        return -1
-
-    non_remote_idx = find_index(False)
-    if non_remote_idx > 0:
-        hit = prioritized.pop(non_remote_idx)
-        prioritized.insert(0, hit)
-        return prioritized
-
-    remote_idx = find_index(True)
-    if remote_idx > 0:
-        hit = prioritized.pop(remote_idx)
-        prioritized.insert(0, hit)
-
-    return prioritized
-
-
-def _is_plausible_location(value: str) -> bool:
-    if not value or len(value) < 2 or len(value) > 100:
-        return False
-    lowered = value.lower().strip()
-    if lowered in ("unknown", "n/a", "na"):
-        return False
-    if any(token in lowered for token in ("diversity", "equity", "inclusion", "benefits", "culture", "salary", "compensation", "pay", "package", "bonus", "range")):
-        return False
-    if "$" in value or "401k" in lowered or "401(k" in lowered:
-        return False
-    if "," in value:
-        segments = [p.strip() for p in value.split(",") if p.strip()]
-        if len(segments) > 3:
-            return False
-        if any(len(seg.split()) > 3 for seg in segments):
-            return False
-        if any("remote" in seg.lower() for seg in segments[1:]):
-            return True
-        return True
-    if "remote" in lowered:
-        return True
-    return len(value.split()) <= 4
 
 
 def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
@@ -2242,11 +1684,16 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         r"\bremote\s+(?:access|control|controls|monitoring|sensing|desktop|operation|operations|support)\b",
         flags=re.IGNORECASE,
     )
+    # LinkedIn recruiter tags (#LI-REMOTE, #LI-HYBRID, etc.) are not reliable indicators
+    linkedin_tag_re = re.compile(r"#LI-\w*(?:remote|hybrid|onsite)\w*", flags=re.IGNORECASE)
     for line in markdown.splitlines():
         lowered_line = line.lower()
         if "remote" not in lowered_line and "hybrid" not in lowered_line and "onsite" not in lowered_line:
             continue
         if remote_false_positive_re.search(line):
+            continue
+        # Skip lines containing LinkedIn recruiter tags
+        if linkedin_tag_re.search(line):
             continue
         stripped_line = lowered_line.strip()
         context_ok = (
@@ -2401,6 +1848,25 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
     if not raw_text:
         return None, {}
 
+    # Strip code fence markers if present (e.g., ```json...``` or ```...```)
+    if raw_text.startswith("```"):
+        lines = raw_text.split("\n")
+        # Find start of content (skip opening fence line)
+        start_idx = 1 if len(lines) > 1 else 0
+        # Find closing fence
+        end_idx = len(lines)
+        for i in range(len(lines) - 1, 0, -1):
+            if lines[i].strip() == "```":
+                end_idx = i
+                break
+        raw_text = "\n".join(lines[start_idx:end_idx]).strip()
+
+    # Handle raw HTML with JSON in <pre> tags (Workday API responses)
+    if "<pre>{" in raw_text and "}</pre>" in raw_text:
+        pre_match = re.search(r"<pre>({.+})</pre>", raw_text, flags=re.DOTALL)
+        if pre_match:
+            raw_text = pre_match.group(1)
+
     def _escape_control_chars_in_strings(value: str) -> str:
         output: List[str] = []
         in_string = False
@@ -2452,7 +1918,7 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
         return None
 
     def _select_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-        for key in ("data", "response", "result", "job", "position"):
+        for key in ("data", "response", "result", "job", "position", "jobPostingInfo"):
             candidate = payload.get(key)
             if isinstance(candidate, dict):
                 if any(k in candidate for k in ("jobDescription", "description", "name", "title")):
@@ -2474,9 +1940,23 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
                     if isinstance(item, str) and item.strip():
                         return item.strip()
         location_val = payload.get("location")
+        primary_location: Optional[str] = None
         if isinstance(location_val, str) and location_val.strip():
-            return location_val.strip()
-        return None
+            primary_location = location_val.strip()
+        # Handle location as dict with name key (Greenhouse API format)
+        if isinstance(location_val, dict):
+            name = location_val.get("name")
+            if isinstance(name, str) and name.strip():
+                primary_location = name.strip()
+        # Handle Workday additionalLocations to combine with primary location
+        additional_locations = payload.get("additionalLocations")
+        if isinstance(additional_locations, list) and additional_locations:
+            additional_strs = [loc for loc in additional_locations if isinstance(loc, str) and loc.strip()]
+            if primary_location and additional_strs:
+                return "; ".join([primary_location] + additional_strs)
+            elif additional_strs:
+                return "; ".join(additional_strs)
+        return primary_location
 
     def _extract_remote(payload: Dict[str, Any]) -> Optional[bool]:
         for key in ("remote", "isRemote", "remoteAllowed"):
@@ -2504,13 +1984,17 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
         return None, {}
     payload = _select_payload(parsed)
 
-    description = _first_string(payload, ["jobDescription", "description"])
-    if description:
-        description = html_lib.unescape(description.replace("\u00a0", " ")).strip()
+    raw_description = _first_string(payload, ["jobDescription", "description"])
+    description: Optional[str] = None
+    if raw_description:
+        # Convert HTML description to readable text (handles HTML entities and tags)
+        description = _html_description_to_text(raw_description.replace("\u00a0", " "))
 
     hints: Dict[str, Any] = {}
     title = _first_string(payload, ["name", "title", "jobTitle", "positionTitle"])
     if title:
+        # Normalize title whitespace and decode HTML entities
+        title = " ".join(title.split())
         hints["title"] = html_lib.unescape(title.replace("\u00a0", " ")).strip()
     company = _first_string(payload, ["company", "companyName", "employer", "brand"])
     if not company:
@@ -2528,82 +2012,6 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
         hints["remote"] = remote
 
     return description, hints
-
-
-def derive_company_from_url(url: str) -> str:
-    try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname or ""
-    except Exception:
-        return ""
-
-    hostname = hostname.lower()
-    generic_subdomains = {
-        "www",
-        "jobs",
-        "careers",
-        "boards",
-        "board",
-        "apply",
-        "app",
-        "join",
-        "team",
-        "teams",
-        "work",
-    }
-    if hostname.endswith(("avature.net", "avature.com")):
-        parts = hostname.split(".")
-        if len(parts) >= 3:
-            for candidate in parts[:-2]:
-                if not candidate or candidate in generic_subdomains:
-                    continue
-                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
-                if cleaned:
-                    return cleaned.title()
-    if hostname.endswith(("myworkdayjobs.com", "myworkdaysite.com")):
-        parts = hostname.split(".")
-        if len(parts) >= 3:
-            subdomains = parts[:-2]
-            for candidate in subdomains:
-                if not candidate:
-                    continue
-                if candidate in generic_subdomains:
-                    continue
-                if re.fullmatch(r"wd\d+", candidate):
-                    continue
-                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
-                if cleaned:
-                    return cleaned.title()
-            for candidate in reversed(subdomains):
-                if not candidate or re.fullmatch(r"wd\d+", candidate):
-                    continue
-                cleaned = re.sub(NON_ALNUM_PATTERN, " ", candidate).strip()
-                if cleaned:
-                    return cleaned.title()
-    # Greenhouse boards encode the company slug in the path: /{company}/jobs/...
-    if hostname.endswith("greenhouse.io"):
-        parts = [p for p in parsed.path.split("/") if p]
-        if parts:
-            slug = parts[0]
-            cleaned_slug = re.sub(NON_ALNUM_PATTERN, " ", slug).strip()
-            if cleaned_slug:
-                return cleaned_slug.title()
-
-    for prefix in ("careers.", "jobs.", "boards.", "boards-", "job-", "boards-"):
-        if hostname.startswith(prefix):
-            hostname = hostname[len(prefix) :]
-            break
-
-    parts = hostname.split(".")
-    if len(parts) >= 2:
-        name = parts[-2]
-    elif parts:
-        name = parts[0]
-    else:
-        return ""
-
-    cleaned = re.sub(NON_ALNUM_PATTERN, " ", name).strip()
-    return cleaned.title() if cleaned else ""
 
 
 def coerce_remote(value: Any, location: str, title: str) -> bool:
@@ -2637,33 +2045,6 @@ def coerce_level(value: Any, title: str) -> str:
     return "mid"
 
 
-def parse_compensation(value: Any, *, with_meta: bool = False) -> int | tuple[int, bool]:
-    if isinstance(value, (int, float)) and value > 0:
-        normalized = normalize_compensation_value(value)
-        if normalized is not None:
-            return (normalized, False) if with_meta else normalized
-        return (0, True) if with_meta else 0
-    if isinstance(value, str):
-        cleaned = value.replace("\u00a0", " ")
-        has_retirement_token = re.search(RETIREMENT_PLAN_PATTERN, cleaned, flags=re.IGNORECASE) is not None
-        if has_retirement_token:
-            cleaned = re.sub(RETIREMENT_PLAN_PATTERN, " ", cleaned, flags=re.IGNORECASE)
-        numbers = re.findall(NUMBER_TOKEN_PATTERN, cleaned)
-        if numbers:
-            try:
-                parsed = max(float(num.replace(",", "")) for num in numbers)
-                if parsed > 0:
-                    if has_retirement_token and parsed < 1000:
-                        return (0, True) if with_meta else 0
-                    normalized = normalize_compensation_value(parsed)
-                    if normalized is not None:
-                        return (normalized, False) if with_meta else normalized
-                    return (0, True) if with_meta else 0
-            except ValueError:
-                pass
-    return (0, True) if with_meta else 0
-
-
 def extract_description(row: Dict[str, Any]) -> str:
     for key in ("job_description", "description", "desc", "body", "summary", "content"):
         val = row.get(key)
@@ -2691,131 +2072,6 @@ def looks_like_truncated_description(
     word_count = len(re.findall(r"\w+", cleaned))
     return len(cleaned) < min_chars or word_count < min_words
 
-
-def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
-    lowered = value.lower()
-    if "today" in lowered:
-        return now_ms
-    if "yesterday" in lowered:
-        return now_ms - 86_400_000
-    if "ago" not in lowered:
-        return None
-
-    match = _RELATIVE_TIME_RE.search(lowered)
-    if not match:
-        return None
-
-    try:
-        amount = float(match.group("value"))
-    except ValueError:
-        return None
-    if amount < 0:
-        return None
-    if amount == 0:
-        return now_ms
-
-    unit = match.group("unit")
-    if unit.startswith("day") and amount < _RELATIVE_POSTED_MIN_DAYS:
-        # Allow smaller ranges when the value explicitly looks like a posted/updated label.
-        if "posted" not in lowered and "updated" not in lowered:
-            return None
-    if unit.startswith(("second", "sec")):
-        multiplier = 1
-    elif unit.startswith(("minute", "min")):
-        multiplier = 60
-    elif unit.startswith(("hour", "hr")):
-        multiplier = 3_600
-    elif unit.startswith("day"):
-        multiplier = 86_400
-    elif unit.startswith("week"):
-        multiplier = 604_800
-    elif unit.startswith("month"):
-        multiplier = 2_592_000
-    elif unit.startswith("year"):
-        multiplier = 31_536_000
-    else:
-        return None
-
-    delta_ms = int(amount * multiplier * 1000)
-    return max(0, now_ms - delta_ms)
-
-
-def parse_posted_at(value: Any, now_ms: int | None = None) -> int:
-    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
-    if value is None:
-        return now_ms
-
-    if isinstance(value, (int, float)):
-        if value > 1e12:
-            return int(value)
-        if value > 1e9:
-            return int(value * 1000)
-        return now_ms
-
-    if isinstance(value, str):
-        cleaned = value.strip()
-        if cleaned:
-            relative = _parse_relative_posted_at(cleaned, now_ms)
-            if relative is not None:
-                return relative
-        if re.search(r"[+-]\d{4}$", cleaned):
-            cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
-        try:
-            dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return int(dt.timestamp() * 1000)
-        except Exception:
-            pass
-
-    return now_ms
-
-
-def parse_posted_at_with_unknown(
-    value: Any,
-    now_ms: int | None = None,
-    *,
-    max_age_days: int | None = None,
-) -> tuple[int, bool]:
-    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
-    if value is None:
-        return now_ms, True
-
-    if isinstance(value, (int, float)):
-        if value > 1e12:
-            return int(value), False
-        if value > 1e9:
-            return int(value * 1000), False
-        return now_ms, True
-
-    if isinstance(value, str):
-        cleaned = value.strip()
-        if not cleaned:
-            return now_ms, True
-        relative = _parse_relative_posted_at(cleaned, now_ms)
-        if relative is not None:
-            posted_at = relative
-            if max_age_days is not None:
-                max_age_ms = int(max_age_days) * 86_400_000
-                if posted_at < now_ms - max_age_ms:
-                    return now_ms, True
-            return posted_at, False
-        if re.search(r"[+-]\d{4}$", cleaned):
-            cleaned = cleaned[:-5] + cleaned[-5:-2] + ":" + cleaned[-2:]
-        try:
-            dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            posted_at = int(dt.timestamp() * 1000)
-            if max_age_days is not None:
-                max_age_ms = int(max_age_days) * 86_400_000
-                if posted_at < now_ms - max_age_ms:
-                    return now_ms, True
-            return posted_at, False
-        except Exception:
-            return now_ms, True
-
-    return now_ms, True
 
 @dataclass(frozen=True)
 class _HintApplicationConfig:
@@ -3219,7 +2475,19 @@ def trim_scrape_for_convex(
             return value.strip()
         if not isinstance(value, dict):
             return None
-        for key in ("url", "job_url", "jobUrl", "link", "href", "_url", "_rawUrl"):
+        for key in (
+            "url",
+            "job_url",
+            "jobUrl",
+            "absolute_url",
+            "absoluteUrl",
+            "apply_url",
+            "applyUrl",
+            "link",
+            "href",
+            "_url",
+            "_rawUrl",
+        ):
             candidate = value.get(key)
             if isinstance(candidate, str) and candidate.strip():
                 return candidate.strip()

@@ -5,6 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("."))
 
+from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows.helpers.link_extractors import (
     dedupe_str_list,
     extract_job_urls_from_json_payload,
@@ -128,6 +129,25 @@ def test_normalize_url_strips_unbalanced_trailing_paren():
     assert normalize_url(url) == "https://careers.snap.com/job?id=R0041979"
 
 
+def test_normalize_url_truncates_at_unbalanced_paren_with_trailing_text():
+    """Test that URLs with text after unbalanced closing paren are truncated.
+
+    This catches the Robinhood bug where markdown links like:
+    [Job Title](https://boards.greenhouse.io/robinhood/jobs/7409516)Menlo Park
+    result in extracting 'https://boards.greenhouse.io/robinhood/jobs/7409516)Menlo'
+    """
+    url = "https://boards.greenhouse.io/robinhood/jobs/7409516)Menlo"
+
+    assert normalize_url(url) == "https://boards.greenhouse.io/robinhood/jobs/7409516"
+
+
+def test_normalize_url_preserves_balanced_parens():
+    """Ensure we don't break URLs with balanced parentheses."""
+    url = "https://en.wikipedia.org/wiki/Python_(programming_language)"
+
+    assert normalize_url(url) == "https://en.wikipedia.org/wiki/Python_(programming_language)"
+
+
 def test_normalize_url_strips_unbalanced_trailing_brackets():
     url = "https://careers.confluent.io/jobs)["
 
@@ -144,6 +164,41 @@ def test_normalize_url_strips_escaped_newline_tail():
         normalize_url(url)
         == "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Buy-Side/15596"
     )
+
+
+def test_normalize_url_recovers_host_from_extra_slashes():
+    base_url = "https://www.metacareers.com/jobsearch"
+    url = "https:////profile/job_details/727671609895617/"
+    relative_url = "////profile/job_details/727671609895617/"
+
+    assert (
+        normalize_url(url, base_url=base_url)
+        == "https://www.metacareers.com/profile/job_details/727671609895617"
+    )
+    assert (
+        normalize_url(relative_url, base_url=base_url)
+        == "https://www.metacareers.com/profile/job_details/727671609895617"
+    )
+
+
+def test_extract_job_urls_from_scrape_normalizes_missing_host():
+    base_url = "https://www.metacareers.com/jobsearch"
+    payload = {
+        "sourceUrl": base_url,
+        "items": {
+            "raw": [
+                {
+                    "content": {
+                        "commonmark": "[Software Engineer](////profile/job_details/727671609895617/)"
+                    }
+                }
+            ]
+        },
+    }
+
+    urls = acts._extract_job_urls_from_scrape(payload)  # noqa: SLF001
+
+    assert "https://www.metacareers.com/profile/job_details/727671609895617" in urls
 
 
 def test_normalize_url_list_dedupes_and_filters():

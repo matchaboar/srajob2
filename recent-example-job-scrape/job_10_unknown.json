@@ -1,0 +1,29 @@
+{
+  "_creationTime": 1768266652467.8662,
+  "_id": "k17adfz7qe0cedzbv7mqaevnfh7z5yka",
+  "city": "Unknown",
+  "company": "Unknown",
+  "companyKey": "unknown",
+  "compensationReason": "pending markdown structured extraction",
+  "compensationUnknown": true,
+  "countries": [
+    "United States"
+  ],
+  "country": "United States",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States",
+  "locationStates": [],
+  "locations": [
+    "United States"
+  ],
+  "postedAt": 1768266590314,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266600516,
+  "state": "Unknown",
+  "title": "#Sub Title3",
+  "totalCompensation": 0,
+  "url": "#sub-title3"
+}

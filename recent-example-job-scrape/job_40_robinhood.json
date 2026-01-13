@@ -1,0 +1,38 @@
+{
+  "_creationTime": 1768266535533.5554,
+  "_id": "k1796pjrqdj7vm2wj5q90bnjsd7z4vmq",
+  "city": "Unknown",
+  "company": "Robinhood",
+  "companyKey": "robinhood",
+  "compensationReason": "parsed from description",
+  "compensationUnknown": false,
+  "countries": [
+    "United States",
+    "Canada",
+    "United Kingdom",
+    "Singapore"
+  ],
+  "country": "United States",
+  "description": "Robinhood Applicant Privacy Policies Robinhood - Applicant Privacy Notice ** ** ** ** **Last Updated: November 17, 2025** ** ** **1. Purpose.** This Notice (\u201c**Applicant Privacy Notice**\u201d or \u201c**Notice**\u201d) describes how Robinhood Markets, Inc., and its international affiliates, as defined in Section 2(collectively, \u201c**Robinhood**,\u201d \u201c**we**,\u201d or \u201c**us**\u201d) collects, uses, and discloses your (\u201c**Applicant**,\u201d \u201c**you**,\u201d or \u201c**your**\u201d) personal information in connection with your application for a job with Robinhood. **2. Robinhood Entity.** The Robinhood Entity is usually determined based on your country of residence, however in some cases it might also be based on the job for which you apply. The...",
+  "engineer": false,
+  "level": "mid",
+  "location": "Unknown",
+  "locationSearch": "United States Canada Kingdom Singapore",
+  "locationStates": [
+    "Singapore"
+  ],
+  "locations": [
+    "United States",
+    "Canada",
+    "United Kingdom",
+    "Singapore, Singapore"
+  ],
+  "postedAt": 1768266441685,
+  "postedAtUnknown": true,
+  "remote": false,
+  "scrapedAt": 1768266469746,
+  "state": "Unknown",
+  "title": "Robinhood Applicant Privacy Policies",
+  "totalCompensation": 100000,
+  "url": "https://careers.robinhood.com/applicantprivacypolicy"
+}

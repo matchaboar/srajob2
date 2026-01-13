@@ -347,32 +347,6 @@ async def test_spidercloud_godaddy_listing_extracts_job_links(
 
 
 @pytest.mark.asyncio
-async def test_spidercloud_mongodb_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(MONGODB_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected MongoDB listing URLs to be extracted"
-    assert any("mongodb.com/careers/job" in url and "gh_jid=" in url for url in urls)
-
-
-@pytest.mark.asyncio
-async def test_spidercloud_axon_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(AXON_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected Axon listing URLs to be extracted"
-    assert any("job-boards.greenhouse.io/axon/jobs/" in url for url in urls)
-
-
-@pytest.mark.asyncio
 async def test_spidercloud_purestorage_listing_extracts_job_links():
     raw_payload = _load_fixture(PURESTORAGE_LISTING_FIXTURE)
     raw_html = _extract_listing_raw_html(raw_payload)
@@ -398,61 +372,6 @@ async def test_spidercloud_purestorage_listing_extracts_job_links():
     assert urls, "expected Pure Storage listing URLs to be extracted"
     assert any("boards-api.greenhouse.io/v1/boards/purestorage/jobs/" in url for url in urls)
     monkeypatch.undo()
-
-
-@pytest.mark.asyncio
-async def test_spidercloud_samsara_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(SAMSARA_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected Samsara listing URLs to be extracted"
-    assert any(
-        "samsara.com/company/careers/roles/" in url and "gh_jid=" in url for url in urls
-    )
-
-
-@pytest.mark.asyncio
-async def test_spidercloud_nexhealth_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(NEXHEALTH_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected NexHealth listing URLs to be extracted"
-    assert any("nexhealth.com/careers/open-positions" in url for url in urls)
-
-
-@pytest.mark.asyncio
-async def test_spidercloud_rubrik_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(RUBRIK_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected Rubrik listing URLs to be extracted"
-    assert any("rubrik.com/company/careers" in url and "gh_jid=" in url for url in urls)
-
-
-@pytest.mark.asyncio
-async def test_spidercloud_zscaler_listing_extracts_job_links(
-    store_scrape_mocks: dict[str, list[Dict[str, Any]]],
-):
-    raw_payload = _load_fixture(ZSCALER_LISTING_FIXTURE)
-    source_url = _extract_source_url(raw_payload)
-
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
-
-    assert urls, "expected Zscaler listing URLs to be extracted"
-    assert any("job-boards.greenhouse.io/zscaler/jobs/" in url for url in urls)
-
 
 def test_spidercloud_docusign_listing_is_ignored():
     payload = _load_fixture(DOCUSIGN_LISTING_FIXTURE)

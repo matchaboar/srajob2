@@ -21,6 +21,7 @@ export const runIgnoredJobCompanyBackfill = migrations.runner(internal.migration
 export const runJobUrlKeyBackfill = migrations.runner(internal.migrations.backfillJobUrlKeys);
 export const runPurgeScrapes = migrations.runner(internal.migrations.purgeScrapes);
 export const runPurgeScrapeActivity = migrations.runner(internal.migrations.purgeScrapeActivity);
+export const runRenameCisToCisco = migrations.runner(internal.migrations.renameCisToCisco);
 
 type JobId = Id<"jobs">;
 
@@ -719,6 +720,33 @@ export const syncSiteSchedules = migrations.define({
   })(),
 });
 
+export const renameCisToCisco = migrations.define({
+  table: "jobs",
+  migrateOne: (() => {
+    let ran = false;
+    return async (ctx) => {
+      if (ran) return;
+      ran = true;
+      // Rename all jobs with company "Cis" to "Cisco"
+      const jobs = await ctx.db
+        .query("jobs")
+        .withIndex("by_company", (q: any) => q.eq("company", "Cis"))
+        .collect();
+
+      let updated = 0;
+      for (const job of jobs) {
+        await ctx.db.patch(job._id, {
+          company: "Cisco",
+          companyKey: deriveCompanyKey("Cisco"),
+        });
+        updated++;
+      }
+
+      console.log(`Renamed ${updated} jobs from "Cis" to "Cisco"`);
+    };
+  })(),
+});
+
 export const runAll = internalMutation({
   args: {},
   handler: async (ctx): Promise<any> => {
@@ -743,6 +771,7 @@ export const runAll = internalMutation({
       internal.migrations.retagWorkdayJobs,
       internal.migrations.retagGreenhouseJobs,
       internal.migrations.retagAshbyJobs,
+      internal.migrations.renameCisToCisco,
     ]);
   },
 });

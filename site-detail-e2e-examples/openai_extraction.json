@@ -1,0 +1,31 @@
+{
+  "site_id": "openai",
+  "detail_url": "https://openai.com/careers/software-engineer-distributed-data-systems-(sora)-san-francisco",
+  "source_url": "https://openai.com/careers/search?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2",
+  "extracted_jobs": [
+    {
+      "title": "Software Engineer, Distributed Data Systems (Sora)",
+      "description_preview": "Software Engineer, Distributed Data Systems (Sora) | OpenAI [Skip to main content](#main) Log in ](https://openai.com/) Switch to * [ChatGPT(opens in a new window)](https://chatgpt.com/?openaicom-did=4a645027-755a-41f2-8fbd-b5a0b77dc5c0&amp;openaicom_referred=true) * [Sora(opens in a new window)](https://sora.com/) * [API Platform(opens in a new window)](https://platform.openai.com/) Software Engineer, Distributed Data Systems (Sora) | OpenAI Careers ## Software Engineer, Distributed Data...",
+      "description_word_count": 729,
+      "location": "San Francisco, CA",
+      "is_remote": false,
+      "posted_at": 1768275442634,
+      "posted_at_unknown": true,
+      "company": "Openai",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://openai.com/careers/software-engineer-distributed-data-systems-(sora)-san-francisco",
+      "cost_milli_cents": 451
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

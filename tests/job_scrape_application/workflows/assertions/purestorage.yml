@@ -1,0 +1,11 @@
+site_id: purestorage
+detail_url: https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7457367
+expected:
+  title: Account Executive, Central Government, Japan
+  company: Pure Storage
+  location: Tokyo, Japan
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

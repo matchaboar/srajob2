@@ -1,0 +1,31 @@
+{
+  "site_id": "lyft",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002",
+  "source_url": "https://api.greenhouse.io/v1/boards/lyft/jobs",
+  "extracted_jobs": [
+    {
+      "title": "Account Coordinator Intern (Summer 2026)",
+      "description_preview": "Account Coordinator Intern (Summer 2026) At Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and have the opportunity to thrive. Lyft Ads wants to build the largest transportation media network. We turn Lyft's in-app platform...",
+      "description_word_count": 631,
+      "location": "New York, NY",
+      "is_remote": false,
+      "posted_at": 1765489567000,
+      "posted_at_unknown": false,
+      "company": "Lyft",
+      "level": "junior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

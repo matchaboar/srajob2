@@ -1,0 +1,31 @@
+{
+  "site_id": "ashbyhq",
+  "detail_url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+  "source_url": "https://jobs.ashbyhq.com/factory",
+  "extracted_jobs": [
+    {
+      "title": "AI Engineer",
+      "description_preview": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation. What you will do and achieve: Innovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities...",
+      "description_word_count": 257,
+      "location": "San Francisco, CA, United States",
+      "is_remote": false,
+      "posted_at": 1742774400000,
+      "posted_at_unknown": false,
+      "company": "Factory",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+      "cost_milli_cents": 8
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

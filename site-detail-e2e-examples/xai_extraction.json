@@ -1,0 +1,31 @@
+{
+  "site_id": "xai",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007",
+  "source_url": "https://api.greenhouse.io/v1/boards/xai/jobs",
+  "extracted_jobs": [
+    {
+      "title": "AI Economics Tutor",
+      "description_preview": "AI Economics Tutor About xAI xAI\u2019s mission is to create AI systems that can accurately understand the universe and aid humanity in its pursuit of knowledge. Our team is small, highly motivated, and focused on engineering excellence. This organization is for individuals who appreciate challenging themselves and thrive on curiosity....",
+      "description_word_count": 821,
+      "location": "Palo Alto, CA",
+      "is_remote": true,
+      "posted_at": 1758996073000,
+      "posted_at_unknown": false,
+      "company": "xAI",
+      "level": "staff",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007",
+      "cost_milli_cents": 2
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

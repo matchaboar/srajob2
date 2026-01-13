@@ -61,6 +61,20 @@ class FakeDb {
         },
       };
     }
+    if (table === "job_details") {
+      const details = this.jobDetails;
+      return {
+        withIndex(_name: string, cb: (q: any) => any) {
+          const jobId = cb({ eq: (_field: string, value: string) => value });
+          const match = details.find((detail) => detail.jobId === jobId) ?? null;
+          return {
+            first() {
+              return match;
+            },
+          };
+        },
+      };
+    }
     throw new Error(`Unsupported query table ${table}`);
   }
 
