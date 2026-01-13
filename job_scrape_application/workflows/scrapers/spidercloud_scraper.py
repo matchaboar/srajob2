@@ -883,6 +883,73 @@ class SpiderCloudScraper(BaseScraper):
                     return CaptchaMatch(marker=marker, match_text=marker)
         return None
 
+    def _detect_workday_error(self, markdown_text: str) -> Optional[Dict[str, Any]]:
+        """Detect Workday API error responses (rate limits, outages, etc).
+
+        Workday CXS API may return error responses like:
+        {"errorCode":"HTTP_422","errorCaseId":"...","httpStatus":422,"message":"","messageParams":{}}
+
+        These appear when Workday is rate limiting or experiencing issues.
+        Returns error info dict if detected, None otherwise.
+        """
+        if not markdown_text or not isinstance(markdown_text, str):
+            return None
+
+        text = markdown_text.strip()
+
+        # Handle HTML-wrapped JSON (common Workday response format)
+        # Pattern: <html>...<pre>{...}</pre>...</html>
+        if "<pre>{" in text:
+            import re
+
+            match = re.search(r"<pre>(\{.+?\})</pre>", text, re.DOTALL)
+            if match:
+                text = match.group(1)
+        # Handle code-fenced JSON
+        elif text.startswith("```"):
+            lines = text.split("\n")
+            # Skip first line (```json or ```) and last line (```)
+            start_idx = 1
+            end_idx = len(lines)
+            for i in range(len(lines) - 1, 0, -1):
+                if lines[i].strip() == "```":
+                    end_idx = i
+                    break
+            text = "\n".join(lines[start_idx:end_idx]).strip()
+
+        # Try to parse as JSON
+        if not text.startswith("{"):
+            return None
+
+        try:
+            data = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        # Check for Workday error structure
+        error_code = data.get("errorCode")
+        http_status = data.get("httpStatus")
+
+        if error_code and isinstance(error_code, str) and error_code.startswith("HTTP_"):
+            error_case_id = data.get("errorCaseId")
+            logger.warning(
+                "Workday API error detected: errorCode=%s httpStatus=%s errorCaseId=%s",
+                error_code,
+                http_status,
+                error_case_id,
+            )
+            return {
+                "errorCode": error_code,
+                "httpStatus": http_status,
+                "errorCaseId": error_case_id,
+                "message": data.get("message") or "",
+            }
+
+        return None
+
     def _captcha_context(
         self,
         marker: str,
@@ -1016,6 +1083,77 @@ class SpiderCloudScraper(BaseScraper):
                 )
             except Exception:
                 pass
+
+    def _store_invalid_response_to_convex(
+        self,
+        *,
+        source_url: str,
+        api_url: str | None,
+        raw_response: Any,
+        attempt: int,
+        raw_type: str,
+    ) -> None:
+        """Upload invalid SpiderCloud response to Convex file storage for debugging.
+
+        This is a best-effort operation - failures are logged but don't block the scrape.
+        """
+        import asyncio
+        import base64
+        import json
+
+        try:
+            # Serialize raw response to JSON
+            try:
+                raw_json = json.dumps(raw_response, ensure_ascii=False, default=str)
+            except Exception:
+                raw_json = str(raw_response)
+
+            # Base64 encode for transport
+            raw_base64 = base64.b64encode(raw_json.encode("utf-8")).decode("ascii")
+
+            # Limit size to 10MB to avoid overwhelming Convex
+            if len(raw_base64) > 10 * 1024 * 1024:
+                raw_base64 = base64.b64encode(
+                    f"[TRUNCATED - Original size: {len(raw_json)} bytes]\n{raw_json[:100000]}".encode("utf-8")
+                ).decode("ascii")
+
+            # Import convex_action lazily to avoid circular imports
+            # (storeScrapeError is a Convex action, not a mutation, so it can use file storage)
+            from ...services.convex_client import convex_action
+
+            async def _do_store() -> None:
+                await convex_action(
+                    "router:storeScrapeError",
+                    {
+                        "sourceUrl": source_url,
+                        "event": "scrape.single_url_sync.invalid_response",
+                        "error": f"SpiderCloud returned invalid response type: {raw_type}",
+                        "metadata": {
+                            "apiUrl": api_url,
+                            "attempt": attempt,
+                            "rawType": raw_type,
+                            "rawLength": len(raw_json),
+                        },
+                        "rawResponseBase64": raw_base64,
+                    },
+                )
+
+            # Run async action - try to get existing loop or create new one
+            try:
+                loop = asyncio.get_running_loop()
+                # If we're already in an async context, create a task
+                loop.create_task(_do_store())
+            except RuntimeError:
+                # No running loop, run synchronously
+                asyncio.run(_do_store())
+
+        except Exception as exc:
+            # Best-effort - log but don't fail the scrape
+            logger.warning(
+                "Failed to store invalid response to Convex: %s url=%s",
+                exc,
+                source_url,
+            )
 
     def _extract_structured_job_posting(self, events: List[Any]) -> Optional[Dict[str, Any]]:
         """Best-effort extraction of JSON-LD JobPosting data from raw HTML events."""
@@ -3128,6 +3266,41 @@ class SpiderCloudScraper(BaseScraper):
                 match_text=captcha_match.match_text,
             )
 
+        # Detect Workday API errors (rate limits, outages, etc)
+        combined_markdown = "\n\n".join(markdown_parts)
+        workday_error = self._detect_workday_error(combined_markdown)
+        if workday_error:
+            error_http_status = workday_error.get("httpStatus") or 503
+            error_code = workday_error.get("errorCode") or "unknown"
+            self._emit_scrape_log(
+                event="scrape.single_url.workday_api_error",
+                level="warning",
+                site_url=url,
+                api_url=request_url,
+                data={
+                    "attempt": attempt,
+                    "errorCode": error_code,
+                    "httpStatus": error_http_status,
+                    "errorCaseId": workday_error.get("errorCaseId"),
+                },
+            )
+            return {
+                "normalized": None,
+                "raw": {"url": url, "events": raw_events, "markdown": combined_markdown},
+                "job_urls": [],
+                "costMilliCents": best_cost_milli_cents,
+                "startedAt": started_at,
+                "failed": {
+                    "url": url,
+                    "reason": f"workday_api_error_{error_code.lower()}",
+                    "status": error_http_status,
+                    "errorType": "workday_api_error",
+                    "retryable": True,  # Always retry Workday API errors
+                    "errorCode": error_code,
+                    "errorCaseId": workday_error.get("errorCaseId"),
+                },
+            }
+
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
         ).strip()
@@ -3402,6 +3575,9 @@ class SpiderCloudScraper(BaseScraper):
             "url": "..."
         }
         """
+        # Capture original response for debugging before unwrapping
+        original_raw_result = raw_result
+
         # Handle nested list responses (SpiderCloud may return [[{...}]] or [{...}])
         while isinstance(raw_result, list) and raw_result:
             raw_result = raw_result[0]
@@ -3418,7 +3594,34 @@ class SpiderCloudScraper(BaseScraper):
                     "url": original_url,
                 }
             else:
-                # Truly invalid response (string, number, etc.)
+                # Truly invalid response (string, number, etc.) - log error with details
+                # Truncate raw response for logging (avoid huge payloads)
+                raw_preview = str(original_raw_result)[:2000] if original_raw_result else None
+                raw_type = type(original_raw_result).__name__
+                self._emit_scrape_log(
+                    event="scrape.single_url_sync.invalid_response",
+                    level="error",
+                    site_url=original_url,
+                    api_url=request_url,
+                    data={
+                        "attempt": attempt,
+                        "rawResponseType": raw_type,
+                        "rawResponsePreview": raw_preview,
+                        "rawResponseLength": len(str(original_raw_result)) if original_raw_result else 0,
+                        "unwrappedType": type(raw_result).__name__,
+                        "unwrappedValue": str(raw_result)[:500] if raw_result is not None else None,
+                    },
+                    exc=ValueError(f"SpiderCloud returned invalid response type: {raw_type}"),
+                    capture_exception=True,
+                )
+                # Upload raw response to Convex file storage for debugging
+                self._store_invalid_response_to_convex(
+                    source_url=original_url,
+                    api_url=request_url,
+                    raw_response=original_raw_result,
+                    attempt=attempt,
+                    raw_type=raw_type,
+                )
                 return {
                     "normalized": None,
                     "raw": {"url": original_url, "events": [], "markdown": ""},
@@ -3450,6 +3653,41 @@ class SpiderCloudScraper(BaseScraper):
                 [raw_result],
                 match_text=captcha_match.match_text,
             )
+
+        # Detect Workday API errors (rate limits, outages, etc)
+        # These have HTTP 200 status but contain error JSON in the body
+        workday_error = self._detect_workday_error(markdown_text)
+        if workday_error:
+            error_http_status = workday_error.get("httpStatus") or 503
+            error_code = workday_error.get("errorCode") or "unknown"
+            self._emit_scrape_log(
+                event="scrape.single_url_sync.workday_api_error",
+                level="warning",
+                site_url=original_url,
+                api_url=request_url,
+                data={
+                    "attempt": attempt,
+                    "errorCode": error_code,
+                    "httpStatus": error_http_status,
+                    "errorCaseId": workday_error.get("errorCaseId"),
+                },
+            )
+            return {
+                "normalized": None,
+                "raw": {"url": original_url, "events": [raw_result], "markdown": markdown_text},
+                "job_urls": [],
+                "costMilliCents": cost_milli_cents,
+                "startedAt": started_at,
+                "failed": {
+                    "url": original_url,
+                    "reason": f"workday_api_error_{error_code.lower()}",
+                    "status": error_http_status,
+                    "errorType": "workday_api_error",
+                    "retryable": True,  # Always retry Workday API errors
+                    "errorCode": error_code,
+                    "errorCaseId": workday_error.get("errorCaseId"),
+                },
+            }
 
         # Handle non-200 status
         if http_status is not None and http_status != 200:
@@ -3866,12 +4104,11 @@ class SpiderCloudScraper(BaseScraper):
                                 err.marker,
                             )
                         except asyncio.TimeoutError as exc:
-                            logger.warning(
+                            logger.error(
                                 "SpiderCloud scrape timed out url=%s timeout=%s",
                                 url,
                                 timeout_seconds,
                             )
-                            decision = decision_for_exception(exc, source="spidercloud_timeout")
                             self._emit_scrape_log(
                                 event="scrape.single_url.timeout",
                                 level="error",
@@ -3879,21 +4116,22 @@ class SpiderCloudScraper(BaseScraper):
                                 data={
                                     "timeoutSeconds": timeout_seconds,
                                     "attempt": attempt,
-                                    "errorType": decision.error_type,
-                                    "retryAfterSeconds": decision.retry_after_seconds,
+                                    "errorType": "timeout",
                                 },
                                 exc=exc,
                                 capture_exception=True,
                             )
+                            # Timeout failures should NOT be marked as seen/scraped
+                            # so they can be retried on the next scheduled scrape.
+                            # Set retryable=False to prevent immediate retry, but
+                            # skipCompletion=True to leave URL in pending state.
                             failed_entry = {
                                 "url": url,
-                                "reason": decision.error,
-                                "errorType": decision.error_type,
-                                "retryable": decision.action == "retry",
-                                "retryAfterSeconds": decision.retry_after_seconds,
+                                "reason": "timeout",
+                                "errorType": "timeout",
+                                "retryable": False,
+                                "skipCompletion": True,
                             }
-                            if decision.status_code is not None:
-                                failed_entry["status"] = decision.status_code
                             return idx, url, {"failed": failed_entry}
                         except ApplicationError as exc:
                             decision = decision_for_exception(exc, source="spidercloud_api")
@@ -4082,7 +4320,7 @@ class SpiderCloudScraper(BaseScraper):
             )
             self._emit_scrape_log(
                 event="scrape.batch.failures",
-                level="warn",
+                level="error",
                 site_url=source_url,
                 data={
                     "pattern": pattern,
@@ -4235,7 +4473,8 @@ class SpiderCloudScraper(BaseScraper):
                     raw_events.append(chunk)
                 return raw_events
 
-        timeout_seconds = runtime_config.spidercloud_http_timeout_seconds
+        # Use longer listing timeout for full page loads (not per-URL job detail timeout)
+        timeout_seconds = runtime_config.spidercloud_listing_timeout_seconds
         try:
             if timeout_seconds and timeout_seconds > 0:
                 raw_events = await asyncio.wait_for(_do_fetch(), timeout=timeout_seconds)

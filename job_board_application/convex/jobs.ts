@@ -1346,23 +1346,39 @@ export const listJobs = query({
     let appliedJobIds: Set<string> | null = null;
     const loadAppliedJobIds = async () => {
       if (appliedJobIds) return appliedJobIds;
-      const [appliedRows, rejectedRows] = await Promise.all([
-        ctx.db
-          .query("applications")
-          .withIndex("by_user_status_applied_at", (q: any) =>
-            q.eq("userId", userId).eq("status", "applied"),
-          )
-          .collect(),
-        ctx.db
-          .query("applications")
-          .withIndex("by_user_status_applied_at", (q: any) =>
-            q.eq("userId", userId).eq("status", "rejected"),
-          )
-          .collect(),
-      ]);
-      appliedJobIds = new Set(
-        [...appliedRows, ...rejectedRows].map((row: any) => String(row.jobId)),
-      );
+
+      // Use the denormalized index for O(1) lookup instead of O(N) application queries
+      const indexDoc = await ctx.db
+        .query("user_application_index")
+        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .unique();
+
+      if (indexDoc) {
+        // Fast path: read from single denormalized document
+        appliedJobIds = new Set([
+          ...(indexDoc.appliedJobIds || []),
+          ...(indexDoc.rejectedJobIds || []),
+        ]);
+      } else {
+        // Fallback for users without index (pre-migration or new users with no applications)
+        const [appliedRows, rejectedRows] = await Promise.all([
+          ctx.db
+            .query("applications")
+            .withIndex("by_user_status_applied_at", (q: any) =>
+              q.eq("userId", userId).eq("status", "applied"),
+            )
+            .collect(),
+          ctx.db
+            .query("applications")
+            .withIndex("by_user_status_applied_at", (q: any) =>
+              q.eq("userId", userId).eq("status", "rejected"),
+            )
+            .collect(),
+        ]);
+        appliedJobIds = new Set(
+          [...appliedRows, ...rejectedRows].map((row: any) => String(row.jobId)),
+        );
+      }
       return appliedJobIds;
     };
     const filterOutAppliedJobs = async (jobsToFilter: any[]) => {
@@ -1919,6 +1935,66 @@ export const listCompanySummaries = query({
   },
 });
 
+// Helper to update the denormalized user_application_index
+// This keeps a single document per user with all applied/rejected job IDs
+// for O(1) lookup in listJobs instead of O(N) application queries
+async function updateUserApplicationIndex(
+  ctx: any,
+  userId: Id<"users">,
+  action: "add_applied" | "add_rejected" | "remove" | "move_to_rejected",
+  jobId: Id<"jobs">,
+) {
+  const jobIdStr = String(jobId);
+
+  // Get or create the index document
+  const existing = await ctx.db
+    .query("user_application_index")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .unique();
+
+  if (!existing) {
+    // Create new index document
+    const appliedJobIds = action === "add_applied" ? [jobIdStr] : [];
+    const rejectedJobIds = action === "add_rejected" || action === "move_to_rejected" ? [jobIdStr] : [];
+    await ctx.db.insert("user_application_index", {
+      userId,
+      appliedJobIds,
+      rejectedJobIds,
+      updatedAt: Date.now(),
+    });
+    return;
+  }
+
+  // Update existing index document
+  const appliedSet = new Set(existing.appliedJobIds || []);
+  const rejectedSet = new Set(existing.rejectedJobIds || []);
+
+  switch (action) {
+    case "add_applied":
+      appliedSet.add(jobIdStr);
+      rejectedSet.delete(jobIdStr); // In case it was rejected before
+      break;
+    case "add_rejected":
+      rejectedSet.add(jobIdStr);
+      appliedSet.delete(jobIdStr); // In case it was applied before
+      break;
+    case "move_to_rejected":
+      appliedSet.delete(jobIdStr);
+      rejectedSet.add(jobIdStr);
+      break;
+    case "remove":
+      appliedSet.delete(jobIdStr);
+      rejectedSet.delete(jobIdStr);
+      break;
+  }
+
+  await ctx.db.patch(existing._id, {
+    appliedJobIds: Array.from(appliedSet),
+    rejectedJobIds: Array.from(rejectedSet),
+    updatedAt: Date.now(),
+  });
+}
+
 export const applyToJob = mutation({
   args: {
     jobId: v.id("jobs"),
@@ -1949,6 +2025,9 @@ export const applyToJob = mutation({
       appliedAt: Date.now(),
     });
 
+    // Update the denormalized index for O(1) filtering in listJobs
+    await updateUserApplicationIndex(ctx, userId, "add_applied", args.jobId);
+
     return { success: true };
   },
 });
@@ -1973,6 +2052,9 @@ export const rejectJob = mutation({
 
     if (existingApplication) {
       await ctx.db.patch(existingApplication._id, { status: "rejected" });
+      // If was previously applied, move to rejected; otherwise just ensure it's in rejected
+      const action = existingApplication.status === "applied" ? "move_to_rejected" : "add_rejected";
+      await updateUserApplicationIndex(ctx, userId, action, args.jobId);
     } else {
       await ctx.db.insert("applications", {
         userId,
@@ -1980,6 +2062,8 @@ export const rejectJob = mutation({
         status: "rejected",
         appliedAt: Date.now(),
       });
+      // Update the denormalized index for O(1) filtering in listJobs
+      await updateUserApplicationIndex(ctx, userId, "add_rejected", args.jobId);
     }
 
     return { success: true };
@@ -2446,6 +2530,10 @@ export const withdrawApplication = mutation({
     }
 
     await ctx.db.delete(existingApplication._id);
+
+    // Update the denormalized index for O(1) filtering in listJobs
+    await updateUserApplicationIndex(ctx, userId, "remove", args.jobId);
+
     return { success: true };
   },
 });

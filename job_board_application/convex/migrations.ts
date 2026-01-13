@@ -6,7 +6,7 @@ import { DataModel, Id } from "./_generated/dataModel.js";
 import { normalizeSiteUrl, siteCanonicalKey, fallbackCompanyNameFromUrl, greenhouseSlugFromUrl, ashbySlugFromUrl } from "./siteUtils";
 import { deriveCompanyKey, deriveEngineerFlag, deriveCompanyFromUrl } from "./jobs";
 import { extractJobs } from "./router";
-import { normalizeJobUrlKey } from "./jobUrlUtils";
+import { normalizeJobUrlKey, canonicalizeGreenhouseUrl } from "./jobUrlUtils";
 import { internalMutation } from "./_generated/server";
 import { syncSiteSchedulesFromYaml } from "./siteScheduleSync";
 import { countJobs } from "./lib/scrapeCounts";
@@ -15,13 +15,8 @@ import { deriveNextEligibleAt, scheduleFromRow } from "./lib/siteScheduling";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
-export const runScrapeActivityBackfill = migrations.runner(internal.migrations.backfillScrapeActivity);
-export const runJobDetailScrapeUrlBackfill = migrations.runner(internal.migrations.backfillJobDetailScrapeUrl);
-export const runIgnoredJobCompanyBackfill = migrations.runner(internal.migrations.backfillIgnoredJobCompanies);
-export const runJobUrlKeyBackfill = migrations.runner(internal.migrations.backfillJobUrlKeys);
 export const runPurgeScrapes = migrations.runner(internal.migrations.purgeScrapes);
 export const runPurgeScrapeActivity = migrations.runner(internal.migrations.purgeScrapeActivity);
-export const runRenameCisToCisco = migrations.runner(internal.migrations.renameCisToCisco);
 
 type JobId = Id<"jobs">;
 
@@ -772,6 +767,7 @@ export const runAll = internalMutation({
       internal.migrations.retagGreenhouseJobs,
       internal.migrations.retagAshbyJobs,
       internal.migrations.renameCisToCisco,
+      internal.migrations.backfillUserApplicationIndex,
     ]);
   },
 });
@@ -807,3 +803,104 @@ export const buildScrapeRecordPatch = (doc: any): Record<string, any> => {
   }
   return update;
 };
+
+/**
+ * Migration to canonicalize Greenhouse URLs in job_url_keys.
+ * Greenhouse has multiple URL formats (web, API, job-boards) that all
+ * refer to the same job. This migration normalizes them to the canonical
+ * web format (boards.greenhouse.io) for consistent deduplication.
+ *
+ * Run with: npx convex run migrations:run '{"name": "migrations:canonicalizeJobUrlKeys"}'
+ */
+export const canonicalizeJobUrlKeys = migrations.define({
+  table: "job_url_keys",
+  migrateOne: async (ctx, doc) => {
+    const originalUrl = doc.url;
+    const canonicalUrl = canonicalizeGreenhouseUrl(originalUrl);
+
+    // Skip if URL is already canonical (no change needed)
+    if (canonicalUrl === originalUrl) return;
+
+    const newBucket = hashStringToBucket(canonicalUrl, JOB_URL_BUCKETS);
+
+    // Check if a canonical version already exists
+    const existingCanonical = await ctx.db
+      .query("job_url_keys")
+      .withIndex("by_bucket_url", (q) => q.eq("bucket", newBucket).eq("url", canonicalUrl))
+      .first();
+
+    if (existingCanonical) {
+      // Canonical version already exists, just delete this duplicate
+      await ctx.db.delete(doc._id);
+      return;
+    }
+
+    // Update to canonical format with new bucket
+    await ctx.db.patch(doc._id, {
+      url: canonicalUrl,
+      bucket: newBucket,
+    });
+  },
+});
+
+/**
+ * Migration to backfill user_application_index from existing applications.
+ * This creates a denormalized index document per user containing all their
+ * applied/rejected job IDs for O(1) lookup in listJobs.
+ *
+ * Run with: npx convex run migrations:run '{"name": "migrations:backfillUserApplicationIndex"}'
+ */
+export const backfillUserApplicationIndex = migrations.define({
+  table: "applications",
+  migrateOne: (() => {
+    // Track which users we've already processed to avoid duplicates
+    const processedUsers = new Set<string>();
+
+    return async (ctx, doc) => {
+      const userId = (doc as any).userId;
+      if (!userId || processedUsers.has(String(userId))) return;
+      processedUsers.add(String(userId));
+
+      // Get all applications for this user
+      const userApplications = await ctx.db
+        .query("applications")
+        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .collect();
+
+      const appliedJobIds: string[] = [];
+      const rejectedJobIds: string[] = [];
+
+      for (const app of userApplications as any[]) {
+        const jobIdStr = String(app.jobId);
+        if (app.status === "applied") {
+          appliedJobIds.push(jobIdStr);
+        } else if (app.status === "rejected") {
+          rejectedJobIds.push(jobIdStr);
+        }
+      }
+
+      // Check if index document already exists
+      const existing = await ctx.db
+        .query("user_application_index")
+        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .unique();
+
+      if (existing) {
+        // Update existing document
+        await ctx.db.patch(existing._id, {
+          appliedJobIds,
+          rejectedJobIds,
+          updatedAt: Date.now(),
+        });
+      } else {
+        // Create new index document
+        await ctx.db.insert("user_application_index", {
+          userId,
+          appliedJobIds,
+          rejectedJobIds,
+          updatedAt: Date.now(),
+        });
+      }
+    };
+  })(),
+});

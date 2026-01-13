@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import {
+  action,
   httpAction,
   internalMutation,
   mutation,
@@ -17,6 +18,7 @@ import { runFirecrawlCors } from "./middleware/firecrawlCors";
 import { parseFirecrawlWebhook } from "./firecrawlWebhookUtil";
 import { buildJobInsert } from "./jobRecords";
 import {
+  canonicalizeGreenhouseUrl,
   isAshbyHost,
   isAvatureHost,
   normalizeJobUrlKey,
@@ -1472,13 +1474,19 @@ const buildJobUrlCandidates = (rawUrl: string, sourceUrl?: string) => {
 
   const cleaned = (rawUrl ?? "").trim();
   if (!cleaned) return candidates;
-  pushCandidate(cleaned);
-  pushCandidate(cleaned.replace(/\/+$/, ""));
+
+  // Canonicalize URLs to ensure consistent format for deduplication.
+  // This handles providers like Greenhouse that have multiple URL formats
+  // (web, API, job-boards) that all refer to the same job.
+  const canonical = canonicalizeGreenhouseUrl(cleaned);
+  pushCandidate(canonical);
+  pushCandidate(canonical.replace(/\/+$/, ""));
 
   const normalized = normalizeScrapedUrl(cleaned, sourceUrl);
   if (normalized) {
-    pushCandidate(normalized);
-    pushCandidate(normalized.replace(/\/+$/, ""));
+    const normalizedCanonical = canonicalizeGreenhouseUrl(normalized);
+    pushCandidate(normalizedCanonical);
+    pushCandidate(normalizedCanonical.replace(/\/+$/, ""));
   }
 
   return candidates;
@@ -2273,42 +2281,6 @@ export const updateJobWithHeuristic = Object.assign(
   { handler: updateJobWithHeuristicHandler },
 );
 
-export const purgeJobDetailRateLimits = internalMutation({
-  args: {
-    cursor: v.optional(v.string()),
-    batchSize: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
-    try {
-      const page = await (
-        ctx.db.query("job_detail_rate_limits" as any) as any
-      ).paginate({
-        cursor: args.cursor ?? null,
-        numItems: batchSize,
-      });
-      let deleted = 0;
-      for (const row of page.page as any[]) {
-        await ctx.db.delete(row._id);
-        deleted += 1;
-      }
-      return {
-        deleted,
-        hasMore: !page.isDone,
-        cursor: page.continueCursor ?? null,
-      };
-    } catch (err) {
-      console.error("purgeJobDetailRateLimits: failed", err);
-      return {
-        deleted: 0,
-        hasMore: false,
-        cursor: null,
-        error: String(err),
-      };
-    }
-  },
-});
-
 // Record a failure and release the lock so it can be retried later
 export const failSite = mutation({
   args: {
@@ -2900,34 +2872,6 @@ export const renameCompany = mutation({
     await upsertCompanyProfile(ctx, newName, null, oldName);
 
     return { updatedJobs };
-  },
-});
-
-// Test helper: insert a dummy scrape row
-export const insertDummyScrape = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const now = Date.now();
-    const items = {
-      results: {
-        hits: ["https://example.com/jobs"],
-        items: [{ job_title: "N/A" }],
-      },
-    };
-    const scrapeId = await ctx.db.insert("scrapes", {
-      sourceUrl: "https://example.com/jobs",
-      pattern: "https://example.com/jobs/**",
-      startedAt: now,
-      completedAt: now,
-      items,
-    });
-    await ctx.db.insert("scrape_activity", {
-      sourceUrl: "https://example.com/jobs",
-      startedAt: now,
-      completedAt: now,
-      jobCount: countJobs(items),
-    });
-    return scrapeId;
   },
 });
 
@@ -3791,23 +3735,6 @@ export const completeScrapeUrls = mutation({
   },
 });
 
-export const insertScrapeError = mutation({
-  args: {
-    jobId: v.optional(v.string()),
-    sourceUrl: v.optional(v.string()),
-    siteId: v.optional(v.string()),
-    event: v.optional(v.string()),
-    status: v.optional(v.string()),
-    error: v.string(),
-    metadata: v.optional(v.any()),
-    payload: v.optional(v.any()),
-    createdAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("scrape_errors", args);
-  },
-});
-
 export const listScrapeErrors = query({
   args: {
     limit: v.optional(v.number()),
@@ -3820,6 +3747,100 @@ export const listScrapeErrors = query({
       .order("desc")
       .take(lim);
     return rows;
+  },
+});
+
+/**
+ * Internal mutation to insert a scrape error record.
+ */
+export const insertScrapeError = internalMutation({
+  args: {
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    event: v.optional(v.string()),
+    error: v.string(),
+    metadata: v.optional(v.any()),
+    rawResponseStorageId: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("scrape_errors", {
+      sourceUrl: args.sourceUrl,
+      siteId: args.siteId,
+      event: args.event,
+      error: args.error,
+      metadata: args.metadata,
+      rawResponseStorageId: args.rawResponseStorageId,
+      createdAt: Date.now(),
+    });
+    return { id, rawResponseStorageId: args.rawResponseStorageId };
+  },
+});
+
+/**
+ * Store a scrape error with optional raw response data in file storage.
+ * Used by the Python scraper to capture invalid SpiderCloud responses for debugging.
+ */
+export const storeScrapeError = action({
+  args: {
+    sourceUrl: v.optional(v.string()),
+    siteId: v.optional(v.string()),
+    event: v.optional(v.string()),
+    error: v.string(),
+    metadata: v.optional(v.any()),
+    // Base64-encoded raw response data (will be stored in file storage)
+    rawResponseBase64: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ id: Id<"scrape_errors">; rawResponseStorageId?: Id<"_storage"> }> => {
+    let rawResponseStorageId: Id<"_storage"> | undefined;
+
+    // If raw response data is provided, store it in file storage
+    if (args.rawResponseBase64) {
+      try {
+        // Decode base64 to bytes
+        const binaryString = atob(args.rawResponseBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/json" });
+        rawResponseStorageId = await ctx.storage.store(blob);
+      } catch (e) {
+        // If storage fails, log but continue without the file
+        console.error("Failed to store raw response in file storage:", e);
+      }
+    }
+
+    // Call internal mutation to insert the record
+    const insertResult = await ctx.runMutation(internal.router.insertScrapeError, {
+      sourceUrl: args.sourceUrl,
+      siteId: args.siteId,
+      event: args.event,
+      error: args.error,
+      metadata: args.metadata,
+      rawResponseStorageId,
+    });
+
+    return { id: insertResult.id, rawResponseStorageId: insertResult.rawResponseStorageId };
+  },
+});
+
+/**
+ * Get the raw response file URL for a scrape error.
+ */
+export const getScrapeErrorRawResponse = query({
+  args: {
+    id: v.id("scrape_errors"),
+  },
+  handler: async (ctx, args) => {
+    const error = await ctx.db.get(args.id);
+    if (!error || !error.rawResponseStorageId) {
+      return null;
+    }
+    const url = await ctx.storage.getUrl(error.rawResponseStorageId);
+    return url;
   },
 });
 
@@ -4335,78 +4356,6 @@ export const insertScrapeRecord = mutation({
   returns: v.string(),
   handler: async (_ctx, _args) => {
     return "scrape-skipped";
-  },
-});
-
-export const recordScrapeUrlAttempts = mutation({
-  args: {
-    attempts: v.array(
-      v.object({
-        url: v.string(),
-        sourceUrl: v.optional(v.string()),
-        provider: v.optional(v.string()),
-        queueAttempt: v.optional(v.number()),
-        status: v.optional(v.string()),
-        attemptedAt: v.optional(v.number()),
-      }),
-    ),
-  },
-  returns: v.object({ updated: v.number(), inserted: v.number() }),
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    let updated = 0;
-    let inserted = 0;
-
-    for (const attempt of args.attempts) {
-      const url = normalizeQueueUrl(attempt.url);
-      if (!url) continue;
-      const sourceUrl = normalizeQueueUrl(attempt.sourceUrl ?? "") || "";
-      const attemptedAt =
-        typeof attempt.attemptedAt === "number" ? attempt.attemptedAt : now;
-      const existing = await ctx.db
-        .query("scrape_url_attempts")
-        .withIndex("by_url_source", (q) =>
-          q.eq("url", url).eq("sourceUrl", sourceUrl),
-        )
-        .first();
-
-      if (existing) {
-        const patch: Record<string, any> = {
-          attemptCount: (existing.attemptCount ?? 0) + 1,
-          lastAttemptAt: attemptedAt,
-        };
-        if (typeof attempt.queueAttempt === "number") {
-          patch.lastQueueAttempt = attempt.queueAttempt;
-        }
-        if (typeof attempt.status === "string" && attempt.status.trim()) {
-          patch.lastStatus = attempt.status.trim();
-        }
-        if (typeof attempt.provider === "string" && attempt.provider.trim()) {
-          patch.provider = attempt.provider.trim();
-        }
-        await ctx.db.patch(existing._id, patch);
-        updated += 1;
-        continue;
-      }
-
-      await ctx.db.insert("scrape_url_attempts", {
-        url,
-        sourceUrl,
-        provider:
-          typeof attempt.provider === "string" ? attempt.provider.trim() : undefined,
-        attemptCount: 1,
-        lastAttemptAt: attemptedAt,
-        lastQueueAttempt:
-          typeof attempt.queueAttempt === "number" ? attempt.queueAttempt : undefined,
-        lastStatus:
-          typeof attempt.status === "string" && attempt.status.trim()
-            ? attempt.status.trim()
-            : undefined,
-      });
-      inserted += 1;
-    }
-
-    return { updated, inserted };
   },
 });
 

@@ -132,6 +132,25 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
         raise
 
 
+async def convex_action(name: str, args: Mapping[str, Any] | None = None) -> Any:
+    """Call a Convex action (as opposed to mutation or query)."""
+    client = get_client()
+    try:
+        return await _call_with_retry(client.action, name, args)
+    except Exception:
+        try:
+            payload = {
+                "event": "convex.action_failed",
+                "name": name,
+            }
+            if isinstance(args, Mapping):
+                payload["argKeys"] = list(args.keys())
+            telemetry.emit_posthog_log(payload)
+        except Exception:
+            pass
+        raise
+
+
 # Test helper to inject a mock client
 def _set_client_for_tests(client: ConvexClient | None) -> None:
     global _client

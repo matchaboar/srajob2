@@ -1,0 +1,12 @@
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128
+expected:
+  title: "Service Delivery Leader"
+  company: "Palo Alto Networks"
+  location_contains: "Paris"
+  is_remote: false
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

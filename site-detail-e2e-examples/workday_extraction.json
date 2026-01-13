@@ -1,0 +1,31 @@
+{
+  "site_id": "workday",
+  "detail_url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research/_JR1926-1",
+  "source_url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research/_JR1926-1",
+  "extracted_jobs": [
+    {
+      "title": "Opt-Out of the Sale of Personal Information",
+      "description_preview": "Workday This preference center applies to this website. When you visit this website, information may be stored on or retrieved from your browser, mostly in the form of or through cookies (e.g., first party and third-party cookies) and similar technologies (e.g., local storage, web beacons, etc.) (collectively \u201ccookies\u201d). This information...",
+      "description_word_count": 300,
+      "location": "Sale, Morocco",
+      "is_remote": false,
+      "posted_at": 1768344174228,
+      "posted_at_unknown": true,
+      "company": "Dataminr",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research/_JR1926-1",
+      "cost_milli_cents": 312
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "errors": []
+}

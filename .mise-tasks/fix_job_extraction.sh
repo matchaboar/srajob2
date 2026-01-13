@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # [MISE] description="Fix job extraction issues using Claude Code with automated fixture generation"
 # [USAGE] arg "<url>" help="Job share URL from Convex prod (e.g., https://srajob.netlify.app/job/abc123)" default=""
-# [USAGE] option "--url <url>" help="Override the detail URL to fetch (use when Convex URL differs from canonical)"
-# [USAGE] option "--dry-run" help="Show what would be generated without fetching"
 
 set -e
 

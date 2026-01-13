@@ -17,6 +17,48 @@ const isHubspotHost = (host: string) => host.endsWith("hubspot.com");
 const isConvexShareHost = (host: string) =>
   host.endsWith(".convex.site") || host.endsWith(".convex.cloud");
 
+/**
+ * Canonicalize Greenhouse URLs to a single format.
+ * Greenhouse has multiple URL formats that all point to the same job:
+ * - Web format: https://boards.greenhouse.io/{slug}/jobs/{job_id}
+ * - API format: https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}
+ * - Job-boards format: https://job-boards.greenhouse.io/{slug}/jobs/{job_id}
+ *
+ * This function normalizes all formats to the canonical web format.
+ * Returns the original URL if it's not a recognized Greenhouse URL.
+ */
+export const canonicalizeGreenhouseUrl = (url: string): string => {
+  // Pattern for web format: boards.greenhouse.io/{slug}/jobs/{job_id}
+  const webMatch = url.match(
+    /^https?:\/\/boards\.greenhouse\.io\/([^/]+)\/jobs\/(\d+)\/?$/i
+  );
+  if (webMatch) {
+    const [, slug, jobId] = webMatch;
+    return `https://boards.greenhouse.io/${slug}/jobs/${jobId}`;
+  }
+
+  // Pattern for API format: boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}
+  const apiMatch = url.match(
+    /^https?:\/\/boards-api\.greenhouse\.io\/v1\/boards\/([^/]+)\/jobs\/(\d+)\/?$/i
+  );
+  if (apiMatch) {
+    const [, slug, jobId] = apiMatch;
+    return `https://boards.greenhouse.io/${slug}/jobs/${jobId}`;
+  }
+
+  // Pattern for job-boards format: job-boards.greenhouse.io/{slug}/jobs/{job_id}
+  const jobBoardsMatch = url.match(
+    /^https?:\/\/job-boards\.greenhouse\.io\/([^/]+)\/jobs\/(\d+)\/?$/i
+  );
+  if (jobBoardsMatch) {
+    const [, slug, jobId] = jobBoardsMatch;
+    return `https://boards.greenhouse.io/${slug}/jobs/${jobId}`;
+  }
+
+  // Not a recognized Greenhouse URL, return as-is
+  return url;
+};
+
 export function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string | null {
   if (typeof rawUrl !== "string") return null;
   let cleaned = rawUrl.trim();
@@ -60,12 +102,16 @@ export function normalizeScrapedUrl(rawUrl: string, sourceUrl?: string): string 
 
 export const normalizeJobUrlKey = (rawUrl: string, sourceUrl?: string): string | null => {
   const normalized = normalizeScrapedUrl(rawUrl, sourceUrl);
-  if (normalized) return normalized;
+  if (normalized) {
+    // Apply provider-specific canonicalization for consistent URL keys
+    return canonicalizeGreenhouseUrl(normalized);
+  }
   if (typeof rawUrl !== "string") return null;
   const trimmed = rawUrl.trim();
   if (!trimmed) return null;
   const withoutSlash = trimmed.replace(/\/+$/, "");
-  return withoutSlash || trimmed;
+  // Apply canonicalization to fallback path too
+  return canonicalizeGreenhouseUrl(withoutSlash || trimmed);
 };
 
 export { isAshbyHost, isAvatureHost, isHubspotHost, parseUrlSafe };

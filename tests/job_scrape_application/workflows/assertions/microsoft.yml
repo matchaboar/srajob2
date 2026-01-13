@@ -1,11 +1,11 @@
 site_id: microsoft
-detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556656640&domain=microsoft.com&hl=en
+detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556629309&domain=microsoft.com&hl=en
 expected:
-  title: Senior Software Engineer - CoreAI
+  title: Principal Software Engineer
   company: Microsoft
   location: Redmond, WA
   is_remote: false
-  level: senior
+  level: staff
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

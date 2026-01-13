@@ -1,22 +1,22 @@
 {
   "site_id": "bloomberg",
-  "detail_url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497",
-  "source_url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497",
+  "detail_url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494",
+  "source_url": "https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0",
   "extracted_jobs": [
     {
-      "title": "Senior Software Engineer - Editorial Apps & Platforms - 16497 - Bloomberg",
-      "description_preview": "Senior Software Engineer - Editorial Apps &amp; Platforms - 16497 - Bloomberg Senior Software Engineer - Editorial Apps &amp; Platforms Location London Business Area Engineering and CTO Ref # ## Description &amp; Requirements Bloomberg News, Research, and Media make up one of the world\u2019s largest and most influential news organizations...",
-      "description_word_count": 636,
-      "location": "London",
+      "title": "Senior Software Engineer - Employee Engagement & Discovery - 16494 - Bloomberg",
+      "description_preview": "Senior Software Engineer - Employee Engagement &amp; Discovery - 16494 - Bloomberg Senior Software Engineer - Employee Engagement &amp; Discovery Location New York Business Area Engineering and CTO Ref # ## Description &amp; Requirements ## Our mission: We believe that empowering Bloomberg employees with world-class tools to collaborate, discover information,...",
+      "description_word_count": 661,
+      "location": "New York",
       "is_remote": false,
-      "posted_at": 1768339201594,
+      "posted_at": 1768345990902,
       "posted_at_unknown": true,
       "company": "Bloomberg",
       "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497",
+      "url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494",
       "cost_milli_cents": 142
     }
   ],

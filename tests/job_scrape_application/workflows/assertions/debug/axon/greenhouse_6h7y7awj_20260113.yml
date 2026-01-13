@@ -1,0 +1,12 @@
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/axon/jobs/7529431003
+expected:
+  title: "- Bachelor’s Degree in IT, Information Systems, or applicable Technical Engineering (Computer Science, Software Engineering, Software Development)"
+  company: "Axon"
+  location_contains: "Remote"
+  is_remote: true
+  level: mid
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

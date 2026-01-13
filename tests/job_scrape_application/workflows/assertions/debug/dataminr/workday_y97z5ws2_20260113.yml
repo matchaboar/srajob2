@@ -1,0 +1,12 @@
+site_id: workday
+detail_url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research/_JR1926-1
+expected:
+  title_contains: "Senior Software Engineer"
+  company: "Dataminr"
+  location_contains: "Remote"
+  is_remote: true
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

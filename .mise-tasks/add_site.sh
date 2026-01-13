@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# [MISE] description="Add a new site to the job scraper using Claude Code"
-# [USAGE] arg "<url>" help="Job listing/detail URL from the site to add (e.g., https://careers.newcompany.com/jobs/12345)" default=""
-# [USAGE] option "--listing-url <url>" help="Override the listing URL if auto-detection fails"
-# [USAGE] option "--dry-run" help="Show what would be generated without fetching"
+#MISE description="Add a new site to the job scraper using Claude Code"
+#USAGE arg "<url>" help="Job listing/detail URL from the site to add (e.g., https://careers.newcompany.com/jobs/12345)"
+#USAGE flag "--listurl <listurl>" help="Override the listing URL if auto-detection fails"
+#USAGE flag "-n --dry-run" help="Show what would be generated without fetching"
 
 set -e
 
 # Check if URL provided
 if [ -z "${usage_url}" ]; then
-  echo "Usage: mise run add_site <job_url> [--listing-url <listing_url>] [--dry-run]"
+  echo "Usage: mise run add_site <job_url> [--listurl <listing_url>] [--dry-run]"
   echo ""
   echo "Example:"
   echo "  mise run add_site https://careers.newcompany.com/jobs/software-engineer-12345"
-  echo "  mise run add_site https://jobs.newsite.com/engineer --listing-url https://jobs.newsite.com/careers"
+  echo "  mise run add_site https://jobs.newsite.com/engineer --listurl https://jobs.newsite.com/careers"
+  echo "  mise run add_site https://jobs.newsite.com/engineer --dry-run"
   echo ""
   echo "This script will:"
   echo "  1. Analyze the URL to identify the company/site"
@@ -30,12 +31,17 @@ if [ -z "${usage_url}" ]; then
   exit 1
 fi
 
+# Get arguments from mise usage variables
+JOB_URL="${usage_url}"
+LISTING_URL="${usage_listurl:-}"
+DRY_RUN="${usage_dry_run:-false}"
+
 # Build Python script arguments
-PYTHON_ARGS="${usage_url}"
-if [ -n "${usage_listing_url}" ]; then
-  PYTHON_ARGS="${PYTHON_ARGS} --listing-url ${usage_listing_url}"
+PYTHON_ARGS="${JOB_URL}"
+if [ -n "${LISTING_URL}" ]; then
+  PYTHON_ARGS="${PYTHON_ARGS} --listing-url ${LISTING_URL}"
 fi
-if [ "${usage_dry_run}" = "true" ]; then
+if [ "${DRY_RUN}" = "true" ]; then
   PYTHON_ARGS="${PYTHON_ARGS} --dry-run"
 fi
 
@@ -46,6 +52,13 @@ trap "rm -f ${TEMP_OUTPUT}" EXIT
 # Run the fixture generation script
 echo "Running new site fixture generation..."
 PYTHONPATH=. uv run python agent_scripts/generate_new_site_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
+
+# If dry-run, exit here (Python script already showed what would be created)
+if [ "${DRY_RUN}" = "true" ]; then
+  echo ""
+  echo "Dry run complete. Re-run without --dry-run to generate files and launch Claude."
+  exit 0
+fi
 
 # Extract JSON output from the script
 JSON_OUTPUT=$(grep -A 100 "=== JSON Output ===" "${TEMP_OUTPUT}" | tail -n +2 | head -30)
@@ -59,8 +72,8 @@ fi
 FIXTURE_PATH=$(echo "${JSON_OUTPUT}" | jq -r '.fixture_path // empty')
 ASSERTION_PATH=$(echo "${JSON_OUTPUT}" | jq -r '.assertion_path // empty')
 IDENTIFIER=$(echo "${JSON_OUTPUT}" | jq -r '.identifier // empty')
-JOB_URL=$(echo "${JSON_OUTPUT}" | jq -r '.job_url // empty')
-LISTING_URL=$(echo "${JSON_OUTPUT}" | jq -r '.listing_url // empty')
+JOB_URL_OUT=$(echo "${JSON_OUTPUT}" | jq -r '.job_url // empty')
+LISTING_URL_OUT=$(echo "${JSON_OUTPUT}" | jq -r '.listing_url // empty')
 COMPANY=$(echo "${JSON_OUTPUT}" | jq -r '.company // empty')
 NORMALIZED_COMPANY=$(echo "${JSON_OUTPUT}" | jq -r '.normalized_company // empty')
 HANDLER=$(echo "${JSON_OUTPUT}" | jq -r '.handler // empty')
@@ -70,13 +83,6 @@ SCHEDULE_ENTRY=$(echo "${JSON_OUTPUT}" | jq -r '.schedule_entry // empty')
 if [ -z "${IDENTIFIER}" ]; then
   echo "Error: Failed to extract identifier from script output"
   exit 1
-fi
-
-# If dry-run, exit here
-if [ "${usage_dry_run}" = "true" ]; then
-  echo ""
-  echo "Dry run complete. Re-run without --dry-run to generate files."
-  exit 0
 fi
 
 echo ""
@@ -99,14 +105,14 @@ Check if the site just needs to be added to site_schedules.yaml with the existin
 fi
 
 # Get sample assertions for regression testing
-SAMPLE_ASSERTIONS=$(ls tests/job_scrape_application/workflows/assertions/*.yml 2>/dev/null | shuf | head -5 | tr '\n' ' ')
+SAMPLE_ASSERTIONS=$(ls tests/job_scrape_application/workflows/assertions/*.yml 2>/dev/null | shuf | head -5 | xargs -I{} basename {} .yml | tr '\n' ' ')
 
 PROMPT="I need help adding a new site to the job scraper.
 
 ## New Site Info
 - **Company**: ${COMPANY}
-- **Job Detail URL**: ${JOB_URL}
-- **Suggested Listing URL**: ${LISTING_URL}
+- **Job Detail URL**: ${JOB_URL_OUT}
+- **Suggested Listing URL**: ${LISTING_URL_OUT}
 - **Handler Type**: ${HANDLER}
 ${PLATFORM_NOTE}
 ## Files Generated:
@@ -174,7 +180,7 @@ Common issues to fix in base.py:
 After any base handler changes, run a sample of existing tests:
 \`\`\`bash
 # Run 5 random existing site tests to check for regressions
-uv run pytest tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py -v --tb=short -k \"${SAMPLE_ASSERTIONS// / or }\"
+uv run pytest tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py -v --tb=short -k \"${SAMPLE_ASSERTIONS}\"
 
 # Or run all extraction tests
 uv run pytest tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py -v --tb=short

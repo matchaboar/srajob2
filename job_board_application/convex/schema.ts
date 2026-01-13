@@ -155,6 +155,15 @@ const applicationTables = {
     .index("by_user_and_job", ["userId", "jobId"])
     .index("by_user_status_applied_at", ["userId", "status", "appliedAt"]),
 
+  // Denormalized index of all applied/rejected job IDs per user
+  // This allows O(1) lookup instead of O(N) when filtering jobs in listJobs
+  user_application_index: defineTable({
+    userId: v.id("users"),
+    appliedJobIds: v.array(v.string()),
+    rejectedJobIds: v.array(v.string()),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // List of websites to scrape for jobs
   sites: defineTable({
     name: v.optional(v.string()),
@@ -388,6 +397,8 @@ const applicationTables = {
     error: v.string(),
     metadata: v.optional(v.any()),
     payload: v.optional(v.any()),
+    // File storage for raw response data (e.g., invalid SpiderCloud responses)
+    rawResponseStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
   })
     .index("by_job", ["jobId"])

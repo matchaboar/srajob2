@@ -2087,6 +2087,7 @@ async def process_spidercloud_job_batch(
     invalid_urls: list[str] = []
     failed_urls: list[str] = []
     http_404_urls: set[str] = set()
+    skip_completion_urls: set[str] = set()  # URLs that should not be marked as completed (e.g., timeouts)
 
     for scrape in scrapes:
         if not isinstance(scrape, dict):
@@ -2100,15 +2101,19 @@ async def process_spidercloud_job_batch(
         for entry in failed_items:
             if not isinstance(entry, dict):
                 continue
+            url_val = entry.get("url")
             reason = entry.get("reason")
             status = entry.get("status") or entry.get("httpStatus")
+            # Check for skipCompletion flag (e.g., timeouts should not be marked as completed)
+            if entry.get("skipCompletion"):
+                if isinstance(url_val, str) and url_val.strip():
+                    skip_completion_urls.add(url_val.strip())
+                continue
             if isinstance(status, (int, float)) and int(status) == 404:
-                url_val = entry.get("url")
                 if isinstance(url_val, str) and url_val.strip():
                     http_404_urls.add(url_val.strip())
                 continue
             if isinstance(reason, str) and "404" in reason.lower():
-                url_val = entry.get("url")
                 if isinstance(url_val, str) and url_val.strip():
                     http_404_urls.add(url_val.strip())
 
@@ -2121,6 +2126,9 @@ async def process_spidercloud_job_batch(
     async def _store_scrape_with_limit(scrape: Dict[str, Any]) -> tuple[str, str | None, str | None]:
         url_val = _scrape_url(scrape)
         if isinstance(url_val, str) and url_val in http_404_urls:
+            return "skipped", url_val, None
+        # Skip storing and completing URLs that timed out - they will be retried next schedule
+        if isinstance(url_val, str) and url_val in skip_completion_urls:
             return "skipped", url_val, None
         async with semaphore:
             try:

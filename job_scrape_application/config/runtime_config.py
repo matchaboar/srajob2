@@ -13,6 +13,7 @@ class RuntimeConfig:
     spidercloud_job_details_concurrency: int
     spidercloud_job_details_processing_expire_minutes: int
     spidercloud_http_timeout_seconds: int
+    spidercloud_listing_timeout_seconds: int  # Timeout for listing page fetches (longer than per-URL)
     temporal_general_worker_count: int
     temporal_job_details_worker_count: int
     temporal_listing_worker_count: int
@@ -81,7 +82,12 @@ runtime_config = RuntimeConfig(
     spidercloud_http_timeout_seconds=_coerce_int(
         _raw_runtime_config,
         "spidercloud_http_timeout_seconds",
-        900,
+        60,  # Per-URL job detail timeout (60 seconds)
+    ),
+    spidercloud_listing_timeout_seconds=_coerce_int(
+        _raw_runtime_config,
+        "spidercloud_listing_timeout_seconds",
+        300,  # Listing page timeout (5 minutes)
     ),
     temporal_general_worker_count=_coerce_int(
         _raw_runtime_config,

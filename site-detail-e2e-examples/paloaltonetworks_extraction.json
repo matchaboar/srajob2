@@ -1,23 +1,23 @@
 {
-  "site_id": "palo_alto_networks",
-  "detail_url": "https://jobs.paloaltonetworks.com/en/job/rotterdam/regional-sales-manager-netherlands/47263/82062440800",
-  "source_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+  "site_id": "paloaltonetworks",
+  "detail_url": "https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128",
+  "source_url": "https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128",
   "extracted_jobs": [
     {
-      "title": "Regional Sales Manager - Netherlands",
+      "title": "Service Delivery Leader",
       "description_preview": "Our Mission At Palo Alto Networks\u00ae everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
-      "description_word_count": 794,
-      "location": "Rotterdam, 11, NL",
-      "is_remote": true,
-      "posted_at": 1768346005095,
+      "description_word_count": 956,
+      "location": "Paris, IF, FR",
+      "is_remote": false,
+      "posted_at": 1768345796650,
       "posted_at_unknown": true,
       "company": "Palo Alto Networks",
       "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://jobs.paloaltonetworks.com/en/job/rotterdam/regional-sales-manager-netherlands/47263/82062440800",
-      "cost_milli_cents": 77
+      "url": "https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128",
+      "cost_milli_cents": 41
     }
   ],
   "convex_capture": {

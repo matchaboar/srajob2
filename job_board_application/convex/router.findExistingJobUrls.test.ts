@@ -120,4 +120,86 @@ describe("findExistingJobUrls", () => {
     expect(res).toEqual({ existing: [] });
     expect(ctx.db.jobsQueries).toBe(0);
   });
+
+  // The canonical format for all Greenhouse URLs
+  const canonicalUrl = "https://boards.greenhouse.io/axon/jobs/7449723003";
+
+  it("matches Greenhouse API format URL when canonical format is stored (bug: k176cc8syrfppk8y0th1w7hd6x7y9z6s)", async () => {
+    // Jobs are stored with canonical (web) format URL
+    const ctx: any = {
+      db: new FakeDb({
+        jobUrlKeys: [{ bucket: deriveJobUrlBucket(canonicalUrl), url: canonicalUrl }],
+      }),
+    };
+    const handler = getHandler(findExistingJobUrls);
+
+    // But the listing page returns API format URL
+    const apiFormatUrl = "https://boards-api.greenhouse.io/v1/boards/axon/jobs/7449723003";
+    const res = await handler(ctx, {
+      urls: [apiFormatUrl],
+    });
+
+    // Should find the job as existing (API format is canonicalized for lookup)
+    expect(res).toEqual({ existing: [apiFormatUrl] });
+  });
+
+  it("matches Greenhouse web format URL when canonical format is stored", async () => {
+    // Jobs are stored with canonical (web) format URL
+    const ctx: any = {
+      db: new FakeDb({
+        jobUrlKeys: [{ bucket: deriveJobUrlBucket(canonicalUrl), url: canonicalUrl }],
+      }),
+    };
+    const handler = getHandler(findExistingJobUrls);
+
+    // Checking with web format URL (same as canonical)
+    const webFormatUrl = "https://boards.greenhouse.io/axon/jobs/7449723003";
+    const res = await handler(ctx, {
+      urls: [webFormatUrl],
+    });
+
+    // Should find the job as existing
+    expect(res).toEqual({ existing: [webFormatUrl] });
+  });
+
+  it("matches Greenhouse job-boards format URL when canonical format is stored", async () => {
+    // Jobs are stored with canonical (web) format URL
+    const ctx: any = {
+      db: new FakeDb({
+        jobUrlKeys: [{ bucket: deriveJobUrlBucket(canonicalUrl), url: canonicalUrl }],
+      }),
+    };
+    const handler = getHandler(findExistingJobUrls);
+
+    // But the Greenhouse API returns job-boards format URL
+    const jobBoardsFormatUrl = "https://job-boards.greenhouse.io/axon/jobs/7449723003";
+    const res = await handler(ctx, {
+      urls: [jobBoardsFormatUrl],
+    });
+
+    // Should find the job as existing (job-boards format is canonicalized for lookup)
+    expect(res).toEqual({ existing: [jobBoardsFormatUrl] });
+  });
+
+  it("matches all three Greenhouse URL formats against canonical stored URL", async () => {
+    // Jobs are stored with canonical (web) format URL
+    const ctx: any = {
+      db: new FakeDb({
+        jobUrlKeys: [{ bucket: deriveJobUrlBucket(canonicalUrl), url: canonicalUrl }],
+      }),
+    };
+    const handler = getHandler(findExistingJobUrls);
+
+    // All three formats should match
+    const webUrl = "https://boards.greenhouse.io/axon/jobs/7449723003";
+    const apiUrl = "https://boards-api.greenhouse.io/v1/boards/axon/jobs/7449723003";
+    const jobBoardsUrl = "https://job-boards.greenhouse.io/axon/jobs/7449723003";
+
+    const res = await handler(ctx, {
+      urls: [webUrl, apiUrl, jobBoardsUrl],
+    });
+
+    // All three should be found as existing
+    expect(res).toEqual({ existing: [webUrl, apiUrl, jobBoardsUrl] });
+  });
 });

@@ -1,22 +1,22 @@
 {
   "site_id": "dataminr",
-  "detail_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
+  "detail_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Partner-Sales-Engineer_JR1948",
   "source_url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer",
   "extracted_jobs": [
     {
-      "title": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
-      "description_preview": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in...",
-      "description_word_count": 1049,
-      "location": "San Antonio, TX",
+      "title": "Partner Sales Engineer",
+      "description_preview": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you\u2019ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand...",
+      "description_word_count": 1170,
+      "location": "Washington, DC",
       "is_remote": false,
-      "posted_at": 1767970800000,
+      "posted_at": 1767711600000,
       "posted_at_unknown": false,
       "company": "Dataminr",
       "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
+      "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Partner-Sales-Engineer_JR1948",
       "cost_milli_cents": 3
     }
   ],

@@ -5,7 +5,9 @@
       "Bash(xargs:*)",
       "Bash(uv run pytest:*)",
       "Bash(pnpm run test:*)",
-      "Bash(cut:*)"
+      "Bash(cut:*)",
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

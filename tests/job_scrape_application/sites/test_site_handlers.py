@@ -124,6 +124,113 @@ def test_github_careers_handler_builds_api_and_links():
     assert config.get("return_format") == ["raw_html"]
 
 
+def test_github_careers_handler_filters_invalid_urls():
+    """Test that GitHub careers handler filters out navigation/filter URLs."""
+    handler = GithubCareersHandler()
+
+    # Valid job detail URLs (should pass)
+    valid_urls = [
+        "https://www.github.careers/careers-home/jobs/4632?lang=en-us",
+        "https://www.github.careers/careers-home/jobs/4904?lang=en-us",
+        "https://www.github.careers/careers-home/jobs/senior-engineer?lang=en-us",
+    ]
+
+    # Invalid navigation/filter URLs (should be filtered out)
+    invalid_urls = [
+        "https://www.github.careers/jobs",
+        "https://www.github.careers/jobs?country=Spain",
+        "https://www.github.careers/jobs?page=1&categories=Marketing",
+        "https://www.github.careers/experienced-professionals/locations",
+        "https://www.github.careers/life-at-github/categories",
+        "https://www.github.careers/careers-home/categories",
+        "https://www.github.careers/careers-home/locations",
+        "https://www.github.careers/careers-home/jobs/categories",
+        "https://www.github.careers/benefits/locations",
+        "https://www.github.careers/benefits/categories",
+        "https://www.github.careers/early-in-profession",
+        "https://www.github.careers/life-at-github",
+        "https://www.github.careers/benefits",
+        "https://www.github.careers/careers-home",
+    ]
+
+    # Test filter_job_urls with all URLs mixed
+    all_urls = valid_urls + invalid_urls
+    filtered = handler.filter_job_urls(all_urls)
+
+    # Only valid job URLs should remain
+    assert set(filtered) == set(valid_urls), (
+        f"Expected only valid URLs, got: {filtered}"
+    )
+
+    # Ensure no invalid URLs are in the filtered result
+    for url in invalid_urls:
+        assert url not in filtered, f"Invalid URL should have been filtered: {url}"
+
+
+def test_github_careers_handler_is_valid_job_detail_url():
+    """Test the _is_valid_job_detail_url helper method."""
+    handler = GithubCareersHandler()
+
+    # Valid job detail URLs
+    assert handler._is_valid_job_detail_url(
+        "https://www.github.careers/careers-home/jobs/4632?lang=en-us"
+    )
+    assert handler._is_valid_job_detail_url(
+        "https://www.github.careers/careers-home/jobs/senior-engineer"
+    )
+
+    # Invalid: not github.careers
+    assert not handler._is_valid_job_detail_url(
+        "https://example.com/careers-home/jobs/4632"
+    )
+
+    # Invalid: wrong path structure
+    assert not handler._is_valid_job_detail_url(
+        "https://www.github.careers/jobs/4632"
+    )
+    assert not handler._is_valid_job_detail_url(
+        "https://www.github.careers/careers-home/jobs"
+    )
+
+    # Invalid: navigation paths
+    assert not handler._is_valid_job_detail_url(
+        "https://www.github.careers/careers-home/jobs/categories"
+    )
+    assert not handler._is_valid_job_detail_url(
+        "https://www.github.careers/careers-home/jobs/locations"
+    )
+
+
+def test_github_careers_handler_looks_like_navigation_url():
+    """Test the _looks_like_navigation_url helper method."""
+    handler = GithubCareersHandler()
+
+    # Navigation URLs
+    assert handler._looks_like_navigation_url("https://www.github.careers/jobs")
+    assert handler._looks_like_navigation_url(
+        "https://www.github.careers/jobs?country=Spain"
+    )
+    assert handler._looks_like_navigation_url(
+        "https://www.github.careers/life-at-github/categories"
+    )
+    assert handler._looks_like_navigation_url(
+        "https://www.github.careers/benefits/locations"
+    )
+    assert handler._looks_like_navigation_url(
+        "https://www.github.careers/careers-home"
+    )
+
+    # Not navigation URLs (job details)
+    assert not handler._looks_like_navigation_url(
+        "https://www.github.careers/careers-home/jobs/4632?lang=en-us"
+    )
+
+    # Not github.careers
+    assert not handler._looks_like_navigation_url(
+        "https://example.com/jobs"
+    )
+
+
 def test_avature_handler_matches_and_extracts_links():
     handler = AvatureHandler()
     url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobRecordsPerPage=12"
@@ -587,3 +694,40 @@ def test_base_handler_drop_source_listing_url():
     cleaned = handler.drop_source_listing_url(urls, source_url)
     assert "https://www.metacareers.com/profile/job_details/1092822929374881" in cleaned
     assert len(cleaned) == 1
+
+
+def test_base_handler_filters_navigation_urls():
+    """Test that base handler filters common navigation URL patterns."""
+    handler = _BaseHandlerForTest()
+    # Navigation URLs that should be filtered
+    navigation_urls = [
+        "https://careers.example.com/categories",
+        "https://careers.example.com/locations",
+        "https://careers.example.com/teams",
+        "https://careers.example.com/departments",
+        "https://careers.example.com/about",
+        "https://careers.example.com/benefits",
+        "https://careers.example.com/culture",
+        "https://careers.example.com/life-at-company/locations",
+        "https://careers.example.com/search",
+        "https://careers.example.com/careers/jobs",  # ends in /jobs without ID
+        "https://example.com/jobs",  # just /jobs
+        "https://example.com/company/jobs/",  # /jobs/ at end
+    ]
+    # Valid job URLs that should pass through
+    valid_urls = [
+        "https://careers.example.com/jobs/12345",  # has job ID
+        "https://careers.example.com/job/senior-engineer",
+        "https://careers.example.com/positions/123456",
+        "https://boards.greenhouse.io/company/jobs/4607747006",
+    ]
+    all_urls = navigation_urls + valid_urls
+    filtered = handler.filter_job_urls(all_urls)
+
+    # All navigation URLs should be filtered out
+    for url in navigation_urls:
+        assert url not in filtered, f"Navigation URL should be filtered: {url}"
+
+    # All valid job URLs should remain
+    for url in valid_urls:
+        assert url in filtered, f"Valid job URL should remain: {url}"

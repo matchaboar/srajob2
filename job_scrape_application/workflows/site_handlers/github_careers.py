@@ -56,6 +56,86 @@ class GithubCareersHandler(BaseSiteHandler):
             return {}
         return {"return_format": ["raw_html"]}
 
+    def _is_valid_job_detail_url(self, url: str) -> bool:
+        """Check if a URL is a valid GitHub Careers job detail page.
+
+        Valid job URLs follow the pattern /careers-home/jobs/{job_slug}
+        where job_slug is not 'categories' and is a specific job identifier.
+        """
+        if not self.matches_url(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        parts = [segment for segment in (parsed.path or "").split("/") if segment]
+        # Valid job detail URL: /careers-home/jobs/{job_slug}
+        if len(parts) != 3:
+            return False
+        if parts[0] != "careers-home" or parts[1] != "jobs":
+            return False
+        # Exclude navigation pages like /careers-home/jobs/categories
+        if parts[2] in {"categories", "locations", "teams"}:
+            return False
+        return True
+
+    def _looks_like_navigation_url(self, url: str) -> bool:
+        """Check if a URL looks like a navigation/filter page rather than a job detail.
+
+        Navigation URLs include:
+        - /jobs with query params (filter pages)
+        - /life-at-github, /benefits, /experienced-professionals, etc.
+        - Any path ending in /categories, /locations, /teams
+        """
+        if not self.matches_url(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        path = (parsed.path or "").lower().rstrip("/")
+        parts = [segment for segment in path.split("/") if segment]
+
+        # Filter pages: /jobs or /jobs?...
+        if path == "/jobs" or (len(parts) == 1 and parts[0] == "jobs"):
+            return True
+
+        # Navigation pages ending in common navigation segments
+        navigation_segments = {"categories", "locations", "teams"}
+        if parts and parts[-1] in navigation_segments:
+            return True
+
+        # Top-level navigation pages
+        navigation_prefixes = {
+            "life-at-github",
+            "benefits",
+            "experienced-professionals",
+            "early-in-profession",
+            "careers-home",
+        }
+        # Check if path is just a top-level page without job detail
+        if len(parts) == 1 and parts[0] in navigation_prefixes:
+            return True
+        if len(parts) == 2 and parts[0] in navigation_prefixes and parts[1] not in {"jobs"}:
+            return True
+
+        return False
+
+    def filter_job_urls(self, urls: List[str]) -> List[str]:
+        """Filter URLs to only include valid GitHub Careers job detail pages."""
+        filtered: List[str] = []
+        for url in urls:
+            # Skip if not a github.careers URL
+            if not self.matches_url(url):
+                continue
+            # Skip navigation/filter pages
+            if self._looks_like_navigation_url(url):
+                continue
+            # Only include valid job detail URLs
+            if self._is_valid_job_detail_url(url):
+                filtered.append(url)
+        return filtered
+
     def get_links_from_json(self, payload: Any) -> List[str]:
         if not isinstance(payload, dict):
             return []

@@ -772,6 +772,35 @@ class BaseSiteHandler(ABC):
                 return False
             if path.startswith("/creativecloud/buy/"):
                 return True
+        # General navigation path patterns that are rarely job detail pages
+        # These catch common career site navigation URLs across many sites
+        navigation_only_endings = {
+            "categories",
+            "locations",
+            "teams",
+            "departments",
+            "regions",
+            "countries",
+            "offices",
+            "about",
+            "benefits",
+            "culture",
+            "diversity",
+            "life",
+            "values",
+            "mission",
+            "perks",
+            "search",
+            "filter",
+            "results",
+        }
+        if segments and segments[-1] in navigation_only_endings:
+            # But allow if it looks like a job detail with ID after
+            # e.g., /jobs/categories/123 is likely a job, /jobs/categories is not
+            return True
+        # Filter URLs ending in /jobs without a job ID (usually listing pages)
+        if path.rstrip("/").endswith("/jobs"):
+            return True
         return False
 
     def _apply_page_links_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
