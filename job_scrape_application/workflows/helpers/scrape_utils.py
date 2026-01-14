@@ -2015,17 +2015,22 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
 
 
 def coerce_remote(value: Any, location: str, title: str) -> bool:
+    loc_lower = (location or "").lower()
+    title_lower = (title or "").lower()
+    # Location is the most authoritative signal - if location contains "remote",
+    # the job is remote regardless of description parsing (which may pick up
+    # generic company policy text mentioning hybrid/onsite options)
+    if "remote" in loc_lower:
+        return True
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
         lowered = value.lower()
         if lowered in {"true", "yes", "remote", "hybrid", "fully remote"}:
             return True
-    loc_lower = (location or "").lower()
-    title_lower = (title or "").lower()
-    if loc_lower and loc_lower not in {"unknown"} and "remote" not in loc_lower:
+    if loc_lower and loc_lower not in {"unknown"}:
         return False
-    return "remote" in loc_lower or "remote" in title_lower
+    return "remote" in title_lower
 
 
 def coerce_level(value: Any, title: str) -> str:

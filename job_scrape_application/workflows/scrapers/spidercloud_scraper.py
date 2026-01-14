@@ -2876,7 +2876,14 @@ class SpiderCloudScraper(BaseScraper):
             elif "remote" in structured_label.lower() and "remote" not in hint_label.lower():
                 location = hint_label
         remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", title or "")
-        if remote and isinstance(hints, dict):
+        # Only apply hint-based location override when we don't have authoritative location data.
+        # greenhouse_location comes from the Greenhouse API JSON and is authoritative.
+        # structured_location comes from JSON-LD and is also authoritative.
+        # handler_location comes from handler-specific extraction (e.g., API responses).
+        # location_hint comes from parsing markdown text, which can pick up city names
+        # mentioned in legal text (e.g., "Los Angeles County Fair Chance Ordinance").
+        has_authoritative_location = bool(structured_location or greenhouse_location or handler_location)
+        if remote and isinstance(hints, dict) and not has_authoritative_location:
             raw_locations = hints.get("locations")
             if isinstance(raw_locations, list):
                 non_remote_locations = [

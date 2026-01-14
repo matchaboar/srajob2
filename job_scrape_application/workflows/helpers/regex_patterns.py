@@ -127,14 +127,14 @@ PRE_CONTENT_PATTERN = r"<pre[^>]*>(?P<content>.*?)</pre>"
 PRE_PATTERN = re.compile(PRE_CONTENT_PATTERN, flags=re.IGNORECASE | re.DOTALL)
 JSON_OBJECT_PATTERN = r"{.*}"
 JSON_ARRAY_PATTERN = r"\[.*\]"
-HTML_LINE_BREAK_PATTERN = r"<br\\s*/?>"
-HTML_PARAGRAPH_CLOSE_PATTERN = r"</p\\s*>"
+HTML_LINE_BREAK_PATTERN = r"<br\s*/?>"
+HTML_PARAGRAPH_CLOSE_PATTERN = r"</p\s*>"
 HTML_PARAGRAPH_OPEN_PATTERN = r"<p[^>]*>"
 HTML_LIST_ITEM_OPEN_PATTERN = r"<li[^>]*>"
-HTML_SCRIPT_OR_STYLE_BLOCK_PATTERN = r"<(script|style)[^>]*>.*?</\\1>"
+HTML_SCRIPT_OR_STYLE_BLOCK_PATTERN = r"<(script|style)[^>]*>.*?</\1>"
 HORIZONTAL_WHITESPACE_PATTERN = r"[ \t]+"
-LINE_WRAPPED_WHITESPACE_PATTERN = r"\\s*\\n\\s*"
-MULTI_NEWLINE_PATTERN = r"\\n{3,}"
+LINE_WRAPPED_WHITESPACE_PATTERN = r"\s*\n\s*"
+MULTI_NEWLINE_PATTERN = r"\n{3,}"
 
 # Navigation / cookie UI
 _NAV_MENU_SEQUENCE = [
@@ -242,17 +242,17 @@ AVATURE_RESULTS_ARIA_PATTERN = r"aria-label=\"\s*(?P<count>\d+)\s+results"
 AVATURE_RESULTS_ARIA_RE = re.compile(AVATURE_RESULTS_ARIA_PATTERN, re.IGNORECASE)
 
 # Site handlers: Workday
-WORKDAY_JOB_DETAIL_URL_PATTERN = r"https?://[^\"'\\s>]+/job/[^\"'\\s>]+"
+WORKDAY_JOB_DETAIL_URL_PATTERN = r"https?://[^\"'\s>]+/job/[^\"'\s>]+"
 WORKDAY_JOB_DETAIL_URL_RE = re.compile(WORKDAY_JOB_DETAIL_URL_PATTERN, re.IGNORECASE)
-WORKDAY_JOB_DETAIL_PATH_PATTERN = r"/job/[^\"'\\s>]+"
+WORKDAY_JOB_DETAIL_PATH_PATTERN = r"/job/[^\"'\s>]+"
 WORKDAY_JOB_DETAIL_PATH_RE = re.compile(WORKDAY_JOB_DETAIL_PATH_PATTERN, re.IGNORECASE)
 WORKDAY_JOB_TITLE_ANCHOR_PATTERN = (
     r"<a[^>]+data-automation-id=[\"']jobTitle[\"'][^>]+href=[\"'](?P<href>[^\"']+)[\"']"
 )
 WORKDAY_JOB_TITLE_ANCHOR_RE = re.compile(WORKDAY_JOB_TITLE_ANCHOR_PATTERN, re.IGNORECASE)
-WORKDAY_PAGE_RANGE_PATTERN = r"(?P<start>\\d+)\\s*-\\s*(?P<end>\\d+)\\s*of\\s*(?P<total>\\d+)\\s+jobs"
+WORKDAY_PAGE_RANGE_PATTERN = r"(?P<start>\d+)\s*-\s*(?P<end>\d+)\s*of\s*(?P<total>\d+)\s+jobs"
 WORKDAY_PAGE_RANGE_RE = re.compile(WORKDAY_PAGE_RANGE_PATTERN, re.IGNORECASE)
-WORKDAY_BASE_URL_PATTERN = r"https?://[^\"'\\s>]*myworkdayjobs\\.com/[^\"'\\s>]*"
+WORKDAY_BASE_URL_PATTERN = r"https?://[^\"'\s>]*myworkdayjobs\.com/[^\"'\s>]*"
 WORKDAY_BASE_URL_RE = re.compile(WORKDAY_BASE_URL_PATTERN, re.IGNORECASE)
 
 # Site handlers: Netflix
@@ -265,7 +265,7 @@ SMART_APPLY_PATTERN = re.compile(
 JOB_ID_PATH_PATTERN = r"/jobs/(\d+)"
 
 # SpiderCloud helpers
-HTML_BR_TAG_PATTERN = r"(?i)<br\\s*/?>"
+HTML_BR_TAG_PATTERN = r"(?i)<br\s*/?>"
 SPIDERCLOUD_HTML_PARAGRAPH_CLOSE_PATTERN = r"(?i)</p>"
 HTML_SCRIPT_BLOCK_PATTERN = r"(?is)<script[^>]*>.*?</script>"
 HTML_STYLE_BLOCK_PATTERN = r"(?is)<style[^>]*>.*?</style>"

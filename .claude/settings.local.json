@@ -45,7 +45,8 @@
       "mcp__posthog__organizations-get",
       "Bash(pnpm run test:*)",
       "mcp__posthog__query-run",
-      "Bash(# Check automation IDs in the new fixture jq -r ''.[0][0].content.raw'' tests/job_scrape_application/workflows/fixtures/debug/dataminr/workday_y97z5ws2_20260113_detail.json)"
+      "Bash(# Check automation IDs in the new fixture jq -r ''.[0][0].content.raw'' tests/job_scrape_application/workflows/fixtures/debug/dataminr/workday_y97z5ws2_20260113_detail.json)",
+      "Bash(PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run pytest:*)"
     ]
   },
   "outputStyle": "default"

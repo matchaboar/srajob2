@@ -1,11 +1,11 @@
 site_id: greenhouse
-detail_url: https://boards-api.greenhouse.io/v1/boards/axon/jobs/7529431003
+detail_url: https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7484699
 expected:
-  title: "Strategic Project Manager"
-  company: "Axon"
-  location_contains: "Canada"
+  title: "Cloud Software Engineer"
+  company: "Twilio"
+  location_contains: "Ireland"
   is_remote: true
-  level: senior
+  level: mid
   description_min_words: 300
   description_not_contains: '{"'  # Ensure no JSON blocks in description
   cost_milli_cents_min: 1

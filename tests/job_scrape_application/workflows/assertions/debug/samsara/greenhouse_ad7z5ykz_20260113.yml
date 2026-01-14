@@ -1,8 +1,8 @@
-site_id: workday
-detail_url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research/_JR1926-1
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/samsara/jobs/7534517
 expected:
-  title_contains: "Senior Software Engineer"
-  company: "Dataminr"
+  title: "Senior Software Engineer - Enterprise Management"
+  company: "Samsara"
   location_contains: "Remote"
   is_remote: true
   level: senior
