@@ -113,14 +113,6 @@ vi.mock("./components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 
-vi.mock("./components/AppliedJobRow", () => ({
-  AppliedJobRow: () => <div data-testid="applied-job-row" />,
-}));
-
-vi.mock("./components/RejectedJobRow", () => ({
-  RejectedJobRow: () => <div data-testid="rejected-job-row" />,
-}));
-
 afterEach(() => {
   cleanup();
   (convexReact as any).useQuery.mockClear();

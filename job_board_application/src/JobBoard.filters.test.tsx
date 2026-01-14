@@ -67,14 +67,6 @@ vi.mock("./components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 
-vi.mock("./components/AppliedJobRow", () => ({
-  AppliedJobRow: () => <div data-testid="applied-job-row" />,
-}));
-
-vi.mock("./components/RejectedJobRow", () => ({
-  RejectedJobRow: () => <div data-testid="rejected-job-row" />,
-}));
-
 const setSavedFilters = (filters: any[]) => {
   (convexReact as any).__setSavedFilters(filters);
 };

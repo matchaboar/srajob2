@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { LiveTimer } from "./LiveTimer";
 import { CompanyIcon } from "./CompanyIcon";
+import { extractCompanyLabel, toDisplayName } from "../lib/domainUtils";
+import { STATUS_STYLES } from "../lib/statusStyles";
+import type { QueueStatus } from "../lib/statusStyles";
 
-export type QueueStatus = "pending" | "processing" | "completed" | "failed" | "invalid";
+export type { QueueStatus };
 
 export interface QueuedUrlRowItem {
   _id: string;
@@ -30,135 +33,6 @@ interface QueuedUrlRowProps {
   showCompletedAt?: boolean;
   showLastError?: boolean;
 }
-
-const STATUS_STYLES: Record<QueueStatus, string> = {
-  pending: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-  processing: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  completed: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  failed: "bg-red-500/10 text-red-300 border-red-500/20",
-  invalid: "bg-slate-700/50 text-slate-300 border-slate-600/50",
-};
-
-const COMMON_SUBDOMAIN_PREFIXES = new Set([
-  "www",
-  "jobs",
-  "careers",
-  "boards",
-  "board",
-  "apply",
-  "app",
-  "join",
-  "team",
-  "teams",
-  "work",
-]);
-const RESERVED_PATH_SEGMENTS = new Set([
-  "boards",
-  "jobs",
-  "careers",
-  "jobdetail",
-  "job-details",
-  "jobdetails",
-  "apply",
-  "application",
-  "applications",
-  "openings",
-  "positions",
-  "roles",
-  "role",
-  "departments",
-  "teams",
-  "en",
-  "en-us",
-  "en-gb",
-  "en-au",
-  "v1",
-  "v2",
-  "api",
-]);
-const HOSTED_JOB_DOMAINS = [
-  "avature.net",
-  "avature.com",
-  "searchjobs.com",
-  "greenhouse.io",
-  "ashbyhq.com",
-  "lever.co",
-  "workable.com",
-  "smartrecruiters.com",
-  "myworkdayjobs.com",
-  "icims.com",
-  "jobvite.com",
-  "bamboohr.com",
-];
-
-const baseDomainFromHost = (host: string) => {
-  const parts = host.split(".").filter(Boolean);
-  if (parts.length <= 1) return host;
-  const last = parts[parts.length - 1];
-  const secondLast = parts[parts.length - 2];
-  const shouldUseThree = last.length === 2 || secondLast.length === 2;
-  if (shouldUseThree && parts.length >= 3) {
-    return parts.slice(-3).join(".");
-  }
-  return parts.slice(-2).join(".");
-};
-
-const extractCompanyFromPath = (pathname: string) => {
-  const parts = pathname.split("/").filter(Boolean);
-  for (const part of parts) {
-    const cleaned = part.toLowerCase();
-    if (RESERVED_PATH_SEGMENTS.has(cleaned)) continue;
-    if (!/^[a-z0-9-]+$/.test(cleaned)) continue;
-    return cleaned;
-  }
-  return null;
-};
-
-const extractCompanyLabel = (urlValue?: string) => {
-  if (!urlValue) return null;
-  try {
-    const parsed = new URL(urlValue);
-    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-    const baseDomain = baseDomainFromHost(host);
-    const hostedDomain = HOSTED_JOB_DOMAINS.find((domain) => host === domain || host.endsWith(`.${domain}`));
-    if (hostedDomain) {
-      const hostParts = host.split(".").filter(Boolean);
-      const baseParts = hostedDomain.split(".").filter(Boolean);
-      if (hostParts.length > baseParts.length) {
-        const subdomains = hostParts.slice(0, hostParts.length - baseParts.length);
-        for (let i = subdomains.length - 1; i >= 0; i -= 1) {
-          const candidate = subdomains[i];
-          if (!candidate || COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
-          if (/^wd\d+$/i.test(candidate)) continue;
-          return candidate;
-        }
-      }
-      const pathCandidate = extractCompanyFromPath(parsed.pathname);
-      if (pathCandidate) return pathCandidate;
-      return baseDomain.split(".")[0] ?? baseDomain;
-    }
-
-    const hostParts = host.split(".").filter(Boolean);
-    const baseParts = baseDomain.split(".").filter(Boolean);
-    if (hostParts.length > baseParts.length) {
-      const subdomains = hostParts.slice(0, hostParts.length - baseParts.length);
-      for (let i = subdomains.length - 1; i >= 0; i -= 1) {
-        const candidate = subdomains[i];
-        if (!candidate || COMMON_SUBDOMAIN_PREFIXES.has(candidate)) continue;
-        if (/^wd\d+$/i.test(candidate)) continue;
-        return candidate;
-      }
-    }
-    return baseDomain.split(".")[0] ?? baseDomain;
-  } catch {
-    return null;
-  }
-};
-
-const toDisplayName = (value: string) =>
-  value
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 export function QueuedUrlRow({
   item,

@@ -3,26 +3,8 @@ import { useQuery } from "convex/react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { buildCompensationMeta } from "./lib/compensation";
+import { formatDateTime, formatDuration, formatRelativeTime } from "./lib/dateFormatting";
 import { LiveTimer } from "./components/LiveTimer";
-
-const formatDateTime = (value?: number) => {
-  if (typeof value !== "number") return "Unknown";
-  return new Date(value).toLocaleString();
-};
-
-const formatDuration = (start?: number | null, end?: number | null) => {
-  if (typeof start !== "number" || typeof end !== "number") return "—";
-  const diff = Math.max(0, end - start);
-  const totalSeconds = Math.floor(diff / 1000);
-  if (totalSeconds <= 0) return "0s";
-  const minutes = Math.floor(totalSeconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  if (minutes > 0) return `${minutes}m ${totalSeconds % 60}s`;
-  return `${totalSeconds}s`;
-};
 
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });
@@ -47,29 +29,6 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
     if (typeof value === "number" || typeof value === "boolean") return String(value);
     return undefined;
   };
-  const formatRelativeTime = useMemo(
-    () =>
-      (timestamp?: number | null) => {
-        if (typeof timestamp !== "number") return null;
-        const delta = Math.max(0, Date.now() - timestamp);
-        const minutes = Math.round(delta / (1000 * 60));
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-        let relative: string;
-        if (days > 0) {
-          relative = `${days}d ago`;
-        } else if (hours > 0) {
-          relative = `${hours}h ago`;
-        } else if (minutes > 0) {
-          relative = `${minutes}m ago`;
-        } else {
-          relative = "just now";
-        }
-        const absolute = new Date(timestamp).toLocaleString();
-        return `${relative} • ${absolute}`;
-      },
-    []
-  );
   useEffect(() => {
     if (!requestedFullDescriptionJobId) return;
     if (fullDescriptionUrl === undefined) return;

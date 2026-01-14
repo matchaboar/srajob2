@@ -68,14 +68,6 @@ vi.mock("./components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 
-vi.mock("./components/AppliedJobRow", () => ({
-  AppliedJobRow: () => <div data-testid="applied-job-row" />,
-}));
-
-vi.mock("./components/RejectedJobRow", () => ({
-  RejectedJobRow: () => <div data-testid="rejected-job-row" />,
-}));
-
 const findQueryCall = (queryFn: any) => {
   const targetName = getQueryName(queryFn);
   return (convexReact as any).useQuery.mock.calls.find((call: any[]) => getQueryName(call[0]) === targetName);

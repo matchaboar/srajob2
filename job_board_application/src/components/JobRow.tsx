@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 import { LiveTimer } from "./LiveTimer";
 import { CompanyIcon } from "./CompanyIcon";
 import { buildCompensationMeta } from "../lib/compensation";
+import { formatShortDate, formatDaysAgo, formatLevelLabel } from "../lib/dateFormatting";
 import { StatusTracker } from "./StatusTracker";
 import { JobRowCompanyPill } from "./jobRow/JobRowCompanyPill";
 import { JobRowLevelPill } from "./jobRow/JobRowLevelPill";
@@ -34,7 +35,7 @@ export function JobRow({
     showQueuedSince
 }: JobRowProps) {
     const compensationMeta = buildCompensationMeta(job);
-    const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
+    const levelLabel = formatLevelLabel(job.level);
     const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
     const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
     const companyName = typeof job.company === "string" ? job.company : "";
@@ -46,18 +47,6 @@ export function JobRow({
     // Applied/Rejected specific dates
     const appliedAt = typeof job.appliedAt === "number" ? job.appliedAt : null;
     const rejectedAt = typeof job.rejectedAt === "number" ? job.rejectedAt : appliedAt; // Fallback to appliedAt if rejectedAt missing
-
-    const formatDate = (date: number) => {
-        return new Date(date).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-        });
-    };
-
-    const formatDaysAgo = (timestamp: number) => {
-        const days = Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)));
-        return `${days}d ago`;
-    };
 
     return (
         <motion.div
@@ -178,12 +167,12 @@ export function JobRow({
                         )}
                         {variant === 'applied' && appliedAt && (
                             <span className="text-[10px] text-slate-500 font-medium truncate">
-                                {formatDate(appliedAt)} • {formatDaysAgo(appliedAt)}
+                                {formatShortDate(appliedAt)} • {formatDaysAgo(appliedAt)}
                             </span>
                         )}
                         {variant === 'rejected' && rejectedAt && (
                             <span className="text-[10px] text-slate-500 font-medium truncate">
-                                {formatDate(rejectedAt)} • {formatDaysAgo(rejectedAt)}
+                                {formatShortDate(rejectedAt)} • {formatDaysAgo(rejectedAt)}
                             </span>
                         )}
                     </div>

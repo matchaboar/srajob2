@@ -7,6 +7,13 @@ import clsx from "clsx";
 import { WorkflowRunsSection } from "./components/WorkflowRunsSection";
 import { LiveTimer } from "./components/LiveTimer";
 import type { Id } from "../convex/_generated/dataModel";
+import {
+  toTitleCaseSlug,
+  baseDomainFromHost,
+  safeParseUrl,
+  isGreenhouseUrlString,
+  greenhouseSlugFromUrl,
+} from "./lib/domainUtils";
 
 type AdminSection = "scraper" | "activity" | "activityRuns" | "worker" | "database" | "urlScrapes" | "companyNames";
 type AdminSectionExtended = AdminSection;
@@ -23,70 +30,7 @@ const SCHEDULE_DAY_LABELS: Record<ScheduleDay, string> = {
   sun: "Sun",
 };
 const ALL_SCHEDULE_DAYS: ScheduleDay[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const COMMON_SUBDOMAIN_PREFIXES = ["www", "jobs", "careers", "boards", "app", "apply"];
 const DEFAULT_SCHEDULE_STORAGE_KEY = "admin-default-schedule-id";
-
-const toTitleCaseSlug = (slug: string): string => {
-  return slug
-    .replace(/[_-]+/g, " ")
-    .split(/[\s.]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-};
-
-const baseDomainFromHost = (host: string): string => {
-  const parts = host.split(".").filter(Boolean);
-  if (parts.length <= 1) return host;
-  const last = parts[parts.length - 1];
-  const secondLast = parts[parts.length - 2];
-  const shouldUseThree = secondLast.length === 2 || last.length === 2;
-  if (shouldUseThree && parts.length >= 3) {
-    return parts.slice(-3).join(".");
-  }
-  return parts.slice(-2).join(".");
-};
-
-const isGreenhouseUrlString = (rawUrl: string): boolean => {
-  if (!rawUrl) return false;
-  if (/greenhouse/i.test(rawUrl)) return true;
-  try {
-    const parsed = new URL(rawUrl);
-    return /greenhouse/i.test(parsed.hostname);
-  } catch {
-    return /greenhouse/i.test(rawUrl);
-  }
-};
-
-const safeParseUrl = (rawUrl: string): URL | null => {
-  if (!rawUrl) return null;
-  try {
-    return new URL(rawUrl.includes("://") ? rawUrl : `https://${rawUrl}`);
-  } catch {
-    return null;
-  }
-};
-
-const greenhouseSlugFromUrl = (rawUrl: string): string | null => {
-  const parsed = safeParseUrl(rawUrl);
-  if (!parsed) return null;
-  const query = new URLSearchParams(parsed.search);
-  const boardParam = query.get("board");
-  if (boardParam) return boardParam.toLowerCase();
-  const parts = parsed.pathname.split("/").filter(Boolean);
-  const boardsIdx = parts.findIndex((p) => p.toLowerCase() === "boards");
-  if (boardsIdx >= 0 && boardsIdx + 1 < parts.length) {
-    return parts[boardsIdx + 1].toLowerCase();
-  }
-  if (parts.length >= 3 && parts[0].toLowerCase() === "v1" && parts[1].toLowerCase() === "boards") {
-    return parts[2].toLowerCase();
-  }
-  const hostParts = (parsed.hostname || "").toLowerCase().split(".").filter(Boolean);
-  if (hostParts.length >= 3 && hostParts[hostParts.length - 2] !== "greenhouse") {
-    return hostParts[hostParts.length - 2];
-  }
-  return null;
-};
 
 const resolveScrapeUrl = (rawUrl: string, siteType?: string): string => {
   const parsed = safeParseUrl(rawUrl);

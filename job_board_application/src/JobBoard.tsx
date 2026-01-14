@@ -17,6 +17,8 @@ import { DiagonalFraction } from "./components/DiagonalFraction";
 import { QueuedUrlRow } from "./components/QueuedUrlRow";
 import { CountdownTimer } from "./components/CountdownTimer";
 import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "./lib/compensation";
+import { formatLevelLabel, formatRelativeTime } from "./lib/dateFormatting";
+import { resolveQueueStatusClass } from "./lib/statusStyles";
 
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
@@ -847,44 +849,6 @@ export function JobBoard() {
     const fallback = (selectedJobFull.location || "").trim();
     return fallback || "Unknown";
   }, [selectedJobFull, selectedJobLocations]);
-  const formatLevelLabel = useCallback((level?: string | null) => {
-    if (!level || typeof level !== "string") return "Not specified";
-    return level.charAt(0).toUpperCase() + level.slice(1);
-  }, []);
-  const formatRelativeTime = useCallback((timestamp?: number | null) => {
-    if (typeof timestamp !== "number") return null;
-    const delta = Math.max(0, Date.now() - timestamp);
-    const minutes = Math.round(delta / (1000 * 60));
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    let relative: string;
-    if (days > 0) {
-      relative = `${days}d ago`;
-    } else if (hours > 0) {
-      relative = `${hours}h ago`;
-    } else if (minutes > 0) {
-      relative = `${minutes}m ago`;
-    } else {
-      relative = "just now";
-    }
-    const absolute = new Date(timestamp).toLocaleString();
-    return `${relative} • ${absolute}`;
-  }, []);
-  const resolveQueueStatusClass = useCallback((status?: string) => {
-    switch (status) {
-      case "processing":
-        return "bg-blue-500/10 text-blue-300 border-blue-500/20";
-      case "failed":
-        return "bg-red-500/10 text-red-300 border-red-500/20";
-      case "invalid":
-        return "bg-slate-700/50 text-slate-300 border-slate-600/50";
-      case "completed":
-        return "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
-      case "pending":
-      default:
-        return "bg-amber-500/10 text-amber-300 border-amber-500/20";
-    }
-  }, []);
   const renderScrapeCost = useCallback((mc: number) => {
     if (mc >= 1000) return `${(mc / 1000).toFixed(2)} ¢`;
     if (mc === 0) return "0 ¢";

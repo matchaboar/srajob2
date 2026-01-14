@@ -93,14 +93,6 @@ vi.mock("./components/JobRow", () => ({
   ),
 }));
 
-vi.mock("./components/AppliedJobRow", () => ({
-  AppliedJobRow: () => <div data-testid="applied-job-row" />,
-}));
-
-vi.mock("./components/RejectedJobRow", () => ({
-  RejectedJobRow: () => <div data-testid="rejected-job-row" />,
-}));
-
 const buildJob = (overrides: Record<string, any>) => ({
   _id: "job-1",
   title: "Test Role",
