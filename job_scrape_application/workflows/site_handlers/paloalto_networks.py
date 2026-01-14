@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html as html_lib
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin, urlparse
 
 from .base import BaseSiteHandler
@@ -18,6 +18,11 @@ _JOB_LINK_RE = re.compile(
 )
 _JOB_LINK_REL_RE = re.compile(
     r'href=["\'](?P<href>/[^"\']+/job/[^"\']+)["\']',
+    flags=re.IGNORECASE,
+)
+# Pattern to match "Related Jobs" section heading in TalentBrew pages
+_RELATED_JOBS_SECTION_RE = re.compile(
+    r'<(?:h[1-6]|div)[^>]*class="[^"]*section\d+__heading[^"]*"[^>]*>\s*Related\s+Jobs\s*</(?:h[1-6]|div)>',
     flags=re.IGNORECASE,
 )
 
@@ -101,3 +106,29 @@ class PaloAltoNetworksHandler(BaseSiteHandler):
             seen.add(cleaned)
             filtered.append(cleaned)
         return filtered
+
+    def should_normalize_affect_raw(self) -> bool:
+        """Return True so Related Jobs section is also stripped from raw_markdown.
+
+        This prevents remote job locations from Related Jobs from contaminating
+        hint extraction for the main job.
+        """
+        return True
+
+    def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
+        """Normalize markdown by stripping 'Related Jobs' section.
+
+        TalentBrew career sites (like Palo Alto Networks) include a 'Related Jobs'
+        section with other job listings. These can contain remote job locations
+        that incorrectly get picked up as hints for the current job. This method
+        strips everything from the 'Related Jobs' heading onwards.
+        """
+        if not markdown:
+            return "", None
+
+        # Strip content from "Related Jobs" section onwards
+        match = _RELATED_JOBS_SECTION_RE.search(markdown)
+        if match:
+            markdown = markdown[: match.start()].strip()
+
+        return markdown, None

@@ -2520,6 +2520,12 @@ class SpiderCloudScraper(BaseScraper):
             normalized_markdown, normalized_title = handler.normalize_markdown(parsed_markdown)
             if isinstance(normalized_markdown, str) and normalized_markdown.strip():
                 parsed_markdown = normalized_markdown
+                # Only update raw_markdown if handler indicates normalization should affect raw
+                # (e.g., stripping "Related Jobs" sections that would contaminate hint extraction).
+                # Handlers that transform content (e.g., extracting description from JSON) should
+                # NOT affect raw_markdown since it's needed for location extraction.
+                if handler.should_normalize_affect_raw():
+                    raw_markdown = normalized_markdown
             if normalized_title:
                 parsed_title = normalized_title
 
@@ -2572,6 +2578,16 @@ class SpiderCloudScraper(BaseScraper):
                 structured_description = None
             structured_location = self._location_from_job_posting(structured_payload)
             structured_company = self._company_from_structured_payload(structured_payload)
+        # Extract remote status from Schema.org jobLocationType field
+        structured_remote: bool | None = None
+        if structured_payload:
+            job_location_type = structured_payload.get("jobLocationType")
+            if isinstance(job_location_type, str):
+                job_location_type_lower = job_location_type.lower()
+                if job_location_type_lower == "telecommute":
+                    structured_remote = True
+                elif job_location_type_lower in ("onsite", "on-site", "in-office"):
+                    structured_remote = False
         if structured_description and not structured_present:
             structured_present = True
 
@@ -2843,6 +2859,17 @@ class SpiderCloudScraper(BaseScraper):
         ):
             if isinstance(hints, dict) and hints.get("remote") is None:
                 hints["remote"] = True
+        # Apply structured_remote from Schema.org jobLocationType as supplemental signal
+        # Note: TELECOMMUTE can mean hybrid work, not just fully remote, so we only use it
+        # as a fallback when no other remote signal is present. ONSITE/IN-OFFICE are more
+        # authoritative for setting remote=False.
+        if structured_remote is not None and isinstance(hints, dict):
+            if structured_remote is False:
+                # ONSITE/IN-OFFICE is authoritative
+                hints["remote"] = False
+            elif hints.get("remote") is None:
+                # TELECOMMUTE as fallback only when no other signal
+                hints["remote"] = True
         handler_location = None
         if handler:
             handler_location = handler.extract_location_hint(raw_markdown)
@@ -2865,6 +2892,13 @@ class SpiderCloudScraper(BaseScraper):
         # description text and can pick up random city names mentioned in the text (e.g.,
         # Airbnb's "San Francisco home" origin story). The greenhouse_location from the
         # JSON API is authoritative and should be trusted.
+        # If handler_location contains "remote" but structured_location doesn't, prefer
+        # handler_location since it provides remote info not in JSON-LD.
+        if handler_location and structured_location:
+            handler_loc_lower = handler_location.lower()
+            structured_loc_lower = structured_location.lower()
+            if "remote" in handler_loc_lower and "remote" not in structured_loc_lower:
+                location = handler_location
         if structured_location and location_hint:
             structured_label = structured_location.strip()
             hint_label = location_hint.strip()
@@ -3311,9 +3345,13 @@ class SpiderCloudScraper(BaseScraper):
         markdown_text = "\n\n".join(
             [part for part in markdown_parts if isinstance(part, str) and part.strip()]
         ).strip()
-        if handler and handler.is_api_detail_url(url):
-            markdown_text, gh_title = handler.normalize_markdown(markdown_text)
-            if gh_title:
+        # Apply handler normalization to strip unwanted sections (e.g., "Related Jobs")
+        # This needs to happen early so the stripped content isn't used for hint extraction
+        if handler:
+            normalized_markdown, gh_title = handler.normalize_markdown(markdown_text)
+            if isinstance(normalized_markdown, str) and normalized_markdown.strip():
+                markdown_text = normalized_markdown
+            if gh_title and handler.is_api_detail_url(url):
                 raw_events.append({"title": gh_title, "gh_api_title": True})
         listing_job_urls: List[str] = []
         if handler and handler.supports_listing_api:

@@ -596,8 +596,18 @@ export function JobBoard() {
   }, [ignoredGroups, openIgnoredCompany]);
   const shouldFetchRecentJobs = isJobsTab; // Disabled for Live tab as we now use listJobs
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
-  const appliedJobs = useQuery(api.jobs.getAppliedJobs, isAppliedTab ? {} : "skip");
-  const rejectedJobs = useQuery(api.jobs.getRejectedJobs, isRejectedTab ? {} : "skip");
+  const appliedJobs = useQuery(
+    api.jobs.getAppliedJobs,
+    isAppliedTab
+      ? { companies: filters.companies.length > 0 ? filters.companies : undefined }
+      : "skip"
+  );
+  const rejectedJobs = useQuery(
+    api.jobs.getRejectedJobs,
+    isRejectedTab
+      ? { companies: filters.companies.length > 0 ? filters.companies : undefined }
+      : "skip"
+  );
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
   const resetQueuedUrlRetries = useMutation(api.jobs.resetQueuedUrlRetries);
@@ -645,21 +655,13 @@ export function JobBoard() {
   const selectedJobDetails = useQuery(
     api.jobs.getJobDetails,
     isJobsTab && selectedJob?._id
-      ? {
-        jobId: selectedJob._id,
-        groupedJobIds: selectedJob.groupedJobIds?.length ? selectedJob.groupedJobIds : undefined,
-      }
+      ? { jobId: selectedJob._id }
       : "skip"
   );
   const selectedAppliedJobDetails = useQuery(
     api.jobs.getJobDetails,
     isAppliedTab && selectedAppliedJob?._id
-      ? {
-        jobId: selectedAppliedJob._id,
-        groupedJobIds: (selectedAppliedJob as { groupedJobIds?: string[] }).groupedJobIds?.length
-          ? (selectedAppliedJob as { groupedJobIds?: string[] }).groupedJobIds
-          : undefined,
-      }
+      ? { jobId: selectedAppliedJob._id }
       : "skip"
   );
   const requestedDescriptionUrl = useQuery(
@@ -802,12 +804,6 @@ export function JobBoard() {
   }, []);
   const selectedCompMeta = useMemo(() => buildCompensationMeta(selectedJobFull), [selectedJobFull]);
   const selectedCompColorClass = selectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
-  const groupedLocationsLabel = useCallback((job: ListedJob) => {
-    const locs = Array.isArray(job.locations) ? job.locations.filter(Boolean) : [];
-    if (locs.length === 0) return job.location || "Unknown";
-    if (locs.length === 1) return locs[0];
-    return `${locs[0]} +${locs.length - 1} more`;
-  }, []);
   const selectedJobLocations = useMemo(() => {
     if (!selectedJobFull) return [];
     const raw = Array.isArray(selectedJobFull.locations) ? selectedJobFull.locations : [];
@@ -1348,7 +1344,8 @@ export function JobBoard() {
       if (!companyFilterAppliedRef.current) {
         companyFilterAppliedRef.current = true;
         lastThrottleRef.current = 0;
-        setActiveTab("jobs");
+        // Don't override activeTab - let it stay as whatever the URL hash says
+        // This allows ?company=datadog#applied to work correctly
         setSelectedSavedFilterId(null);
         setFilters({
           ...buildEmptyFilters(),
@@ -2331,7 +2328,6 @@ export function JobBoard() {
                           <JobRow
                             key={job._id}
                             job={job}
-                            groupedLabel={groupedLocationsLabel(job)}
                             isSelected={selectedJobId === job._id}
                             onSelect={() => handleSelectJob(job._id)}
                             isExiting={exitingJobs[job._id]}
@@ -2537,27 +2533,6 @@ export function JobBoard() {
                               <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
                                 {metadataText}
                               </ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedJobFull?.alternateUrls && Array.isArray(selectedJobFull.alternateUrls) && selectedJobFull.alternateUrls.length > 1 && (
-                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-2 flex flex-col gap-2">
-                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                              Other locations / links
-                            </div>
-                            <div className="flex flex-col gap-1 text-sm text-slate-100">
-                              {selectedJobFull.alternateUrls.map((link: string) => (
-                                <a
-                                  key={link}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-300 hover:text-blue-200 underline-offset-2 break-all"
-                                >
-                                  {link}
-                                </a>
-                              ))}
                             </div>
                           </div>
                         )}

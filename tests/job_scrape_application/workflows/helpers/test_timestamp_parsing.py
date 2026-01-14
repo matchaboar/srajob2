@@ -170,6 +170,33 @@ class TestParsePostedAtWithUnknown:
         result, is_unknown = parse_posted_at_with_unknown(now_ms, max_age_days=0)
         assert is_unknown is False
 
+    def test_future_date_returns_unknown_true(self):
+        """Future dates should be treated as unknown to prevent invalid extractions."""
+        now_ms = 1700000000000
+        # A date 10 days in the future (more than 1 day buffer)
+        future_ms = now_ms + (10 * 86_400_000)
+        result, is_unknown = parse_posted_at_with_unknown(future_ms, now_ms)
+        assert result == now_ms
+        assert is_unknown is True
+
+    def test_future_iso_string_returns_unknown_true(self):
+        """Future ISO date strings should be treated as unknown."""
+        now_ms = 1700000000000
+        # November 14, 2023 is when now_ms points to; use a date far in future
+        future_iso = "2024-11-14T10:30:00Z"
+        result, is_unknown = parse_posted_at_with_unknown(future_iso, now_ms)
+        assert result == now_ms
+        assert is_unknown is True
+
+    def test_allows_small_future_buffer(self):
+        """Dates slightly in the future (within 1 day) should be allowed for timezone variance."""
+        now_ms = 1700000000000
+        # 12 hours in the future should be allowed
+        slightly_future_ms = now_ms + (12 * 3_600_000)
+        result, is_unknown = parse_posted_at_with_unknown(slightly_future_ms, now_ms)
+        assert result == slightly_future_ms
+        assert is_unknown is False
+
 
 class TestBackwardCompatibility:
     """Tests for backward compatibility with scrape_utils imports."""

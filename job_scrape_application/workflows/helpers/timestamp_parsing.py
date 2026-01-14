@@ -138,6 +138,10 @@ def parse_posted_at(value: Any, now_ms: int | None = None) -> int:
     return now_ms
 
 
+# Maximum days in future before a date is considered invalid (1 day for timezone buffer)
+_MAX_FUTURE_DAYS = 1
+
+
 def parse_posted_at_with_unknown(
     value: Any,
     now_ms: int | None = None,
@@ -156,17 +160,29 @@ def parse_posted_at_with_unknown(
 
     Returns:
         Tuple of (timestamp_ms, is_unknown). is_unknown is True if the value
-        couldn't be parsed or was older than max_age_days.
+        couldn't be parsed, was older than max_age_days, or is in the future.
     """
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    max_future_ms = int(_MAX_FUTURE_DAYS) * 86_400_000
+
+    def _is_future(ts: int) -> bool:
+        """Check if timestamp is too far in the future."""
+        return ts > now_ms + max_future_ms
+
     if value is None:
         return now_ms, True
 
     if isinstance(value, (int, float)):
         if value > 1e12:
-            return int(value), False
+            ts = int(value)
+            if _is_future(ts):
+                return now_ms, True
+            return ts, False
         if value > 1e9:
-            return int(value * 1000), False
+            ts = int(value * 1000)
+            if _is_future(ts):
+                return now_ms, True
+            return ts, False
         return now_ms, True
 
     if isinstance(value, str):
@@ -176,6 +192,8 @@ def parse_posted_at_with_unknown(
         relative = _parse_relative_posted_at(cleaned, now_ms)
         if relative is not None:
             posted_at = relative
+            if _is_future(posted_at):
+                return now_ms, True
             if max_age_days is not None:
                 max_age_ms = int(max_age_days) * 86_400_000
                 if posted_at < now_ms - max_age_ms:
@@ -194,6 +212,8 @@ def parse_posted_at_with_unknown(
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
             posted_at = int(dt.timestamp() * 1000)
+            if _is_future(posted_at):
+                return now_ms, True
             if max_age_days is not None:
                 max_age_ms = int(max_age_days) * 86_400_000
                 if posted_at < now_ms - max_age_ms:

@@ -175,7 +175,7 @@ describe("getJobById", () => {
 });
 
 describe("getJobDetails application counts", () => {
-  it("sums applied applications for grouped job ids", async () => {
+  it("counts applied applications for a single job", async () => {
     const ctx: any = {
       db: new FakeDb(null, null, [
         { jobId: "job-1", status: "applied" },
@@ -187,10 +187,10 @@ describe("getJobDetails application counts", () => {
     const handler = getHandler(getJobDetails);
     const result = await handler(ctx, {
       jobId: "job-1",
-      groupedJobIds: ["job-1", "job-2"],
     });
 
-    expect(result).toMatchObject({ applicationCount: 2 });
+    // Only counts "applied" status for job-1 (rejected is not counted)
+    expect(result).toMatchObject({ applicationCount: 1 });
   });
 });
 

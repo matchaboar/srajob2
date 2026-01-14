@@ -12,7 +12,6 @@ export type JobRowVariant = 'default' | 'applied' | 'rejected';
 
 interface JobRowProps {
     job: any;
-    groupedLabel?: string;
     isSelected: boolean;
     onSelect: () => void;
     isExiting?: "apply" | "reject";
@@ -25,7 +24,6 @@ interface JobRowProps {
 
 export function JobRow({
     job,
-    groupedLabel,
     isSelected,
     onSelect,
     isExiting,
@@ -39,7 +37,6 @@ export function JobRow({
     const levelLabel = typeof job.level === "string" ? job.level.charAt(0).toUpperCase() + job.level.slice(1) : "N/A";
     const scrapedAt = typeof job.scrapedAt === "number" ? job.scrapedAt : null;
     const postedAt = typeof job.postedAt === "number" ? job.postedAt : null;
-    const displayLocation = groupedLabel ?? job.location;
     const companyName = typeof job.company === "string" ? job.company : "";
     const companyUrl = getCompanyJobsUrl && companyName ? getCompanyJobsUrl(companyName) : "";
     const handleCompanyClick = (event: MouseEvent) => {
@@ -130,8 +127,8 @@ export function JobRow({
 
                 {/* Location (desktop only) */}
                 <div className={`hidden sm:flex items-center gap-2 min-w-0 ${variant === 'applied' ? 'order-4' : 'order-3'}`}>
-                    <span className="text-xs text-slate-400 truncate max-w-[160px]" title={job.location || displayLocation}>
-                        {displayLocation || "—"}
+                    <span className="text-xs text-slate-400 truncate max-w-[160px]" title={job.location}>
+                        {job.location || "—"}
                     </span>
                     {job.remote && (
                         <span className="shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wide rounded border border-emerald-500/20">

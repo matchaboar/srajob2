@@ -148,35 +148,6 @@ describe("JobBoard description storage", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://example.com/desc.txt");
   });
 
-  it("loads the full description using the grouped storage job id", async () => {
-    const job = buildJob({ _id: "job-group", groupedJobIds: ["job-group", "job-storage"] });
-    paginatedResults = [job];
-    jobDetailsById = {
-      [job._id]: {
-        description: "Short description",
-        descriptionStorageAvailable: true,
-        descriptionStorageJobId: "job-storage",
-      },
-    };
-    descriptionUrlByJobId = {
-      "job-storage": "https://example.com/grouped-desc.txt",
-    };
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => "Full grouped description.",
-    });
-    (globalThis as any).fetch = fetchMock;
-
-    render(<JobBoard />);
-
-    fireEvent.click(await screen.findByRole("button", { name: job.title }));
-    const readMore = await screen.findByRole("button", { name: /read more/i });
-    fireEvent.click(readMore);
-
-    expect(await screen.findByText("Full grouped description.")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith("https://example.com/grouped-desc.txt");
-  });
-
   it("shows an error when the storage url is missing", async () => {
     const job = buildJob({ _id: "job-missing" });
     paginatedResults = [job];

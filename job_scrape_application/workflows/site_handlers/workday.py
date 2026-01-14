@@ -25,6 +25,62 @@ _WORKDAY_START_DATE_KEYS = ("startDate", "start_date")
 _WORKDAY_POSTED_ON_KEYS = ("postedOn", "posted_on")
 
 
+def _extract_workday_site_id(url: str) -> Optional[str]:
+    """Extract the site_id (e.g., 'External_Career') from a Workday URL."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+    segments = [s for s in (parsed.path or "").split("/") if s]
+    # For API URLs like /wday/cxs/tenant/site_id/job/...
+    if "cxs" in segments:
+        idx = segments.index("cxs")
+        if idx + 2 < len(segments):
+            return segments[idx + 2]
+    # For marketing URLs like /site_id/job/... or just /site_id
+    if "job" in segments:
+        idx = segments.index("job")
+        if idx > 0:
+            return segments[idx - 1]
+    # For listing URLs without /job/, return the first path segment
+    if segments:
+        return segments[0]
+    return None
+
+
+def _build_workday_api_url(base_url: str, job_path: str) -> Optional[str]:
+    """Build a Workday API URL from a base URL and job path.
+
+    Args:
+        base_url: The listing URL (e.g., https://tenant.wd1.myworkdayjobs.com/External_Career)
+        job_path: The job path (e.g., /job/Location/Title_ID or job/Location/Title_ID)
+
+    Returns:
+        Full API URL or None if unable to build.
+    """
+    try:
+        parsed = urlparse(base_url)
+    except Exception:
+        return None
+
+    tenant = (parsed.hostname or "").split(".")[0]
+    if not tenant:
+        return None
+
+    site_id = _extract_workday_site_id(base_url)
+    if not site_id:
+        return None
+
+    # Normalize job_path - remove leading slash if present
+    clean_path = job_path.lstrip("/")
+    if not clean_path.startswith("job/"):
+        return None
+
+    # Build the API path
+    api_path = f"/wday/cxs/{tenant}/{site_id}/{clean_path}"
+    return urlunparse(parsed._replace(path=api_path, query="", fragment=""))
+
+
 class WorkdayHandler(BaseSiteHandler):
     name = "workday"
     site_type = "workday"
@@ -118,14 +174,22 @@ class WorkdayHandler(BaseSiteHandler):
         urls: List[str] = []
         seen: set[str] = set()
 
-        def _add(url_val: str | None) -> None:
+        def _add(url_val: str | None, *, is_path_only: bool = False) -> None:
             if not url_val:
                 return
             cleaned = html_lib.unescape(url_val.strip())
             if not cleaned or cleaned in seen:
                 return
             if base_url and not cleaned.startswith(("http://", "https://")):
-                cleaned = urljoin(base_url, cleaned)
+                # For paths starting with /job/, use URL builder to preserve site_id
+                if is_path_only or (cleaned.startswith("/job/") or cleaned.startswith("job/")):
+                    built = _build_workday_api_url(base_url, cleaned)
+                    if built:
+                        cleaned = built
+                    else:
+                        cleaned = urljoin(base_url, cleaned)
+                else:
+                    cleaned = urljoin(base_url, cleaned)
                 if cleaned in seen:
                     return
             seen.add(cleaned)
@@ -139,7 +203,7 @@ class WorkdayHandler(BaseSiteHandler):
 
         if base_url:
             for match in WORKDAY_JOB_DETAIL_PATH_RE.findall(html):
-                _add(urljoin(base_url, match))
+                _add(match, is_path_only=True)
 
         if base_url and self.is_listing_url(base_url):
             urls.extend(self._augment_pagination_urls(base_url, html, urls))

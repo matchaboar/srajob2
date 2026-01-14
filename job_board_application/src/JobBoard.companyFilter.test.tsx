@@ -31,8 +31,6 @@ const fixtureJobs = fixture.jobs.map((job) => ({
   location: job.location ?? "Unknown",
   locations: job.locations ?? [],
   url: job.url ?? "https://example.com",
-  groupedJobIds: [job.id],
-  alternateUrls: job.url ? [job.url] : [],
   postedAt: job.postedAt ?? Date.now(),
   remote: job.remote ?? false,
   level: job.level ?? null,

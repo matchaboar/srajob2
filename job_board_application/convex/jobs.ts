@@ -846,11 +846,6 @@ export const computeJobCountry = (
   return "Unknown";
 };
 
-const normalizeKeyPart = (value?: string | null) =>
-  (value ?? "").trim().toLowerCase();
-const normalizeCompanyKey = (value?: string | null) =>
-  (value ?? "").trim().toLowerCase();
-
 const COMPANY_SUFFIXES = new Set([
   "inc",
   "incorporated",
@@ -1046,60 +1041,6 @@ export const matchesCompanyFilters = (
   );
   if (!aliasKey) return false;
   return normalizedCompanyFilters.has(aliasKey);
-};
-
-const buildJobGroupKey = (job: DbJob) => {
-  // Group primarily by title + company, then level and remote flag to avoid over-merging unrelated roles
-  const normalizedTitle = normalizeKeyPart(job.title).replace(/\s+/g, " ");
-  const normalizedCompany = normalizeKeyPart(job.company).replace(/\s+/g, " ");
-  const normalizedLevel = normalizeKeyPart(job.level as string | undefined);
-  const remoteToken = job.remote ? "remote" : "onsite";
-  return `${normalizedTitle}|${normalizedCompany}|${normalizedLevel}|${remoteToken}`;
-};
-
-const mergeStrings = (
-  ...candidates: Array<string | string[] | null | undefined>
-) => {
-  const seen = new Set<string>();
-  const merged: string[] = [];
-
-  for (const entry of candidates.flat()) {
-    if (Array.isArray(entry)) {
-      for (const inner of entry) {
-        const cleaned = (inner ?? "").trim();
-        if (!cleaned || cleaned.toLowerCase() === "unknown") continue;
-        const key = cleaned.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        merged.push(cleaned);
-      }
-      continue;
-    }
-
-    const cleaned = (entry ?? "").trim();
-    if (!cleaned || cleaned.toLowerCase() === "unknown") continue;
-    const key = cleaned.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(cleaned);
-  }
-
-  return merged;
-};
-
-const pickBestCompJob = (jobs: DbJob[]) => {
-  const withKnownComp = jobs.filter(
-    (job) =>
-      job.compensationUnknown !== true &&
-      typeof job.totalCompensation === "number" &&
-      job.totalCompensation > 0,
-  );
-
-  if (withKnownComp.length === 0) return null;
-
-  return withKnownComp.sort(
-    (a, b) => (b.totalCompensation ?? 0) - (a.totalCompensation ?? 0),
-  )[0];
 };
 
 export const matchesCountryFilter = (
@@ -1607,74 +1548,18 @@ export const listJobs = query({
       ? filteredJobs
       : await filterOutAppliedJobs(filteredJobs);
 
-    // Group jobs with same title/company/level/remote into one row, merging locations and URLs
-    const grouped = new Map<string, { base: any; members: any[] }>();
-
-    for (const job of appliedFilteredJobs) {
-      const key = buildJobGroupKey(job);
-      const bucket = grouped.get(key);
-      if (bucket) {
-        bucket.members.push(job);
-      } else {
-        grouped.set(key, { base: job, members: [job] });
-      }
-    }
-
+    // Return each job individually without grouping
     const jobsWithData = await Promise.all(
-      Array.from(grouped.values()).map(async ({ base, members }) => {
-        // Pick a representative job for compensation display
-        const compJob = pickBestCompJob(members as any) || base;
-        const normalizedBase = await ensureLocationFields(ctx, base);
+      appliedFilteredJobs.map(async (job) => {
+        const normalizedJob = await ensureLocationFields(ctx, job);
         const {
           description: _description,
           locationSearch: _locationSearch,
-          ...listBase
-        } = normalizedBase;
-
-        const allLocations = mergeStrings(
-          normalizedBase.locations,
-          members.flatMap((m) =>
-            Array.isArray(m.locations) ? m.locations : [],
-          ),
-          members.map((m) => m.location),
-        );
-
-        const locationStatesMerged = Array.from(
-          new Set(
-            members
-              .flatMap((m) => {
-                if (
-                  Array.isArray(m.locationStates) &&
-                  m.locationStates.length
-                ) {
-                  return m.locationStates;
-                }
-                if (m.state) {
-                  return [m.state];
-                }
-                const info = deriveLocationFields(m);
-                return info.locationStates.length
-                  ? info.locationStates
-                  : [info.state];
-              })
-              .filter(Boolean),
-          ),
-        );
-
-        const urls = Array.from(
-          new Set(members.map((m) => m.url).filter(Boolean)),
-        );
+          ...listJob
+        } = normalizedJob;
 
         return {
-          ...listBase,
-          totalCompensation: compJob.totalCompensation,
-          compensationUnknown: compJob.compensationUnknown,
-          compensationReason: compJob.compensationReason,
-          locations: allLocations,
-          locationStates: locationStatesMerged,
-          url: urls[0],
-          alternateUrls: urls,
-          groupedJobIds: members.map((m) => m._id),
+          ...listJob,
           applicationCount: 0,
           userStatus: null, // These jobs don't have user applications by definition
         } as any;
@@ -2266,11 +2151,29 @@ export const resetQueuedUrlRetries = mutation({
 });
 
 export const getAppliedJobs = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    companies: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Not authenticated");
+    }
+
+    // Build company filter set
+    const companyFilters = args.companies ?? [];
+    const normalizedCompanyFilters = new Set(
+      companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean),
+    );
+    const hasCompanyFilter = normalizedCompanyFilters.size > 0;
+
+    // Fetch domain aliases for company matching if needed
+    let domainAliasByDomain: Map<string, string> | null = null;
+    if (hasCompanyFilter) {
+      const aliasRows = await ctx.db.query("domain_aliases").collect();
+      domainAliasByDomain = new Map(
+        aliasRows.map((row) => [row.domain, row.alias]),
+      );
     }
 
     const applications = await ctx.db
@@ -2285,6 +2188,15 @@ export const getAppliedJobs = query({
       applications.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
+
+        // Apply company filter if specified
+        if (
+          hasCompanyFilter &&
+          !matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasByDomain)
+        ) {
+          return null;
+        }
+
         const normalized = await ensureLocationFields(ctx, job as any);
 
         // Fetch worker status from form_fill_queue
@@ -2312,11 +2224,29 @@ export const getAppliedJobs = query({
 });
 
 export const getRejectedJobs = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    companies: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Not authenticated");
+    }
+
+    // Build company filter set
+    const companyFilters = args.companies ?? [];
+    const normalizedCompanyFilters = new Set(
+      companyFilters.map((c) => normalizeCompanyFilterKey(c)).filter(Boolean),
+    );
+    const hasCompanyFilter = normalizedCompanyFilters.size > 0;
+
+    // Fetch domain aliases for company matching if needed
+    let domainAliasByDomain: Map<string, string> | null = null;
+    if (hasCompanyFilter) {
+      const aliasRows = await ctx.db.query("domain_aliases").collect();
+      domainAliasByDomain = new Map(
+        aliasRows.map((row) => [row.domain, row.alias]),
+      );
     }
 
     const applications = await ctx.db
@@ -2331,6 +2261,15 @@ export const getRejectedJobs = query({
       applications.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
+
+        // Apply company filter if specified
+        if (
+          hasCompanyFilter &&
+          !matchesCompanyFilters(job, normalizedCompanyFilters, domainAliasByDomain)
+        ) {
+          return null;
+        }
+
         const normalized = await ensureLocationFields(ctx, job as any);
         return {
           ...normalized,
@@ -2422,37 +2361,22 @@ export const setJobDescriptionStorage = internalMutation({
 export const getJobDetails = query({
   args: {
     jobId: v.optional(v.id("jobs")),
+    // Deprecated: groupedJobIds is no longer used since job grouping was removed
     groupedJobIds: v.optional(v.array(v.id("jobs"))),
   },
   handler: async (ctx, args) => {
     if (!args.jobId) return null;
     const job = await ctx.db.get(args.jobId);
-    const jobIds =
-      args.groupedJobIds && args.groupedJobIds.length > 0
-        ? Array.from(new Set([args.jobId, ...args.groupedJobIds]))
-        : [args.jobId];
-    const detailEntries = await Promise.all(
-      jobIds.map(async (jobId) => ({
-        jobId,
-        details: await getJobDetailsByJobId(ctx, jobId),
-      })),
-    );
-    const primaryDetailEntry =
-      detailEntries.find(
-        (entry) => entry.jobId === args.jobId && entry.details,
-      ) ?? detailEntries.find((entry) => entry.details);
-    const storageDetailEntry = detailEntries.find(
-      (entry) => (entry.details as any)?.descriptionStorageId,
-    );
+    const details = await getJobDetailsByJobId(ctx, args.jobId);
     const descriptionStorageAvailable = Boolean(
-      (storageDetailEntry?.details as any)?.descriptionStorageId,
+      (details as any)?.descriptionStorageId,
     );
     const descriptionStorageJobId = descriptionStorageAvailable
-      ? storageDetailEntry?.jobId
+      ? args.jobId
       : undefined;
-    const applicationCount = await countAppliedApplications(ctx, jobIds);
+    const applicationCount = await countAppliedApplications(ctx, [args.jobId]);
 
-    if (!primaryDetailEntry?.details) {
+    if (!details) {
       const fallbackDescription =
         typeof job?.description === "string" ? job.description : undefined;
       return {
@@ -2468,7 +2392,7 @@ export const getJobDetails = query({
       _id: _detailId,
       descriptionStorageId: _storageId,
       ...detailFields
-    } = primaryDetailEntry.details;
+    } = details;
     if (!detailFields.description) {
       if (typeof job?.description === "string") {
         detailFields.description = job.description;

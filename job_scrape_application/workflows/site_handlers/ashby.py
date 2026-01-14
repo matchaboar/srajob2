@@ -1,12 +1,24 @@
 from __future__ import annotations
 
+import html as html_lib
+import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .base import BaseSiteHandler
 from ..helpers.link_extractors import fix_scheme_slashes, strip_wrapping_url
 from ..helpers.regex_patterns import ASHBY_JOB_URL_PATTERN
+
+# Pattern to find Ashby's embedded JavaScript data blob
+_ASHBY_JS_DATA_PATTERN = re.compile(
+    r';\s*fetch\s*\(\s*"https://cdn\.ashbyprd\.com/.*?</script>',
+    flags=re.DOTALL,
+)
+# Pattern to extract secondaryLocationNames from Ashby's embedded data
+_SECONDARY_LOCATIONS_PATTERN = re.compile(
+    r'"secondaryLocationNames"\s*:\s*\[([^\]]*)\]'
+)
 
 
 class AshbyHqHandler(BaseSiteHandler):
@@ -187,3 +199,85 @@ class AshbyHqHandler(BaseSiteHandler):
             "preserve_host": True,
         }
         return self._apply_page_links_config(base_config)
+
+    def normalize_markdown(self, markdown: str) -> Tuple[str, Optional[str]]:
+        """
+        Clean Ashby raw HTML by removing embedded JavaScript/JSON blocks
+        that would otherwise pollute the job description.
+        """
+        if not markdown:
+            return markdown, None
+
+        # Remove the large JavaScript data blob that Ashby embeds
+        # This contains internal form fields, feature flags, etc.
+        cleaned = _ASHBY_JS_DATA_PATTERN.sub("</script>", markdown)
+
+        # Remove inline script blocks entirely
+        cleaned = re.sub(
+            r"<script\b[^>]*>.*?</script>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        # Remove style blocks
+        cleaned = re.sub(
+            r"<style\b[^>]*>.*?</style>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        return cleaned, None
+
+    def extract_location_hint(self, markdown: str) -> Optional[str]:
+        """
+        Extract location from Ashby's secondaryLocationNames field in embedded data.
+        This provides more accurate location info than parsing from description text.
+
+        If the job has both remote and physical locations, returns a combined string
+        like "Remote; San Francisco, CA" so that remote detection works properly.
+        """
+        if not markdown:
+            return None
+
+        match = _SECONDARY_LOCATIONS_PATTERN.search(markdown)
+        if not match:
+            return None
+
+        try:
+            # Parse the array contents - they're JSON string values
+            array_content = match.group(1).strip()
+            if not array_content:
+                return None
+
+            # Parse as JSON array
+            locations = json.loads(f"[{array_content}]")
+            if not isinstance(locations, list) or not locations:
+                return None
+
+            # Filter and format locations
+            cleaned_locations: List[str] = []
+            for loc in locations:
+                if isinstance(loc, str) and loc.strip():
+                    cleaned_locations.append(loc.strip())
+
+            if not cleaned_locations:
+                return None
+
+            # Check if any location is remote
+            has_remote = any("remote" in loc.lower() for loc in cleaned_locations)
+            non_remote = [
+                loc for loc in cleaned_locations if "remote" not in loc.lower()
+            ]
+
+            # If remote and has physical locations, combine them for proper detection
+            if has_remote and non_remote:
+                return f"Remote; {non_remote[0]}"
+            elif has_remote:
+                return "Remote"
+            elif non_remote:
+                return non_remote[0]
+            return cleaned_locations[0]
+        except Exception:
+            return None

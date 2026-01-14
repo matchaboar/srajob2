@@ -659,6 +659,17 @@ class BaseSiteHandler(ABC):
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
         return markdown, None
 
+    def should_normalize_affect_raw(self) -> bool:
+        """Whether normalize_markdown should also update raw_markdown for hint extraction.
+
+        Return True if normalize_markdown strips/trims content (e.g., removing Related Jobs sections)
+        that should not appear in hint extraction.
+
+        Return False (default) if normalize_markdown transforms content (e.g., extracting
+        description from JSON) where the original raw content is needed for location extraction.
+        """
+        return False
+
     def extract_location_hint(self, markdown: str) -> Optional[str]:
         return None
 

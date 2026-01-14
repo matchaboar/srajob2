@@ -1,0 +1,12 @@
+site_id: ashbyhq
+detail_url: https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd
+expected:
+  title: "Account Manager, Growth"
+  company_contains: "Ramp"  # Company is extracted with proper capitalization
+  location_contains: "San Francisco"  # From secondaryLocationNames with remote info
+  is_remote: true  # jobLocationType is TELECOMMUTE
+  level: senior  # "manager" in title maps to senior per coerce_level
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

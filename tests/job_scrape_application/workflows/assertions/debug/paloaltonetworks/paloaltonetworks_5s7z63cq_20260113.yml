@@ -1,0 +1,12 @@
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/chicago/named-account-manager-sled/47263/89098145424
+expected:
+  title: "Named Account Manager - SLED"
+  company: "Palo Alto Networks"
+  location_contains: "Chicago"
+  is_remote: false
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

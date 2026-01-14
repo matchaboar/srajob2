@@ -108,6 +108,8 @@ class UberCareersHandler(BaseSiteHandler):
         urls = super().filter_job_urls(urls)
         filtered: List[str] = []
         seen: set[str] = set()
+        seen_job_ids: dict[str, str] = {}  # job_id -> first URL seen
+
         for url in urls:
             if not isinstance(url, str):
                 continue
@@ -117,7 +119,22 @@ class UberCareersHandler(BaseSiteHandler):
             lower = cleaned.lower()
             if CAREERS_LIST_TOKEN not in lower:
                 continue
+
+            # Filter out locale URLs: /global/{locale}/careers/list/...
+            # These are duplicates of the same job in different languages
+            if "/global/" in lower:
+                continue
+
             if self.is_listing_url(cleaned) or re.search(r"/careers/list/\d+$", lower):
+                # Deduplicate by job ID to avoid scraping same job multiple times
+                job_id_match = re.search(r"/careers/list/(\d+)", lower)
+                if job_id_match:
+                    job_id = job_id_match.group(1)
+                    if job_id in seen_job_ids:
+                        # Already have this job ID, skip duplicate
+                        continue
+                    seen_job_ids[job_id] = cleaned
+
                 seen.add(cleaned)
                 filtered.append(cleaned)
         return filtered
