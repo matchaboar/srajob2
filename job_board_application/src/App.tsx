@@ -1,12 +1,11 @@
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { SignOutButton } from "./SignOutButton";
+import { SignInForm, SignOutButton } from "./components/auth";
 import { Toaster, toast } from "sonner";
-import { JobBoard } from "./JobBoard";
-import { FakePublicJobPreview } from "./FakePublicJobPreview";
-import { AdminPage } from "./AdminPage";
-import { JobDetailsPage } from "./JobDetailsPage";
+import { JobBoard } from "./pages/JobBoard";
+import { FakePublicJobPreview } from "./pages/FakePublicJobPreview";
+import { AdminPage } from "./pages/AdminPage";
+import { JobDetailsPage } from "./pages/JobDetailsPage";
 import { StatusTrackerTest } from "./test/StatusTrackerTest";
 import { useState, useEffect } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";

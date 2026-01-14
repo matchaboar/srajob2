@@ -4,8 +4,8 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, vi, it } from "vitest";
 import * as convexReact from "convex/react";
-import { api } from "../convex/_generated/api";
-import { JobBoard } from "./JobBoard";
+import { api } from "../../convex/_generated/api";
+import { JobBoard } from "../pages/JobBoard";
 
 const listJobsRef = api.jobs.listJobs;
 const functionNameSymbol = Symbol.for("functionName");
@@ -62,7 +62,7 @@ vi.mock("framer-motion", () => {
   };
 });
 
-vi.mock("./components/JobRow", () => ({
+vi.mock("../components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 

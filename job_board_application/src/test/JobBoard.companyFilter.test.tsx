@@ -6,8 +6,8 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as convexReact from "convex/react";
 import { getFunctionName } from "convex/server";
-import { api } from "../convex/_generated/api";
-import { JobBoard } from "./JobBoard";
+import { api } from "../../convex/_generated/api";
+import { JobBoard } from "../pages/JobBoard";
 
 const fixturePath = resolve(process.cwd(), "src/test/fixtures/convex_coupang_jobs.json");
 const fixture = JSON.parse(readFileSync(fixturePath, "utf-8")) as {
@@ -109,7 +109,7 @@ vi.mock("framer-motion", () => {
   };
 });
 
-vi.mock("./components/JobRow", () => ({
+vi.mock("../components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 

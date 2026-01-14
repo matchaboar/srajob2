@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type HTMLAttributes } from "react";
 import { usePaginatedQuery, useMutation, useQuery, type PaginatedQueryItem } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { JobRow } from "./components/JobRow";
-import { CompanyIcon } from "./components/CompanyIcon";
-import { StatusTracker } from "./components/StatusTracker";
-import { LiveTimer } from "./components/LiveTimer";
-import { Keycap } from "./components/Keycap";
-import { DiagonalFraction } from "./components/DiagonalFraction";
-import { QueuedUrlRow } from "./components/QueuedUrlRow";
-import { CountdownTimer } from "./components/CountdownTimer";
-import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "./lib/compensation";
-import { formatLevelLabel, formatRelativeTime } from "./lib/dateFormatting";
-import { resolveQueueStatusClass } from "./lib/statusStyles";
+import { JobRow } from "../components/JobRow";
+import { CompanyIcon } from "../components/CompanyIcon";
+import { StatusTracker } from "../components/StatusTracker";
+import { JobDescriptionPanel, FilterSidebar } from "../components/jobBoard";
+import { LiveTimer } from "../components/LiveTimer";
+import { Keycap } from "../components/Keycap";
+import { DiagonalFraction } from "../components/DiagonalFraction";
+import { QueuedUrlRow } from "../components/QueuedUrlRow";
+import { CountdownTimer } from "../components/CountdownTimer";
+import { buildCompensationMeta, formatCompensationDisplay, formatCurrencyCompensation, parseCompensationInput } from "../lib/compensation";
+import { formatLevelLabel, formatRelativeTime } from "../lib/dateFormatting";
+import { resolveQueueStatusClass } from "../lib/statusStyles";
 
 type Level = "junior" | "mid" | "senior" | "staff";
 const TARGET_STATES = ["Washington", "New York", "California", "Arizona"] as const;
@@ -1857,392 +1858,41 @@ export function JobBoard() {
         {(activeTab === "jobs" || activeTab === "live") && (
           filtersReady ? (
             <>
-              {filtersOpen && (
-                <button
-                  type="button"
-                  aria-label="Close filters"
-                  data-testid="filters-overlay"
-                  onClick={() => setFiltersOpen(false)}
-                  className="fixed inset-0 z-20 bg-slate-950/40 backdrop-blur-[1px]"
-                />
-              )}
-              {/* Sidebar Filters */}
-              <div
-                className={`w-full sm:w-80 bg-slate-900/95 border-r border-slate-800 p-4 flex flex-col gap-6 overflow-y-auto transition-transform duration-200 ${filtersOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-[64px] left-0 z-30 shadow-2xl backdrop-blur-sm`}
-                role="complementary"
-                aria-label="Job filters"
-                data-testid="filters-panel"
-              >
-                <div
-                  className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm flex items-center justify-between"
-                  data-testid="filters-header"
-                >
-                  <h3 className="text-sm font-semibold text-white">Filters</h3>
-                  <button
-                    onClick={() => setFiltersOpen(false)}
-                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                    aria-label="Close filters"
-                    data-testid="filters-close"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase">Search</label>
-                    <input
-                      type="text"
-                      value={filters.search}
-                      onChange={(e) => updateFilters({ search: e.target.value })}
-                      placeholder="Search titles..."
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600"
-                    />
-                    <p className="text-[11px] text-slate-500">
-                      Full-text search returns up to 100 of the most recent matching jobs.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Companies</label>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {filters.companies.map((company) => (
-                        <span
-                          key={company}
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-800/70 text-xs text-slate-100"
-                        >
-                          <span className="truncate max-w-[8rem]">{company}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeCompanyFilter(company)}
-                            className="text-slate-400 hover:text-white transition-colors"
-                            aria-label={`Remove company filter ${company}`}
-                          >
-                            <DeleteXIcon className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={companyInput}
-                        onChange={(e) => setCompanyInput(e.target.value)}
-                        onFocus={() => {
-                          if (companyBlurTimeoutRef.current) {
-                            clearTimeout(companyBlurTimeoutRef.current);
-                          }
-                          setCompanyInputFocused(true);
-                        }}
-                        onBlur={() => {
-                          if (companyBlurTimeoutRef.current) {
-                            clearTimeout(companyBlurTimeoutRef.current);
-                          }
-                          companyBlurTimeoutRef.current = setTimeout(() => {
-                            setCompanyInputFocused(false);
-                          }, 120);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            if (filteredCompanySuggestions.length > 0) {
-                              addCompanyFilter(filteredCompanySuggestions[0].name);
-                            } else {
-                              addCompanyFilter(companyInput);
-                            }
-                          }
-                          if (e.key === "Backspace" && !companyInput && filters.companies.length > 0) {
-                            removeCompanyFilter(filters.companies[filters.companies.length - 1]);
-                          }
-                        }}
-                        placeholder="Add a company..."
-                        className="w-full bg-slate-950 border-b border-slate-700 px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-0 placeholder-slate-600"
-                      />
-                      {companyInputFocused && filteredCompanySuggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-md shadow-xl overflow-hidden z-10">
-                          {filteredCompanySuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.name}
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => addCompanyFilter(suggestion.name)}
-                              className="w-full text-left px-3 py-2 hover:bg-slate-800 text-sm text-slate-200 flex items-center justify-between"
-                            >
-                              <span className="truncate">{suggestion.name}</span>
-                              <span className="text-[11px] text-slate-500 ml-3">{suggestion.count} roles</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={countrySelectId}
-                    className="block text-xs font-semibold text-slate-500 uppercase mb-2"
-                  >
-                    Country
-                  </label>
-                  <select
-                    id={countrySelectId}
-                    aria-label="Location"
-                    value={filters.country}
-                    onChange={(e) => {
-                      const next = (e.target.value || "").trim();
-                      updateFilters(
-                        {
-                          country: next,
-                          state: next === "United States" ? filters.state : null,
-                        },
-                        { forceImmediate: true },
-                      );
-                    }}
-                    style={selectSurfaceStyle}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                  >
-                    {countryOptions.map((country) => (
-                      <option key={country} style={selectOptionStyle} value={country}>
-                        {country === ""
-                          ? "Any country"
-                          : country === "Other"
-                            ? "Other (non-US)"
-                            : country}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Choose "Any country" to show everything or "Other" to focus on non-US roles.
-                  </p>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={stateSelectId}
-                    className="block text-xs font-semibold text-slate-500 uppercase mb-2"
-                  >
-                    State
-                  </label>
-                  <select
-                    id={stateSelectId}
-                    value={filters.state ?? ""}
-                    onChange={(e) =>
-                      updateFilters(
-                        {
-                          state: (e.target.value || null) as TargetState | null,
-                        },
-                        { forceImmediate: true },
-                      )
-                    }
-                    style={selectSurfaceStyle}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                  >
-                    <option style={selectOptionStyle} value="">Any Target State</option>
-                    {TARGET_STATES.map((state) => (
-                      <option key={state} style={selectOptionStyle} value={state}>
-                        {state}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2">
-                  <div className="text-xs font-semibold text-slate-500 uppercase">Remote</div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={filters.includeRemote}
-                    onClick={() => updateFilters({ includeRemote: !filters.includeRemote }, { forceImmediate: true })}
-                    className={`relative h-6 w-11 rounded-full border transition-colors duration-150 overflow-hidden ${filters.includeRemote ? "bg-emerald-500/40 border-emerald-400" : "bg-slate-800 border-slate-700"
-                      }`}
-                    aria-label={filters.includeRemote ? "Remote on" : "Remote off"}
-                  >
-                    <span
-                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-150 ${filters.includeRemote ? "translate-x-5" : "translate-x-0"
-                        }`}
-                    />
-                  </button>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={levelSelectId}
-                    className="block text-xs font-semibold text-slate-500 uppercase mb-2"
-                  >
-                    Level
-                  </label>
-                  <select
-                    id={levelSelectId}
-                    value={filters.level || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        level: e.target.value === "" ? null : (e.target.value as Level),
-                      })
-                    }
-                    style={selectSurfaceStyle}
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                  >
-                    <option style={selectOptionStyle} value="">Any Level</option>
-                    <option style={selectOptionStyle} value="staff">Staff</option>
-                    <option style={selectOptionStyle} value="senior">Senior</option>
-                    <option style={selectOptionStyle} value="mid">Mid</option>
-                    <option style={selectOptionStyle} value="junior">Junior</option>
-                  </select>
-                </div>
-
-                <label
-                  htmlFor={engineerCheckboxId}
-                  className="flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2 cursor-pointer"
-                >
-                  <span className="text-[11px] font-semibold uppercase text-slate-500">Engineer titles only</span>
-                  <input
-                    id={engineerCheckboxId}
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500"
-                    checked={filters.engineer}
-                    onChange={(e) => updateFilters({ engineer: e.target.checked }, { forceImmediate: true })}
-                  />
-                </label>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Min Salary</label>
-                  <input
-                    type="text"
-                    value={minCompensationInput}
-                    onChange={(e) => {
-                      const rawValue = e.target.value;
-                      setMinCompensationInput(rawValue);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        minCompInputFocusedRef.current = false;
-                        commitMinCompensation((e.currentTarget as HTMLInputElement).value);
-                      }
-                    }}
-                    onFocus={() => {
-                      minCompInputFocusedRef.current = true;
-                    }}
-                    onBlur={(e) => {
-                      minCompInputFocusedRef.current = false;
-                      commitMinCompensation(e.currentTarget.value);
-                    }}
-                    placeholder="$50k"
-                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-600"
-                  />
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-                      <span>$50k</span>
-                      <span>$800k</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={MIN_SALARY}
-                      max={MAX_SALARY}
-                      step={SALARY_STEP}
-                      value={sliderValue}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        setSliderValue(value);
-                        setMinCompensationInput(formatCompensationDisplay(value));
-                        updateFilters({ minCompensation: value });
-                      }}
-                      className="salary-slider w-full"
-                    />
-                  </div>
-                  <label className="mt-3 flex items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900/40 px-3 py-2 cursor-pointer">
-                    <span className="text-[11px] font-semibold uppercase text-slate-500">Hide unknown compensation</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500"
-                      checked={filters.hideUnknownCompensation}
-                      onChange={(e) => updateFilters({ hideUnknownCompensation: e.target.checked }, { forceImmediate: true })}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={() => { void handleSaveCurrentFilter(); }}
-                    className="w-full px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-500 transition-colors"
-                  >
-                    Save as filter
-                  </button>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Saves as "{generatedFilterName}" based on the fields above.
-                  </p>
-                </div>
-
-                <div className="border-t border-slate-800 pt-4 space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Saved Filters</label>
-                    <div className="flex flex-col gap-2">
-                      <div className="min-w-0">
-                        <button
-                          onClick={() => { void handleSelectSavedFilter(null); }}
-                          className={`w-full px-3 py-1.5 rounded-md border text-xs transition-colors overflow-hidden min-w-0 ${noFilterActive
-                            ? "border-blue-500/60 bg-blue-900/40 text-blue-100"
-                            : "border-slate-700 text-slate-300 hover:border-slate-500"
-                            }`}
-                        >
-                          No filter
-                        </button>
-                      </div>
-                      {savedFilterList.map((filter) => {
-                        const isActive = filter._id === selectedSavedFilterId || filter.isSelected;
-                        const filterLabel = buildFilterLabel({
-                          search: filter.search ?? "",
-                          state: (filter.state as TargetState | null) ?? null,
-                          country: filter.country ?? "United States",
-                          includeRemote: filter.includeRemote ?? (filter.remote !== false),
-                          level: (filter.level as Level | null) ?? null,
-                          minCompensation: filter.minCompensation ?? null,
-                          maxCompensation: filter.maxCompensation ?? null,
-                          hideUnknownCompensation: filter.hideUnknownCompensation ?? false,
-                          engineer: filter.engineer ?? false,
-                          companies: filter.companies ?? [],
-                        });
-                        return (
-                          <div key={filter._id} className="min-w-0">
-                            <div className="flex items-stretch gap-1 w-full">
-                              <button
-                                onClick={() => { void handleSelectSavedFilter(filter._id); }}
-                                className={`flex-1 px-3 py-1.5 rounded-md border text-xs transition-colors text-left overflow-hidden min-w-0 ${isActive
-                                  ? "border-blue-500/60 bg-blue-900/40 text-blue-100"
-                                  : "border-slate-700 text-slate-300 hover:border-slate-500"
-                                  }`}
-                              >
-                                <div className="font-medium truncate">{filterLabel}</div>
-                              </button>
-                              <button
-                                onClick={() => { void handleDeleteSavedFilter(filter._id); }}
-                                className="px-2 py-1.5 rounded-md border border-red-500/40 bg-red-500/5 text-[11px] text-red-200 hover:border-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center w-9 shrink-0"
-                                title="Delete saved filter"
-                                aria-label={`Delete saved filter ${filterLabel}`}
-                              >
-                                <DeleteXIcon className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-6 border-t border-slate-800">
-                  <button
-                    onClick={() => resetFilters()}
-                    className="w-full py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-              </div>
+              <FilterSidebar
+                filtersOpen={filtersOpen}
+                onClose={() => setFiltersOpen(false)}
+                filters={filters}
+                updateFilters={updateFilters}
+                resetFilters={resetFilters}
+                companyInput={companyInput}
+                setCompanyInput={setCompanyInput}
+                companyInputFocused={companyInputFocused}
+                setCompanyInputFocused={setCompanyInputFocused}
+                companyBlurTimeoutRef={companyBlurTimeoutRef}
+                filteredCompanySuggestions={filteredCompanySuggestions}
+                addCompanyFilter={addCompanyFilter}
+                removeCompanyFilter={removeCompanyFilter}
+                countrySelectId={countrySelectId}
+                stateSelectId={stateSelectId}
+                levelSelectId={levelSelectId}
+                engineerCheckboxId={engineerCheckboxId}
+                countryOptions={countryOptions}
+                minCompensationInput={minCompensationInput}
+                setMinCompensationInput={setMinCompensationInput}
+                minCompInputFocusedRef={minCompInputFocusedRef}
+                commitMinCompensation={commitMinCompensation}
+                sliderValue={sliderValue}
+                setSliderValue={setSliderValue}
+                formatCompensationDisplay={formatCompensationDisplay}
+                handleSaveCurrentFilter={handleSaveCurrentFilter}
+                generatedFilterName={generatedFilterName}
+                savedFilterList={savedFilterList}
+                selectedSavedFilterId={selectedSavedFilterId}
+                noFilterActive={noFilterActive}
+                buildFilterLabel={buildFilterLabel}
+                handleSelectSavedFilter={handleSelectSavedFilter}
+                handleDeleteSavedFilter={handleDeleteSavedFilter}
+              />
 
               {/* Main Job List + Details */}
               <div className="flex-1 flex bg-slate-950 overflow-hidden">
@@ -2322,304 +1972,38 @@ export function JobBoard() {
                 </div>
 
                 {showJobDetails && selectedJobFull && (
-                  <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
-                    <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
-                      <div className="min-w-0 pr-4">
-                        <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedJobFull.title}</h2>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                          {selectedJobFull.company ? (
-                            <a
-                              href={buildCompanyJobsUrl(selectedJobFull.company)}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                              className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
-                            >
-                              {selectedJobFull.company}
-                            </a>
-                          ) : null}
-                          {selectedLocationDetail && selectedLocationDetail !== "Unknown" && (
-                            <span
-                              className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70"
-                              title={selectedJobFull.location || undefined}
-                            >
-                              {selectedLocationDetail}
-                            </span>
-                          )}
-                          {selectedJobFull.remote && (
-                            <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
-                              Remote
-                            </span>
-                          )}
-                          {selectedJobFull.level && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              {formatLevelLabel(selectedJobFull.level)}
-                            </span>
-                          )}
-                          {!selectedCompMeta.isUnknown && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span
-                                className={selectedCompColorClass}
-                                title={selectedCompMeta.reason}
-                              >
-                                {selectedCompMeta.display}
-                              </span>
-                            </span>
-                          )}
-                          {typeof selectedJobFull.postedAt === "number" && (
-                            <span className="flex items-center gap-1 text-xs text-slate-500">
-                              Posted{" "}
-                              <LiveTimer
-                                startTime={selectedJobFull.postedAt}
-                                showAgo
-                                showSeconds={false}
-                                className={selectedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
-                              />
-                            </span>
-                          )}
-                          {typeof (selectedJobFull as any).postingFirstPublishedAt === "number" &&
-                            (selectedJobFull as any).postingFirstPublishedAt !== selectedJobFull.postedAt && (
-                            <span
-                              className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800/50 text-slate-400 border border-slate-700"
-                              title={`Originally posted: ${new Date((selectedJobFull as any).postingFirstPublishedAt).toLocaleDateString()}`}
-                            >
-                              First posted {new Date((selectedJobFull as any).postingFirstPublishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowJobDetails(false)}
-                        className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                        aria-label="Close job details"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      <div className="p-3 space-y-2">
-                        <div className="flex gap-2">
-                          {selectedJobFull.url && (
-                            <button
-                              onClick={() => { void handleApply(selectedJobFull._id, "manual", selectedJobFull.url); }}
-                              className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-emerald-400 hover:bg-emerald-300 border border-emerald-500 shadow-lg shadow-emerald-900/30 transition-transform active:scale-[0.99]"
-                            >
-                              Direct Apply
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { }}
-                            disabled
-                            className="px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-500 line-through border border-slate-700 bg-slate-900/70 cursor-not-allowed"
-                          >
-                            Apply with AI
-                          </button>
-                        </div>
-
-
-                        <div className="flex justify-end">
-
-                        </div>
-
-                        {jobUrlDetail && (
-                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 px-3 py-1.5 flex items-center gap-2">
-                            <a
-                              href={jobUrlDetail.value}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs text-blue-300 hover:text-blue-200 underline-offset-2 break-all truncate"
-                            >
-                              {jobUrlDetail.value}
-                            </a>
-                          </div>
-                        )}
-
-
-
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</h3>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                              {descriptionWordCount !== null && (
-                                <span>{`${descriptionWordCount} words`}</span>
-                              )}
-                              {selectedJobDescriptionState.hasFull && !selectedJobDescriptionState.loaded && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (selectedJobFull?._id) {
-                                      requestFullDescription(selectedJobFull);
-                                    }
-                                  }}
-                                  disabled={selectedJobDescriptionState.loading}
-                                  className="px-2 py-1 rounded border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {selectedJobDescriptionState.loading ? "Loading..." : "Read more"}
-                                </button>
-                              )}
-                              {selectedJobDescriptionState.loaded && (
-                                <span className="text-emerald-300">Full</span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => { void handleCopyJobLink(selectedJobFull._id); }}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
-                                aria-label="Copy job link"
-                                title="Copy job link"
-                              >
-                                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                          {selectedJobDescriptionState.error && (
-                            <div className="text-[11px] text-amber-300 mb-2">{selectedJobDescriptionState.error}</div>
-                          )}
-                          <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-72 overflow-y-auto pr-1 space-y-3">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                              {descriptionText}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-
-                        {metadataText && (
-                          <div className="rounded-lg border border-slate-800/70 bg-slate-900/35 p-2">
-                            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
-                              Metadata
-                            </div>
-                            <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-56 overflow-y-auto pr-1 space-y-3">
-                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                                {metadataText}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Scrape Info
-                          </div>
-                          <div className="flex items-start gap-2 text-sm text-slate-200">
-                            <span className="w-28 text-slate-500">Scraped</span>
-                            <span className="font-semibold text-slate-100 break-words">
-                              {typeof selectedJobFull?.scrapedAt === "number"
-                                ? new Date(selectedJobFull.scrapedAt).toLocaleString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                                : "None"}
-                              {selectedJobFull?.scrapedWith ? ` • ${selectedJobFull.scrapedWith}` : ""}
-                            </span>
-                          </div>
-                          <div className="flex items-start gap-2 text-sm text-slate-200">
-                            <span className="w-28 text-slate-500">Workflow</span>
-                            <span className="font-semibold text-slate-100 break-words">
-                              {selectedJobFull?.workflowName || "None"}
-                            </span>
-                          </div>
-                          <div className="flex items-start gap-2 text-sm text-slate-200">
-                            <span className="w-28 text-slate-500">Scrape Cost</span>
-                            <span className="font-semibold text-slate-100 break-words">
-                              {typeof selectedJobFull?.scrapedCostMilliCents === "number"
-                                ? (() => {
-                                  return renderScrapeCost(selectedJobFull.scrapedCostMilliCents as number);
-                                })()
-                                : "None"}
-                            </span>
-                          </div>
-                          <div className="flex items-start gap-2 text-sm text-slate-200">
-                            <span className="w-28 text-slate-500">scrape_url</span>
-                            {scrapeUrl ? (
-                              <a
-                                href={scrapeUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="font-mono text-xs text-blue-300 hover:text-blue-200 break-all"
-                              >
-                                {scrapeUrl}
-                              </a>
-                            ) : (
-                              <span className="font-semibold text-slate-100 break-words">None</span>
-                            )}
-                          </div>
-                          {queueDurationInfos.length > 0 && (
-                            <div className="flex items-start gap-2 text-sm text-slate-200">
-                              <span className="w-28 text-slate-500">Queued</span>
-                              <div className="flex flex-col gap-1">
-                                {queueDurationInfos.map((info) => (
-                                  <span key={info.key} className="font-semibold text-slate-100 break-words">
-                                    {info.durationLabel}
-                                    {info.status ? ` • ${info.status}` : ""}
-                                    {info.hostname ? ` • ${info.hostname}` : ""}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Applications
-                          </div>
-                          <div className="flex items-start gap-2 text-sm text-slate-200">
-                            <span className="font-semibold text-slate-100 break-words">
-                              {selectedJobFull?.applicationCount ?? 0}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                            Parsing Workflows
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            {parsingSteps.map((step) => (
-                              <label key={step.label} className="flex items-start gap-2 text-sm text-slate-100">
-                                <input
-                                  type="checkbox"
-                                  checked={step.checked}
-                                  readOnly
-                                  className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-400 focus:ring-emerald-500"
-                                />
-                                <span className="flex-1 flex flex-col leading-tight gap-0.5">
-                                  <span className="flex items-center gap-2">
-                                    <span className="font-semibold">{step.label}</span>
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${step.checked
-                                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                                        : "border-amber-500/40 bg-amber-500/10 text-amber-100"
-                                        }`}
-                                    >
-                                      {step.status || (step.checked ? "Completed" : "Pending")}
-                                    </span>
-                                  </span>
-                                  <span className="text-[11px] text-slate-400">{step.note}</span>
-                                  {step.subtext && <span className="text-[11px] text-slate-500">{step.subtext}</span>}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 pt-1">
-                            Parse Notes
-                          </div>
-                          <div className="rounded border border-slate-800 bg-slate-950/70 text-sm text-slate-200 px-3 py-2 whitespace-pre-wrap">
-                            {parseNotes}
-                          </div>
-                        </div>
-
-
-                      </div>
-                    </div>
-                  </div>
+                  <JobDescriptionPanel
+                    variant="jobs"
+                    title={selectedJobFull.title}
+                    company={selectedJobFull.company}
+                    location={selectedLocationDetail}
+                    remote={selectedJobFull.remote}
+                    level={selectedJobFull.level}
+                    postedAt={selectedJobFull.postedAt}
+                    postedAtUnknown={selectedJobFull.postedAtUnknown}
+                    postingFirstPublishedAt={(selectedJobFull as any).postingFirstPublishedAt}
+                    compensationMeta={selectedCompMeta}
+                    url={selectedJobFull.url}
+                    jobId={selectedJobFull._id}
+                    description={descriptionText}
+                    descriptionWordCount={descriptionWordCount}
+                    descriptionState={selectedJobDescriptionState}
+                    metadata={metadataText}
+                    scrapedAt={selectedJobFull.scrapedAt}
+                    scrapedWith={selectedJobFull.scrapedWith}
+                    workflowName={selectedJobFull.workflowName}
+                    scrapedCostMilliCents={selectedJobFull.scrapedCostMilliCents}
+                    scrapeUrl={scrapeUrl}
+                    queueDurationInfos={queueDurationInfos}
+                    applicationCount={selectedJobFull.applicationCount}
+                    parsingSteps={parsingSteps}
+                    parseNotes={parseNotes}
+                    buildCompanyJobsUrl={buildCompanyJobsUrl}
+                    onClose={() => setShowJobDetails(false)}
+                    onApply={() => { void handleApply(selectedJobFull._id, "manual", selectedJobFull.url); }}
+                    onReadMore={() => requestFullDescription(selectedJobFull)}
+                    onCopyLink={() => { void handleCopyJobLink(selectedJobFull._id); }}
+                  />
                 )}
               </div>
 
@@ -2844,152 +2228,31 @@ export function JobBoard() {
 
             <AnimatePresence>
               {showJobDetails && selectedAppliedJobFull && (
-                <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
-                  <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
-                    <div className="min-w-0 pr-4">
-                      <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedAppliedJobFull.title}</h2>
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                        {selectedAppliedJobFull.company ? (
-                          <a
-                            href={buildCompanyJobsUrl(selectedAppliedJobFull.company)}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(event) => event.stopPropagation()}
-                            className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
-                          >
-                            {selectedAppliedJobFull.company}
-                          </a>
-                        ) : null}
-                        {selectedAppliedJobFull.location && selectedAppliedJobFull.location !== "Unknown" && (
-                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            {selectedAppliedJobFull.location}
-                          </span>
-                        )}
-                        {selectedAppliedJobFull.remote && (
-                          <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
-                            Remote
-                          </span>
-                        )}
-                        {selectedAppliedJobFull.level && (
-                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            {formatLevelLabel(selectedAppliedJobFull.level)}
-                          </span>
-                        )}
-                        {!appliedCompMeta.isUnknown && (
-                          <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                            <span className={appliedCompColorClass}>
-                              {appliedCompMeta.display}
-                            </span>
-                          </span>
-                        )}
-                        {typeof selectedAppliedJobFull.postedAt === "number" && (
-                          <span className="flex items-center gap-1 text-xs text-slate-500">
-                            Posted{" "}
-                            <LiveTimer
-                              startTime={selectedAppliedJobFull.postedAt}
-                              showAgo
-                              showSeconds={false}
-                              className={selectedAppliedJobFull.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
-                            />
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowJobDetails(false)}
-                      className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                      aria-label="Close job details"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="p-3 space-y-2">
-                      <div className="flex justify-center w-full pb-2">
-                        <StatusTracker
-                          status={selectedAppliedJobFull.workerStatus || (selectedAppliedJobFull.userStatus === 'applied' ? 'Applied' : null)}
-                          updatedAt={selectedAppliedJobFull.workerUpdatedAt || selectedAppliedJobFull.appliedAt}
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        {selectedAppliedJobFull.url && (
-                          <button
-                            onClick={() => window.open(selectedAppliedJobFull.url as string, "_blank")}
-                            className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-blue-400 hover:bg-blue-300 border border-blue-500 shadow-lg shadow-blue-900/30 transition-transform active:scale-[0.99]"
-                          >
-                            View Job Posting
-                          </button>
-                        )}
-                      </div>
-
-
-                      <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
-                          <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                            {appliedDescriptionWordCount !== null && (
-                              <span>{`${appliedDescriptionWordCount} words`}</span>
-                            )}
-                            {selectedAppliedDescriptionState.hasFull && !selectedAppliedDescriptionState.loaded && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (selectedAppliedJobFull?._id) {
-                                    requestFullDescription(selectedAppliedJobFull);
-                                  }
-                                }}
-                                disabled={selectedAppliedDescriptionState.loading}
-                                className="px-2 py-1 rounded border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {selectedAppliedDescriptionState.loading ? "Loading..." : "Read more"}
-                              </button>
-                            )}
-                            {selectedAppliedDescriptionState.loaded && (
-                              <span className="text-emerald-300">Full</span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => { void handleCopyJobLink(selectedAppliedJobFull._id); }}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
-                              aria-label="Copy job link"
-                              title="Copy job link"
-                            >
-                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                        {selectedAppliedDescriptionState.error && (
-                          <div className="text-[11px] text-amber-300">{selectedAppliedDescriptionState.error}</div>
-                        )}
-                        <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                            {appliedDescriptionText}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-
-                      {appliedMetadataText && (
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/35 p-2">
-                          <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
-                            Metadata
-                          </div>
-                          <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-56 overflow-y-auto pr-1 space-y-3">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                              {appliedMetadataText}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <JobDescriptionPanel
+                  variant="applied"
+                  title={selectedAppliedJobFull.title}
+                  company={selectedAppliedJobFull.company}
+                  location={selectedAppliedJobFull.location}
+                  remote={selectedAppliedJobFull.remote}
+                  level={selectedAppliedJobFull.level}
+                  postedAt={selectedAppliedJobFull.postedAt}
+                  postedAtUnknown={selectedAppliedJobFull.postedAtUnknown}
+                  compensationMeta={appliedCompMeta}
+                  url={selectedAppliedJobFull.url}
+                  jobId={selectedAppliedJobFull._id}
+                  description={appliedDescriptionText}
+                  descriptionWordCount={appliedDescriptionWordCount}
+                  descriptionState={selectedAppliedDescriptionState}
+                  metadata={appliedMetadataText}
+                  workerStatus={selectedAppliedJobFull.workerStatus}
+                  userStatus={selectedAppliedJobFull.userStatus}
+                  workerUpdatedAt={selectedAppliedJobFull.workerUpdatedAt}
+                  appliedAt={selectedAppliedJobFull.appliedAt}
+                  buildCompanyJobsUrl={buildCompanyJobsUrl}
+                  onClose={() => setShowJobDetails(false)}
+                  onReadMore={() => requestFullDescription(selectedAppliedJobFull)}
+                  onCopyLink={() => { void handleCopyJobLink(selectedAppliedJobFull._id); }}
+                />
               )}
             </AnimatePresence>
           </div>
@@ -3035,125 +2298,24 @@ export function JobBoard() {
                 const selectedRejectedJob = rejectedList.find(j => j._id === selectedJobId);
                 if (!selectedRejectedJob) return null;
                 const rejectedCompMeta = buildCompensationMeta(selectedRejectedJob);
-                const rejectedCompColorClass = rejectedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
                 return (
-                  <div className="w-full sm:w-[50rem] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl max-h-[85vh] sm:max-h-none sm:h-auto fixed sm:static inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto z-40 sm:z-auto rounded-t-2xl sm:rounded-none">
-                    <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/20">
-                      <div className="min-w-0 pr-4">
-                        <h2 className="text-lg font-bold text-white leading-tight mb-1.5">{selectedRejectedJob.title}</h2>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                          {selectedRejectedJob.company ? (
-                            <a
-                              href={buildCompanyJobsUrl(selectedRejectedJob.company)}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                              className="text-sm font-medium text-blue-400 mr-1 hover:text-blue-300 underline-offset-2 hover:underline"
-                            >
-                              {selectedRejectedJob.company}
-                            </a>
-                          ) : null}
-                          {selectedRejectedJob.location && selectedRejectedJob.location !== "Unknown" && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              {selectedRejectedJob.location}
-                            </span>
-                          )}
-                          {selectedRejectedJob.remote && (
-                            <span className="px-2 py-0.5 rounded-md border border-emerald-600/60 bg-emerald-500/10 text-emerald-300 font-semibold">
-                              Remote
-                            </span>
-                          )}
-                          {selectedRejectedJob.level && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              {formatLevelLabel(selectedRejectedJob.level)}
-                            </span>
-                          )}
-                          {!rejectedCompMeta.isUnknown && (
-                            <span className="px-2 py-0.5 rounded-md border border-slate-800 bg-slate-900/70">
-                              <span className={rejectedCompColorClass}>
-                                {rejectedCompMeta.display}
-                              </span>
-                            </span>
-                          )}
-                          {typeof selectedRejectedJob.postedAt === "number" && (
-                            <span className="flex items-center gap-1 text-xs text-slate-500">
-                              Posted{" "}
-                              <LiveTimer
-                                startTime={selectedRejectedJob.postedAt}
-                                showAgo
-                                showSeconds={false}
-                                className={selectedRejectedJob.postedAtUnknown ? "text-slate-300" : "text-emerald-300"}
-                              />
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowJobDetails(false)}
-                        className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                        aria-label="Close job details"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      <div className="p-3 space-y-2">
-                        <div className="flex gap-2">
-                          {selectedRejectedJob.url && (
-                            <button
-                              onClick={() => window.open(selectedRejectedJob.url as string, "_blank")}
-                              className="flex-1 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-900 bg-red-400 hover:bg-red-300 border border-red-500 shadow-lg shadow-red-900/30 transition-transform active:scale-[0.99]"
-                            >
-                              View Job Posting
-                            </button>
-                          )}
-                        </div>
-
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/50 p-2 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-slate-100">Job Description</h3>
-                            <button
-                              type="button"
-                              onClick={() => { void handleCopyJobLink(selectedRejectedJob._id); }}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-800 transition-colors"
-                              aria-label="Copy job link"
-                              title="Copy job link"
-                            >
-                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11a5 5 0 0 1 0 7l-1.5 1.5a5 5 0 0 1-7-7L7 12" />
-                              </svg>
-                            </button>
-                          </div>
-                          <div className="text-sm leading-relaxed text-slate-300 font-sans max-h-[60vh] overflow-y-auto pr-1 space-y-3">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                              {selectedRejectedJob.description || "No description available."}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-
-                        <div className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-2 space-y-2">
-                          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Links</div>
-                          {selectedRejectedJob.url ? (
-                            <a
-                              href={selectedRejectedJob.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-sm text-blue-300 hover:text-blue-200 underline break-all"
-                            >
-                              {selectedRejectedJob.url}
-                            </a>
-                          ) : (
-                            <div className="text-sm text-slate-400">No link available</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <JobDescriptionPanel
+                    variant="rejected"
+                    title={selectedRejectedJob.title}
+                    company={selectedRejectedJob.company}
+                    location={selectedRejectedJob.location}
+                    remote={selectedRejectedJob.remote}
+                    level={selectedRejectedJob.level}
+                    postedAt={selectedRejectedJob.postedAt}
+                    postedAtUnknown={selectedRejectedJob.postedAtUnknown}
+                    compensationMeta={rejectedCompMeta}
+                    url={selectedRejectedJob.url}
+                    jobId={selectedRejectedJob._id}
+                    description={selectedRejectedJob.description || "No description available."}
+                    buildCompanyJobsUrl={buildCompanyJobsUrl}
+                    onClose={() => setShowJobDetails(false)}
+                    onCopyLink={() => { void handleCopyJobLink(selectedRejectedJob._id); }}
+                  />
                 );
               })()}
             </AnimatePresence>

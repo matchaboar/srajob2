@@ -12,3 +12,4 @@ export * from "./QueuedUrlRow";
 export * from "./StatusTracker";
 export * from "./WorkflowRunsSection";
 export * from "./jobRow";
+export * from "./jobBoard";

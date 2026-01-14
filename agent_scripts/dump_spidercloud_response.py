@@ -4,11 +4,16 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from spider import AsyncSpider
+
+sys.path.insert(0, os.path.abspath("."))
+
+from job_scrape_application.workflows.core import CapturingSpiderClient
 
 
 async def _collect_response(response: Any) -> List[Any]:
@@ -54,6 +59,11 @@ async def main() -> None:
         type=int,
         default=20,
         help="Timeout in seconds for wait-for selector (default: 20)",
+    )
+    parser.add_argument(
+        "--fixture-format",
+        action="store_true",
+        help="Output in fixture format with request/response structure (for tests)",
     )
     args = parser.parse_args()
 
@@ -107,20 +117,44 @@ async def main() -> None:
             "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
         }
 
-    async with AsyncSpider(api_key=api_key) as client:
-        response = await _collect_response(
-            client.scrape_url(
-                args.url,
-                params=params,
-                stream=False,
-                content_type="application/json",
+    if args.fixture_format:
+        # Use CapturingSpiderClient to capture request/response in fixture format
+        captures: List[Dict[str, Any]] = []
+        real_client = AsyncSpider(api_key=api_key)
+        capturing_client = CapturingSpiderClient(real_client, captures)
+        async with capturing_client:
+            response = await _collect_response(
+                capturing_client.scrape_url(
+                    args.url,
+                    params=params,
+                    stream=False,
+                    content_type="application/json",
+                )
             )
-        )
+        # Output in fixture format
+        if captures:
+            fixture = captures[0]
+            output = fixture
+        else:
+            output = {"request": {"url": args.url, "params": params}, "response": response}
+    else:
+        # Standard raw response output
+        async with AsyncSpider(api_key=api_key) as client:
+            response = await _collect_response(
+                client.scrape_url(
+                    args.url,
+                    params=params,
+                    stream=False,
+                    content_type="application/json",
+                )
+            )
+        output = response
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"saved": str(out_path), "items": len(response)}, indent=2))
+    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    item_count = len(output.get("response", output)) if isinstance(output, dict) else len(output)
+    print(json.dumps({"saved": str(out_path), "items": item_count}, indent=2))
 
 
 if __name__ == "__main__":

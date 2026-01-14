@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
-import type { Id } from "../convex/_generated/dataModel";
-import { api } from "../convex/_generated/api";
-import { buildCompensationMeta } from "./lib/compensation";
-import { formatDateTime, formatDuration, formatRelativeTime } from "./lib/dateFormatting";
-import { LiveTimer } from "./components/LiveTimer";
+import type { Id } from "../../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import { buildCompensationMeta } from "../lib/compensation";
+import { formatDateTime, formatDuration, formatRelativeTime } from "../lib/dateFormatting";
+import { LiveTimer } from "../components/LiveTimer";
 
 export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: () => void }) {
   const job = useQuery(api.jobs.getJobById, { id: jobId });

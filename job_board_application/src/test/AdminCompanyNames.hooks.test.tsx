@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as convexReact from "convex/react";
-import { CompanyNamesSection } from "../AdminPage";
+import { CompanyNamesSection } from "../components/admin";
 
 vi.mock("convex/react", () => {
   let domainAliasesFixture: any = undefined;

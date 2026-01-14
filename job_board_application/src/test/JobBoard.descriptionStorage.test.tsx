@@ -3,8 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getFunctionName } from "convex/server";
-import { api } from "../convex/_generated/api";
-import { JobBoard } from "./JobBoard";
+import { api } from "../../convex/_generated/api";
+import { JobBoard } from "../pages/JobBoard";
 
 let paginatedResults: any[] = [];
 let jobDetailsById: Record<string, any> = {};
@@ -85,7 +85,7 @@ vi.mock("framer-motion", () => {
   };
 });
 
-vi.mock("./components/JobRow", () => ({
+vi.mock("../components/JobRow", () => ({
   JobRow: ({ job, onSelect }: any) => (
     <button type="button" onClick={onSelect}>
       {job.title}

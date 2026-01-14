@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.config import get_env_dir
 from job_scrape_application.workflows import activities as workflow_activities
+from job_scrape_application.workflows.core import CapturingSpiderClient
 from job_scrape_application.workflows.scrapers import spidercloud_scraper
 from job_scrape_application.workflows.site_handlers import get_site_handler
 from job_scrape_application.workflows.site_handlers import AvatureHandler
@@ -223,61 +224,19 @@ def _extract_listing_job_urls(
     )
 
 
-class _FixtureCaptureSpider:
-    def __init__(self, api_key: str, captures: List[Dict[str, Any]]) -> None:
-        self._api_key = api_key
+class _FixtureCaptureSpiderFactory:
+    """Factory that creates CapturingSpiderClient instances for fixture generation.
+
+    This wrapper is needed because the monkeypatch expects a callable that takes api_key
+    and returns a spider client. It uses CapturingSpiderClient from the core module.
+    """
+
+    def __init__(self, captures: List[Dict[str, Any]]) -> None:
         self._captures = captures
-        self._client: SpiderAsyncSpider | None = None
 
-    async def __aenter__(self) -> "_FixtureCaptureSpider":
-        self._client = SpiderAsyncSpider(api_key=self._api_key)
-        await self._client.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        if self._client is None:
-            return False
-        return await self._client.__aexit__(exc_type, exc, tb)
-
-    def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
-        if self._client is None:
-            raise RuntimeError("SpiderCloud client not initialized")
-        response = self._client.scrape_url(
-            url,
-            params=params,
-            stream=stream,
-            content_type=content_type,
-        )
-        capture: Dict[str, Any] = {
-            "request": {
-                "url": url,
-                "params": params,
-                "stream": stream,
-                "contentType": content_type,
-            },
-            "response": [],
-        }
-        self._captures.append(capture)
-
-        async def _iterator():
-            items: List[Any] = []
-            try:
-                if hasattr(response, "__aiter__"):
-                    async for item in response:
-                        items.append(item)
-                        yield item
-                elif hasattr(response, "__await__"):
-                    result = await response
-                    if result is not None:
-                        items.append(result)
-                        yield result
-                elif response is not None:
-                    items.append(response)
-                    yield response
-            finally:
-                capture["response"] = items
-
-        return _iterator()
+    def __call__(self, api_key: str) -> CapturingSpiderClient:
+        real_client = SpiderAsyncSpider(api_key=api_key)
+        return CapturingSpiderClient(real_client, self._captures)
 
 
 async def _collect_response(response: Any) -> Any:
@@ -308,12 +267,16 @@ async def _capture_workflow_scrape(
     pattern: str | None,
     label: str,
 ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    """Run workflow scrape and capture the SpiderCloud request/response.
+
+    Uses CapturingSpiderClient from the core module to capture all SpiderCloud
+    interactions for fixture generation.
+    """
     captures: List[Dict[str, Any]] = []
     original_async_spider = spidercloud_scraper.AsyncSpider
     try:
-        spidercloud_scraper.AsyncSpider = (
-            lambda api_key, captures=captures: _FixtureCaptureSpider(api_key, captures)
-        )
+        # Use the factory to create CapturingSpiderClient instances
+        spidercloud_scraper.AsyncSpider = _FixtureCaptureSpiderFactory(captures)
         scraper = workflow_activities._make_spidercloud_scraper()
         payload = await scraper._scrape_urls_batch(
             [url],

@@ -31,6 +31,7 @@ if ROOT not in sys.path:
 from job_scrape_application.dbos_runtime import queue as dbos_queue
 from job_scrape_application.dbos_runtime import sqlite as dbos_sqlite
 from job_scrape_application.workflows import activities as acts
+from job_scrape_application.workflows.core import SpiderFixture, WorkflowTestHelper
 from job_scrape_application.workflows.helpers.scrape_utils import (
     _jobs_from_scrape_items,
     trim_scrape_for_convex,
@@ -522,6 +523,9 @@ class WorkflowTestModule:
     - Ingested jobs with truncated descriptions
     - Full descriptions uploaded to file storage
     - Scrape records
+
+    This class uses WorkflowTestHelper from the core module for the base setup,
+    with customizations for schedule entry handling and capture formats.
     """
 
     def __init__(
@@ -542,99 +546,69 @@ class WorkflowTestModule:
         self.capture = ConvexStorageCapture()
         self.spider_calls: List[Dict[str, Any]] = []
 
-    async def setup(self) -> None:
-        """Configure mocks and environment."""
-        db_path = self.tmp_path / "dbos.sqlite"
-        self.monkeypatch.setenv("DBOS_SQLITE_PATH", str(db_path))
-        self.monkeypatch.setenv("SPIDER_API_KEY", "test")
-        self.monkeypatch.setenv("CONVEX_HTTP_URL", "http://test.convex.site")
-        dbos_sqlite._CONNECTIONS.connection = None
+        # Create SpiderFixture from detail fixture
+        is_sync = _is_single_request_fixture(detail_fixture)
+        self._spider_fixture = SpiderFixture(
+            url=self.detail_url,
+            response=detail_fixture.get("response", []),
+            params=detail_fixture.get("request", {}).get("params", {}),
+            is_sync=is_sync,
+        )
 
-        fixtures = {self.detail_url: self.detail_fixture}
-
-        # Auto-detect fixture format and use appropriate mock
-        is_sync_fixture = _is_single_request_fixture(self.detail_fixture)
-
-        # Also set runtime config to match fixture format
-        # This ensures the scraper uses the correct code path
-        from job_scrape_application.config import runtime_config
-        object.__setattr__(runtime_config, "spidercloud_single_request_mode", is_sync_fixture)
-
-        if is_sync_fixture:
-            self.monkeypatch.setattr(
-                "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
-                lambda api_key: _FixtureSyncSpider(api_key, fixtures, self.spider_calls),
-            )
+        # Custom query handler for pagination limit from entry
+        pagination_limit = entry.get("paginationLimit")
+        if isinstance(pagination_limit, (int, float)) and pagination_limit > 0:
+            self._pagination_limit = int(pagination_limit)
         else:
-            self.monkeypatch.setattr(
-                "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
-                lambda api_key: _FixtureAsyncSpider(api_key, fixtures, self.spider_calls),
-            )
+            self._pagination_limit = 3
 
-        async def fake_convex_query(
-            name: str, payload: Dict[str, Any]
-        ) -> Dict[str, Any] | None:
-            if name == "router:getSiteById" and payload.get("id") == self.site_id:
-                limit = self.entry.get("paginationLimit")
-                if isinstance(limit, (int, float)) and limit > 0:
-                    return {"paginationLimit": int(limit)}
-                return {"paginationLimit": 3}
-            if name == "router:listJobDetailConfigs":
-                return []
+    async def setup(self) -> None:
+        """Configure mocks and environment using WorkflowTestHelper."""
+        # Create helper with custom query responses
+        def site_query_handler(payload: Dict[str, Any]) -> Dict[str, Any] | None:
+            if payload.get("id") == self.site_id:
+                return {"paginationLimit": self._pagination_limit}
             return None
 
-        async def fake_convex_mutation(
-            name: str, payload: Dict[str, Any]
-        ) -> Any:
+        self._helper = WorkflowTestHelper(
+            fixtures={self.detail_url: self._spider_fixture},
+            monkeypatch=self.monkeypatch,
+            tmp_path=self.tmp_path,
+            site_id=self.site_id,
+            source_url=self.source_url,
+            query_responses={
+                "router:getSiteById": site_query_handler,
+            },
+        )
+
+        await self._helper.setup()
+
+        # Capture spider calls from helper
+        self.spider_calls = self._helper.spider_calls
+
+        # Override capture to use our ConvexStorageCapture format
+        # (the helper uses a different format internally)
+        self._override_captures()
+
+    def _override_captures(self) -> None:
+        """Override helper's capture to use ConvexStorageCapture format."""
+        # Override store_scrape to capture in our format
+        async def custom_store_scrape(scrape: Dict[str, Any]) -> str:
+            self.capture.stored_scrapes.append(scrape)
+            return f"scrape-{len(self.capture.stored_scrapes)}"
+
+        # Override mutation to capture ingested jobs
+        original_mutation = self._helper._fake_convex_mutation
+
+        async def custom_mutation(name: str, payload: Dict[str, Any]) -> Any:
             if name == "router:ingestJobsFromScrape":
                 jobs = payload.get("jobs", [])
                 if isinstance(jobs, list):
                     self.capture.ingested_jobs.extend(jobs)
-            elif name == "router:recordJobDetailHeuristic":
-                pass
-            elif name == "router:insertIgnoredJob":
-                pass
-            return None
+            return await original_mutation(name, payload)
 
-        async def fake_store_scrape(scrape: Dict[str, Any]) -> str:
-            self.capture.stored_scrapes.append(scrape)
-            return f"scrape-{len(self.capture.stored_scrapes)}"
-
-        async def fake_fetch_seen_urls(*_args: Any, **_kwargs: Any) -> List[str]:
-            return []
-
-        async def fake_filter_existing_job_urls(urls: List[str]) -> List[str]:
-            return []
-
-        async def fake_filter_new_job_urls(urls: List[str]) -> List[str]:
-            # Return all URLs as "new" so they get scraped
-            return urls
-
-        self.monkeypatch.setattr(
-            "job_scrape_application.services.convex_client.convex_query",
-            fake_convex_query,
-        )
-        self.monkeypatch.setattr(
-            "job_scrape_application.services.convex_client.convex_mutation",
-            fake_convex_mutation,
-        )
-        self.monkeypatch.setattr(acts, "store_scrape", fake_store_scrape)
-        self.monkeypatch.setattr(
-            acts, "fetch_seen_urls_for_site", fake_fetch_seen_urls
-        )
-        self.monkeypatch.setattr(
-            acts, "filter_existing_job_urls", fake_filter_existing_job_urls
-        )
-        self.monkeypatch.setattr(
-            acts, "filter_new_job_urls", fake_filter_new_job_urls
-        )
-
-        # Mock HTTP description upload
-        original_store_descriptions = getattr(
-            acts, "_store_job_descriptions_via_http", None
-        )
-
-        async def fake_store_descriptions_http(
+        # Override description upload to capture in our format
+        async def custom_store_descriptions(
             jobs: List[Dict[str, Any]],
             source_url: str | None,
             provider: str | None,
@@ -645,23 +619,21 @@ class WorkflowTestModule:
                 description = job.get("description")
                 url = job.get("url")
                 if isinstance(description, str) and description.strip():
-                    self.capture.description_uploads.append(
-                        {
-                            "url": url,
-                            "description": description,
-                            "word_count": _count_words(description),
-                        }
-                    )
+                    self.capture.description_uploads.append({
+                        "url": url,
+                        "description": description,
+                        "word_count": _count_words(description),
+                    })
 
+        # Apply overrides
+        self.monkeypatch.setattr(acts, "store_scrape", custom_store_scrape)
         self.monkeypatch.setattr(
-            acts, "_store_job_descriptions_via_http", fake_store_descriptions_http
+            "job_scrape_application.services.convex_client.convex_mutation",
+            custom_mutation,
         )
-
-        # Mock lookup job ID
-        async def fake_lookup_job_id(url: str) -> str | None:
-            return f"job-{hash(url) % 10000}"
-
-        self.monkeypatch.setattr(acts, "_lookup_job_id_for_url", fake_lookup_job_id)
+        self.monkeypatch.setattr(
+            acts, "_store_job_descriptions_via_http", custom_store_descriptions
+        )
 
     async def run_detail_extraction(self) -> JobDetailExtractionResult:
         """Run the job detail extraction workflow."""

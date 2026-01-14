@@ -1,10 +1,10 @@
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { CompanyIcon } from "./components/CompanyIcon";
+import { api } from "../../convex/_generated/api";
+import { SignInForm } from "../components/auth";
+import { CompanyIcon } from "../components/CompanyIcon";
 import { useState, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { buildCompensationMeta } from "./lib/compensation";
+import { buildCompensationMeta } from "../lib/compensation";
 
 export function FakePublicJobPreview() {
   const { signIn } = useAuthActions();

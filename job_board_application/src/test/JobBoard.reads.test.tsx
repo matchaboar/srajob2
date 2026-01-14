@@ -4,8 +4,8 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as convexReact from "convex/react";
 import { getFunctionName } from "convex/server";
-import { api } from "../convex/_generated/api";
-import { JobBoard } from "./JobBoard";
+import { api } from "../../convex/_generated/api";
+import { JobBoard } from "../pages/JobBoard";
 
 const defaultPaginatedResponse = {
   results: [] as any[],
@@ -64,7 +64,7 @@ vi.mock("framer-motion", () => {
   };
 });
 
-vi.mock("./components/JobRow", () => ({
+vi.mock("../components/JobRow", () => ({
   JobRow: () => <div data-testid="job-row" />,
 }));
 
