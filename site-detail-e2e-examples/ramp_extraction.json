@@ -1,23 +1,23 @@
 {
   "site_id": "ramp",
-  "detail_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-  "source_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
+  "detail_url": "https://jobs.ashbyhq.com/ramp/63df0ffc-bdc6-40ba-906f-fe03378536b0",
+  "source_url": "https://jobs.ashbyhq.com/ramp",
   "extracted_jobs": [
     {
-      "title": "Account Manager, Growth",
+      "title": "AI Operations Specialist",
       "description_preview": "About Ramp At Ramp, we\u2019re rethinking how modern finance teams function in the age of AI. We believe AI isn\u2019t just the next big wave. It\u2019s the new foundation for how business gets done. We\u2019re investing in that future \u2014 and in the people bold enough to build it. Ramp...",
-      "description_word_count": 707,
+      "description_word_count": 735,
       "location": "New York City, NY, USA",
       "is_remote": false,
-      "posted_at": 1768402800000,
+      "posted_at": 1767798000000,
       "posted_at_unknown": false,
       "company": "Ramp",
       "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-      "cost_milli_cents": 14
+      "url": "https://jobs.ashbyhq.com/ramp/63df0ffc-bdc6-40ba-906f-fe03378536b0",
+      "cost_milli_cents": 15
     }
   ],
   "convex_capture": {

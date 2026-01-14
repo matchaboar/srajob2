@@ -1,23 +1,23 @@
 {
   "site_id": "ashbyhq",
-  "detail_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-  "source_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
+  "detail_url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+  "source_url": "https://jobs.ashbyhq.com/factory",
   "extracted_jobs": [
     {
-      "title": "Account Manager, Growth",
-      "description_preview": "<title>Account Manager, Growth @ Ramp</title><meta content=\"Account Manager, Growth @ Ramp\" name=\"title\"> <meta content=\"ABOUT RAMP At Ramp, we\u2019re rethinking how modern finance teams function in the age of AI. We believe AI isn\u2019t just the next big wave. It\u2019s the new foundation for how business gets done. We\u2019re investing in that...",
-      "description_word_count": 1507,
-      "location": "Remote; San Francisco, CA",
-      "is_remote": true,
-      "posted_at": 1768402800000,
+      "title": "AI Engineer",
+      "description_preview": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation. What you will do and achieve: Innovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities...",
+      "description_word_count": 257,
+      "location": "San Francisco, CA, United States",
+      "is_remote": false,
+      "posted_at": 1742828400000,
       "posted_at_unknown": false,
-      "company": "Ramp",
+      "company": "Factory",
       "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-      "cost_milli_cents": 15
+      "url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+      "cost_milli_cents": 8
     }
   ],
   "convex_capture": {
