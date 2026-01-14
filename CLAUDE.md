@@ -31,7 +31,7 @@ npx convex run --prod router:runSiteNow '{"id":"..."}'  # Trigger site scrape
 ### Test Files Location
 - `tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py` - E2E tests for job detail extraction
 - `tests/job_scrape_application/workflows/fixtures/dbos_schedule/` - Fixture files (`{site}_detail.json`)
-- `tests/job_scrape_application/workflows/assertions/` - YAML assertion files for validation
+- `tests/job_scrape_application/workflows/ground_truth/` - YAML assertion files for validation
 
 ### Running Extraction Tests
 ```bash
@@ -60,7 +60,7 @@ Detail fixtures are JSON files with SpiderCloud response data:
 ```
 
 ### Assertion Files
-YAML files in `assertions/` define expected extraction values:
+YAML files in `ground_truth/` define expected extraction values:
 ```yaml
 site_id: purestorage
 detail_url: https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7472241
@@ -113,7 +113,7 @@ uv run pytest "tests/job_scrape_application/workflows/test_job_detail_extraction
 # 2. View the extraction result
 cat ./site-detail-e2e-examples/SITE_NAME_extraction.json
 
-# 3. Update assertions/SITE_NAME.yml with correct expected values
+# 3. Update ground_truth/SITE_NAME.yml with correct expected values
 ```
 
 Ensure `detail_url` in the assertion file matches `request.url` in the fixture.
@@ -148,7 +148,7 @@ PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python agent_scripts/
   --out tests/job_scrape_application/workflows/fixtures/debug/netflix_790313551266_detail.json \
   --use-handler-config
 
-# 2. Create assertion file at tests/job_scrape_application/workflows/assertions/debug/netflix_790313551266.yml
+# 2. Create assertion file at tests/job_scrape_application/workflows/ground_truth/debug/netflix_790313551266.yml
 
 # 3. Run the debug test
 uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py -v
@@ -170,7 +170,7 @@ fixtures/debug/
 ├── {site}_{job_id}_detail.json        # Job fixture
 └── ...
 
-assertions/debug/
+ground_truth/debug/
 ├── {site}_{job_id}.yml                # Job assertions
 └── ...
 ```

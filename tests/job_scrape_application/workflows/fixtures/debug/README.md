@@ -10,9 +10,9 @@ debug/
 ├── netflix_790313551266_detail.json   # Fixture for specific job
 └── ...                                 # More debug fixtures
 
-../assertions/debug/
+../ground_truth/debug/
 ├── netflix_790313551266.yml           # Assertions for specific job
-└── ...                                 # More debug assertions
+└── ...                                 # More debug ground_truth
 ```
 
 ## Quick Start (Automated Workflow)
@@ -64,7 +64,7 @@ The naming convention is: `{site}_{job_id}_detail.json`
 
 ### 3. Create Assertions
 
-Create a YAML file in `tests/job_scrape_application/workflows/assertions/debug/` with expected values:
+Create a YAML file in `tests/job_scrape_application/workflows/ground_truth/debug/` with expected values:
 
 ```yaml
 site_id: netflix
@@ -96,7 +96,7 @@ uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py -v
 uv run pytest "tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[netflix_790313551266]" -v
 ```
 
-The test will fail if extraction doesn't match assertions, helping you identify the problem.
+The test will fail if extraction doesn't match ground_truth, helping you identify the problem.
 
 ### 5. Fix the Handler
 
@@ -158,7 +158,7 @@ See CLAUDE.md for full list of assertion types. Common ones:
 ## Tips
 
 1. **Name fixtures clearly**: Use `{site}_{job_id}_detail.json` format
-2. **Test incrementally**: Create fixture → create assertions → run test → fix → verify
+2. **Test incrementally**: Create fixture → create ground_truth → run test → fix → verify
 3. **Check extraction output**: Always review `./site-detail-e2e-examples/` to see what was extracted
 4. **Keep fixtures small**: Debug fixtures are for specific issues, not comprehensive testing
 5. **Document fixes**: Add comments in the handler explaining what edge case you're handling

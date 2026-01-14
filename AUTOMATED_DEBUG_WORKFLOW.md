@@ -65,7 +65,7 @@ Saves SpiderCloud response to debug folder.
 ### 4. Assertion File Creation
 Creates placeholder at:
 ```
-tests/job_scrape_application/workflows/assertions/debug/{identifier}.yml
+tests/job_scrape_application/workflows/ground_truth/debug/{identifier}.yml
 ```
 
 With template:
@@ -88,7 +88,7 @@ expected:
 ### 5. Claude Code Launch
 Opens Claude Code with structured prompt containing:
 - Job details and current extraction
-- File paths (fixture, assertions)
+- File paths (fixture, ground_truth)
 - Step-by-step instructions
 - Example commands to run
 - Reference to debugging docs
@@ -186,7 +186,7 @@ tests/job_scrape_application/workflows/
 │   └── debug/
 │       ├── README.md
 │       └── {site}_{job_id}_detail.json  ← Fixture
-└── assertions/
+└── ground_truth/
     └── debug/
         └── {site}_{job_id}.yml          ← Assertions (Claude fills TODOs)
 
@@ -204,12 +204,12 @@ mise run fix_job_extraction https://srajob.netlify.app/job/k1719yxs9nmtvbsye23v9
 ### Automated Output
 ```
 ✓ Fixture saved to: tests/.../fixtures/debug/netflix_k1719yxs9nmtvbsye23v9jt0ys7z5trb_detail.json
-✓ Placeholder assertion created: tests/.../assertions/debug/netflix_k1719yxs9nmtvbsye23v9jt0ys7z5trb.yml
+✓ Placeholder assertion created: tests/.../ground_truth/debug/netflix_k1719yxs9nmtvbsye23v9jt0ys7z5trb.yml
 ```
 
 ### Claude's Work
 1. Examined fixture, found JSON blocks in markdown
-2. Filled in assertions with correct location, level
+2. Filled in ground_truth with correct location, level
 3. Ran test → Failed with 122 words (expected 300+)
 4. Implemented `normalize_markdown()` in Netflix handler
 5. Re-ran test → Passed with 1010 words

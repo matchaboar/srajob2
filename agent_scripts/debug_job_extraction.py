@@ -95,7 +95,7 @@ def get_site_handler_info(url: str) -> dict:
 def find_fixture(handler_name: str) -> dict:
     """Check if fixtures exist for this handler."""
     fixture_dir = ROOT / "tests/job_scrape_application/workflows/fixtures/dbos_schedule"
-    assertion_dir = ROOT / "tests/job_scrape_application/workflows/assertions"
+    assertion_dir = ROOT / "tests/job_scrape_application/workflows/ground_truth"
 
     # Slugify handler name
     slug = re.sub(r"[^a-z0-9]+", "_", handler_name.lower()).strip("_") if handler_name else None

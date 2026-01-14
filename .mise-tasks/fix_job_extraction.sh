@@ -17,7 +17,7 @@ if [ -z "${usage_url}" ]; then
   echo "  2. Fetch job details from Convex prod"
   echo "  3. Automatically fetch SpiderCloud fixture to per-company debug folder"
   echo "  4. Create assertion file with proper expected values"
-  echo "  5. Launch Claude Code to verify assertions and fix any issues"
+  echo "  5. Launch Claude Code to verify ground_truth and fix any issues"
   echo ""
   echo "Features:"
   echo "  - Per-company folder organization (fixtures/debug/{company}/)"
@@ -163,7 +163,7 @@ tests/job_scrape_application/workflows/
 ├── fixtures/debug/
 │   └── {company}/
 │       └── {handler}_{short_id}_{date}_detail.json
-└── assertions/debug/
+└── ground_truth/debug/
     └── {company}/
         └── {handler}_{short_id}_{date}.yml
 \`\`\`

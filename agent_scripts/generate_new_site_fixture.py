@@ -300,7 +300,7 @@ async def main() -> int:
     company_folder = site_info["normalized_company"] or "unknown"
 
     fixture_dir = ROOT / f"tests/job_scrape_application/workflows/fixtures/debug/{company_folder}"
-    assertion_dir = ROOT / f"tests/job_scrape_application/workflows/assertions/debug/{company_folder}"
+    assertion_dir = ROOT / f"tests/job_scrape_application/workflows/ground_truth/debug/{company_folder}"
 
     # Generate short identifier from URL
     parsed = urlparse(job_url)

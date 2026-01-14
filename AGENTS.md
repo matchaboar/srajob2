@@ -150,6 +150,6 @@
 - For new scraping behavior, update fixtures and corresponding tests together.
 - For workflow changes, update tests in `tests/job_scrape_application/`.
 - Job detail extraction tests: `tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py`.
-- Assertion files for extraction validation: `tests/job_scrape_application/workflows/assertions/`.
+- Assertion files for extraction validation: `tests/job_scrape_application/workflows/ground_truth/`.
 - See `DEBUGGING.md` for detailed debugging procedures.
 - See `CLAUDE.md` for Claude Code-specific guidance.

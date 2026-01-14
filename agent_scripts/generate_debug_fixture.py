@@ -3,11 +3,11 @@
 Generate debug fixture for a specific job URL with improved organization.
 
 Features:
-- Per-company folder organization for fixtures and assertions
+- Per-company folder organization for fixtures and ground_truth
 - Date-based filenames to avoid overwriting
 - URL correction to get the canonical detail URL
 - Remote override config awareness
-- Metadata from Convex production for accurate assertions
+- Metadata from Convex production for accurate ground_truth
 
 Usage:
     python agent_scripts/generate_debug_fixture.py <convex_job_id_or_share_url>
@@ -392,7 +392,7 @@ async def main() -> int:
     company_folder = site_info["normalized_company"] or site_info["handler"]
 
     fixture_dir = ROOT / f"tests/job_scrape_application/workflows/fixtures/debug/{company_folder}"
-    assertion_dir = ROOT / f"tests/job_scrape_application/workflows/assertions/debug/{company_folder}"
+    assertion_dir = ROOT / f"tests/job_scrape_application/workflows/ground_truth/debug/{company_folder}"
 
     # Use shortened job ID for cleaner filenames
     short_id = job_id[-8:] if len(job_id) > 8 else job_id

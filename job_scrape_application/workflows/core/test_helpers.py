@@ -41,6 +41,9 @@ class CapturedConvexData:
     ingested_jobs: List[Dict[str, Any]] = field(default_factory=list)
     stored_scrapes: List[Dict[str, Any]] = field(default_factory=list)
     description_uploads: List[Dict[str, Any]] = field(default_factory=list)
+    # Queue operations
+    enqueued_urls: List[Dict[str, Any]] = field(default_factory=list)
+    completed_urls: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -283,6 +286,13 @@ class WorkflowTestHelper:
         self.monkeypatch.setattr(acts, "_store_job_descriptions_via_http", self._fake_store_descriptions)
         self.monkeypatch.setattr(acts, "_lookup_job_id_for_url", self._fake_lookup_job_id)
 
+        # Patch DBOS queue operations
+        from job_scrape_application.dbos_runtime import queue as dbos_queue
+        self.monkeypatch.setattr(dbos_queue, "enqueue_scrape_urls", self._fake_enqueue_scrape_urls)
+        self.monkeypatch.setattr(dbos_queue, "complete_scrape_urls", self._fake_complete_scrape_urls)
+        self.monkeypatch.setattr(dbos_queue, "list_scrape_urls", self._fake_list_scrape_urls)
+        self.monkeypatch.setattr(dbos_queue, "lease_scrape_url_batch", self._fake_lease_scrape_url_batch)
+
     async def _fake_convex_query(self, name: str, payload: Dict[str, Any]) -> Any:
         """Mock Convex query function."""
         self.captured.queries.append({"name": name, "args": payload})
@@ -355,6 +365,42 @@ class WorkflowTestHelper:
     async def _fake_lookup_job_id(self, url: str) -> str | None:
         """Mock _lookup_job_id_for_url activity."""
         return f"job-{hash(url) % 10000}"
+
+    def _fake_enqueue_scrape_urls(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock dbos_queue.enqueue_scrape_urls."""
+        items = payload.get("items", [])
+        if isinstance(items, list):
+            for item in items:
+                if isinstance(item, dict):
+                    self.captured.enqueued_urls.append(item)
+        return {"success": True, "count": len(items) if isinstance(items, list) else 0}
+
+    def _fake_complete_scrape_urls(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock dbos_queue.complete_scrape_urls."""
+        items = payload.get("items", [])
+        if isinstance(items, list):
+            for item in items:
+                if isinstance(item, dict):
+                    self.captured.completed_urls.append({
+                        **item,
+                        "status": payload.get("status", "completed"),
+                    })
+        return {"success": True, "count": len(items) if isinstance(items, list) else 0}
+
+    def _fake_list_scrape_urls(self, **kwargs: Any) -> Dict[str, Any]:
+        """Mock dbos_queue.list_scrape_urls."""
+        return {"items": [], "total": 0}
+
+    def _fake_lease_scrape_url_batch(
+        self,
+        provider: str | None = None,
+        limit: int = 10,
+        url_type: str | None = None,
+    ) -> Any:
+        """Mock dbos_queue.lease_scrape_url_batch."""
+        # Return empty lease result
+        from job_scrape_application.dbos_runtime.queue import LeaseResult
+        return LeaseResult(items=[], lease_id=None)
 
     def get_first_stored_scrape(self) -> Dict[str, Any] | None:
         """Get the first stored scrape, if any."""

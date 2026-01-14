@@ -41,7 +41,7 @@ from job_scrape_application.workflows.site_handlers import get_site_handler
 SCHEDULE_PATH = Path("job_scrape_application/config/prod/site_schedules.yml")
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
 SINGLE_REQUEST_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/single_request")
-ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions")
+GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth")
 OUTPUT_DIR = Path("./site-detail-e2e-examples")
 DESCRIPTION_PREVIEW_MAX_WORDS = 100
 
@@ -107,7 +107,7 @@ def _truncate_to_words(text: str, max_words: int) -> str:
 
 def _load_assertions(site_id: str) -> Optional[Dict[str, Any]]:
     """Load assertion YAML file for a site if it exists."""
-    assertion_path = ASSERTIONS_DIR / f"{site_id}.yml"
+    assertion_path = GROUND_TRUTH_DIR / f"{site_id}.yml"
     if not assertion_path.exists():
         return None
     try:

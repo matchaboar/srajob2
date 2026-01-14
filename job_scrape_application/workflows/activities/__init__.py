@@ -1829,7 +1829,19 @@ async def process_spidercloud_job_batch(
 
 @activity.defn
 async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, Any]:
-    """Scrape listing URLs and enqueue extracted job/detail URLs without storing scrapes."""
+    """Scrape listing URLs and enqueue extracted job/detail URLs without storing scrapes.
+
+    Args:
+        batch: Dict containing:
+            - urls: List of URL entries to process
+            - debug: (optional) If True, generate extraction traces for debugging
+
+    Returns:
+        Dict with queued count, listing completed count, and optionally traces when debug=True
+    """
+    # Check if debug mode is requested
+    debug_mode = batch.get("debug", False)
+    debug_traces: list[Dict[str, Any]] = []
 
     def _build_completion_item(entry: Dict[str, Any]) -> Dict[str, Any]:
         item: Dict[str, Any] = {"url": entry.get("url")}
@@ -2023,6 +2035,15 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         extracted_urls = _extract_job_urls_from_scrape(scrape_payload)
         source_url = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
         handler = get_site_handler(source_url) if source_url else None
+
+        # Capture debug trace if debug mode is enabled
+        if debug_mode:
+            from .core.listing_workflow import ListingWorkflowModule
+            site_id = entry.get("siteId") or ""
+            workflow = ListingWorkflowModule(debug=True, write_output=False)
+            workflow.extract_listing_urls(scrape_payload, source_url, site_id)
+            if workflow.trace:
+                debug_traces.append(workflow.trace.to_json_detailed())
 
         def _detail_url_from_scrape() -> str | None:
             items_block = scrape_payload.get("items") if isinstance(scrape_payload, dict) else None
@@ -2560,7 +2581,10 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 {"items": failed_items, "status": "failed", "error": zero_url_error}
             )
 
-    return {"queued": queued_total, "listingCompleted": listing_completed, "sourceUrl": source_url_hint}
+    response = {"queued": queued_total, "listingCompleted": listing_completed, "sourceUrl": source_url_hint}
+    if debug_mode and debug_traces:
+        response["traces"] = debug_traces
+    return response
 
 
 @activity.defn

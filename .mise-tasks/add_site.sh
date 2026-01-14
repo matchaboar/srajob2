@@ -104,8 +104,8 @@ Check if the site just needs to be added to site_schedules.yaml with the existin
 "
 fi
 
-# Get sample assertions for regression testing
-SAMPLE_ASSERTIONS=$(ls tests/job_scrape_application/workflows/assertions/*.yml 2>/dev/null | shuf | head -5 | xargs -I{} basename {} .yml | tr '\n' ' ')
+# Get sample ground_truth for regression testing
+SAMPLE_ASSERTIONS=$(ls tests/job_scrape_application/workflows/ground_truth/*.yml 2>/dev/null | shuf | head -5 | xargs -I{} basename {} .yml | tr '\n' ' ')
 
 PROMPT="I need help adding a new site to the job scraper.
 

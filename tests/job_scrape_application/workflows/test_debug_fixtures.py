@@ -2,7 +2,7 @@
 Tests for debugging specific user-submitted job extraction issues.
 
 This test file is separate from the main test suite to allow testing individual
-jobs without affecting the automated test runs. Fixtures and assertions for debug
+jobs without affecting the automated test runs. Fixtures and ground_truth for debug
 jobs are stored in the debug/ subfolder.
 """
 
@@ -27,13 +27,13 @@ import tests.job_scrape_application.workflows.test_job_detail_extraction_e2e as 
 
 WorkflowTestModule = main_test.WorkflowTestModule
 _load_fixture = main_test._load_fixture
-_load_assertions = main_test._load_assertions
-_validate_job_against_assertions = main_test._validate_job_against_assertions
+_load_ground_truth = main_test._load_ground_truth
+_validate_job_against_ground_truth = main_test._validate_job_against_ground_truth
 _format_assertion_failures = main_test._format_assertion_failures
 _write_extraction_result = main_test._write_extraction_result
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
-ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions/debug")
+GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth/debug")
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,8 @@ def _get_debug_fixtures() -> list[tuple[str, Path, Path]]:
     """Get all debug fixture files and their assertion files.
 
     Supports both flat and per-company folder organization:
-    - Flat: fixtures/debug/{id}_detail.json + assertions/debug/{id}.yml
-    - Nested: fixtures/debug/{company}/{id}_detail.json + assertions/debug/{company}/{id}.yml
+    - Flat: fixtures/debug/{id}_detail.json + ground_truth/debug/{id}.yml
+    - Nested: fixtures/debug/{company}/{id}_detail.json + ground_truth/debug/{company}/{id}.yml
     """
     if not FIXTURE_DIR.exists():
         return []
@@ -56,13 +56,13 @@ def _get_debug_fixtures() -> list[tuple[str, Path, Path]]:
         identifier = fixture_file.stem.replace("_detail", "")
 
         # Find matching assertion file in the same relative folder structure
-        # e.g., fixtures/debug/airbnb/foo.json -> assertions/debug/airbnb/foo.yml
+        # e.g., fixtures/debug/airbnb/foo.json -> ground_truth/debug/airbnb/foo.yml
         relative_path = fixture_file.relative_to(FIXTURE_DIR)
-        assertion_file = ASSERTIONS_DIR / relative_path.parent / f"{identifier}.yml"
+        assertion_file = GROUND_TRUTH_DIR / relative_path.parent / f"{identifier}.yml"
 
         # Also check flat structure (for backwards compatibility)
         if not assertion_file.exists():
-            assertion_file = ASSERTIONS_DIR / f"{identifier}.yml"
+            assertion_file = GROUND_TRUTH_DIR / f"{identifier}.yml"
 
         if assertion_file.exists():
             fixtures.append((identifier, fixture_file, assertion_file))
@@ -140,20 +140,20 @@ async def test_debug_job_extraction(
     # Write extraction result for inspection
     _write_extraction_result(result)
 
-    # Validate against assertions
+    # Validate against ground_truth
     if not result.extracted_jobs:
         pytest.fail(f"No jobs extracted for {identifier}")
 
-    # Load assertions from the debug assertion file
+    # Load ground_truth from the debug assertion file
     try:
         import yaml
-        assertions = yaml.safe_load(assertion_path.read_text(encoding="utf-8"))
+        ground_truth = yaml.safe_load(assertion_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        pytest.fail(f"Failed to load assertions from {assertion_path}: {exc}")
+        pytest.fail(f"Failed to load ground_truth from {assertion_path}: {exc}")
 
     job = result.extracted_jobs[0]
 
-    validation_results = _validate_job_against_assertions(job, assertions)
+    validation_results = _validate_job_against_ground_truth(job, ground_truth)
     failures = [r for r in validation_results if not r.passed]
 
     if failures:

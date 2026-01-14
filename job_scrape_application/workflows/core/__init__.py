@@ -50,6 +50,7 @@ from .protocols import (
     SpiderClientProtocol,
 )
 from .test_helpers import CapturedConvexData, SpiderFixture, WorkflowTestHelper
+from .listing_workflow import ListingExtractionTrace, ListingWorkflowModule
 
 __all__ = [
     # Main container
@@ -72,4 +73,7 @@ __all__ = [
     "CapturedConvexData",
     "SpiderFixture",
     "WorkflowTestHelper",
+    # Listing workflow
+    "ListingExtractionTrace",
+    "ListingWorkflowModule",
 ]
