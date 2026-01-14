@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import time
+import warnings
 from urllib.parse import parse_qsl, parse_qs, urlencode, urlparse, urlunparse
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
@@ -353,7 +354,9 @@ class SpiderCloudScraper(BaseScraper):
         if decoded is not None:
             return decoded
         try:
-            unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
         except Exception:
             return None
         if not unescaped or unescaped == cleaned:
@@ -2859,17 +2862,11 @@ class SpiderCloudScraper(BaseScraper):
         ):
             if isinstance(hints, dict) and hints.get("remote") is None:
                 hints["remote"] = True
-        # Apply structured_remote from Schema.org jobLocationType as supplemental signal
-        # Note: TELECOMMUTE can mean hybrid work, not just fully remote, so we only use it
-        # as a fallback when no other remote signal is present. ONSITE/IN-OFFICE are more
-        # authoritative for setting remote=False.
+        # Apply structured_remote from Schema.org jobLocationType as authoritative signal
+        # TELECOMMUTE indicates remote work; ONSITE/IN-OFFICE indicates non-remote.
+        # Schema.org data takes priority over parsed hints.
         if structured_remote is not None and isinstance(hints, dict):
-            if structured_remote is False:
-                # ONSITE/IN-OFFICE is authoritative
-                hints["remote"] = False
-            elif hints.get("remote") is None:
-                # TELECOMMUTE as fallback only when no other signal
-                hints["remote"] = True
+            hints["remote"] = structured_remote
         handler_location = None
         if handler:
             handler_location = handler.extract_location_hint(raw_markdown)
@@ -4080,12 +4077,29 @@ class SpiderCloudScraper(BaseScraper):
                         handler.get_company_uri(url) if handler and handler.name == "greenhouse" else None
                     )
 
+                    # Calculate per-URL timeout based on handler's wait_for config
+                    url_timeout_seconds = timeout_seconds  # Start with base timeout (60s)
+                    handler_config: Dict[str, Any] = {}
+                    if handler:
+                        handler_config = handler.normalize_spidercloud_config(
+                            handler.get_spidercloud_config(url)
+                        )
+                        wait_for_timeout = BaseSiteHandler.extract_wait_for_timeout_seconds(handler_config)
+                        if wait_for_timeout > 0:
+                            # Use the larger of base timeout or wait_for timeout
+                            url_timeout_seconds = max(timeout_seconds, wait_for_timeout)
+                            # Cap at 3 minutes to prevent runaway requests
+                            url_timeout_seconds = min(url_timeout_seconds, 180)
+
                     attempt = 0
                     result: Dict[str, Any] | None = None
                     proxy: Optional[str] = None
                     while attempt <= CAPTCHA_RETRY_LIMIT:
                         attempt += 1
                         local_params = dict(params)
+                        # Merge wait_for from handler config into params
+                        if handler_config.get("wait_for"):
+                            local_params["wait_for"] = handler_config["wait_for"]
                         if proxy:
                             local_params["proxy"] = proxy
                         try:
@@ -4107,8 +4121,8 @@ class SpiderCloudScraper(BaseScraper):
                                     local_params,
                                     attempt=attempt,
                                 )
-                            if timeout_seconds and timeout_seconds > 0:
-                                result = await asyncio.wait_for(scrape_coro, timeout=timeout_seconds)
+                            if url_timeout_seconds and url_timeout_seconds > 0:
+                                result = await asyncio.wait_for(scrape_coro, timeout=url_timeout_seconds)
                             else:
                                 result = await scrape_coro
                             break
@@ -4150,8 +4164,9 @@ class SpiderCloudScraper(BaseScraper):
                             )
                         except asyncio.TimeoutError as exc:
                             logger.error(
-                                "SpiderCloud scrape timed out url=%s timeout=%s",
+                                "SpiderCloud scrape timed out url=%s timeout=%s (base=%s)",
                                 url,
+                                url_timeout_seconds,
                                 timeout_seconds,
                             )
                             self._emit_scrape_log(
@@ -4159,7 +4174,8 @@ class SpiderCloudScraper(BaseScraper):
                                 level="error",
                                 site_url=url,
                                 data={
-                                    "timeoutSeconds": timeout_seconds,
+                                    "timeoutSeconds": url_timeout_seconds,
+                                    "baseTimeoutSeconds": timeout_seconds,
                                     "attempt": attempt,
                                     "errorType": "timeout",
                                 },

@@ -1,0 +1,446 @@
+{
+  "site_id": "paloalto",
+  "detail_url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
+  "source_url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
+  "extracted_jobs": [
+    {
+      "title": "Software Engineering Manager (NetSec)",
+      "description_preview": "Our Mission At Palo Alto Networks® everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
+      "description_word_count": 730,
+      "location": "Santa Clara, CA, US",
+      "is_remote": true,
+      "posted_at": 1768427230976,
+      "posted_at_unknown": true,
+      "company": "Palo Alto Networks",
+      "level": "senior",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
+      "cost_milli_cents": 39
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Software Engineering Manager (NetSec)",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Software Engineering Manager (NetSec)",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No title in hints"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Our Mission",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Palo Alto Networks",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Palo Alto Networks",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Paloaltonetworks",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Our vision",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Santa Clara, CA, US",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Santa Clara, CA, US",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": "Santa Clara",
+          "is_valid": true,
+          "reason": "Extracted from URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "PAC, DNS handling",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Santa Clara, CA, US",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Palo Alto, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Santa Clara, CA, US"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Palo Alto Networks' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'manager' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 165000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 165000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $165,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 267500,
+          "is_valid": true,
+          "reason": "Compensation from hints: $267,500"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-14T14:47:10.976000",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-14T14:47:10.976000",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-14T14:47:10.976000"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:13.274892",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n\nPalo Alto Networks® is shaping the future with technology that is transforming the way people and organizations operate in the cloud, at the network edge, and everywhere in between. Our mission is to be the cybersecurity partner of choice, protecting our digital way of life.\n\nWe are looking for an Engineering Manager to lead the Explicit Proxy team, one of the most technically complex and cross-functional areas within Prisma Access. This role combines hands-on technical depth (L4-L7 proxy, multi-cloud environments) with managerial excellence, guiding team members who build scalable network security services running at massive cloud scale.\n\nYou’ll drive innovation at the core of our Secure Access Service Edge (SASE) solution, enabling enterprises to securely connect users to the internet, SaaS, and private applications — with scale, performance, and zero-trust principles at the foundation.\n\nYour Impact\n\nLead, mentor, and grow an engineering team within Prisma Access\n\nPartner closely with Product Managers and cross-functional groups to define priorities and build roadmaps\n\nAlign stakeholders across business units and communicate tradeoffs, risks, and execution plans with clarity\n\nBuild a culture of accountability, ownership, and continuous improvement.\n\nGuide teams on building highly scalable cloud-native microservices.\n\nEnsure efficient deployment, observability, and runtime stability in production environments.\n\nYour Experience\n\n3-4 years of experience managing a software engineering team in a large enterprise organization.\n\n5+ years of experience as a hands-on software engineer.\n\nExpertise in Explicit Proxy technologies: L4-L7 Proxy,  TCP/IP, SSL/TLS interception, authentication flows, PAC, DNS handling, and content filtering.\n\nBackground in network security and cloud-delivered SWG/SASE services.\n\nKnowledge of building multi-tenant, cloud-native architectures (Kubernetes, microservices, distributed data pipelines, observability stacks)\n\nStrong collaboration skills; able to align cross-disciplinary teams around a shared goal.\n\nDemonstrated ability to plan, execute, and deliver roadmaps with high predictability.\n\nProven track record of delivering complex, distributed cloud products end-to-end.\n\nExperience with large-scale cloud architectures (GCP, AWS, or Azure)\n\nThe Team\n\nOur engineering team is at the core of our products – connected directly to the mission of preventing cyberattacks. We are constantly innovating – challenging the way we, and the industry, think about cybersecurity. Our engineers don’t shy away from building products to solve problems no one has pursued before.\n\nWe define the industry, instead of waiting for directions. We need individuals who feel comfortable in ambiguity, excited by the prospect of a challenge, and empowered by the unknown risks facing our everyday lives that are only enabled by a secure digital environment.\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $165000/YR - $267500/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n\nPalo Alto Networks® is shaping the future with technology that is transforming the way people and organizations operate in the cloud, at the network edge, and everywhere in between. Our mission is to be the cybersecurity partner of choice, protecting our digital way of life.\n\nWe are looking for an Engineering Manager to lead the Explicit Proxy team, one of the most technically complex and cross-functional areas within Prisma Access. This role combines hands-on technical depth (L4-L7 proxy, multi-cloud environments) with managerial excellence, guiding team members who build scalable network security services running at massive cloud scale.\n\nYou’ll drive innovation at the core of our Secure Access Service Edge (SASE) solution, enabling enterprises to securely connect users to the internet, SaaS, and private applications — with scale, performance, and zero-trust principles at the foundation.\n\nYour Impact\n\nLead, mentor, and grow an engineering team within Prisma Access\n\nPartner closely with Product Managers and cross-functional groups to define priorities and build roadmaps\n\nAlign stakeholders across business units and communicate tradeoffs, risks, and execution plans with clarity\n\nBuild a culture of accountability, ownership, and continuous improvement.\n\nGuide teams on building highly scalable cloud-native microservices.\n\nEnsure efficient deployment, observability, and runtime stability in production environments.\n\nYour Experience\n\n3-4 years of experience managing a software engineering team in a large enterprise organization.\n\n5+ years of experience as a hands-on software engineer.\n\nExpertise in Explicit Proxy technologies: L4-L7 Proxy,  TCP/IP, SSL/TLS interception, authentication flows, PAC, DNS handling, and content filtering.\n\nBackground in network security and cloud-delivered SWG/SASE services.\n\nKnowledge of building multi-tenant, cloud-native architectures (Kubernetes, microservices, distributed data pipelines, observability stacks)\n\nStrong collaboration skills; able to align cross-disciplinary teams around a shared goal.\n\nDemonstrated ability to plan, execute, and deliver roadmaps with high predictability.\n\nProven track record of delivering complex, distributed cloud products end-to-end.\n\nExperience with large-scale cloud architectures (GCP, AWS, or Azure)\n\nThe Team\n\nOur engineering team is at the core of our products – connected directly to the mission of preventing cyberattacks. We are constantly innovating – challenging the way we, and the industry, think about cybersecurity. Our engineers don’t shy away from building products to solve problems no one has pursued before.\n\nWe define the industry, instead of waiting for directions. We need individuals who feel comfortable in ambiguity, excited by the prospect of a challenge, and empowered by the unknown risks facing our everyday lives that are only enabled by a secure digital environment.\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $165000/YR - $267500/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5157 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n\nPalo Alto Networks® is shaping the future with technology that is transforming the way people and organizations operate in the cloud, at the network edge, and everywhere in between. Our mission is to be the cybersecurity partner of choice, protecting our digital way of life.\n\nWe are looking for an Engineering Manager to lead the Explicit Proxy team, one of the most technically complex and cross-functional areas within Prisma Access. This role combines hands-on technical depth (L4-L7 proxy, multi-cloud environments) with managerial excellence, guiding team members who build scalable network security services running at massive cloud scale.\n\nYou’ll drive innovation at the core of our Secure Access Service Edge (SASE) solution, enabling enterprises to securely connect users to the internet, SaaS, and private applications — with scale, performance, and zero-trust principles at the foundation.\n\nYour Impact\n\nLead, mentor, and grow an engineering team within Prisma Access\n\nPartner closely with Product Managers and cross-functional groups to define priorities and build roadmaps\n\nAlign stakeholders across business units and communicate tradeoffs, risks, and execution plans with clarity\n\nBuild a culture of accountability, ownership, and continuous improvement.\n\nGuide teams on building highly scalable cloud-native microservices.\n\nEnsure efficient deployment, observability, and runtime stability in production environments.\n\nYour Experience\n\n3-4 years of experience managing a software engineering team in a large enterprise organization.\n\n5+ years of experience as a hands-on software engineer.\n\nExpertise in Explicit Proxy technologies: L4-L7 Proxy,  TCP/IP, SSL/TLS interception, authentication flows, PAC, DNS handling, and content filtering.\n\nBackground in network security and cloud-delivered SWG/SASE services.\n\nKnowledge of building multi-tenant, cloud-native architectures (Kubernetes, microservices, distributed data pipelines, observability stacks)\n\nStrong collaboration skills; able to align cross-disciplinary teams around a shared goal.\n\nDemonstrated ability to plan, execute, and deliver roadmaps with high predictability.\n\nProven track record of delivering complex, distributed cloud products end-to-end.\n\nExperience with large-scale cloud architectures (GCP, AWS, or Azure)\n\nThe Team\n\nOur engineering team is at the core of our products – connected directly to the mission of preventing cyberattacks. We are constantly innovating – challenging the way we, and the industry, think about cybersecurity. Our engineers don’t shy away from building products to solve problems no one has pursued before.\n\nWe define the industry, instead of waiting for directions. We need individuals who feel comfortable in ambiguity, excited by the prospect of a challenge, and empowered by the unknown risks facing our everyday lives that are only enabled by a secure digital environment.\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $165000/YR - $267500/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5157 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n\nPalo Alto Networks® is shaping the future with technology that is transforming the way people and organizations operate in the cloud, at the network edge, and everywhere in between. Our mission is to be the cybersecurity partner of choice, protecting our digital way of life.\n\nWe are looking for an Engineering Manager to lead the Explicit Proxy team, one of the most technically complex and cross-functional areas within Prisma Access. This role combines hands-on technical depth (L4-L7 proxy, multi-cloud environments) with managerial excellence, guiding team members who build scalable network security services running at massive cloud scale.\n\nYou’ll drive innovation at the core of our Secure Access Service Edge (SASE) solution, enabling enterprises to securely connect users to the internet, SaaS, and private applications — with scale, performance, and zero-trust principles at the foundation.\n\nYour Impact\n\nLead, mentor, and grow an engineering team within Prisma Access\n\nPartner closely with Product Managers and cross-functional groups to define priorities and build roadmaps\n\nAlign stakeholders across business units and communicate tradeoffs, risks, and execution plans with clarity\n\nBuild a culture of accountability, ownership, and continuous improvement.\n\nGuide teams on building highly scalable cloud-native microservices.\n\nEnsure efficient deployment, observability, and runtime stability in production environments.\n\nYour Experience\n\n3-4 years of experience managing a software engineering team in a large enterprise organization.\n\n5+ years of experience as a hands-on software engineer.\n\nExpertise in Explicit Proxy technologies: L4-L7 Proxy,  TCP/IP, SSL/TLS interception, authentication flows, PAC, DNS handling, and content filtering.\n\nBackground in network security and cloud-delivered SWG/SASE services.\n\nKnowledge of building multi-tenant, cloud-native architectures (Kubernetes, microservices, distributed data pipelines, observability stacks)\n\nStrong collaboration skills; able to align cross-disciplinary teams around a shared goal.\n\nDemonstrated ability to plan, execute, and deliver roadmaps with high predictability.\n\nProven track record of delivering complex, distributed cloud products end-to-end.\n\nExperience with large-scale cloud architectures (GCP, AWS, or Azure)\n\nThe Team\n\nOur engineering team is at the core of our products – connected directly to the mission of preventing cyberattacks. We are constantly innovating – challenging the way we, and the industry, think about cybersecurity. Our engineers don’t shy away from building products to solve problems no one has pursued before.\n\nWe define the industry, instead of waiting for directions. We need individuals who feel comfortable in ambiguity, excited by the prospect of a challenge, and empowered by the unknown risks facing our everyday lives that are only enabled by a secure digital environment.\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $165000/YR - $267500/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5157 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
+  "errors": []
+}

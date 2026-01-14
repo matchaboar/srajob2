@@ -294,6 +294,35 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
     if direct and (allow_remote or not direct.get("remoteOnly")):
         return direct
 
+    # Handle "City, State, Country" format by trying progressively shorter prefixes
+    # This ensures "Redmond, Washington, United States" matches "Redmond, Washington"
+    # instead of matching "Washington" (DC) via boundary pattern
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    if len(parts) >= 2:
+        # Try "City, State" first (most specific)
+        city_state = f"{parts[0]}, {parts[1]}"
+        city_state_key = _normalize_location_key(city_state)
+        city_state_match = _LOCATION_DICTIONARY.get(city_state_key)
+        if city_state_match and (allow_remote or not city_state_match.get("remoteOnly")):
+            return city_state_match
+
+        # Try just the city name
+        city_key = _normalize_location_key(parts[0])
+        city_match = _LOCATION_DICTIONARY.get(city_key)
+        if city_match and (allow_remote or not city_match.get("remoteOnly")):
+            # Verify it's not a state name that could be confused with a city
+            # (e.g., "Washington" should not match if parts[1] is also a state)
+            city_name = (city_match.get("city") or "").lower()
+            state_name = (city_match.get("state") or "").lower()
+            # If the city name matches and the state in parts[1] matches, use it
+            second_part_key = _normalize_location_key(parts[1])
+            if second_part_key == _normalize_location_key(state_name):
+                return city_match
+            # If parts[1] is a US state abbreviation or name, and city_match is in that state
+            state_abbr = _STATE_ABBR_BY_KEY.get(second_part_key)
+            if state_abbr and _STATE_NAME_BY_ABBR.get(state_abbr, "").lower() == state_name:
+                return city_match
+
     for key, entry in _LOCATION_DICTIONARY_KEYS:
         if not allow_remote and entry.get("remoteOnly"):
             continue
@@ -377,17 +406,37 @@ def _reorder_by_us_preference(locations: List[str]) -> List[str]:
     """
     prioritized = list(locations)
 
-    def find_index(allow_remote: bool) -> int:
-        for idx, loc in enumerate(prioritized):
-            resolved = _resolve_location_from_dictionary(loc)
-            if not resolved:
-                continue
+    def _is_us_location(loc: str) -> tuple[bool, bool]:
+        """Check if location is in the US.
+
+        Returns:
+            Tuple of (is_us, is_remote)
+        """
+        resolved = _resolve_location_from_dictionary(loc)
+        if resolved:
             country = (resolved.get("country") or "").strip()
             is_remote = (resolved.get("city") or "").lower() == "remote" or (resolved.get("state") or "").lower() == "remote"
+            return country == "United States", is_remote
+
+        # Fallback: check if location matches "City, STATE_ABBR" pattern
+        # This handles cities not in the dictionary (like Livingston, NJ)
+        if "," in loc:
+            parts = [p.strip() for p in loc.split(",")]
+            if len(parts) == 2:
+                state_part = parts[1].upper()
+                if state_part in _STATE_NAME_BY_ABBR:
+                    return True, False
+
+        return False, False
+
+    def find_index(allow_remote: bool) -> int:
+        for idx, loc in enumerate(prioritized):
+            is_us, is_remote = _is_us_location(loc)
+            if not is_us:
+                continue
             if not allow_remote and is_remote:
                 continue
-            if country == "United States":
-                return idx
+            return idx
         return -1
 
     non_remote_idx = find_index(False)

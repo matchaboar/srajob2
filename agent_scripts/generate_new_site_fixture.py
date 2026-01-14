@@ -223,6 +223,7 @@ def generate_assertion_yaml(
     company = site_info.get("suggested_name", site_info.get("company", "Unknown"))
 
     lines = [
+        "# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.",
         f"site_id: {handler}",
         f"detail_url: {detail_url}",
         "expected:",

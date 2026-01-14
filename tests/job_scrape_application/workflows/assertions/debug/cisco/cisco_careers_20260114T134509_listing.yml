@@ -1,0 +1,26 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: cisco_careers
+listing_url: https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1
+expected:
+  url_count_min: 15
+  url_pattern: "https://careers\\.cisco\\.com/global/en/job/\\d+/"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "Cisco_CareersHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence"
+  #   - "https://careers.cisco.com/global/en/job/2000898/Account-Executive-Portfolio-Defence"
+  #   - "https://careers.cisco.com/global/en/job/2002346/Systems-Engineer"
+  #   - "https://careers.cisco.com/global/en/job/2003227/Regional-Sales-Manager-Mid-Market-m-f-d"
+  #   - "https://careers.cisco.com/global/en/job/1447056/Account-Executive-Splunk-m-f-d"
+  #   - "https://careers.cisco.com/global/en/job/2000336/Working-Student-CX-EMEA-Renewals-Team-Germany-Non-Technical-Intern-I"
+  #   - "https://careers.cisco.com/global/en/job/2000672/Account-Executive-Public-Sector-Healthcare-Germany"
+  #   - "https://careers.cisco.com/global/en/job/2000675/Systems-Architect-Higher-Education"
+  #   - "https://careers.cisco.com/global/en/job/2000681/Systems-Architect-Research"
+  #   - "https://careers.cisco.com/global/en/job/1433857/Account-Executive-Splunk-m-f-d"
+  #   - "https://careers.cisco.com/global/en/search-results?from=10&s=1"
+  #   - "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&from=10&s=1"
+  #   - "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&from=20&s=1"
+  #   - "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&from=30&s=1"
+  #   - "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&from=40&s=1"

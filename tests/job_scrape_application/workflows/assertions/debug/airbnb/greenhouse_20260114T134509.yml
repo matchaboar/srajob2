@@ -1,0 +1,11 @@
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518
+expected:
+  title: "Android Software Engineer"
+  company: "Airbnb"
+  location_contains: "Sao Paulo"
+  is_remote: true  # Airbnb is in remote company config
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

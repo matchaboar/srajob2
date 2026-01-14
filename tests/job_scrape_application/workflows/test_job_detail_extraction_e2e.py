@@ -12,7 +12,6 @@ Results can be output to ./site-detail-e2e-examples for inspection.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -22,7 +21,38 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pytest
-import yaml
+
+# Use orjson for faster JSON parsing (falls back to stdlib if not available)
+try:
+    import orjson
+
+    def json_loads(data: bytes | str) -> Any:
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        return orjson.loads(data)
+
+    def json_dumps(obj: Any, indent: int = 2) -> str:
+        options = orjson.OPT_INDENT_2 if indent else 0
+        return orjson.dumps(obj, default=str, option=options).decode("utf-8")
+
+except ImportError:
+    import json
+
+    def json_loads(data: bytes | str) -> Any:
+        if isinstance(data, bytes):
+            data = data.decode("utf-8")
+        return json.loads(data)
+
+    def json_dumps(obj: Any, indent: int = 2) -> str:
+        return json.dumps(obj, indent=indent, default=str)
+
+# Use CSafeLoader for faster YAML parsing (falls back to safe_load if not available)
+try:
+    import yaml
+    from yaml import CSafeLoader as YAMLLoader
+except ImportError:
+    import yaml
+    YAMLLoader = yaml.SafeLoader  # type: ignore
 
 ROOT = os.path.abspath(".")
 if ROOT not in sys.path:
@@ -37,15 +67,123 @@ from job_scrape_application.workflows.helpers.scrape_utils import (
     trim_scrape_for_convex,
 )
 from job_scrape_application.workflows.site_handlers import get_site_handler
+from job_scrape_application.workflows.extractors import (
+    ExtractionContext,
+    extract_job_fields,
+    get_debug_trace,
+    build_heuristic_patch_from_extractors,
+)
 
 SCHEDULE_PATH = Path("job_scrape_application/config/prod/site_schedules.yml")
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
 SINGLE_REQUEST_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/single_request")
 ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions")
+DEBUG_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
+DEBUG_ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions/debug")
 OUTPUT_DIR = Path("./site-detail-e2e-examples")
 DESCRIPTION_PREVIEW_MAX_WORDS = 100
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Fixture/Assertion Discovery (1:1 mapping by identifier)
+# =============================================================================
+# Naming convention:
+#   Fixture: {site}_{short_id}_{timestamp}_detail.json
+#   Assertion: {site}_{short_id}_{timestamp}.yml
+# The identifier is: {site}_{short_id}_{timestamp}
+# Example: airbnb_7434393_20260114T153022
+
+
+def _extract_fixture_identifier(fixture_path: Path) -> str:
+    """Extract identifier from fixture filename.
+
+    Examples:
+        airbnb_7434393_20260114T153022_detail.json -> airbnb_7434393_20260114T153022
+        airbnb_detail.json -> airbnb (legacy format)
+    """
+    name = fixture_path.stem  # Remove .json
+    if name.endswith("_detail"):
+        name = name[:-7]  # Remove _detail suffix
+    elif name.endswith("_listing"):
+        name = name[:-8]  # Remove _listing suffix
+    return name
+
+
+def _find_assertion_for_fixture(fixture_path: Path) -> Optional[Path]:
+    """Find the matching assertion file for a fixture.
+
+    Searches in order:
+    1. Same directory as fixture (for debug fixtures organized by company)
+    2. DEBUG_ASSERTIONS_DIR with company subdirectory
+    3. ASSERTIONS_DIR (for legacy fixtures)
+    """
+    identifier = _extract_fixture_identifier(fixture_path)
+
+    # Check for company subdirectory pattern (e.g., fixtures/debug/airbnb/)
+    parent_name = fixture_path.parent.name
+    if parent_name not in ("dbos_schedule", "single_request", "debug"):
+        # Company subdirectory - look in assertions/debug/{company}/
+        company_assertion_dir = DEBUG_ASSERTIONS_DIR / parent_name
+        if company_assertion_dir.exists():
+            assertion_path = company_assertion_dir / f"{identifier}.yml"
+            if assertion_path.exists():
+                return assertion_path
+
+    # Check DEBUG_ASSERTIONS_DIR
+    assertion_path = DEBUG_ASSERTIONS_DIR / f"{identifier}.yml"
+    if assertion_path.exists():
+        return assertion_path
+
+    # Check ASSERTIONS_DIR (legacy)
+    assertion_path = ASSERTIONS_DIR / f"{identifier}.yml"
+    if assertion_path.exists():
+        return assertion_path
+
+    return None
+
+
+def _discover_fixtures_with_assertions() -> List[tuple[Path, Path]]:
+    """Discover all fixture files that have matching assertion files.
+
+    Returns list of (fixture_path, assertion_path) tuples.
+    """
+    results = []
+
+    # Search all fixture directories
+    fixture_dirs = [
+        FIXTURE_DIR,
+        SINGLE_REQUEST_FIXTURE_DIR,
+        DEBUG_FIXTURE_DIR,
+    ]
+
+    for fixture_dir in fixture_dirs:
+        if not fixture_dir.exists():
+            continue
+
+        # Find all detail fixtures (including in subdirectories)
+        for fixture_path in fixture_dir.rglob("*_detail.json"):
+            assertion_path = _find_assertion_for_fixture(fixture_path)
+            if assertion_path:
+                results.append((fixture_path, assertion_path))
+
+    return results
+
+
+def _get_fixture_test_id(fixture_path: Path) -> str:
+    """Generate a test ID for a fixture.
+
+    For fixtures in company subdirectories, includes the company name.
+    """
+    identifier = _extract_fixture_identifier(fixture_path)
+    parent_name = fixture_path.parent.name
+
+    # For company subdirectories, prefix with company
+    if parent_name not in ("dbos_schedule", "single_request", "debug", "fixtures"):
+        return f"{parent_name}/{identifier}"
+
+    return identifier
 
 
 def _slugify(value: str) -> str:
@@ -54,7 +192,7 @@ def _slugify(value: str) -> str:
 
 
 def _load_schedule_entries() -> List[Dict[str, Any]]:
-    payload = yaml.safe_load(SCHEDULE_PATH.read_text(encoding="utf-8")) or {}
+    payload = yaml.load(SCHEDULE_PATH.read_bytes(), Loader=YAMLLoader) or {}
     entries = payload if isinstance(payload, list) else payload.get("site_schedules", [])
     if not isinstance(entries, list):
         return []
@@ -82,7 +220,7 @@ def _fixture_paths(entry: Dict[str, Any]) -> tuple[Path, Path]:
 
 
 def _load_fixture(path: Path) -> Dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json_loads(path.read_bytes())
     if not isinstance(payload, dict):
         raise AssertionError(f"Fixture {path} must contain a dict payload")
     if not isinstance(payload.get("request"), dict):
@@ -105,15 +243,26 @@ def _truncate_to_words(text: str, max_words: int) -> str:
     return " ".join(words[:max_words]) + "..."
 
 
+# Cache for assertion files (loaded once per site)
+_ASSERTIONS_CACHE: Dict[str, Optional[Dict[str, Any]]] = {}
+
+
 def _load_assertions(site_id: str) -> Optional[Dict[str, Any]]:
-    """Load assertion YAML file for a site if it exists."""
+    """Load assertion YAML file for a site if it exists. Results are cached."""
+    if site_id in _ASSERTIONS_CACHE:
+        return _ASSERTIONS_CACHE[site_id]
+
     assertion_path = ASSERTIONS_DIR / f"{site_id}.yml"
     if not assertion_path.exists():
+        _ASSERTIONS_CACHE[site_id] = None
         return None
     try:
-        return yaml.safe_load(assertion_path.read_text(encoding="utf-8"))
+        result = yaml.load(assertion_path.read_bytes(), Loader=YAMLLoader)
+        _ASSERTIONS_CACHE[site_id] = result
+        return result
     except Exception as exc:
         logger.warning("Failed to load assertions for %s: %s", site_id, exc)
+        _ASSERTIONS_CACHE[site_id] = None
         return None
 
 
@@ -376,6 +525,33 @@ class ConvexStorageCapture:
 
 
 @dataclass
+class ExtractionStepLog:
+    """Log entry for a single extraction step."""
+    step: str
+    description: str
+    data: Any = None
+
+
+@dataclass
+class HeuristicPatchInfo:
+    """Info about heuristic patches applied to a job."""
+    original_title: Optional[str] = None
+    patched_title: Optional[str] = None
+    title_changed: bool = False
+    original_values: Dict[str, Any] = field(default_factory=dict)
+    patch_applied: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ExtractorFieldTrace:
+    """Debug trace for a single extracted field showing all strategies."""
+    field_name: str
+    final_value: Any = None
+    winning_strategy: Optional[str] = None
+    strategy_results: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
 class JobDetailExtractionResult:
     """Complete extraction result for a site."""
 
@@ -386,6 +562,16 @@ class JobDetailExtractionResult:
     convex_capture: ConvexStorageCapture = field(default_factory=ConvexStorageCapture)
     raw_scrape_response: Optional[Dict[str, Any]] = None
     errors: List[str] = field(default_factory=list)
+    # Verbose debug info
+    extraction_steps: List[ExtractionStepLog] = field(default_factory=list)
+    raw_markdown: Optional[str] = None
+    handler_name: Optional[str] = None
+    normalized_markdown: Optional[str] = None
+    extracted_title_from_handler: Optional[str] = None
+    # Heuristic processing info
+    heuristic_patches: List[HeuristicPatchInfo] = field(default_factory=list)
+    # Extractor debug trace - shows winning strategy for each field
+    extractor_trace: Dict[str, ExtractorFieldTrace] = field(default_factory=dict)
 
 
 class _FixtureAsyncSpider:
@@ -643,6 +829,83 @@ class WorkflowTestModule:
             source_url=self.source_url,
         )
 
+        # Capture verbose debug info if enabled
+        verbose = os.environ.get("DEBUG_EXTRACTION_VERBOSE", "").lower() in ("1", "true", "yes")
+
+        if verbose:
+            # Step 1: Capture handler info
+            handler = get_site_handler(self.detail_url)
+            result.handler_name = handler.name if handler else None
+            result.extraction_steps.append(ExtractionStepLog(
+                step="Handler Detection",
+                description=f"Detected handler: {result.handler_name or 'None (base handler)'}",
+                data={"url": self.detail_url, "handler": result.handler_name},
+            ))
+
+            # Step 2: Capture raw content from fixture (markdown or JSON)
+            try:
+                fixture_response = self.detail_fixture.get("response", [])
+                raw_content = None
+                content_type = "unknown"
+
+                if isinstance(fixture_response, list) and fixture_response:
+                    # JSONL format - parse first line
+                    first_line = fixture_response[0] if fixture_response else ""
+                    if isinstance(first_line, str):
+                        parsed = json_loads(first_line)
+                        raw_content = parsed.get("content", {}).get("commonmark", "")
+                        # Also try raw_html if commonmark is empty or just a code block
+                        if not raw_content or raw_content.strip().startswith("```"):
+                            raw_html = parsed.get("content", {}).get("raw", "")
+                            if raw_html:
+                                content_type = "raw_html"
+                                raw_content = raw_html[:500] + "..." if len(raw_html) > 500 else raw_html
+                            else:
+                                content_type = "json_codeblock"
+                        else:
+                            content_type = "commonmark"
+                    elif isinstance(first_line, dict):
+                        raw_content = first_line.get("content", {}).get("commonmark", "")
+                        content_type = "commonmark"
+                elif isinstance(fixture_response, dict):
+                    # Single request format (non-streaming)
+                    raw_content = fixture_response.get("content", {}).get("commonmark", "")
+                    if not raw_content:
+                        # Try raw HTML for single request
+                        raw_content = fixture_response.get("content", {}).get("raw", "")
+                        content_type = "raw_html" if raw_content else "empty"
+                    else:
+                        content_type = "commonmark"
+
+                result.raw_markdown = raw_content
+                result.extraction_steps.append(ExtractionStepLog(
+                    step="Raw Content Capture",
+                    description=f"Captured {len(result.raw_markdown or '')} chars of {content_type} content",
+                    data={"length": len(result.raw_markdown or ""), "content_type": content_type},
+                ))
+            except Exception as e:
+                result.extraction_steps.append(ExtractionStepLog(
+                    step="Raw Content Capture",
+                    description=f"Failed to capture raw content: {e}",
+                ))
+
+            # Step 3: Test handler normalization
+            if handler and result.raw_markdown:
+                try:
+                    normalized_md, extracted_title = handler.normalize_markdown(result.raw_markdown)
+                    result.normalized_markdown = normalized_md
+                    result.extracted_title_from_handler = extracted_title
+                    result.extraction_steps.append(ExtractionStepLog(
+                        step="Handler Normalization",
+                        description=f"normalize_markdown() returned title='{extracted_title}', {len(normalized_md or '')} chars of normalized content",
+                        data={"title": extracted_title, "normalized_length": len(normalized_md or "")},
+                    ))
+                except Exception as e:
+                    result.extraction_steps.append(ExtractionStepLog(
+                        step="Handler Normalization",
+                        description=f"normalize_markdown() failed: {e}",
+                    ))
+
         try:
             batch = {
                 "urls": [
@@ -657,6 +920,13 @@ class WorkflowTestModule:
                 ]
             }
 
+            if verbose:
+                result.extraction_steps.append(ExtractionStepLog(
+                    step="Workflow Execution",
+                    description="Calling process_spidercloud_job_batch()",
+                    data=batch,
+                ))
+
             response = await acts.process_spidercloud_job_batch(
                 batch, persist_scrapes=True
             )
@@ -664,7 +934,22 @@ class WorkflowTestModule:
             result.raw_scrape_response = response
             result.convex_capture = self.capture
 
+            if verbose:
+                result.extraction_steps.append(ExtractionStepLog(
+                    step="Workflow Complete",
+                    description=f"Workflow returned, captured {len(self.capture.stored_scrapes)} scrapes, {len(self.capture.ingested_jobs)} ingested jobs",
+                    data={
+                        "stored_scrapes": len(self.capture.stored_scrapes),
+                        "ingested_jobs": len(self.capture.ingested_jobs),
+                        "description_uploads": len(self.capture.description_uploads),
+                    },
+                ))
+
             # Extract job details from stored scrapes (where normalized items live)
+            # IMPORTANT: Apply heuristics like production does in ingest_scrape_to_convex
+            import time
+            heuristic_time_ms = int(time.time() * 1000)
+
             for scrape in self.capture.stored_scrapes:
                 items = scrape.get("items") if isinstance(scrape, dict) else {}
                 if not isinstance(items, dict):
@@ -685,25 +970,118 @@ class WorkflowTestModule:
                 for row in normalized:
                     if not isinstance(row, dict):
                         continue
+
+                    # Store original values before heuristics
+                    original_title = str(row.get("title") or row.get("job_title") or "")
+                    original_values = {
+                        "title": original_title,
+                        "location": str(row.get("location") or ""),
+                        "remote": row.get("remote"),
+                    }
+
+                    # =========================================================
+                    # EXTRACTOR DEBUG TRACE
+                    # Run modular extractors to show which strategy won each field
+                    # This mirrors production extraction and shows complete trace
+                    # =========================================================
+                    try:
+                        handler = get_site_handler(self.detail_url)
+                        description_md = str(row.get("description") or "")
+                        url = str(row.get("url") or row.get("job_url") or self.detail_url)
+
+                        # Create extraction context from row data
+                        ctx = ExtractionContext.from_scrape_result(
+                            url=url,
+                            markdown=description_md,
+                            handler=handler,
+                            raw_row=row,
+                            debug=True,  # Always run all strategies for complete trace
+                        )
+
+                        # Run all extractors and capture full trace
+                        extractor_results = extract_job_fields(ctx, run_all=True)
+
+                        # Convert to trace dict for output
+                        for field_name, ext_result in extractor_results.items():
+                            trace_data = ext_result.to_debug_dict()
+                            result.extractor_trace[field_name] = ExtractorFieldTrace(
+                                field_name=field_name,
+                                final_value=trace_data.get("final_value"),
+                                winning_strategy=trace_data.get("winning_strategy"),
+                                strategy_results=trace_data.get("strategy_results", []),
+                            )
+
+                        if verbose:
+                            result.extraction_steps.append(ExtractionStepLog(
+                                step="Extractor Debug Trace",
+                                description=f"Ran {len(extractor_results)} extractors with all strategies",
+                                data={
+                                    field: {
+                                        "winner": trace.winning_strategy,
+                                        "value": trace.final_value,
+                                    }
+                                    for field, trace in result.extractor_trace.items()
+                                },
+                            ))
+                    except Exception as e:
+                        if verbose:
+                            result.extraction_steps.append(ExtractionStepLog(
+                                step="Extractor Debug Trace",
+                                description=f"Failed to run extractors: {e}",
+                            ))
+                        logger.debug("Extractor trace failed: %s", e)
+
+                    # Apply heuristics using new extractor-based path
+                    # This replaces _build_job_detail_heuristic_patch with the modular extractors
+                    patch, _records = build_heuristic_patch_from_extractors(row, [], heuristic_time_ms)
+
+                    # Track what changed
+                    patched_title = patch.get("title") if patch else None
+                    title_changed = patched_title is not None and patched_title != original_title
+
+                    heuristic_info = HeuristicPatchInfo(
+                        original_title=original_title,
+                        patched_title=patched_title,
+                        title_changed=title_changed,
+                        original_values=original_values,
+                        patch_applied=patch if patch else {},
+                    )
+                    result.heuristic_patches.append(heuristic_info)
+
+                    # Log heuristic changes in verbose mode
+                    if verbose and title_changed:
+                        result.extraction_steps.append(ExtractionStepLog(
+                            step="Heuristic Title Override",
+                            description=f"Title changed from '{original_title}' to '{patched_title}'",
+                            data={
+                                "original_title": original_title,
+                                "patched_title": patched_title,
+                                "patch": patch,
+                            },
+                        ))
+
+                    # Apply patch to row (merge patch values over original)
+                    patched_row = {**row, **patch} if patch else row
+
                     job_details = ExtractedJobDetails(
-                        title=str(row.get("title") or row.get("job_title") or ""),
-                        description=str(row.get("description") or ""),
+                        title=str(patched_row.get("title") or patched_row.get("job_title") or ""),
+                        description=str(patched_row.get("description") or ""),
                         description_word_count=_count_words(
-                            str(row.get("description") or "")
+                            str(patched_row.get("description") or "")
                         ),
-                        location=str(row.get("location") or ""),
-                        is_remote=bool(row.get("remote")),
-                        posted_at=row.get("posted_at"),
-                        posted_at_unknown=bool(row.get("posted_at_unknown")),
-                        company=str(row.get("company") or ""),
-                        level=str(row.get("level") or ""),
-                        total_compensation=int(row.get("total_compensation") or 0),
-                        compensation_unknown=bool(row.get("compensation_unknown")),
-                        compensation_reason=row.get("compensation_reason"),
+                        location=str(patched_row.get("location") or ""),
+                        is_remote=bool(patched_row.get("remote")),
+                        posted_at=patched_row.get("posted_at"),
+                        posted_at_unknown=bool(patched_row.get("posted_at_unknown")),
+                        company=str(patched_row.get("company") or ""),
+                        level=str(patched_row.get("level") or ""),
+                        total_compensation=int(patched_row.get("total_compensation") or 0),
+                        compensation_unknown=bool(patched_row.get("compensation_unknown")),
+                        compensation_reason=patched_row.get("compensation_reason"),
                         url=str(
-                            row.get("url")
-                            or row.get("job_url")
-                            or row.get("absolute_url")
+                            patched_row.get("url")
+                            or patched_row.get("job_url")
+                            or patched_row.get("absolute_url")
                             or ""
                         ),
                         cost_milli_cents=int(cost) if cost else None,
@@ -808,11 +1186,326 @@ def _write_extraction_result(result: JobDetailExtractionResult) -> None:
                 for upload in result.convex_capture.description_uploads[:2]
             ],
         },
+        # Extractor debug trace - shows which strategy won for each field
+        "extractor_trace": {
+            field: {
+                "final_value": trace.final_value,
+                "winning_strategy": trace.winning_strategy,
+                "strategy_count": len(trace.strategy_results),
+                # Include compact strategy summary (winner + alternates)
+                "strategies": [
+                    {
+                        "name": s.get("strategy"),
+                        "priority": s.get("priority"),
+                        "value": s.get("value"),
+                        "is_valid": s.get("is_valid"),
+                        "reason": s.get("reason"),
+                    }
+                    for s in trace.strategy_results
+                ],
+            }
+            for field, trace in result.extractor_trace.items()
+        } if result.extractor_trace else {},
         "errors": result.errors,
     }
 
-    output_path.write_text(json.dumps(output_data, indent=2, default=str))
+    output_path.write_text(json_dumps(output_data, indent=2))
     logger.info("Wrote extraction result to %s", output_path)
+
+    # Write verbose extraction steps if enabled
+    if os.environ.get("DEBUG_EXTRACTION_VERBOSE", "").lower() in ("1", "true", "yes"):
+        _write_verbose_extraction_steps(result)
+
+
+def _write_verbose_extraction_steps(result: JobDetailExtractionResult) -> None:
+    """Write detailed step-by-step extraction log for debugging.
+
+    This outputs a human-readable file showing:
+    1. Raw SpiderCloud response (markdown content)
+    2. Handler detection and selection
+    3. Handler normalize_markdown() output
+    4. Field extraction from normalized content
+    5. Final job data before Convex storage
+    6. Convex mutation payload
+
+    Enable by setting DEBUG_EXTRACTION_VERBOSE=1
+    """
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / f"{result.site_id}_extraction_steps.md"
+
+    lines = [
+        f"# Extraction Steps: {result.site_id}",
+        "",
+        f"**Detail URL:** `{result.detail_url}`",
+        f"**Source URL:** `{result.source_url}`",
+        f"**Handler:** `{result.handler_name or 'Unknown'}`",
+        "",
+        "---",
+        "",
+    ]
+
+    # Step 1: Raw SpiderCloud Response
+    lines.extend([
+        "## Step 1: SpiderCloud Response",
+        "",
+        "Raw markdown content from SpiderCloud scrape:",
+        "",
+        "```markdown",
+    ])
+    if result.raw_markdown:
+        # Truncate to first 3000 chars for readability
+        preview = result.raw_markdown[:3000]
+        if len(result.raw_markdown) > 3000:
+            preview += f"\n\n... (truncated, {len(result.raw_markdown)} total chars)"
+        lines.append(preview)
+    else:
+        lines.append("(No raw markdown captured)")
+    lines.extend([
+        "```",
+        "",
+        "---",
+        "",
+    ])
+
+    # Step 2: Handler Detection
+    lines.extend([
+        "## Step 2: Handler Detection",
+        "",
+        f"**Detected Handler:** `{result.handler_name or 'None (using base handler)'}`",
+        "",
+        "The handler is selected based on URL pattern matching. Each handler knows how to:",
+        "- Parse the specific job board's HTML/markdown format",
+        "- Extract title, location, and other fields",
+        "- Clean up JSON blocks or other noise",
+        "",
+        "---",
+        "",
+    ])
+
+    # Step 3: Handler Normalization
+    lines.extend([
+        "## Step 3: Handler normalize_markdown() Output",
+        "",
+        f"**Extracted Title:** `{result.extracted_title_from_handler or '(None)'}`",
+        "",
+        "Normalized markdown after handler processing:",
+        "",
+        "```markdown",
+    ])
+    if result.normalized_markdown:
+        preview = result.normalized_markdown[:2000]
+        if len(result.normalized_markdown) > 2000:
+            preview += f"\n\n... (truncated, {len(result.normalized_markdown)} total chars)"
+        lines.append(preview)
+    else:
+        lines.append("(No normalized markdown captured - handler may not implement normalize_markdown)")
+    lines.extend([
+        "```",
+        "",
+        "---",
+        "",
+    ])
+
+    # Step 4: Extraction Steps Log
+    if result.extraction_steps:
+        lines.extend([
+            "## Step 4: Detailed Extraction Log",
+            "",
+        ])
+        for step in result.extraction_steps:
+            lines.append(f"### {step.step}")
+            lines.append("")
+            lines.append(step.description)
+            if step.data is not None:
+                lines.append("")
+                lines.append("```json")
+                try:
+                    lines.append(json_dumps(step.data, indent=2)[:1500])
+                except Exception:
+                    lines.append(str(step.data)[:1500])
+                lines.append("```")
+            lines.append("")
+        lines.extend(["---", ""])
+
+    # Step 4.5: Heuristic Processing (applied after scraper extraction)
+    if result.heuristic_patches:
+        lines.extend([
+            "## Step 4.5: Heuristic Processing",
+            "",
+            "**IMPORTANT:** Heuristics are applied AFTER scraper extraction, before Convex ingestion.",
+            "This can override the title if the original title doesn't contain required keywords.",
+            "",
+        ])
+        for i, patch_info in enumerate(result.heuristic_patches):
+            lines.append(f"### Job {i + 1} Heuristics")
+            lines.append("")
+            if patch_info.title_changed:
+                lines.append(f"**⚠️ TITLE CHANGED:**")
+                lines.append(f"- Original: `{patch_info.original_title}`")
+                lines.append(f"- After Heuristics: `{patch_info.patched_title}`")
+            else:
+                lines.append(f"**Title unchanged:** `{patch_info.original_title}`")
+            lines.append("")
+            if patch_info.patch_applied:
+                lines.append("**Full patch applied:**")
+                lines.append("```json")
+                try:
+                    lines.append(json_dumps(patch_info.patch_applied, indent=2)[:1000])
+                except Exception:
+                    lines.append(str(patch_info.patch_applied)[:1000])
+                lines.append("```")
+            lines.append("")
+        lines.extend(["---", ""])
+
+    # Step 4.6: Extractor Strategy Trace (IMPORTANT: shows which strategy won each field)
+    if result.extractor_trace:
+        lines.extend([
+            "## Step 4.6: Extractor Strategy Trace",
+            "",
+            "**⚠️ IMPORTANT:** This shows which extraction strategy won for each field.",
+            "Use this to debug extraction bugs like location or remote detection issues.",
+            "",
+            "Each field has multiple strategies tried in priority order. The first valid result wins.",
+            "",
+        ])
+
+        # Summary table first
+        lines.append("### Summary (Winners)")
+        lines.append("")
+        lines.append("| Field | Winner Strategy | Value |")
+        lines.append("|-------|----------------|-------|")
+        for field, trace in result.extractor_trace.items():
+            value_preview = str(trace.final_value)[:50] if trace.final_value else "(none)"
+            lines.append(f"| {field} | `{trace.winning_strategy or 'none'}` | `{value_preview}` |")
+        lines.append("")
+
+        # Detailed strategy breakdown for each field
+        lines.append("### Detailed Strategy Breakdown")
+        lines.append("")
+        for field, trace in result.extractor_trace.items():
+            lines.append(f"#### {field.upper()}")
+            lines.append("")
+            lines.append(f"**Final Value:** `{trace.final_value}`")
+            lines.append(f"**Winning Strategy:** `{trace.winning_strategy}`")
+            lines.append("")
+            if trace.strategy_results:
+                lines.append("| Strategy | Priority | Valid | Value | Reason |")
+                lines.append("|----------|----------|-------|-------|--------|")
+                for s in trace.strategy_results:
+                    name = s.get("strategy", "?")
+                    priority = s.get("priority", "?")
+                    is_valid = "✅" if s.get("is_valid") else "❌"
+                    value = str(s.get("value") or "")[:30]
+                    reason = str(s.get("reason") or "")[:50]
+                    # Highlight the winner
+                    if name == trace.winning_strategy:
+                        lines.append(f"| **{name}** 🏆 | {priority} | {is_valid} | `{value}` | {reason} |")
+                    else:
+                        lines.append(f"| {name} | {priority} | {is_valid} | `{value}` | {reason} |")
+                lines.append("")
+            else:
+                lines.append("*No strategy results recorded*")
+                lines.append("")
+        lines.extend(["---", ""])
+
+    # Step 5: Extracted Job Details
+    lines.extend([
+        "## Step 5: Extracted Job Details",
+        "",
+    ])
+    if result.extracted_jobs:
+        for i, job in enumerate(result.extracted_jobs):
+            lines.append(f"### Job {i + 1}")
+            lines.append("")
+            lines.append("| Field | Value |")
+            lines.append("|-------|-------|")
+            lines.append(f"| Title | `{job.title}` |")
+            lines.append(f"| Company | `{job.company}` |")
+            lines.append(f"| Location | `{job.location}` |")
+            lines.append(f"| Is Remote | `{job.is_remote}` |")
+            lines.append(f"| Level | `{job.level}` |")
+            lines.append(f"| Posted At | `{job.posted_at}` |")
+            lines.append(f"| Description Words | `{job.description_word_count}` |")
+            lines.append(f"| Cost (milli-cents) | `{job.cost_milli_cents}` |")
+            lines.append(f"| URL | `{job.url}` |")
+            lines.append("")
+            lines.append("**Description Preview (first 200 words):**")
+            lines.append("")
+            lines.append("```")
+            lines.append(_truncate_to_words(job.description, 200))
+            lines.append("```")
+            lines.append("")
+    else:
+        lines.append("*No jobs extracted*")
+        lines.append("")
+    lines.extend(["---", ""])
+
+    # Step 6: Convex Mutation Payload
+    lines.extend([
+        "## Step 6: Convex Mutation Payload",
+        "",
+        f"**Ingested Jobs Count:** {len(result.convex_capture.ingested_jobs)}",
+        f"**Stored Scrapes Count:** {len(result.convex_capture.stored_scrapes)}",
+        f"**Description Uploads Count:** {len(result.convex_capture.description_uploads)}",
+        "",
+    ])
+
+    if result.convex_capture.ingested_jobs:
+        lines.append("### Sample Ingested Job Payload")
+        lines.append("")
+        lines.append("This is what gets sent to `router:ingestJobsFromScrape`:")
+        lines.append("")
+        lines.append("```json")
+        try:
+            sample = result.convex_capture.ingested_jobs[0]
+            # Truncate description for readability
+            if isinstance(sample.get("description"), str) and len(sample["description"]) > 500:
+                sample = dict(sample)
+                sample["description"] = sample["description"][:500] + "..."
+            lines.append(json_dumps(sample, indent=2))
+        except Exception as e:
+            lines.append(f"Error serializing: {e}")
+        lines.append("```")
+        lines.append("")
+
+    if result.convex_capture.stored_scrapes:
+        lines.append("### Sample Stored Scrape")
+        lines.append("")
+        lines.append("Scrape record stored for debugging/audit:")
+        lines.append("")
+        lines.append("```json")
+        try:
+            scrape = result.convex_capture.stored_scrapes[0]
+            # Create a summary version
+            summary = {
+                "url": scrape.get("url"),
+                "sourceUrl": scrape.get("sourceUrl"),
+                "provider": scrape.get("provider"),
+                "costMilliCents": scrape.get("costMilliCents"),
+                "items_keys": list(scrape.get("items", {}).keys()) if isinstance(scrape.get("items"), dict) else None,
+                "normalized_count": len(scrape.get("items", {}).get("normalized", [])) if isinstance(scrape.get("items"), dict) else 0,
+            }
+            lines.append(json_dumps(summary, indent=2))
+        except Exception as e:
+            lines.append(f"Error serializing: {e}")
+        lines.append("```")
+        lines.append("")
+
+    # Errors section
+    if result.errors:
+        lines.extend([
+            "---",
+            "",
+            "## Errors",
+            "",
+        ])
+        for error in result.errors:
+            lines.append(f"- {error}")
+        lines.append("")
+
+    # Write file
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+    logger.info("Wrote verbose extraction steps to %s", output_path)
 
 
 @pytest.mark.asyncio
@@ -1091,13 +1784,13 @@ if __name__ == "__main__":
                     for item_str in response:
                         if isinstance(item_str, str):
                             try:
-                                item = json.loads(item_str)
+                                item = json_loads(item_str)
                                 if isinstance(item, dict):
                                     content = item.get("content", {})
                                     if isinstance(content, dict):
                                         # Extract job details from fixture
                                         result.raw_scrape_response = item
-                            except json.JSONDecodeError:
+                            except (ValueError, TypeError):
                                 continue
 
                 _write_extraction_result(result)

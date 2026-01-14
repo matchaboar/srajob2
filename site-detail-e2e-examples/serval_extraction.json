@@ -5,9 +5,9 @@
   "extracted_jobs": [
     {
       "title": "Mid-Market Account Executive",
-      "description_preview": "Who We Are At Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans. Serval \u201cautomates the automation,\u201d using a natural language-to-code workflow builder and AI...",
+      "description_preview": "Who We Are At Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans. Serval “automates the automation,” using a natural language-to-code workflow builder and AI...",
       "description_word_count": 552,
-      "location": "San Francisco, California, United States",
+      "location": "San Francisco, CA",
       "is_remote": false,
       "posted_at": 1761058800000,
       "posted_at_unknown": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Mid-Market Account Executive",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Mid-Market Account Executive",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No title in hints"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Who We Are",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Serval",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Serval",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Ashbyhq",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "San Francisco, California, United States",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "San Francisco, California, United States",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Serval was founded by product and engineering leaders from Verkada and is backed by industry-leading investors like First Round, General Catalyst",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "San Francisco, California, United States",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: San Francisco, California, United States"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Serval' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Level from title: 'mid' -> mid"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 230000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 230000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $230,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 250000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $250,000"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-10-21T08:00:00",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-10-21T08:00:00",
+          "is_valid": true,
+          "reason": "Valid date: 2025-10-21T08:00:00"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:14.125200",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Who We Are\n\nAt Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans.\n\nServal “automates the automation,” using a natural language-to-code workflow builder and AI agents that discover and deliver automations for tedious IT workflows.\n\nOur mission is to free IT departments from the #helpdesk channel by creating the simplest way to automate employee onboarding/offboarding, software access management, and the long tail of employee requests. Long term, our vision extends to developing a universal workflow automation platform for all business functions.\n\nServal was founded by product and engineering leaders from Verkada and is backed by industry-leading investors like First Round, General Catalyst, Alt Capital, and Box Group.\n\nRole Overview\n\nAs a Mid-Market Account Executive, you’ll join our founding go-to-market team and own the full sales cycle — from outbound prospecting through close — for multi-stakeholder IT and Security deals. You’ll partner closely with our founders, product, and engineering teams to shape Serval’s commercial motion and define how AI transforms IT operations.\n\nThis role is ideal for a high-performing seller who’s thrived in fast-growing SaaS environments, loves building from zero, and wants to play a meaningful role in defining a category.\n\nWhat you’ll do\n\nOwn the full sales cycle — from pipeline generation to close — across key accounts.\n\nDevelop deep customer understanding, mapping IT and Security org structures and aligning multiple stakeholders around business value.\n\nDeliver consultative, technical demos that showcase how Serval’s AI agents automate workflows across onboarding, access, and service requests.\n\nCollaborate cross-functionally with product, marketing, and engineering to shape roadmap and messaging based on customer feedback.\n\nRun a disciplined sales process: consistent pipeline hygiene, crisp next steps, and accurate forecasting.\n\nContribute to GTM playbooks — refining outbound motions, ICP definitions, and sales collateral.\n\nRepresent Serval at industry events and customer meetings (travel ≈ once per quarter).\n\nWhat you’ll need\n\n2–5 years of full-cycle B2B SaaS sales experience, ideally in an outbound-driven environment with consistent quota attainment.\n\nProven success selling technical or workflow automation solutions to IT, Security, or Engineering leaders.\n\nSkilled at managing complex, multi-stakeholder sales cycles (1–4 months) with VP/C-suite decision-makers.\n\nHigh-agency operator — thrives in ambiguity, builds pipeline from scratch, and helps shape process.\n\nExceptional communication, storytelling, and demo skills.\n\nBased in or willing to work from our San Francisco HQ five days a week, with travel to customers or events as needed.\n\nBonus Points\n\nPrevious experience at high-velocity SaaS companies such as Verkada, Rippling, Gong, Outreach, Samsara, PagerDuty, Okta, or ServiceNow.\n\nExperience joining or helping scale an early-stage (Seed → Series B) startup.\n\nRecognition for top performance — President’s Club, top 10 %, or rapid promotions (BDR → AE → Enterprise).\n\nComfort demoing or discussing APIs, workflow builders, or automation platforms.\n\nWhat We Offer\n\nImpact: Be the driving force behind our revenue growth, shaping the success of our product and company.\n\nGrowth: Be a founding member of Serval’s GTM team. Elevate your career in tandem with Serval’s rapid expansion.\n\nCulture: Join a fast-paced team that values velocity, high performance, and fun.\n\nCompensation: The expected On-Target Earnings (OTE) range for this role is $250,000 USD annually, which includes a 50/50 base and variable split. Actual compensation will depend on experience and skills.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Who We Are\n\nAt Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans.\n\nServal “automates the automation,” using a natural language-to-code workflow builder and AI agents that discover and deliver automations for tedious IT workflows.\n\nOur mission is to free IT departments from the #helpdesk channel by creating the simplest way to automate employee onboarding/offboarding, software access management, and the long tail of employee requests. Long term, our vision extends to developing a universal workflow automation platform for all business functions.\n\nServal was founded by product and engineering leaders from Verkada and is backed by industry-leading investors like First Round, General Catalyst, Alt Capital, and Box Group.\n\nRole Overview\n\nAs a Mid-Market Account Executive, you’ll join our founding go-to-market team and own the full sales cycle — from outbound prospecting through close — for multi-stakeholder IT and Security deals. You’ll partner closely with our founders, product, and engineering teams to shape Serval’s commercial motion and define how AI transforms IT operations.\n\nThis role is ideal for a high-performing seller who’s thrived in fast-growing SaaS environments, loves building from zero, and wants to play a meaningful role in defining a category.\n\nWhat you’ll do\n\nOwn the full sales cycle — from pipeline generation to close — across key accounts.\n\nDevelop deep customer understanding, mapping IT and Security org structures and aligning multiple stakeholders around business value.\n\nDeliver consultative, technical demos that showcase how Serval’s AI agents automate workflows across onboarding, access, and service requests.\n\nCollaborate cross-functionally with product, marketing, and engineering to shape roadmap and messaging based on customer feedback.\n\nRun a disciplined sales process: consistent pipeline hygiene, crisp next steps, and accurate forecasting.\n\nContribute to GTM playbooks — refining outbound motions, ICP definitions, and sales collateral.\n\nRepresent Serval at industry events and customer meetings (travel ≈ once per quarter).\n\nWhat you’ll need\n\n2–5 years of full-cycle B2B SaaS sales experience, ideally in an outbound-driven environment with consistent quota attainment.\n\nProven success selling technical or workflow automation solutions to IT, Security, or Engineering leaders.\n\nSkilled at managing complex, multi-stakeholder sales cycles (1–4 months) with VP/C-suite decision-makers.\n\nHigh-agency operator — thrives in ambiguity, builds pipeline from scratch, and helps shape process.\n\nExceptional communication, storytelling, and demo skills.\n\nBased in or willing to work from our San Francisco HQ five days a week, with travel to customers or events as needed.\n\nBonus Points\n\nPrevious experience at high-velocity SaaS companies such as Verkada, Rippling, Gong, Outreach, Samsara, PagerDuty, Okta, or ServiceNow.\n\nExperience joining or helping scale an early-stage (Seed → Series B) startup.\n\nRecognition for top performance — President’s Club, top 10 %, or rapid promotions (BDR → AE → Enterprise).\n\nComfort demoing or discussing APIs, workflow builders, or automation platforms.\n\nWhat We Offer\n\nImpact: Be the driving force behind our revenue growth, shaping the success of our product and company.\n\nGrowth: Be a founding member of Serval’s GTM team. Elevate your career in tandem with Serval’s rapid expansion.\n\nCulture: Join a fast-paced team that values velocity, high performance, and fun.\n\nCompensation: The expected On-Target Earnings (OTE) range for this role is $250,000 USD annually, which includes a 50/50 base and variable split. Actual compensation will depend on experience and skills.",
+          "is_valid": true,
+          "reason": "Valid description (3798 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Who We Are\n\nAt Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans.\n\nServal “automates the automation,” using a natural language-to-code workflow builder and AI agents that discover and deliver automations for tedious IT workflows.\n\nOur mission is to free IT departments from the #helpdesk channel by creating the simplest way to automate employee onboarding/offboarding, software access management, and the long tail of employee requests. Long term, our vision extends to developing a universal workflow automation platform for all business functions.\n\nServal was founded by product and engineering leaders from Verkada and is backed by industry-leading investors like First Round, General Catalyst, Alt Capital, and Box Group.\n\nRole Overview\n\nAs a Mid-Market Account Executive, you’ll join our founding go-to-market team and own the full sales cycle — from outbound prospecting through close — for multi-stakeholder IT and Security deals. You’ll partner closely with our founders, product, and engineering teams to shape Serval’s commercial motion and define how AI transforms IT operations.\n\nThis role is ideal for a high-performing seller who’s thrived in fast-growing SaaS environments, loves building from zero, and wants to play a meaningful role in defining a category.\n\nWhat you’ll do\n\nOwn the full sales cycle — from pipeline generation to close — across key accounts.\n\nDevelop deep customer understanding, mapping IT and Security org structures and aligning multiple stakeholders around business value.\n\nDeliver consultative, technical demos that showcase how Serval’s AI agents automate workflows across onboarding, access, and service requests.\n\nCollaborate cross-functionally with product, marketing, and engineering to shape roadmap and messaging based on customer feedback.\n\nRun a disciplined sales process: consistent pipeline hygiene, crisp next steps, and accurate forecasting.\n\nContribute to GTM playbooks — refining outbound motions, ICP definitions, and sales collateral.\n\nRepresent Serval at industry events and customer meetings (travel ≈ once per quarter).\n\nWhat you’ll need\n\n2–5 years of full-cycle B2B SaaS sales experience, ideally in an outbound-driven environment with consistent quota attainment.\n\nProven success selling technical or workflow automation solutions to IT, Security, or Engineering leaders.\n\nSkilled at managing complex, multi-stakeholder sales cycles (1–4 months) with VP/C-suite decision-makers.\n\nHigh-agency operator — thrives in ambiguity, builds pipeline from scratch, and helps shape process.\n\nExceptional communication, storytelling, and demo skills.\n\nBased in or willing to work from our San Francisco HQ five days a week, with travel to customers or events as needed.\n\nBonus Points\n\nPrevious experience at high-velocity SaaS companies such as Verkada, Rippling, Gong, Outreach, Samsara, PagerDuty, Okta, or ServiceNow.\n\nExperience joining or helping scale an early-stage (Seed → Series B) startup.\n\nRecognition for top performance — President’s Club, top 10 %, or rapid promotions (BDR → AE → Enterprise).\n\nComfort demoing or discussing APIs, workflow builders, or automation platforms.\n\nWhat We Offer\n\nImpact: Be the driving force behind our revenue growth, shaping the success of our product and company.\n\nGrowth: Be a founding member of Serval’s GTM team. Elevate your career in tandem with Serval’s rapid expansion.\n\nCulture: Join a fast-paced team that values velocity, high performance, and fun.\n\nCompensation: The expected On-Target Earnings (OTE) range for this role is $250,000 USD annually, which includes a 50/50 base and variable split. Actual compensation will depend on experience and skills.",
+          "is_valid": true,
+          "reason": "Valid description (3798 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Who We Are\n\nAt Serval, we're building the AI platform for IT teams. Our goal is to take on legacy players like ServiceNow, a $230+ bn company, by deploying AI agents to resolve IT issues instead of humans.\n\nServal “automates the automation,” using a natural language-to-code workflow builder and AI agents that discover and deliver automations for tedious IT workflows.\n\nOur mission is to free IT departments from the #helpdesk channel by creating the simplest way to automate employee onboarding/offboarding, software access management, and the long tail of employee requests. Long term, our vision extends to developing a universal workflow automation platform for all business functions.\n\nServal was founded by product and engineering leaders from Verkada and is backed by industry-leading investors like First Round, General Catalyst, Alt Capital, and Box Group.\n\nRole Overview\n\nAs a Mid-Market Account Executive, you’ll join our founding go-to-market team and own the full sales cycle — from outbound prospecting through close — for multi-stakeholder IT and Security deals. You’ll partner closely with our founders, product, and engineering teams to shape Serval’s commercial motion and define how AI transforms IT operations.\n\nThis role is ideal for a high-performing seller who’s thrived in fast-growing SaaS environments, loves building from zero, and wants to play a meaningful role in defining a category.\n\nWhat you’ll do\n\nOwn the full sales cycle — from pipeline generation to close — across key accounts.\n\nDevelop deep customer understanding, mapping IT and Security org structures and aligning multiple stakeholders around business value.\n\nDeliver consultative, technical demos that showcase how Serval’s AI agents automate workflows across onboarding, access, and service requests.\n\nCollaborate cross-functionally with product, marketing, and engineering to shape roadmap and messaging based on customer feedback.\n\nRun a disciplined sales process: consistent pipeline hygiene, crisp next steps, and accurate forecasting.\n\nContribute to GTM playbooks — refining outbound motions, ICP definitions, and sales collateral.\n\nRepresent Serval at industry events and customer meetings (travel ≈ once per quarter).\n\nWhat you’ll need\n\n2–5 years of full-cycle B2B SaaS sales experience, ideally in an outbound-driven environment with consistent quota attainment.\n\nProven success selling technical or workflow automation solutions to IT, Security, or Engineering leaders.\n\nSkilled at managing complex, multi-stakeholder sales cycles (1–4 months) with VP/C-suite decision-makers.\n\nHigh-agency operator — thrives in ambiguity, builds pipeline from scratch, and helps shape process.\n\nExceptional communication, storytelling, and demo skills.\n\nBased in or willing to work from our San Francisco HQ five days a week, with travel to customers or events as needed.\n\nBonus Points\n\nPrevious experience at high-velocity SaaS companies such as Verkada, Rippling, Gong, Outreach, Samsara, PagerDuty, Okta, or ServiceNow.\n\nExperience joining or helping scale an early-stage (Seed → Series B) startup.\n\nRecognition for top performance — President’s Club, top 10 %, or rapid promotions (BDR → AE → Enterprise).\n\nComfort demoing or discussing APIs, workflow builders, or automation platforms.\n\nWhat We Offer\n\nImpact: Be the driving force behind our revenue growth, shaping the success of our product and company.\n\nGrowth: Be a founding member of Serval’s GTM team. Elevate your career in tandem with Serval’s rapid expansion.\n\nCulture: Join a fast-paced team that values velocity, high performance, and fun.\n\nCompensation: The expected On-Target Earnings (OTE) range for this role is $250,000 USD annually, which includes a 50/50 base and variable split. Actual compensation will depend on experience and skills.",
+          "is_valid": true,
+          "reason": "Valid description (3798 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

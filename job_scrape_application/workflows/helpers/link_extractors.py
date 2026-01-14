@@ -187,8 +187,18 @@ def normalize_url(url: str | None, *, base_url: str | None = None) -> str | None
     if not candidate:
         return None
     candidate = _decode_unicode_escapes(candidate)
+    # Unescape markdown-escaped characters first (e.g., \_ for underscores, \* for asterisks)
+    # These appear when URLs are extracted from markdown content
+    candidate = candidate.replace("\\_", "_")
+    candidate = candidate.replace("\\*", "*")
+    candidate = candidate.replace("\\[", "[")
+    candidate = candidate.replace("\\]", "]")
+    candidate = candidate.replace("\\(", "(")
+    candidate = candidate.replace("\\)", ")")
+    # Then unescape JSON-escaped slashes
     candidate = candidate.replace("\\/", "/")
-    candidate = candidate.replace("\\", "/")
+    # Strip any remaining trailing backslashes (garbage at end of URL)
+    candidate = candidate.rstrip("\\")
     candidate = fix_scheme_slashes(candidate)
     candidate = _strip_embedded_url_quotes(candidate)
     if candidate.startswith(("http://", "https://")):

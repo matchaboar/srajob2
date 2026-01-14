@@ -1,0 +1,21 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: netflix
+listing_url: https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date
+expected:
+  url_count_min: 10
+  url_pattern: "^https://explore\\.jobs\\.netflix\\.net/careers/job/\\d+$"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "NetflixHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://explore.jobs.netflix.net/careers/job/790312429476"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313604250"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313591443"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313552306"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313551689"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313551266"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313551840"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313542735"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313529500"
+  #   - "https://explore.jobs.netflix.net/careers/job/790313501564"

@@ -5,7 +5,7 @@
   "extracted_jobs": [
     {
       "title": "Account Executive",
-      "description_preview": "Account Executive Rubrik\u2019s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the...",
+      "description_preview": "Account Executive Rubrik’s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the...",
       "description_word_count": 878,
       "location": "Germany, Remote",
       "is_remote": true,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Rubrik Job Board",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Rubrik Job Board",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Rubrik",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Germany, Remote",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Germany, Remote",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "The AE must generate pipeline daily while working with Sales Engineers, Sales Development",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Germany, Remote",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": true,
+          "is_valid": true,
+          "reason": "Location contains 'remote': Germany, Remote"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Rubrik Job Board' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-07T16:04:30",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-07T16:04:30",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-07T16:04:30"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:10.151503",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive\n\nRubrik’s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the resources you need to exceed your goals, maximize your earnings potential, and take your career to the next level — all while doing something truly purposeful: protecting the world's data.\nAs an Enterprise Account Executive, you will have ownership of all elements of bookings growth in new and existing accounts in your assigned region/patch, focused on the enterprise segment. We are seeking a relentless self-starter who is hyper-focused on acquiring new logos by discovering and developing new opportunities, managing pipeline, and executing account strategies, while also driving existing customer expansion. The AE must generate pipeline daily while working with Sales Engineers, Sales Development, Channel Development, and Rubrik Channel Partners to exceed sales quotas.\nWhat You'll Do:\n- Define and execute sales plans for the assigned territory to meet and exceed quota through prospecting, qualifying, managing, and closing sales opportunities\n- Develop and manage sales pipeline to move a large number of strategic transactions through the sales process\n- Identify and close new opportunities for growth working with a mix of mid- large enterprise accounts\n- Present Rubrik, Inc. solutions within complex data center design environments\n- Co-sell and strategize with partners, distributors, and VAR’s to enable rapid growth\n- Provide Rubrik, Inc. management with feedback about the local market opportunity and identification of new business opportunities and channel partnerships\n&nbsp;\n&nbsp;Experience You’ll Need:\n- Ideally 5+ years Tech sales closing experience (selling either IT Infrastructure or SaaS – ideally both) into mid – large orgs&nbsp;\n- Consistent track record landing net \"new logos\" via self sourced pipeline generation activities\n- Has ideally translated IT pain into business outcomes - Exp selling a complex solution into IT personas\n- Ideally understands &amp; has used MEDDPICC as a sales qualification tool &amp; Command of the message -&nbsp;Ability to build strong champions\n- Understanding and experience working with channel partners &amp; SDR's\n- Highly driven, goal oriented \"get it done\" attitude\n- Naturally driven, high levels of Integrity, grit / tenacity but still coachable\n&nbsp;\nJoin Us in Securing the World's Data\nRubrik (RBRK), the Security and AI Operations Company, leads at the intersection of data protection, cyber resilience, and enterprise AI acceleration. Rubrik Security Cloud delivers complete cyber resilience by securing, monitoring, and recovering data, identities, and workloads across clouds. Rubrik Agent Cloud accelerates trusted AI agent deployments at scale by monitoring and auditing agentic actions, enforcing real-time guardrails, fine-tuning for accuracy and undoing agentic mistakes.&nbsp;\nLinkedin | X (formerly Twitter) | Instagram |&nbsp; Rubrik.com\nInclusion @ Rubrik\nAt Rubrik, we are dedicated to fostering a culture where people from all backgrounds are valued, feel they belong, and believe they can succeed. Our commitment to inclusion is at the heart of our mission to secure the world’s data.\nOur goal is to hire and promote the best talent, regardless of background. We continually review our hiring practices to ensure fairness and strive to create an environment where every employee has equal access to opportunities for growth and excellence. We believe in empowering everyone to bring their authentic selves to work and achieve their fullest potential.\nOur inclusion strategy focuses on three core areas of our business and culture:\n-\nOur Company: We are committed to building a merit-based organization that offers equal access to growth and success for all employees globally. Your potential is limitless here.\n-\nOur Culture: We strive to create an inclusive atmosphere where individuals from all backgrounds feel a strong sense of belonging, can thrive, and do their best work. Your contributions help us innovate and break boundaries.\n-\nOur Communities: We are dedicated to expanding our engagement with the communities we operate in, creating opportunities for underrepresented talent and driving greater innovation for our clients. Your impact extends beyond Rubrik, contributing to safer and stronger communities.\nEqual Opportunity Employer/Veterans/Disabled\nRubrik is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, or protected veteran status and will not be discriminated against on the basis of disability.\nRubrik provides equal employment opportunities (EEO) to all employees and applicants for employment without regard to race, color, religion, sex, national origin, age, disability or genetics. In addition to federal law requirements, Rubrik complies with applicable state and local laws governing nondiscrimination in employment in every location in which the company has facilities. This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation and training.&nbsp;\nFederal law requires employers to provide reasonable accommodation to qualified individuals with disabilities. Please contact us at hr@rubrik.com if you require a reasonable accommodation to apply for a job or to perform your job. Examples of reasonable accommodation include making a change to the application process or work procedures, providing documents in an alternate format, using a sign language interpreter, or using specialized equipment.\nEEO IS THE LAW\nNOTIFICATION OF EMPLOYEE RIGHTS UNDER FEDERAL LABOR LAWS",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive\n\nRubrik’s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the resources you need to exceed your goals, maximize your earnings potential, and take your career to the next level — all while doing something truly purposeful: protecting the world's data.\nAs an Enterprise Account Executive, you will have ownership of all elements of bookings growth in new and existing accounts in your assigned region/patch, focused on the enterprise segment. We are seeking a relentless self-starter who is hyper-focused on acquiring new logos by discovering and developing new opportunities, managing pipeline, and executing account strategies, while also driving existing customer expansion. The AE must generate pipeline daily while working with Sales Engineers, Sales Development, Channel Development, and Rubrik Channel Partners to exceed sales quotas.\nWhat You'll Do:\n- Define and execute sales plans for the assigned territory to meet and exceed quota through prospecting, qualifying, managing, and closing sales opportunities\n- Develop and manage sales pipeline to move a large number of strategic transactions through the sales process\n- Identify and close new opportunities for growth working with a mix of mid- large enterprise accounts\n- Present Rubrik, Inc. solutions within complex data center design environments\n- Co-sell and strategize with partners, distributors, and VAR’s to enable rapid growth\n- Provide Rubrik, Inc. management with feedback about the local market opportunity and identification of new business opportunities and channel partnerships\n&nbsp;\n&nbsp;Experience You’ll Need:\n- Ideally 5+ years Tech sales closing experience (selling either IT Infrastructure or SaaS – ideally both) into mid – large orgs&nbsp;\n- Consistent track record landing net \"new logos\" via self sourced pipeline generation activities\n- Has ideally translated IT pain into business outcomes - Exp selling a complex solution into IT personas\n- Ideally understands &amp; has used MEDDPICC as a sales qualification tool &amp; Command of the message -&nbsp;Ability to build strong champions\n- Understanding and experience working with channel partners &amp; SDR's\n- Highly driven, goal oriented \"get it done\" attitude\n- Naturally driven, high levels of Integrity, grit / tenacity but still coachable\n&nbsp;\nJoin Us in Securing the World's Data\nRubrik (RBRK), the Security and AI Operations Company, leads at the intersection of data protection, cyber resilience, and enterprise AI acceleration. Rubrik Security Cloud delivers complete cyber resilience by securing, monitoring, and recovering data, identities, and workloads across clouds. Rubrik Agent Cloud accelerates trusted AI agent deployments at scale by monitoring and auditing agentic actions, enforcing real-time guardrails, fine-tuning for accuracy and undoing agentic mistakes.&nbsp;\nLinkedin | X (formerly Twitter) | Instagram |&nbsp; Rubrik.com\nInclusion @ Rubrik\nAt Rubrik, we are dedicated to fostering a culture where people from all backgrounds are valued, feel they belong, and believe they can succeed. Our commitment to inclusion is at the heart of our mission to secure the world’s data.\nOur goal is to hire and promote the best talent, regardless of background. We continually review our hiring practices to ensure fairness and strive to create an environment where every employee has equal access to opportunities for growth and excellence. We believe in empowering everyone to bring their authentic selves to work and achieve their fullest potential.\nOur inclusion strategy focuses on three core areas of our business and culture:\n-\nOur Company: We are committed to building a merit-based organization that offers equal access to growth and success for all employees globally. Your potential is limitless here.\n-\nOur Culture: We strive to create an inclusive atmosphere where individuals from all backgrounds feel a strong sense of belonging, can thrive, and do their best work. Your contributions help us innovate and break boundaries.\n-\nOur Communities: We are dedicated to expanding our engagement with the communities we operate in, creating opportunities for underrepresented talent and driving greater innovation for our clients. Your impact extends beyond Rubrik, contributing to safer and stronger communities.\nEqual Opportunity Employer/Veterans/Disabled\nRubrik is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, or protected veteran status and will not be discriminated against on the basis of disability.\nRubrik provides equal employment opportunities (EEO) to all employees and applicants for employment without regard to race, color, religion, sex, national origin, age, disability or genetics. In addition to federal law requirements, Rubrik complies with applicable state and local laws governing nondiscrimination in employment in every location in which the company has facilities. This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation and training.&nbsp;\nFederal law requires employers to provide reasonable accommodation to qualified individuals with disabilities. Please contact us at hr@rubrik.com if you require a reasonable accommodation to apply for a job or to perform your job. Examples of reasonable accommodation include making a change to the application process or work procedures, providing documents in an alternate format, using a sign language interpreter, or using specialized equipment.\nEEO IS THE LAW\nNOTIFICATION OF EMPLOYEE RIGHTS UNDER FEDERAL LABOR LAWS",
+          "is_valid": true,
+          "reason": "Valid description (6073 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive\n\nRubrik’s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the resources you need to exceed your goals, maximize your earnings potential, and take your career to the next level — all while doing something truly purposeful: protecting the world's data.\nAs an Enterprise Account Executive, you will have ownership of all elements of bookings growth in new and existing accounts in your assigned region/patch, focused on the enterprise segment. We are seeking a relentless self-starter who is hyper-focused on acquiring new logos by discovering and developing new opportunities, managing pipeline, and executing account strategies, while also driving existing customer expansion. The AE must generate pipeline daily while working with Sales Engineers, Sales Development, Channel Development, and Rubrik Channel Partners to exceed sales quotas.\nWhat You'll Do:\n- Define and execute sales plans for the assigned territory to meet and exceed quota through prospecting, qualifying, managing, and closing sales opportunities\n- Develop and manage sales pipeline to move a large number of strategic transactions through the sales process\n- Identify and close new opportunities for growth working with a mix of mid- large enterprise accounts\n- Present Rubrik, Inc. solutions within complex data center design environments\n- Co-sell and strategize with partners, distributors, and VAR’s to enable rapid growth\n- Provide Rubrik, Inc. management with feedback about the local market opportunity and identification of new business opportunities and channel partnerships\n&nbsp;\n&nbsp;Experience You’ll Need:\n- Ideally 5+ years Tech sales closing experience (selling either IT Infrastructure or SaaS – ideally both) into mid – large orgs&nbsp;\n- Consistent track record landing net \"new logos\" via self sourced pipeline generation activities\n- Has ideally translated IT pain into business outcomes - Exp selling a complex solution into IT personas\n- Ideally understands &amp; has used MEDDPICC as a sales qualification tool &amp; Command of the message -&nbsp;Ability to build strong champions\n- Understanding and experience working with channel partners &amp; SDR's\n- Highly driven, goal oriented \"get it done\" attitude\n- Naturally driven, high levels of Integrity, grit / tenacity but still coachable\n&nbsp;\nJoin Us in Securing the World's Data\nRubrik (RBRK), the Security and AI Operations Company, leads at the intersection of data protection, cyber resilience, and enterprise AI acceleration. Rubrik Security Cloud delivers complete cyber resilience by securing, monitoring, and recovering data, identities, and workloads across clouds. Rubrik Agent Cloud accelerates trusted AI agent deployments at scale by monitoring and auditing agentic actions, enforcing real-time guardrails, fine-tuning for accuracy and undoing agentic mistakes.&nbsp;\nLinkedin | X (formerly Twitter) | Instagram |&nbsp; Rubrik.com\nInclusion @ Rubrik\nAt Rubrik, we are dedicated to fostering a culture where people from all backgrounds are valued, feel they belong, and believe they can succeed. Our commitment to inclusion is at the heart of our mission to secure the world’s data.\nOur goal is to hire and promote the best talent, regardless of background. We continually review our hiring practices to ensure fairness and strive to create an environment where every employee has equal access to opportunities for growth and excellence. We believe in empowering everyone to bring their authentic selves to work and achieve their fullest potential.\nOur inclusion strategy focuses on three core areas of our business and culture:\n-\nOur Company: We are committed to building a merit-based organization that offers equal access to growth and success for all employees globally. Your potential is limitless here.\n-\nOur Culture: We strive to create an inclusive atmosphere where individuals from all backgrounds feel a strong sense of belonging, can thrive, and do their best work. Your contributions help us innovate and break boundaries.\n-\nOur Communities: We are dedicated to expanding our engagement with the communities we operate in, creating opportunities for underrepresented talent and driving greater innovation for our clients. Your impact extends beyond Rubrik, contributing to safer and stronger communities.\nEqual Opportunity Employer/Veterans/Disabled\nRubrik is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, or protected veteran status and will not be discriminated against on the basis of disability.\nRubrik provides equal employment opportunities (EEO) to all employees and applicants for employment without regard to race, color, religion, sex, national origin, age, disability or genetics. In addition to federal law requirements, Rubrik complies with applicable state and local laws governing nondiscrimination in employment in every location in which the company has facilities. This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation and training.&nbsp;\nFederal law requires employers to provide reasonable accommodation to qualified individuals with disabilities. Please contact us at hr@rubrik.com if you require a reasonable accommodation to apply for a job or to perform your job. Examples of reasonable accommodation include making a change to the application process or work procedures, providing documents in an alternate format, using a sign language interpreter, or using specialized equipment.\nEEO IS THE LAW\nNOTIFICATION OF EMPLOYEE RIGHTS UNDER FEDERAL LABOR LAWS",
+          "is_valid": true,
+          "reason": "Valid description (6073 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive\n\nRubrik’s Sales organization is a united group of elite cross-functional sales professionals that help companies and government entities achieve resilience against cyberattacks, malicious insiders, and operational disruptions. We offer continuous professional growth and opportunity through our world-class sales enablement program. Our One Rubrik selling approach provides all the resources you need to exceed your goals, maximize your earnings potential, and take your career to the next level — all while doing something truly purposeful: protecting the world's data.\nAs an Enterprise Account Executive, you will have ownership of all elements of bookings growth in new and existing accounts in your assigned region/patch, focused on the enterprise segment. We are seeking a relentless self-starter who is hyper-focused on acquiring new logos by discovering and developing new opportunities, managing pipeline, and executing account strategies, while also driving existing customer expansion. The AE must generate pipeline daily while working with Sales Engineers, Sales Development, Channel Development, and Rubrik Channel Partners to exceed sales quotas.\nWhat You'll Do:\n- Define and execute sales plans for the assigned territory to meet and exceed quota through prospecting, qualifying, managing, and closing sales opportunities\n- Develop and manage sales pipeline to move a large number of strategic transactions through the sales process\n- Identify and close new opportunities for growth working with a mix of mid- large enterprise accounts\n- Present Rubrik, Inc. solutions within complex data center design environments\n- Co-sell and strategize with partners, distributors, and VAR’s to enable rapid growth\n- Provide Rubrik, Inc. management with feedback about the local market opportunity and identification of new business opportunities and channel partnerships\n&nbsp;\n&nbsp;Experience You’ll Need:\n- Ideally 5+ years Tech sales closing experience (selling either IT Infrastructure or SaaS – ideally both) into mid – large orgs&nbsp;\n- Consistent track record landing net \"new logos\" via self sourced pipeline generation activities\n- Has ideally translated IT pain into business outcomes - Exp selling a complex solution into IT personas\n- Ideally understands &amp; has used MEDDPICC as a sales qualification tool &amp; Command of the message -&nbsp;Ability to build strong champions\n- Understanding and experience working with channel partners &amp; SDR's\n- Highly driven, goal oriented \"get it done\" attitude\n- Naturally driven, high levels of Integrity, grit / tenacity but still coachable\n&nbsp;\nJoin Us in Securing the World's Data\nRubrik (RBRK), the Security and AI Operations Company, leads at the intersection of data protection, cyber resilience, and enterprise AI acceleration. Rubrik Security Cloud delivers complete cyber resilience by securing, monitoring, and recovering data, identities, and workloads across clouds. Rubrik Agent Cloud accelerates trusted AI agent deployments at scale by monitoring and auditing agentic actions, enforcing real-time guardrails, fine-tuning for accuracy and undoing agentic mistakes.&nbsp;\nLinkedin | X (formerly Twitter) | Instagram |&nbsp; Rubrik.com\nInclusion @ Rubrik\nAt Rubrik, we are dedicated to fostering a culture where people from all backgrounds are valued, feel they belong, and believe they can succeed. Our commitment to inclusion is at the heart of our mission to secure the world’s data.\nOur goal is to hire and promote the best talent, regardless of background. We continually review our hiring practices to ensure fairness and strive to create an environment where every employee has equal access to opportunities for growth and excellence. We believe in empowering everyone to bring their authentic selves to work and achieve their fullest potential.\nOur inclusion strategy focuses on three core areas of our business and culture:\n-\nOur Company: We are committed to building a merit-based organization that offers equal access to growth and success for all employees globally. Your potential is limitless here.\n-\nOur Culture: We strive to create an inclusive atmosphere where individuals from all backgrounds feel a strong sense of belonging, can thrive, and do their best work. Your contributions help us innovate and break boundaries.\n-\nOur Communities: We are dedicated to expanding our engagement with the communities we operate in, creating opportunities for underrepresented talent and driving greater innovation for our clients. Your impact extends beyond Rubrik, contributing to safer and stronger communities.\nEqual Opportunity Employer/Veterans/Disabled\nRubrik is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, or protected veteran status and will not be discriminated against on the basis of disability.\nRubrik provides equal employment opportunities (EEO) to all employees and applicants for employment without regard to race, color, religion, sex, national origin, age, disability or genetics. In addition to federal law requirements, Rubrik complies with applicable state and local laws governing nondiscrimination in employment in every location in which the company has facilities. This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation and training.&nbsp;\nFederal law requires employers to provide reasonable accommodation to qualified individuals with disabilities. Please contact us at hr@rubrik.com if you require a reasonable accommodation to apply for a job or to perform your job. Examples of reasonable accommodation include making a change to the application process or work procedures, providing documents in an alternate format, using a sign language interpreter, or using specialized equipment.\nEEO IS THE LAW\nNOTIFICATION OF EMPLOYEE RIGHTS UNDER FEDERAL LABOR LAWS",
+          "is_valid": true,
+          "reason": "Valid description (6073 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

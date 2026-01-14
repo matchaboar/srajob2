@@ -1,0 +1,11 @@
+site_id: paloalto_networks
+detail_url: https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520
+expected:
+  title: "Software Engineering Manager (NetSec)"
+  company: "Palo Alto Networks"
+  location_contains: "Santa Clara"
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

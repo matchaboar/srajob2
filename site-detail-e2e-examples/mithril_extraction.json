@@ -7,12 +7,12 @@
       "title": "General Application - Exceptional Talent",
       "description_preview": "General Application - Exceptional Talent Mithril's opportunities of tomorrow are being defined today. If you are an experienced, high-impact individual who believes you can help us achieve our most ambitious goals, please use this general posting to introduce yourself. We welcome individuals who bring deep technical knowledge, strategic thinking, and...",
       "description_word_count": 1023,
-      "location": "San Francisco Bay Area",
+      "location": "San Francisco, CA",
       "is_remote": false,
       "posted_at": 1763662913000,
       "posted_at_unknown": false,
       "company": "Mithril",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "General Application - Exceptional Talent",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "General Application - Exceptional Talent",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "General Application - Exceptional Talent",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "General Application - Exceptional Talent",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Mithril",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Mithril",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "Mithril",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "San Francisco Bay Area",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "San Francisco Bay Area",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Spun out of a Stanford PhD lab just over a year ago, Mithril has already gained the backing of top-tier investors like Sequoia",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "San Francisco Bay Area",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: San Francisco Bay Area"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Mithril' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 80000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 80000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $80,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 230000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $230,000"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-11-20T11:21:53",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-11-20T11:21:53",
+          "is_valid": true,
+          "reason": "Valid date: 2025-11-20T11:21:53"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.280348",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "General Application - Exceptional Talent\n\nMithril's opportunities of tomorrow are being defined today. If you are an experienced, high-impact individual who believes you can help us achieve our most ambitious goals, please use this general posting to introduce yourself. We welcome individuals who bring deep technical knowledge, strategic thinking, and a track record of impact, and we tailor roles to align with each candidate’s unique strengths and career trajectory.\nAbout Mithril\nAt Mithril, we are transforming the way AI companies access compute power. Our mission is to orchestrate the world’s compute capacity, making it easier to use and optimized for AI workloads. We're building a new type of public cloud—one designed specifically for AI, where accessing high-performance compute is as simple and reliable as flipping a switch.\nSpun out of a Stanford PhD lab just over a year ago, Mithril has already gained the backing of top-tier investors like Sequoia, Lightspeed, Jeff Dean, Eric Schmidt, and others. With $80M in funding, we’ve secured customers and are generating revenue.\nToday’s machine learning infrastructure is overly complex. Engineers are forced to push through challenges in hardware and capacity, when their focus should be on solving big problems and driving innovation. Our Omnicloud Platform changes that. By abstracting away hardware management and providing seamless access to compute resources, we enable engineers to focus on what really matters—building transformative AI solutions.\nWe're not just making compute accessible; we're making it flexible, scalable, and tailored for the unique demands of cutting-edge AI. Our infrastructure marketplace brings the power of state-of-the-art hardware and Mithril’s Omnicloud Platform and software strengths, enabling AI companies to innovate faster and more efficiently.\n&nbsp;\nWorking at Mithril&nbsp;\nAs an engineer at Mithril, you’ll be at the forefront of building the infrastructure that powers the future of AI. Your role is critical—not just in scaling our systems, but in ensuring they are reliable and secure at every level.&nbsp;\nYou will help Mithril build and operate solutions that harvest compute resources world-wide, and make them available to global customers at every aspect of the emerging AI / ML ecosystems – from high-performance clusters to foundation models to finetuning to inferencing to mixture of experts to agentic application workflows. You will solve world-class technical challenges in enabling cutting-edge AI workloads to leverage humanity's knowledge, with planet-scale computing. You will help our customers succeed on every front in using the power of AI to make the world a better place.\nIf you're motivated by the challenge of scaling and securing the core infrastructure behind AI and thrive in a fast-paced, high-impact environment, Mithril is the place for you. Here, autonomy, ownership, and high-quality engineering are paramount. You will be part of a collaborative team pushing the boundaries of technology, and be a dependable partner of our customers and suppliers. We value qualities like can-do attitude, clear communication, meticulous engineering, relentless innovation. Join us and be part of something transformative!&nbsp;\n&nbsp;\nWhere Your Expertise Matters at Mithril\nDon't see a job description that aligns with your current skill set?&nbsp; We still want to connect!\nAt Mithril , our mission requires extraordinary people. We are always looking to meet senior, experienced, and exceptional professionals who can bring deep expertise and impactful leadership to our team.\nOur work revolves around cutting-edge, high-scale infrastructure. We are interested in connecting with individuals who have a proven track record in areas such as:\n-\nCloud &amp; Compute Systems Mastery: Senior Engineers, Architects, and Scientists who have mastered their craft in areas like Hyper-scale Cloud Infrastructure, High-Performance Computing (HPC), low-latency networking, distributed systems, or large-scale AI/ML model training.\n-\nEngineering Reliability &amp; Platform Leadership: Veteran experts in Site Reliability Engineering (SRE), complex platform architecture, data reliability, security engineering, or highly resilient system design.\n-\nStrategic &amp; Operational Excellence: Experienced leaders in technical product management, operational efficiency, finance, or business development who can help scale our company and drive critical initiatives.\n&nbsp;\nLet's start a conversation. We look forward to seeing how your unique experience can contribute to our future.\nBenefits\n- Health, dental, and vision coverage for you and your dependents\n- 401k Plan with 4% company match\n- 21 days of PTO &amp; 14 company holidays; including 2 floating holidays\n&nbsp;\nSalary Range Information &nbsp;\nIn consideration of market analysis and various pertinent factors, the remuneration bracket for this role is set between $170,000 and $230,000. Nevertheless, adjustments beyond this range could be warranted for candidates whose qualifications substantially deviate from those delineated in the job description.\n&nbsp;\nIn-Office requirement\nAt Mithril, we take our work extremely seriously, though not always ourselves. We recognize that we are striving to achieve something substantial—an all-too-rare and elusive counterfactual contribution. Our work is not easy, so we seek out any lever that can accelerate our progress and increase the likelihood of realizing our full ambitions. Working collaboratively in person is one such lever.\nOur headquarters is in Palo Alto (next to Caltrain on University Ave.), and we recently opened a new office in San Francisco (Financial District/SoMa) for our teammates based there. We expect team members to primarily work from their local office (Palo Alto or San Francisco), with everyone gathering at HQ one day a week while our team remains small and cross-team collaboration is critical.\nThis approach is built on trust. We take our mission seriously and are committed to fostering an environment where you can make impactful decisions and drive success. We also understand that life can present challenges, and if extenuating circumstances arise, we’re here to support you.\nUltimately, we believe this guidance helps us be as effective as possible while maintaining the spirit of teamwork and flexibility.\n&nbsp;\nEqual Opportunity Employer\nMithril maintains a strict commitment to Equal Opportunity employment practices. All applicants are evaluated without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.\nWe emphasize that candidates need not fulfill every expectation listed to be eligible for this position. Our objective is to cultivate a diverse team encompassing a spectrum of backgrounds, experiences, and skill sets.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "General Application - Exceptional Talent\n\nMithril's opportunities of tomorrow are being defined today. If you are an experienced, high-impact individual who believes you can help us achieve our most ambitious goals, please use this general posting to introduce yourself. We welcome individuals who bring deep technical knowledge, strategic thinking, and a track record of impact, and we tailor roles to align with each candidate’s unique strengths and career trajectory.\nAbout Mithril\nAt Mithril, we are transforming the way AI companies access compute power. Our mission is to orchestrate the world’s compute capacity, making it easier to use and optimized for AI workloads. We're building a new type of public cloud—one designed specifically for AI, where accessing high-performance compute is as simple and reliable as flipping a switch.\nSpun out of a Stanford PhD lab just over a year ago, Mithril has already gained the backing of top-tier investors like Sequoia, Lightspeed, Jeff Dean, Eric Schmidt, and others. With $80M in funding, we’ve secured customers and are generating revenue.\nToday’s machine learning infrastructure is overly complex. Engineers are forced to push through challenges in hardware and capacity, when their focus should be on solving big problems and driving innovation. Our Omnicloud Platform changes that. By abstracting away hardware management and providing seamless access to compute resources, we enable engineers to focus on what really matters—building transformative AI solutions.\nWe're not just making compute accessible; we're making it flexible, scalable, and tailored for the unique demands of cutting-edge AI. Our infrastructure marketplace brings the power of state-of-the-art hardware and Mithril’s Omnicloud Platform and software strengths, enabling AI companies to innovate faster and more efficiently.\n&nbsp;\nWorking at Mithril&nbsp;\nAs an engineer at Mithril, you’ll be at the forefront of building the infrastructure that powers the future of AI. Your role is critical—not just in scaling our systems, but in ensuring they are reliable and secure at every level.&nbsp;\nYou will help Mithril build and operate solutions that harvest compute resources world-wide, and make them available to global customers at every aspect of the emerging AI / ML ecosystems – from high-performance clusters to foundation models to finetuning to inferencing to mixture of experts to agentic application workflows. You will solve world-class technical challenges in enabling cutting-edge AI workloads to leverage humanity's knowledge, with planet-scale computing. You will help our customers succeed on every front in using the power of AI to make the world a better place.\nIf you're motivated by the challenge of scaling and securing the core infrastructure behind AI and thrive in a fast-paced, high-impact environment, Mithril is the place for you. Here, autonomy, ownership, and high-quality engineering are paramount. You will be part of a collaborative team pushing the boundaries of technology, and be a dependable partner of our customers and suppliers. We value qualities like can-do attitude, clear communication, meticulous engineering, relentless innovation. Join us and be part of something transformative!&nbsp;\n&nbsp;\nWhere Your Expertise Matters at Mithril\nDon't see a job description that aligns with your current skill set?&nbsp; We still want to connect!\nAt Mithril , our mission requires extraordinary people. We are always looking to meet senior, experienced, and exceptional professionals who can bring deep expertise and impactful leadership to our team.\nOur work revolves around cutting-edge, high-scale infrastructure. We are interested in connecting with individuals who have a proven track record in areas such as:\n-\nCloud &amp; Compute Systems Mastery: Senior Engineers, Architects, and Scientists who have mastered their craft in areas like Hyper-scale Cloud Infrastructure, High-Performance Computing (HPC), low-latency networking, distributed systems, or large-scale AI/ML model training.\n-\nEngineering Reliability &amp; Platform Leadership: Veteran experts in Site Reliability Engineering (SRE), complex platform architecture, data reliability, security engineering, or highly resilient system design.\n-\nStrategic &amp; Operational Excellence: Experienced leaders in technical product management, operational efficiency, finance, or business development who can help scale our company and drive critical initiatives.\n&nbsp;\nLet's start a conversation. We look forward to seeing how your unique experience can contribute to our future.\nBenefits\n- Health, dental, and vision coverage for you and your dependents\n- 401k Plan with 4% company match\n- 21 days of PTO &amp; 14 company holidays; including 2 floating holidays\n&nbsp;\nSalary Range Information &nbsp;\nIn consideration of market analysis and various pertinent factors, the remuneration bracket for this role is set between $170,000 and $230,000. Nevertheless, adjustments beyond this range could be warranted for candidates whose qualifications substantially deviate from those delineated in the job description.\n&nbsp;\nIn-Office requirement\nAt Mithril, we take our work extremely seriously, though not always ourselves. We recognize that we are striving to achieve something substantial—an all-too-rare and elusive counterfactual contribution. Our work is not easy, so we seek out any lever that can accelerate our progress and increase the likelihood of realizing our full ambitions. Working collaboratively in person is one such lever.\nOur headquarters is in Palo Alto (next to Caltrain on University Ave.), and we recently opened a new office in San Francisco (Financial District/SoMa) for our teammates based there. We expect team members to primarily work from their local office (Palo Alto or San Francisco), with everyone gathering at HQ one day a week while our team remains small and cross-team collaboration is critical.\nThis approach is built on trust. We take our mission seriously and are committed to fostering an environment where you can make impactful decisions and drive success. We also understand that life can present challenges, and if extenuating circumstances arise, we’re here to support you.\nUltimately, we believe this guidance helps us be as effective as possible while maintaining the spirit of teamwork and flexibility.\n&nbsp;\nEqual Opportunity Employer\nMithril maintains a strict commitment to Equal Opportunity employment practices. All applicants are evaluated without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.\nWe emphasize that candidates need not fulfill every expectation listed to be eligible for this position. Our objective is to cultivate a diverse team encompassing a spectrum of backgrounds, experiences, and skill sets.",
+          "is_valid": true,
+          "reason": "Valid description (6978 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "General Application - Exceptional Talent\n\nMithril's opportunities of tomorrow are being defined today. If you are an experienced, high-impact individual who believes you can help us achieve our most ambitious goals, please use this general posting to introduce yourself. We welcome individuals who bring deep technical knowledge, strategic thinking, and a track record of impact, and we tailor roles to align with each candidate’s unique strengths and career trajectory.\nAbout Mithril\nAt Mithril, we are transforming the way AI companies access compute power. Our mission is to orchestrate the world’s compute capacity, making it easier to use and optimized for AI workloads. We're building a new type of public cloud—one designed specifically for AI, where accessing high-performance compute is as simple and reliable as flipping a switch.\nSpun out of a Stanford PhD lab just over a year ago, Mithril has already gained the backing of top-tier investors like Sequoia, Lightspeed, Jeff Dean, Eric Schmidt, and others. With $80M in funding, we’ve secured customers and are generating revenue.\nToday’s machine learning infrastructure is overly complex. Engineers are forced to push through challenges in hardware and capacity, when their focus should be on solving big problems and driving innovation. Our Omnicloud Platform changes that. By abstracting away hardware management and providing seamless access to compute resources, we enable engineers to focus on what really matters—building transformative AI solutions.\nWe're not just making compute accessible; we're making it flexible, scalable, and tailored for the unique demands of cutting-edge AI. Our infrastructure marketplace brings the power of state-of-the-art hardware and Mithril’s Omnicloud Platform and software strengths, enabling AI companies to innovate faster and more efficiently.\n&nbsp;\nWorking at Mithril&nbsp;\nAs an engineer at Mithril, you’ll be at the forefront of building the infrastructure that powers the future of AI. Your role is critical—not just in scaling our systems, but in ensuring they are reliable and secure at every level.&nbsp;\nYou will help Mithril build and operate solutions that harvest compute resources world-wide, and make them available to global customers at every aspect of the emerging AI / ML ecosystems – from high-performance clusters to foundation models to finetuning to inferencing to mixture of experts to agentic application workflows. You will solve world-class technical challenges in enabling cutting-edge AI workloads to leverage humanity's knowledge, with planet-scale computing. You will help our customers succeed on every front in using the power of AI to make the world a better place.\nIf you're motivated by the challenge of scaling and securing the core infrastructure behind AI and thrive in a fast-paced, high-impact environment, Mithril is the place for you. Here, autonomy, ownership, and high-quality engineering are paramount. You will be part of a collaborative team pushing the boundaries of technology, and be a dependable partner of our customers and suppliers. We value qualities like can-do attitude, clear communication, meticulous engineering, relentless innovation. Join us and be part of something transformative!&nbsp;\n&nbsp;\nWhere Your Expertise Matters at Mithril\nDon't see a job description that aligns with your current skill set?&nbsp; We still want to connect!\nAt Mithril , our mission requires extraordinary people. We are always looking to meet senior, experienced, and exceptional professionals who can bring deep expertise and impactful leadership to our team.\nOur work revolves around cutting-edge, high-scale infrastructure. We are interested in connecting with individuals who have a proven track record in areas such as:\n-\nCloud &amp; Compute Systems Mastery: Senior Engineers, Architects, and Scientists who have mastered their craft in areas like Hyper-scale Cloud Infrastructure, High-Performance Computing (HPC), low-latency networking, distributed systems, or large-scale AI/ML model training.\n-\nEngineering Reliability &amp; Platform Leadership: Veteran experts in Site Reliability Engineering (SRE), complex platform architecture, data reliability, security engineering, or highly resilient system design.\n-\nStrategic &amp; Operational Excellence: Experienced leaders in technical product management, operational efficiency, finance, or business development who can help scale our company and drive critical initiatives.\n&nbsp;\nLet's start a conversation. We look forward to seeing how your unique experience can contribute to our future.\nBenefits\n- Health, dental, and vision coverage for you and your dependents\n- 401k Plan with 4% company match\n- 21 days of PTO &amp; 14 company holidays; including 2 floating holidays\n&nbsp;\nSalary Range Information &nbsp;\nIn consideration of market analysis and various pertinent factors, the remuneration bracket for this role is set between $170,000 and $230,000. Nevertheless, adjustments beyond this range could be warranted for candidates whose qualifications substantially deviate from those delineated in the job description.\n&nbsp;\nIn-Office requirement\nAt Mithril, we take our work extremely seriously, though not always ourselves. We recognize that we are striving to achieve something substantial—an all-too-rare and elusive counterfactual contribution. Our work is not easy, so we seek out any lever that can accelerate our progress and increase the likelihood of realizing our full ambitions. Working collaboratively in person is one such lever.\nOur headquarters is in Palo Alto (next to Caltrain on University Ave.), and we recently opened a new office in San Francisco (Financial District/SoMa) for our teammates based there. We expect team members to primarily work from their local office (Palo Alto or San Francisco), with everyone gathering at HQ one day a week while our team remains small and cross-team collaboration is critical.\nThis approach is built on trust. We take our mission seriously and are committed to fostering an environment where you can make impactful decisions and drive success. We also understand that life can present challenges, and if extenuating circumstances arise, we’re here to support you.\nUltimately, we believe this guidance helps us be as effective as possible while maintaining the spirit of teamwork and flexibility.\n&nbsp;\nEqual Opportunity Employer\nMithril maintains a strict commitment to Equal Opportunity employment practices. All applicants are evaluated without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.\nWe emphasize that candidates need not fulfill every expectation listed to be eligible for this position. Our objective is to cultivate a diverse team encompassing a spectrum of backgrounds, experiences, and skill sets.",
+          "is_valid": true,
+          "reason": "Valid description (6978 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "General Application - Exceptional Talent\n\nMithril's opportunities of tomorrow are being defined today. If you are an experienced, high-impact individual who believes you can help us achieve our most ambitious goals, please use this general posting to introduce yourself. We welcome individuals who bring deep technical knowledge, strategic thinking, and a track record of impact, and we tailor roles to align with each candidate’s unique strengths and career trajectory.\nAbout Mithril\nAt Mithril, we are transforming the way AI companies access compute power. Our mission is to orchestrate the world’s compute capacity, making it easier to use and optimized for AI workloads. We're building a new type of public cloud—one designed specifically for AI, where accessing high-performance compute is as simple and reliable as flipping a switch.\nSpun out of a Stanford PhD lab just over a year ago, Mithril has already gained the backing of top-tier investors like Sequoia, Lightspeed, Jeff Dean, Eric Schmidt, and others. With $80M in funding, we’ve secured customers and are generating revenue.\nToday’s machine learning infrastructure is overly complex. Engineers are forced to push through challenges in hardware and capacity, when their focus should be on solving big problems and driving innovation. Our Omnicloud Platform changes that. By abstracting away hardware management and providing seamless access to compute resources, we enable engineers to focus on what really matters—building transformative AI solutions.\nWe're not just making compute accessible; we're making it flexible, scalable, and tailored for the unique demands of cutting-edge AI. Our infrastructure marketplace brings the power of state-of-the-art hardware and Mithril’s Omnicloud Platform and software strengths, enabling AI companies to innovate faster and more efficiently.\n&nbsp;\nWorking at Mithril&nbsp;\nAs an engineer at Mithril, you’ll be at the forefront of building the infrastructure that powers the future of AI. Your role is critical—not just in scaling our systems, but in ensuring they are reliable and secure at every level.&nbsp;\nYou will help Mithril build and operate solutions that harvest compute resources world-wide, and make them available to global customers at every aspect of the emerging AI / ML ecosystems – from high-performance clusters to foundation models to finetuning to inferencing to mixture of experts to agentic application workflows. You will solve world-class technical challenges in enabling cutting-edge AI workloads to leverage humanity's knowledge, with planet-scale computing. You will help our customers succeed on every front in using the power of AI to make the world a better place.\nIf you're motivated by the challenge of scaling and securing the core infrastructure behind AI and thrive in a fast-paced, high-impact environment, Mithril is the place for you. Here, autonomy, ownership, and high-quality engineering are paramount. You will be part of a collaborative team pushing the boundaries of technology, and be a dependable partner of our customers and suppliers. We value qualities like can-do attitude, clear communication, meticulous engineering, relentless innovation. Join us and be part of something transformative!&nbsp;\n&nbsp;\nWhere Your Expertise Matters at Mithril\nDon't see a job description that aligns with your current skill set?&nbsp; We still want to connect!\nAt Mithril , our mission requires extraordinary people. We are always looking to meet senior, experienced, and exceptional professionals who can bring deep expertise and impactful leadership to our team.\nOur work revolves around cutting-edge, high-scale infrastructure. We are interested in connecting with individuals who have a proven track record in areas such as:\n-\nCloud &amp; Compute Systems Mastery: Senior Engineers, Architects, and Scientists who have mastered their craft in areas like Hyper-scale Cloud Infrastructure, High-Performance Computing (HPC), low-latency networking, distributed systems, or large-scale AI/ML model training.\n-\nEngineering Reliability &amp; Platform Leadership: Veteran experts in Site Reliability Engineering (SRE), complex platform architecture, data reliability, security engineering, or highly resilient system design.\n-\nStrategic &amp; Operational Excellence: Experienced leaders in technical product management, operational efficiency, finance, or business development who can help scale our company and drive critical initiatives.\n&nbsp;\nLet's start a conversation. We look forward to seeing how your unique experience can contribute to our future.\nBenefits\n- Health, dental, and vision coverage for you and your dependents\n- 401k Plan with 4% company match\n- 21 days of PTO &amp; 14 company holidays; including 2 floating holidays\n&nbsp;\nSalary Range Information &nbsp;\nIn consideration of market analysis and various pertinent factors, the remuneration bracket for this role is set between $170,000 and $230,000. Nevertheless, adjustments beyond this range could be warranted for candidates whose qualifications substantially deviate from those delineated in the job description.\n&nbsp;\nIn-Office requirement\nAt Mithril, we take our work extremely seriously, though not always ourselves. We recognize that we are striving to achieve something substantial—an all-too-rare and elusive counterfactual contribution. Our work is not easy, so we seek out any lever that can accelerate our progress and increase the likelihood of realizing our full ambitions. Working collaboratively in person is one such lever.\nOur headquarters is in Palo Alto (next to Caltrain on University Ave.), and we recently opened a new office in San Francisco (Financial District/SoMa) for our teammates based there. We expect team members to primarily work from their local office (Palo Alto or San Francisco), with everyone gathering at HQ one day a week while our team remains small and cross-team collaboration is critical.\nThis approach is built on trust. We take our mission seriously and are committed to fostering an environment where you can make impactful decisions and drive success. We also understand that life can present challenges, and if extenuating circumstances arise, we’re here to support you.\nUltimately, we believe this guidance helps us be as effective as possible while maintaining the spirit of teamwork and flexibility.\n&nbsp;\nEqual Opportunity Employer\nMithril maintains a strict commitment to Equal Opportunity employment practices. All applicants are evaluated without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.\nWe emphasize that candidates need not fulfill every expectation listed to be eligible for this position. Our objective is to cultivate a diverse team encompassing a spectrum of backgrounds, experiences, and skill sets.",
+          "is_valid": true,
+          "reason": "Valid description (6978 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

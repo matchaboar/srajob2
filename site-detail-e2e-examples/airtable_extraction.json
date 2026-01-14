@@ -27,5 +27,420 @@
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
   },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive, Commercial Accounts",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Commercial Accounts",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive, Commercial Accounts",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive, Commercial Accounts",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Airtable",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Airtable",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Airtable",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Austin, TX",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Austin, TX",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": "Austin, Texas (Hybrid)&nbsp;",
+          "is_valid": true,
+          "reason": "Found 'Location:' label"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Austin, TX",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Austin, TX",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Austin, TX"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Airtable' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 125000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 125000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $125,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 130000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $130,000"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-18T16:40:17",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-18T16:40:17",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-18T16:40:17"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:10.003245",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive, Commercial Accounts\n\nAirtable is the no-code app platform that empowers people closest to the work to accelerate their most critical business processes. More than 500,000 organizations, including 80% of the Fortune 100, rely on Airtable to transform how work gets done.\nLocation: Austin, Texas (Hybrid)&nbsp;\nAs a New Business Account Executive, Commercial on the Airtable team, your role will be to dramatically increase our footprint beyond the 200,000+ organizations that already use (and love!) our product.\nDo you thrive in a fast-paced, evolving, and growing environment? Do you want to join a best-in-class team and work with some of the most high-profile businesses in the world? If you answered yes, we want to hear from you!\nPlease note, this is a hybrid position based in Austin with the expectation of 3 days a week in office.\nWhat you'll do\n- Manage the full sales cycle, including running discovery calls and demos, negotiating, and closing new business to hit and exceed sales goals\n- Understand use cases and sell across different industries and multiple lines of business to some of our fastest-growing customers&nbsp;\n- Conduct calls with customers and prospects to understand organizational structure, key decision-makers, procurement processes, IT systems, and document workflow&nbsp;\n- Become an Airtable product expert, delighting prospects with a phenomenal educational experience, and helping cross-functional teams with product feedback and user insights\n- Note: During peak times, this role may be expected to work outside of standard work hours to fulfill time sensitive responsibilities.\nWho you are\n- 1-2 years of proven closing experience in a SaaS environment, demonstrating a consistent track record of success.\n- Strong business acumen that includes prior experience managing multiple concurrent client relationships, anticipating change, adjusting priorities accordingly, and working effectively as a team\n- Self-starter comfortable with some ambiguity, demonstrating a willingness to learn/ramp quickly and be a creative problem solver for the larger Airtable team&nbsp;\n- You embody a growth mindset and seek out opportunities to constantly learn and grow. Extreme curiosity to learn about the product, the industry, and your customer’s businesses.\n- Strong operational mindset, eager to build processes for yourself and the team to maximize productivity\n- Excellent verbal and written communication skills\nAirtable is an equal opportunity employer. We embrace diversity and strive to create a workplace where everyone has an equal opportunity to thrive. We welcome people of different backgrounds, experiences, abilities, and perspectives. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status or any characteristic protected by applicable federal and state laws, regulations and ordinances. Learn more about your EEO rights as an applicant .&nbsp;\nVEVRAA-Federal Contractor\nIf you have a medical condition, disability, or religious belief/practice which inhibits your ability to participate in any part of the application or interview process, please complete our&nbsp; Accommodations Request Form and let us know how we may assist you. Airtable is committed to participating in the interactive process and providing reasonable accommodations to qualified applicants.\nCompensation awarded to successful candidates will vary based on their work location, relevant skills, and experience.\nOur total compensation package also includes the opportunity to receive benefits, restricted stock units, and may include incentive compensation. &nbsp; To learn more about our comprehensive benefit offerings, please check out &nbsp; Life at Airtable .\nFor work locations in Austin, the on-target earning range for this role is: $125,000 &mdash; $135,000 USD Please see our Privacy Notice for details regarding Airtable’s collection and use of personal information relating to the application and recruitment process by clicking&nbsp; here .\n🔒 Stay Safe from Job Scams\nAll official Airtable communication will come from an @airtable.com email address. We will never ask you to share sensitive information or purchase equipment during the hiring process. If in doubt, contact us at hr@airtable.com . Learn more about avoiding job scams here .",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive, Commercial Accounts\n\nAirtable is the no-code app platform that empowers people closest to the work to accelerate their most critical business processes. More than 500,000 organizations, including 80% of the Fortune 100, rely on Airtable to transform how work gets done.\nLocation: Austin, Texas (Hybrid)&nbsp;\nAs a New Business Account Executive, Commercial on the Airtable team, your role will be to dramatically increase our footprint beyond the 200,000+ organizations that already use (and love!) our product.\nDo you thrive in a fast-paced, evolving, and growing environment? Do you want to join a best-in-class team and work with some of the most high-profile businesses in the world? If you answered yes, we want to hear from you!\nPlease note, this is a hybrid position based in Austin with the expectation of 3 days a week in office.\nWhat you'll do\n- Manage the full sales cycle, including running discovery calls and demos, negotiating, and closing new business to hit and exceed sales goals\n- Understand use cases and sell across different industries and multiple lines of business to some of our fastest-growing customers&nbsp;\n- Conduct calls with customers and prospects to understand organizational structure, key decision-makers, procurement processes, IT systems, and document workflow&nbsp;\n- Become an Airtable product expert, delighting prospects with a phenomenal educational experience, and helping cross-functional teams with product feedback and user insights\n- Note: During peak times, this role may be expected to work outside of standard work hours to fulfill time sensitive responsibilities.\nWho you are\n- 1-2 years of proven closing experience in a SaaS environment, demonstrating a consistent track record of success.\n- Strong business acumen that includes prior experience managing multiple concurrent client relationships, anticipating change, adjusting priorities accordingly, and working effectively as a team\n- Self-starter comfortable with some ambiguity, demonstrating a willingness to learn/ramp quickly and be a creative problem solver for the larger Airtable team&nbsp;\n- You embody a growth mindset and seek out opportunities to constantly learn and grow. Extreme curiosity to learn about the product, the industry, and your customer’s businesses.\n- Strong operational mindset, eager to build processes for yourself and the team to maximize productivity\n- Excellent verbal and written communication skills\nAirtable is an equal opportunity employer. We embrace diversity and strive to create a workplace where everyone has an equal opportunity to thrive. We welcome people of different backgrounds, experiences, abilities, and perspectives. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status or any characteristic protected by applicable federal and state laws, regulations and ordinances. Learn more about your EEO rights as an applicant .&nbsp;\nVEVRAA-Federal Contractor\nIf you have a medical condition, disability, or religious belief/practice which inhibits your ability to participate in any part of the application or interview process, please complete our&nbsp; Accommodations Request Form and let us know how we may assist you. Airtable is committed to participating in the interactive process and providing reasonable accommodations to qualified applicants.\nCompensation awarded to successful candidates will vary based on their work location, relevant skills, and experience.\nOur total compensation package also includes the opportunity to receive benefits, restricted stock units, and may include incentive compensation. &nbsp; To learn more about our comprehensive benefit offerings, please check out &nbsp; Life at Airtable .\nFor work locations in Austin, the on-target earning range for this role is: $125,000 &mdash; $135,000 USD Please see our Privacy Notice for details regarding Airtable’s collection and use of personal information relating to the application and recruitment process by clicking&nbsp; here .\n🔒 Stay Safe from Job Scams\nAll official Airtable communication will come from an @airtable.com email address. We will never ask you to share sensitive information or purchase equipment during the hiring process. If in doubt, contact us at hr@airtable.com . Learn more about avoiding job scams here .",
+          "is_valid": true,
+          "reason": "Valid description (4435 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Commercial Accounts\n\nAirtable is the no-code app platform that empowers people closest to the work to accelerate their most critical business processes. More than 500,000 organizations, including 80% of the Fortune 100, rely on Airtable to transform how work gets done.\nLocation: Austin, Texas (Hybrid)&nbsp;\nAs a New Business Account Executive, Commercial on the Airtable team, your role will be to dramatically increase our footprint beyond the 200,000+ organizations that already use (and love!) our product.\nDo you thrive in a fast-paced, evolving, and growing environment? Do you want to join a best-in-class team and work with some of the most high-profile businesses in the world? If you answered yes, we want to hear from you!\nPlease note, this is a hybrid position based in Austin with the expectation of 3 days a week in office.\nWhat you'll do\n- Manage the full sales cycle, including running discovery calls and demos, negotiating, and closing new business to hit and exceed sales goals\n- Understand use cases and sell across different industries and multiple lines of business to some of our fastest-growing customers&nbsp;\n- Conduct calls with customers and prospects to understand organizational structure, key decision-makers, procurement processes, IT systems, and document workflow&nbsp;\n- Become an Airtable product expert, delighting prospects with a phenomenal educational experience, and helping cross-functional teams with product feedback and user insights\n- Note: During peak times, this role may be expected to work outside of standard work hours to fulfill time sensitive responsibilities.\nWho you are\n- 1-2 years of proven closing experience in a SaaS environment, demonstrating a consistent track record of success.\n- Strong business acumen that includes prior experience managing multiple concurrent client relationships, anticipating change, adjusting priorities accordingly, and working effectively as a team\n- Self-starter comfortable with some ambiguity, demonstrating a willingness to learn/ramp quickly and be a creative problem solver for the larger Airtable team&nbsp;\n- You embody a growth mindset and seek out opportunities to constantly learn and grow. Extreme curiosity to learn about the product, the industry, and your customer’s businesses.\n- Strong operational mindset, eager to build processes for yourself and the team to maximize productivity\n- Excellent verbal and written communication skills\nAirtable is an equal opportunity employer. We embrace diversity and strive to create a workplace where everyone has an equal opportunity to thrive. We welcome people of different backgrounds, experiences, abilities, and perspectives. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status or any characteristic protected by applicable federal and state laws, regulations and ordinances. Learn more about your EEO rights as an applicant .&nbsp;\nVEVRAA-Federal Contractor\nIf you have a medical condition, disability, or religious belief/practice which inhibits your ability to participate in any part of the application or interview process, please complete our&nbsp; Accommodations Request Form and let us know how we may assist you. Airtable is committed to participating in the interactive process and providing reasonable accommodations to qualified applicants.\nCompensation awarded to successful candidates will vary based on their work location, relevant skills, and experience.\nOur total compensation package also includes the opportunity to receive benefits, restricted stock units, and may include incentive compensation. &nbsp; To learn more about our comprehensive benefit offerings, please check out &nbsp; Life at Airtable .\nFor work locations in Austin, the on-target earning range for this role is: $125,000 &mdash; $135,000 USD Please see our Privacy Notice for details regarding Airtable’s collection and use of personal information relating to the application and recruitment process by clicking&nbsp; here .\n🔒 Stay Safe from Job Scams\nAll official Airtable communication will come from an @airtable.com email address. We will never ask you to share sensitive information or purchase equipment during the hiring process. If in doubt, contact us at hr@airtable.com . Learn more about avoiding job scams here .",
+          "is_valid": true,
+          "reason": "Valid description (4435 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive, Commercial Accounts\n\nAirtable is the no-code app platform that empowers people closest to the work to accelerate their most critical business processes. More than 500,000 organizations, including 80% of the Fortune 100, rely on Airtable to transform how work gets done.\nLocation: Austin, Texas (Hybrid)&nbsp;\nAs a New Business Account Executive, Commercial on the Airtable team, your role will be to dramatically increase our footprint beyond the 200,000+ organizations that already use (and love!) our product.\nDo you thrive in a fast-paced, evolving, and growing environment? Do you want to join a best-in-class team and work with some of the most high-profile businesses in the world? If you answered yes, we want to hear from you!\nPlease note, this is a hybrid position based in Austin with the expectation of 3 days a week in office.\nWhat you'll do\n- Manage the full sales cycle, including running discovery calls and demos, negotiating, and closing new business to hit and exceed sales goals\n- Understand use cases and sell across different industries and multiple lines of business to some of our fastest-growing customers&nbsp;\n- Conduct calls with customers and prospects to understand organizational structure, key decision-makers, procurement processes, IT systems, and document workflow&nbsp;\n- Become an Airtable product expert, delighting prospects with a phenomenal educational experience, and helping cross-functional teams with product feedback and user insights\n- Note: During peak times, this role may be expected to work outside of standard work hours to fulfill time sensitive responsibilities.\nWho you are\n- 1-2 years of proven closing experience in a SaaS environment, demonstrating a consistent track record of success.\n- Strong business acumen that includes prior experience managing multiple concurrent client relationships, anticipating change, adjusting priorities accordingly, and working effectively as a team\n- Self-starter comfortable with some ambiguity, demonstrating a willingness to learn/ramp quickly and be a creative problem solver for the larger Airtable team&nbsp;\n- You embody a growth mindset and seek out opportunities to constantly learn and grow. Extreme curiosity to learn about the product, the industry, and your customer’s businesses.\n- Strong operational mindset, eager to build processes for yourself and the team to maximize productivity\n- Excellent verbal and written communication skills\nAirtable is an equal opportunity employer. We embrace diversity and strive to create a workplace where everyone has an equal opportunity to thrive. We welcome people of different backgrounds, experiences, abilities, and perspectives. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status or any characteristic protected by applicable federal and state laws, regulations and ordinances. Learn more about your EEO rights as an applicant .&nbsp;\nVEVRAA-Federal Contractor\nIf you have a medical condition, disability, or religious belief/practice which inhibits your ability to participate in any part of the application or interview process, please complete our&nbsp; Accommodations Request Form and let us know how we may assist you. Airtable is committed to participating in the interactive process and providing reasonable accommodations to qualified applicants.\nCompensation awarded to successful candidates will vary based on their work location, relevant skills, and experience.\nOur total compensation package also includes the opportunity to receive benefits, restricted stock units, and may include incentive compensation. &nbsp; To learn more about our comprehensive benefit offerings, please check out &nbsp; Life at Airtable .\nFor work locations in Austin, the on-target earning range for this role is: $125,000 &mdash; $135,000 USD Please see our Privacy Notice for details regarding Airtable’s collection and use of personal information relating to the application and recruitment process by clicking&nbsp; here .\n🔒 Stay Safe from Job Scams\nAll official Airtable communication will come from an @airtable.com email address. We will never ask you to share sensitive information or purchase equipment during the hiring process. If in doubt, contact us at hr@airtable.com . Learn more about avoiding job scams here .",
+          "is_valid": true,
+          "reason": "Valid description (4435 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
   "errors": []
 }

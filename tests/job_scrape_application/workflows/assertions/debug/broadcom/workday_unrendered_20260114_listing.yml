@@ -1,0 +1,10 @@
+# Fixture that simulates production failure: SpiderCloud returned HTML before JavaScript rendered job listings
+# This reproduces the "scrape.listing.zero_urls" error seen in production
+# The HTML only has pagination links, no job detail anchors
+site_id: workday
+listing_url: https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000
+expected:
+  url_count_min: 5  # Expecting job URLs - this should FAIL because fixture has no job URLs
+  url_pattern: "/wday/cxs/broadcom/External_Career/job/"  # Workday API job detail URLs
+  no_listing_urls: true  # Ensure listing/search URLs are filtered out
+  handler: "WorkdayHandler"

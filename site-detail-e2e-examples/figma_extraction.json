@@ -5,9 +5,9 @@
   "extracted_jobs": [
     {
       "title": "Account Executive, Enterprise",
-      "description_preview": "Account Executive, Enterprise Figma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma\u2019s platform helps teams bring ideas to life\u2014whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams...",
+      "description_preview": "Account Executive, Enterprise Figma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams...",
       "description_word_count": 993,
-      "location": "San Francisco, CA \u2022 New York, NY \u2022 United States",
+      "location": "San Francisco, CA • New York, NY • United States",
       "is_remote": false,
       "posted_at": 1767890464000,
       "posted_at_unknown": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive, Enterprise",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Enterprise",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive, Enterprise",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive, Enterprise",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Figma",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Figma",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "This",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "San Francisco, CA • New York, NY • United States",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "San Francisco, CA • New York, NY • United States",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "San Francisco, CA • New York, NY • United States",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: San Francisco, CA • New York, NY • United States"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Figma' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 165000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 165000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $165,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 177500,
+          "is_valid": true,
+          "reason": "Compensation from hints: $177,500"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-08T09:41:04",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-08T09:41:04",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-08T09:41:04"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.226333",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive, Enterprise\n\nFigma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams to streamline workflows, move faster, and work together in real time from anywhere in the world. If you're excited to shape the future of design and collaboration, join us!\nWe are looking for an Enterprise Account Executive who will play a critical role driving sales and maximizing revenue with our Enterprise customers. You will be responsible for targeting, building and nurturing positive relationships with key executive level decision-makers, understanding complex business needs, and delivering innovative solutions across our product suite. This is an opportunity to accelerate your career, learn from leading sellers in the industry and build an incredible network of cross functional partners at Figma.\nThis is a full time role that can be held from one of our US hubs or remotely in the United States.\nWhat you'll do at Figma:\n- Create and manage a pipeline of Enterprise accounts to consistently meet or exceed quarterly and annual sales targets\n- Apply effective discovery and value-selling techniques to build and strengthen relationships with key decision-makers in both new and existing customers (5000+ FTEs)\n- Align with executives on business challenges and gain sponsorship for enterprise wide deployments for a suite of products, identifying where Figma’s roadmap and innovations fit in the long term\n- Conduct thorough analysis to create strategic account plans that outline company priorities and initiatives, multi-threading at an executive level to build on expansion opportunities\n- Manage a book of business by tiering accounts and initiating techniques to save contractions\n- Co-create with cross-functional partners to expertly position Figma, drive deals forward and ensure customer success\n- Leverage opportunities to advance executive level relationships through in-person meetings and networking opportunities\nWe'd love to hear from you if you have:\n- Experience closing sales, over multiple years, for a software or SaaS business with an Enterprise book of customers (5000+ FTEs), selling to executives\n- Consistent performance meeting pipeline generation targets for net new business\n- Demonstrated experience successfully managing complex sales cycles (6 months+)\n- A sales methodology and process that creates value for customers\nWhile it’s not required, it’s an added plus if you also have:\n- Experience selling solutions to technical audiences at a strategic level (i.e. Engineering, Product, Design teams)\n- Demonstrated ability to succeed in a changing environment\n- Certified in deal qualification and prospect discovery\nAt Figma, one of our values is Grow as you go. We believe in hiring smart, curious people who are excited to learn and develop their skills. If you’re excited about this role but your past experience doesn’t align perfectly with the points outlined in the job description, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nPay Transparency Disclosure\nIf based in Figma’s San Francisco or New York hub offices, this role has the annual base salary range stated below.&nbsp;&nbsp;&nbsp;&nbsp;\nJob level and actual compensation will be decided based on factors including, but not limited to, individual qualifications objectively assessed during the interview process (including skills and prior relevant experience, potential impact, and scope of role), market demands, and specific work location. The listed range is a guideline, and the range for this role may be modified. For roles that are available to be filled remotely, the pay range is localized according to employee work location by a factor of between 80% and 100% of range. Please discuss your specific work location with your recruiter for more information.&nbsp;\nFigma offers equity to employees, as well a competitive package of additional benefits, including health, dental &amp; vision, retirement with company contribution, parental leave &amp; reproductive or family planning support, mental health &amp; wellness benefits, generous PTO, company recharge days, a learning &amp; development stipend, a work from home stipend, and cell phone reimbursement.&nbsp; Figma also offers sales incentive pay for most sales roles and an annual bonus plan for eligible non-sales roles. Figma’s compensation and benefits are subject to change and may be modified in the future.\nAnnual Base Salary Range (SF/NY Hub): $165,000 &mdash; $190,000 USD At Figma we celebrate and support our differences. We know employing a team rich in diverse thoughts, experiences, and opinions allows our employees, our product and our community to flourish. Figma is an equal opportunity workplace - we are dedicated to equal employment opportunities regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity/expression, veteran status , or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements.\nWe will work to ensure individuals with disabilities are provided reasonable accommodation to apply for a role, participate in the interview process, perform essential job functions, and receive other benefits and privileges of employment. If you require accommodation, please reach out to accommodations-ext@figma.com . These modifications enable an individual with a disability to have an equal opportunity not only to get a job, but successfully perform their job tasks to the same extent as people without disabilities.&nbsp;\nExamples of accommodations include but are not limited to:&nbsp;\n- Holding interviews in an accessible location\n- Enabling closed captioning on video conferencing\n- Ensuring all written communication be compatible with screen readers\n- Changing the mode or format of interviews&nbsp;\nTo ensure the integrity of our hiring process and facilitate a more personal connection, we require all candidates keep their cameras on during video interviews. Additionally, if hired you will be required to attend in person onboarding.\nBy applying for this job, the candidate acknowledges and agrees that any personal data contained in their application or supporting materials will be processed in accordance with Figma's Candidate Privacy Notice .",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive, Enterprise\n\nFigma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams to streamline workflows, move faster, and work together in real time from anywhere in the world. If you're excited to shape the future of design and collaboration, join us!\nWe are looking for an Enterprise Account Executive who will play a critical role driving sales and maximizing revenue with our Enterprise customers. You will be responsible for targeting, building and nurturing positive relationships with key executive level decision-makers, understanding complex business needs, and delivering innovative solutions across our product suite. This is an opportunity to accelerate your career, learn from leading sellers in the industry and build an incredible network of cross functional partners at Figma.\nThis is a full time role that can be held from one of our US hubs or remotely in the United States.\nWhat you'll do at Figma:\n- Create and manage a pipeline of Enterprise accounts to consistently meet or exceed quarterly and annual sales targets\n- Apply effective discovery and value-selling techniques to build and strengthen relationships with key decision-makers in both new and existing customers (5000+ FTEs)\n- Align with executives on business challenges and gain sponsorship for enterprise wide deployments for a suite of products, identifying where Figma’s roadmap and innovations fit in the long term\n- Conduct thorough analysis to create strategic account plans that outline company priorities and initiatives, multi-threading at an executive level to build on expansion opportunities\n- Manage a book of business by tiering accounts and initiating techniques to save contractions\n- Co-create with cross-functional partners to expertly position Figma, drive deals forward and ensure customer success\n- Leverage opportunities to advance executive level relationships through in-person meetings and networking opportunities\nWe'd love to hear from you if you have:\n- Experience closing sales, over multiple years, for a software or SaaS business with an Enterprise book of customers (5000+ FTEs), selling to executives\n- Consistent performance meeting pipeline generation targets for net new business\n- Demonstrated experience successfully managing complex sales cycles (6 months+)\n- A sales methodology and process that creates value for customers\nWhile it’s not required, it’s an added plus if you also have:\n- Experience selling solutions to technical audiences at a strategic level (i.e. Engineering, Product, Design teams)\n- Demonstrated ability to succeed in a changing environment\n- Certified in deal qualification and prospect discovery\nAt Figma, one of our values is Grow as you go. We believe in hiring smart, curious people who are excited to learn and develop their skills. If you’re excited about this role but your past experience doesn’t align perfectly with the points outlined in the job description, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nPay Transparency Disclosure\nIf based in Figma’s San Francisco or New York hub offices, this role has the annual base salary range stated below.&nbsp;&nbsp;&nbsp;&nbsp;\nJob level and actual compensation will be decided based on factors including, but not limited to, individual qualifications objectively assessed during the interview process (including skills and prior relevant experience, potential impact, and scope of role), market demands, and specific work location. The listed range is a guideline, and the range for this role may be modified. For roles that are available to be filled remotely, the pay range is localized according to employee work location by a factor of between 80% and 100% of range. Please discuss your specific work location with your recruiter for more information.&nbsp;\nFigma offers equity to employees, as well a competitive package of additional benefits, including health, dental &amp; vision, retirement with company contribution, parental leave &amp; reproductive or family planning support, mental health &amp; wellness benefits, generous PTO, company recharge days, a learning &amp; development stipend, a work from home stipend, and cell phone reimbursement.&nbsp; Figma also offers sales incentive pay for most sales roles and an annual bonus plan for eligible non-sales roles. Figma’s compensation and benefits are subject to change and may be modified in the future.\nAnnual Base Salary Range (SF/NY Hub): $165,000 &mdash; $190,000 USD At Figma we celebrate and support our differences. We know employing a team rich in diverse thoughts, experiences, and opinions allows our employees, our product and our community to flourish. Figma is an equal opportunity workplace - we are dedicated to equal employment opportunities regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity/expression, veteran status , or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements.\nWe will work to ensure individuals with disabilities are provided reasonable accommodation to apply for a role, participate in the interview process, perform essential job functions, and receive other benefits and privileges of employment. If you require accommodation, please reach out to accommodations-ext@figma.com . These modifications enable an individual with a disability to have an equal opportunity not only to get a job, but successfully perform their job tasks to the same extent as people without disabilities.&nbsp;\nExamples of accommodations include but are not limited to:&nbsp;\n- Holding interviews in an accessible location\n- Enabling closed captioning on video conferencing\n- Ensuring all written communication be compatible with screen readers\n- Changing the mode or format of interviews&nbsp;\nTo ensure the integrity of our hiring process and facilitate a more personal connection, we require all candidates keep their cameras on during video interviews. Additionally, if hired you will be required to attend in person onboarding.\nBy applying for this job, the candidate acknowledges and agrees that any personal data contained in their application or supporting materials will be processed in accordance with Figma's Candidate Privacy Notice .",
+          "is_valid": true,
+          "reason": "Valid description (6634 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Enterprise\n\nFigma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams to streamline workflows, move faster, and work together in real time from anywhere in the world. If you're excited to shape the future of design and collaboration, join us!\nWe are looking for an Enterprise Account Executive who will play a critical role driving sales and maximizing revenue with our Enterprise customers. You will be responsible for targeting, building and nurturing positive relationships with key executive level decision-makers, understanding complex business needs, and delivering innovative solutions across our product suite. This is an opportunity to accelerate your career, learn from leading sellers in the industry and build an incredible network of cross functional partners at Figma.\nThis is a full time role that can be held from one of our US hubs or remotely in the United States.\nWhat you'll do at Figma:\n- Create and manage a pipeline of Enterprise accounts to consistently meet or exceed quarterly and annual sales targets\n- Apply effective discovery and value-selling techniques to build and strengthen relationships with key decision-makers in both new and existing customers (5000+ FTEs)\n- Align with executives on business challenges and gain sponsorship for enterprise wide deployments for a suite of products, identifying where Figma’s roadmap and innovations fit in the long term\n- Conduct thorough analysis to create strategic account plans that outline company priorities and initiatives, multi-threading at an executive level to build on expansion opportunities\n- Manage a book of business by tiering accounts and initiating techniques to save contractions\n- Co-create with cross-functional partners to expertly position Figma, drive deals forward and ensure customer success\n- Leverage opportunities to advance executive level relationships through in-person meetings and networking opportunities\nWe'd love to hear from you if you have:\n- Experience closing sales, over multiple years, for a software or SaaS business with an Enterprise book of customers (5000+ FTEs), selling to executives\n- Consistent performance meeting pipeline generation targets for net new business\n- Demonstrated experience successfully managing complex sales cycles (6 months+)\n- A sales methodology and process that creates value for customers\nWhile it’s not required, it’s an added plus if you also have:\n- Experience selling solutions to technical audiences at a strategic level (i.e. Engineering, Product, Design teams)\n- Demonstrated ability to succeed in a changing environment\n- Certified in deal qualification and prospect discovery\nAt Figma, one of our values is Grow as you go. We believe in hiring smart, curious people who are excited to learn and develop their skills. If you’re excited about this role but your past experience doesn’t align perfectly with the points outlined in the job description, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nPay Transparency Disclosure\nIf based in Figma’s San Francisco or New York hub offices, this role has the annual base salary range stated below.&nbsp;&nbsp;&nbsp;&nbsp;\nJob level and actual compensation will be decided based on factors including, but not limited to, individual qualifications objectively assessed during the interview process (including skills and prior relevant experience, potential impact, and scope of role), market demands, and specific work location. The listed range is a guideline, and the range for this role may be modified. For roles that are available to be filled remotely, the pay range is localized according to employee work location by a factor of between 80% and 100% of range. Please discuss your specific work location with your recruiter for more information.&nbsp;\nFigma offers equity to employees, as well a competitive package of additional benefits, including health, dental &amp; vision, retirement with company contribution, parental leave &amp; reproductive or family planning support, mental health &amp; wellness benefits, generous PTO, company recharge days, a learning &amp; development stipend, a work from home stipend, and cell phone reimbursement.&nbsp; Figma also offers sales incentive pay for most sales roles and an annual bonus plan for eligible non-sales roles. Figma’s compensation and benefits are subject to change and may be modified in the future.\nAnnual Base Salary Range (SF/NY Hub): $165,000 &mdash; $190,000 USD At Figma we celebrate and support our differences. We know employing a team rich in diverse thoughts, experiences, and opinions allows our employees, our product and our community to flourish. Figma is an equal opportunity workplace - we are dedicated to equal employment opportunities regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity/expression, veteran status , or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements.\nWe will work to ensure individuals with disabilities are provided reasonable accommodation to apply for a role, participate in the interview process, perform essential job functions, and receive other benefits and privileges of employment. If you require accommodation, please reach out to accommodations-ext@figma.com . These modifications enable an individual with a disability to have an equal opportunity not only to get a job, but successfully perform their job tasks to the same extent as people without disabilities.&nbsp;\nExamples of accommodations include but are not limited to:&nbsp;\n- Holding interviews in an accessible location\n- Enabling closed captioning on video conferencing\n- Ensuring all written communication be compatible with screen readers\n- Changing the mode or format of interviews&nbsp;\nTo ensure the integrity of our hiring process and facilitate a more personal connection, we require all candidates keep their cameras on during video interviews. Additionally, if hired you will be required to attend in person onboarding.\nBy applying for this job, the candidate acknowledges and agrees that any personal data contained in their application or supporting materials will be processed in accordance with Figma's Candidate Privacy Notice .",
+          "is_valid": true,
+          "reason": "Valid description (6634 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive, Enterprise\n\nFigma is growing our team of passionate creatives and builders on a mission to make design accessible to all. Figma’s platform helps teams bring ideas to life—whether you're brainstorming, creating a prototype, translating designs into code, or iterating with AI. From idea to product, Figma empowers teams to streamline workflows, move faster, and work together in real time from anywhere in the world. If you're excited to shape the future of design and collaboration, join us!\nWe are looking for an Enterprise Account Executive who will play a critical role driving sales and maximizing revenue with our Enterprise customers. You will be responsible for targeting, building and nurturing positive relationships with key executive level decision-makers, understanding complex business needs, and delivering innovative solutions across our product suite. This is an opportunity to accelerate your career, learn from leading sellers in the industry and build an incredible network of cross functional partners at Figma.\nThis is a full time role that can be held from one of our US hubs or remotely in the United States.\nWhat you'll do at Figma:\n- Create and manage a pipeline of Enterprise accounts to consistently meet or exceed quarterly and annual sales targets\n- Apply effective discovery and value-selling techniques to build and strengthen relationships with key decision-makers in both new and existing customers (5000+ FTEs)\n- Align with executives on business challenges and gain sponsorship for enterprise wide deployments for a suite of products, identifying where Figma’s roadmap and innovations fit in the long term\n- Conduct thorough analysis to create strategic account plans that outline company priorities and initiatives, multi-threading at an executive level to build on expansion opportunities\n- Manage a book of business by tiering accounts and initiating techniques to save contractions\n- Co-create with cross-functional partners to expertly position Figma, drive deals forward and ensure customer success\n- Leverage opportunities to advance executive level relationships through in-person meetings and networking opportunities\nWe'd love to hear from you if you have:\n- Experience closing sales, over multiple years, for a software or SaaS business with an Enterprise book of customers (5000+ FTEs), selling to executives\n- Consistent performance meeting pipeline generation targets for net new business\n- Demonstrated experience successfully managing complex sales cycles (6 months+)\n- A sales methodology and process that creates value for customers\nWhile it’s not required, it’s an added plus if you also have:\n- Experience selling solutions to technical audiences at a strategic level (i.e. Engineering, Product, Design teams)\n- Demonstrated ability to succeed in a changing environment\n- Certified in deal qualification and prospect discovery\nAt Figma, one of our values is Grow as you go. We believe in hiring smart, curious people who are excited to learn and develop their skills. If you’re excited about this role but your past experience doesn’t align perfectly with the points outlined in the job description, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nPay Transparency Disclosure\nIf based in Figma’s San Francisco or New York hub offices, this role has the annual base salary range stated below.&nbsp;&nbsp;&nbsp;&nbsp;\nJob level and actual compensation will be decided based on factors including, but not limited to, individual qualifications objectively assessed during the interview process (including skills and prior relevant experience, potential impact, and scope of role), market demands, and specific work location. The listed range is a guideline, and the range for this role may be modified. For roles that are available to be filled remotely, the pay range is localized according to employee work location by a factor of between 80% and 100% of range. Please discuss your specific work location with your recruiter for more information.&nbsp;\nFigma offers equity to employees, as well a competitive package of additional benefits, including health, dental &amp; vision, retirement with company contribution, parental leave &amp; reproductive or family planning support, mental health &amp; wellness benefits, generous PTO, company recharge days, a learning &amp; development stipend, a work from home stipend, and cell phone reimbursement.&nbsp; Figma also offers sales incentive pay for most sales roles and an annual bonus plan for eligible non-sales roles. Figma’s compensation and benefits are subject to change and may be modified in the future.\nAnnual Base Salary Range (SF/NY Hub): $165,000 &mdash; $190,000 USD At Figma we celebrate and support our differences. We know employing a team rich in diverse thoughts, experiences, and opinions allows our employees, our product and our community to flourish. Figma is an equal opportunity workplace - we are dedicated to equal employment opportunities regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity/expression, veteran status , or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements.\nWe will work to ensure individuals with disabilities are provided reasonable accommodation to apply for a role, participate in the interview process, perform essential job functions, and receive other benefits and privileges of employment. If you require accommodation, please reach out to accommodations-ext@figma.com . These modifications enable an individual with a disability to have an equal opportunity not only to get a job, but successfully perform their job tasks to the same extent as people without disabilities.&nbsp;\nExamples of accommodations include but are not limited to:&nbsp;\n- Holding interviews in an accessible location\n- Enabling closed captioning on video conferencing\n- Ensuring all written communication be compatible with screen readers\n- Changing the mode or format of interviews&nbsp;\nTo ensure the integrity of our hiring process and facilitate a more personal connection, we require all candidates keep their cameras on during video interviews. Additionally, if hired you will be required to attend in person onboarding.\nBy applying for this job, the candidate acknowledges and agrees that any personal data contained in their application or supporting materials will be processed in accordance with Figma's Candidate Privacy Notice .",
+          "is_valid": true,
+          "reason": "Valid description (6634 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

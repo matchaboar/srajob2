@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: snapchat
 detail_url: https://careers.snap.com/job?id=R0043679
 expected:

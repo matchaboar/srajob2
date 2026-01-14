@@ -1,0 +1,45 @@
+{
+  "request": {
+    "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+    "source_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+    "params": {
+      "request": "chrome",
+      "return_format": ["raw_html"],
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": ["*"],
+      "preserve_host": true,
+      "metadata": true,
+      "limit": 1
+    },
+    "stream": false
+  },
+  "response": [
+    {
+      "content": {
+        "raw": "<html lang=\"en-US\" dir=\"ltr\" data-react-helmet=\"dir,lang\"><head><title>Careers</title><meta content=\"chrome=1;IE=EDGE\" http-equiv=\"X-UA-Compatible\"><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\"><meta content=\"width=device-width, initial-scale=1.0, maximum-scale=2.0\" name=\"viewport\"><link href=\"https://broadcom.wd1.myworkdayjobs.com/External_Career\" rel=\"canonical\"><meta property=\"og:title\" name=\"title\"><meta property=\"og:description\" name=\"description\" content=\"Welcome! Thank you for your interest in Broadcom!\"><meta content=\"https://broadcom.wd1.myworkdayjobs.com/External_Career/assets/logo\" property=\"og:image\" name=\"image\"><meta content=\"website\" property=\"og:type\"><meta property=\"og:url\" content=\"https://broadcom.wd1.myworkdayjobs.com/External_Career\"><script type=\"text/javascript\">window.workday = window.workday || {tenant: \"broadcom\",siteId: \"External_Career\",locale: \"\",requestLocale: \"en-US\"};</script></head><body><div id=\"root\"><div class=\"WDAY spinner\">Loading jobs...</div></div><nav><a href=\"/External_Career?limit=20&amp;offset=0\">Page 1</a><a href=\"/External_Career?limit=20&amp;offset=20\">Page 2</a><a href=\"/External_Career?limit=20&amp;offset=40\">Page 3</a><a href=\"/External_Career?limit=20&amp;offset=60\">Page 4</a><a href=\"/External_Career?limit=20&amp;offset=80\">Page 5</a><a href=\"/External_Career?limit=20&amp;offset=100\">Page 6</a><a href=\"/External_Career?limit=20&amp;offset=120\">Page 7</a><a href=\"/External_Career?limit=20&amp;offset=140\">Page 8</a><a href=\"/External_Career?limit=20&amp;offset=160\">Page 9</a><a href=\"/External_Career?limit=20&amp;offset=180\">Page 10</a></nav></body></html>"
+      },
+      "costs": {"credits_used": 1},
+      "duration_elasped_ms": 45000,
+      "error": null,
+      "links": [
+        "/External_Career?limit=20&offset=0",
+        "/External_Career?limit=20&offset=20",
+        "/External_Career?limit=20&offset=40",
+        "/External_Career?limit=20&offset=60",
+        "/External_Career?limit=20&offset=80",
+        "/External_Career?limit=20&offset=100",
+        "/External_Career?limit=20&offset=120",
+        "/External_Career?limit=20&offset=140",
+        "/External_Career?limit=20&offset=160",
+        "/External_Career?limit=20&offset=180"
+      ],
+      "metadata": {
+        "title": "Careers",
+        "description": "Welcome! Thank you for your interest in Broadcom!"
+      },
+      "status": 200,
+      "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000"
+    }
+  ]
+}

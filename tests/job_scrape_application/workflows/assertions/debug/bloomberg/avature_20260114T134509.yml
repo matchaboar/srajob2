@@ -1,0 +1,11 @@
+site_id: avature
+detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Data-Management-Professional-Data-Engineer-BNEF-Data/16762
+expected:
+  title: "Senior Data Management Professional - Data Engineer - BNEF Data - 16762 - Bloomberg"
+  company: "Bloomberg"
+  location: "Skillman"
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

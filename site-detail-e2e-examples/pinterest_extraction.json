@@ -5,14 +5,14 @@
   "extracted_jobs": [
     {
       "title": "Business Development Lead, Data Partnerships",
-      "description_preview": "Business Development Lead, Data Partnerships About Pinterest: Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we\u2019re on a mission to bring everyone the inspiration to create a life they...",
+      "description_preview": "Business Development Lead, Data Partnerships About Pinterest: Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they...",
       "description_word_count": 764,
-      "location": "San Francisco, CA, US; Remote, US",
+      "location": "San Francisco, CA",
       "is_remote": true,
       "posted_at": 1765497942000,
       "posted_at_unknown": false,
       "company": "Pinterest",
-      "level": "senior",
+      "level": "staff",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Business Development Lead, Data Partnerships",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Business Development Lead, Data Partnerships",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Business Development Lead, Data Partnerships",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Business Development Lead, Data Partnerships",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Pinterest",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Pinterest",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Pinterest",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "Pinterest",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "San Francisco, CA, US; Remote, US",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "San Francisco, CA, US; Remote, US",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "San Francisco, CA, US; Remote, US",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": true,
+          "is_valid": true,
+          "reason": "Location contains 'remote': San Francisco, CA, US; Remote, US"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Pinterest' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "staff",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "staff",
+          "is_valid": true,
+          "reason": "Explicit level field: staff -> staff"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "staff",
+          "is_valid": true,
+          "reason": "Level from title: 'lead' -> staff"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping verb token in content: Lead"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 132298,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 132298,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $132,298"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 202337,
+          "is_valid": true,
+          "reason": "Compensation from hints: $202,337"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-11T17:05:42",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-11T17:05:42",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-11T17:05:42"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.386070",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Business Development Lead, Data Partnerships\n\nAbout Pinterest:\nMillions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they love, and that starts with the people behind the product.\nDiscover a career where you ignite innovation for millions, transform passion into growth opportunities, celebrate each other’s unique experiences and embrace the&nbsp; flexibility to do your best work. Creating a career you love? It’s Possible.\nThe Business Development team at Pinterest is responsible for developing partner strategy, as well as sourcing, evaluating, executing and managing partnerships that are a critical lever for growth and progress of the company against key strategic initiatives. The team works closely with senior leadership, product, marketing, legal and revenue teams to deliver these partnerships.&nbsp;\n&nbsp;\nThe Business Development Lead for Data Partnerships will own and grow a portfolio of privacy-centric data partnerships (e.g., clean rooms, identity, and targeting partners) that enable Pinterest and its advertisers to activate, measure, and optimize performance in a privacy first world.&nbsp; This position will report to the Director of BD for Measurement and Data.&nbsp; The role will be hybrid with some time in the office and remote.&nbsp;&nbsp;\n&nbsp;\nWhat you’ll do:\n- Develop the partner strategy for privacy centric data partnerships at Pinterest, including helping the company understand the industry landscape to identify opportunities, trends and risks that are relevant to Pinterest.&nbsp;\n- Lead the process of identifying partnerships to pursue, including building the business case through strategic/financial analysis and due diligence across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Negotiate deals and develop partnerships by working across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Manage the portfolio of partnerships and drive growth from initial launch through scaled adoption, ensuring partners are integrated effectively, supported by strong joint value propositions, and embedded into how advertisers measure and optimize on Pinterest.\n&nbsp;\nWhat we’re looking for:\n- You have a Bachelor’s Degree or equivalent practical experience and 6+ years of work experience in business development, ideally with demonstrated experience in online advertising partnerships focused on privacy enhancing technology, identity, and targeting.&nbsp;&nbsp;\n- You are strategic, driven, and analytical with a passion for the online advertising industry and technology\n- You are an expert in partner and program management and know how to manage and optimize complex partnerships&nbsp;\n- You are experienced in performing broad quantitative analysis and negotiating complex deals\n- You have experience and knowledge of the online advertising industry and partner ecosystem&nbsp;&nbsp;\n- You have the ability to work with, and effectively influence, cross-functional senior executives in a rapidly changing environment&nbsp;\n&nbsp;\nRelocation Statement:\n- &nbsp;This position is not eligible for relocation assistance. Visit our PinFlex page to learn more about our working model.\n&nbsp;\nIn-Office Requirement Statement:\n- We let the type of work you do guide the collaboration style. That means we're not always working in an office, but we continue to gather for key moments of collaboration and connection.\n- This role will need to be in the office for in-person collaboration 1-2 times/quarter and therefore can be situated anywhere in the country.\n#LI-REMOTE&nbsp;\n#LI-EP4\nAt Pinterest we believe the workplace should be equitable, inclusive, and inspiring for every employee. In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary is based on a number of factors including location, travel, relevant prior experience, or particular skills and expertise.\nInformation regarding the culture at Pinterest and benefits available for this position can be found here .\nUS based applicants only $132,298 &mdash; $272,377 USD Our Commitment to Inclusion:\nPinterest is an equal opportunity employer and makes employment decisions on the basis of merit. We want to have the best qualified people in every job. All qualified applicants will receive consideration for employment without regard to race, color, ancestry, national origin, religion or religious creed, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, age, marital status, status as a protected veteran, physical or mental disability, medical condition, genetic information or characteristics (or those of a family member) or any other consideration made unlawful by applicable federal, state or local laws. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you require a medical or religious accommodation during the job application process, please complete&nbsp; this form &nbsp;for support.\n&nbsp;",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Business Development Lead, Data Partnerships\n\nAbout Pinterest:\nMillions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they love, and that starts with the people behind the product.\nDiscover a career where you ignite innovation for millions, transform passion into growth opportunities, celebrate each other’s unique experiences and embrace the&nbsp; flexibility to do your best work. Creating a career you love? It’s Possible.\nThe Business Development team at Pinterest is responsible for developing partner strategy, as well as sourcing, evaluating, executing and managing partnerships that are a critical lever for growth and progress of the company against key strategic initiatives. The team works closely with senior leadership, product, marketing, legal and revenue teams to deliver these partnerships.&nbsp;\n&nbsp;\nThe Business Development Lead for Data Partnerships will own and grow a portfolio of privacy-centric data partnerships (e.g., clean rooms, identity, and targeting partners) that enable Pinterest and its advertisers to activate, measure, and optimize performance in a privacy first world.&nbsp; This position will report to the Director of BD for Measurement and Data.&nbsp; The role will be hybrid with some time in the office and remote.&nbsp;&nbsp;\n&nbsp;\nWhat you’ll do:\n- Develop the partner strategy for privacy centric data partnerships at Pinterest, including helping the company understand the industry landscape to identify opportunities, trends and risks that are relevant to Pinterest.&nbsp;\n- Lead the process of identifying partnerships to pursue, including building the business case through strategic/financial analysis and due diligence across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Negotiate deals and develop partnerships by working across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Manage the portfolio of partnerships and drive growth from initial launch through scaled adoption, ensuring partners are integrated effectively, supported by strong joint value propositions, and embedded into how advertisers measure and optimize on Pinterest.\n&nbsp;\nWhat we’re looking for:\n- You have a Bachelor’s Degree or equivalent practical experience and 6+ years of work experience in business development, ideally with demonstrated experience in online advertising partnerships focused on privacy enhancing technology, identity, and targeting.&nbsp;&nbsp;\n- You are strategic, driven, and analytical with a passion for the online advertising industry and technology\n- You are an expert in partner and program management and know how to manage and optimize complex partnerships&nbsp;\n- You are experienced in performing broad quantitative analysis and negotiating complex deals\n- You have experience and knowledge of the online advertising industry and partner ecosystem&nbsp;&nbsp;\n- You have the ability to work with, and effectively influence, cross-functional senior executives in a rapidly changing environment&nbsp;\n&nbsp;\nRelocation Statement:\n- &nbsp;This position is not eligible for relocation assistance. Visit our PinFlex page to learn more about our working model.\n&nbsp;\nIn-Office Requirement Statement:\n- We let the type of work you do guide the collaboration style. That means we're not always working in an office, but we continue to gather for key moments of collaboration and connection.\n- This role will need to be in the office for in-person collaboration 1-2 times/quarter and therefore can be situated anywhere in the country.\n#LI-REMOTE&nbsp;\n#LI-EP4\nAt Pinterest we believe the workplace should be equitable, inclusive, and inspiring for every employee. In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary is based on a number of factors including location, travel, relevant prior experience, or particular skills and expertise.\nInformation regarding the culture at Pinterest and benefits available for this position can be found here .\nUS based applicants only $132,298 &mdash; $272,377 USD Our Commitment to Inclusion:\nPinterest is an equal opportunity employer and makes employment decisions on the basis of merit. We want to have the best qualified people in every job. All qualified applicants will receive consideration for employment without regard to race, color, ancestry, national origin, religion or religious creed, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, age, marital status, status as a protected veteran, physical or mental disability, medical condition, genetic information or characteristics (or those of a family member) or any other consideration made unlawful by applicable federal, state or local laws. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you require a medical or religious accommodation during the job application process, please complete&nbsp; this form &nbsp;for support.\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (5302 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Business Development Lead, Data Partnerships\n\nAbout Pinterest:\nMillions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they love, and that starts with the people behind the product.\nDiscover a career where you ignite innovation for millions, transform passion into growth opportunities, celebrate each other’s unique experiences and embrace the&nbsp; flexibility to do your best work. Creating a career you love? It’s Possible.\nThe Business Development team at Pinterest is responsible for developing partner strategy, as well as sourcing, evaluating, executing and managing partnerships that are a critical lever for growth and progress of the company against key strategic initiatives. The team works closely with senior leadership, product, marketing, legal and revenue teams to deliver these partnerships.&nbsp;\n&nbsp;\nThe Business Development Lead for Data Partnerships will own and grow a portfolio of privacy-centric data partnerships (e.g., clean rooms, identity, and targeting partners) that enable Pinterest and its advertisers to activate, measure, and optimize performance in a privacy first world.&nbsp; This position will report to the Director of BD for Measurement and Data.&nbsp; The role will be hybrid with some time in the office and remote.&nbsp;&nbsp;\n&nbsp;\nWhat you’ll do:\n- Develop the partner strategy for privacy centric data partnerships at Pinterest, including helping the company understand the industry landscape to identify opportunities, trends and risks that are relevant to Pinterest.&nbsp;\n- Lead the process of identifying partnerships to pursue, including building the business case through strategic/financial analysis and due diligence across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Negotiate deals and develop partnerships by working across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Manage the portfolio of partnerships and drive growth from initial launch through scaled adoption, ensuring partners are integrated effectively, supported by strong joint value propositions, and embedded into how advertisers measure and optimize on Pinterest.\n&nbsp;\nWhat we’re looking for:\n- You have a Bachelor’s Degree or equivalent practical experience and 6+ years of work experience in business development, ideally with demonstrated experience in online advertising partnerships focused on privacy enhancing technology, identity, and targeting.&nbsp;&nbsp;\n- You are strategic, driven, and analytical with a passion for the online advertising industry and technology\n- You are an expert in partner and program management and know how to manage and optimize complex partnerships&nbsp;\n- You are experienced in performing broad quantitative analysis and negotiating complex deals\n- You have experience and knowledge of the online advertising industry and partner ecosystem&nbsp;&nbsp;\n- You have the ability to work with, and effectively influence, cross-functional senior executives in a rapidly changing environment&nbsp;\n&nbsp;\nRelocation Statement:\n- &nbsp;This position is not eligible for relocation assistance. Visit our PinFlex page to learn more about our working model.\n&nbsp;\nIn-Office Requirement Statement:\n- We let the type of work you do guide the collaboration style. That means we're not always working in an office, but we continue to gather for key moments of collaboration and connection.\n- This role will need to be in the office for in-person collaboration 1-2 times/quarter and therefore can be situated anywhere in the country.\n#LI-REMOTE&nbsp;\n#LI-EP4\nAt Pinterest we believe the workplace should be equitable, inclusive, and inspiring for every employee. In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary is based on a number of factors including location, travel, relevant prior experience, or particular skills and expertise.\nInformation regarding the culture at Pinterest and benefits available for this position can be found here .\nUS based applicants only $132,298 &mdash; $272,377 USD Our Commitment to Inclusion:\nPinterest is an equal opportunity employer and makes employment decisions on the basis of merit. We want to have the best qualified people in every job. All qualified applicants will receive consideration for employment without regard to race, color, ancestry, national origin, religion or religious creed, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, age, marital status, status as a protected veteran, physical or mental disability, medical condition, genetic information or characteristics (or those of a family member) or any other consideration made unlawful by applicable federal, state or local laws. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you require a medical or religious accommodation during the job application process, please complete&nbsp; this form &nbsp;for support.\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (5302 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Business Development Lead, Data Partnerships\n\nAbout Pinterest:\nMillions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they love, and that starts with the people behind the product.\nDiscover a career where you ignite innovation for millions, transform passion into growth opportunities, celebrate each other’s unique experiences and embrace the&nbsp; flexibility to do your best work. Creating a career you love? It’s Possible.\nThe Business Development team at Pinterest is responsible for developing partner strategy, as well as sourcing, evaluating, executing and managing partnerships that are a critical lever for growth and progress of the company against key strategic initiatives. The team works closely with senior leadership, product, marketing, legal and revenue teams to deliver these partnerships.&nbsp;\n&nbsp;\nThe Business Development Lead for Data Partnerships will own and grow a portfolio of privacy-centric data partnerships (e.g., clean rooms, identity, and targeting partners) that enable Pinterest and its advertisers to activate, measure, and optimize performance in a privacy first world.&nbsp; This position will report to the Director of BD for Measurement and Data.&nbsp; The role will be hybrid with some time in the office and remote.&nbsp;&nbsp;\n&nbsp;\nWhat you’ll do:\n- Develop the partner strategy for privacy centric data partnerships at Pinterest, including helping the company understand the industry landscape to identify opportunities, trends and risks that are relevant to Pinterest.&nbsp;\n- Lead the process of identifying partnerships to pursue, including building the business case through strategic/financial analysis and due diligence across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Negotiate deals and develop partnerships by working across relevant teams including product, engineering, legal, marketing and sales&nbsp;\n- Manage the portfolio of partnerships and drive growth from initial launch through scaled adoption, ensuring partners are integrated effectively, supported by strong joint value propositions, and embedded into how advertisers measure and optimize on Pinterest.\n&nbsp;\nWhat we’re looking for:\n- You have a Bachelor’s Degree or equivalent practical experience and 6+ years of work experience in business development, ideally with demonstrated experience in online advertising partnerships focused on privacy enhancing technology, identity, and targeting.&nbsp;&nbsp;\n- You are strategic, driven, and analytical with a passion for the online advertising industry and technology\n- You are an expert in partner and program management and know how to manage and optimize complex partnerships&nbsp;\n- You are experienced in performing broad quantitative analysis and negotiating complex deals\n- You have experience and knowledge of the online advertising industry and partner ecosystem&nbsp;&nbsp;\n- You have the ability to work with, and effectively influence, cross-functional senior executives in a rapidly changing environment&nbsp;\n&nbsp;\nRelocation Statement:\n- &nbsp;This position is not eligible for relocation assistance. Visit our PinFlex page to learn more about our working model.\n&nbsp;\nIn-Office Requirement Statement:\n- We let the type of work you do guide the collaboration style. That means we're not always working in an office, but we continue to gather for key moments of collaboration and connection.\n- This role will need to be in the office for in-person collaboration 1-2 times/quarter and therefore can be situated anywhere in the country.\n#LI-REMOTE&nbsp;\n#LI-EP4\nAt Pinterest we believe the workplace should be equitable, inclusive, and inspiring for every employee. In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary is based on a number of factors including location, travel, relevant prior experience, or particular skills and expertise.\nInformation regarding the culture at Pinterest and benefits available for this position can be found here .\nUS based applicants only $132,298 &mdash; $272,377 USD Our Commitment to Inclusion:\nPinterest is an equal opportunity employer and makes employment decisions on the basis of merit. We want to have the best qualified people in every job. All qualified applicants will receive consideration for employment without regard to race, color, ancestry, national origin, religion or religious creed, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, age, marital status, status as a protected veteran, physical or mental disability, medical condition, genetic information or characteristics (or those of a family member) or any other consideration made unlawful by applicable federal, state or local laws. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you require a medical or religious accommodation during the job application process, please complete&nbsp; this form &nbsp;for support.\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (5302 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

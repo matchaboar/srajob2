@@ -75,6 +75,86 @@ class GreenhouseHandler(BaseSiteHandler):
             return len(parts) <= 2
         return False
 
+    # Non-job Greenhouse subdomains that should be filtered out during listing extraction
+    _INVALID_GREENHOUSE_HOSTS = frozenset({
+        "learn.greenhouse.io",
+        "support.greenhouse.io",
+        "my.greenhouse.io",
+        "www.greenhouse.io",
+        "www.greenhouse.com",
+        "greenhouse.com",
+        "greenhouse.io",
+        "job-seekers.cdn.greenhouse.io",
+        "api.greenhouse.io",  # API listing URLs, not job detail URLs
+    })
+
+    def _is_valid_job_url(self, url: str) -> bool:
+        """Check if a URL is a valid Greenhouse job detail URL.
+
+        Filters out:
+        - Greenhouse marketing/support/learning subdomains (.io and .com)
+        - CDN asset URLs (.css, .js files)
+        - Authentication and login URLs
+        - Non-job board greenhouse.io subdomains
+        """
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower()
+
+        # Check for gh_jid parameter - this is always a valid job URL
+        if "gh_jid" in url:
+            return True
+
+        # Filter out non-job Greenhouse hosts (marketing, support, learning, etc.)
+        if host in self._INVALID_GREENHOUSE_HOSTS:
+            return False
+
+        # Filter out greenhouse.com entirely - it's the marketing site
+        if host.endswith(".greenhouse.com") or host == "greenhouse.com":
+            return False
+
+        # Filter out CDN asset URLs (CSS, JS, images, etc.)
+        if host.endswith("cdn.greenhouse.io"):
+            return False
+
+        # Filter out URLs ending in asset extensions
+        if path.endswith((".css", ".js", ".png", ".jpg", ".svg", ".gif", ".woff", ".woff2", ".ttf")):
+            return False
+
+        # Filter out authentication/login URLs on any greenhouse domain
+        if "greenhouse.io" in host:
+            auth_paths = ("/auth/", "/login", "/sign_in", "/sign_up", "/password", "/checkout/")
+            if any(auth_path in path for auth_path in auth_paths):
+                return False
+
+        # For greenhouse.io subdomains, require valid job board patterns
+        if host.endswith("greenhouse.io"):
+            # boards.greenhouse.io/company/jobs/id or job-boards.greenhouse.io/company/jobs/id
+            if host.startswith(("boards.", "job-boards.")):
+                parts = [p for p in path.split("/") if p]
+                # Need at least company/jobs/id pattern
+                if len(parts) >= 3 and parts[1] == "jobs":
+                    return True
+                return False
+
+            # boards-api.greenhouse.io/v1/boards/company/jobs/id
+            if host.startswith("boards-api."):
+                parts = [p for p in path.split("/") if p]
+                if len(parts) >= 5 and parts[3] == "jobs":
+                    return True
+                return False
+
+            # Other greenhouse.io subdomains are likely not job URLs
+            return False
+
+        # Non-greenhouse URLs are allowed (they might be company career sites with gh_jid param checked above,
+        # or they may be completely unrelated to Greenhouse)
+        return True
+
     def filter_job_urls(self, urls: List[str]) -> List[str]:
         filtered: List[str] = []
         seen: set[str] = set()
@@ -89,6 +169,9 @@ class GreenhouseHandler(BaseSiteHandler):
                 continue
             normalized = self._canonicalize_gh_jid_url(normalized)
             if normalized in seen:
+                continue
+            # Check if this is a valid job URL before adding
+            if not self._is_valid_job_url(normalized):
                 continue
             seen.add(normalized)
             filtered.append(normalized)

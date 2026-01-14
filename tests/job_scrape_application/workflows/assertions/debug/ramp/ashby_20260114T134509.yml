@@ -1,0 +1,11 @@
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/ramp/63df0ffc-bdc6-40ba-906f-fe03378536b0
+expected:
+  title_contains: "AI Operations Specialist"
+  company: "Ramp"
+  location_contains: "New York"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

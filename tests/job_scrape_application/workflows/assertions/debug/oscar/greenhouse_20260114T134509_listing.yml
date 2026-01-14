@@ -1,0 +1,21 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/oscar/jobs
+expected:
+  url_count_min: 10
+  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "GreenhouseHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7297858"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205649"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/6546196"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205654"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205670"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205673"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/6240646"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205683"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/6623974"
+  #   - "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7205681"

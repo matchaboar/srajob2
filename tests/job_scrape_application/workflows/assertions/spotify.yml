@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: spotify
 detail_url: https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing
 expected:
@@ -5,6 +6,6 @@ expected:
   company: Spotify
   location_contains: New York
   is_remote: false
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1

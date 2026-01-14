@@ -211,3 +211,36 @@ def test_normalize_url_list_dedupes_and_filters():
     normalized = normalize_url_list(urls, base_url="https://example.com")
 
     assert normalized == ["https://example.com/jobs/1", "https://example.com/jobs/2"]
+
+
+def test_normalize_url_preserves_underscore_from_markdown_escape():
+    """Test that markdown-escaped underscores are correctly un-escaped.
+
+    When URLs are extracted from markdown content, underscores are escaped as \\_
+    (backslash-underscore). The normalize_url function should convert \\_ back to _,
+    NOT convert \\ to / which would corrupt the URL.
+
+    Example from Dataminr Workday listing:
+    - Markdown: https://dataminr.wd12.myworkdayjobs.com/.../Senior-Director--AI-Research\\_JR1849
+    - Expected: https://dataminr.wd12.myworkdayjobs.com/.../Senior-Director--AI-Research_JR1849
+    - Bug (before fix): https://dataminr.wd12.myworkdayjobs.com/.../Senior-Director--AI-Research/_JR1849
+    """
+    # URL with markdown-escaped underscore (\_)
+    markdown_url = "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Senior-Director--AI-Research\\_JR1849"
+
+    normalized = normalize_url(markdown_url)
+
+    # Should preserve the underscore, NOT convert backslash to forward slash
+    assert normalized == "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Senior-Director--AI-Research_JR1849"
+    # Should NOT contain /_JR (the bug pattern)
+    assert "/_JR" not in normalized
+
+
+def test_normalize_url_handles_multiple_markdown_escaped_underscores():
+    """Test multiple escaped underscores in a single URL."""
+    markdown_url = "https://example.com/job/Senior\\_Engineer\\_Team\\_Lead\\_JR1234"
+
+    normalized = normalize_url(markdown_url)
+
+    assert normalized == "https://example.com/job/Senior_Engineer_Team_Lead_JR1234"
+    assert "/_" not in normalized

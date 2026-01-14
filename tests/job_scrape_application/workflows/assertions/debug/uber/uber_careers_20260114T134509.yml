@@ -1,0 +1,11 @@
+site_id: uber_careers
+detail_url: https://www.uber.com/careers/list/149889
+expected:
+  title: "Business Development Lead, US Regional Grocery"
+  company: "Uber"
+  location_contains: "San Francisco"
+  is_remote: false
+  level: staff
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

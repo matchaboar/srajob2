@@ -1,0 +1,16 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944
+expected:
+  # Title fix verified - "Your Career" and "Our Mission" are now filtered as generic headings
+  title: "Named Account Manager - SLED"
+  company: "Palo Alto Networks"
+  # URL location extraction now prioritized: "los-angeles" in URL path -> "Los Angeles"
+  location_contains: "Los Angeles"
+  # Remote status is true - "Remote" appears in location field/spans in original HTML
+  is_remote: true
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

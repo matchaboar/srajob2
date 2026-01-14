@@ -1,0 +1,446 @@
+{
+  "site_id": "adobe",
+  "detail_url": "https://careers.adobe.com/us/en/job/R161269/Software-Engineer",
+  "source_url": "https://careers.adobe.com/us/en/job/R161269/Software-Engineer",
+  "extracted_jobs": [
+    {
+      "title": "JOB LEVEL",
+      "description_preview": "JOB LEVEL P20EMPLOYEE ROLE Individual Contributor The Opportunity Join Adobe's world-class engineering team in Austin, TX, and be part of an exceptionally dedicated group of engineers! As a Software Engineer, you will have the outstanding opportunity to work on innovative solutions that touch billions of users globally. This role is...",
+      "description_word_count": 881,
+      "location": "Austin, Texas, United States of America",
+      "is_remote": false,
+      "posted_at": 1767711600000,
+      "posted_at_unknown": false,
+      "company": "Adobe",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.adobe.com/us/en/job/R161269/Software-Engineer",
+      "cost_milli_cents": 206
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "JOB LEVEL",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'adobe_careers' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "JOB LEVEL",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "JOB LEVEL",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "JOB LEVEL",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Adobe",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'adobe_careers' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Adobe",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Adobe",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Austin, Texas, United States of America",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'adobe_careers' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Austin, Texas, United States of America",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": "R161269",
+          "is_valid": true,
+          "reason": "Extracted from URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Austin, Texas, United States of America",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Austin, TX",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Austin, Texas, United States of America"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Adobe' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 136200,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 136200,
+          "is_valid": true,
+          "reason": "Compensation range pattern: $93,200-$179,200 -> $136,200"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 179200,
+          "is_valid": true,
+          "reason": "Compensation from hints: $179,200"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-06T08:00:00",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-06T08:00:00",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-06T08:00:00"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'adobe_careers' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:12.167344",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "JOB LEVEL\n\nP20EMPLOYEE ROLE\n\nIndividual Contributor\n\nThe Opportunity\n\nJoin Adobe's world-class engineering team in Austin, TX, and be part of an exceptionally dedicated group of engineers! As a Software Engineer, you will have the outstanding opportunity to work on innovative solutions that touch billions of users globally. This role is perfect for ambitious individuals who are ready to compete and excel in a dynamic environment.\n\nWhat you'll Do\n\nBuild, invent, and maintain robust software applications using OOP principles and construction patterns like SOLID, DI, and strategy/factory/repository.Develop and integrate APIs, focusing on REST/GraphQL, including pagination, rate limits, retries, and error budgets.Apply Docker for containerization and automate local development environments.Manage CI/CD pipelines, versioning, and build artifacts to ensure seamless deployments.Implement and maintain comprehensive testing strategies, including unit, integration, and end-to-end tests.Adhere to security guidelines, such as secrets management and dependency management.Work with cloud and data services, balancing cost and performance for efficient solutions.Address concurrency and performance issues, ensuring efficient parallel processing and resource management.Collaborate effectively through clear PRs, code reviews, and issue tracking using Jira.Operate and maintain production instances using Kubernetes and GitOps or equivalent experience, managing monitoring, logging, and incident response.\n\nWhat you need to succeed\n\nBS degree in computer science or a related field is required, or equivalent experience.1-3 years of professional experienceEstablished background in OOP and architectural patterns.Proficient in one or more modern OOP programming languages: Javascript or PHPStrong skills in API development, containerization, and CI/CD practices.Solid understanding of testing strategies, security fundamentals, and cloud services such as AWS.Strong communication and collaboration skills, consistently attentive to detail.Preferred: Previous experience working with the Adobe Commerce/Magento OS e-commerce platform.Preferred: Expertise in data migration, ETL processes, and SQL/database management.\n\nOur compensation reflects the cost of labor across several  U.S. geographic markets, and we pay differently based on those defined markets. The U.S. pay range for this position is $93,200 -- $179,200 annually. Pay within this range varies by work location and may also depend on job-related knowledge, skills, and experience. Your recruiter can share more about the specific salary range for the job location during the hiring process.‌\n\nAt Adobe, for sales roles starting salaries are expressed as total target compensation (TTC = base + commission), and short-term incentives are in the form of sales commission plans.  Non-sales roles starting salaries are expressed as base salary and short-term incentives are in the form of the Annual Incentive Plan (AIP).\n\nIn addition, certain roles may be eligible for long-term incentives in the form of a new hire equity award.\n\nState-Specific Notices:\n\nCalifornia:\n\nFair Chance Ordinances\n\nAdobe will consider qualified applicants with arrest or conviction records for employment in accordance with state and local laws and “fair chance” ordinances.\n\nColorado:\n\nApplication Window Notice\n\nIf this role is open to hiring in Colorado (as listed on the job posting), the application window will remain open until at least the date and time stated above in Pacific Time, in compliance with Colorado pay transparency regulations. If this role does not have Colorado listed as a hiring location, no specific application window applies, and the posting may close at any time based on hiring needs.\n\nMassachusetts:\n\nMassachusetts Legal Notice\n\nIt is unlawful in Massachusetts to require or administer a lie detector test as a condition of employment or continued employment. An employer who violates this law shall be subject to criminal penalties and civil liability.\n\nInternal Opportunities\n\nCreativity, curiosity, and constant learning are celebrated aspects of your career growth journey. We’re glad that you’re pursuing a new opportunity at Adobe!\n\nPut your best foot forward:\n\n1. Update your Resume/CV and Workday profile – don’t forget to include your uniquely ‘Adobe’ experiences and volunteer work.\n\n2. Visit the Internal Mobility page on Inside Adobe to learn more about the process and set up a job alert for roles you’re interested in.\n\n3. Check out these tips to help you prep for interviews.\n\n4. If you are applying for a role outside of your current country, ensure you review the International Resources for Relocating Employees on Inside Adobe, including the impacts to your Benefits, AIP, Equity & Payroll.\n\nOnce you apply for a role via Workday, the Talent Team will reach out to you within 2 weeks. If you move into the official interview process with the hiring team, make sure you inform your manager so they can champion your career growth.\n\nAt Adobe, you will be immersed in an exceptional work environment that is recognized around the world. You will also be surrounded by colleagues who are committed to helping each other grow through our unique Check-In approach where ongoing feedback flows freely. If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying about their career experiences on the Adobe Life blog and explore the meaningful benefits we offer.\n\nAdobe is proud to be an Equal Employment Opportunity employer. We do not discriminate based on gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, veteran status, or any other applicable characteristics protected by law. Learn more.\n\n\nAdobe aims to make Adobe.com accessible to any and all users. If you have a disability or special need that requires accommodation to navigate our website or complete the application process, email accommodations@adobe.com or call (408) 536-3015.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "JOB LEVEL\n\nP20EMPLOYEE ROLE\n\nIndividual Contributor\n\nThe Opportunity\n\nJoin Adobe's world-class engineering team in Austin, TX, and be part of an exceptionally dedicated group of engineers! As a Software Engineer, you will have the outstanding opportunity to work on innovative solutions that touch billions of users globally. This role is perfect for ambitious individuals who are ready to compete and excel in a dynamic environment.\n\nWhat you'll Do\n\nBuild, invent, and maintain robust software applications using OOP principles and construction patterns like SOLID, DI, and strategy/factory/repository.Develop and integrate APIs, focusing on REST/GraphQL, including pagination, rate limits, retries, and error budgets.Apply Docker for containerization and automate local development environments.Manage CI/CD pipelines, versioning, and build artifacts to ensure seamless deployments.Implement and maintain comprehensive testing strategies, including unit, integration, and end-to-end tests.Adhere to security guidelines, such as secrets management and dependency management.Work with cloud and data services, balancing cost and performance for efficient solutions.Address concurrency and performance issues, ensuring efficient parallel processing and resource management.Collaborate effectively through clear PRs, code reviews, and issue tracking using Jira.Operate and maintain production instances using Kubernetes and GitOps or equivalent experience, managing monitoring, logging, and incident response.\n\nWhat you need to succeed\n\nBS degree in computer science or a related field is required, or equivalent experience.1-3 years of professional experienceEstablished background in OOP and architectural patterns.Proficient in one or more modern OOP programming languages: Javascript or PHPStrong skills in API development, containerization, and CI/CD practices.Solid understanding of testing strategies, security fundamentals, and cloud services such as AWS.Strong communication and collaboration skills, consistently attentive to detail.Preferred: Previous experience working with the Adobe Commerce/Magento OS e-commerce platform.Preferred: Expertise in data migration, ETL processes, and SQL/database management.\n\nOur compensation reflects the cost of labor across several  U.S. geographic markets, and we pay differently based on those defined markets. The U.S. pay range for this position is $93,200 -- $179,200 annually. Pay within this range varies by work location and may also depend on job-related knowledge, skills, and experience. Your recruiter can share more about the specific salary range for the job location during the hiring process.‌\n\nAt Adobe, for sales roles starting salaries are expressed as total target compensation (TTC = base + commission), and short-term incentives are in the form of sales commission plans.  Non-sales roles starting salaries are expressed as base salary and short-term incentives are in the form of the Annual Incentive Plan (AIP).\n\nIn addition, certain roles may be eligible for long-term incentives in the form of a new hire equity award.\n\nState-Specific Notices:\n\nCalifornia:\n\nFair Chance Ordinances\n\nAdobe will consider qualified applicants with arrest or conviction records for employment in accordance with state and local laws and “fair chance” ordinances.\n\nColorado:\n\nApplication Window Notice\n\nIf this role is open to hiring in Colorado (as listed on the job posting), the application window will remain open until at least the date and time stated above in Pacific Time, in compliance with Colorado pay transparency regulations. If this role does not have Colorado listed as a hiring location, no specific application window applies, and the posting may close at any time based on hiring needs.\n\nMassachusetts:\n\nMassachusetts Legal Notice\n\nIt is unlawful in Massachusetts to require or administer a lie detector test as a condition of employment or continued employment. An employer who violates this law shall be subject to criminal penalties and civil liability.\n\nInternal Opportunities\n\nCreativity, curiosity, and constant learning are celebrated aspects of your career growth journey. We’re glad that you’re pursuing a new opportunity at Adobe!\n\nPut your best foot forward:\n\n1. Update your Resume/CV and Workday profile – don’t forget to include your uniquely ‘Adobe’ experiences and volunteer work.\n\n2. Visit the Internal Mobility page on Inside Adobe to learn more about the process and set up a job alert for roles you’re interested in.\n\n3. Check out these tips to help you prep for interviews.\n\n4. If you are applying for a role outside of your current country, ensure you review the International Resources for Relocating Employees on Inside Adobe, including the impacts to your Benefits, AIP, Equity & Payroll.\n\nOnce you apply for a role via Workday, the Talent Team will reach out to you within 2 weeks. If you move into the official interview process with the hiring team, make sure you inform your manager so they can champion your career growth.\n\nAt Adobe, you will be immersed in an exceptional work environment that is recognized around the world. You will also be surrounded by colleagues who are committed to helping each other grow through our unique Check-In approach where ongoing feedback flows freely. If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying about their career experiences on the Adobe Life blog and explore the meaningful benefits we offer.\n\nAdobe is proud to be an Equal Employment Opportunity employer. We do not discriminate based on gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, veteran status, or any other applicable characteristics protected by law. Learn more.\n\n\nAdobe aims to make Adobe.com accessible to any and all users. If you have a disability or special need that requires accommodation to navigate our website or complete the application process, email accommodations@adobe.com or call (408) 536-3015.",
+          "is_valid": true,
+          "reason": "Valid description (6050 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "JOB LEVEL\n\nP20EMPLOYEE ROLE\n\nIndividual Contributor\n\nThe Opportunity\n\nJoin Adobe's world-class engineering team in Austin, TX, and be part of an exceptionally dedicated group of engineers! As a Software Engineer, you will have the outstanding opportunity to work on innovative solutions that touch billions of users globally. This role is perfect for ambitious individuals who are ready to compete and excel in a dynamic environment.\n\nWhat you'll Do\n\nBuild, invent, and maintain robust software applications using OOP principles and construction patterns like SOLID, DI, and strategy/factory/repository.Develop and integrate APIs, focusing on REST/GraphQL, including pagination, rate limits, retries, and error budgets.Apply Docker for containerization and automate local development environments.Manage CI/CD pipelines, versioning, and build artifacts to ensure seamless deployments.Implement and maintain comprehensive testing strategies, including unit, integration, and end-to-end tests.Adhere to security guidelines, such as secrets management and dependency management.Work with cloud and data services, balancing cost and performance for efficient solutions.Address concurrency and performance issues, ensuring efficient parallel processing and resource management.Collaborate effectively through clear PRs, code reviews, and issue tracking using Jira.Operate and maintain production instances using Kubernetes and GitOps or equivalent experience, managing monitoring, logging, and incident response.\n\nWhat you need to succeed\n\nBS degree in computer science or a related field is required, or equivalent experience.1-3 years of professional experienceEstablished background in OOP and architectural patterns.Proficient in one or more modern OOP programming languages: Javascript or PHPStrong skills in API development, containerization, and CI/CD practices.Solid understanding of testing strategies, security fundamentals, and cloud services such as AWS.Strong communication and collaboration skills, consistently attentive to detail.Preferred: Previous experience working with the Adobe Commerce/Magento OS e-commerce platform.Preferred: Expertise in data migration, ETL processes, and SQL/database management.\n\nOur compensation reflects the cost of labor across several  U.S. geographic markets, and we pay differently based on those defined markets. The U.S. pay range for this position is $93,200 -- $179,200 annually. Pay within this range varies by work location and may also depend on job-related knowledge, skills, and experience. Your recruiter can share more about the specific salary range for the job location during the hiring process.‌\n\nAt Adobe, for sales roles starting salaries are expressed as total target compensation (TTC = base + commission), and short-term incentives are in the form of sales commission plans.  Non-sales roles starting salaries are expressed as base salary and short-term incentives are in the form of the Annual Incentive Plan (AIP).\n\nIn addition, certain roles may be eligible for long-term incentives in the form of a new hire equity award.\n\nState-Specific Notices:\n\nCalifornia:\n\nFair Chance Ordinances\n\nAdobe will consider qualified applicants with arrest or conviction records for employment in accordance with state and local laws and “fair chance” ordinances.\n\nColorado:\n\nApplication Window Notice\n\nIf this role is open to hiring in Colorado (as listed on the job posting), the application window will remain open until at least the date and time stated above in Pacific Time, in compliance with Colorado pay transparency regulations. If this role does not have Colorado listed as a hiring location, no specific application window applies, and the posting may close at any time based on hiring needs.\n\nMassachusetts:\n\nMassachusetts Legal Notice\n\nIt is unlawful in Massachusetts to require or administer a lie detector test as a condition of employment or continued employment. An employer who violates this law shall be subject to criminal penalties and civil liability.\n\nInternal Opportunities\n\nCreativity, curiosity, and constant learning are celebrated aspects of your career growth journey. We’re glad that you’re pursuing a new opportunity at Adobe!\n\nPut your best foot forward:\n\n1. Update your Resume/CV and Workday profile – don’t forget to include your uniquely ‘Adobe’ experiences and volunteer work.\n\n2. Visit the Internal Mobility page on Inside Adobe to learn more about the process and set up a job alert for roles you’re interested in.\n\n3. Check out these tips to help you prep for interviews.\n\n4. If you are applying for a role outside of your current country, ensure you review the International Resources for Relocating Employees on Inside Adobe, including the impacts to your Benefits, AIP, Equity & Payroll.\n\nOnce you apply for a role via Workday, the Talent Team will reach out to you within 2 weeks. If you move into the official interview process with the hiring team, make sure you inform your manager so they can champion your career growth.\n\nAt Adobe, you will be immersed in an exceptional work environment that is recognized around the world. You will also be surrounded by colleagues who are committed to helping each other grow through our unique Check-In approach where ongoing feedback flows freely. If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying about their career experiences on the Adobe Life blog and explore the meaningful benefits we offer.\n\nAdobe is proud to be an Equal Employment Opportunity employer. We do not discriminate based on gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, veteran status, or any other applicable characteristics protected by law. Learn more.\n\n\nAdobe aims to make Adobe.com accessible to any and all users. If you have a disability or special need that requires accommodation to navigate our website or complete the application process, email accommodations@adobe.com or call (408) 536-3015.",
+          "is_valid": true,
+          "reason": "Valid description (6050 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "JOB LEVEL\n\nP20EMPLOYEE ROLE\n\nIndividual Contributor\n\nThe Opportunity\n\nJoin Adobe's world-class engineering team in Austin, TX, and be part of an exceptionally dedicated group of engineers! As a Software Engineer, you will have the outstanding opportunity to work on innovative solutions that touch billions of users globally. This role is perfect for ambitious individuals who are ready to compete and excel in a dynamic environment.\n\nWhat you'll Do\n\nBuild, invent, and maintain robust software applications using OOP principles and construction patterns like SOLID, DI, and strategy/factory/repository.Develop and integrate APIs, focusing on REST/GraphQL, including pagination, rate limits, retries, and error budgets.Apply Docker for containerization and automate local development environments.Manage CI/CD pipelines, versioning, and build artifacts to ensure seamless deployments.Implement and maintain comprehensive testing strategies, including unit, integration, and end-to-end tests.Adhere to security guidelines, such as secrets management and dependency management.Work with cloud and data services, balancing cost and performance for efficient solutions.Address concurrency and performance issues, ensuring efficient parallel processing and resource management.Collaborate effectively through clear PRs, code reviews, and issue tracking using Jira.Operate and maintain production instances using Kubernetes and GitOps or equivalent experience, managing monitoring, logging, and incident response.\n\nWhat you need to succeed\n\nBS degree in computer science or a related field is required, or equivalent experience.1-3 years of professional experienceEstablished background in OOP and architectural patterns.Proficient in one or more modern OOP programming languages: Javascript or PHPStrong skills in API development, containerization, and CI/CD practices.Solid understanding of testing strategies, security fundamentals, and cloud services such as AWS.Strong communication and collaboration skills, consistently attentive to detail.Preferred: Previous experience working with the Adobe Commerce/Magento OS e-commerce platform.Preferred: Expertise in data migration, ETL processes, and SQL/database management.\n\nOur compensation reflects the cost of labor across several  U.S. geographic markets, and we pay differently based on those defined markets. The U.S. pay range for this position is $93,200 -- $179,200 annually. Pay within this range varies by work location and may also depend on job-related knowledge, skills, and experience. Your recruiter can share more about the specific salary range for the job location during the hiring process.‌\n\nAt Adobe, for sales roles starting salaries are expressed as total target compensation (TTC = base + commission), and short-term incentives are in the form of sales commission plans.  Non-sales roles starting salaries are expressed as base salary and short-term incentives are in the form of the Annual Incentive Plan (AIP).\n\nIn addition, certain roles may be eligible for long-term incentives in the form of a new hire equity award.\n\nState-Specific Notices:\n\nCalifornia:\n\nFair Chance Ordinances\n\nAdobe will consider qualified applicants with arrest or conviction records for employment in accordance with state and local laws and “fair chance” ordinances.\n\nColorado:\n\nApplication Window Notice\n\nIf this role is open to hiring in Colorado (as listed on the job posting), the application window will remain open until at least the date and time stated above in Pacific Time, in compliance with Colorado pay transparency regulations. If this role does not have Colorado listed as a hiring location, no specific application window applies, and the posting may close at any time based on hiring needs.\n\nMassachusetts:\n\nMassachusetts Legal Notice\n\nIt is unlawful in Massachusetts to require or administer a lie detector test as a condition of employment or continued employment. An employer who violates this law shall be subject to criminal penalties and civil liability.\n\nInternal Opportunities\n\nCreativity, curiosity, and constant learning are celebrated aspects of your career growth journey. We’re glad that you’re pursuing a new opportunity at Adobe!\n\nPut your best foot forward:\n\n1. Update your Resume/CV and Workday profile – don’t forget to include your uniquely ‘Adobe’ experiences and volunteer work.\n\n2. Visit the Internal Mobility page on Inside Adobe to learn more about the process and set up a job alert for roles you’re interested in.\n\n3. Check out these tips to help you prep for interviews.\n\n4. If you are applying for a role outside of your current country, ensure you review the International Resources for Relocating Employees on Inside Adobe, including the impacts to your Benefits, AIP, Equity & Payroll.\n\nOnce you apply for a role via Workday, the Talent Team will reach out to you within 2 weeks. If you move into the official interview process with the hiring team, make sure you inform your manager so they can champion your career growth.\n\nAt Adobe, you will be immersed in an exceptional work environment that is recognized around the world. You will also be surrounded by colleagues who are committed to helping each other grow through our unique Check-In approach where ongoing feedback flows freely. If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying about their career experiences on the Adobe Life blog and explore the meaningful benefits we offer.\n\nAdobe is proud to be an Equal Employment Opportunity employer. We do not discriminate based on gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, veteran status, or any other applicable characteristics protected by law. Learn more.\n\n\nAdobe aims to make Adobe.com accessible to any and all users. If you have a disability or special need that requires accommodation to navigate our website or complete the application process, email accommodations@adobe.com or call (408) 536-3015.",
+          "is_valid": true,
+          "reason": "Valid description (6050 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
+  "errors": []
+}

@@ -1,0 +1,446 @@
+{
+  "site_id": "meta",
+  "detail_url": "https://www.metacareers.com/profile/job_details/727671609895617",
+  "source_url": "https://www.metacareers.com/profile/job_details/727671609895617",
+  "extracted_jobs": [
+    {
+      "title": "Software Engineer, Product",
+      "description_preview": "Meta is seeking talented engineers to join our teams in building cutting-edge products that connect billions of people around the world. As a member of our team, you will have the opportunity to work on complex technical problems, build new features, and improve existing products across various platforms, including mobile...",
+      "description_word_count": 368,
+      "location": "Sunnyvale, CA",
+      "is_remote": false,
+      "posted_at": 1749594079000,
+      "posted_at_unknown": false,
+      "company": "Meta",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://www.metacareers.com/profile/job_details/727671609895617",
+      "cost_milli_cents": 365
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Software Engineer, Product",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'meta_careers' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Software Engineer, Product",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Implement custom user interfaces using latest programming techniques and technologies",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Responsibilities",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Meta",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'meta_careers' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Meta",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Metacareers",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Sunnyvale, CA",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'meta_careers' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Sunnyvale, CA",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Bachelor's degree in Computer Science, Computer Engineering",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Sunnyvale, CA",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Sunnyvale, CA"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Meta' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-06-10T15:21:19",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-06-10T15:21:19",
+          "is_valid": true,
+          "reason": "Valid date: 2025-06-10T15:21:19"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'meta_careers' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:12.248373",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Meta is seeking talented engineers to join our teams in building cutting-edge products that connect billions of people around the world. As a member of our team, you will have the opportunity to work on complex technical problems, build new features, and improve existing products across various platforms, including mobile devices and web applications. Our teams are constantly pushing the boundaries of user experience, and we're looking for passionate individuals who can help us advance the way people connect globally. If you're interested in joining a world-class team of industry veterans and working on exciting projects that have a significant impact, we encourage you to apply.\n\nResponsibilities\nCollaborate with cross-functional teams (product, design, operations, infrastructure) to build innovative application experiences\nImplement custom user interfaces using latest programming techniques and technologies\nDevelop reusable software components for interfacing with back-end platforms\nAnalyze and optimize code for quality, efficiency, and performance\nLead complex technical or product efforts and provide technical guidance to peers\nArchitect efficient and scalable systems that drive complex applications\nIdentify and resolve performance and scalability issues\nWork on a variety of coding languages and technologies\nEstablish ownership of components, features, or systems with expert end-to-end understanding\n\nQualifications\nCurrently has, or is in the process of obtaining a Bachelor's degree in Computer Science, Computer Engineering, relevant technical field, or equivalent practical experience. Degree must be completed prior to joining Meta\n2+ years of programming experience in a relevant language OR a PhD + 9 months programming experience in a relevant language\nTrack record of setting technical direction for a team, driving consensus and successful cross-functional partnerships\nExperience building maintainable and testable code bases, including API design and unit testing techniques Exposure to architectural patterns of large scale software applications\nExperience improving quality through thoughtful code reviews, appropriate testing, proper rollout, monitoring, and proactive changes\nExperience with scripting languages such as Python, Javascript or Hack\n2+ years of relevant experience building large-scale applications or similar experience\nExperience completing projects at large scope\nExperience in programming languages such as C, C++, Java, Swift, or Kotlin\nExperience as an owner of a particular component, feature or system\n1+ years of experience identifying, designing and completing medium to large features independently without guidance",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Meta is seeking talented engineers to join our teams in building cutting-edge products that connect billions of people around the world. As a member of our team, you will have the opportunity to work on complex technical problems, build new features, and improve existing products across various platforms, including mobile devices and web applications. Our teams are constantly pushing the boundaries of user experience, and we're looking for passionate individuals who can help us advance the way people connect globally. If you're interested in joining a world-class team of industry veterans and working on exciting projects that have a significant impact, we encourage you to apply.\n\nResponsibilities\nCollaborate with cross-functional teams (product, design, operations, infrastructure) to build innovative application experiences\nImplement custom user interfaces using latest programming techniques and technologies\nDevelop reusable software components for interfacing with back-end platforms\nAnalyze and optimize code for quality, efficiency, and performance\nLead complex technical or product efforts and provide technical guidance to peers\nArchitect efficient and scalable systems that drive complex applications\nIdentify and resolve performance and scalability issues\nWork on a variety of coding languages and technologies\nEstablish ownership of components, features, or systems with expert end-to-end understanding\n\nQualifications\nCurrently has, or is in the process of obtaining a Bachelor's degree in Computer Science, Computer Engineering, relevant technical field, or equivalent practical experience. Degree must be completed prior to joining Meta\n2+ years of programming experience in a relevant language OR a PhD + 9 months programming experience in a relevant language\nTrack record of setting technical direction for a team, driving consensus and successful cross-functional partnerships\nExperience building maintainable and testable code bases, including API design and unit testing techniques Exposure to architectural patterns of large scale software applications\nExperience improving quality through thoughtful code reviews, appropriate testing, proper rollout, monitoring, and proactive changes\nExperience with scripting languages such as Python, Javascript or Hack\n2+ years of relevant experience building large-scale applications or similar experience\nExperience completing projects at large scope\nExperience in programming languages such as C, C++, Java, Swift, or Kotlin\nExperience as an owner of a particular component, feature or system\n1+ years of experience identifying, designing and completing medium to large features independently without guidance",
+          "is_valid": true,
+          "reason": "Valid description (2681 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Meta is seeking talented engineers to join our teams in building cutting-edge products that connect billions of people around the world. As a member of our team, you will have the opportunity to work on complex technical problems, build new features, and improve existing products across various platforms, including mobile devices and web applications. Our teams are constantly pushing the boundaries of user experience, and we're looking for passionate individuals who can help us advance the way people connect globally. If you're interested in joining a world-class team of industry veterans and working on exciting projects that have a significant impact, we encourage you to apply.\n\nResponsibilities\nCollaborate with cross-functional teams (product, design, operations, infrastructure) to build innovative application experiences\nImplement custom user interfaces using latest programming techniques and technologies\nDevelop reusable software components for interfacing with back-end platforms\nAnalyze and optimize code for quality, efficiency, and performance\nLead complex technical or product efforts and provide technical guidance to peers\nArchitect efficient and scalable systems that drive complex applications\nIdentify and resolve performance and scalability issues\nWork on a variety of coding languages and technologies\nEstablish ownership of components, features, or systems with expert end-to-end understanding\n\nQualifications\nCurrently has, or is in the process of obtaining a Bachelor's degree in Computer Science, Computer Engineering, relevant technical field, or equivalent practical experience. Degree must be completed prior to joining Meta\n2+ years of programming experience in a relevant language OR a PhD + 9 months programming experience in a relevant language\nTrack record of setting technical direction for a team, driving consensus and successful cross-functional partnerships\nExperience building maintainable and testable code bases, including API design and unit testing techniques Exposure to architectural patterns of large scale software applications\nExperience improving quality through thoughtful code reviews, appropriate testing, proper rollout, monitoring, and proactive changes\nExperience with scripting languages such as Python, Javascript or Hack\n2+ years of relevant experience building large-scale applications or similar experience\nExperience completing projects at large scope\nExperience in programming languages such as C, C++, Java, Swift, or Kotlin\nExperience as an owner of a particular component, feature or system\n1+ years of experience identifying, designing and completing medium to large features independently without guidance",
+          "is_valid": true,
+          "reason": "Valid description (2681 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Meta is seeking talented engineers to join our teams in building cutting-edge products that connect billions of people around the world. As a member of our team, you will have the opportunity to work on complex technical problems, build new features, and improve existing products across various platforms, including mobile devices and web applications. Our teams are constantly pushing the boundaries of user experience, and we're looking for passionate individuals who can help us advance the way people connect globally. If you're interested in joining a world-class team of industry veterans and working on exciting projects that have a significant impact, we encourage you to apply.\n\nResponsibilities\nCollaborate with cross-functional teams (product, design, operations, infrastructure) to build innovative application experiences\nImplement custom user interfaces using latest programming techniques and technologies\nDevelop reusable software components for interfacing with back-end platforms\nAnalyze and optimize code for quality, efficiency, and performance\nLead complex technical or product efforts and provide technical guidance to peers\nArchitect efficient and scalable systems that drive complex applications\nIdentify and resolve performance and scalability issues\nWork on a variety of coding languages and technologies\nEstablish ownership of components, features, or systems with expert end-to-end understanding\n\nQualifications\nCurrently has, or is in the process of obtaining a Bachelor's degree in Computer Science, Computer Engineering, relevant technical field, or equivalent practical experience. Degree must be completed prior to joining Meta\n2+ years of programming experience in a relevant language OR a PhD + 9 months programming experience in a relevant language\nTrack record of setting technical direction for a team, driving consensus and successful cross-functional partnerships\nExperience building maintainable and testable code bases, including API design and unit testing techniques Exposure to architectural patterns of large scale software applications\nExperience improving quality through thoughtful code reviews, appropriate testing, proper rollout, monitoring, and proactive changes\nExperience with scripting languages such as Python, Javascript or Hack\n2+ years of relevant experience building large-scale applications or similar experience\nExperience completing projects at large scope\nExperience in programming languages such as C, C++, Java, Swift, or Kotlin\nExperience as an owner of a particular component, feature or system\n1+ years of experience identifying, designing and completing medium to large features independently without guidance",
+          "is_valid": true,
+          "reason": "Valid description (2681 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
+  "errors": []
+}

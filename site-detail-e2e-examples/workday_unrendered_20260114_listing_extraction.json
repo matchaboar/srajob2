@@ -1,0 +1,15 @@
+{
+  "site_id": "workday_unrendered_20260114",
+  "listing_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+  "source_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+  "handler_name": "WorkdayHandler",
+  "content_type": "raw_html",
+  "extraction_method": "handler.get_links_from_raw_html",
+  "extracted_url_count": 10,
+  "filtered_url_count": 0,
+  "normalized_url_count": 0,
+  "pagination_url_count": 10,
+  "sample_urls": [],
+  "url_transformations": [],
+  "error": null
+}

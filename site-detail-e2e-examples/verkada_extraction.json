@@ -27,5 +27,420 @@
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
   },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive, ASEAN",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, ASEAN",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive, ASEAN",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive, ASEAN",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Verkada",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Verkada",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Verkada",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "the Role",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Singapore",
+      "winning_strategy": "country_only_fallback_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": null,
+          "is_valid": false,
+          "reason": "Country-only location too generic: Singapore"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Singapore",
+          "is_valid": true,
+          "reason": "Country-only fallback: Country-only location accepted (explicit source): Singapore"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Singapore, Singapore",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Singapore"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Verkada' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-23T17:09:27",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-23T17:09:27",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-23T17:09:27"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.598230",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive, ASEAN\n\nWho We Are\nVerkada is transforming how organizations protect their people and places with an integrated, AI-powered platform. A leader in cloud physical security, Verkada helps organizations strengthen safety and efficiency through one connected software platform that includes solutions for video security, access control, air quality sensors, alarms, intercoms, and visitor management.\nOver 30,000 organizations worldwide, including more than 100 companies in the Fortune 500, trust Verkada as their physical security layer for easier management, intelligent control, and scalable deployments. Founded in 2016, Verkada has expanded rapidly with 15 offices and 2,200+ full-time employees.\nAbout the Role\nAs a&nbsp; Mid-Market Account Executive at Verkada , you’ll play a key role in transforming how businesses protect their people and places in a privacy-sensitive way. This position is&nbsp; based in Singapore and focused on driving sales growth into the Vietnam, Philippines and Indonesia markets .&nbsp;Verkada’s innovative, cloud-based technology is reshaping physical security across industries like retail, education, manufacturing, professional services, healthcare and more.\nIn this role, you’ll own the entire sales cycle - from prospecting and qualification to demos, partnerships, and closing deals. Plus, you’ll drive account expansions, which count toward your target. This is your chance to take ownership, build meaningful client relationships, and make a significant impact.\nWhat You'll Do\n- Source and close new business in Vietnam, Philippines and Indonesia to consistently exceed quarterly quotas.\n- Manage the full sales cycle with prospects and clients: prospect, host online demos, create proposals, and close deals.\n- Build a deep understanding of Verkada’s products and their place in the industry.\n- Maintain an accurate pipeline and expert-level forecasting.\n- Exceed goals through a mix of outbound calls, emails, online demos, and trials.\n- Act as a trusted advisor to customers and channel partners.\n- Partner with Solution Engineers to ensure smooth product launches and drive future growth.\n- Provide market and client feedback to the product and engineering teams.\nWhat You Bring\n- At least 2 years of sales experience in a quota-carrying role.\n- Exceptional communication and relationship-building skills.\n- Strong presentation skills and the ability to advise and educate clients.\n- Thrives in a fast-paced, competitive, and dynamic environment.\n- Bachelor’s degree preferred, but not required.\n- Salesforce experience is a plus.\n- Tenacity, self-motivation, and a drive to learn and grow.\n- Must be willing and able to work onsite five days per week when not travelling to meet with customers/partners.\nSingapore Employee Benefits\nVerkada is committed to fostering a workplace environment that prioritises the holistic health and wellbeing of our employees and their families by offering comprehensive wellness perks, benefits, and resources. Our benefits and perks programs include, but are not limited to:\n- Healthcare programs that can be tailored to meet the personal health and financial well-being needs - Premiums are 100% covered\n- Medical, dental, and hospital coverage\n- Paid parental leave policy &amp; fertility benefits\n- Life and Disability coverage\n- Time off to relax and recharge through our paid holidays, firmwide extended holidays, accrued vacation days, and personal sick time\n- Professional development stipend\n- Wellness/fitness benefits\n- Healthy meals provided daily\n- Commuter benefits\nAdditional Information\n- We do sponsor and take over sponsorship of employment visas for this role. If we make you an offer, we will make every reasonable effort to get you a visa.\nVerkada Is An Equal Opportunity Employer\nAs an equal opportunity employer, Verkada is committed to providing employment opportunities to all individuals. All applicants for positions at Verkada will be treated without regard to race, color, ethnicity, religion, sex, gender, gender identity and expression, sexual orientation, national origin, disability, age, marital status, veteran status, pregnancy, or any other basis prohibited by applicable law.\nYour application will be handled in accordance with our Candidate Privacy Policy .&nbsp;",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive, ASEAN\n\nWho We Are\nVerkada is transforming how organizations protect their people and places with an integrated, AI-powered platform. A leader in cloud physical security, Verkada helps organizations strengthen safety and efficiency through one connected software platform that includes solutions for video security, access control, air quality sensors, alarms, intercoms, and visitor management.\nOver 30,000 organizations worldwide, including more than 100 companies in the Fortune 500, trust Verkada as their physical security layer for easier management, intelligent control, and scalable deployments. Founded in 2016, Verkada has expanded rapidly with 15 offices and 2,200+ full-time employees.\nAbout the Role\nAs a&nbsp; Mid-Market Account Executive at Verkada , you’ll play a key role in transforming how businesses protect their people and places in a privacy-sensitive way. This position is&nbsp; based in Singapore and focused on driving sales growth into the Vietnam, Philippines and Indonesia markets .&nbsp;Verkada’s innovative, cloud-based technology is reshaping physical security across industries like retail, education, manufacturing, professional services, healthcare and more.\nIn this role, you’ll own the entire sales cycle - from prospecting and qualification to demos, partnerships, and closing deals. Plus, you’ll drive account expansions, which count toward your target. This is your chance to take ownership, build meaningful client relationships, and make a significant impact.\nWhat You'll Do\n- Source and close new business in Vietnam, Philippines and Indonesia to consistently exceed quarterly quotas.\n- Manage the full sales cycle with prospects and clients: prospect, host online demos, create proposals, and close deals.\n- Build a deep understanding of Verkada’s products and their place in the industry.\n- Maintain an accurate pipeline and expert-level forecasting.\n- Exceed goals through a mix of outbound calls, emails, online demos, and trials.\n- Act as a trusted advisor to customers and channel partners.\n- Partner with Solution Engineers to ensure smooth product launches and drive future growth.\n- Provide market and client feedback to the product and engineering teams.\nWhat You Bring\n- At least 2 years of sales experience in a quota-carrying role.\n- Exceptional communication and relationship-building skills.\n- Strong presentation skills and the ability to advise and educate clients.\n- Thrives in a fast-paced, competitive, and dynamic environment.\n- Bachelor’s degree preferred, but not required.\n- Salesforce experience is a plus.\n- Tenacity, self-motivation, and a drive to learn and grow.\n- Must be willing and able to work onsite five days per week when not travelling to meet with customers/partners.\nSingapore Employee Benefits\nVerkada is committed to fostering a workplace environment that prioritises the holistic health and wellbeing of our employees and their families by offering comprehensive wellness perks, benefits, and resources. Our benefits and perks programs include, but are not limited to:\n- Healthcare programs that can be tailored to meet the personal health and financial well-being needs - Premiums are 100% covered\n- Medical, dental, and hospital coverage\n- Paid parental leave policy &amp; fertility benefits\n- Life and Disability coverage\n- Time off to relax and recharge through our paid holidays, firmwide extended holidays, accrued vacation days, and personal sick time\n- Professional development stipend\n- Wellness/fitness benefits\n- Healthy meals provided daily\n- Commuter benefits\nAdditional Information\n- We do sponsor and take over sponsorship of employment visas for this role. If we make you an offer, we will make every reasonable effort to get you a visa.\nVerkada Is An Equal Opportunity Employer\nAs an equal opportunity employer, Verkada is committed to providing employment opportunities to all individuals. All applicants for positions at Verkada will be treated without regard to race, color, ethnicity, religion, sex, gender, gender identity and expression, sexual orientation, national origin, disability, age, marital status, veteran status, pregnancy, or any other basis prohibited by applicable law.\nYour application will be handled in accordance with our Candidate Privacy Policy .&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (4298 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, ASEAN\n\nWho We Are\nVerkada is transforming how organizations protect their people and places with an integrated, AI-powered platform. A leader in cloud physical security, Verkada helps organizations strengthen safety and efficiency through one connected software platform that includes solutions for video security, access control, air quality sensors, alarms, intercoms, and visitor management.\nOver 30,000 organizations worldwide, including more than 100 companies in the Fortune 500, trust Verkada as their physical security layer for easier management, intelligent control, and scalable deployments. Founded in 2016, Verkada has expanded rapidly with 15 offices and 2,200+ full-time employees.\nAbout the Role\nAs a&nbsp; Mid-Market Account Executive at Verkada , you’ll play a key role in transforming how businesses protect their people and places in a privacy-sensitive way. This position is&nbsp; based in Singapore and focused on driving sales growth into the Vietnam, Philippines and Indonesia markets .&nbsp;Verkada’s innovative, cloud-based technology is reshaping physical security across industries like retail, education, manufacturing, professional services, healthcare and more.\nIn this role, you’ll own the entire sales cycle - from prospecting and qualification to demos, partnerships, and closing deals. Plus, you’ll drive account expansions, which count toward your target. This is your chance to take ownership, build meaningful client relationships, and make a significant impact.\nWhat You'll Do\n- Source and close new business in Vietnam, Philippines and Indonesia to consistently exceed quarterly quotas.\n- Manage the full sales cycle with prospects and clients: prospect, host online demos, create proposals, and close deals.\n- Build a deep understanding of Verkada’s products and their place in the industry.\n- Maintain an accurate pipeline and expert-level forecasting.\n- Exceed goals through a mix of outbound calls, emails, online demos, and trials.\n- Act as a trusted advisor to customers and channel partners.\n- Partner with Solution Engineers to ensure smooth product launches and drive future growth.\n- Provide market and client feedback to the product and engineering teams.\nWhat You Bring\n- At least 2 years of sales experience in a quota-carrying role.\n- Exceptional communication and relationship-building skills.\n- Strong presentation skills and the ability to advise and educate clients.\n- Thrives in a fast-paced, competitive, and dynamic environment.\n- Bachelor’s degree preferred, but not required.\n- Salesforce experience is a plus.\n- Tenacity, self-motivation, and a drive to learn and grow.\n- Must be willing and able to work onsite five days per week when not travelling to meet with customers/partners.\nSingapore Employee Benefits\nVerkada is committed to fostering a workplace environment that prioritises the holistic health and wellbeing of our employees and their families by offering comprehensive wellness perks, benefits, and resources. Our benefits and perks programs include, but are not limited to:\n- Healthcare programs that can be tailored to meet the personal health and financial well-being needs - Premiums are 100% covered\n- Medical, dental, and hospital coverage\n- Paid parental leave policy &amp; fertility benefits\n- Life and Disability coverage\n- Time off to relax and recharge through our paid holidays, firmwide extended holidays, accrued vacation days, and personal sick time\n- Professional development stipend\n- Wellness/fitness benefits\n- Healthy meals provided daily\n- Commuter benefits\nAdditional Information\n- We do sponsor and take over sponsorship of employment visas for this role. If we make you an offer, we will make every reasonable effort to get you a visa.\nVerkada Is An Equal Opportunity Employer\nAs an equal opportunity employer, Verkada is committed to providing employment opportunities to all individuals. All applicants for positions at Verkada will be treated without regard to race, color, ethnicity, religion, sex, gender, gender identity and expression, sexual orientation, national origin, disability, age, marital status, veteran status, pregnancy, or any other basis prohibited by applicable law.\nYour application will be handled in accordance with our Candidate Privacy Policy .&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (4298 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive, ASEAN\n\nWho We Are\nVerkada is transforming how organizations protect their people and places with an integrated, AI-powered platform. A leader in cloud physical security, Verkada helps organizations strengthen safety and efficiency through one connected software platform that includes solutions for video security, access control, air quality sensors, alarms, intercoms, and visitor management.\nOver 30,000 organizations worldwide, including more than 100 companies in the Fortune 500, trust Verkada as their physical security layer for easier management, intelligent control, and scalable deployments. Founded in 2016, Verkada has expanded rapidly with 15 offices and 2,200+ full-time employees.\nAbout the Role\nAs a&nbsp; Mid-Market Account Executive at Verkada , you’ll play a key role in transforming how businesses protect their people and places in a privacy-sensitive way. This position is&nbsp; based in Singapore and focused on driving sales growth into the Vietnam, Philippines and Indonesia markets .&nbsp;Verkada’s innovative, cloud-based technology is reshaping physical security across industries like retail, education, manufacturing, professional services, healthcare and more.\nIn this role, you’ll own the entire sales cycle - from prospecting and qualification to demos, partnerships, and closing deals. Plus, you’ll drive account expansions, which count toward your target. This is your chance to take ownership, build meaningful client relationships, and make a significant impact.\nWhat You'll Do\n- Source and close new business in Vietnam, Philippines and Indonesia to consistently exceed quarterly quotas.\n- Manage the full sales cycle with prospects and clients: prospect, host online demos, create proposals, and close deals.\n- Build a deep understanding of Verkada’s products and their place in the industry.\n- Maintain an accurate pipeline and expert-level forecasting.\n- Exceed goals through a mix of outbound calls, emails, online demos, and trials.\n- Act as a trusted advisor to customers and channel partners.\n- Partner with Solution Engineers to ensure smooth product launches and drive future growth.\n- Provide market and client feedback to the product and engineering teams.\nWhat You Bring\n- At least 2 years of sales experience in a quota-carrying role.\n- Exceptional communication and relationship-building skills.\n- Strong presentation skills and the ability to advise and educate clients.\n- Thrives in a fast-paced, competitive, and dynamic environment.\n- Bachelor’s degree preferred, but not required.\n- Salesforce experience is a plus.\n- Tenacity, self-motivation, and a drive to learn and grow.\n- Must be willing and able to work onsite five days per week when not travelling to meet with customers/partners.\nSingapore Employee Benefits\nVerkada is committed to fostering a workplace environment that prioritises the holistic health and wellbeing of our employees and their families by offering comprehensive wellness perks, benefits, and resources. Our benefits and perks programs include, but are not limited to:\n- Healthcare programs that can be tailored to meet the personal health and financial well-being needs - Premiums are 100% covered\n- Medical, dental, and hospital coverage\n- Paid parental leave policy &amp; fertility benefits\n- Life and Disability coverage\n- Time off to relax and recharge through our paid holidays, firmwide extended holidays, accrued vacation days, and personal sick time\n- Professional development stipend\n- Wellness/fitness benefits\n- Healthy meals provided daily\n- Commuter benefits\nAdditional Information\n- We do sponsor and take over sponsorship of employment visas for this role. If we make you an offer, we will make every reasonable effort to get you a visa.\nVerkada Is An Equal Opportunity Employer\nAs an equal opportunity employer, Verkada is committed to providing employment opportunities to all individuals. All applicants for positions at Verkada will be treated without regard to race, color, ethnicity, religion, sex, gender, gender identity and expression, sexual orientation, national origin, disability, age, marital status, veteran status, pregnancy, or any other basis prohibited by applicable law.\nYour application will be handled in accordance with our Candidate Privacy Policy .&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (4298 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
   "errors": []
 }

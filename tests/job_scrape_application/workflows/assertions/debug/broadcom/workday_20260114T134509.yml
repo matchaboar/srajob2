@@ -1,0 +1,11 @@
+site_id: workday
+detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707
+expected:
+  title: "Sr. Firmware Engineer"
+  company: "Broadcom"
+  location_contains: "Allentown"
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

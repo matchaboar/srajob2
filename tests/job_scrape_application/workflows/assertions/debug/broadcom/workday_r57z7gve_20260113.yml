@@ -1,0 +1,22 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+# Debug fixture for Broadcom job k174ewch8dg2zkwft8d1jtqjr57z7gve
+#
+# ISSUE: Original URL stored in database had extra slash before job ID:
+#   Wrong:   ...R-D-Engineer-Hardware/_R023773
+#   Correct: ...R-D-Engineer-Hardware_R023773
+#
+# This caused SpiderCloud to return empty content for the corrupted URL.
+#
+site_id: workday
+detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/R-D-Engineer-Hardware_R023773
+expected:
+  title: R&D Engineer Hardware
+  company: Broadcom
+  location_contains: Irvine
+  is_remote: false
+  # Level defaults to mid; "15+ years" detection not yet implemented in extractors
+  level: mid
+  description_min_words: 50
+  description_contains: Hardware Systems Team
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

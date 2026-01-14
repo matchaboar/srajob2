@@ -5,9 +5,9 @@
   "extracted_jobs": [
     {
       "title": "ABX Marketing Manager",
-      "description_preview": "ABX Marketing Manager Get to know Okta Okta is The World\u2019s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business...",
+      "description_preview": "ABX Marketing Manager Get to know Okta Okta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business...",
       "description_word_count": 1027,
-      "location": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+      "location": "Bellevue, WA",
       "is_remote": false,
       "posted_at": 1766014241000,
       "posted_at_unknown": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "ABX Marketing Manager",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "ABX Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "ABX Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "ABX Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Okta",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Okta",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Get to know Okta\nOkta",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "the Role",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Our flexible and neutral products, Okta Platform and Auth",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Washington, DC",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Okta' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'manager' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping verb token in content: Manager"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 128000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 128000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $128,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 160000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $160,000"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-17T16:30:41",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-17T16:30:41",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-17T16:30:41"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.814065",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "is_valid": true,
+          "reason": "Valid description (7327 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "is_valid": true,
+          "reason": "Valid description (7327 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "is_valid": true,
+          "reason": "Valid description (7327 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

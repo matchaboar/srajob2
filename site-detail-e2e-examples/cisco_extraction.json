@@ -1,0 +1,446 @@
+{
+  "site_id": "cisco",
+  "detail_url": "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence",
+  "source_url": "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence",
+  "extracted_jobs": [
+    {
+      "title": "Systems Architect - Defence",
+      "description_preview": "**Meet The Team** You’ll join a collaborative, cross-functional team covering Federal and Defense customers in the German public sector. Reporting to the Senior SE Manager, you will work alongside Customer Systems Engineers and broader Cisco teams. You will foster innovation, drive solution adoption, and deliver lasting value to customers who...",
+      "description_word_count": 551,
+      "location": "Dusseldorf, Germany",
+      "is_remote": false,
+      "posted_at": 1766761200000,
+      "posted_at_unknown": false,
+      "company": "Cis",
+      "level": "mid",
+      "total_compensation": 0,
+      "compensation_unknown": true,
+      "compensation_reason": "pending markdown structured extraction",
+      "url": "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence",
+      "cost_milli_cents": 105
+    }
+  ],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Why Cisco?",
+      "winning_strategy": "site_handler_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": "Why Cisco?",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Systems Architect - Defence",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "Generic title rejected: Job Description"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No title in hints"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Key Responsibilities",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Cis",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'cisco_careers' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Cis",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Cisco",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Dusseldorf, Germany",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'cisco_careers' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Dusseldorf, Germany",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Sales, Architecture",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Dusseldorf, Germany",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Dusseldorf, Germany"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Cis' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from content: 'Senior' -> senior"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-26T08:00:00",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-26T08:00:00",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-26T08:00:00"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'cisco_careers' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:13.812768",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "**Meet The Team**\nYou’ll join a collaborative, cross-functional team covering Federal and Defense customers in the German public sector. Reporting to the Senior SE Manager, you will work alongside Customer Systems Engineers and broader Cisco teams. You will foster innovation, drive solution adoption, and deliver lasting value to customers who are often thought leaders within their sectors.\n**Your Impact**\nAs a Portfolio Systems Architect (Public Sector), you’ll be a key technical advisor and architect for large Federal and Defense accounts in Germany. You’ll drive the adoption of Cisco’s latest portfolio—networking, security, (cloud), automation, and collaboration—by designing innovative solutions tailored to the unique challenges of the public sector. Acting as a trusted advisor, you’ll shape the technical strategy for your accounts, accelerate digital transformation, and ensure the highest value from Cisco’s offerings.\nKey Responsibilities\n* Partner with Account Teams to develop and execute customer-centric strategies that align technology solutions to business goals\n* Proactively identify and create new business opportunities through direct customer engagement, workshops, and industry events\n* Analyze customer environments and translate business drivers and technical requirements into tailored solution architectures\n* Present and demonstrate Cisco’s latest solutions, articulating unique business value for public sector organizations\n* Collaborate closely with internal teams (Sales, Architecture, CX, Engineering, Services, …) and external partners to deliver integrated, future-ready solutions\n* Facilitate deal progression by mobilizing the right resources and accelerating the sales cycle\n* Maintain deep knowledge of industry trends, emerging technologies, and the competitive landscape to advise customers and inform go-to-market strategies\n* Build and maintain strong relationships with key stakeholders, establishing credibility through technical expertise and strategic insight.\n**Minimum Qualifications**\n* Experience as a Systems Architect or similar technical role in the networking or IT industry\n* Strong expertise in Cisco networking (wireless, switching, routing), software-defined networking (SDN), and automation\n* Proficiency with SASE architectures and cloud technologies (IaaS, SaaS, PaaS); experience designing secure, scalable hybrid environments\n* Demonstrated success leading complex, large-scale projects involving multiple technologies and integration points\n* Fluent in German and English: excellent communication and presentation skills, with the ability to influence technical and business audiences\n**Preferred Qualifications**\n* Bachelor’s or Master’s degree in Computer Science, Engineering, or related field (or equivalent professional experience)\n* In-depth knowledge of Cisco’s portfolio, strategic direction, and industry best practices\n* Cisco certifications (CCNP, CCDP, CCIE) highly desirable\n* Hands-on experience with network automation and programmability (e.g., Python, APIs, infrastructure as code)\n* Strong consultative sales skills, with a focus on understanding customer needs, industry trends, and emerging technologies\n* Outstanding relationship-building, organizational, and multitasking abilities\n# Why Cisco?\nAt Cisco, we’re revolutionizing how data and infrastructure connect and protect organizations in the AI era – and beyond. We’ve been innovating fearlessly for 40 years to create solutions that power how humans and technology work together across the physical and digital worlds. These solutions provide customers with unparalleled security, visibility, and insights across the entire digital footprint.\nFueled by the depth and breadth of our technology, we experiment and create meaningful solutions. Add to that our worldwide network of doers and experts, and you’ll see that the opportunities to grow and build are limitless. We work as a team, collaborating with empathy to make really big things happen on a global scale. Because our solutions are everywhere, our impact is everywhere.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "**Meet The Team**\nYou’ll join a collaborative, cross-functional team covering Federal and Defense customers in the German public sector. Reporting to the Senior SE Manager, you will work alongside Customer Systems Engineers and broader Cisco teams. You will foster innovation, drive solution adoption, and deliver lasting value to customers who are often thought leaders within their sectors.\n**Your Impact**\nAs a Portfolio Systems Architect (Public Sector), you’ll be a key technical advisor and architect for large Federal and Defense accounts in Germany. You’ll drive the adoption of Cisco’s latest portfolio—networking, security, (cloud), automation, and collaboration—by designing innovative solutions tailored to the unique challenges of the public sector. Acting as a trusted advisor, you’ll shape the technical strategy for your accounts, accelerate digital transformation, and ensure the highest value from Cisco’s offerings.\nKey Responsibilities\n* Partner with Account Teams to develop and execute customer-centric strategies that align technology solutions to business goals\n* Proactively identify and create new business opportunities through direct customer engagement, workshops, and industry events\n* Analyze customer environments and translate business drivers and technical requirements into tailored solution architectures\n* Present and demonstrate Cisco’s latest solutions, articulating unique business value for public sector organizations\n* Collaborate closely with internal teams (Sales, Architecture, CX, Engineering, Services, …) and external partners to deliver integrated, future-ready solutions\n* Facilitate deal progression by mobilizing the right resources and accelerating the sales cycle\n* Maintain deep knowledge of industry trends, emerging technologies, and the competitive landscape to advise customers and inform go-to-market strategies\n* Build and maintain strong relationships with key stakeholders, establishing credibility through technical expertise and strategic insight.\n**Minimum Qualifications**\n* Experience as a Systems Architect or similar technical role in the networking or IT industry\n* Strong expertise in Cisco networking (wireless, switching, routing), software-defined networking (SDN), and automation\n* Proficiency with SASE architectures and cloud technologies (IaaS, SaaS, PaaS); experience designing secure, scalable hybrid environments\n* Demonstrated success leading complex, large-scale projects involving multiple technologies and integration points\n* Fluent in German and English: excellent communication and presentation skills, with the ability to influence technical and business audiences\n**Preferred Qualifications**\n* Bachelor’s or Master’s degree in Computer Science, Engineering, or related field (or equivalent professional experience)\n* In-depth knowledge of Cisco’s portfolio, strategic direction, and industry best practices\n* Cisco certifications (CCNP, CCDP, CCIE) highly desirable\n* Hands-on experience with network automation and programmability (e.g., Python, APIs, infrastructure as code)\n* Strong consultative sales skills, with a focus on understanding customer needs, industry trends, and emerging technologies\n* Outstanding relationship-building, organizational, and multitasking abilities\n# Why Cisco?\nAt Cisco, we’re revolutionizing how data and infrastructure connect and protect organizations in the AI era – and beyond. We’ve been innovating fearlessly for 40 years to create solutions that power how humans and technology work together across the physical and digital worlds. These solutions provide customers with unparalleled security, visibility, and insights across the entire digital footprint.\nFueled by the depth and breadth of our technology, we experiment and create meaningful solutions. Add to that our worldwide network of doers and experts, and you’ll see that the opportunities to grow and build are limitless. We work as a team, collaborating with empathy to make really big things happen on a global scale. Because our solutions are everywhere, our impact is everywhere.",
+          "is_valid": true,
+          "reason": "Valid description (4077 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "## Job Description\n**Meet The Team**\nYou’ll join a collaborative, cross-functional team covering Federal and Defense customers in the German public sector. Reporting to the Senior SE Manager, you will work alongside Customer Systems Engineers and broader Cisco teams. You will foster innovation, drive solution adoption, and deliver lasting value to customers who are often thought leaders within their sectors.\n**Your Impact**\nAs a Portfolio Systems Architect (Public Sector), you’ll be a key technical advisor and architect for large Federal and Defense accounts in Germany. You’ll drive the adoption of Cisco’s latest portfolio—networking, security, (cloud), automation, and collaboration—by designing innovative solutions tailored to the unique challenges of the public sector. Acting as a trusted advisor, you’ll shape the technical strategy for your accounts, accelerate digital transformation, and ensure the highest value from Cisco’s offerings.\nKey Responsibilities\n* Partner with Account Teams to develop and execute customer-centric strategies that align technology solutions to business goals\n* Proactively identify and create new business opportunities through direct customer engagement, workshops, and industry events\n* Analyze customer environments and translate business drivers and technical requirements into tailored solution architectures\n* Present and demonstrate Cisco’s latest solutions, articulating unique business value for public sector organizations\n* Collaborate closely with internal teams (Sales, Architecture, CX, Engineering, Services, …) and external partners to deliver integrated, future-ready solutions\n* Facilitate deal progression by mobilizing the right resources and accelerating the sales cycle\n* Maintain deep knowledge of industry trends, emerging technologies, and the competitive landscape to advise customers and inform go-to-market strategies\n* Build and maintain strong relationships with key stakeholders, establishing credibility through technical expertise and strategic insight.\n**Minimum Qualifications**\n* Experience as a Systems Architect or similar technical role in the networking or IT industry\n* Strong expertise in Cisco networking (wireless, switching, routing), software-defined networking (SDN), and automation\n* Proficiency with SASE architectures and cloud technologies (IaaS, SaaS, PaaS); experience designing secure, scalable hybrid environments\n* Demonstrated success leading complex, large-scale projects involving multiple technologies and integration points\n* Fluent in German and English: excellent communication and presentation skills, with the ability to influence technical and business audiences\n**Preferred Qualifications**\n* Bachelor’s or Master’s degree in Computer Science, Engineering, or related field (or equivalent professional experience)\n* In-depth knowledge of Cisco’s portfolio, strategic direction, and industry best practices\n* Cisco certifications (CCNP, CCDP, CCIE) highly desirable\n* Hands-on experience with network automation and programmability (e.g., Python, APIs, infrastructure as code)\n* Strong consultative sales skills, with a focus on understanding customer needs, industry trends, and emerging technologies\n* Outstanding relationship-building, organizational, and multitasking abilities\n# Why Cisco?\nAt Cisco, we’re revolutionizing how data and infrastructure connect and protect organizations in the AI era – and beyond. We’ve been innovating fearlessly for 40 years to create solutions that power how humans and technology work together across the physical and digital worlds. These solutions provide customers with unparalleled security, visibility, and insights across the entire digital footprint.\nFueled by the depth and breadth of our technology, we experiment and create meaningful solutions. Add to that our worldwide network of doers and experts, and you’ll see that the opportunities to grow and build are limitless. We work as a team, collaborating with empathy to make really big things happen on a global scale. Because our solutions are everywhere, our impact is everywhere.",
+          "is_valid": true,
+          "reason": "Valid description (4096 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "## Job Description\n**Meet The Team**\nYou’ll join a collaborative, cross-functional team covering Federal and Defense customers in the German public sector. Reporting to the Senior SE Manager, you will work alongside Customer Systems Engineers and broader Cisco teams. You will foster innovation, drive solution adoption, and deliver lasting value to customers who are often thought leaders within their sectors.\n**Your Impact**\nAs a Portfolio Systems Architect (Public Sector), you’ll be a key technical advisor and architect for large Federal and Defense accounts in Germany. You’ll drive the adoption of Cisco’s latest portfolio—networking, security, (cloud), automation, and collaboration—by designing innovative solutions tailored to the unique challenges of the public sector. Acting as a trusted advisor, you’ll shape the technical strategy for your accounts, accelerate digital transformation, and ensure the highest value from Cisco’s offerings.\nKey Responsibilities\n* Partner with Account Teams to develop and execute customer-centric strategies that align technology solutions to business goals\n* Proactively identify and create new business opportunities through direct customer engagement, workshops, and industry events\n* Analyze customer environments and translate business drivers and technical requirements into tailored solution architectures\n* Present and demonstrate Cisco’s latest solutions, articulating unique business value for public sector organizations\n* Collaborate closely with internal teams (Sales, Architecture, CX, Engineering, Services, …) and external partners to deliver integrated, future-ready solutions\n* Facilitate deal progression by mobilizing the right resources and accelerating the sales cycle\n* Maintain deep knowledge of industry trends, emerging technologies, and the competitive landscape to advise customers and inform go-to-market strategies\n* Build and maintain strong relationships with key stakeholders, establishing credibility through technical expertise and strategic insight.\n**Minimum Qualifications**\n* Experience as a Systems Architect or similar technical role in the networking or IT industry\n* Strong expertise in Cisco networking (wireless, switching, routing), software-defined networking (SDN), and automation\n* Proficiency with SASE architectures and cloud technologies (IaaS, SaaS, PaaS); experience designing secure, scalable hybrid environments\n* Demonstrated success leading complex, large-scale projects involving multiple technologies and integration points\n* Fluent in German and English: excellent communication and presentation skills, with the ability to influence technical and business audiences\n**Preferred Qualifications**\n* Bachelor’s or Master’s degree in Computer Science, Engineering, or related field (or equivalent professional experience)\n* In-depth knowledge of Cisco’s portfolio, strategic direction, and industry best practices\n* Cisco certifications (CCNP, CCDP, CCIE) highly desirable\n* Hands-on experience with network automation and programmability (e.g., Python, APIs, infrastructure as code)\n* Strong consultative sales skills, with a focus on understanding customer needs, industry trends, and emerging technologies\n* Outstanding relationship-building, organizational, and multitasking abilities\n# Why Cisco?\nAt Cisco, we’re revolutionizing how data and infrastructure connect and protect organizations in the AI era – and beyond. We’ve been innovating fearlessly for 40 years to create solutions that power how humans and technology work together across the physical and digital worlds. These solutions provide customers with unparalleled security, visibility, and insights across the entire digital footprint.\nFueled by the depth and breadth of our technology, we experiment and create meaningful solutions. Add to that our worldwide network of doers and experts, and you’ll see that the opportunities to grow and build are limitless. We work as a team, collaborating with empathy to make really big things happen on a global scale. Because our solutions are everywhere, our impact is everywhere.",
+          "is_valid": true,
+          "reason": "Valid description (4096 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
+  },
+  "errors": []
+}

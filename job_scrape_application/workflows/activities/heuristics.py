@@ -75,6 +75,70 @@ def _domain_from_url(url: str) -> str:
         return ""
 
 
+def _location_from_url(url: str) -> Optional[str]:
+    """Extract location hint from job URL path.
+
+    Many job boards encode location in the URL:
+    - /job/los-angeles/... -> Los Angeles
+    - /en/job/san-francisco/... -> San Francisco
+    - /jobs/new-york-ny/... -> New York, NY
+
+    Returns the extracted location or None if no location pattern found.
+    """
+    import logging
+    from urllib.parse import urlparse, unquote
+
+    logger = logging.getLogger(__name__)
+
+    if not url:
+        return None
+
+    try:
+        parsed = urlparse(url)
+        path = unquote(parsed.path or "").lower()
+    except Exception:
+        return None
+
+    # Common path patterns for location:
+    # /job/{location}/... or /jobs/{location}/... or /en/job/{location}/...
+    # Look for location segment after 'job' or 'jobs' keyword
+    segments = [s for s in path.split("/") if s]
+    location_segment = None
+
+    for i, seg in enumerate(segments):
+        if seg in ("job", "jobs", "position", "positions", "opening", "openings"):
+            # Check if next segment looks like a location (not a job ID or title)
+            if i + 1 < len(segments):
+                candidate = segments[i + 1]
+                # Skip if it looks like a job ID (all numeric or UUID-like)
+                if candidate.isdigit() or len(candidate) > 40:
+                    continue
+                # Skip if it's a language code
+                if candidate in ("en", "de", "fr", "es", "it", "pt", "nl", "ja", "zh"):
+                    continue
+                # Skip URL structure words that are not locations
+                if candidate in ("job", "jobs", "detail", "details", "view", "apply", "id"):
+                    continue
+                # Convert slug to title case: "los-angeles" -> "Los Angeles"
+                location_segment = candidate.replace("-", " ").title()
+                break
+
+    if not location_segment:
+        return None
+
+    # Validate it looks like a location
+    if len(location_segment) < 3 or len(location_segment) > 50:
+        return None
+
+    # Skip if it looks like a job title or ID
+    job_title_words = {"engineer", "manager", "developer", "analyst", "designer", "specialist"}
+    if any(word in location_segment.lower() for word in job_title_words):
+        return None
+
+    logger.debug("Location extracted from URL: %s -> %s", url, location_segment)
+    return location_segment
+
+
 def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
     """Split and dedupe multiple location hints (e.g., 'Madrid, Spain; Paris, France')."""
     seen: set[str] = set()
@@ -103,12 +167,31 @@ def _normalize_locations(raw_locations: Iterable[str]) -> List[str]:
 def _is_plausible_location(value: str) -> bool:
     """Check if value looks like a plausible location."""
     lowered = value.lower()
+    # Reject HR/benefits terminology
     if any(token in lowered for token in (
         "diversity", "equity", "inclusion", "benefits", "culture",
         "salary", "compensation", "pay", "package", "bonus", "range"
     )):
         return False
     if "$" in value or "401k" in lowered or "401(k" in lowered:
+        return False
+    # Reject job title words - these indicate job titles being extracted as locations
+    job_title_words = {
+        "executive", "engineer", "manager", "analyst", "designer", "specialist",
+        "developer", "director", "lead", "senior", "junior", "staff", "principal",
+        "sales", "account", "marketing", "operations", "product", "project",
+        "intern", "associate", "coordinator", "administrator", "consultant",
+        "architect", "scientist", "researcher", "writer", "editor", "strategist",
+    }
+    if any(word in lowered for word in job_title_words):
+        return False
+    # Reject description fragments - common words that appear in job descriptions
+    description_fragments = {
+        "we're", "we are", "you'll", "you will", "our", "their", "pursuing",
+        "society", "mission", "explorers", "join", "team", "company",
+        "about", "looking", "seeking", "building", "creating", "developing",
+    }
+    if any(fragment in lowered for fragment in description_fragments):
         return False
     if "," in value:
         segments = [p.strip() for p in value.split(",") if p.strip()]
@@ -417,8 +500,15 @@ def _build_job_detail_heuristic_patch(
     row: Dict[str, Any],
     configs: List[Dict[str, Any]],
     now_ms: int,
+    *,
+    use_extractors: bool = True,  # Use modular extractors by default
 ) -> Tuple[Dict[str, Any], List[Dict[str, str]]]:
     """Return heuristic patch + records for a job row without mutating Convex."""
+    if use_extractors:
+        from ..extractors.integration import build_heuristic_patch_from_extractors
+        return build_heuristic_patch_from_extractors(row, configs, now_ms, debug=False)
+
+    # Legacy implementation below
     source_description = row.get("description") or ""
     raw_description = source_description
     seed_description, seed_hints = _extract_job_detail_seed_from_json(raw_description)
@@ -429,6 +519,8 @@ def _build_job_detail_heuristic_patch(
     description_body, description_metadata = split_description_metadata(cleaned_description)
     url = row.get("url") or ""
     domain = _domain_from_url(url)
+    # Extract location from URL - this is high priority as it's usually accurate
+    url_location = _location_from_url(url)
     attempts = int(row.get("heuristicAttempts") or 0)
     recorded_location = False
     recorded_comp = False
@@ -513,7 +605,9 @@ def _build_job_detail_heuristic_patch(
             ):
                 location_fallback = seed_location
     is_remote = company_remote or hints.get("remote") is True or bool(row.get("remote"))
-    if hints.get("remote") is False and not company_remote:
+    # Only override to False if the scraper didn't already determine remote from Schema.org
+    # row.get("remote") from the scraper is authoritative (from jobLocationType=TELECOMMUTE)
+    if hints.get("remote") is False and not company_remote and not row.get("remote"):
         is_remote = False
     if "remote" in raw_location_lower:
         is_remote = True
@@ -564,6 +658,24 @@ def _build_job_detail_heuristic_patch(
                     recorded_location = True
     if matched_locations and not locations:
         locations = matched_locations
+
+    # URL-based location has highest priority - it's usually accurate
+    # and should override content-extracted locations
+    import logging
+    logger = logging.getLogger(__name__)
+    if url_location:
+        url_location_normalized = _normalize_locations([url_location])
+        if url_location_normalized:
+            # Only override if we have a valid URL location
+            logger.debug(
+                "Location heuristics: URL location '%s' overrides content location %s",
+                url_location_normalized[0],
+                locations or "(none)"
+            )
+            locations = url_location_normalized
+            if not recorded_location:
+                records.append({"domain": domain or "default", "field": "location", "regex": "url:path"})
+                recorded_location = True
     if (not locations) and currency_hint and currency_hint != "USD":
         if currency_hint == "INR":
             locations = ["India"]
@@ -681,9 +793,15 @@ def _build_job_detail_heuristic_patch(
     remote_hint = hints.get("remote")
     if company_remote:
         remote_hint = True
-    if remote_hint is True and row.get("remote") is not True:
+    # If scraper already set remote=True (e.g., from Schema.org jobLocationType=TELECOMMUTE),
+    # do NOT override it. The scraper's value is authoritative for remote detection.
+    scraper_remote = row.get("remote")
+    if scraper_remote is True:
+        # Preserve scraper's authoritative remote=True value
+        pass
+    elif remote_hint is True and scraper_remote is not True:
         patch["remote"] = True
-    elif remote_hint is False and row.get("remote") is not False:
+    elif remote_hint is False and scraper_remote is not False:
         patch["remote"] = False
     if description_metadata and description_metadata != row.get("metadata"):
         patch["metadata"] = description_metadata

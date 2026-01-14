@@ -4,7 +4,8 @@ expected:
   title: "Staff Software Engineer, Search Infrastructure"
   company: "Airbnb"
   location_contains: "Brazil"
-  is_remote: false
+  # Greenhouse metadata explicitly says "Workplace Type": "Remote"
+  is_remote: true
   level: staff
   description_min_words: 300
   description_not_contains: '{"'

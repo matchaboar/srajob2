@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import random
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping
 
 from convex import ConvexClient
@@ -18,6 +19,24 @@ _BACKOFF_BASE_SECONDS = 0.5
 _BACKOFF_MAX_SECONDS = 4.0
 _RETRY_ON_TIMEOUT = os.getenv("CONVEX_RETRY_ON_TIMEOUT", "1") == "1"
 _DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR = "description_preview_word_limit_exceeded"
+
+# Dedicated executor for Convex calls to prevent timeout threads from blocking
+# the default executor used by asyncio.to_thread() elsewhere in the application.
+# When asyncio.wait_for() times out, the underlying thread continues running -
+# using a dedicated pool isolates this behavior from other async operations.
+_CONVEX_EXECUTOR_MAX_WORKERS = int(os.getenv("CONVEX_EXECUTOR_MAX_WORKERS", "8"))
+_convex_executor: ThreadPoolExecutor | None = None
+
+
+def _get_convex_executor() -> ThreadPoolExecutor:
+    """Get or create the dedicated thread pool executor for Convex calls."""
+    global _convex_executor
+    if _convex_executor is None:
+        _convex_executor = ThreadPoolExecutor(
+            max_workers=_CONVEX_EXECUTOR_MAX_WORKERS,
+            thread_name_prefix="convex-client-",
+        )
+    return _convex_executor
 
 
 def _max_description_word_count(args: Mapping[str, Any] | None) -> int | None:
@@ -45,16 +64,20 @@ def _max_description_word_count(args: Mapping[str, Any] | None) -> int | None:
 
 async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any:
     last_error: Exception | None = None
-    start = asyncio.get_event_loop().time()
+    loop = asyncio.get_running_loop()
+    executor = _get_convex_executor()
+    start = loop.time()
     for attempt in range(1, _MAX_RETRIES + 1):
-        elapsed = asyncio.get_event_loop().time() - start
+        elapsed = loop.time() - start
         remaining_budget = _TOTAL_BUDGET_SECONDS - elapsed
         if remaining_budget <= 0:
             break
         per_attempt_timeout = min(_REQUEST_TIMEOUT_SECONDS, max(0.0, remaining_budget))
         try:
+            # Use dedicated executor to isolate timeout threads from blocking
+            # other async operations that use the default executor.
             return await asyncio.wait_for(
-                asyncio.to_thread(fn, name, args),
+                loop.run_in_executor(executor, fn, name, args),
                 timeout=per_attempt_timeout,
             )
         except Exception as exc:  # noqa: BLE001
@@ -63,7 +86,7 @@ async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any
                 break
             if attempt >= _MAX_RETRIES:
                 break
-            elapsed = asyncio.get_event_loop().time() - start
+            elapsed = loop.time() - start
             remaining_budget = _TOTAL_BUDGET_SECONDS - elapsed
             if remaining_budget <= 0:
                 break

@@ -1,0 +1,24 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/airtable/jobs
+expected:
+  url_count_min: 13
+  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "GreenhouseHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8112284002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8124953002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8293251002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8222508002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8194662002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8327916002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7953553002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7845293002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7845295002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8182781002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7845291002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7845287002"
+  #   - "https://boards-api.greenhouse.io/v1/boards/airtable/jobs/7845265002"

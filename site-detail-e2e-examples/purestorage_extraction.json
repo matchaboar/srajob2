@@ -5,14 +5,14 @@
   "extracted_jobs": [
     {
       "title": "Account Executive, Central Government, Japan",
-      "description_preview": "Account Executive, Central Government, Japan We\u2019re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry. This type of work\u2014work that changes the world\u2014is what the tech...",
+      "description_preview": "Account Executive, Central Government, Japan We’re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry. This type of work—work that changes the world—is what the tech...",
       "description_word_count": 806,
       "location": "Tokyo, Japan",
       "is_remote": false,
       "posted_at": 1766715182000,
       "posted_at_unknown": false,
       "company": "Pure Storage",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive, Central Government, Japan",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Central Government, Japan",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive, Central Government, Japan",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive, Central Government, Japan",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Pure Storage",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Pure Storage",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Tokyo, Japan",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Tokyo, Japan",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Tokyo, Japan",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Tokyo, Japan"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Pure Storage' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping verb token in content: lead"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-25T19:13:02",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-25T19:13:02",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-25T19:13:02"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.339888",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive, Central Government, Japan\n\nWe’re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry.\nThis type of work—work that changes the world—is what the tech industry was founded on. So, if you're ready to seize the endless opportunities and leave your mark, come join us.\nTHE ROLE\nPure Storage Japan &nbsp;is seeking a dynamic and driven&nbsp; Sales Hunter&nbsp; to join our Central Government team in Japan In this role, you’ll be at the forefront of developing new business, working with our channel resellers and key customer accounts. Collaborate with Sales, Pre-sales, Partner sales, and Field Marketing teams to drive success in the Enterprise private sector.\nWHAT YOU'LL DO\n- Promote our innovative and simple all-flash enterprise storage technology and data solutions, clearly articulating the value Pure provides to public-sector customers in Japan, including central government ministries and independent administrative institutions.\n- Build and invest in strong customer relationships, continuously leading efforts to achieve industry-leading levels of customer satisfaction.\n- Develop and execute effective account plans by fully leveraging internal resources, leading cross-functional project teams to drive new customer acquisition.\n- Manage a healthy and robust sales pipeline to consistently achieve quarterly and annual targets.\n本ポジションでは、以下の業務をお任せします\n- 当社の革新的かつシンプルなオールフラッシュ・エンタープライズストレージ技術およびデータソリューションを推進し、日本国内の公共団体（中央省庁・独立行政法人）のお客様に対して、Pureが提供する価値を的確に伝えていただきます\n- 顧客との関係構築と投資を通じて、業界最高水準の顧客満足度の実現を継続的にリードしていただきます\n- 社内のリソースを最大限に活用するアカウントプランを策定・実行し、プロジェクトチームをリードして新規顧客の獲得を推進していただきます\n- 健全かつ充実した営業パイプラインの管理により、四半期・年間の目標達成を確実に導いていただきます\nWHAT YOU BRING\n- Demonstrates sincerity and passion in engaging with public-sector customers in Japan, with a strong commitment to deeply understanding their business challenges.\n- Possesses strong insight, creativity, and a challenger mindset, leveraging expertise in technology solutions to propose effective problem-solving approaches through Pure’s product portfolio.\n- Has a proven track record and strong drive in new customer acquisition, with the ability to communicate effectively from executive management to data center operations, and to articulate the value of our solutions with enthusiasm.\n- Exhibits excellent interpersonal skills as well as strong written and verbal communication abilities, enabling the building and deepening of trusted customer relationships.\n- Capable of developing and executing strategic plans aimed at maximizing revenue and improving operational efficiency within the assigned territory.\n- Experienced in leading complex sales processes involving multiple stakeholders, and able to collaborate effectively through strong teamwork with both internal and external partners.\n- Has consistently exceeded targets and delivered business results strong enough to earn recommendations and recognition from customers and partners.\n- Demonstrates a strong commitment to post-contract customer success.\n- Brings 5+ years of B2B sales experience, primarily focused on new customer acquisition or business development.\n- Possesses sales experience and industry knowledge within the Japanese public sector, along with the ability to read and understand English at an intermediate level.\nこのポジションに求められるご経験・スキル\n- 日本国内の公共顧客と真摯に向き合い、ビジネス課題を深く理解しようとする誠実さと情熱\n- 洞察力と創造性、そしてチャンレンジャー精神を備え、技術ソリューションに関する知見を活かしながら、Pureの製品ポートフォリオを通じて顧客の課題解決を提案する能力\n- 新規開拓における豊富な実績と積極性を有し、経営層からデータセンター現場まで自在にコミュニケーションをとりながら、当社ソリューションの価値を熱意を持って訴求できる方\n- 優れた対人スキルおよび文章／口頭でのコミュニケーション能力を有し、信頼関係を構築・深化させることができる方\n- 担当エリアの収益最大化と業務効率向上を目的とした戦略的な計画立案・実行能力\n- 複数のステークホルダーが関わる複雑な営業プロセスを主導したご経験と、社内外とのチームワークを重視し協働できる能力\n- 継続的に目標を上回る実績を達成し、他社からも推薦されるようなビジネス成果を上げてきたご経験\n- 契約後のカスタマーサクセスにも情熱を注げる方\n- 新規顧客開拓またはビジネスデベロップメントを中心とした5年以上の法人営業経験\n- 日本の公共における営業経験および業界知識を有していること　•　英語を中程度のレベルで読み、理解する能力が求められます。\nJoin Pure Storage and be part of a team that's redefining data storage. Apply now and unleash your potential!\nINCLUDE FOR POSTING LOCATION IDENTIFICATION\n#LI-REMOTE, #LI-ONSITE\nWHAT YOU CAN EXPECT FROM US:\n- Pure Innovation : We celebrate those who think critically, like a challenge and aspire to be trailblazers.\n- Pure Growth : We give you the space and support to grow along with us and to contribute to something meaningful. We have been Named Fortune's Best Large Workplaces in the Bay Area™, Fortune's Best Workplaces for Millennials™ and certified as a Great Place to Work®!\n- Pure Team : We build each other up and set aside ego for the greater good.\nAnd because we understand the value of bringing your full and best self to work, we offer a variety of perks to manage a healthy balance, including flexible time off, wellness resources and company-sponsored team events. Check out purebenefits.com for more information.\nACCOMMODATIONS AND ACCESSIBILITY:\nCandidates with disabilities may request accommodations for all aspects of our hiring process. For more on this, contact us at TA-Ops@purestorage.com if you’re invited to an interview.\nOUR COMMITMENT TO A STRONG AND INCLUSIVE TEAM:\nWe’re forging a future where everyone finds their rightful place and where every voice matters. Where uniqueness isn’t just accepted but embraced. That’s why we are committed to fostering the growth and development of every person, cultivating a sense of community through our Employee Resource Groups and advocating for inclusive leadership.\n&nbsp;\nPure is proud to be an equal opportunity and affirmative action employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, transgender status, sexual stereotypes, age, status as a protected veteran, status as an individual with a disability, or any other characteristic legally protected by the laws of the jurisdiction in which you are being considered for hire.\nJOIN US AND BRING YOUR BEST.\nBRING YOUR BOLD.\nBRING YOUR FLASH.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive, Central Government, Japan\n\nWe’re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry.\nThis type of work—work that changes the world—is what the tech industry was founded on. So, if you're ready to seize the endless opportunities and leave your mark, come join us.\nTHE ROLE\nPure Storage Japan &nbsp;is seeking a dynamic and driven&nbsp; Sales Hunter&nbsp; to join our Central Government team in Japan In this role, you’ll be at the forefront of developing new business, working with our channel resellers and key customer accounts. Collaborate with Sales, Pre-sales, Partner sales, and Field Marketing teams to drive success in the Enterprise private sector.\nWHAT YOU'LL DO\n- Promote our innovative and simple all-flash enterprise storage technology and data solutions, clearly articulating the value Pure provides to public-sector customers in Japan, including central government ministries and independent administrative institutions.\n- Build and invest in strong customer relationships, continuously leading efforts to achieve industry-leading levels of customer satisfaction.\n- Develop and execute effective account plans by fully leveraging internal resources, leading cross-functional project teams to drive new customer acquisition.\n- Manage a healthy and robust sales pipeline to consistently achieve quarterly and annual targets.\n本ポジションでは、以下の業務をお任せします\n- 当社の革新的かつシンプルなオールフラッシュ・エンタープライズストレージ技術およびデータソリューションを推進し、日本国内の公共団体（中央省庁・独立行政法人）のお客様に対して、Pureが提供する価値を的確に伝えていただきます\n- 顧客との関係構築と投資を通じて、業界最高水準の顧客満足度の実現を継続的にリードしていただきます\n- 社内のリソースを最大限に活用するアカウントプランを策定・実行し、プロジェクトチームをリードして新規顧客の獲得を推進していただきます\n- 健全かつ充実した営業パイプラインの管理により、四半期・年間の目標達成を確実に導いていただきます\nWHAT YOU BRING\n- Demonstrates sincerity and passion in engaging with public-sector customers in Japan, with a strong commitment to deeply understanding their business challenges.\n- Possesses strong insight, creativity, and a challenger mindset, leveraging expertise in technology solutions to propose effective problem-solving approaches through Pure’s product portfolio.\n- Has a proven track record and strong drive in new customer acquisition, with the ability to communicate effectively from executive management to data center operations, and to articulate the value of our solutions with enthusiasm.\n- Exhibits excellent interpersonal skills as well as strong written and verbal communication abilities, enabling the building and deepening of trusted customer relationships.\n- Capable of developing and executing strategic plans aimed at maximizing revenue and improving operational efficiency within the assigned territory.\n- Experienced in leading complex sales processes involving multiple stakeholders, and able to collaborate effectively through strong teamwork with both internal and external partners.\n- Has consistently exceeded targets and delivered business results strong enough to earn recommendations and recognition from customers and partners.\n- Demonstrates a strong commitment to post-contract customer success.\n- Brings 5+ years of B2B sales experience, primarily focused on new customer acquisition or business development.\n- Possesses sales experience and industry knowledge within the Japanese public sector, along with the ability to read and understand English at an intermediate level.\nこのポジションに求められるご経験・スキル\n- 日本国内の公共顧客と真摯に向き合い、ビジネス課題を深く理解しようとする誠実さと情熱\n- 洞察力と創造性、そしてチャンレンジャー精神を備え、技術ソリューションに関する知見を活かしながら、Pureの製品ポートフォリオを通じて顧客の課題解決を提案する能力\n- 新規開拓における豊富な実績と積極性を有し、経営層からデータセンター現場まで自在にコミュニケーションをとりながら、当社ソリューションの価値を熱意を持って訴求できる方\n- 優れた対人スキルおよび文章／口頭でのコミュニケーション能力を有し、信頼関係を構築・深化させることができる方\n- 担当エリアの収益最大化と業務効率向上を目的とした戦略的な計画立案・実行能力\n- 複数のステークホルダーが関わる複雑な営業プロセスを主導したご経験と、社内外とのチームワークを重視し協働できる能力\n- 継続的に目標を上回る実績を達成し、他社からも推薦されるようなビジネス成果を上げてきたご経験\n- 契約後のカスタマーサクセスにも情熱を注げる方\n- 新規顧客開拓またはビジネスデベロップメントを中心とした5年以上の法人営業経験\n- 日本の公共における営業経験および業界知識を有していること　•　英語を中程度のレベルで読み、理解する能力が求められます。\nJoin Pure Storage and be part of a team that's redefining data storage. Apply now and unleash your potential!\nINCLUDE FOR POSTING LOCATION IDENTIFICATION\n#LI-REMOTE, #LI-ONSITE\nWHAT YOU CAN EXPECT FROM US:\n- Pure Innovation : We celebrate those who think critically, like a challenge and aspire to be trailblazers.\n- Pure Growth : We give you the space and support to grow along with us and to contribute to something meaningful. We have been Named Fortune's Best Large Workplaces in the Bay Area™, Fortune's Best Workplaces for Millennials™ and certified as a Great Place to Work®!\n- Pure Team : We build each other up and set aside ego for the greater good.\nAnd because we understand the value of bringing your full and best self to work, we offer a variety of perks to manage a healthy balance, including flexible time off, wellness resources and company-sponsored team events. Check out purebenefits.com for more information.\nACCOMMODATIONS AND ACCESSIBILITY:\nCandidates with disabilities may request accommodations for all aspects of our hiring process. For more on this, contact us at TA-Ops@purestorage.com if you’re invited to an interview.\nOUR COMMITMENT TO A STRONG AND INCLUSIVE TEAM:\nWe’re forging a future where everyone finds their rightful place and where every voice matters. Where uniqueness isn’t just accepted but embraced. That’s why we are committed to fostering the growth and development of every person, cultivating a sense of community through our Employee Resource Groups and advocating for inclusive leadership.\n&nbsp;\nPure is proud to be an equal opportunity and affirmative action employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, transgender status, sexual stereotypes, age, status as a protected veteran, status as an individual with a disability, or any other characteristic legally protected by the laws of the jurisdiction in which you are being considered for hire.\nJOIN US AND BRING YOUR BEST.\nBRING YOUR BOLD.\nBRING YOUR FLASH.",
+          "is_valid": true,
+          "reason": "Valid description (6122 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Central Government, Japan\n\nWe’re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry.\nThis type of work—work that changes the world—is what the tech industry was founded on. So, if you're ready to seize the endless opportunities and leave your mark, come join us.\nTHE ROLE\nPure Storage Japan &nbsp;is seeking a dynamic and driven&nbsp; Sales Hunter&nbsp; to join our Central Government team in Japan In this role, you’ll be at the forefront of developing new business, working with our channel resellers and key customer accounts. Collaborate with Sales, Pre-sales, Partner sales, and Field Marketing teams to drive success in the Enterprise private sector.\nWHAT YOU'LL DO\n- Promote our innovative and simple all-flash enterprise storage technology and data solutions, clearly articulating the value Pure provides to public-sector customers in Japan, including central government ministries and independent administrative institutions.\n- Build and invest in strong customer relationships, continuously leading efforts to achieve industry-leading levels of customer satisfaction.\n- Develop and execute effective account plans by fully leveraging internal resources, leading cross-functional project teams to drive new customer acquisition.\n- Manage a healthy and robust sales pipeline to consistently achieve quarterly and annual targets.\n本ポジションでは、以下の業務をお任せします\n- 当社の革新的かつシンプルなオールフラッシュ・エンタープライズストレージ技術およびデータソリューションを推進し、日本国内の公共団体（中央省庁・独立行政法人）のお客様に対して、Pureが提供する価値を的確に伝えていただきます\n- 顧客との関係構築と投資を通じて、業界最高水準の顧客満足度の実現を継続的にリードしていただきます\n- 社内のリソースを最大限に活用するアカウントプランを策定・実行し、プロジェクトチームをリードして新規顧客の獲得を推進していただきます\n- 健全かつ充実した営業パイプラインの管理により、四半期・年間の目標達成を確実に導いていただきます\nWHAT YOU BRING\n- Demonstrates sincerity and passion in engaging with public-sector customers in Japan, with a strong commitment to deeply understanding their business challenges.\n- Possesses strong insight, creativity, and a challenger mindset, leveraging expertise in technology solutions to propose effective problem-solving approaches through Pure’s product portfolio.\n- Has a proven track record and strong drive in new customer acquisition, with the ability to communicate effectively from executive management to data center operations, and to articulate the value of our solutions with enthusiasm.\n- Exhibits excellent interpersonal skills as well as strong written and verbal communication abilities, enabling the building and deepening of trusted customer relationships.\n- Capable of developing and executing strategic plans aimed at maximizing revenue and improving operational efficiency within the assigned territory.\n- Experienced in leading complex sales processes involving multiple stakeholders, and able to collaborate effectively through strong teamwork with both internal and external partners.\n- Has consistently exceeded targets and delivered business results strong enough to earn recommendations and recognition from customers and partners.\n- Demonstrates a strong commitment to post-contract customer success.\n- Brings 5+ years of B2B sales experience, primarily focused on new customer acquisition or business development.\n- Possesses sales experience and industry knowledge within the Japanese public sector, along with the ability to read and understand English at an intermediate level.\nこのポジションに求められるご経験・スキル\n- 日本国内の公共顧客と真摯に向き合い、ビジネス課題を深く理解しようとする誠実さと情熱\n- 洞察力と創造性、そしてチャンレンジャー精神を備え、技術ソリューションに関する知見を活かしながら、Pureの製品ポートフォリオを通じて顧客の課題解決を提案する能力\n- 新規開拓における豊富な実績と積極性を有し、経営層からデータセンター現場まで自在にコミュニケーションをとりながら、当社ソリューションの価値を熱意を持って訴求できる方\n- 優れた対人スキルおよび文章／口頭でのコミュニケーション能力を有し、信頼関係を構築・深化させることができる方\n- 担当エリアの収益最大化と業務効率向上を目的とした戦略的な計画立案・実行能力\n- 複数のステークホルダーが関わる複雑な営業プロセスを主導したご経験と、社内外とのチームワークを重視し協働できる能力\n- 継続的に目標を上回る実績を達成し、他社からも推薦されるようなビジネス成果を上げてきたご経験\n- 契約後のカスタマーサクセスにも情熱を注げる方\n- 新規顧客開拓またはビジネスデベロップメントを中心とした5年以上の法人営業経験\n- 日本の公共における営業経験および業界知識を有していること　•　英語を中程度のレベルで読み、理解する能力が求められます。\nJoin Pure Storage and be part of a team that's redefining data storage. Apply now and unleash your potential!\nINCLUDE FOR POSTING LOCATION IDENTIFICATION\n#LI-REMOTE, #LI-ONSITE\nWHAT YOU CAN EXPECT FROM US:\n- Pure Innovation : We celebrate those who think critically, like a challenge and aspire to be trailblazers.\n- Pure Growth : We give you the space and support to grow along with us and to contribute to something meaningful. We have been Named Fortune's Best Large Workplaces in the Bay Area™, Fortune's Best Workplaces for Millennials™ and certified as a Great Place to Work®!\n- Pure Team : We build each other up and set aside ego for the greater good.\nAnd because we understand the value of bringing your full and best self to work, we offer a variety of perks to manage a healthy balance, including flexible time off, wellness resources and company-sponsored team events. Check out purebenefits.com for more information.\nACCOMMODATIONS AND ACCESSIBILITY:\nCandidates with disabilities may request accommodations for all aspects of our hiring process. For more on this, contact us at TA-Ops@purestorage.com if you’re invited to an interview.\nOUR COMMITMENT TO A STRONG AND INCLUSIVE TEAM:\nWe’re forging a future where everyone finds their rightful place and where every voice matters. Where uniqueness isn’t just accepted but embraced. That’s why we are committed to fostering the growth and development of every person, cultivating a sense of community through our Employee Resource Groups and advocating for inclusive leadership.\n&nbsp;\nPure is proud to be an equal opportunity and affirmative action employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, transgender status, sexual stereotypes, age, status as a protected veteran, status as an individual with a disability, or any other characteristic legally protected by the laws of the jurisdiction in which you are being considered for hire.\nJOIN US AND BRING YOUR BEST.\nBRING YOUR BOLD.\nBRING YOUR FLASH.",
+          "is_valid": true,
+          "reason": "Valid description (6122 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive, Central Government, Japan\n\nWe’re in an unbelievably exciting area of tech and are fundamentally reshaping the data storage industry. Here, you lead with innovative thinking, grow along with us, and join the smartest team in the industry.\nThis type of work—work that changes the world—is what the tech industry was founded on. So, if you're ready to seize the endless opportunities and leave your mark, come join us.\nTHE ROLE\nPure Storage Japan &nbsp;is seeking a dynamic and driven&nbsp; Sales Hunter&nbsp; to join our Central Government team in Japan In this role, you’ll be at the forefront of developing new business, working with our channel resellers and key customer accounts. Collaborate with Sales, Pre-sales, Partner sales, and Field Marketing teams to drive success in the Enterprise private sector.\nWHAT YOU'LL DO\n- Promote our innovative and simple all-flash enterprise storage technology and data solutions, clearly articulating the value Pure provides to public-sector customers in Japan, including central government ministries and independent administrative institutions.\n- Build and invest in strong customer relationships, continuously leading efforts to achieve industry-leading levels of customer satisfaction.\n- Develop and execute effective account plans by fully leveraging internal resources, leading cross-functional project teams to drive new customer acquisition.\n- Manage a healthy and robust sales pipeline to consistently achieve quarterly and annual targets.\n本ポジションでは、以下の業務をお任せします\n- 当社の革新的かつシンプルなオールフラッシュ・エンタープライズストレージ技術およびデータソリューションを推進し、日本国内の公共団体（中央省庁・独立行政法人）のお客様に対して、Pureが提供する価値を的確に伝えていただきます\n- 顧客との関係構築と投資を通じて、業界最高水準の顧客満足度の実現を継続的にリードしていただきます\n- 社内のリソースを最大限に活用するアカウントプランを策定・実行し、プロジェクトチームをリードして新規顧客の獲得を推進していただきます\n- 健全かつ充実した営業パイプラインの管理により、四半期・年間の目標達成を確実に導いていただきます\nWHAT YOU BRING\n- Demonstrates sincerity and passion in engaging with public-sector customers in Japan, with a strong commitment to deeply understanding their business challenges.\n- Possesses strong insight, creativity, and a challenger mindset, leveraging expertise in technology solutions to propose effective problem-solving approaches through Pure’s product portfolio.\n- Has a proven track record and strong drive in new customer acquisition, with the ability to communicate effectively from executive management to data center operations, and to articulate the value of our solutions with enthusiasm.\n- Exhibits excellent interpersonal skills as well as strong written and verbal communication abilities, enabling the building and deepening of trusted customer relationships.\n- Capable of developing and executing strategic plans aimed at maximizing revenue and improving operational efficiency within the assigned territory.\n- Experienced in leading complex sales processes involving multiple stakeholders, and able to collaborate effectively through strong teamwork with both internal and external partners.\n- Has consistently exceeded targets and delivered business results strong enough to earn recommendations and recognition from customers and partners.\n- Demonstrates a strong commitment to post-contract customer success.\n- Brings 5+ years of B2B sales experience, primarily focused on new customer acquisition or business development.\n- Possesses sales experience and industry knowledge within the Japanese public sector, along with the ability to read and understand English at an intermediate level.\nこのポジションに求められるご経験・スキル\n- 日本国内の公共顧客と真摯に向き合い、ビジネス課題を深く理解しようとする誠実さと情熱\n- 洞察力と創造性、そしてチャンレンジャー精神を備え、技術ソリューションに関する知見を活かしながら、Pureの製品ポートフォリオを通じて顧客の課題解決を提案する能力\n- 新規開拓における豊富な実績と積極性を有し、経営層からデータセンター現場まで自在にコミュニケーションをとりながら、当社ソリューションの価値を熱意を持って訴求できる方\n- 優れた対人スキルおよび文章／口頭でのコミュニケーション能力を有し、信頼関係を構築・深化させることができる方\n- 担当エリアの収益最大化と業務効率向上を目的とした戦略的な計画立案・実行能力\n- 複数のステークホルダーが関わる複雑な営業プロセスを主導したご経験と、社内外とのチームワークを重視し協働できる能力\n- 継続的に目標を上回る実績を達成し、他社からも推薦されるようなビジネス成果を上げてきたご経験\n- 契約後のカスタマーサクセスにも情熱を注げる方\n- 新規顧客開拓またはビジネスデベロップメントを中心とした5年以上の法人営業経験\n- 日本の公共における営業経験および業界知識を有していること　•　英語を中程度のレベルで読み、理解する能力が求められます。\nJoin Pure Storage and be part of a team that's redefining data storage. Apply now and unleash your potential!\nINCLUDE FOR POSTING LOCATION IDENTIFICATION\n#LI-REMOTE, #LI-ONSITE\nWHAT YOU CAN EXPECT FROM US:\n- Pure Innovation : We celebrate those who think critically, like a challenge and aspire to be trailblazers.\n- Pure Growth : We give you the space and support to grow along with us and to contribute to something meaningful. We have been Named Fortune's Best Large Workplaces in the Bay Area™, Fortune's Best Workplaces for Millennials™ and certified as a Great Place to Work®!\n- Pure Team : We build each other up and set aside ego for the greater good.\nAnd because we understand the value of bringing your full and best self to work, we offer a variety of perks to manage a healthy balance, including flexible time off, wellness resources and company-sponsored team events. Check out purebenefits.com for more information.\nACCOMMODATIONS AND ACCESSIBILITY:\nCandidates with disabilities may request accommodations for all aspects of our hiring process. For more on this, contact us at TA-Ops@purestorage.com if you’re invited to an interview.\nOUR COMMITMENT TO A STRONG AND INCLUSIVE TEAM:\nWe’re forging a future where everyone finds their rightful place and where every voice matters. Where uniqueness isn’t just accepted but embraced. That’s why we are committed to fostering the growth and development of every person, cultivating a sense of community through our Employee Resource Groups and advocating for inclusive leadership.\n&nbsp;\nPure is proud to be an equal opportunity and affirmative action employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, transgender status, sexual stereotypes, age, status as a protected veteran, status as an individual with a disability, or any other characteristic legally protected by the laws of the jurisdiction in which you are being considered for hire.\nJOIN US AND BRING YOUR BEST.\nBRING YOUR BOLD.\nBRING YOUR FLASH.",
+          "is_valid": true,
+          "reason": "Valid description (6122 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

@@ -19,6 +19,26 @@ _ASHBY_JS_DATA_PATTERN = re.compile(
 _SECONDARY_LOCATIONS_PATTERN = re.compile(
     r'"secondaryLocationNames"\s*:\s*\[([^\]]*)\]'
 )
+# Pattern to extract title from <title> tag
+_TITLE_TAG_PATTERN = re.compile(
+    r"<title[^>]*>([^<]+)</title>",
+    flags=re.IGNORECASE,
+)
+# Pattern to extract og:title from meta tag
+_OG_TITLE_PATTERN = re.compile(
+    r'<meta[^>]*property=["\']og:title["\'][^>]*content=["\']([^"\']+)["\']',
+    flags=re.IGNORECASE,
+)
+# Alternative og:title pattern (content before property)
+_OG_TITLE_PATTERN_ALT = re.compile(
+    r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:title["\']',
+    flags=re.IGNORECASE,
+)
+# Pattern to detect "About {Company}" titles that should be rejected
+_ABOUT_COMPANY_PATTERN = re.compile(
+    r"^about\s+\w+",
+    flags=re.IGNORECASE,
+)
 
 
 class AshbyHqHandler(BaseSiteHandler):
@@ -204,9 +224,16 @@ class AshbyHqHandler(BaseSiteHandler):
         """
         Clean Ashby raw HTML by removing embedded JavaScript/JSON blocks
         that would otherwise pollute the job description.
+
+        Also extracts title from HTML when JSON-LD is not available.
+        Priority: <title> tag > og:title meta tag.
+        Rejects "About {Company}" patterns as they are not job titles.
         """
         if not markdown:
             return markdown, None
+
+        # Extract title before cleaning (need original HTML for meta tags)
+        title = self._extract_title_from_html(markdown)
 
         # Remove the large JavaScript data blob that Ashby embeds
         # This contains internal form fields, feature flags, etc.
@@ -228,7 +255,75 @@ class AshbyHqHandler(BaseSiteHandler):
             flags=re.IGNORECASE | re.DOTALL,
         )
 
-        return cleaned, None
+        # Remove <head> section entirely if present
+        cleaned = re.sub(
+            r"<head\b[^>]*>.*?</head>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        # Remove stray <title>, <meta>, and <link> tags that might be outside <head>
+        cleaned = re.sub(
+            r"<title\b[^>]*>.*?</title>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        cleaned = re.sub(
+            r"<meta\b[^>]*>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        cleaned = re.sub(
+            r"<link\b[^>]*>",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+
+        return cleaned, title
+
+    def _extract_title_from_html(self, html: str) -> Optional[str]:
+        """
+        Extract job title from HTML when JSON-LD structured data is not available.
+
+        Priority:
+        1. <title> tag (often contains "Job Title @ Company")
+        2. og:title meta tag
+
+        Returns None if title looks like "About {Company}" pattern,
+        which indicates the description heading was incorrectly used as title.
+        """
+        if not html:
+            return None
+
+        title: Optional[str] = None
+
+        # Try <title> tag first
+        title_match = _TITLE_TAG_PATTERN.search(html)
+        if title_match:
+            raw_title = html_lib.unescape(title_match.group(1)).strip()
+            # Ashby titles often have format "Job Title @ Company"
+            if " @ " in raw_title:
+                title = raw_title.split(" @ ", 1)[0].strip()
+            elif " | " in raw_title:
+                title = raw_title.split(" | ", 1)[0].strip()
+            else:
+                title = raw_title
+
+        # Fall back to og:title if no title found
+        if not title:
+            og_match = _OG_TITLE_PATTERN.search(html) or _OG_TITLE_PATTERN_ALT.search(html)
+            if og_match:
+                title = html_lib.unescape(og_match.group(1)).strip()
+
+        # Reject "About {Company}" patterns - these are description headings, not job titles
+        if title and _ABOUT_COMPANY_PATTERN.match(title):
+            return "Unknown Engineer"
+
+        return title if title else None
 
     def extract_location_hint(self, markdown: str) -> Optional[str]:
         """

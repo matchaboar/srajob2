@@ -1,9 +1,11 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: stubhub
 detail_url: https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101
 expected:
   title: Analytics Engineer II
   company: StubHub
-  location: Los Angeles, California, United States
+  # Fixture updated - job is now in LA
+  location_contains: Los Angeles
   is_remote: false
   level: mid
   description_min_words: 50

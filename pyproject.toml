@@ -11,11 +11,14 @@ dependencies = [
     "fetchfox-sdk>=1.0.1",
     "firecrawl>=4.8.0",
     "httpx>=0.28.1",
+    "msgspec>=0.20.0",
     "opentelemetry-api>=1.39.1",
     "opentelemetry-exporter-otlp>=1.39.1",
     "opentelemetry-sdk>=1.39.1",
+    "orjson>=3.11.5",
     "posthog>=3.7.0",
     "pydantic>=2.11.7",
+    "pytest-xdist>=3.8.0",
     "python-dotenv>=1.1.1",
     "pyyaml>=6.0.2",
     "spider-client>=0.1.82",
@@ -33,6 +36,7 @@ target-version = "py313"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
+addopts = "-n auto"
 
 [build-system]
 requires = ["uv_build>=0.8.8,<0.9.0"]

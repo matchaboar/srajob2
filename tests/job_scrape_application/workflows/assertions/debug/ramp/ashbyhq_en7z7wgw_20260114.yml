@@ -1,0 +1,14 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: ashbyhq
+detail_url: https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd
+expected:
+  title: "Account Manager, Growth"
+  company: "Ramp"
+  # Fixture has both NYC and SF, extraction picks New York as primary
+  location_contains: "New York"
+  is_remote: true  # Schema.org jobLocationType=TELECOMMUTE
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

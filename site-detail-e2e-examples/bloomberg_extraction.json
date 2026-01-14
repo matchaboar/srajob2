@@ -5,11 +5,11 @@
   "extracted_jobs": [
     {
       "title": "Senior Software Engineer - Editorial Apps & Platforms - 16497 - Bloomberg",
-      "description_preview": "Senior Software Engineer - Editorial Apps &amp; Platforms - 16497 - Bloomberg Senior Software Engineer - Editorial Apps &amp; Platforms Location London Business Area Engineering and CTO Ref # ## Description &amp; Requirements Bloomberg News, Research, and Media make up one of the world\u2019s largest and most influential news organizations...",
-      "description_word_count": 636,
-      "location": "London",
+      "description_preview": "Bloomberg News, Research, and Media make up one of the world’s largest and most influential news organizations - more than 2,700 journalists and analysts across 120+ countries - delivering market-moving reporting at global scale. Our award-winning journalism, recognized with multiple Pulitzer Prizes, Loeb Awards, and Emmys, drives decision-making for business...",
+      "description_word_count": 603,
+      "location": "London, United Kingdom",
       "is_remote": false,
-      "posted_at": 1768365587579,
+      "posted_at": 1768427230970,
       "posted_at_unknown": true,
       "company": "Bloomberg",
       "level": "senior",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Senior Software Engineer - Editorial Apps & Platforms - 16497 - Bloomberg",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'avature' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Senior Software Engineer - Editorial Apps & Platforms - 16497 - Bloomberg",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": "Description &amp; Requirements",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Senior Software Engineer - Editorial Apps & Platforms",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Our teams builds tools that enable content creators to:",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Bloomberg",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'avature' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Bloomberg",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Bloomberg",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "Bloomberg",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "London",
+      "winning_strategy": "site_handler_location_hint",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": "London",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "London",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Experiment with AI, NL",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_CITY_STATE"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "London",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "New York, NY",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: London"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Bloomberg' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'senior' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-14T14:47:10.970000",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-14T14:47:10.970000",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-14T14:47:10.970000"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'avature' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:12.860421",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Bloomberg News, Research, and Media make up one of the world’s largest and most influential news organizations - more than 2,700 journalists and analysts across 120+ countries - delivering market-moving reporting at global scale. Our award-winning journalism, recognized with multiple Pulitzer Prizes, Loeb Awards, and Emmys, drives decision-making for business leaders, investors, and policymakers every day.\nWe are responsible for the full product suite behind Bloomberg’s editorial and research workflow - including content discovery platforms, analyst coding environments, research &amp; content management systems.\nOur teams builds tools that enable content creators to:\n* Discover insights buried in massive datasets\n* Write, edit, visualize, and publish high-impact stories\n* Collaborate to build content in real time\n* Personalize workflows across editorial domains\n* Accelerate research and reduce time-to-market\n* Leverage AI to uncover narratives and optimize content delivery\n**Our mission is simple: **\n***Build software to generate real-time content, visual insights, and analysis that give Bloomberg clients an edge in monitoring markets around the world. ***\nThis mission unifies the entire Editorial Apps &amp; Platforms portfolio - from discovery to data analysis to publishing - ensuring Bloomberg’s content creators can produce trusted, market-moving insights with unprecedented speed and intelligence.\n**Where We’re Going\n**\nIn 2026 and beyond, we’re bringing these ecosystems together under a unified vision:\n* AI-native editorial workflows (story optimization, metadata inference, human-in-the-loop content drafting)\n* Personalized content tools based on user roles, beats, and expertise\n* Faster, more robust publishing pipelines, helping us automate how editors promote stories\n* Cross-platform editorial collaboration\n* Modernized web-first authoring and data analysis tools\n* Consistent metadata governance &amp; quality\n**What You’ll Do:\n**\n*As a Senior Software Engineer in Editorial Apps &amp; Platforms, you will: *\n* Build scalable, full-stack applications using technologies such as Python, Typescript, React/NextJS, Kafka, Redis and Bloomberg’s internal platforms.\n* Own the full software development lifecycle: architecture, design, coding, testing, deployment, and support.\n* Work directly with editors, reporters, analysts, economists, researchers, and product managers to understand their workflows and craft intuitive, high-impact solutions.\n* Develop re-usable federated web applications powering editorial and research content creation.\n* Contribute to the modernization of our CMS platforms, coding environments, and content discovery tools.\n* Experiment with AI, NLP, and automation to improve quality, reduce friction, and accelerate content creation.\n* Uphold high standards for code quality, testing, CI, resilience, and maintainability.\n**You'll Need to Have:\n**\n* Strong experience in an object-oriented programming language (Python, C++, Java, etc.).\n* Experience building robust, production-grade full-stack applications.\n* Ability to collaborate with non-technical and technical users alike.\n* A passion for enabling others - building tools that empower content creators.\n**We'd love to see:\n**\n* Experience with React/NextJS, Typescript, modern web UI patterns, and real-time collaboration frameworks.\n* Background in data pipelines, large-scale data processing, Kafka, Trino, Iceberg, or analytics tooling.\n* Experience in CMS development, newsroom engineering, or news vendor applications.\n* Interest in NLP, generative AI, personalization systems, or content quality models.\n* Experience mentoring teammates and shaping engineering culture.\n**Why You’ll Love Working With Us\n**\n* Direct impact on how the world’s most influential newsroom and research organization operates.\n* Close partnerships with journalists and analysts - real users with mission-critical needs.\n* A collaborative, supportive engineering culture across New York, London, and Princeton.\n* Opportunities to work across multiple product areas, from CMS to data platforms to editorial AI.\n* Regular team events, hackathons, cross-Atlantic collaboration, and a thriving community of content-focused engineers.\nDiscover what makes Bloomberg unique - watch our [podcast series](https://www.youtube.com/playlist?list=PLnZuxOufsXnskmdKsB1GgrEKtmNqCdsbr) for an inside look at our culture, values, and the people behind our success.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Bloomberg News, Research, and Media make up one of the world’s largest and most influential news organizations - more than 2,700 journalists and analysts across 120+ countries - delivering market-moving reporting at global scale. Our award-winning journalism, recognized with multiple Pulitzer Prizes, Loeb Awards, and Emmys, drives decision-making for business leaders, investors, and policymakers every day.\nWe are responsible for the full product suite behind Bloomberg’s editorial and research workflow - including content discovery platforms, analyst coding environments, research &amp; content management systems.\nOur teams builds tools that enable content creators to:\n* Discover insights buried in massive datasets\n* Write, edit, visualize, and publish high-impact stories\n* Collaborate to build content in real time\n* Personalize workflows across editorial domains\n* Accelerate research and reduce time-to-market\n* Leverage AI to uncover narratives and optimize content delivery\n**Our mission is simple: **\n***Build software to generate real-time content, visual insights, and analysis that give Bloomberg clients an edge in monitoring markets around the world. ***\nThis mission unifies the entire Editorial Apps &amp; Platforms portfolio - from discovery to data analysis to publishing - ensuring Bloomberg’s content creators can produce trusted, market-moving insights with unprecedented speed and intelligence.\n**Where We’re Going\n**\nIn 2026 and beyond, we’re bringing these ecosystems together under a unified vision:\n* AI-native editorial workflows (story optimization, metadata inference, human-in-the-loop content drafting)\n* Personalized content tools based on user roles, beats, and expertise\n* Faster, more robust publishing pipelines, helping us automate how editors promote stories\n* Cross-platform editorial collaboration\n* Modernized web-first authoring and data analysis tools\n* Consistent metadata governance &amp; quality\n**What You’ll Do:\n**\n*As a Senior Software Engineer in Editorial Apps &amp; Platforms, you will: *\n* Build scalable, full-stack applications using technologies such as Python, Typescript, React/NextJS, Kafka, Redis and Bloomberg’s internal platforms.\n* Own the full software development lifecycle: architecture, design, coding, testing, deployment, and support.\n* Work directly with editors, reporters, analysts, economists, researchers, and product managers to understand their workflows and craft intuitive, high-impact solutions.\n* Develop re-usable federated web applications powering editorial and research content creation.\n* Contribute to the modernization of our CMS platforms, coding environments, and content discovery tools.\n* Experiment with AI, NLP, and automation to improve quality, reduce friction, and accelerate content creation.\n* Uphold high standards for code quality, testing, CI, resilience, and maintainability.\n**You'll Need to Have:\n**\n* Strong experience in an object-oriented programming language (Python, C++, Java, etc.).\n* Experience building robust, production-grade full-stack applications.\n* Ability to collaborate with non-technical and technical users alike.\n* A passion for enabling others - building tools that empower content creators.\n**We'd love to see:\n**\n* Experience with React/NextJS, Typescript, modern web UI patterns, and real-time collaboration frameworks.\n* Background in data pipelines, large-scale data processing, Kafka, Trino, Iceberg, or analytics tooling.\n* Experience in CMS development, newsroom engineering, or news vendor applications.\n* Interest in NLP, generative AI, personalization systems, or content quality models.\n* Experience mentoring teammates and shaping engineering culture.\n**Why You’ll Love Working With Us\n**\n* Direct impact on how the world’s most influential newsroom and research organization operates.\n* Close partnerships with journalists and analysts - real users with mission-critical needs.\n* A collaborative, supportive engineering culture across New York, London, and Princeton.\n* Opportunities to work across multiple product areas, from CMS to data platforms to editorial AI.\n* Regular team events, hackathons, cross-Atlantic collaboration, and a thriving community of content-focused engineers.\nDiscover what makes Bloomberg unique - watch our [podcast series](https://www.youtube.com/playlist?list=PLnZuxOufsXnskmdKsB1GgrEKtmNqCdsbr) for an inside look at our culture, values, and the people behind our success.",
+          "is_valid": true,
+          "reason": "Valid description (4449 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Senior Software Engineer - Editorial Apps &amp; Platforms\n- 16497\n- Bloomberg\nSenior Software Engineer - Editorial Apps &amp; Platforms\nLocation\nLondon\nBusiness Area\nEngineering and CTO\nRef #\n##\nDescription &amp; Requirements\nBloomberg News, Research, and Media make up one of the world’s largest and most influential news organizations - more than 2,700 journalists and analysts across 120+ countries - delivering market-moving reporting at global scale. Our award-winning journalism, recognized with multiple Pulitzer Prizes, Loeb Awards, and Emmys, drives decision-making for business leaders, investors, and policymakers every day.\nWe are responsible for the full product suite behind Bloomberg’s editorial and research workflow - including content discovery platforms, analyst coding environments, research &amp; content management systems.\nOur teams builds tools that enable content creators to:\n* Discover insights buried in massive datasets\n* Write, edit, visualize, and publish high-impact stories\n* Collaborate to build content in real time\n* Personalize workflows across editorial domains\n* Accelerate research and reduce time-to-market\n* Leverage AI to uncover narratives and optimize content delivery\n**Our mission is simple: **\n***Build software to generate real-time content, visual insights, and analysis that give Bloomberg clients an edge in monitoring markets around the world. ***\nThis mission unifies the entire Editorial Apps &amp; Platforms portfolio - from discovery to data analysis to publishing - ensuring Bloomberg’s content creators can produce trusted, market-moving insights with unprecedented speed and intelligence.\n**Where We’re Going\n**\nIn 2026 and beyond, we’re bringing these ecosystems together under a unified vision:\n* AI-native editorial workflows (story optimization, metadata inference, human-in-the-loop content drafting)\n* Personalized content tools based on user roles, beats, and expertise\n* Faster, more robust publishing pipelines, helping us automate how editors promote stories\n* Cross-platform editorial collaboration\n* Modernized web-first authoring and data analysis tools\n* Consistent metadata governance &amp; quality\n**What You’ll Do:\n**\n*As a Senior Software Engineer in Editorial Apps &amp; Platforms, you will: *\n* Build scalable, full-stack applications using technologies such as Python, Typescript, React/NextJS, Kafka, Redis and Bloomberg’s internal platforms.\n* Own the full software development lifecycle: architecture, design, coding, testing, deployment, and support.\n* Work directly with editors, reporters, analysts, economists, researchers, and product managers to understand their workflows and craft intuitive, high-impact solutions.\n* Develop re-usable federated web applications powering editorial and research content creation.\n* Contribute to the modernization of our CMS platforms, coding environments, and content discovery tools.\n* Experiment with AI, NLP, and automation to improve quality, reduce friction, and accelerate content creation.\n* Uphold high standards for code quality, testing, CI, resilience, and maintainability.\n**You'll Need to Have:\n**\n* Strong experience in an object-oriented programming language (Python, C++, Java, etc.).\n* Experience building robust, production-grade full-stack applications.\n* Ability to collaborate with non-technical and technical users alike.\n* A passion for enabling others - building tools that empower content creators.\n**We'd love to see:\n**\n* Experience with React/NextJS, Typescript, modern web UI patterns, and real-time collaboration frameworks.\n* Background in data pipelines, large-scale data processing, Kafka, Trino, Iceberg, or analytics tooling.\n* Experience in CMS development, newsroom engineering, or news vendor applications.\n* Interest in NLP, generative AI, personalization systems, or content quality models.\n* Experience mentoring teammates and shaping engineering culture.\n**Why You’ll Love Working With Us\n**\n* Direct impact on how the world’s most influential newsroom and research organization operates.\n* Close partnerships with journalists and analysts - real users with mission-critical needs.\n* A collaborative, supportive engineering culture across New York, London, and Princeton.\n* Opportunities to work across multiple product areas, from CMS to data platforms to editorial AI.\n* Regular team events, hackathons, cross-Atlantic collaboration, and a thriving community of content-focused engineers.\nDiscover what makes Bloomberg unique - watch our [podcast series](https://www.youtube.com/playlist?list=PLnZuxOufsXnskmdKsB1GgrEKtmNqCdsbr) for an inside look at our culture, values, and the people behind our success.",
+          "is_valid": true,
+          "reason": "Valid description (4675 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Senior Software Engineer - Editorial Apps &amp; Platforms\n- 16497\n- Bloomberg\nSenior Software Engineer - Editorial Apps &amp; Platforms\nLocation\nLondon\nBusiness Area\nEngineering and CTO\nRef #\n##\nDescription &amp; Requirements\nBloomberg News, Research, and Media make up one of the world’s largest and most influential news organizations - more than 2,700 journalists and analysts across 120+ countries - delivering market-moving reporting at global scale. Our award-winning journalism, recognized with multiple Pulitzer Prizes, Loeb Awards, and Emmys, drives decision-making for business leaders, investors, and policymakers every day.\nWe are responsible for the full product suite behind Bloomberg’s editorial and research workflow - including content discovery platforms, analyst coding environments, research &amp; content management systems.\nOur teams builds tools that enable content creators to:\n* Discover insights buried in massive datasets\n* Write, edit, visualize, and publish high-impact stories\n* Collaborate to build content in real time\n* Personalize workflows across editorial domains\n* Accelerate research and reduce time-to-market\n* Leverage AI to uncover narratives and optimize content delivery\n**Our mission is simple: **\n***Build software to generate real-time content, visual insights, and analysis that give Bloomberg clients an edge in monitoring markets around the world. ***\nThis mission unifies the entire Editorial Apps &amp; Platforms portfolio - from discovery to data analysis to publishing - ensuring Bloomberg’s content creators can produce trusted, market-moving insights with unprecedented speed and intelligence.\n**Where We’re Going\n**\nIn 2026 and beyond, we’re bringing these ecosystems together under a unified vision:\n* AI-native editorial workflows (story optimization, metadata inference, human-in-the-loop content drafting)\n* Personalized content tools based on user roles, beats, and expertise\n* Faster, more robust publishing pipelines, helping us automate how editors promote stories\n* Cross-platform editorial collaboration\n* Modernized web-first authoring and data analysis tools\n* Consistent metadata governance &amp; quality\n**What You’ll Do:\n**\n*As a Senior Software Engineer in Editorial Apps &amp; Platforms, you will: *\n* Build scalable, full-stack applications using technologies such as Python, Typescript, React/NextJS, Kafka, Redis and Bloomberg’s internal platforms.\n* Own the full software development lifecycle: architecture, design, coding, testing, deployment, and support.\n* Work directly with editors, reporters, analysts, economists, researchers, and product managers to understand their workflows and craft intuitive, high-impact solutions.\n* Develop re-usable federated web applications powering editorial and research content creation.\n* Contribute to the modernization of our CMS platforms, coding environments, and content discovery tools.\n* Experiment with AI, NLP, and automation to improve quality, reduce friction, and accelerate content creation.\n* Uphold high standards for code quality, testing, CI, resilience, and maintainability.\n**You'll Need to Have:\n**\n* Strong experience in an object-oriented programming language (Python, C++, Java, etc.).\n* Experience building robust, production-grade full-stack applications.\n* Ability to collaborate with non-technical and technical users alike.\n* A passion for enabling others - building tools that empower content creators.\n**We'd love to see:\n**\n* Experience with React/NextJS, Typescript, modern web UI patterns, and real-time collaboration frameworks.\n* Background in data pipelines, large-scale data processing, Kafka, Trino, Iceberg, or analytics tooling.\n* Experience in CMS development, newsroom engineering, or news vendor applications.\n* Interest in NLP, generative AI, personalization systems, or content quality models.\n* Experience mentoring teammates and shaping engineering culture.\n**Why You’ll Love Working With Us\n**\n* Direct impact on how the world’s most influential newsroom and research organization operates.\n* Close partnerships with journalists and analysts - real users with mission-critical needs.\n* A collaborative, supportive engineering culture across New York, London, and Princeton.\n* Opportunities to work across multiple product areas, from CMS to data platforms to editorial AI.\n* Regular team events, hackathons, cross-Atlantic collaboration, and a thriving community of content-focused engineers.\nDiscover what makes Bloomberg unique - watch our [podcast series](https://www.youtube.com/playlist?list=PLnZuxOufsXnskmdKsB1GgrEKtmNqCdsbr) for an inside look at our culture, values, and the people behind our success.",
+          "is_valid": true,
+          "reason": "Valid description (4675 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

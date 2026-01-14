@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: uber
 detail_url: https://www.uber.com/careers/list/149889
 expected:

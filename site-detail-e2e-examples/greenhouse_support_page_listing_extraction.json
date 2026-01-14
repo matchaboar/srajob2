@@ -1,0 +1,20 @@
+{
+  "site_id": "greenhouse_support_page",
+  "listing_url": "https://support.greenhouse.io/hc/en-us",
+  "source_url": "https://support.greenhouse.io/hc/en-us",
+  "handler_name": "GreenhouseHandler",
+  "content_type": "commonmark",
+  "extraction_method": "response.links",
+  "extracted_url_count": 17,
+  "filtered_url_count": 4,
+  "normalized_url_count": 4,
+  "pagination_url_count": 0,
+  "sample_urls": [
+    "https://boards.greenhouse.io/lyft/jobs/1234567",
+    "https://job-boards.greenhouse.io/stripe/jobs/7654321",
+    "https://careers.airbnb.com/positions?gh_jid=9876543",
+    "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
+  ],
+  "url_transformations": [],
+  "error": null
+}

@@ -1,23 +1,23 @@
 {
   "site_id": "docusign",
   "detail_url": "https://careers.docusign.com/jobs/27215?lang=en-us",
-  "source_url": "https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false",
+  "source_url": "https://careers.docusign.com/jobs/27215?lang=en-us",
   "extracted_jobs": [
     {
       "title": "Software Engineer",
-      "description_preview": "Software Engineer in Seattle, Washington | Docusign [ Back ](<javascript: history.go(-1)>) # Software Engineer CAROUSEL\\_PARAGRAPH * Engineering * Seattle, Washington * 09/04/2025 Share Job ### Share Job [](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png) ## Job Description ## Company Overview Docusign brings agreements to life. Over 1.5 million customers and more than a billion people in...",
-      "description_word_count": 1315,
+      "description_preview": "Software Engineer in Seattle, Washington | Docusign [ Back ](<javascript: history.go(-1)>) # Software Engineer CAROUSEL\\_PARAGRAPH * Engineering * Seattle, Washington * 09/04/2025 Share Job ### Share Job [](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png) ## Company Overview Docusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries...",
+      "description_word_count": 1312,
       "location": "Seattle, WA",
       "is_remote": false,
-      "posted_at": 1768365460365,
+      "posted_at": 1768427230978,
       "posted_at_unknown": true,
       "company": "Docusign",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
       "url": "https://careers.docusign.com/jobs/27215?lang=en-us",
-      "cost_milli_cents": 460
+      "cost_milli_cents": 462
     }
   ],
   "convex_capture": {
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Software Engineer",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'docusign' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": "Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Software Engineer in Seattle, Washington | Docusign",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Docusign",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'docusign' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Docusign",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Docusign",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "This position",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Seattle, WA",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'docusign' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Seattle, WA",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Seattle, WA",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Seattle, WA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Seattle, WA"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Docusign' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 133800,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 133800,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $133,800"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 165775,
+          "is_valid": true,
+          "reason": "Compensation from hints: $165,775"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-14T14:47:10.978000",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-14T14:47:10.978000",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-14T14:47:10.978000"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'docusign' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:15.800887",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Software Engineer in Seattle, Washington | Docusign\n[ Back ](<javascript: history.go(-1)>)\n# Software Engineer\nCAROUSEL\\_PARAGRAPH\n* Engineering\n* Seattle, Washington\n* 09/04/2025\nShare Job ### Share Job\n[](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png)\n\n## Company Overview\nDocusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries use Docusign solutions to accelerate the process of doing business and simplify people’s lives. With intelligent agreement management, Docusign unleashes business-critical data that is trapped inside of documents. Until now, these were disconnected from business systems of record, costing businesses time, money, and opportunity. Using Docusign’s Intelligent Agreement Management platform, companies can create, commit, and manage agreements with solutions created by the #1 company in e-signature and contract lifecycle management (CLM).\n## What you'll do\nThe Backend Software Engineer will own all aspects of the software development lifecycle including design, development, testing, deployment and maintenance of product features in Docusign software products. You will primarily use the Microsoft technology stack, however we also embrace open source technologies such as Redis, Cassandra and Elasticsearch, and Azure cloud services.\nYou enjoy fast-paced entrepreneurial environments where you can solve difficult problems using current technologies and tools. You collaborate well with other team members when brainstorming, designing, and implementing new solutions. You will also help the team succeed by thinking about ways to improve processes, suggesting ways to make the team more effective, and mentoring and modeling engineering best practices.\nThis position is an individual contributor role reporting to the Senior Manager, Software Engineering.\n**Responsibility**\n* Design, develop, and maintain high-performance backend systems and APIs using C# and .NET technologies, hosted on Microsoft Azure and on-prem data centers\n* Leverage Azure services like Azure App Services, Azure Kubernetes Service (AKS), Azure Blob Storage, and SQL/No-SQL Databases to build scalable, secure, and reliable cloud-native solutions\n* Build and maintain microservices-based architectures using C#,nbsp;[ASP.NET](http://asp.net/), and other Azure technologies\n* Design and implement RESTful APIs and integrate with frontend teams to ensure seamless integration\n* Ensure the backend infrastructure is optimized for scalability and high availability\n* Address performance bottlenecks and scalability challenges proactively\n* Work as part of a cross-functional team, proactively getting alignment on designs and communicating roadblocks\n* Guide and mentor other engineers through design and code reviews\n## Job Designation\n**Hybrid:** Employee divides their time between in-office and remote work. Access to an office location is required. (Frequency: Minimum 2 days per week; may vary by team but will be weekly in-office expectation)\nPositions at Docusign are assigned a job designation of either In Office, Hybrid or Remote and are specific to the role/job. Preferred job designations are not guaranteed when changing positions within Docusign. Docusign reserves the right to change a position's job designation depending on business needs and as permitted by local law.\n## What you bring\n**Basic**\n* B.S. in Computer Science or similar field of study\n* 5+ years of professional experience in backend software engineering, using OOP languages and design patterns (e.g., C#, Java, C++)\n* 1+ years of hands-on experience with building and operating cloud-native microservices and APIs at scale\n* Experience with SQL databases (e.g., Azure SQL Database, SQL Server) and NoSQL solutions (e.g., Cosmos DB)\n* Experience with service reliability and incident response best practices\n**Preferred**\n* Experience with Microsoft technology stack (e.g., C#, .NET, ASP.NET)\n* Experience with Microsoft Azure or AWS\n* Past exposure to full-stack development and UI technologies (e.g., React, JS) and UI-facing APIs (e.g., GraphQL, GRPC, REST)\n* Experience with Enterprise SaaS software products\n## Wage Transparency\nPay for this position is based on a number of factors including geographic location and may vary depending on job-related knowledge, skills, and experience.\nBased on applicable legislation, the below details pay ranges in the following locations:\nWashington, Maryland, New Jersey and New York (including NYC metro area): $133,800.00 - $197,750.00 base salary\nThis role is also eligible for the following:\n* Bonus: Sales personnel are eligible for variable incentive pay dependent on their achievement of pre-established sales goals. Non-Sales roles are eligible for a company bonus plan, which is calculated as a percentage of eligible wages and dependent on company performance.\n* Stock: This role is eligible to receive Restricted Stock Units (RSUs).\n[Global benefits](https://careers.docusign.com/benefits) provide options for the following:\n* Paid Time Off: earned time off, as well as paid company holidays based on region\n* Paid Parental Leave: take up to six months off with your child after birth, adoption or foster care placement\n* Full Health Benefits Plans: options for 100% employer paid and minimum employee contribution health plans from day one of employment\n* Retirement Plans: select retirement and pension programs with potential for employer contributions\n* Learning and Development: options for coaching, online courses and education reimbursements\n* Compassionate Care Leave: paid time off following the loss of a loved one and other life-changing events\n## Life at Docusign\n**Working here**\nDocusign is committed to building trust and making the world more agreeable for our employees, customers and the communities in which we live and work. You can count on us to listen, be honest, and try our best to do what’s right, every day. At Docusign, everything is equal.\nWe each have a responsibility to ensure every team member has an equal opportunity to succeed, to be heard, to exchange ideas openly, to build lasting relationships, and to do the work of their life. Best of all, you will be able to feel deep pride in the work you do, because your contribution helps us make the world better than we found it. And for that, you’ll be loved by us, our customers, and the world in which we live.\n**Accommodation**\nDocusign is committed to providing reasonable accommodations for qualified individuals with disabilities in our job application procedures. If you need such an accommodation, or a religious accommodation, during the application process, please contact us at [accommodations@docusign.com](mailto:accommodations@docusign.com).\nIf you experience any issues, concerns, or technical difficulties during the application process please get in touch with our Talent organization at [taops@docusign.com](mailto:taops@docusign.com) for assistance.\n[Applicant and Candidate Privacy Notice](https://www.docusign.com/privacy/applicant-candidate-notice/)\n## States Not Eligible for Employment\nThis position is not eligible for employment in the following states: Alaska, Hawaii, Maine, Mississippi, North Dakota, South Dakota, Vermont, West Virginia and Wyoming.\n## Equal Opportunity Employer\nIt's important to us that we build a talented team that is as diverse as our customers and where all employees feel a deep sense of belonging and thrive. We encourage great talent who bring a range of perspectives to apply for our open positions. Docusign is an Equal Opportunity Employer and makes hiring decisions based on experience, skill, aptitude and a can-do approach. We will not discriminate based on race, ethnicity, color, age, sex, religion, national origin, ancestry, pregnancy, sexual orientation, gender identity, gender expression, genetic information, physical or mental disability, registered domestic partner status, caregiver status, marital status, veteran or military status, or any other legally protected category.\n[EEO Know Your Rights poster](https://urldefense.com/v3/__https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf__;!!BN3BN5aqUA!7l3IpK6Tz3eYjD-YQjhQ5xFm0Uxc2PO6lKkp3MXBDxSUW05YVTB7sRT5_FaM0XM6_lZWB7DMHU42l4lWP9FaclbV8-lolVL2hYvLrQ$)\n#LI-Hybrid\n### Our global benefits\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_1-en-us-1662546149975.svg)\n#### Paid time off\nTake time to unwind with earned days off, plus paid company holidays based on your region.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_2-en-us-1662546456685.svg)\n#### Paid parental leave\nTake up to six months off with your child after birth, adoption or foster care placement.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_3-en-us-1662546616055.svg)\n#### Full health benefits\nOptions for 100% employer-paid health plans from day one of employment.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_4-en-us-1662545678923.svg)\n#### Retirement plans\nSelect retirement and pension programs with potential for employer contributions.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_5-en-us-1662545794244.svg)\n#### Learning &amp; development\nGrow your career with coaching, online courses and education reimbursements.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_6-en-us-1662545952188.svg)\n#### Compassionate care leave\nPaid time off following the loss of a loved one and other life-changing events.\n### Life at Docusign\n01\n#### Explore our complete benefits\nWhat we offer ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/benefits)\n02\n#### Read about diversity, equity &amp; inclusion\nBelong here ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/together)\n03\n#### What it’s like working here\nOur culture ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/culture)",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Software Engineer in Seattle, Washington | Docusign\n[ Back ](<javascript: history.go(-1)>)\n# Software Engineer\nCAROUSEL\\_PARAGRAPH\n* Engineering\n* Seattle, Washington\n* 09/04/2025\nShare Job ### Share Job\n[](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png)\n\n## Company Overview\nDocusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries use Docusign solutions to accelerate the process of doing business and simplify people’s lives. With intelligent agreement management, Docusign unleashes business-critical data that is trapped inside of documents. Until now, these were disconnected from business systems of record, costing businesses time, money, and opportunity. Using Docusign’s Intelligent Agreement Management platform, companies can create, commit, and manage agreements with solutions created by the #1 company in e-signature and contract lifecycle management (CLM).\n## What you'll do\nThe Backend Software Engineer will own all aspects of the software development lifecycle including design, development, testing, deployment and maintenance of product features in Docusign software products. You will primarily use the Microsoft technology stack, however we also embrace open source technologies such as Redis, Cassandra and Elasticsearch, and Azure cloud services.\nYou enjoy fast-paced entrepreneurial environments where you can solve difficult problems using current technologies and tools. You collaborate well with other team members when brainstorming, designing, and implementing new solutions. You will also help the team succeed by thinking about ways to improve processes, suggesting ways to make the team more effective, and mentoring and modeling engineering best practices.\nThis position is an individual contributor role reporting to the Senior Manager, Software Engineering.\n**Responsibility**\n* Design, develop, and maintain high-performance backend systems and APIs using C# and .NET technologies, hosted on Microsoft Azure and on-prem data centers\n* Leverage Azure services like Azure App Services, Azure Kubernetes Service (AKS), Azure Blob Storage, and SQL/No-SQL Databases to build scalable, secure, and reliable cloud-native solutions\n* Build and maintain microservices-based architectures using C#,nbsp;[ASP.NET](http://asp.net/), and other Azure technologies\n* Design and implement RESTful APIs and integrate with frontend teams to ensure seamless integration\n* Ensure the backend infrastructure is optimized for scalability and high availability\n* Address performance bottlenecks and scalability challenges proactively\n* Work as part of a cross-functional team, proactively getting alignment on designs and communicating roadblocks\n* Guide and mentor other engineers through design and code reviews\n## Job Designation\n**Hybrid:** Employee divides their time between in-office and remote work. Access to an office location is required. (Frequency: Minimum 2 days per week; may vary by team but will be weekly in-office expectation)\nPositions at Docusign are assigned a job designation of either In Office, Hybrid or Remote and are specific to the role/job. Preferred job designations are not guaranteed when changing positions within Docusign. Docusign reserves the right to change a position's job designation depending on business needs and as permitted by local law.\n## What you bring\n**Basic**\n* B.S. in Computer Science or similar field of study\n* 5+ years of professional experience in backend software engineering, using OOP languages and design patterns (e.g., C#, Java, C++)\n* 1+ years of hands-on experience with building and operating cloud-native microservices and APIs at scale\n* Experience with SQL databases (e.g., Azure SQL Database, SQL Server) and NoSQL solutions (e.g., Cosmos DB)\n* Experience with service reliability and incident response best practices\n**Preferred**\n* Experience with Microsoft technology stack (e.g., C#, .NET, ASP.NET)\n* Experience with Microsoft Azure or AWS\n* Past exposure to full-stack development and UI technologies (e.g., React, JS) and UI-facing APIs (e.g., GraphQL, GRPC, REST)\n* Experience with Enterprise SaaS software products\n## Wage Transparency\nPay for this position is based on a number of factors including geographic location and may vary depending on job-related knowledge, skills, and experience.\nBased on applicable legislation, the below details pay ranges in the following locations:\nWashington, Maryland, New Jersey and New York (including NYC metro area): $133,800.00 - $197,750.00 base salary\nThis role is also eligible for the following:\n* Bonus: Sales personnel are eligible for variable incentive pay dependent on their achievement of pre-established sales goals. Non-Sales roles are eligible for a company bonus plan, which is calculated as a percentage of eligible wages and dependent on company performance.\n* Stock: This role is eligible to receive Restricted Stock Units (RSUs).\n[Global benefits](https://careers.docusign.com/benefits) provide options for the following:\n* Paid Time Off: earned time off, as well as paid company holidays based on region\n* Paid Parental Leave: take up to six months off with your child after birth, adoption or foster care placement\n* Full Health Benefits Plans: options for 100% employer paid and minimum employee contribution health plans from day one of employment\n* Retirement Plans: select retirement and pension programs with potential for employer contributions\n* Learning and Development: options for coaching, online courses and education reimbursements\n* Compassionate Care Leave: paid time off following the loss of a loved one and other life-changing events\n## Life at Docusign\n**Working here**\nDocusign is committed to building trust and making the world more agreeable for our employees, customers and the communities in which we live and work. You can count on us to listen, be honest, and try our best to do what’s right, every day. At Docusign, everything is equal.\nWe each have a responsibility to ensure every team member has an equal opportunity to succeed, to be heard, to exchange ideas openly, to build lasting relationships, and to do the work of their life. Best of all, you will be able to feel deep pride in the work you do, because your contribution helps us make the world better than we found it. And for that, you’ll be loved by us, our customers, and the world in which we live.\n**Accommodation**\nDocusign is committed to providing reasonable accommodations for qualified individuals with disabilities in our job application procedures. If you need such an accommodation, or a religious accommodation, during the application process, please contact us at [accommodations@docusign.com](mailto:accommodations@docusign.com).\nIf you experience any issues, concerns, or technical difficulties during the application process please get in touch with our Talent organization at [taops@docusign.com](mailto:taops@docusign.com) for assistance.\n[Applicant and Candidate Privacy Notice](https://www.docusign.com/privacy/applicant-candidate-notice/)\n## States Not Eligible for Employment\nThis position is not eligible for employment in the following states: Alaska, Hawaii, Maine, Mississippi, North Dakota, South Dakota, Vermont, West Virginia and Wyoming.\n## Equal Opportunity Employer\nIt's important to us that we build a talented team that is as diverse as our customers and where all employees feel a deep sense of belonging and thrive. We encourage great talent who bring a range of perspectives to apply for our open positions. Docusign is an Equal Opportunity Employer and makes hiring decisions based on experience, skill, aptitude and a can-do approach. We will not discriminate based on race, ethnicity, color, age, sex, religion, national origin, ancestry, pregnancy, sexual orientation, gender identity, gender expression, genetic information, physical or mental disability, registered domestic partner status, caregiver status, marital status, veteran or military status, or any other legally protected category.\n[EEO Know Your Rights poster](https://urldefense.com/v3/__https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf__;!!BN3BN5aqUA!7l3IpK6Tz3eYjD-YQjhQ5xFm0Uxc2PO6lKkp3MXBDxSUW05YVTB7sRT5_FaM0XM6_lZWB7DMHU42l4lWP9FaclbV8-lolVL2hYvLrQ$)\n#LI-Hybrid\n### Our global benefits\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_1-en-us-1662546149975.svg)\n#### Paid time off\nTake time to unwind with earned days off, plus paid company holidays based on your region.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_2-en-us-1662546456685.svg)\n#### Paid parental leave\nTake up to six months off with your child after birth, adoption or foster care placement.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_3-en-us-1662546616055.svg)\n#### Full health benefits\nOptions for 100% employer-paid health plans from day one of employment.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_4-en-us-1662545678923.svg)\n#### Retirement plans\nSelect retirement and pension programs with potential for employer contributions.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_5-en-us-1662545794244.svg)\n#### Learning &amp; development\nGrow your career with coaching, online courses and education reimbursements.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_6-en-us-1662545952188.svg)\n#### Compassionate care leave\nPaid time off following the loss of a loved one and other life-changing events.\n### Life at Docusign\n01\n#### Explore our complete benefits\nWhat we offer ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/benefits)\n02\n#### Read about diversity, equity &amp; inclusion\nBelong here ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/together)\n03\n#### What it’s like working here\nOur culture ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/culture)",
+          "is_valid": true,
+          "reason": "Valid description (10224 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Software Engineer in Seattle, Washington | Docusign\n[ Back ](<javascript: history.go(-1)>)\n# Software Engineer\nCAROUSEL\\_PARAGRAPH\n* Engineering\n* Seattle, Washington\n* 09/04/2025\nShare Job ### Share Job\n[](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png)\n## Job Description\n## Company Overview\nDocusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries use Docusign solutions to accelerate the process of doing business and simplify people’s lives. With intelligent agreement management, Docusign unleashes business-critical data that is trapped inside of documents. Until now, these were disconnected from business systems of record, costing businesses time, money, and opportunity. Using Docusign’s Intelligent Agreement Management platform, companies can create, commit, and manage agreements with solutions created by the #1 company in e-signature and contract lifecycle management (CLM).\n## What you'll do\nThe Backend Software Engineer will own all aspects of the software development lifecycle including design, development, testing, deployment and maintenance of product features in Docusign software products. You will primarily use the Microsoft technology stack, however we also embrace open source technologies such as Redis, Cassandra and Elasticsearch, and Azure cloud services.\nYou enjoy fast-paced entrepreneurial environments where you can solve difficult problems using current technologies and tools. You collaborate well with other team members when brainstorming, designing, and implementing new solutions. You will also help the team succeed by thinking about ways to improve processes, suggesting ways to make the team more effective, and mentoring and modeling engineering best practices.\nThis position is an individual contributor role reporting to the Senior Manager, Software Engineering.\n**Responsibility**\n* Design, develop, and maintain high-performance backend systems and APIs using C# and .NET technologies, hosted on Microsoft Azure and on-prem data centers\n* Leverage Azure services like Azure App Services, Azure Kubernetes Service (AKS), Azure Blob Storage, and SQL/No-SQL Databases to build scalable, secure, and reliable cloud-native solutions\n* Build and maintain microservices-based architectures using C#,nbsp;[ASP.NET](http://asp.net/), and other Azure technologies\n* Design and implement RESTful APIs and integrate with frontend teams to ensure seamless integration\n* Ensure the backend infrastructure is optimized for scalability and high availability\n* Address performance bottlenecks and scalability challenges proactively\n* Work as part of a cross-functional team, proactively getting alignment on designs and communicating roadblocks\n* Guide and mentor other engineers through design and code reviews\n## Job Designation\n**Hybrid:** Employee divides their time between in-office and remote work. Access to an office location is required. (Frequency: Minimum 2 days per week; may vary by team but will be weekly in-office expectation)\nPositions at Docusign are assigned a job designation of either In Office, Hybrid or Remote and are specific to the role/job. Preferred job designations are not guaranteed when changing positions within Docusign. Docusign reserves the right to change a position's job designation depending on business needs and as permitted by local law.\n## What you bring\n**Basic**\n* B.S. in Computer Science or similar field of study\n* 5+ years of professional experience in backend software engineering, using OOP languages and design patterns (e.g., C#, Java, C++)\n* 1+ years of hands-on experience with building and operating cloud-native microservices and APIs at scale\n* Experience with SQL databases (e.g., Azure SQL Database, SQL Server) and NoSQL solutions (e.g., Cosmos DB)\n* Experience with service reliability and incident response best practices\n**Preferred**\n* Experience with Microsoft technology stack (e.g., C#, .NET, ASP.NET)\n* Experience with Microsoft Azure or AWS\n* Past exposure to full-stack development and UI technologies (e.g., React, JS) and UI-facing APIs (e.g., GraphQL, GRPC, REST)\n* Experience with Enterprise SaaS software products\n## Wage Transparency\nPay for this position is based on a number of factors including geographic location and may vary depending on job-related knowledge, skills, and experience.\nBased on applicable legislation, the below details pay ranges in the following locations:\nWashington, Maryland, New Jersey and New York (including NYC metro area): $133,800.00 - $197,750.00 base salary\nThis role is also eligible for the following:\n* Bonus: Sales personnel are eligible for variable incentive pay dependent on their achievement of pre-established sales goals. Non-Sales roles are eligible for a company bonus plan, which is calculated as a percentage of eligible wages and dependent on company performance.\n* Stock: This role is eligible to receive Restricted Stock Units (RSUs).\n[Global benefits](https://careers.docusign.com/benefits) provide options for the following:\n* Paid Time Off: earned time off, as well as paid company holidays based on region\n* Paid Parental Leave: take up to six months off with your child after birth, adoption or foster care placement\n* Full Health Benefits Plans: options for 100% employer paid and minimum employee contribution health plans from day one of employment\n* Retirement Plans: select retirement and pension programs with potential for employer contributions\n* Learning and Development: options for coaching, online courses and education reimbursements\n* Compassionate Care Leave: paid time off following the loss of a loved one and other life-changing events\n## Life at Docusign\n**Working here**\nDocusign is committed to building trust and making the world more agreeable for our employees, customers and the communities in which we live and work. You can count on us to listen, be honest, and try our best to do what’s right, every day. At Docusign, everything is equal.\nWe each have a responsibility to ensure every team member has an equal opportunity to succeed, to be heard, to exchange ideas openly, to build lasting relationships, and to do the work of their life. Best of all, you will be able to feel deep pride in the work you do, because your contribution helps us make the world better than we found it. And for that, you’ll be loved by us, our customers, and the world in which we live.\n**Accommodation**\nDocusign is committed to providing reasonable accommodations for qualified individuals with disabilities in our job application procedures. If you need such an accommodation, or a religious accommodation, during the application process, please contact us at [accommodations@docusign.com](mailto:accommodations@docusign.com).\nIf you experience any issues, concerns, or technical difficulties during the application process please get in touch with our Talent organization at [taops@docusign.com](mailto:taops@docusign.com) for assistance.\n[Applicant and Candidate Privacy Notice](https://www.docusign.com/privacy/applicant-candidate-notice/)\n## States Not Eligible for Employment\nThis position is not eligible for employment in the following states: Alaska, Hawaii, Maine, Mississippi, North Dakota, South Dakota, Vermont, West Virginia and Wyoming.\n## Equal Opportunity Employer\nIt's important to us that we build a talented team that is as diverse as our customers and where all employees feel a deep sense of belonging and thrive. We encourage great talent who bring a range of perspectives to apply for our open positions. Docusign is an Equal Opportunity Employer and makes hiring decisions based on experience, skill, aptitude and a can-do approach. We will not discriminate based on race, ethnicity, color, age, sex, religion, national origin, ancestry, pregnancy, sexual orientation, gender identity, gender expression, genetic information, physical or mental disability, registered domestic partner status, caregiver status, marital status, veteran or military status, or any other legally protected category.\n[EEO Know Your Rights poster](https://urldefense.com/v3/__https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf__;!!BN3BN5aqUA!7l3IpK6Tz3eYjD-YQjhQ5xFm0Uxc2PO6lKkp3MXBDxSUW05YVTB7sRT5_FaM0XM6_lZWB7DMHU42l4lWP9FaclbV8-lolVL2hYvLrQ$)\n#LI-Hybrid\n### Our global benefits\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_1-en-us-1662546149975.svg)\n#### Paid time off\nTake time to unwind with earned days off, plus paid company holidays based on your region.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_2-en-us-1662546456685.svg)\n#### Paid parental leave\nTake up to six months off with your child after birth, adoption or foster care placement.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_3-en-us-1662546616055.svg)\n#### Full health benefits\nOptions for 100% employer-paid health plans from day one of employment.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_4-en-us-1662545678923.svg)\n#### Retirement plans\nSelect retirement and pension programs with potential for employer contributions.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_5-en-us-1662545794244.svg)\n#### Learning &amp; development\nGrow your career with coaching, online courses and education reimbursements.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_6-en-us-1662545952188.svg)\n#### Compassionate care leave\nPaid time off following the loss of a loved one and other life-changing events.\n### Life at Docusign\n01\n#### Explore our complete benefits\nWhat we offer ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/benefits)\n02\n#### Read about diversity, equity &amp; inclusion\nBelong here ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/together)\n03\n#### What it’s like working here\nOur culture ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/culture)",
+          "is_valid": true,
+          "reason": "Valid description (10242 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Software Engineer in Seattle, Washington | Docusign\n[ Back ](<javascript: history.go(-1)>)\n# Software Engineer\nCAROUSEL\\_PARAGRAPH\n* Engineering\n* Seattle, Washington\n* 09/04/2025\nShare Job ### Share Job\n[](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png)\n## Job Description\n## Company Overview\nDocusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries use Docusign solutions to accelerate the process of doing business and simplify people’s lives. With intelligent agreement management, Docusign unleashes business-critical data that is trapped inside of documents. Until now, these were disconnected from business systems of record, costing businesses time, money, and opportunity. Using Docusign’s Intelligent Agreement Management platform, companies can create, commit, and manage agreements with solutions created by the #1 company in e-signature and contract lifecycle management (CLM).\n## What you'll do\nThe Backend Software Engineer will own all aspects of the software development lifecycle including design, development, testing, deployment and maintenance of product features in Docusign software products. You will primarily use the Microsoft technology stack, however we also embrace open source technologies such as Redis, Cassandra and Elasticsearch, and Azure cloud services.\nYou enjoy fast-paced entrepreneurial environments where you can solve difficult problems using current technologies and tools. You collaborate well with other team members when brainstorming, designing, and implementing new solutions. You will also help the team succeed by thinking about ways to improve processes, suggesting ways to make the team more effective, and mentoring and modeling engineering best practices.\nThis position is an individual contributor role reporting to the Senior Manager, Software Engineering.\n**Responsibility**\n* Design, develop, and maintain high-performance backend systems and APIs using C# and .NET technologies, hosted on Microsoft Azure and on-prem data centers\n* Leverage Azure services like Azure App Services, Azure Kubernetes Service (AKS), Azure Blob Storage, and SQL/No-SQL Databases to build scalable, secure, and reliable cloud-native solutions\n* Build and maintain microservices-based architectures using C#,nbsp;[ASP.NET](http://asp.net/), and other Azure technologies\n* Design and implement RESTful APIs and integrate with frontend teams to ensure seamless integration\n* Ensure the backend infrastructure is optimized for scalability and high availability\n* Address performance bottlenecks and scalability challenges proactively\n* Work as part of a cross-functional team, proactively getting alignment on designs and communicating roadblocks\n* Guide and mentor other engineers through design and code reviews\n## Job Designation\n**Hybrid:** Employee divides their time between in-office and remote work. Access to an office location is required. (Frequency: Minimum 2 days per week; may vary by team but will be weekly in-office expectation)\nPositions at Docusign are assigned a job designation of either In Office, Hybrid or Remote and are specific to the role/job. Preferred job designations are not guaranteed when changing positions within Docusign. Docusign reserves the right to change a position's job designation depending on business needs and as permitted by local law.\n## What you bring\n**Basic**\n* B.S. in Computer Science or similar field of study\n* 5+ years of professional experience in backend software engineering, using OOP languages and design patterns (e.g., C#, Java, C++)\n* 1+ years of hands-on experience with building and operating cloud-native microservices and APIs at scale\n* Experience with SQL databases (e.g., Azure SQL Database, SQL Server) and NoSQL solutions (e.g., Cosmos DB)\n* Experience with service reliability and incident response best practices\n**Preferred**\n* Experience with Microsoft technology stack (e.g., C#, .NET, ASP.NET)\n* Experience with Microsoft Azure or AWS\n* Past exposure to full-stack development and UI technologies (e.g., React, JS) and UI-facing APIs (e.g., GraphQL, GRPC, REST)\n* Experience with Enterprise SaaS software products\n## Wage Transparency\nPay for this position is based on a number of factors including geographic location and may vary depending on job-related knowledge, skills, and experience.\nBased on applicable legislation, the below details pay ranges in the following locations:\nWashington, Maryland, New Jersey and New York (including NYC metro area): $133,800.00 - $197,750.00 base salary\nThis role is also eligible for the following:\n* Bonus: Sales personnel are eligible for variable incentive pay dependent on their achievement of pre-established sales goals. Non-Sales roles are eligible for a company bonus plan, which is calculated as a percentage of eligible wages and dependent on company performance.\n* Stock: This role is eligible to receive Restricted Stock Units (RSUs).\n[Global benefits](https://careers.docusign.com/benefits) provide options for the following:\n* Paid Time Off: earned time off, as well as paid company holidays based on region\n* Paid Parental Leave: take up to six months off with your child after birth, adoption or foster care placement\n* Full Health Benefits Plans: options for 100% employer paid and minimum employee contribution health plans from day one of employment\n* Retirement Plans: select retirement and pension programs with potential for employer contributions\n* Learning and Development: options for coaching, online courses and education reimbursements\n* Compassionate Care Leave: paid time off following the loss of a loved one and other life-changing events\n## Life at Docusign\n**Working here**\nDocusign is committed to building trust and making the world more agreeable for our employees, customers and the communities in which we live and work. You can count on us to listen, be honest, and try our best to do what’s right, every day. At Docusign, everything is equal.\nWe each have a responsibility to ensure every team member has an equal opportunity to succeed, to be heard, to exchange ideas openly, to build lasting relationships, and to do the work of their life. Best of all, you will be able to feel deep pride in the work you do, because your contribution helps us make the world better than we found it. And for that, you’ll be loved by us, our customers, and the world in which we live.\n**Accommodation**\nDocusign is committed to providing reasonable accommodations for qualified individuals with disabilities in our job application procedures. If you need such an accommodation, or a religious accommodation, during the application process, please contact us at [accommodations@docusign.com](mailto:accommodations@docusign.com).\nIf you experience any issues, concerns, or technical difficulties during the application process please get in touch with our Talent organization at [taops@docusign.com](mailto:taops@docusign.com) for assistance.\n[Applicant and Candidate Privacy Notice](https://www.docusign.com/privacy/applicant-candidate-notice/)\n## States Not Eligible for Employment\nThis position is not eligible for employment in the following states: Alaska, Hawaii, Maine, Mississippi, North Dakota, South Dakota, Vermont, West Virginia and Wyoming.\n## Equal Opportunity Employer\nIt's important to us that we build a talented team that is as diverse as our customers and where all employees feel a deep sense of belonging and thrive. We encourage great talent who bring a range of perspectives to apply for our open positions. Docusign is an Equal Opportunity Employer and makes hiring decisions based on experience, skill, aptitude and a can-do approach. We will not discriminate based on race, ethnicity, color, age, sex, religion, national origin, ancestry, pregnancy, sexual orientation, gender identity, gender expression, genetic information, physical or mental disability, registered domestic partner status, caregiver status, marital status, veteran or military status, or any other legally protected category.\n[EEO Know Your Rights poster](https://urldefense.com/v3/__https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf__;!!BN3BN5aqUA!7l3IpK6Tz3eYjD-YQjhQ5xFm0Uxc2PO6lKkp3MXBDxSUW05YVTB7sRT5_FaM0XM6_lZWB7DMHU42l4lWP9FaclbV8-lolVL2hYvLrQ$)\n#LI-Hybrid\n### Our global benefits\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_1-en-us-1662546149975.svg)\n#### Paid time off\nTake time to unwind with earned days off, plus paid company holidays based on your region.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_2-en-us-1662546456685.svg)\n#### Paid parental leave\nTake up to six months off with your child after birth, adoption or foster care placement.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_3-en-us-1662546616055.svg)\n#### Full health benefits\nOptions for 100% employer-paid health plans from day one of employment.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_4-en-us-1662545678923.svg)\n#### Retirement plans\nSelect retirement and pension programs with potential for employer contributions.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_5-en-us-1662545794244.svg)\n#### Learning &amp; development\nGrow your career with coaching, online courses and education reimbursements.\n![](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F6-ICON_6-en-us-1662545952188.svg)\n#### Compassionate care leave\nPaid time off following the loss of a loved one and other life-changing events.\n### Life at Docusign\n01\n#### Explore our complete benefits\nWhat we offer ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/benefits)\n02\n#### Read about diversity, equity &amp; inclusion\nBelong here ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/together)\n03\n#### What it’s like working here\nOur culture ![right arrow](https://cms.jibecdn.com/prod/docusign/assets/LP-SKU-F1-ARROW_1-en-us-1663822478197.svg)\n](https://careers.docusign.com/culture)",
+          "is_valid": true,
+          "reason": "Valid description (10242 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

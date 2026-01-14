@@ -5,7 +5,7 @@
   "extracted_jobs": [
     {
       "title": "Cloud Software Engineer",
-      "description_preview": "Cloud Software Engineer Who we are&nbsp; At Twilio, we\u2019re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences. Our dedication to remote-first work , and strong...",
+      "description_preview": "Cloud Software Engineer Who we are&nbsp; At Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences. Our dedication to remote-first work , and strong...",
       "description_word_count": 884,
       "location": "Remote - Ireland",
       "is_remote": true,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Cloud Software Engineer",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Cloud Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Cloud Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Cloud Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Twilio",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Twilio",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "the job",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Remote - Ireland",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Remote - Ireland",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "AWS services such as CloudFront, Lambda",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Remote - Ireland",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Los Angeles, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": "Remote",
+          "is_valid": true,
+          "reason": "Job marked as remote, using 'Remote' as location"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": true,
+          "is_valid": true,
+          "reason": "Location contains 'remote': Remote - Ireland"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": true,
+          "is_valid": true,
+          "reason": "Content contains remote pattern at position 322"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": true,
+          "is_valid": true,
+          "reason": "Remote from hints: True"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Twilio' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-13T12:10:29",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-13T12:10:29",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-13T12:10:29"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:14.325966",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Cloud Software Engineer\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Software Engineer\nAbout the job\nThis position is needed to help out the Edge Services team. The team that is responsible for the ingestion of Twilio’s Web Console and API traffic, and its supporting services. As part of the Edge Platform organization, we provide building blocks for all Twilio customers and engineers alike, with high-availability and low-latency requirements, in order to effectively enable over billions of inbound requests every day. We take great pride in wearing customer’s shoes and making decisions inclusively. It is extremely important for us to build services with exceptionally high uptime, availability, and success rates.\nResponsibilities\nIn this role, you’ll:\n- Design, implement, and maintain scalable, high-availability cloud infrastructure for Twilio’s microservices.\n- Operate and maintain highly available services handling billions of weekly requests.\n- Manage Infrastructure as Code (IaC) using tools like Terraform, ensuring operational best practices.\n- Build and optimize CI/CD pipelines to support continuous integration and deployment.\n- Monitor, troubleshoot, and ensure uptime of services through on-call rotations and incident response.\n- Collaborate with cross-functional teams in agile ceremonies to drive technical excellence.\n- Continuously improve cloud-based services, focusing on reliability, performance, and scalability.\n- Research and improve the design and implementation of Twilio’s API infrastructure regularly.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 2+ years of experience in cloud or DevOps engineering, with proficiency in one or more programming languages, preferably Python or Java.\n- Experience in architecting AWS cloud-based solutions, leveraging AWS services such as CloudFront, Lambda, S3, etc.\n- Experience in any infrastructure as code using tools like Terraform.\n- Familiarity with building and managing CI/CD pipelines (e.g., Buildkite), optimizing deployments, and maintaining high reliability through SLOs.\n- Exposure to SLO tracking tools such as Datadog, and log management solutions like AWS CloudWatch, Athena, Grafana.\n- Previous exposure to service-oriented architectures, microservices, or REST APIs is highly preferred.\n- Hands-on experience with making changes in production systems for cloud-native database solutions and data pipelines.\n- Ability to collaborate effectively within an agile, fast-paced team, understanding the full software development lifecycle.\n- Strong decision-making skills, balancing between the pros and cons of various cloud technologies, with a focus on making practical, scalable choices.\nDesired:\n- Experience in Security such as WAF management, threat assessment.\n- Experience building self service platform tools to improve developer experience and improve launch speed for internal teams.\n- Proficient in Terraform\nLocation\n&nbsp; This role will be &lt;remote, and based in Ireland.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, you may be required to travel occasionally to participate in project or team in-person meetings.\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Cloud Software Engineer\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Software Engineer\nAbout the job\nThis position is needed to help out the Edge Services team. The team that is responsible for the ingestion of Twilio’s Web Console and API traffic, and its supporting services. As part of the Edge Platform organization, we provide building blocks for all Twilio customers and engineers alike, with high-availability and low-latency requirements, in order to effectively enable over billions of inbound requests every day. We take great pride in wearing customer’s shoes and making decisions inclusively. It is extremely important for us to build services with exceptionally high uptime, availability, and success rates.\nResponsibilities\nIn this role, you’ll:\n- Design, implement, and maintain scalable, high-availability cloud infrastructure for Twilio’s microservices.\n- Operate and maintain highly available services handling billions of weekly requests.\n- Manage Infrastructure as Code (IaC) using tools like Terraform, ensuring operational best practices.\n- Build and optimize CI/CD pipelines to support continuous integration and deployment.\n- Monitor, troubleshoot, and ensure uptime of services through on-call rotations and incident response.\n- Collaborate with cross-functional teams in agile ceremonies to drive technical excellence.\n- Continuously improve cloud-based services, focusing on reliability, performance, and scalability.\n- Research and improve the design and implementation of Twilio’s API infrastructure regularly.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 2+ years of experience in cloud or DevOps engineering, with proficiency in one or more programming languages, preferably Python or Java.\n- Experience in architecting AWS cloud-based solutions, leveraging AWS services such as CloudFront, Lambda, S3, etc.\n- Experience in any infrastructure as code using tools like Terraform.\n- Familiarity with building and managing CI/CD pipelines (e.g., Buildkite), optimizing deployments, and maintaining high reliability through SLOs.\n- Exposure to SLO tracking tools such as Datadog, and log management solutions like AWS CloudWatch, Athena, Grafana.\n- Previous exposure to service-oriented architectures, microservices, or REST APIs is highly preferred.\n- Hands-on experience with making changes in production systems for cloud-native database solutions and data pipelines.\n- Ability to collaborate effectively within an agile, fast-paced team, understanding the full software development lifecycle.\n- Strong decision-making skills, balancing between the pros and cons of various cloud technologies, with a focus on making practical, scalable choices.\nDesired:\n- Experience in Security such as WAF management, threat assessment.\n- Experience building self service platform tools to improve developer experience and improve launch speed for internal teams.\n- Proficient in Terraform\nLocation\n&nbsp; This role will be &lt;remote, and based in Ireland.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, you may be required to travel occasionally to participate in project or team in-person meetings.\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
+          "is_valid": true,
+          "reason": "Valid description (6101 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Cloud Software Engineer\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Software Engineer\nAbout the job\nThis position is needed to help out the Edge Services team. The team that is responsible for the ingestion of Twilio’s Web Console and API traffic, and its supporting services. As part of the Edge Platform organization, we provide building blocks for all Twilio customers and engineers alike, with high-availability and low-latency requirements, in order to effectively enable over billions of inbound requests every day. We take great pride in wearing customer’s shoes and making decisions inclusively. It is extremely important for us to build services with exceptionally high uptime, availability, and success rates.\nResponsibilities\nIn this role, you’ll:\n- Design, implement, and maintain scalable, high-availability cloud infrastructure for Twilio’s microservices.\n- Operate and maintain highly available services handling billions of weekly requests.\n- Manage Infrastructure as Code (IaC) using tools like Terraform, ensuring operational best practices.\n- Build and optimize CI/CD pipelines to support continuous integration and deployment.\n- Monitor, troubleshoot, and ensure uptime of services through on-call rotations and incident response.\n- Collaborate with cross-functional teams in agile ceremonies to drive technical excellence.\n- Continuously improve cloud-based services, focusing on reliability, performance, and scalability.\n- Research and improve the design and implementation of Twilio’s API infrastructure regularly.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 2+ years of experience in cloud or DevOps engineering, with proficiency in one or more programming languages, preferably Python or Java.\n- Experience in architecting AWS cloud-based solutions, leveraging AWS services such as CloudFront, Lambda, S3, etc.\n- Experience in any infrastructure as code using tools like Terraform.\n- Familiarity with building and managing CI/CD pipelines (e.g., Buildkite), optimizing deployments, and maintaining high reliability through SLOs.\n- Exposure to SLO tracking tools such as Datadog, and log management solutions like AWS CloudWatch, Athena, Grafana.\n- Previous exposure to service-oriented architectures, microservices, or REST APIs is highly preferred.\n- Hands-on experience with making changes in production systems for cloud-native database solutions and data pipelines.\n- Ability to collaborate effectively within an agile, fast-paced team, understanding the full software development lifecycle.\n- Strong decision-making skills, balancing between the pros and cons of various cloud technologies, with a focus on making practical, scalable choices.\nDesired:\n- Experience in Security such as WAF management, threat assessment.\n- Experience building self service platform tools to improve developer experience and improve launch speed for internal teams.\n- Proficient in Terraform\nLocation\n&nbsp; This role will be &lt;remote, and based in Ireland.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, you may be required to travel occasionally to participate in project or team in-person meetings.\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
+          "is_valid": true,
+          "reason": "Valid description (6101 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Cloud Software Engineer\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Software Engineer\nAbout the job\nThis position is needed to help out the Edge Services team. The team that is responsible for the ingestion of Twilio’s Web Console and API traffic, and its supporting services. As part of the Edge Platform organization, we provide building blocks for all Twilio customers and engineers alike, with high-availability and low-latency requirements, in order to effectively enable over billions of inbound requests every day. We take great pride in wearing customer’s shoes and making decisions inclusively. It is extremely important for us to build services with exceptionally high uptime, availability, and success rates.\nResponsibilities\nIn this role, you’ll:\n- Design, implement, and maintain scalable, high-availability cloud infrastructure for Twilio’s microservices.\n- Operate and maintain highly available services handling billions of weekly requests.\n- Manage Infrastructure as Code (IaC) using tools like Terraform, ensuring operational best practices.\n- Build and optimize CI/CD pipelines to support continuous integration and deployment.\n- Monitor, troubleshoot, and ensure uptime of services through on-call rotations and incident response.\n- Collaborate with cross-functional teams in agile ceremonies to drive technical excellence.\n- Continuously improve cloud-based services, focusing on reliability, performance, and scalability.\n- Research and improve the design and implementation of Twilio’s API infrastructure regularly.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 2+ years of experience in cloud or DevOps engineering, with proficiency in one or more programming languages, preferably Python or Java.\n- Experience in architecting AWS cloud-based solutions, leveraging AWS services such as CloudFront, Lambda, S3, etc.\n- Experience in any infrastructure as code using tools like Terraform.\n- Familiarity with building and managing CI/CD pipelines (e.g., Buildkite), optimizing deployments, and maintaining high reliability through SLOs.\n- Exposure to SLO tracking tools such as Datadog, and log management solutions like AWS CloudWatch, Athena, Grafana.\n- Previous exposure to service-oriented architectures, microservices, or REST APIs is highly preferred.\n- Hands-on experience with making changes in production systems for cloud-native database solutions and data pipelines.\n- Ability to collaborate effectively within an agile, fast-paced team, understanding the full software development lifecycle.\n- Strong decision-making skills, balancing between the pros and cons of various cloud technologies, with a focus on making practical, scalable choices.\nDesired:\n- Experience in Security such as WAF management, threat assessment.\n- Experience building self service platform tools to improve developer experience and improve launch speed for internal teams.\n- Proficient in Terraform\nLocation\n&nbsp; This role will be &lt;remote, and based in Ireland.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, you may be required to travel occasionally to participate in project or team in-person meetings.\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
+          "is_valid": true,
+          "reason": "Valid description (6101 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

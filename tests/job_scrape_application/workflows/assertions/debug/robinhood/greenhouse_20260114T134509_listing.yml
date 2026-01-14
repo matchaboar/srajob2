@@ -1,0 +1,51 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/robinhood/jobs
+expected:
+  url_count_min: 40
+  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "GreenhouseHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6669758"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7350823"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7022496"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6816946"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7452921"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7117648"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6674980"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7353803"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7346630"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7412393"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7178427"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7473367"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6675129"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6675127"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7121213"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6535807"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7279872"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7279870"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7252911"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7473701"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7264931"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/4738660"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7489829"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7489755"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7371859"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7409516"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7022255"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7263592"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7454438"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7390553"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7239199"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7239268"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7489770"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7460167"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7363642"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7066517"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7066515"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7482209"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7470947"
+  #   - "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7086141"

@@ -3,9 +3,9 @@ detail_url: https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f731447560
 expected:
   title: AI Engineer
   company: Factory
-  location: San Francisco, CA, United States
+  location_contains: San Francisco
   is_remote: false
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

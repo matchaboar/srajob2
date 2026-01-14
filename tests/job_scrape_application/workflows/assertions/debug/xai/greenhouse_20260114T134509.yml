@@ -1,0 +1,11 @@
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/xai/jobs/4834317007
+expected:
+  title: "AI/HPC Network Development Engineer - Networking"
+  company: "xAI"
+  location_contains: "Memphis"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

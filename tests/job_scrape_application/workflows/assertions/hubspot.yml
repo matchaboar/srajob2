@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: hubspot
 detail_url: https://www.hubspot.com/careers/jobs/5986323
 expected:

@@ -15,8 +15,14 @@ codex exec \
   --config model_verbosity="medium" \
   "You are an expert software developer. Assume that pagination or job extraction is broken for some site.
   Using agent_scripts, create mulitple unit tests based on data from the job site in the configuration file for site_schedules,
-  or in convex table. You may use agent_scripts or write additional scripts that help in this task. 
-  The unit test should check extraction of jobs, but also if there is pagination, 
+  or in convex table. You may use agent_scripts or write additional scripts that help in this task.
+  The unit test should check extraction of jobs, but also if there is pagination,
   it should ensure that all paginated pages are queued and those jobs get extracted too.
   COMPANY NAME: ${usage_company}
-  ADDITIONAL CONTEXT FOR BUGS: ${usage_additional_context}"
+  ADDITIONAL CONTEXT FOR BUGS: ${usage_additional_context}
+
+  TIP: For detailed per-field extraction debugging, use the modular extractors at job_scrape_application/workflows/extractors/:
+  - ExtractionContext.from_scrape_result() creates context with debug=True
+  - extract_job_fields(ctx, run_all=True) shows ALL strategies tried for each field
+  - Each strategy shows: value, is_valid, priority, reason explaining why it succeeded or failed
+  See DEBUGGING.md section 'Modular Extractor Debug Output' for examples."

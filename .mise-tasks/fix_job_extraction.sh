@@ -113,21 +113,78 @@ Check these fields are accurate:
 - \`level\`: junior/mid/senior/staff based on title
 - \`is_remote\`: Should be \`true\` if company is in remote_companies.yaml
 
-### 2. Run the Debug Test
+### 2. Run the Debug Test (with verbose extraction steps)
 \`\`\`bash
-uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
+DEBUG_EXTRACTION_VERBOSE=1 uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
 \`\`\`
 
 ### 3. Check Extraction Output
 \`\`\`bash
+# Summary extraction result
 cat ./site-detail-e2e-examples/${HANDLER}_extraction.json
+
+# IMPORTANT: Detailed step-by-step extraction log (created when DEBUG_EXTRACTION_VERBOSE=1)
+cat ./site-detail-e2e-examples/${HANDLER}_extraction_steps.md
 \`\`\`
+
+The \`_extraction_steps.md\` file shows the full extraction pipeline:
+1. **Raw SpiderCloud response** - The markdown content scraped from the page
+2. **Handler detection** - Which handler was used for this URL
+3. **Handler normalization** - Output of \`normalize_markdown()\` including extracted title
+4. **Workflow execution** - The batch sent to \`process_spidercloud_job_batch()\`
+5. **Extracted job details** - Final fields extracted
+6. **Convex mutation payload** - What would be sent to Convex
 
 Look for:
 - Word count (should be > 300 for most job descriptions)
 - JSON blocks in description (should NOT appear)
 - Correct location parsing
 - Correct remote status
+
+### 3b. Use Modular Extractor Debug (Advanced)
+
+For detailed per-strategy extraction tracing, use the modular extractors:
+
+\`\`\`bash
+uv run python << 'PYEOF'
+from job_scrape_application.workflows.extractors import (
+    ExtractionContext,
+    extract_job_fields,
+)
+import json
+from pathlib import Path
+
+# Load the fixture
+fixture_path = Path("${FIXTURE_PATH}")
+with open(fixture_path) as f:
+    fixture = json.load(f)
+
+# Parse response
+response = json.loads(fixture["response"][0])
+markdown = response["content"].get("commonmark") or response["content"].get("raw", "")
+
+# Create extraction context with debug mode
+ctx = ExtractionContext.from_scrape_result(
+    url=fixture["request"]["url"],
+    markdown=markdown,
+    debug=True,
+)
+
+# Extract all fields with full strategy trace
+results = extract_job_fields(ctx, run_all=True)
+
+print("=== EXTRACTOR DEBUG TRACE ===")
+for field, result in results.items():
+    print(f"\\n{field}: {result.final_value}")
+    print(f"  Winner: {result.winning_strategy}")
+    for sr in result.all_results:
+        status = "VALID" if sr.is_valid else "SKIP"
+        pname = sr.priority.name if hasattr(sr.priority, "name") else f"CUSTOM_{sr.priority}"
+        print(f"    [{status}] {sr.strategy_name} ({pname}): {sr.reason}")
+PYEOF
+\`\`\`
+
+This shows WHY each field got its value - which strategy won and why others were skipped.
 
 ### 4. Fix Issues (if test fails)
 
@@ -144,8 +201,11 @@ Look for:
 
 ### 5. Verify Fix
 \`\`\`bash
-# Re-run debug test
-uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
+# Re-run debug test with verbose output
+DEBUG_EXTRACTION_VERBOSE=1 uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[${IDENTIFIER}] -v
+
+# Review the updated extraction steps
+cat ./site-detail-e2e-examples/${HANDLER}_extraction_steps.md
 
 # Ensure main tests still pass
 uv run pytest tests/job_scrape_application/workflows/test_job_detail_extraction_e2e.py -v --tb=short

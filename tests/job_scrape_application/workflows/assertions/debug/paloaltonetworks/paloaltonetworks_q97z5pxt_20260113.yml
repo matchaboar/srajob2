@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: paloaltonetworks
 detail_url: https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128
 expected:
@@ -5,7 +6,7 @@ expected:
   company: "Palo Alto Networks"
   location_contains: "Paris"
   is_remote: false
-  level: senior
+  level: staff
   description_min_words: 300
   description_not_contains: '{"'  # Ensure no JSON blocks in description
   cost_milli_cents_min: 1

@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: docusign
 detail_url: https://careers.docusign.com/jobs/27215?lang=en-us
 expected:
@@ -5,7 +6,7 @@ expected:
   company: Docusign
   location: Seattle, WA
   is_remote: false
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

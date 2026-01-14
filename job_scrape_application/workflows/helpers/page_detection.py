@@ -355,7 +355,9 @@ _NON_JOB_DOMAINS = {
 _INVALID_TITLE_PATTERNS = (
     # Markdown/HTML artifacts
     r"^#\s*",  # Markdown headers (#Sub Title3)
-    r"^\[",  # Partial markdown links ([6. Personal Information)
+    r"^\[\d",  # Partial markdown links starting with digits ([6. Personal Information)
+    # Don't reject all titles starting with [ as some use [Team Name] prefixes
+    # e.g., [쿠팡 페이]사내변호사 (Coupang Pay In-house Lawyer)
     # Generic non-job titles
     r"^sign\s*in$",
     r"^sign\s*up$",

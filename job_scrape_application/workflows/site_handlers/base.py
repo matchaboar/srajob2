@@ -635,6 +635,55 @@ class BaseSiteHandler(ABC):
         return normalized
 
     @staticmethod
+    def extract_wait_for_timeout_seconds(config: Dict[str, Any], buffer_seconds: int = 15) -> int:
+        """Extract total wait timeout in seconds from a SpiderCloud config.
+
+        Parses the wait_for config structure and returns the maximum timeout
+        plus a buffer for network overhead. This is used to synchronize Python-side
+        asyncio.wait_for timeout with SpiderCloud's wait_for selector/network timeouts.
+
+        Args:
+            config: SpiderCloud config dict that may contain wait_for
+            buffer_seconds: Additional buffer for network latency (default 15s)
+
+        Returns:
+            Total timeout in seconds, or 0 if no wait_for config present
+
+        Example wait_for structure:
+            {
+                "wait_for": {
+                    "selector": {"selector": "...", "timeout": {"secs": 40, "nanos": 0}},
+                    "idle_network0": {"timeout": {"secs": 5, "nanos": 0}}
+                }
+            }
+        """
+        wait_for = config.get("wait_for")
+        if not isinstance(wait_for, dict):
+            return 0
+
+        max_timeout_secs = 0
+
+        # Extract selector timeout
+        selector = wait_for.get("selector")
+        if isinstance(selector, dict):
+            timeout_obj = selector.get("timeout")
+            if isinstance(timeout_obj, dict):
+                secs = timeout_obj.get("secs", 0)
+                if isinstance(secs, (int, float)):
+                    max_timeout_secs = max(max_timeout_secs, int(secs))
+
+        # Add idle_network timeouts (idle_network0, idle_network1, etc.)
+        for key, value in wait_for.items():
+            if key.startswith("idle_network") and isinstance(value, dict):
+                timeout_obj = value.get("timeout")
+                if isinstance(timeout_obj, dict):
+                    secs = timeout_obj.get("secs", 0)
+                    if isinstance(secs, (int, float)):
+                        max_timeout_secs += int(secs)
+
+        return max_timeout_secs + buffer_seconds if max_timeout_secs > 0 else 0
+
+    @staticmethod
     def drop_source_listing_url(urls: List[str], source_url: str | None) -> List[str]:
         if not source_url or not urls:
             return urls

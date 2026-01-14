@@ -251,12 +251,22 @@ async def _collect_response(response: Any) -> Any:
 
 
 def _normalize_capture(value: Any) -> Any:
+    import types
     if isinstance(value, bytes):
         return value.decode("utf-8", errors="replace")
     if isinstance(value, dict):
         return {key: _normalize_capture(val) for key, val in value.items()}
     if isinstance(value, list):
         return [_normalize_capture(item) for item in value]
+    # Handle async generators and other non-serializable types
+    if isinstance(value, (types.AsyncGeneratorType, types.GeneratorType)):
+        return None  # Can't serialize generators
+    if hasattr(value, "__dict__"):
+        # Try to convert objects to dicts
+        try:
+            return _normalize_capture(vars(value))
+        except Exception:
+            return str(value)
     return value
 
 

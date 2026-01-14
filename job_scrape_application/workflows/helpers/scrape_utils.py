@@ -5,6 +5,7 @@ import json
 import re
 import time
 import unicodedata
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -439,7 +440,9 @@ def _parse_lenient_json(text: str) -> Any | None:
     except Exception:
         pass
     try:
-        unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
     except Exception:
         unescaped = ""
     if unescaped:
@@ -1204,6 +1207,39 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             "wed love to see",
             "why join us",
             "stay in the loop",
+            # Company boilerplate headings that appear in job descriptions
+            "our mission",
+            "the mission",
+            "about us",
+            "about the company",
+            "who we are",
+            "company overview",
+            "about ramp",
+            "about palo alto networks",
+            # Job section headings that are not job titles
+            "about the role",
+            "the opportunity",
+            "your role",
+            "your impact",
+            "what you'll do",
+            "what youll do",
+            "responsibilities",
+            "key responsibilities",
+            "your responsibilities",
+            # Career page navigation/section headings
+            "your career",
+            "careers",
+            "career opportunities",
+            "join our team",
+            "join us",
+            "work with us",
+            "open positions",
+            "current openings",
+            # Role/position section headings
+            "role overview",
+            "position overview",
+            "job overview",
+            "overview",
         }
 
     def _looks_like_sentence(value: str) -> bool:
@@ -1476,6 +1512,9 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             if prev_label:
                 prev_label = None
                 continue
+            # Skip generic headings that are not job titles
+            if _is_generic_heading_title(t):
+                continue
             candidate_title, candidate_location, parsed_company = _extract_title_and_location_from_line(t)
             if not candidate_title:
                 if _looks_like_title_line(t):
@@ -1521,14 +1560,16 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
     if company_hint:
         hints["company"] = company_hint
 
-    if m := _LEVEL_RE.search(markdown):
-        lvl = stringify(m.group("level")).lower()
-        level_map = {
-            "sr": "senior",
-            "mid-level": "mid",
-            "chief technology officer": "cto",
-        }
-        hints["level"] = level_map.get(lvl, lvl)
+    # NOTE: We intentionally do NOT extract level hints from markdown content.
+    # Level extraction from full markdown causes too many false positives because:
+    # - "Sr. Manager" in "reports to Sr. Manager" is not the job level
+    # - "lead" in "lead the team" is a verb, not a title
+    # - "director" in "director approval required" is not the job level
+    #
+    # Level should only be determined from:
+    # 1. Explicit level fields in structured data (API responses)
+    # 2. The job TITLE (where level keywords are reliable indicators)
+    # 3. Explicitly labeled patterns like "Level: Senior" (handled by extractors)
 
     # Prefer a lightweight line-based location guess (line under heading, short, with comma).
     location_candidates: List[str] = []
@@ -1684,6 +1725,15 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         r"\bremote\s+(?:access|control|controls|monitoring|sensing|desktop|operation|operations|support)\b",
         flags=re.IGNORECASE,
     )
+    # Patterns where "remote work" describes a benefit/perk, not the job type
+    # e.g., "flexibility in terms of remote work", "benefits include remote work options"
+    remote_benefit_re = re.compile(
+        r"(?:flexibility\s+(?:in\s+terms\s+of|around|with|for)|"
+        r"benefits?\s+(?:include|such\s+as|like).*|"
+        r"options?\s+(?:for|to|include).*|"
+        r"offers?\s+.*(?:flexibility|options?)\s+(?:for|around|with))\s*(?:remote|hybrid)",
+        flags=re.IGNORECASE,
+    )
     # LinkedIn recruiter tags (#LI-REMOTE, #LI-HYBRID, etc.) are not reliable indicators
     linkedin_tag_re = re.compile(r"#LI-\w*(?:remote|hybrid|onsite)\w*", flags=re.IGNORECASE)
     for line in markdown.splitlines():
@@ -1691,6 +1741,9 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
         if "remote" not in lowered_line and "hybrid" not in lowered_line and "onsite" not in lowered_line:
             continue
         if remote_false_positive_re.search(line):
+            continue
+        # Skip lines where remote is mentioned as a benefit/perk, not job type
+        if remote_benefit_re.search(line):
             continue
         # Skip lines containing LinkedIn recruiter tags
         if linkedin_tag_re.search(line):
@@ -2034,14 +2087,27 @@ def coerce_remote(value: Any, location: str, title: str) -> bool:
 
 
 def coerce_level(value: Any, title: str) -> str:
+    """Coerce a level hint and title into a standard level value.
+
+    Level classification guidelines:
+    - junior: intern, junior, jr, new grad, entry level (0-2 years)
+    - mid: standard roles without level prefix (2-5 years)
+    - senior: Senior prefix, significant experience (5+ years)
+    - staff: Staff/Principal/Lead/Director/VP/Chief/Head/Distinguished titles (8+ years)
+
+    Note: "Manager" is ambiguous and maps to "senior" since it can refer to
+    either people managers (senior+) or non-management roles like "Account Manager" (mid).
+    """
     normalized = value.lower() if isinstance(value, str) else ""
     title_lower = title.lower()
     markers = normalized or title_lower
-    if any(token in markers for token in ("staff", "principal")):
+    # Staff-level titles (highest seniority) - check these first
+    if any(token in markers for token in ("staff", "principal", "director", "vp", "chief", "head", "lead", "distinguished")):
         return "staff"
     if any(token in markers for token in ("senior", "sr ", "sr.", "sr-", "sr/")):
         return "senior"
-    if any(token in markers for token in ("lead", "manager", "director", "vp", "chief", "head")):
+    # Manager is ambiguous - map to senior as middle ground
+    if "manager" in markers:
         return "senior"
     if "intern" in markers:
         return "junior"
@@ -2221,13 +2287,129 @@ class _JobRowNormalizer:
         normalized_hint_config: _HintApplicationConfig = _NORMALIZED_HINT_CONFIG,
         job_hint_config: _HintApplicationConfig = _JOB_HINT_CONFIG,
         max_description_chars: int = MAX_JOB_DESCRIPTION_CHARS,
+        use_extractors: bool = True,  # Use modular extractors by default
     ) -> None:
         self.hint_applier = hint_applier or _DefaultJobHintApplier()
         self.normalized_hint_config = normalized_hint_config
         self.job_hint_config = job_hint_config
         self.max_description_chars = max_description_chars
+        self.use_extractors = use_extractors
 
     def normalize_row(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Normalize a raw job row using modular extractors."""
+        if self.use_extractors:
+            return self._normalize_row_with_extractors(row)
+        return self._normalize_row_legacy(row)
+
+    def _normalize_row_with_extractors(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Normalize using modular extractors."""
+        from ..extractors.context import ExtractionContext
+        from ..extractors.integration import _extract_job_fields
+        from ..extractors.integration import _should_override_title
+
+        # Get URL first - required
+        preferred_url = prefer_apply_url(row)
+        url = stringify(preferred_url) if preferred_url is not None else ""
+        if not url:
+            return None
+
+        # Get raw title for validation
+        raw_title_value = row.get("job_title") or row.get("title")
+        raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
+
+        # Title validation (keywords check)
+        if not title_matches_required_keywords(raw_title or None):
+            return None
+
+        # Get description for page detection
+        description = strip_known_nav_blocks(extract_description(row))
+        description = _strip_embedded_theme_json(description)
+
+        # Validation: skip listing pages and error pages
+        if looks_like_job_listing_page(raw_title or "Untitled", description, url):
+            return None
+        if looks_like_error_landing(raw_title or "Untitled", description):
+            return None
+
+        # Create extraction context
+        ctx = ExtractionContext.from_scrape_result(
+            url=url,
+            markdown=description,
+            raw_row=row,
+            debug=False,
+        )
+
+        # Extract all fields
+        results = _extract_job_fields(ctx)
+
+        # Get extracted values with fallbacks
+        title_result = results.get("title")
+        title = title_result.final_value if title_result and title_result.final_value else ""
+        if not title:
+            title = normalize_title_from_bar(raw_title) if raw_title else "Untitled"
+
+        company_result = results.get("company")
+        company = company_result.final_value if company_result and company_result.final_value else ""
+        if not company:
+            company = derive_company_from_url(url) or "Unknown"
+
+        location_result = results.get("location")
+        location = location_result.final_value if location_result and location_result.final_value else ""
+
+        remote_result = results.get("remote")
+        remote = bool(remote_result.final_value) if remote_result else False
+
+        # Apply remote company override
+        if is_remote_company(company):
+            remote = True
+            if not location or location == "Unknown":
+                location = "Remote"
+
+        if not location:
+            location = "Remote" if remote else "Unknown"
+
+        level_result = results.get("level")
+        level = level_result.final_value if level_result and level_result.final_value else "mid"
+
+        comp_result = results.get("compensation")
+        total_comp = comp_result.final_value if comp_result and comp_result.final_value else 0
+        total_comp = normalize_compensation_value(total_comp) or 0
+        compensation_unknown = total_comp <= 0
+
+        # Parse posted_at
+        raw_posted_value = row.get("posted_at") or row.get("postedAt") or row.get("date") or row.get("_timestamp")
+        posted_at_unknown = row.get("posted_at_unknown") if isinstance(row, dict) else None
+        if posted_at_unknown is None:
+            posted_at_unknown = row.get("postedAtUnknown") if isinstance(row, dict) else None
+        if isinstance(posted_at_unknown, bool):
+            posted_at = parse_posted_at(raw_posted_value)
+        else:
+            posted_at, posted_at_unknown = parse_posted_at_with_unknown(raw_posted_value)
+
+        # Build normalized row
+        normalized_row: Dict[str, Any] = {
+            "job_title": title,
+            "title": title,
+            "company": company,
+            "location": location,
+            "remote": remote,
+            "level": level,
+            "total_compensation": int(total_comp) if total_comp else 0,
+            "url": url,
+            "description": description,
+            "posted_at": posted_at,
+            "posted_at_unknown": bool(posted_at_unknown),
+        }
+        normalized_row["compensation_unknown"] = compensation_unknown
+
+        # Pass through first_published if available
+        raw_first_published = row.get("first_published")
+        if isinstance(raw_first_published, (int, float)) and raw_first_published > 0:
+            normalized_row["first_published"] = int(raw_first_published)
+
+        return normalized_row
+
+    def _normalize_row_legacy(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         raw_title_value = row.get("job_title") or row.get("title")
         raw_title = stringify(raw_title_value) if raw_title_value is not None else ""
         title = normalize_title_from_bar(raw_title) if raw_title else ""

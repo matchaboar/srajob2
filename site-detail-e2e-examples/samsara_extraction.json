@@ -5,9 +5,9 @@
   "extracted_jobs": [
     {
       "title": "Account Based Marketing Manager",
-      "description_preview": "Account Based Marketing Manager Who we are Samsara (NYSE: IOT) is the pioneer of the Connected Operations\u2122 Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping...",
+      "description_preview": "Account Based Marketing Manager Who we are Samsara (NYSE: IOT) is the pioneer of the Connected Operations™ Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping...",
       "description_word_count": 1088,
-      "location": "London - UK2",
+      "location": "London, United Kingdom",
       "is_remote": false,
       "posted_at": 1767109209000,
       "posted_at_unknown": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Based Marketing Manager",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Based Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Based Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Based Marketing Manager",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Samsara",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Samsara",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Samsara",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "The Role",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "London - UK2",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "London - UK2",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Video-Based Safety, Vehicle Telematics",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "London - UK2",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "London, United Kingdom",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: London - UK2"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Samsara' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'manager' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping verb token in content: Manager"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-30T08:40:09",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-30T08:40:09",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-30T08:40:09"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.598228",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Based Marketing Manager\n\nWho we are\nSamsara (NYSE: IOT) is the pioneer of the Connected Operations™ Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping improve the safety, efficiency and sustainability of the physical operations that power our global economy. Representing more than 40% of global GDP, these industries are the infrastructure of our planet, including agriculture, construction, field services, transportation, and manufacturing — and we are excited to help digitally transform their operations at scale.\nWorking at Samsara means you’ll help define the future of physical operations and be on a team that’s shaping an exciting array of product solutions, including Video-Based Safety, Vehicle Telematics, Apps and Driver Workflows, and Equipment Monitoring. As part of a recently public company, you’ll have the autonomy and support to make an impact as we build for the long term.\nAbout The Role:\nAs a key member of the EMEA Marketing Team, we are seeking a motivated and curious Account Based Marketing Executive to support high-impact, account-based marketing programmes and executive experiences across the region. This role offers hands-on exposure to Account Based Marketing helping drive executive engagement, accelerating pipeline, and strengthening relationships with enterprise customers and partners throughout EMEA. The ideal candidate will be highly organised, eager to learn, creative, and results-driven, with some experience in supporting, executing, and optimising integrated ABM campaigns, bespoke events, executive experiences, and multi-channel programmes. You will assist with campaign coordination, help track and report on programme effectiveness, and work closely with Sales, PMM, Demand Generation, and other cross-functional teams to ensure campaigns deliver maximum impact and ROI.\nLocation: This is a remote position open to candidates based in a commutable distance to London.\nYou should apply if:\n- You want to impact the industries that run our world: Your efforts will result in real-world impact—helping to keep the lights on, get food into grocery stores, reduce emissions, and most importantly, ensure workers return home safely.\n- You are the architect of your own career: If you put in the work, this role won’t be your last at Samsara. We set up our employees for success and have built a culture that encourages rapid career development, countless opportunities to experiment and master your craft in a hyper growth environment.\n- You’re energized by our opportunity: The vision we have to digitize large sectors of the global economy requires your full focus and best efforts to bring forth creative, ambitious ideas for our customers.\n- You want to be with the best: At Samsara, we win together, celebrate together and support each other. You will be surrounded by a high-caliber team that will encourage you to do your best.\nIn this role you will:\n- Support Enterprise Sales with account-based marketing initiatives to help generate new pipeline and accelerate existing opportunities.\n- Assist in planning and executing ABM programs and campaigns, including 1:1 or 1:Few activities for priority accounts.\n- Help coordinate bespoke ABM plays such as events, webinars, digital campaigns, direct mail, and customer engagement activities.\nCollaborate with Sales on account-specific activities, providing research, insights, and tailored communications to support pipeline growth.\n- Own campaign execution and operations for EMEA ABM programmes, including briefs, workflows, UTMs, naming conventions, tagging, vendor coordination, performance tracking, and reporting.\n- Support ABM budget tracking and optimisation, helping ensure marketing spend aligns with business priorities and is accurately recorded. Assist in monitoring campaign performance to understand impact.\n- Assist with measurement and reporting for assigned accounts, tracking engagement, meetings, and basic pipeline activity.\n- Champion Samsara’s culture and values.\nMinimum Requirements:\n- Familiarity in ABM or demand generation ideally for B2B high-tech or enterprise accounts.\n- Some experience in event management, preferably within the technology or B2B Some.\n- Proven expertise in account-based marketing across multiple channels and ability to measure campaign effectiveness.\n- Proficiency with Salesforce, Marketo, Excel, and ideally some familiarity with ABM tools such as Demandbase, 6sense, Outreach, ZoomInfo, Folloze, Uberflip, or similar.\n- Demonstrated project and time management skills, managing multiple initiatives with tight deadlines.\n- Self-motivated, proactive, and results-oriented, with a strong bias for action and focus on ROI.\n- Ability to collaborate across cross-functional teams including Sales, PMM, Demand Generation, and Content.\n- Willingness and ability to travel as required for executive briefings and events (up to 20% of the time).\nAt Samsara, we welcome everyone regardless of their background. All qualified applicants will receive consideration for employment without regard to race, color, religion, national origin, sex, gender, gender identity, sexual orientation, protected veteran status, disability, age, and other characteristics protected by law. We depend on the unique approaches of our team members to help us solve complex problems and want to ensure that Samsara is a place where people from all backgrounds can make an impact.\nBenefits\nFull time employees receive a competitive total compensation package along with employee-led remote and flexible working, health benefits, and much, much more. Take a look at our Benefits site to learn more.\nAccommodations&nbsp;\nSamsara is an inclusive work environment, and we are committed to ensuring equal opportunity in employment for qualified persons with disabilities. Please email accessibleinterviewing@samsara.com or click here if you require any reasonable accommodations throughout the recruiting process.\nFlexible Working&nbsp;\nAt Samsara, we embrace a flexible working model that caters to the diverse needs of our teams. Our offices are open for those who prefer to work in-person and we also support remote work where it aligns with our operational requirements. For certain positions, being close to one of our offices or within a specific geographic area is important to facilitate collaboration, access to resources, or alignment with our service regions. In these cases, the job description will clearly indicate any working location requirements. Our goal is to ensure that all members of our team can contribute effectively, whether they are working on-site, in a hybrid model, or fully remotely. All offers of employment are contingent upon an individual’s ability to secure and maintain the legal right to work at the company and in the specified work location, if applicable.\nFraudulent Employment Offers\nSamsara is aware of scams involving fake job interviews and offers. Please know we do not charge fees to applicants at any stage of the hiring process. Official communication about your application will only come from emails ending in ‘@samsara.com’ or ‘@us-greenhouse-mail.io’. For more information regarding fraudulent employment offers, please visit our blog post here .",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Based Marketing Manager\n\nWho we are\nSamsara (NYSE: IOT) is the pioneer of the Connected Operations™ Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping improve the safety, efficiency and sustainability of the physical operations that power our global economy. Representing more than 40% of global GDP, these industries are the infrastructure of our planet, including agriculture, construction, field services, transportation, and manufacturing — and we are excited to help digitally transform their operations at scale.\nWorking at Samsara means you’ll help define the future of physical operations and be on a team that’s shaping an exciting array of product solutions, including Video-Based Safety, Vehicle Telematics, Apps and Driver Workflows, and Equipment Monitoring. As part of a recently public company, you’ll have the autonomy and support to make an impact as we build for the long term.\nAbout The Role:\nAs a key member of the EMEA Marketing Team, we are seeking a motivated and curious Account Based Marketing Executive to support high-impact, account-based marketing programmes and executive experiences across the region. This role offers hands-on exposure to Account Based Marketing helping drive executive engagement, accelerating pipeline, and strengthening relationships with enterprise customers and partners throughout EMEA. The ideal candidate will be highly organised, eager to learn, creative, and results-driven, with some experience in supporting, executing, and optimising integrated ABM campaigns, bespoke events, executive experiences, and multi-channel programmes. You will assist with campaign coordination, help track and report on programme effectiveness, and work closely with Sales, PMM, Demand Generation, and other cross-functional teams to ensure campaigns deliver maximum impact and ROI.\nLocation: This is a remote position open to candidates based in a commutable distance to London.\nYou should apply if:\n- You want to impact the industries that run our world: Your efforts will result in real-world impact—helping to keep the lights on, get food into grocery stores, reduce emissions, and most importantly, ensure workers return home safely.\n- You are the architect of your own career: If you put in the work, this role won’t be your last at Samsara. We set up our employees for success and have built a culture that encourages rapid career development, countless opportunities to experiment and master your craft in a hyper growth environment.\n- You’re energized by our opportunity: The vision we have to digitize large sectors of the global economy requires your full focus and best efforts to bring forth creative, ambitious ideas for our customers.\n- You want to be with the best: At Samsara, we win together, celebrate together and support each other. You will be surrounded by a high-caliber team that will encourage you to do your best.\nIn this role you will:\n- Support Enterprise Sales with account-based marketing initiatives to help generate new pipeline and accelerate existing opportunities.\n- Assist in planning and executing ABM programs and campaigns, including 1:1 or 1:Few activities for priority accounts.\n- Help coordinate bespoke ABM plays such as events, webinars, digital campaigns, direct mail, and customer engagement activities.\nCollaborate with Sales on account-specific activities, providing research, insights, and tailored communications to support pipeline growth.\n- Own campaign execution and operations for EMEA ABM programmes, including briefs, workflows, UTMs, naming conventions, tagging, vendor coordination, performance tracking, and reporting.\n- Support ABM budget tracking and optimisation, helping ensure marketing spend aligns with business priorities and is accurately recorded. Assist in monitoring campaign performance to understand impact.\n- Assist with measurement and reporting for assigned accounts, tracking engagement, meetings, and basic pipeline activity.\n- Champion Samsara’s culture and values.\nMinimum Requirements:\n- Familiarity in ABM or demand generation ideally for B2B high-tech or enterprise accounts.\n- Some experience in event management, preferably within the technology or B2B Some.\n- Proven expertise in account-based marketing across multiple channels and ability to measure campaign effectiveness.\n- Proficiency with Salesforce, Marketo, Excel, and ideally some familiarity with ABM tools such as Demandbase, 6sense, Outreach, ZoomInfo, Folloze, Uberflip, or similar.\n- Demonstrated project and time management skills, managing multiple initiatives with tight deadlines.\n- Self-motivated, proactive, and results-oriented, with a strong bias for action and focus on ROI.\n- Ability to collaborate across cross-functional teams including Sales, PMM, Demand Generation, and Content.\n- Willingness and ability to travel as required for executive briefings and events (up to 20% of the time).\nAt Samsara, we welcome everyone regardless of their background. All qualified applicants will receive consideration for employment without regard to race, color, religion, national origin, sex, gender, gender identity, sexual orientation, protected veteran status, disability, age, and other characteristics protected by law. We depend on the unique approaches of our team members to help us solve complex problems and want to ensure that Samsara is a place where people from all backgrounds can make an impact.\nBenefits\nFull time employees receive a competitive total compensation package along with employee-led remote and flexible working, health benefits, and much, much more. Take a look at our Benefits site to learn more.\nAccommodations&nbsp;\nSamsara is an inclusive work environment, and we are committed to ensuring equal opportunity in employment for qualified persons with disabilities. Please email accessibleinterviewing@samsara.com or click here if you require any reasonable accommodations throughout the recruiting process.\nFlexible Working&nbsp;\nAt Samsara, we embrace a flexible working model that caters to the diverse needs of our teams. Our offices are open for those who prefer to work in-person and we also support remote work where it aligns with our operational requirements. For certain positions, being close to one of our offices or within a specific geographic area is important to facilitate collaboration, access to resources, or alignment with our service regions. In these cases, the job description will clearly indicate any working location requirements. Our goal is to ensure that all members of our team can contribute effectively, whether they are working on-site, in a hybrid model, or fully remotely. All offers of employment are contingent upon an individual’s ability to secure and maintain the legal right to work at the company and in the specified work location, if applicable.\nFraudulent Employment Offers\nSamsara is aware of scams involving fake job interviews and offers. Please know we do not charge fees to applicants at any stage of the hiring process. Official communication about your application will only come from emails ending in ‘@samsara.com’ or ‘@us-greenhouse-mail.io’. For more information regarding fraudulent employment offers, please visit our blog post here .",
+          "is_valid": true,
+          "reason": "Valid description (7392 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Based Marketing Manager\n\nWho we are\nSamsara (NYSE: IOT) is the pioneer of the Connected Operations™ Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping improve the safety, efficiency and sustainability of the physical operations that power our global economy. Representing more than 40% of global GDP, these industries are the infrastructure of our planet, including agriculture, construction, field services, transportation, and manufacturing — and we are excited to help digitally transform their operations at scale.\nWorking at Samsara means you’ll help define the future of physical operations and be on a team that’s shaping an exciting array of product solutions, including Video-Based Safety, Vehicle Telematics, Apps and Driver Workflows, and Equipment Monitoring. As part of a recently public company, you’ll have the autonomy and support to make an impact as we build for the long term.\nAbout The Role:\nAs a key member of the EMEA Marketing Team, we are seeking a motivated and curious Account Based Marketing Executive to support high-impact, account-based marketing programmes and executive experiences across the region. This role offers hands-on exposure to Account Based Marketing helping drive executive engagement, accelerating pipeline, and strengthening relationships with enterprise customers and partners throughout EMEA. The ideal candidate will be highly organised, eager to learn, creative, and results-driven, with some experience in supporting, executing, and optimising integrated ABM campaigns, bespoke events, executive experiences, and multi-channel programmes. You will assist with campaign coordination, help track and report on programme effectiveness, and work closely with Sales, PMM, Demand Generation, and other cross-functional teams to ensure campaigns deliver maximum impact and ROI.\nLocation: This is a remote position open to candidates based in a commutable distance to London.\nYou should apply if:\n- You want to impact the industries that run our world: Your efforts will result in real-world impact—helping to keep the lights on, get food into grocery stores, reduce emissions, and most importantly, ensure workers return home safely.\n- You are the architect of your own career: If you put in the work, this role won’t be your last at Samsara. We set up our employees for success and have built a culture that encourages rapid career development, countless opportunities to experiment and master your craft in a hyper growth environment.\n- You’re energized by our opportunity: The vision we have to digitize large sectors of the global economy requires your full focus and best efforts to bring forth creative, ambitious ideas for our customers.\n- You want to be with the best: At Samsara, we win together, celebrate together and support each other. You will be surrounded by a high-caliber team that will encourage you to do your best.\nIn this role you will:\n- Support Enterprise Sales with account-based marketing initiatives to help generate new pipeline and accelerate existing opportunities.\n- Assist in planning and executing ABM programs and campaigns, including 1:1 or 1:Few activities for priority accounts.\n- Help coordinate bespoke ABM plays such as events, webinars, digital campaigns, direct mail, and customer engagement activities.\nCollaborate with Sales on account-specific activities, providing research, insights, and tailored communications to support pipeline growth.\n- Own campaign execution and operations for EMEA ABM programmes, including briefs, workflows, UTMs, naming conventions, tagging, vendor coordination, performance tracking, and reporting.\n- Support ABM budget tracking and optimisation, helping ensure marketing spend aligns with business priorities and is accurately recorded. Assist in monitoring campaign performance to understand impact.\n- Assist with measurement and reporting for assigned accounts, tracking engagement, meetings, and basic pipeline activity.\n- Champion Samsara’s culture and values.\nMinimum Requirements:\n- Familiarity in ABM or demand generation ideally for B2B high-tech or enterprise accounts.\n- Some experience in event management, preferably within the technology or B2B Some.\n- Proven expertise in account-based marketing across multiple channels and ability to measure campaign effectiveness.\n- Proficiency with Salesforce, Marketo, Excel, and ideally some familiarity with ABM tools such as Demandbase, 6sense, Outreach, ZoomInfo, Folloze, Uberflip, or similar.\n- Demonstrated project and time management skills, managing multiple initiatives with tight deadlines.\n- Self-motivated, proactive, and results-oriented, with a strong bias for action and focus on ROI.\n- Ability to collaborate across cross-functional teams including Sales, PMM, Demand Generation, and Content.\n- Willingness and ability to travel as required for executive briefings and events (up to 20% of the time).\nAt Samsara, we welcome everyone regardless of their background. All qualified applicants will receive consideration for employment without regard to race, color, religion, national origin, sex, gender, gender identity, sexual orientation, protected veteran status, disability, age, and other characteristics protected by law. We depend on the unique approaches of our team members to help us solve complex problems and want to ensure that Samsara is a place where people from all backgrounds can make an impact.\nBenefits\nFull time employees receive a competitive total compensation package along with employee-led remote and flexible working, health benefits, and much, much more. Take a look at our Benefits site to learn more.\nAccommodations&nbsp;\nSamsara is an inclusive work environment, and we are committed to ensuring equal opportunity in employment for qualified persons with disabilities. Please email accessibleinterviewing@samsara.com or click here if you require any reasonable accommodations throughout the recruiting process.\nFlexible Working&nbsp;\nAt Samsara, we embrace a flexible working model that caters to the diverse needs of our teams. Our offices are open for those who prefer to work in-person and we also support remote work where it aligns with our operational requirements. For certain positions, being close to one of our offices or within a specific geographic area is important to facilitate collaboration, access to resources, or alignment with our service regions. In these cases, the job description will clearly indicate any working location requirements. Our goal is to ensure that all members of our team can contribute effectively, whether they are working on-site, in a hybrid model, or fully remotely. All offers of employment are contingent upon an individual’s ability to secure and maintain the legal right to work at the company and in the specified work location, if applicable.\nFraudulent Employment Offers\nSamsara is aware of scams involving fake job interviews and offers. Please know we do not charge fees to applicants at any stage of the hiring process. Official communication about your application will only come from emails ending in ‘@samsara.com’ or ‘@us-greenhouse-mail.io’. For more information regarding fraudulent employment offers, please visit our blog post here .",
+          "is_valid": true,
+          "reason": "Valid description (7392 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Based Marketing Manager\n\nWho we are\nSamsara (NYSE: IOT) is the pioneer of the Connected Operations™ Cloud, which is a platform that enables organizations that depend on physical operations to harness Internet of Things (IoT) data to develop actionable insights and improve their operations. At Samsara, we are helping improve the safety, efficiency and sustainability of the physical operations that power our global economy. Representing more than 40% of global GDP, these industries are the infrastructure of our planet, including agriculture, construction, field services, transportation, and manufacturing — and we are excited to help digitally transform their operations at scale.\nWorking at Samsara means you’ll help define the future of physical operations and be on a team that’s shaping an exciting array of product solutions, including Video-Based Safety, Vehicle Telematics, Apps and Driver Workflows, and Equipment Monitoring. As part of a recently public company, you’ll have the autonomy and support to make an impact as we build for the long term.\nAbout The Role:\nAs a key member of the EMEA Marketing Team, we are seeking a motivated and curious Account Based Marketing Executive to support high-impact, account-based marketing programmes and executive experiences across the region. This role offers hands-on exposure to Account Based Marketing helping drive executive engagement, accelerating pipeline, and strengthening relationships with enterprise customers and partners throughout EMEA. The ideal candidate will be highly organised, eager to learn, creative, and results-driven, with some experience in supporting, executing, and optimising integrated ABM campaigns, bespoke events, executive experiences, and multi-channel programmes. You will assist with campaign coordination, help track and report on programme effectiveness, and work closely with Sales, PMM, Demand Generation, and other cross-functional teams to ensure campaigns deliver maximum impact and ROI.\nLocation: This is a remote position open to candidates based in a commutable distance to London.\nYou should apply if:\n- You want to impact the industries that run our world: Your efforts will result in real-world impact—helping to keep the lights on, get food into grocery stores, reduce emissions, and most importantly, ensure workers return home safely.\n- You are the architect of your own career: If you put in the work, this role won’t be your last at Samsara. We set up our employees for success and have built a culture that encourages rapid career development, countless opportunities to experiment and master your craft in a hyper growth environment.\n- You’re energized by our opportunity: The vision we have to digitize large sectors of the global economy requires your full focus and best efforts to bring forth creative, ambitious ideas for our customers.\n- You want to be with the best: At Samsara, we win together, celebrate together and support each other. You will be surrounded by a high-caliber team that will encourage you to do your best.\nIn this role you will:\n- Support Enterprise Sales with account-based marketing initiatives to help generate new pipeline and accelerate existing opportunities.\n- Assist in planning and executing ABM programs and campaigns, including 1:1 or 1:Few activities for priority accounts.\n- Help coordinate bespoke ABM plays such as events, webinars, digital campaigns, direct mail, and customer engagement activities.\nCollaborate with Sales on account-specific activities, providing research, insights, and tailored communications to support pipeline growth.\n- Own campaign execution and operations for EMEA ABM programmes, including briefs, workflows, UTMs, naming conventions, tagging, vendor coordination, performance tracking, and reporting.\n- Support ABM budget tracking and optimisation, helping ensure marketing spend aligns with business priorities and is accurately recorded. Assist in monitoring campaign performance to understand impact.\n- Assist with measurement and reporting for assigned accounts, tracking engagement, meetings, and basic pipeline activity.\n- Champion Samsara’s culture and values.\nMinimum Requirements:\n- Familiarity in ABM or demand generation ideally for B2B high-tech or enterprise accounts.\n- Some experience in event management, preferably within the technology or B2B Some.\n- Proven expertise in account-based marketing across multiple channels and ability to measure campaign effectiveness.\n- Proficiency with Salesforce, Marketo, Excel, and ideally some familiarity with ABM tools such as Demandbase, 6sense, Outreach, ZoomInfo, Folloze, Uberflip, or similar.\n- Demonstrated project and time management skills, managing multiple initiatives with tight deadlines.\n- Self-motivated, proactive, and results-oriented, with a strong bias for action and focus on ROI.\n- Ability to collaborate across cross-functional teams including Sales, PMM, Demand Generation, and Content.\n- Willingness and ability to travel as required for executive briefings and events (up to 20% of the time).\nAt Samsara, we welcome everyone regardless of their background. All qualified applicants will receive consideration for employment without regard to race, color, religion, national origin, sex, gender, gender identity, sexual orientation, protected veteran status, disability, age, and other characteristics protected by law. We depend on the unique approaches of our team members to help us solve complex problems and want to ensure that Samsara is a place where people from all backgrounds can make an impact.\nBenefits\nFull time employees receive a competitive total compensation package along with employee-led remote and flexible working, health benefits, and much, much more. Take a look at our Benefits site to learn more.\nAccommodations&nbsp;\nSamsara is an inclusive work environment, and we are committed to ensuring equal opportunity in employment for qualified persons with disabilities. Please email accessibleinterviewing@samsara.com or click here if you require any reasonable accommodations throughout the recruiting process.\nFlexible Working&nbsp;\nAt Samsara, we embrace a flexible working model that caters to the diverse needs of our teams. Our offices are open for those who prefer to work in-person and we also support remote work where it aligns with our operational requirements. For certain positions, being close to one of our offices or within a specific geographic area is important to facilitate collaboration, access to resources, or alignment with our service regions. In these cases, the job description will clearly indicate any working location requirements. Our goal is to ensure that all members of our team can contribute effectively, whether they are working on-site, in a hybrid model, or fully remotely. All offers of employment are contingent upon an individual’s ability to secure and maintain the legal right to work at the company and in the specified work location, if applicable.\nFraudulent Employment Offers\nSamsara is aware of scams involving fake job interviews and offers. Please know we do not charge fees to applicants at any stage of the hiring process. Official communication about your application will only come from emails ending in ‘@samsara.com’ or ‘@us-greenhouse-mail.io’. For more information regarding fraudulent employment offers, please visit our blog post here .",
+          "is_valid": true,
+          "reason": "Valid description (7392 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

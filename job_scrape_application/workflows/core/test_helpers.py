@@ -58,19 +58,36 @@ class SpiderFixture:
     response: Any
     params: Dict[str, Any] = field(default_factory=dict)
     is_sync: bool = False
+    _raw_dict: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def request_url(self) -> str:
+        """Alias for url for compatibility."""
+        return self.url
+
+    @property
+    def raw(self) -> Dict[str, Any]:
+        """Return the raw fixture dict for tests that need full access."""
+        return self._raw_dict
 
     @classmethod
     def from_file(cls, path: Path) -> "SpiderFixture":
         """Load a fixture from a JSON file."""
         data = json.loads(path.read_text(encoding="utf-8"))
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SpiderFixture":
+        """Load a fixture from a dictionary."""
         if not isinstance(data, dict):
-            raise ValueError(f"Fixture {path} must be a dict")
+            raise ValueError("Fixture data must be a dict")
         request = data.get("request", {})
         return cls(
             url=request.get("url", ""),
             response=data.get("response", []),
             params=request.get("params", {}),
             is_sync=request.get("stream") is False or isinstance(data.get("response"), dict),
+            _raw_dict=data,
         )
 
 

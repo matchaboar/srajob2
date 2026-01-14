@@ -1,0 +1,11 @@
+site_id: github_careers
+detail_url: https://www.github.careers/careers-home/jobs/4764?lang=en-us
+expected:
+  title: "Software Engineer III"
+  company: "GitHub"
+  location_contains: "United States"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

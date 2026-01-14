@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: openai
 detail_url: https://openai.com/careers/software-engineer-distributed-data-systems-(sora)-san-francisco
 expected:

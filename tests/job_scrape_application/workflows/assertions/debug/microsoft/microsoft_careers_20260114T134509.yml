@@ -1,0 +1,11 @@
+site_id: microsoft_careers
+detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en
+expected:
+  title: "Senior Software Engineer"
+  company: "Microsoft"
+  location_contains: "Redmond"
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

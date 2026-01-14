@@ -5,14 +5,14 @@
   "extracted_jobs": [
     {
       "title": "Demand Generation Lead",
-      "description_preview": "Demand Generation Lead About NexHealth Our healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor\u2019s appointment and fill out a clipboard in the waiting room? NexHealth\u2019s mission...",
+      "description_preview": "Demand Generation Lead About NexHealth Our healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor’s appointment and fill out a clipboard in the waiting room? NexHealth’s mission...",
       "description_word_count": 1007,
-      "location": "United States",
+      "location": "San Francisco, CA",
       "is_remote": false,
       "posted_at": 1764618206000,
       "posted_at_unknown": false,
       "company": "NexHealth",
-      "level": "senior",
+      "level": "staff",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Demand Generation Lead",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Demand Generation Lead",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Demand Generation Lead",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Demand Generation Lead",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "NexHealth",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "NexHealth",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "This",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "NexHealth",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "San Francisco, CA",
+      "winning_strategy": "content_pattern_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": null,
+          "is_valid": false,
+          "reason": "Country-only location too generic: United States"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_CITY_STATE"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "United States",
+          "is_valid": true,
+          "reason": "Country-only fallback: Country-only location accepted (explicit source): United States"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: San Francisco, CA"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'NexHealth' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "staff",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "staff",
+          "is_valid": true,
+          "reason": "Explicit level field: staff -> staff"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "staff",
+          "is_valid": true,
+          "reason": "Level from title: 'lead' -> staff"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping verb token in content: Lead"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 177000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 177000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $177,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-01T12:43:26",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-01T12:43:26",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-01T12:43:26"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:09.740073",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Demand Generation Lead\n\nAbout NexHealth\nOur healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor’s appointment and fill out a clipboard in the waiting room?\nNexHealth’s mission is to accelerate innovation in healthcare by connecting patients, providers, and developers.&nbsp;We’re building the infrastructure layer for modern healthcare, connecting thousands of fragmented, on-premise, and closed EHR systems into a single, modern platform that powers software, APIs, payments, and patient experiences across the ecosystem.\n- Founded: 2017\n- Headquarters: San Francisco, CA\n- Funding: $177M Series C&nbsp;\n- Employees: 200+\n- Trusted by tens of thousands of providers and hundreds of health-tech developers — forging the infrastructure layer that modern healthcare needs\nAbout the Role\nAs a&nbsp; Demand Generation Lead , you will architect and own our full-funnel marketing strategy, from high-funnel brand awareness to mid-funnel education and bottom-funnel lead capture. You’ll design scalable, repeatable acquisition and expansion programs that deepen engagement and accelerate revenue — partnering closely with Sales, Customer Success, Product, and RevOps.\nThis is a hands-on builder role for someone who thrives in fast-paced, high-growth environments. You love using data and product signals to surface the right accounts to engage, and you know how to translate insights into personalized, multi-channel experiences. You’ll lead both strategy and execution for your first 9–12 months, with a clear path to team leadership as you “nail and scale” our growth formula.\nYou’ll be joining a lean, talented, and highly collaborative marketing team where your work will have meaningful, immediate impact. This role gives you the opportunity to shape and scale the future of our full-funnel marketing engine, experiment with cutting-edge AI-powered workflows, and help drive the revenue growth that fuels NexHealth’s mission. You’ll also benefit from competitive compensation, stock options, flexible work arrangements, and comprehensive health coverage—all while doing high-impact work that accelerates innovation in healthcare.\nWhat You'll Do\n- Demand Gen Strategy &amp; Ownership: Develop, execute, and optimize full-funnel demand gen strategies that drive awareness, engage prospects, and drive action across the buyer’s journey. This includes lead scoring, lifecycle management, and account-based marketing. Build nurture and lifecycle campaigns that guide prospects from first touch through activation and expansion.\n- Channel &amp; Budget Management: Manage the demand gen budget across channels and campaigns, ensuring spend efficiency and alignment with goals (cost per demo performed, ROAS). Leverage our agencies that provide creative, website, and distribution support.\n- Cross-Functional Collaboration: Partner with Revenue Operations, Sales, Customer Success, and Finance to align on lead definitions, pipeline goals, and performance metrics. Serve as a builder who thrives in ambiguity, drives projects from conception to execution, and shares learnings with the broader team.\n- Data-Driven Experimentation &amp; Optimization: Identify bottlenecks, propose hypothesis-driven optimizations, and continually refine channel mix through testing and analysis. Create repeatable campaign playbooks that can be scaled across segments and regions.\n- AI and Automation as a Force Multiplier: Leverage AI for research, analytics and reporting, campaign ideation, and prospect engagement. Partner with Revenue Operations to evolve processes, workflows, and data hygiene that enable scaling.\n- Drive Measurable Pipeline Growth: Increase the number of qualified sales demos and bookings sourced from new and existing prospects while maintaining or reducing acquisition cost.\n- Grow and Engage Marketable Database: Deliver month-over-month increases in the size of our engaged prospect database while improving engagement rates and converting more of our audience into MQLs and sales-qualified opportunities.\n- Improve Full-Funnel Performance: Show continuous optimization across the buyer journey, from first touch to post-sale expansion, improving conversion rates at every stage.\n- Establish Operational Clarity &amp; Excellence: Create clear visibility into ROI across channels and campaigns, supported by actionable insights and reporting.\n- Built Scalable Systems &amp; AI- Driven Efficiency: Implement processes, reporting structures, and martech integrations that support long-term growth. Demonstrate measurable time-savings and/or performance improvements through AI-enhanced workflows.\nWhat You'll Bring:\n- 8+ years of B2B SaaS growth/demand gen experience with ownership of end-to-end demand strategies\n- Strong analytical and data-driven skillset with comfort diving into data independently\n- Hands-on technical experience with modern marketing tools such as HubSpot and Visual Website Optimizer\n- Curiosity and practical experience incorporating AI into marketing workflows\n- Strong collaboration and communication skills with the ability to turn metrics into narrative\n- A builder mentality, thriving in fast-paced, ambiguous environments and excited to architect systems that scale\nBenefits\n- Full Medical, Dental, and Vision (up to 100% covered)\n- 401K and commuter benefits\n- Flexible PTO\n- High-impact work that directly improves the healthcare experience for millions\nOur Values\n- Solve the customer’s problems, not yours\nWhen making decisions, think from the perspective of the customer. It’s easy to make decisions that make our lives simpler, but not the customers.\n- Do the things others are not willing to do\nAs a Nexer, always go after the hardest problems. Pursue things at the highest quality. Move at the fastest pace.&nbsp;\n- Take ownership\nAct like a founder. Own your roles, destinies, mistakes, behavior, and our mission. The buck stops with each of us - no blaming or excuses.\n- Say what’s on your mind, with positive intent\nBe direct, proactive, transparent, and frequent in your communication.\n- Default trust\nAs a Nexer, you do not have to earn trust, trust is given to you by default. If we by default trust each other, our speed of communication, feedback, information sharing, and overall improvements will be a lot faster.\n- Think in first principles\nWe first identify the problem and then break it down to its fundamentals before diving into solutions. We constantly ask “why” to validate our assumptions.\nWe are an equal opportunity employer and value diversity at our company. We do not discriminate on the basis of race, religion, color, national origin, sex, gender expression, sexual orientation, age, marital status, veteran status, or disability status. We provide reasonable accommodation for individuals with disabilities to participate in the application or interview process. Contact talent@nexhealth.com to request assistance.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Demand Generation Lead\n\nAbout NexHealth\nOur healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor’s appointment and fill out a clipboard in the waiting room?\nNexHealth’s mission is to accelerate innovation in healthcare by connecting patients, providers, and developers.&nbsp;We’re building the infrastructure layer for modern healthcare, connecting thousands of fragmented, on-premise, and closed EHR systems into a single, modern platform that powers software, APIs, payments, and patient experiences across the ecosystem.\n- Founded: 2017\n- Headquarters: San Francisco, CA\n- Funding: $177M Series C&nbsp;\n- Employees: 200+\n- Trusted by tens of thousands of providers and hundreds of health-tech developers — forging the infrastructure layer that modern healthcare needs\nAbout the Role\nAs a&nbsp; Demand Generation Lead , you will architect and own our full-funnel marketing strategy, from high-funnel brand awareness to mid-funnel education and bottom-funnel lead capture. You’ll design scalable, repeatable acquisition and expansion programs that deepen engagement and accelerate revenue — partnering closely with Sales, Customer Success, Product, and RevOps.\nThis is a hands-on builder role for someone who thrives in fast-paced, high-growth environments. You love using data and product signals to surface the right accounts to engage, and you know how to translate insights into personalized, multi-channel experiences. You’ll lead both strategy and execution for your first 9–12 months, with a clear path to team leadership as you “nail and scale” our growth formula.\nYou’ll be joining a lean, talented, and highly collaborative marketing team where your work will have meaningful, immediate impact. This role gives you the opportunity to shape and scale the future of our full-funnel marketing engine, experiment with cutting-edge AI-powered workflows, and help drive the revenue growth that fuels NexHealth’s mission. You’ll also benefit from competitive compensation, stock options, flexible work arrangements, and comprehensive health coverage—all while doing high-impact work that accelerates innovation in healthcare.\nWhat You'll Do\n- Demand Gen Strategy &amp; Ownership: Develop, execute, and optimize full-funnel demand gen strategies that drive awareness, engage prospects, and drive action across the buyer’s journey. This includes lead scoring, lifecycle management, and account-based marketing. Build nurture and lifecycle campaigns that guide prospects from first touch through activation and expansion.\n- Channel &amp; Budget Management: Manage the demand gen budget across channels and campaigns, ensuring spend efficiency and alignment with goals (cost per demo performed, ROAS). Leverage our agencies that provide creative, website, and distribution support.\n- Cross-Functional Collaboration: Partner with Revenue Operations, Sales, Customer Success, and Finance to align on lead definitions, pipeline goals, and performance metrics. Serve as a builder who thrives in ambiguity, drives projects from conception to execution, and shares learnings with the broader team.\n- Data-Driven Experimentation &amp; Optimization: Identify bottlenecks, propose hypothesis-driven optimizations, and continually refine channel mix through testing and analysis. Create repeatable campaign playbooks that can be scaled across segments and regions.\n- AI and Automation as a Force Multiplier: Leverage AI for research, analytics and reporting, campaign ideation, and prospect engagement. Partner with Revenue Operations to evolve processes, workflows, and data hygiene that enable scaling.\n- Drive Measurable Pipeline Growth: Increase the number of qualified sales demos and bookings sourced from new and existing prospects while maintaining or reducing acquisition cost.\n- Grow and Engage Marketable Database: Deliver month-over-month increases in the size of our engaged prospect database while improving engagement rates and converting more of our audience into MQLs and sales-qualified opportunities.\n- Improve Full-Funnel Performance: Show continuous optimization across the buyer journey, from first touch to post-sale expansion, improving conversion rates at every stage.\n- Establish Operational Clarity &amp; Excellence: Create clear visibility into ROI across channels and campaigns, supported by actionable insights and reporting.\n- Built Scalable Systems &amp; AI- Driven Efficiency: Implement processes, reporting structures, and martech integrations that support long-term growth. Demonstrate measurable time-savings and/or performance improvements through AI-enhanced workflows.\nWhat You'll Bring:\n- 8+ years of B2B SaaS growth/demand gen experience with ownership of end-to-end demand strategies\n- Strong analytical and data-driven skillset with comfort diving into data independently\n- Hands-on technical experience with modern marketing tools such as HubSpot and Visual Website Optimizer\n- Curiosity and practical experience incorporating AI into marketing workflows\n- Strong collaboration and communication skills with the ability to turn metrics into narrative\n- A builder mentality, thriving in fast-paced, ambiguous environments and excited to architect systems that scale\nBenefits\n- Full Medical, Dental, and Vision (up to 100% covered)\n- 401K and commuter benefits\n- Flexible PTO\n- High-impact work that directly improves the healthcare experience for millions\nOur Values\n- Solve the customer’s problems, not yours\nWhen making decisions, think from the perspective of the customer. It’s easy to make decisions that make our lives simpler, but not the customers.\n- Do the things others are not willing to do\nAs a Nexer, always go after the hardest problems. Pursue things at the highest quality. Move at the fastest pace.&nbsp;\n- Take ownership\nAct like a founder. Own your roles, destinies, mistakes, behavior, and our mission. The buck stops with each of us - no blaming or excuses.\n- Say what’s on your mind, with positive intent\nBe direct, proactive, transparent, and frequent in your communication.\n- Default trust\nAs a Nexer, you do not have to earn trust, trust is given to you by default. If we by default trust each other, our speed of communication, feedback, information sharing, and overall improvements will be a lot faster.\n- Think in first principles\nWe first identify the problem and then break it down to its fundamentals before diving into solutions. We constantly ask “why” to validate our assumptions.\nWe are an equal opportunity employer and value diversity at our company. We do not discriminate on the basis of race, religion, color, national origin, sex, gender expression, sexual orientation, age, marital status, veteran status, or disability status. We provide reasonable accommodation for individuals with disabilities to participate in the application or interview process. Contact talent@nexhealth.com to request assistance.",
+          "is_valid": true,
+          "reason": "Valid description (7022 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Demand Generation Lead\n\nAbout NexHealth\nOur healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor’s appointment and fill out a clipboard in the waiting room?\nNexHealth’s mission is to accelerate innovation in healthcare by connecting patients, providers, and developers.&nbsp;We’re building the infrastructure layer for modern healthcare, connecting thousands of fragmented, on-premise, and closed EHR systems into a single, modern platform that powers software, APIs, payments, and patient experiences across the ecosystem.\n- Founded: 2017\n- Headquarters: San Francisco, CA\n- Funding: $177M Series C&nbsp;\n- Employees: 200+\n- Trusted by tens of thousands of providers and hundreds of health-tech developers — forging the infrastructure layer that modern healthcare needs\nAbout the Role\nAs a&nbsp; Demand Generation Lead , you will architect and own our full-funnel marketing strategy, from high-funnel brand awareness to mid-funnel education and bottom-funnel lead capture. You’ll design scalable, repeatable acquisition and expansion programs that deepen engagement and accelerate revenue — partnering closely with Sales, Customer Success, Product, and RevOps.\nThis is a hands-on builder role for someone who thrives in fast-paced, high-growth environments. You love using data and product signals to surface the right accounts to engage, and you know how to translate insights into personalized, multi-channel experiences. You’ll lead both strategy and execution for your first 9–12 months, with a clear path to team leadership as you “nail and scale” our growth formula.\nYou’ll be joining a lean, talented, and highly collaborative marketing team where your work will have meaningful, immediate impact. This role gives you the opportunity to shape and scale the future of our full-funnel marketing engine, experiment with cutting-edge AI-powered workflows, and help drive the revenue growth that fuels NexHealth’s mission. You’ll also benefit from competitive compensation, stock options, flexible work arrangements, and comprehensive health coverage—all while doing high-impact work that accelerates innovation in healthcare.\nWhat You'll Do\n- Demand Gen Strategy &amp; Ownership: Develop, execute, and optimize full-funnel demand gen strategies that drive awareness, engage prospects, and drive action across the buyer’s journey. This includes lead scoring, lifecycle management, and account-based marketing. Build nurture and lifecycle campaigns that guide prospects from first touch through activation and expansion.\n- Channel &amp; Budget Management: Manage the demand gen budget across channels and campaigns, ensuring spend efficiency and alignment with goals (cost per demo performed, ROAS). Leverage our agencies that provide creative, website, and distribution support.\n- Cross-Functional Collaboration: Partner with Revenue Operations, Sales, Customer Success, and Finance to align on lead definitions, pipeline goals, and performance metrics. Serve as a builder who thrives in ambiguity, drives projects from conception to execution, and shares learnings with the broader team.\n- Data-Driven Experimentation &amp; Optimization: Identify bottlenecks, propose hypothesis-driven optimizations, and continually refine channel mix through testing and analysis. Create repeatable campaign playbooks that can be scaled across segments and regions.\n- AI and Automation as a Force Multiplier: Leverage AI for research, analytics and reporting, campaign ideation, and prospect engagement. Partner with Revenue Operations to evolve processes, workflows, and data hygiene that enable scaling.\n- Drive Measurable Pipeline Growth: Increase the number of qualified sales demos and bookings sourced from new and existing prospects while maintaining or reducing acquisition cost.\n- Grow and Engage Marketable Database: Deliver month-over-month increases in the size of our engaged prospect database while improving engagement rates and converting more of our audience into MQLs and sales-qualified opportunities.\n- Improve Full-Funnel Performance: Show continuous optimization across the buyer journey, from first touch to post-sale expansion, improving conversion rates at every stage.\n- Establish Operational Clarity &amp; Excellence: Create clear visibility into ROI across channels and campaigns, supported by actionable insights and reporting.\n- Built Scalable Systems &amp; AI- Driven Efficiency: Implement processes, reporting structures, and martech integrations that support long-term growth. Demonstrate measurable time-savings and/or performance improvements through AI-enhanced workflows.\nWhat You'll Bring:\n- 8+ years of B2B SaaS growth/demand gen experience with ownership of end-to-end demand strategies\n- Strong analytical and data-driven skillset with comfort diving into data independently\n- Hands-on technical experience with modern marketing tools such as HubSpot and Visual Website Optimizer\n- Curiosity and practical experience incorporating AI into marketing workflows\n- Strong collaboration and communication skills with the ability to turn metrics into narrative\n- A builder mentality, thriving in fast-paced, ambiguous environments and excited to architect systems that scale\nBenefits\n- Full Medical, Dental, and Vision (up to 100% covered)\n- 401K and commuter benefits\n- Flexible PTO\n- High-impact work that directly improves the healthcare experience for millions\nOur Values\n- Solve the customer’s problems, not yours\nWhen making decisions, think from the perspective of the customer. It’s easy to make decisions that make our lives simpler, but not the customers.\n- Do the things others are not willing to do\nAs a Nexer, always go after the hardest problems. Pursue things at the highest quality. Move at the fastest pace.&nbsp;\n- Take ownership\nAct like a founder. Own your roles, destinies, mistakes, behavior, and our mission. The buck stops with each of us - no blaming or excuses.\n- Say what’s on your mind, with positive intent\nBe direct, proactive, transparent, and frequent in your communication.\n- Default trust\nAs a Nexer, you do not have to earn trust, trust is given to you by default. If we by default trust each other, our speed of communication, feedback, information sharing, and overall improvements will be a lot faster.\n- Think in first principles\nWe first identify the problem and then break it down to its fundamentals before diving into solutions. We constantly ask “why” to validate our assumptions.\nWe are an equal opportunity employer and value diversity at our company. We do not discriminate on the basis of race, religion, color, national origin, sex, gender expression, sexual orientation, age, marital status, veteran status, or disability status. We provide reasonable accommodation for individuals with disabilities to participate in the application or interview process. Contact talent@nexhealth.com to request assistance.",
+          "is_valid": true,
+          "reason": "Valid description (7022 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Demand Generation Lead\n\nAbout NexHealth\nOur healthcare system remains frustratingly analog. When you live in a world of one-tap car rides, instant meal delivery, and unlimited streaming, why do you still have to call to schedule a doctor’s appointment and fill out a clipboard in the waiting room?\nNexHealth’s mission is to accelerate innovation in healthcare by connecting patients, providers, and developers.&nbsp;We’re building the infrastructure layer for modern healthcare, connecting thousands of fragmented, on-premise, and closed EHR systems into a single, modern platform that powers software, APIs, payments, and patient experiences across the ecosystem.\n- Founded: 2017\n- Headquarters: San Francisco, CA\n- Funding: $177M Series C&nbsp;\n- Employees: 200+\n- Trusted by tens of thousands of providers and hundreds of health-tech developers — forging the infrastructure layer that modern healthcare needs\nAbout the Role\nAs a&nbsp; Demand Generation Lead , you will architect and own our full-funnel marketing strategy, from high-funnel brand awareness to mid-funnel education and bottom-funnel lead capture. You’ll design scalable, repeatable acquisition and expansion programs that deepen engagement and accelerate revenue — partnering closely with Sales, Customer Success, Product, and RevOps.\nThis is a hands-on builder role for someone who thrives in fast-paced, high-growth environments. You love using data and product signals to surface the right accounts to engage, and you know how to translate insights into personalized, multi-channel experiences. You’ll lead both strategy and execution for your first 9–12 months, with a clear path to team leadership as you “nail and scale” our growth formula.\nYou’ll be joining a lean, talented, and highly collaborative marketing team where your work will have meaningful, immediate impact. This role gives you the opportunity to shape and scale the future of our full-funnel marketing engine, experiment with cutting-edge AI-powered workflows, and help drive the revenue growth that fuels NexHealth’s mission. You’ll also benefit from competitive compensation, stock options, flexible work arrangements, and comprehensive health coverage—all while doing high-impact work that accelerates innovation in healthcare.\nWhat You'll Do\n- Demand Gen Strategy &amp; Ownership: Develop, execute, and optimize full-funnel demand gen strategies that drive awareness, engage prospects, and drive action across the buyer’s journey. This includes lead scoring, lifecycle management, and account-based marketing. Build nurture and lifecycle campaigns that guide prospects from first touch through activation and expansion.\n- Channel &amp; Budget Management: Manage the demand gen budget across channels and campaigns, ensuring spend efficiency and alignment with goals (cost per demo performed, ROAS). Leverage our agencies that provide creative, website, and distribution support.\n- Cross-Functional Collaboration: Partner with Revenue Operations, Sales, Customer Success, and Finance to align on lead definitions, pipeline goals, and performance metrics. Serve as a builder who thrives in ambiguity, drives projects from conception to execution, and shares learnings with the broader team.\n- Data-Driven Experimentation &amp; Optimization: Identify bottlenecks, propose hypothesis-driven optimizations, and continually refine channel mix through testing and analysis. Create repeatable campaign playbooks that can be scaled across segments and regions.\n- AI and Automation as a Force Multiplier: Leverage AI for research, analytics and reporting, campaign ideation, and prospect engagement. Partner with Revenue Operations to evolve processes, workflows, and data hygiene that enable scaling.\n- Drive Measurable Pipeline Growth: Increase the number of qualified sales demos and bookings sourced from new and existing prospects while maintaining or reducing acquisition cost.\n- Grow and Engage Marketable Database: Deliver month-over-month increases in the size of our engaged prospect database while improving engagement rates and converting more of our audience into MQLs and sales-qualified opportunities.\n- Improve Full-Funnel Performance: Show continuous optimization across the buyer journey, from first touch to post-sale expansion, improving conversion rates at every stage.\n- Establish Operational Clarity &amp; Excellence: Create clear visibility into ROI across channels and campaigns, supported by actionable insights and reporting.\n- Built Scalable Systems &amp; AI- Driven Efficiency: Implement processes, reporting structures, and martech integrations that support long-term growth. Demonstrate measurable time-savings and/or performance improvements through AI-enhanced workflows.\nWhat You'll Bring:\n- 8+ years of B2B SaaS growth/demand gen experience with ownership of end-to-end demand strategies\n- Strong analytical and data-driven skillset with comfort diving into data independently\n- Hands-on technical experience with modern marketing tools such as HubSpot and Visual Website Optimizer\n- Curiosity and practical experience incorporating AI into marketing workflows\n- Strong collaboration and communication skills with the ability to turn metrics into narrative\n- A builder mentality, thriving in fast-paced, ambiguous environments and excited to architect systems that scale\nBenefits\n- Full Medical, Dental, and Vision (up to 100% covered)\n- 401K and commuter benefits\n- Flexible PTO\n- High-impact work that directly improves the healthcare experience for millions\nOur Values\n- Solve the customer’s problems, not yours\nWhen making decisions, think from the perspective of the customer. It’s easy to make decisions that make our lives simpler, but not the customers.\n- Do the things others are not willing to do\nAs a Nexer, always go after the hardest problems. Pursue things at the highest quality. Move at the fastest pace.&nbsp;\n- Take ownership\nAct like a founder. Own your roles, destinies, mistakes, behavior, and our mission. The buck stops with each of us - no blaming or excuses.\n- Say what’s on your mind, with positive intent\nBe direct, proactive, transparent, and frequent in your communication.\n- Default trust\nAs a Nexer, you do not have to earn trust, trust is given to you by default. If we by default trust each other, our speed of communication, feedback, information sharing, and overall improvements will be a lot faster.\n- Think in first principles\nWe first identify the problem and then break it down to its fundamentals before diving into solutions. We constantly ask “why” to validate our assumptions.\nWe are an equal opportunity employer and value diversity at our company. We do not discriminate on the basis of race, religion, color, national origin, sex, gender expression, sexual orientation, age, marital status, veteran status, or disability status. We provide reasonable accommodation for individuals with disabilities to participate in the application or interview process. Contact talent@nexhealth.com to request assistance.",
+          "is_valid": true,
+          "reason": "Valid description (7022 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

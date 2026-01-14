@@ -5,11 +5,11 @@
   "extracted_jobs": [
     {
       "title": "Regional Sales Manager - Netherlands",
-      "description_preview": "Our Mission At Palo Alto Networks\u00ae everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
+      "description_preview": "Our Mission At Palo Alto Networks® everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
       "description_word_count": 794,
-      "location": "Rotterdam, 11, NL",
+      "location": "Rotterdam, Netherlands",
       "is_remote": true,
-      "posted_at": 1768365469473,
+      "posted_at": 1768426869153,
       "posted_at_unknown": true,
       "company": "Palo Alto Networks",
       "level": "senior",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Regional Sales Manager - Netherlands",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Regional Sales Manager - Netherlands",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No title in hints"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Our Mission",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Palo Alto Networks",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Palo Alto Networks",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Paloaltonetworks",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "Our vision",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Rotterdam, 11, NL",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Rotterdam, 11, NL",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": "to leadership, we",
+          "is_valid": true,
+          "reason": "Found location label pattern"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": "Rotterdam",
+          "is_valid": true,
+          "reason": "Extracted from URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Rotterdam, 11, NL",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Palo Alto, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Rotterdam, 11, NL"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Palo Alto Networks' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'manager' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-14T14:41:09.153000",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-14T14:41:09.153000",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-14T14:41:09.153000"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.750425",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Regional Sales Manager is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\nYour Impact\n\nAs a Regional Sales Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customerBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsorsYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments Understanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks Engage a programmatic approach to demand to generate, develop, and expand your territoryLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.Stay updated on industry news and trends, and how they affect Palo Alto Networks products and servicesTravel as necessary within your territory, and to company-wide meetingsYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security industryDemonstrated experience selling complex solutions, value selling, and/or consultative sales techniquesTechnical aptitude for understanding how technology products and solutions solve business problemsIdentifies problems, reviews data, determines the root causes, and provides scalable solutionsCultivate relationships with our channel partners to bring channel-centric go-to-market approach for our customersDemonstrates in-depth knowledge of the full sales cycle and the ability to follow a structured sales processAbility to take a holistic approach to problem solving by understanding the bigger picture, and considering complex interrelationships and outcomesExcellent time management skills, and work with high levels of autonomy and self-directionProficiency in Dutch and English language skills The Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Regional Sales Manager is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\nYour Impact\n\nAs a Regional Sales Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customerBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsorsYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments Understanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks Engage a programmatic approach to demand to generate, develop, and expand your territoryLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.Stay updated on industry news and trends, and how they affect Palo Alto Networks products and servicesTravel as necessary within your territory, and to company-wide meetingsYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security industryDemonstrated experience selling complex solutions, value selling, and/or consultative sales techniquesTechnical aptitude for understanding how technology products and solutions solve business problemsIdentifies problems, reviews data, determines the root causes, and provides scalable solutionsCultivate relationships with our channel partners to bring channel-centric go-to-market approach for our customersDemonstrates in-depth knowledge of the full sales cycle and the ability to follow a structured sales processAbility to take a holistic approach to problem solving by understanding the bigger picture, and considering complex interrelationships and outcomesExcellent time management skills, and work with high levels of autonomy and self-directionProficiency in Dutch and English language skills The Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5613 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Regional Sales Manager is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\nYour Impact\n\nAs a Regional Sales Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customerBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsorsYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments Understanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks Engage a programmatic approach to demand to generate, develop, and expand your territoryLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.Stay updated on industry news and trends, and how they affect Palo Alto Networks products and servicesTravel as necessary within your territory, and to company-wide meetingsYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security industryDemonstrated experience selling complex solutions, value selling, and/or consultative sales techniquesTechnical aptitude for understanding how technology products and solutions solve business problemsIdentifies problems, reviews data, determines the root causes, and provides scalable solutionsCultivate relationships with our channel partners to bring channel-centric go-to-market approach for our customersDemonstrates in-depth knowledge of the full sales cycle and the ability to follow a structured sales processAbility to take a holistic approach to problem solving by understanding the bigger picture, and considering complex interrelationships and outcomesExcellent time management skills, and work with high levels of autonomy and self-directionProficiency in Dutch and English language skills The Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5613 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Regional Sales Manager is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\nYour Impact\n\nAs a Regional Sales Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customerBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsorsYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments Understanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks Engage a programmatic approach to demand to generate, develop, and expand your territoryLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.Stay updated on industry news and trends, and how they affect Palo Alto Networks products and servicesTravel as necessary within your territory, and to company-wide meetingsYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security industryDemonstrated experience selling complex solutions, value selling, and/or consultative sales techniquesTechnical aptitude for understanding how technology products and solutions solve business problemsIdentifies problems, reviews data, determines the root causes, and provides scalable solutionsCultivate relationships with our channel partners to bring channel-centric go-to-market approach for our customersDemonstrates in-depth knowledge of the full sales cycle and the ability to follow a structured sales processAbility to take a holistic approach to problem solving by understanding the bigger picture, and considering complex interrelationships and outcomesExcellent time management skills, and work with high levels of autonomy and self-directionProficiency in Dutch and English language skills The Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.",
+          "is_valid": true,
+          "reason": "Valid description (5613 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

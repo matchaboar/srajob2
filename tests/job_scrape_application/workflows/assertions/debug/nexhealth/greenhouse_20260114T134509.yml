@@ -1,0 +1,11 @@
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447434004
+expected:
+  title: "Director of Software Engineering"
+  company: "NexHealth"
+  location_contains: "San Francisco"
+  is_remote: false
+  level: staff
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

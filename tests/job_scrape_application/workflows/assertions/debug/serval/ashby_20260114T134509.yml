@@ -1,0 +1,11 @@
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/Serval/77514f30-6a54-4bb3-b9aa-28b86f6ce7c6
+expected:
+  title: "Mid-Market Account Executive"
+  company: "Serval"
+  location_contains: "San Francisco"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

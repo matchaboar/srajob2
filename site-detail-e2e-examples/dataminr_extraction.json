@@ -5,14 +5,14 @@
   "extracted_jobs": [
     {
       "title": "Partner Sales Engineer",
-      "description_preview": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you\u2019ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand...",
+      "description_preview": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you’ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand...",
       "description_word_count": 1170,
       "location": "Washington, DC",
       "is_remote": false,
       "posted_at": 1767711600000,
       "posted_at_unknown": false,
       "company": "Dataminr",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Partner Sales Engineer",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'workday' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Partner Sales Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No title in hints"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "No valid title found in first lines"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Dataminr",
+      "winning_strategy": "site_handler_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": "Dataminr",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Dataminr",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Dataminr",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Washington, DC",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'workday' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Washington, DC",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": "Us Remote",
+          "is_valid": true,
+          "reason": "Extracted from URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "AI technology, ReGenAI",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Washington, DC",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Washington, DC",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Washington, DC"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Dataminr' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 145252,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 145252,
+          "is_valid": true,
+          "reason": "Compensation range pattern: $117,726-$172,778 -> $145,252"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 145252,
+          "is_valid": true,
+          "reason": "Compensation from hints: $145,252"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-06T08:00:00",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-06T08:00:00",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-06T08:00:00"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'workday' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.535730",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you’ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand Dataminr's footprint through our partners. This critical role will be instrumental in showcasing Dataminr's cutting-edge AI-powered platform to our partners, demonstrating how our real-time event detection and analysis can solve complex security challenges for their clients. You'll translate technical capabilities into compelling joint business value propositions, fostering deep relationships and identifying new opportunities for partner-led growth. This role would ideally be located in the Washington DC area. Travel up to 30%. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The Opportunity Lead technical engagements with partners: Guide partners through solution design, integration, and successful deployment of Dataminr&#39;s cybersecurity and physical security offerings for their clients. Experience with Public Sector focused partners is a plus. Co-create compelling partner solutions: Develop and deliver engaging demonstrations, presentations, and training programs that showcase Dataminr&#39;s value and foster partner self-sufficiency. Provide API and integration guidance: Ensure seamless partner-built integrations and troubleshoot complex technical challenges. Drive joint go-to-market strategies: Collaborate with Channel Account Managers to execute playbooks and achieve shared revenue targets. Champion partner needs internally: Work with Product and Engineering to influence our roadmap and support partner-driven customer proof-of-value (POV) and expansion initiatives . Act as a cybersecurity subject matter expert and advocate: Identify new partner-led use cases, solve complex technical problems, and represent Dataminr at industry events to expand our ecosystem. What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Technical &amp; Partner-Facing Experience: You have 4&#43; years in a technical client-facing role (Solutions/Sales Engineer, TAM, product support, etc), with a strong background supporting and enabling channel partners (Channel, MSSPs, SIs, VARs) or large enterprise clients in the technology industry. Compelling Technical Storytelling: You excel at creating and delivering powerful technical presentations, workshops, and product demonstrations for diverse audiences, from technical staff to C-suite executives within partner organizations and their clients. Problem-Solving &amp; Collaboration: You&#39;re a proactive, self-motivated problem-solver with a detail-oriented approach to delivering exceptional client experiences. You thrive in a collaborative environment, effectively working across Go-To-Market, Product, Engineering, and external partner teams. Cybersecurity &amp; SaaS Platform Expertise: You possess demonstrated knowledge of cybersecurity and SaaS platforms, including a strong command of SIEM, SOAR, and TIP applications (e.g., Splunk, Palo Alto, Sumo Logic), endpoint/network security concepts, malware analysis, threat intelligence, and risk/compliance products. Integration &amp; Scripting Prowess (Plus): You have some experience with data integration, API usage (OpenAPIs, JSON, RESTful APIs, webhooks), and working with integrated solutions. Skill in scripting languages like Python, GoLang, or PowerShell, particularly for interacting with REST APIs between SaaS platforms is also a plus. Geospatial Interest (Plus): Familiarity with ArcGIS is a plus, or you have a strong willingness to learn and apply geospatial information systems in a security context. Relevant cybersecurity certifications (CISSP, CEH, OSCP, SANS) are also a plus. #LI-REMOTE About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual on-target earnings (OTE) for this position are $117,726 - $172,778, which consists of the annual base salary and annual commission target for the role. You will also be eligible to receive Company equity. Actual OTE will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you’ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand Dataminr's footprint through our partners. This critical role will be instrumental in showcasing Dataminr's cutting-edge AI-powered platform to our partners, demonstrating how our real-time event detection and analysis can solve complex security challenges for their clients. You'll translate technical capabilities into compelling joint business value propositions, fostering deep relationships and identifying new opportunities for partner-led growth. This role would ideally be located in the Washington DC area. Travel up to 30%. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The Opportunity Lead technical engagements with partners: Guide partners through solution design, integration, and successful deployment of Dataminr&#39;s cybersecurity and physical security offerings for their clients. Experience with Public Sector focused partners is a plus. Co-create compelling partner solutions: Develop and deliver engaging demonstrations, presentations, and training programs that showcase Dataminr&#39;s value and foster partner self-sufficiency. Provide API and integration guidance: Ensure seamless partner-built integrations and troubleshoot complex technical challenges. Drive joint go-to-market strategies: Collaborate with Channel Account Managers to execute playbooks and achieve shared revenue targets. Champion partner needs internally: Work with Product and Engineering to influence our roadmap and support partner-driven customer proof-of-value (POV) and expansion initiatives . Act as a cybersecurity subject matter expert and advocate: Identify new partner-led use cases, solve complex technical problems, and represent Dataminr at industry events to expand our ecosystem. What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Technical &amp; Partner-Facing Experience: You have 4&#43; years in a technical client-facing role (Solutions/Sales Engineer, TAM, product support, etc), with a strong background supporting and enabling channel partners (Channel, MSSPs, SIs, VARs) or large enterprise clients in the technology industry. Compelling Technical Storytelling: You excel at creating and delivering powerful technical presentations, workshops, and product demonstrations for diverse audiences, from technical staff to C-suite executives within partner organizations and their clients. Problem-Solving &amp; Collaboration: You&#39;re a proactive, self-motivated problem-solver with a detail-oriented approach to delivering exceptional client experiences. You thrive in a collaborative environment, effectively working across Go-To-Market, Product, Engineering, and external partner teams. Cybersecurity &amp; SaaS Platform Expertise: You possess demonstrated knowledge of cybersecurity and SaaS platforms, including a strong command of SIEM, SOAR, and TIP applications (e.g., Splunk, Palo Alto, Sumo Logic), endpoint/network security concepts, malware analysis, threat intelligence, and risk/compliance products. Integration &amp; Scripting Prowess (Plus): You have some experience with data integration, API usage (OpenAPIs, JSON, RESTful APIs, webhooks), and working with integrated solutions. Skill in scripting languages like Python, GoLang, or PowerShell, particularly for interacting with REST APIs between SaaS platforms is also a plus. Geospatial Interest (Plus): Familiarity with ArcGIS is a plus, or you have a strong willingness to learn and apply geospatial information systems in a security context. Relevant cybersecurity certifications (CISSP, CEH, OSCP, SANS) are also a plus. #LI-REMOTE About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual on-target earnings (OTE) for this position are $117,726 - $172,778, which consists of the annual base salary and annual commission target for the role. You will also be eligible to receive Company equity. Actual OTE will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "is_valid": true,
+          "reason": "Valid description (8145 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you’ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand Dataminr's footprint through our partners. This critical role will be instrumental in showcasing Dataminr's cutting-edge AI-powered platform to our partners, demonstrating how our real-time event detection and analysis can solve complex security challenges for their clients. You'll translate technical capabilities into compelling joint business value propositions, fostering deep relationships and identifying new opportunities for partner-led growth. This role would ideally be located in the Washington DC area. Travel up to 30%. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The Opportunity Lead technical engagements with partners: Guide partners through solution design, integration, and successful deployment of Dataminr&#39;s cybersecurity and physical security offerings for their clients. Experience with Public Sector focused partners is a plus. Co-create compelling partner solutions: Develop and deliver engaging demonstrations, presentations, and training programs that showcase Dataminr&#39;s value and foster partner self-sufficiency. Provide API and integration guidance: Ensure seamless partner-built integrations and troubleshoot complex technical challenges. Drive joint go-to-market strategies: Collaborate with Channel Account Managers to execute playbooks and achieve shared revenue targets. Champion partner needs internally: Work with Product and Engineering to influence our roadmap and support partner-driven customer proof-of-value (POV) and expansion initiatives . Act as a cybersecurity subject matter expert and advocate: Identify new partner-led use cases, solve complex technical problems, and represent Dataminr at industry events to expand our ecosystem. What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Technical &amp; Partner-Facing Experience: You have 4&#43; years in a technical client-facing role (Solutions/Sales Engineer, TAM, product support, etc), with a strong background supporting and enabling channel partners (Channel, MSSPs, SIs, VARs) or large enterprise clients in the technology industry. Compelling Technical Storytelling: You excel at creating and delivering powerful technical presentations, workshops, and product demonstrations for diverse audiences, from technical staff to C-suite executives within partner organizations and their clients. Problem-Solving &amp; Collaboration: You&#39;re a proactive, self-motivated problem-solver with a detail-oriented approach to delivering exceptional client experiences. You thrive in a collaborative environment, effectively working across Go-To-Market, Product, Engineering, and external partner teams. Cybersecurity &amp; SaaS Platform Expertise: You possess demonstrated knowledge of cybersecurity and SaaS platforms, including a strong command of SIEM, SOAR, and TIP applications (e.g., Splunk, Palo Alto, Sumo Logic), endpoint/network security concepts, malware analysis, threat intelligence, and risk/compliance products. Integration &amp; Scripting Prowess (Plus): You have some experience with data integration, API usage (OpenAPIs, JSON, RESTful APIs, webhooks), and working with integrated solutions. Skill in scripting languages like Python, GoLang, or PowerShell, particularly for interacting with REST APIs between SaaS platforms is also a plus. Geospatial Interest (Plus): Familiarity with ArcGIS is a plus, or you have a strong willingness to learn and apply geospatial information systems in a security context. Relevant cybersecurity certifications (CISSP, CEH, OSCP, SANS) are also a plus. #LI-REMOTE About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual on-target earnings (OTE) for this position are $117,726 - $172,778, which consists of the annual base salary and annual commission target for the role. You will also be eligible to receive Company equity. Actual OTE will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "is_valid": true,
+          "reason": "Valid description (8145 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "See yourself at Dataminr Dataminr is seeking a Partner Sales Engineer to directly impact the success of our business by enabling and building relationships with our partner ecosystem. A trusted technical advisor, you’ll collaborate closely with our Channel Account Managers to co-develop strategies that drive mutual revenue growth and expand Dataminr's footprint through our partners. This critical role will be instrumental in showcasing Dataminr's cutting-edge AI-powered platform to our partners, demonstrating how our real-time event detection and analysis can solve complex security challenges for their clients. You'll translate technical capabilities into compelling joint business value propositions, fostering deep relationships and identifying new opportunities for partner-led growth. This role would ideally be located in the Washington DC area. Travel up to 30%. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The Opportunity Lead technical engagements with partners: Guide partners through solution design, integration, and successful deployment of Dataminr&#39;s cybersecurity and physical security offerings for their clients. Experience with Public Sector focused partners is a plus. Co-create compelling partner solutions: Develop and deliver engaging demonstrations, presentations, and training programs that showcase Dataminr&#39;s value and foster partner self-sufficiency. Provide API and integration guidance: Ensure seamless partner-built integrations and troubleshoot complex technical challenges. Drive joint go-to-market strategies: Collaborate with Channel Account Managers to execute playbooks and achieve shared revenue targets. Champion partner needs internally: Work with Product and Engineering to influence our roadmap and support partner-driven customer proof-of-value (POV) and expansion initiatives . Act as a cybersecurity subject matter expert and advocate: Identify new partner-led use cases, solve complex technical problems, and represent Dataminr at industry events to expand our ecosystem. What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Technical &amp; Partner-Facing Experience: You have 4&#43; years in a technical client-facing role (Solutions/Sales Engineer, TAM, product support, etc), with a strong background supporting and enabling channel partners (Channel, MSSPs, SIs, VARs) or large enterprise clients in the technology industry. Compelling Technical Storytelling: You excel at creating and delivering powerful technical presentations, workshops, and product demonstrations for diverse audiences, from technical staff to C-suite executives within partner organizations and their clients. Problem-Solving &amp; Collaboration: You&#39;re a proactive, self-motivated problem-solver with a detail-oriented approach to delivering exceptional client experiences. You thrive in a collaborative environment, effectively working across Go-To-Market, Product, Engineering, and external partner teams. Cybersecurity &amp; SaaS Platform Expertise: You possess demonstrated knowledge of cybersecurity and SaaS platforms, including a strong command of SIEM, SOAR, and TIP applications (e.g., Splunk, Palo Alto, Sumo Logic), endpoint/network security concepts, malware analysis, threat intelligence, and risk/compliance products. Integration &amp; Scripting Prowess (Plus): You have some experience with data integration, API usage (OpenAPIs, JSON, RESTful APIs, webhooks), and working with integrated solutions. Skill in scripting languages like Python, GoLang, or PowerShell, particularly for interacting with REST APIs between SaaS platforms is also a plus. Geospatial Interest (Plus): Familiarity with ArcGIS is a plus, or you have a strong willingness to learn and apply geospatial information systems in a security context. Relevant cybersecurity certifications (CISSP, CEH, OSCP, SANS) are also a plus. #LI-REMOTE About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual on-target earnings (OTE) for this position are $117,726 - $172,778, which consists of the annual base salary and annual commission target for the role. You will also be eligible to receive Company equity. Actual OTE will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "is_valid": true,
+          "reason": "Valid description (8145 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

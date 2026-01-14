@@ -294,6 +294,7 @@ def generate_assertion_yaml(
         level = "mid"  # Default
 
     lines = [
+        "# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.",
         f"site_id: {site_info['handler']}",
         f"detail_url: {detail_url}",
         "expected:",
@@ -387,8 +388,9 @@ async def main() -> int:
     if remote_override:
         print(f"\n⚠️  {company_name} is in remote_companies.yaml - all jobs marked remote")
 
-    # Generate file paths with date and per-company organization
-    date_str = datetime.now().strftime("%Y%m%d")
+    # Generate file paths with timestamp and per-company organization
+    # Use ISO timestamp format: YYYYMMDDTHHMMSS for unique identification
+    timestamp_str = datetime.now().strftime("%Y%m%dT%H%M%S")
     company_folder = site_info["normalized_company"] or site_info["handler"]
 
     fixture_dir = ROOT / f"tests/job_scrape_application/workflows/fixtures/debug/{company_folder}"
@@ -397,8 +399,8 @@ async def main() -> int:
     # Use shortened job ID for cleaner filenames
     short_id = job_id[-8:] if len(job_id) > 8 else job_id
 
-    fixture_path = fixture_dir / f"{site_info['handler']}_{short_id}_{date_str}_detail.json"
-    assertion_path = assertion_dir / f"{site_info['handler']}_{short_id}_{date_str}.yml"
+    fixture_path = fixture_dir / f"{site_info['handler']}_{short_id}_{timestamp_str}_detail.json"
+    assertion_path = assertion_dir / f"{site_info['handler']}_{short_id}_{timestamp_str}.yml"
 
     print(f"\n=== Output Paths ===")
     print(f"Fixture:    {fixture_path}")
@@ -423,7 +425,7 @@ async def main() -> int:
     print(f"✓ Assertions saved to: {assertion_path}")
 
     # Print test command
-    identifier = f"{site_info['handler']}_{short_id}_{date_str}"
+    identifier = f"{site_info['handler']}_{short_id}_{timestamp_str}"
     print(f"\n=== Test Command ===")
     print(f"uv run pytest tests/job_scrape_application/workflows/test_debug_fixtures.py::test_debug_job_extraction[{identifier}] -v")
 

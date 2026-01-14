@@ -1,0 +1,27 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: ashby
+listing_url: https://jobs.ashbyhq.com/Serval
+expected:
+  url_count_min: 16
+  url_pattern: "https://jobs\\.ashbyhq\\.com/[^/]+/[a-f0-9-]+"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "AshbyHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://jobs.ashbyhq.com/Serval/77514f30-6a54-4bb3-b9aa-28b86f6ce7c6"
+  #   - "https://jobs.ashbyhq.com/Serval/91274bc2-d730-40b3-b52b-32ccfe602416"
+  #   - "https://jobs.ashbyhq.com/Serval/9e529850-07ca-4317-817e-21630f63192e"
+  #   - "https://jobs.ashbyhq.com/Serval/e72be29c-ce13-49d3-9445-0e0e7c0fae20"
+  #   - "https://jobs.ashbyhq.com/Serval/97829eb5-8bd9-4a6d-a04c-f4dfa1779674"
+  #   - "https://jobs.ashbyhq.com/Serval/a6cb109f-143d-4b46-b77a-1f1cb622a62b"
+  #   - "https://jobs.ashbyhq.com/Serval/e76eb6d6-700b-41ec-97ec-6e4a1660e390"
+  #   - "https://jobs.ashbyhq.com/Serval/7928f65b-538e-422f-8c82-cf69910411cc"
+  #   - "https://jobs.ashbyhq.com/Serval/f71a1d3f-9c1b-485e-964b-58e071510eac"
+  #   - "https://jobs.ashbyhq.com/Serval/dd399b0a-f312-424b-9b48-f48c331c6fb8"
+  #   - "https://jobs.ashbyhq.com/Serval/f55f33e2-f273-4267-b94d-5c94fdcac7d6"
+  #   - "https://jobs.ashbyhq.com/Serval/2bfaede4-22b2-43b2-a14c-f45e5f398624"
+  #   - "https://jobs.ashbyhq.com/Serval/7a429d2f-f3d5-4ba9-97d8-133374a65278"
+  #   - "https://jobs.ashbyhq.com/Serval/5d3e213d-cdda-458e-a57f-b39ab1cb7456"
+  #   - "https://jobs.ashbyhq.com/Serval/abf9404e-4e0b-4d4b-afb8-b6b50aa5b808"
+  #   - "https://jobs.ashbyhq.com/Serval/c0a7f8e9-17d8-438c-9944-f0455a71c8bf"

@@ -1,0 +1,23 @@
+{
+  "request": {
+    "url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
+    "params": {
+      "return_format": [
+        "raw"
+      ],
+      "metadata": true,
+      "request": "basic",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": true,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": null
+}

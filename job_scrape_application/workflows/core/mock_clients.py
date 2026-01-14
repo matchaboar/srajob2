@@ -489,7 +489,15 @@ class CapturingSpiderClient:
             # Return an awaitable that captures the response
             async def _capturing_awaitable():
                 try:
-                    if hasattr(response, "__await__"):
+                    # Handle async generators (Spider SDK sometimes returns these even with stream=False)
+                    if hasattr(response, "__aiter__"):
+                        items = []
+                        async for item in response:
+                            items.append(item)
+                        result = items[0] if len(items) == 1 else items
+                        capture["response"] = result
+                        return result
+                    elif hasattr(response, "__await__"):
                         result = await response
                     else:
                         result = response

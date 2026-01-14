@@ -7,7 +7,7 @@
       "title": "2026 China Data Science Internship - Deep Learning Focus",
       "description_preview": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai) The Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale....",
       "description_word_count": 1100,
-      "location": "Shanghai",
+      "location": "Shanghai, China",
       "is_remote": false,
       "posted_at": 1766061131000,
       "posted_at_unknown": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "2026 China Data Science Internship - Deep Learning Focus",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "2026 China Data Science Internship - Deep Learning Focus",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "2026 China Data Science Internship - Deep Learning Focus",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai)",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "The Trade Desk",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "The Trade Desk",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "The Trade Desk",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Shanghai",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Shanghai",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Shanghai",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Shanghai, China",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Shanghai"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'The Trade Desk' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "junior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Explicit level field: junior -> junior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Level from title: 'internship' -> junior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Level from content: 'Internship' -> junior"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2025-12-18T05:32:11",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2025-12-18T05:32:11",
+          "is_valid": true,
+          "reason": "Valid date: 2025-12-18T05:32:11"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:11.145242",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai)\n\nThe Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale. We have also built something even stronger and more valuable: an award-winning culture based on trust, ownership, empathy, and collaboration. We value the unique experiences and perspectives that each person brings to The Trade Desk, and we are committed to fostering inclusive spaces where everyone can bring their authentic selves to work every day.\nDo you have a passion for solving hard problems at scale? Are you eager to join a dynamic, globally- connected team where your contributions will make a meaningful difference in building a better media ecosystem? Come and see why Fortune magazine consistently ranks The Trade Desk among the best small- to medium-sized workplaces globally.\nWhat you'll do:&nbsp;\nAs part of the Value Algos: Conversion &amp; Relevance team within Performance Algorithms ,&nbsp;you’ll&nbsp;dive into the core of The Trade Desk’s optimization engine. &nbsp;\nPerformance Algorithms power the backend logic of our platform, ensuring that every campaign is optimized toward the key success metrics defined by our clients. A cornerstone of this system is the Value Equation, which&nbsp;determines&nbsp;the&nbsp;optimal&nbsp;bid price based on multiple factors—such as data relevance, conversion likelihood, and click probability. &nbsp;\n- Own a meaningful project. Have the opportunity to contribute to the development of new and existing data products, experiencing firsthand the day-to-day life of a professional data scientist. We believe strongly in ownership at The Trade Desk, and we are committed to you having something substantial to show for your time here that will make a positive impact for the team. &nbsp;\n- Receive one-on-one mentorship from an experienced Data Scientist and members of the Data Science team. &nbsp;\n- Collaborate with a globally-connected team where you will also interact closely with our product, trading, and engineering teams to oversee the implementation of your projects. &nbsp;\nWho you are:&nbsp;\nYou might be a great fit for a Data Science internship with deep learning focus at The Trade Desk if you &nbsp;\n- Are enthusiastic to learn (and teach) new technologies, machine learning techniques, and advancements in the AdTech industry.\n- Have an abundance of intellectual curiosity.\n- Have a deep understanding of statistical machine learning and optimization techniques.\n- Have completed university‑level or equivalent coursework focused specifically on deep learning (e.g., neural networks, NLP, representation learning).\n- Have experience working with NLP models or text‑based deep learning projects.\n- Have participated in ML/DL clubs, research groups, labs, or relevant internships that demonstrate applied experience.\n- Are able to clearly document and communicate project outcomes, including metrics, benchmark comparisons, and ablation or evaluation results.\n- Have experience training and evaluating models using real datasets, with the ability to quantify improvements or performance.\n- Want to work with big data technologies such as Spark and AWS.\n- Have experience in at least one programming language (Python, R, Java, Scala, etc.) and are comfortable with SQL by the start of the internship.\n- Are able to deliver a convincing story, derived from data, to both technical and non‑technical audiences.\n- Are enrolled in a Master’s or PhD degree program.\n- Anticipated graduation date between November 2026 and August 2027 .\n- Availability to work for 12 weeks during Summer 2026 (June–August) in our Shanghai office .\n- Are open to the possibility of rejoining the same office and team for a future DS I full‑time position.\nThis is a right opportunity for you i f you are looking for &nbsp;\n- Work at a Global Technology Company with a Mission : Be part of a company dedicated to making the Internet better for everyone—consumers, content owners, and marketers—by contributing to meaningful and impactful projects that transform how advertising is bought and sold. &nbsp;\n- Innovate and Solve Unsolved Problems : Tackle challenges that don’t have predefined solutions, where you take ownership and are responsible for delivering impactful outcomes. &nbsp;\n- Engage in Unique, Large-Scale Challenges : Work with cutting-edge technology on a platform that handles over 11 million requests per second, processing more queries than the combined searches on Google, tweets on Twitter, and snaps on Snapchat. &nbsp;\n- Be Part of an Award-Winning Culture : Join a collaborative, trust-driven workplace that values empathy, collaboration, and ownership—a culture built to support your growth. &nbsp;\n- Explore Future DS Full Time Opportunities : Outstanding interns may have the chance to return to the same office and team for future DS I full-time position. &nbsp;\n&nbsp;\nWhat and how you can contribute is what’s important to us. Our consideration is not limited by the kind of education you have or the specific technologies you have experience with. We care about having good people to pitch in. Our culture is creative, energetic, and collaborative. Those aren’t perks – those are just the way we do business. &nbsp;\nIf this sounds like you, we welcome your application and invite you to find out why The Trade Desk has been named to the Fortune Future 50 list and the list of 100 fastest growing companies as well as Yello naming The Trade Desk a Top 100 Internship Program of 2023 and why we received the Intern Growth Award !&nbsp; &nbsp;\nThe Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.\n#LI-PL\nAs an Equal Opportunity Employer, The Trade Desk is committed to creating an inclusive hiring experience where everyone has the opportunity to thrive.\nPlease reach out to us at&nbsp; accommodations@​thetradedesk.​com &nbsp;to request an accommodation or discuss any accessibility needs you may require to access our Company Website or navigate any part of the hiring process.&nbsp;\nWhen you contact us, please include your preferred contact details and specify the nature of your accommodation request or questions. Any information you share will be handled confidentially and will not impact our hiring decisions.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai)\n\nThe Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale. We have also built something even stronger and more valuable: an award-winning culture based on trust, ownership, empathy, and collaboration. We value the unique experiences and perspectives that each person brings to The Trade Desk, and we are committed to fostering inclusive spaces where everyone can bring their authentic selves to work every day.\nDo you have a passion for solving hard problems at scale? Are you eager to join a dynamic, globally- connected team where your contributions will make a meaningful difference in building a better media ecosystem? Come and see why Fortune magazine consistently ranks The Trade Desk among the best small- to medium-sized workplaces globally.\nWhat you'll do:&nbsp;\nAs part of the Value Algos: Conversion &amp; Relevance team within Performance Algorithms ,&nbsp;you’ll&nbsp;dive into the core of The Trade Desk’s optimization engine. &nbsp;\nPerformance Algorithms power the backend logic of our platform, ensuring that every campaign is optimized toward the key success metrics defined by our clients. A cornerstone of this system is the Value Equation, which&nbsp;determines&nbsp;the&nbsp;optimal&nbsp;bid price based on multiple factors—such as data relevance, conversion likelihood, and click probability. &nbsp;\n- Own a meaningful project. Have the opportunity to contribute to the development of new and existing data products, experiencing firsthand the day-to-day life of a professional data scientist. We believe strongly in ownership at The Trade Desk, and we are committed to you having something substantial to show for your time here that will make a positive impact for the team. &nbsp;\n- Receive one-on-one mentorship from an experienced Data Scientist and members of the Data Science team. &nbsp;\n- Collaborate with a globally-connected team where you will also interact closely with our product, trading, and engineering teams to oversee the implementation of your projects. &nbsp;\nWho you are:&nbsp;\nYou might be a great fit for a Data Science internship with deep learning focus at The Trade Desk if you &nbsp;\n- Are enthusiastic to learn (and teach) new technologies, machine learning techniques, and advancements in the AdTech industry.\n- Have an abundance of intellectual curiosity.\n- Have a deep understanding of statistical machine learning and optimization techniques.\n- Have completed university‑level or equivalent coursework focused specifically on deep learning (e.g., neural networks, NLP, representation learning).\n- Have experience working with NLP models or text‑based deep learning projects.\n- Have participated in ML/DL clubs, research groups, labs, or relevant internships that demonstrate applied experience.\n- Are able to clearly document and communicate project outcomes, including metrics, benchmark comparisons, and ablation or evaluation results.\n- Have experience training and evaluating models using real datasets, with the ability to quantify improvements or performance.\n- Want to work with big data technologies such as Spark and AWS.\n- Have experience in at least one programming language (Python, R, Java, Scala, etc.) and are comfortable with SQL by the start of the internship.\n- Are able to deliver a convincing story, derived from data, to both technical and non‑technical audiences.\n- Are enrolled in a Master’s or PhD degree program.\n- Anticipated graduation date between November 2026 and August 2027 .\n- Availability to work for 12 weeks during Summer 2026 (June–August) in our Shanghai office .\n- Are open to the possibility of rejoining the same office and team for a future DS I full‑time position.\nThis is a right opportunity for you i f you are looking for &nbsp;\n- Work at a Global Technology Company with a Mission : Be part of a company dedicated to making the Internet better for everyone—consumers, content owners, and marketers—by contributing to meaningful and impactful projects that transform how advertising is bought and sold. &nbsp;\n- Innovate and Solve Unsolved Problems : Tackle challenges that don’t have predefined solutions, where you take ownership and are responsible for delivering impactful outcomes. &nbsp;\n- Engage in Unique, Large-Scale Challenges : Work with cutting-edge technology on a platform that handles over 11 million requests per second, processing more queries than the combined searches on Google, tweets on Twitter, and snaps on Snapchat. &nbsp;\n- Be Part of an Award-Winning Culture : Join a collaborative, trust-driven workplace that values empathy, collaboration, and ownership—a culture built to support your growth. &nbsp;\n- Explore Future DS Full Time Opportunities : Outstanding interns may have the chance to return to the same office and team for future DS I full-time position. &nbsp;\n&nbsp;\nWhat and how you can contribute is what’s important to us. Our consideration is not limited by the kind of education you have or the specific technologies you have experience with. We care about having good people to pitch in. Our culture is creative, energetic, and collaborative. Those aren’t perks – those are just the way we do business. &nbsp;\nIf this sounds like you, we welcome your application and invite you to find out why The Trade Desk has been named to the Fortune Future 50 list and the list of 100 fastest growing companies as well as Yello naming The Trade Desk a Top 100 Internship Program of 2023 and why we received the Intern Growth Award !&nbsp; &nbsp;\nThe Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.\n#LI-PL\nAs an Equal Opportunity Employer, The Trade Desk is committed to creating an inclusive hiring experience where everyone has the opportunity to thrive.\nPlease reach out to us at&nbsp; accommodations@​thetradedesk.​com &nbsp;to request an accommodation or discuss any accessibility needs you may require to access our Company Website or navigate any part of the hiring process.&nbsp;\nWhen you contact us, please include your preferred contact details and specify the nature of your accommodation request or questions. Any information you share will be handled confidentially and will not impact our hiring decisions.",
+          "is_valid": true,
+          "reason": "Valid description (7105 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai)\n\nThe Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale. We have also built something even stronger and more valuable: an award-winning culture based on trust, ownership, empathy, and collaboration. We value the unique experiences and perspectives that each person brings to The Trade Desk, and we are committed to fostering inclusive spaces where everyone can bring their authentic selves to work every day.\nDo you have a passion for solving hard problems at scale? Are you eager to join a dynamic, globally- connected team where your contributions will make a meaningful difference in building a better media ecosystem? Come and see why Fortune magazine consistently ranks The Trade Desk among the best small- to medium-sized workplaces globally.\nWhat you'll do:&nbsp;\nAs part of the Value Algos: Conversion &amp; Relevance team within Performance Algorithms ,&nbsp;you’ll&nbsp;dive into the core of The Trade Desk’s optimization engine. &nbsp;\nPerformance Algorithms power the backend logic of our platform, ensuring that every campaign is optimized toward the key success metrics defined by our clients. A cornerstone of this system is the Value Equation, which&nbsp;determines&nbsp;the&nbsp;optimal&nbsp;bid price based on multiple factors—such as data relevance, conversion likelihood, and click probability. &nbsp;\n- Own a meaningful project. Have the opportunity to contribute to the development of new and existing data products, experiencing firsthand the day-to-day life of a professional data scientist. We believe strongly in ownership at The Trade Desk, and we are committed to you having something substantial to show for your time here that will make a positive impact for the team. &nbsp;\n- Receive one-on-one mentorship from an experienced Data Scientist and members of the Data Science team. &nbsp;\n- Collaborate with a globally-connected team where you will also interact closely with our product, trading, and engineering teams to oversee the implementation of your projects. &nbsp;\nWho you are:&nbsp;\nYou might be a great fit for a Data Science internship with deep learning focus at The Trade Desk if you &nbsp;\n- Are enthusiastic to learn (and teach) new technologies, machine learning techniques, and advancements in the AdTech industry.\n- Have an abundance of intellectual curiosity.\n- Have a deep understanding of statistical machine learning and optimization techniques.\n- Have completed university‑level or equivalent coursework focused specifically on deep learning (e.g., neural networks, NLP, representation learning).\n- Have experience working with NLP models or text‑based deep learning projects.\n- Have participated in ML/DL clubs, research groups, labs, or relevant internships that demonstrate applied experience.\n- Are able to clearly document and communicate project outcomes, including metrics, benchmark comparisons, and ablation or evaluation results.\n- Have experience training and evaluating models using real datasets, with the ability to quantify improvements or performance.\n- Want to work with big data technologies such as Spark and AWS.\n- Have experience in at least one programming language (Python, R, Java, Scala, etc.) and are comfortable with SQL by the start of the internship.\n- Are able to deliver a convincing story, derived from data, to both technical and non‑technical audiences.\n- Are enrolled in a Master’s or PhD degree program.\n- Anticipated graduation date between November 2026 and August 2027 .\n- Availability to work for 12 weeks during Summer 2026 (June–August) in our Shanghai office .\n- Are open to the possibility of rejoining the same office and team for a future DS I full‑time position.\nThis is a right opportunity for you i f you are looking for &nbsp;\n- Work at a Global Technology Company with a Mission : Be part of a company dedicated to making the Internet better for everyone—consumers, content owners, and marketers—by contributing to meaningful and impactful projects that transform how advertising is bought and sold. &nbsp;\n- Innovate and Solve Unsolved Problems : Tackle challenges that don’t have predefined solutions, where you take ownership and are responsible for delivering impactful outcomes. &nbsp;\n- Engage in Unique, Large-Scale Challenges : Work with cutting-edge technology on a platform that handles over 11 million requests per second, processing more queries than the combined searches on Google, tweets on Twitter, and snaps on Snapchat. &nbsp;\n- Be Part of an Award-Winning Culture : Join a collaborative, trust-driven workplace that values empathy, collaboration, and ownership—a culture built to support your growth. &nbsp;\n- Explore Future DS Full Time Opportunities : Outstanding interns may have the chance to return to the same office and team for future DS I full-time position. &nbsp;\n&nbsp;\nWhat and how you can contribute is what’s important to us. Our consideration is not limited by the kind of education you have or the specific technologies you have experience with. We care about having good people to pitch in. Our culture is creative, energetic, and collaborative. Those aren’t perks – those are just the way we do business. &nbsp;\nIf this sounds like you, we welcome your application and invite you to find out why The Trade Desk has been named to the Fortune Future 50 list and the list of 100 fastest growing companies as well as Yello naming The Trade Desk a Top 100 Internship Program of 2023 and why we received the Intern Growth Award !&nbsp; &nbsp;\nThe Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.\n#LI-PL\nAs an Equal Opportunity Employer, The Trade Desk is committed to creating an inclusive hiring experience where everyone has the opportunity to thrive.\nPlease reach out to us at&nbsp; accommodations@​thetradedesk.​com &nbsp;to request an accommodation or discuss any accessibility needs you may require to access our Company Website or navigate any part of the hiring process.&nbsp;\nWhen you contact us, please include your preferred contact details and specify the nature of your accommodation request or questions. Any information you share will be handled confidentially and will not impact our hiring decisions.",
+          "is_valid": true,
+          "reason": "Valid description (7105 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "2026 China Data Science Internship - Deep Learning Focus (Based in Shanghai)\n\nThe Trade Desk is a global technology company with a mission to create a better, more open internet for everyone through principled, intelligent advertising. Handling over 1 trillion queries per day, our platform operates at an unprecedented scale. We have also built something even stronger and more valuable: an award-winning culture based on trust, ownership, empathy, and collaboration. We value the unique experiences and perspectives that each person brings to The Trade Desk, and we are committed to fostering inclusive spaces where everyone can bring their authentic selves to work every day.\nDo you have a passion for solving hard problems at scale? Are you eager to join a dynamic, globally- connected team where your contributions will make a meaningful difference in building a better media ecosystem? Come and see why Fortune magazine consistently ranks The Trade Desk among the best small- to medium-sized workplaces globally.\nWhat you'll do:&nbsp;\nAs part of the Value Algos: Conversion &amp; Relevance team within Performance Algorithms ,&nbsp;you’ll&nbsp;dive into the core of The Trade Desk’s optimization engine. &nbsp;\nPerformance Algorithms power the backend logic of our platform, ensuring that every campaign is optimized toward the key success metrics defined by our clients. A cornerstone of this system is the Value Equation, which&nbsp;determines&nbsp;the&nbsp;optimal&nbsp;bid price based on multiple factors—such as data relevance, conversion likelihood, and click probability. &nbsp;\n- Own a meaningful project. Have the opportunity to contribute to the development of new and existing data products, experiencing firsthand the day-to-day life of a professional data scientist. We believe strongly in ownership at The Trade Desk, and we are committed to you having something substantial to show for your time here that will make a positive impact for the team. &nbsp;\n- Receive one-on-one mentorship from an experienced Data Scientist and members of the Data Science team. &nbsp;\n- Collaborate with a globally-connected team where you will also interact closely with our product, trading, and engineering teams to oversee the implementation of your projects. &nbsp;\nWho you are:&nbsp;\nYou might be a great fit for a Data Science internship with deep learning focus at The Trade Desk if you &nbsp;\n- Are enthusiastic to learn (and teach) new technologies, machine learning techniques, and advancements in the AdTech industry.\n- Have an abundance of intellectual curiosity.\n- Have a deep understanding of statistical machine learning and optimization techniques.\n- Have completed university‑level or equivalent coursework focused specifically on deep learning (e.g., neural networks, NLP, representation learning).\n- Have experience working with NLP models or text‑based deep learning projects.\n- Have participated in ML/DL clubs, research groups, labs, or relevant internships that demonstrate applied experience.\n- Are able to clearly document and communicate project outcomes, including metrics, benchmark comparisons, and ablation or evaluation results.\n- Have experience training and evaluating models using real datasets, with the ability to quantify improvements or performance.\n- Want to work with big data technologies such as Spark and AWS.\n- Have experience in at least one programming language (Python, R, Java, Scala, etc.) and are comfortable with SQL by the start of the internship.\n- Are able to deliver a convincing story, derived from data, to both technical and non‑technical audiences.\n- Are enrolled in a Master’s or PhD degree program.\n- Anticipated graduation date between November 2026 and August 2027 .\n- Availability to work for 12 weeks during Summer 2026 (June–August) in our Shanghai office .\n- Are open to the possibility of rejoining the same office and team for a future DS I full‑time position.\nThis is a right opportunity for you i f you are looking for &nbsp;\n- Work at a Global Technology Company with a Mission : Be part of a company dedicated to making the Internet better for everyone—consumers, content owners, and marketers—by contributing to meaningful and impactful projects that transform how advertising is bought and sold. &nbsp;\n- Innovate and Solve Unsolved Problems : Tackle challenges that don’t have predefined solutions, where you take ownership and are responsible for delivering impactful outcomes. &nbsp;\n- Engage in Unique, Large-Scale Challenges : Work with cutting-edge technology on a platform that handles over 11 million requests per second, processing more queries than the combined searches on Google, tweets on Twitter, and snaps on Snapchat. &nbsp;\n- Be Part of an Award-Winning Culture : Join a collaborative, trust-driven workplace that values empathy, collaboration, and ownership—a culture built to support your growth. &nbsp;\n- Explore Future DS Full Time Opportunities : Outstanding interns may have the chance to return to the same office and team for future DS I full-time position. &nbsp;\n&nbsp;\nWhat and how you can contribute is what’s important to us. Our consideration is not limited by the kind of education you have or the specific technologies you have experience with. We care about having good people to pitch in. Our culture is creative, energetic, and collaborative. Those aren’t perks – those are just the way we do business. &nbsp;\nIf this sounds like you, we welcome your application and invite you to find out why The Trade Desk has been named to the Fortune Future 50 list and the list of 100 fastest growing companies as well as Yello naming The Trade Desk a Top 100 Internship Program of 2023 and why we received the Intern Growth Award !&nbsp; &nbsp;\nThe Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.\n#LI-PL\nAs an Equal Opportunity Employer, The Trade Desk is committed to creating an inclusive hiring experience where everyone has the opportunity to thrive.\nPlease reach out to us at&nbsp; accommodations@​thetradedesk.​com &nbsp;to request an accommodation or discuss any accessibility needs you may require to access our Company Website or navigate any part of the hiring process.&nbsp;\nWhen you contact us, please include your preferred contact details and specify the nature of your accommodation request or questions. Any information you share will be handled confidentially and will not impact our hiring decisions.",
+          "is_valid": true,
+          "reason": "Valid description (7105 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

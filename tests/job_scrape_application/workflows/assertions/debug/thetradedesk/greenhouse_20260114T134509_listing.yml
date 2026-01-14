@@ -1,0 +1,42 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/thetradedesk/jobs
+expected:
+  url_count_min: 31
+  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
+  no_listing_urls: true
+  handler: "GreenhouseHandler"
+  # expected_urls: Uncomment and fill with VALID URLs only
+  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
+  # expected_urls:
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828142007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4844796007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4926299007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4969639007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4988923007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5019257007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5000637007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5011605007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4614603007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5001632007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4826602007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4977767007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4748632007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4834108007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4689448007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5003632007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5013843007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5021705007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4972481007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4985094007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4826395007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4823184007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4985784007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5016314007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5016313007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4779743007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4956952007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5019294007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4929620007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4959711007"
+  #   - "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5006516007"

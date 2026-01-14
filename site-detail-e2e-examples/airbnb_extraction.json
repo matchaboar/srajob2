@@ -12,7 +12,7 @@
       "posted_at": 1767988795000,
       "posted_at_unknown": false,
       "company": "Airbnb",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Account Executive, Airbnb for Business",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Airbnb for Business",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Account Executive, Airbnb for Business",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Account Executive, Airbnb for Business",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Airbnb",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Airbnb",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Canada",
+      "winning_strategy": "country_only_fallback_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": null,
+          "is_valid": false,
+          "reason": "Country-only location too generic: Canada"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Canada",
+          "is_valid": true,
+          "reason": "Country-only fallback: Country-only location accepted (explicit source): Canada"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "San Francisco, CA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": "Remote",
+          "is_valid": true,
+          "reason": "Job marked as remote, using 'Remote' as location"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": true,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": true,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Canada"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": true,
+          "is_valid": true,
+          "reason": "Remote from hints: True"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": true,
+          "is_valid": true,
+          "reason": "Company 'Airbnb' is known remote-first"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "mid",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Explicit level field: mid -> mid"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 106000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 106000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $106,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 119500,
+          "is_valid": true,
+          "reason": "Compensation from hints: $119,500"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-09T12:59:55",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-09T12:59:55",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-09T12:59:55"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:09.454118",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Account Executive, Airbnb for Business\n\nAirbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\nWe use automated tools to help our recruiting team efficiently screen a large volume of applications. All final hiring decisions are made by a human reviewer.\nThe Community You Will Join:&nbsp;\nBusiness travel is making a strong comeback, and current industry trends are playing to Airbnb’s strengths. Stays are getting longer, alternative accommodations are gaining market share, and travelers are increasingly self-sufficient.\nAirbnb for Business is building a high-performing sales team focused on acquiring corporate clients (B2B), driving incremental bookings, and positioning Airbnb as the go-to solution for extended and long-term business travel. We’re a lean, dynamic team known for using creative strategies to deliver outsized impact and we believe businesses represent the next viral growth channel for Airbnb.\nThe Difference You Will Make:\nAs an Account Executive, Airbnb for Business, you will be responsible for identifying and closing corporate clients within defined target verticals, while cultivating strategic relationships with those that offer the greatest potential for growth. You will own the end-to-end sales strategy needed to achieve your targets and drive long-term value.\nSuccess in this role requires the ability to partner closely with clients, leveraging data-driven insights to optimize performance, streamline processes, and expand overall spend on the platform. You will report directly to the Global Lead, Airbnb for Business, and collaborate closely with your peers to maintain a consistent, data-informed feedback loop across key cross-functional stakeholders including Product, Operations, Program Management, and Data Science.\nA Typical Day:&nbsp;\n- Develop and own the strategy for achieving your sales goals\n- Diligently research prospects, develop account strategies, and execute outreach campaigns tailored to company and industry needs\n- Demonstrate the ability to effectively manage the full sales cycle including prospecting, discovery, closing, onboarding, and strategic account management&nbsp;\n- Develop trusted advisor relationships with target accounts, customer stakeholders, and Executive sponsors\n- Demonstrate ability to communicate, present to, and influence key stakeholders at all levels of an organization, including Executive and C-Level\n- Maintain up-to-date knowledge of the Airbnb for Business platform, industry trends, and competitor landscape\n- Conduct&nbsp; group-wide webinars &amp; training sessions to educate existing and new users on A4B products\n- Lead regular business reviews with clients\n- Drive business process improvements and standardization to the sales process.\n- Clearly communicate the progress of key initiatives to internal and external stakeholders\n- Meet or exceed individual and team revenue targets on a monthly and quarterly basis\n- Maintain accurate records of pipeline and account activity using CRM tools\nYour Expertise:\n- 5+ years prior experience selling SaaS, travel lodging products or Corporate booking solutions in B2B sales with a proven record of success\n- Excellent written and verbal communication; sales; and negotiation skills.\n- Creative seller who is comfortable adapting a pitch to various audiences.\n- Comfort with a fast-paced environment and changing requirements. Startup experience is a plus.\n- Ability to flourish with minimal guidance, be proactive, and handle uncertainty and ambiguity.\n- Data driven, can do attitude, strategic thinker and passion for new products and solutions.\n- Comfortable with Excel, Google Docs, Salesforce CRM, and other technology solutions for driving sales.\n- Willingness to travel as needed\nThis role is for an existing vacancy within the organization.\nYour Location:&nbsp;\nThis position is Canada - Remote Eligible. The role may include occasional work at an Airbnb office or attendance at offsites, as agreed to with your manager. While the position is Remote Eligible, you must live in a province where Airbnb Canada, Inc. has a registered entity. Currently we can hire in the following provinces: Ontario, British Columbia, Quebec, and Saskatchewan. This list is continuously evolving, so please check back with your recruiter on what provinces you are eligible to work from.\nOur Commitment To Inclusion &amp; Belonging:&nbsp;\nAirbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\nWe strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: reasonableaccommodations@airbnb.com. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.&nbsp;\nWe ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\nHow We'll Take Care of You:\nOur job titles may span more than one career level. The actual base pay is dependent upon many factors, such as: training, transferable skills, work experience, business needs and market demands. The base pay range shown below is annualized, is subject to change and may be modified in the future. This role may also be eligible for bonus, equity, benefits, and Employee Travel Credits.\nCanada Annual Pay Range $106,000 &mdash; $133,000 CAD",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Account Executive, Airbnb for Business\n\nAirbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\nWe use automated tools to help our recruiting team efficiently screen a large volume of applications. All final hiring decisions are made by a human reviewer.\nThe Community You Will Join:&nbsp;\nBusiness travel is making a strong comeback, and current industry trends are playing to Airbnb’s strengths. Stays are getting longer, alternative accommodations are gaining market share, and travelers are increasingly self-sufficient.\nAirbnb for Business is building a high-performing sales team focused on acquiring corporate clients (B2B), driving incremental bookings, and positioning Airbnb as the go-to solution for extended and long-term business travel. We’re a lean, dynamic team known for using creative strategies to deliver outsized impact and we believe businesses represent the next viral growth channel for Airbnb.\nThe Difference You Will Make:\nAs an Account Executive, Airbnb for Business, you will be responsible for identifying and closing corporate clients within defined target verticals, while cultivating strategic relationships with those that offer the greatest potential for growth. You will own the end-to-end sales strategy needed to achieve your targets and drive long-term value.\nSuccess in this role requires the ability to partner closely with clients, leveraging data-driven insights to optimize performance, streamline processes, and expand overall spend on the platform. You will report directly to the Global Lead, Airbnb for Business, and collaborate closely with your peers to maintain a consistent, data-informed feedback loop across key cross-functional stakeholders including Product, Operations, Program Management, and Data Science.\nA Typical Day:&nbsp;\n- Develop and own the strategy for achieving your sales goals\n- Diligently research prospects, develop account strategies, and execute outreach campaigns tailored to company and industry needs\n- Demonstrate the ability to effectively manage the full sales cycle including prospecting, discovery, closing, onboarding, and strategic account management&nbsp;\n- Develop trusted advisor relationships with target accounts, customer stakeholders, and Executive sponsors\n- Demonstrate ability to communicate, present to, and influence key stakeholders at all levels of an organization, including Executive and C-Level\n- Maintain up-to-date knowledge of the Airbnb for Business platform, industry trends, and competitor landscape\n- Conduct&nbsp; group-wide webinars &amp; training sessions to educate existing and new users on A4B products\n- Lead regular business reviews with clients\n- Drive business process improvements and standardization to the sales process.\n- Clearly communicate the progress of key initiatives to internal and external stakeholders\n- Meet or exceed individual and team revenue targets on a monthly and quarterly basis\n- Maintain accurate records of pipeline and account activity using CRM tools\nYour Expertise:\n- 5+ years prior experience selling SaaS, travel lodging products or Corporate booking solutions in B2B sales with a proven record of success\n- Excellent written and verbal communication; sales; and negotiation skills.\n- Creative seller who is comfortable adapting a pitch to various audiences.\n- Comfort with a fast-paced environment and changing requirements. Startup experience is a plus.\n- Ability to flourish with minimal guidance, be proactive, and handle uncertainty and ambiguity.\n- Data driven, can do attitude, strategic thinker and passion for new products and solutions.\n- Comfortable with Excel, Google Docs, Salesforce CRM, and other technology solutions for driving sales.\n- Willingness to travel as needed\nThis role is for an existing vacancy within the organization.\nYour Location:&nbsp;\nThis position is Canada - Remote Eligible. The role may include occasional work at an Airbnb office or attendance at offsites, as agreed to with your manager. While the position is Remote Eligible, you must live in a province where Airbnb Canada, Inc. has a registered entity. Currently we can hire in the following provinces: Ontario, British Columbia, Quebec, and Saskatchewan. This list is continuously evolving, so please check back with your recruiter on what provinces you are eligible to work from.\nOur Commitment To Inclusion &amp; Belonging:&nbsp;\nAirbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\nWe strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: reasonableaccommodations@airbnb.com. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.&nbsp;\nWe ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\nHow We'll Take Care of You:\nOur job titles may span more than one career level. The actual base pay is dependent upon many factors, such as: training, transferable skills, work experience, business needs and market demands. The base pay range shown below is annualized, is subject to change and may be modified in the future. This role may also be eligible for bonus, equity, benefits, and Employee Travel Credits.\nCanada Annual Pay Range $106,000 &mdash; $133,000 CAD",
+          "is_valid": true,
+          "reason": "Valid description (5974 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Account Executive, Airbnb for Business\n\nAirbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\nWe use automated tools to help our recruiting team efficiently screen a large volume of applications. All final hiring decisions are made by a human reviewer.\nThe Community You Will Join:&nbsp;\nBusiness travel is making a strong comeback, and current industry trends are playing to Airbnb’s strengths. Stays are getting longer, alternative accommodations are gaining market share, and travelers are increasingly self-sufficient.\nAirbnb for Business is building a high-performing sales team focused on acquiring corporate clients (B2B), driving incremental bookings, and positioning Airbnb as the go-to solution for extended and long-term business travel. We’re a lean, dynamic team known for using creative strategies to deliver outsized impact and we believe businesses represent the next viral growth channel for Airbnb.\nThe Difference You Will Make:\nAs an Account Executive, Airbnb for Business, you will be responsible for identifying and closing corporate clients within defined target verticals, while cultivating strategic relationships with those that offer the greatest potential for growth. You will own the end-to-end sales strategy needed to achieve your targets and drive long-term value.\nSuccess in this role requires the ability to partner closely with clients, leveraging data-driven insights to optimize performance, streamline processes, and expand overall spend on the platform. You will report directly to the Global Lead, Airbnb for Business, and collaborate closely with your peers to maintain a consistent, data-informed feedback loop across key cross-functional stakeholders including Product, Operations, Program Management, and Data Science.\nA Typical Day:&nbsp;\n- Develop and own the strategy for achieving your sales goals\n- Diligently research prospects, develop account strategies, and execute outreach campaigns tailored to company and industry needs\n- Demonstrate the ability to effectively manage the full sales cycle including prospecting, discovery, closing, onboarding, and strategic account management&nbsp;\n- Develop trusted advisor relationships with target accounts, customer stakeholders, and Executive sponsors\n- Demonstrate ability to communicate, present to, and influence key stakeholders at all levels of an organization, including Executive and C-Level\n- Maintain up-to-date knowledge of the Airbnb for Business platform, industry trends, and competitor landscape\n- Conduct&nbsp; group-wide webinars &amp; training sessions to educate existing and new users on A4B products\n- Lead regular business reviews with clients\n- Drive business process improvements and standardization to the sales process.\n- Clearly communicate the progress of key initiatives to internal and external stakeholders\n- Meet or exceed individual and team revenue targets on a monthly and quarterly basis\n- Maintain accurate records of pipeline and account activity using CRM tools\nYour Expertise:\n- 5+ years prior experience selling SaaS, travel lodging products or Corporate booking solutions in B2B sales with a proven record of success\n- Excellent written and verbal communication; sales; and negotiation skills.\n- Creative seller who is comfortable adapting a pitch to various audiences.\n- Comfort with a fast-paced environment and changing requirements. Startup experience is a plus.\n- Ability to flourish with minimal guidance, be proactive, and handle uncertainty and ambiguity.\n- Data driven, can do attitude, strategic thinker and passion for new products and solutions.\n- Comfortable with Excel, Google Docs, Salesforce CRM, and other technology solutions for driving sales.\n- Willingness to travel as needed\nThis role is for an existing vacancy within the organization.\nYour Location:&nbsp;\nThis position is Canada - Remote Eligible. The role may include occasional work at an Airbnb office or attendance at offsites, as agreed to with your manager. While the position is Remote Eligible, you must live in a province where Airbnb Canada, Inc. has a registered entity. Currently we can hire in the following provinces: Ontario, British Columbia, Quebec, and Saskatchewan. This list is continuously evolving, so please check back with your recruiter on what provinces you are eligible to work from.\nOur Commitment To Inclusion &amp; Belonging:&nbsp;\nAirbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\nWe strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: reasonableaccommodations@airbnb.com. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.&nbsp;\nWe ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\nHow We'll Take Care of You:\nOur job titles may span more than one career level. The actual base pay is dependent upon many factors, such as: training, transferable skills, work experience, business needs and market demands. The base pay range shown below is annualized, is subject to change and may be modified in the future. This role may also be eligible for bonus, equity, benefits, and Employee Travel Credits.\nCanada Annual Pay Range $106,000 &mdash; $133,000 CAD",
+          "is_valid": true,
+          "reason": "Valid description (5974 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Account Executive, Airbnb for Business\n\nAirbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\nWe use automated tools to help our recruiting team efficiently screen a large volume of applications. All final hiring decisions are made by a human reviewer.\nThe Community You Will Join:&nbsp;\nBusiness travel is making a strong comeback, and current industry trends are playing to Airbnb’s strengths. Stays are getting longer, alternative accommodations are gaining market share, and travelers are increasingly self-sufficient.\nAirbnb for Business is building a high-performing sales team focused on acquiring corporate clients (B2B), driving incremental bookings, and positioning Airbnb as the go-to solution for extended and long-term business travel. We’re a lean, dynamic team known for using creative strategies to deliver outsized impact and we believe businesses represent the next viral growth channel for Airbnb.\nThe Difference You Will Make:\nAs an Account Executive, Airbnb for Business, you will be responsible for identifying and closing corporate clients within defined target verticals, while cultivating strategic relationships with those that offer the greatest potential for growth. You will own the end-to-end sales strategy needed to achieve your targets and drive long-term value.\nSuccess in this role requires the ability to partner closely with clients, leveraging data-driven insights to optimize performance, streamline processes, and expand overall spend on the platform. You will report directly to the Global Lead, Airbnb for Business, and collaborate closely with your peers to maintain a consistent, data-informed feedback loop across key cross-functional stakeholders including Product, Operations, Program Management, and Data Science.\nA Typical Day:&nbsp;\n- Develop and own the strategy for achieving your sales goals\n- Diligently research prospects, develop account strategies, and execute outreach campaigns tailored to company and industry needs\n- Demonstrate the ability to effectively manage the full sales cycle including prospecting, discovery, closing, onboarding, and strategic account management&nbsp;\n- Develop trusted advisor relationships with target accounts, customer stakeholders, and Executive sponsors\n- Demonstrate ability to communicate, present to, and influence key stakeholders at all levels of an organization, including Executive and C-Level\n- Maintain up-to-date knowledge of the Airbnb for Business platform, industry trends, and competitor landscape\n- Conduct&nbsp; group-wide webinars &amp; training sessions to educate existing and new users on A4B products\n- Lead regular business reviews with clients\n- Drive business process improvements and standardization to the sales process.\n- Clearly communicate the progress of key initiatives to internal and external stakeholders\n- Meet or exceed individual and team revenue targets on a monthly and quarterly basis\n- Maintain accurate records of pipeline and account activity using CRM tools\nYour Expertise:\n- 5+ years prior experience selling SaaS, travel lodging products or Corporate booking solutions in B2B sales with a proven record of success\n- Excellent written and verbal communication; sales; and negotiation skills.\n- Creative seller who is comfortable adapting a pitch to various audiences.\n- Comfort with a fast-paced environment and changing requirements. Startup experience is a plus.\n- Ability to flourish with minimal guidance, be proactive, and handle uncertainty and ambiguity.\n- Data driven, can do attitude, strategic thinker and passion for new products and solutions.\n- Comfortable with Excel, Google Docs, Salesforce CRM, and other technology solutions for driving sales.\n- Willingness to travel as needed\nThis role is for an existing vacancy within the organization.\nYour Location:&nbsp;\nThis position is Canada - Remote Eligible. The role may include occasional work at an Airbnb office or attendance at offsites, as agreed to with your manager. While the position is Remote Eligible, you must live in a province where Airbnb Canada, Inc. has a registered entity. Currently we can hire in the following provinces: Ontario, British Columbia, Quebec, and Saskatchewan. This list is continuously evolving, so please check back with your recruiter on what provinces you are eligible to work from.\nOur Commitment To Inclusion &amp; Belonging:&nbsp;\nAirbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\nWe strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: reasonableaccommodations@airbnb.com. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.&nbsp;\nWe ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\nHow We'll Take Care of You:\nOur job titles may span more than one career level. The actual base pay is dependent upon many factors, such as: training, transferable skills, work experience, business needs and market demands. The base pay range shown below is annualized, is subject to change and may be modified in the future. This role may also be eligible for bonus, equity, benefits, and Employee Travel Credits.\nCanada Annual Pay Range $106,000 &mdash; $133,000 CAD",
+          "is_valid": true,
+          "reason": "Valid description (5974 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

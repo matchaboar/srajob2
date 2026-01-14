@@ -109,7 +109,7 @@ async def record_pending_firecrawl_webhook(
     if should_mock_convex_webhooks():
         return f"mock-webhook-{int(time.time() * 1000)}"
 
-    from ...services.convex_client import get_client
+    from ...services.convex_client import _get_convex_executor, get_client
 
     now_ms = int(time.time() * 1000)
     metadata = webhook.get("metadata") if isinstance(webhook.get("metadata"), dict) else {}
@@ -132,9 +132,12 @@ async def record_pending_firecrawl_webhook(
     try:
         client = get_client()
         loop = asyncio.get_running_loop()
+        # Use dedicated Convex executor to prevent timeout threads from blocking
+        # other async operations that use the default executor.
+        executor = _get_convex_executor()
         res = await asyncio.wait_for(
             loop.run_in_executor(
-                None,
+                executor,
                 client.mutation,
                 "router:insertFirecrawlWebhookEvent",
                 payload,

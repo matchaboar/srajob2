@@ -1,22 +1,22 @@
 {
   "site_id": "microsoft",
-  "detail_url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556629309&domain=microsoft.com&hl=en",
-  "source_url": "https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1",
+  "detail_url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en",
+  "source_url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en",
   "extracted_jobs": [
     {
-      "title": "Principal Software Engineer",
-      "description_preview": "Principal Software Engineer in Redmond, WA, US | Microsoft Work Location: onsite Overview Are you passionate about building infrastructure that powers billions of ad impressions daily? Join us to shape the backbone of a rapidly growing ad platform\u2014where scale, reliability, and data-driven innovation are at the heart of everything we...",
-      "description_word_count": 953,
+      "title": "Senior Software Engineer",
+      "description_preview": "Senior Software Engineer in Redmond, WA, US | Microsoft Work Location: onsite Overview Senior Software Engineer – Auction Logic – Monetize Platform We built a platform to provide an open, transparent marketplace and powerful enterprise technology enabling marketers to connect and engage consumers on thousands of high-quality websites and apps....",
+      "description_word_count": 1221,
       "location": "Redmond, WA",
       "is_remote": false,
-      "posted_at": 1768341364000,
+      "posted_at": 1768422081000,
       "posted_at_unknown": false,
       "company": "Microsoft",
-      "level": "staff",
+      "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
-      "url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556629309&domain=microsoft.com&hl=en",
+      "url": "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en",
       "cost_milli_cents": 3
     }
   ],
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Senior Software Engineer",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'microsoft_careers' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Senior Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Senior Software Engineer",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Senior Software Engineer in Redmond, WA, US | Microsoft",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Microsoft",
+      "winning_strategy": "site_handler_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": "Microsoft",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Microsoft",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": "Microsoft",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "The Monetize Platform",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": "Microsoft",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Redmond, WA",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'microsoft_careers' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Redmond, WA",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Redmond, WA",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": "Redmond, WA",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Redmond, WA"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": false,
+          "is_valid": true,
+          "reason": "Remote from hints: False"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Microsoft' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'senior' -> senior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from content: 'Senior' -> senior"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 177250,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 177250,
+          "is_valid": true,
+          "reason": "Compensation range pattern: $119,800-$234,700 -> $177,250"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": 300000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $300,000"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-14T13:21:21",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-14T13:21:21",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-14T13:21:21"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'microsoft_careers' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:47:11.434358",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Senior Software Engineer in Redmond, WA, US | Microsoft\n\nWork Location: onsite\n\nOverview\n\n\nSenior Software Engineer – Auction Logic – Monetize Platform\n\n\nWe built a platform to provide an open, transparent marketplace and powerful enterprise technology enabling marketers to connect and engage consumers on thousands of high-quality websites and apps.\n\n\nThe Monetize Platform is an advanced buy-side and sell-side advertising technology platform that enables buyers and sellers to access and trade premium inventory in a transparent and streamlined environment.\n\n\nMicrosoft is hiring an experienced Senior Software Engineer to join the Auction Logic team, specifically focused on build, test, deploy, and monitoring.\n\n\nAs a Senior Software Engineer, you will\n\n- Lead the cross-team engineering efforts to build business critical products for publishers and buyers on the Monetize platform.\n- You will collaborate with a team of smart, passionate engineers.\n- You will own significant areas of the Monetize real-time platforms and function as the architect.\n- You will participate in setting the roadmap and direction for your areas of responsibility.\n\nAbout the team:\n\n\nThe mission of the Auction Logic team is to create the digital marketplace with a purpose of accurately connecting advertisers (buyers) and publishers (sellers) in the most effective and efficient way possible. The team is responsible for building and operating a set of core components of Monetize real-time platform, specifically the distributed set of servers that runs an auction for every ad impression, delivers the ad content, and performs all the necessary accounting. The Monetize real-time platform is a large-scale distributed platform operating under strict real-time constraints, responding to and executing real-time, dynamic auctions in less than 100 milliseconds. In the past few years, we've grown from processing 300k QPS to over 5 million QPS for an approximate total of 100 billion requests per day. These events generate more than 150 TB of new data every day. Engineers work on the real-time components to optimize our software for performance, space, and algorithmic efficiency. The application that processes all those requests, impression bus, is among the responsibilities of the Auction Logic team. You will provide solutions to help connect advertisers and publishers in the digital marketplace as well as resolve complex technical issues that arise because of the immense scale of our platform.\n\n\nAbout the job:\n\n\nAs a technical leader you’ll design and implement solutions that span multiple applications on the real time platform, are high quality, require hard real time constraints, are easy to operate and maintain, and make the lives of product engineers easier. You will own or influence significant parts of the platform and allied areas. You will work closely with other engineers and our product teams, to not only make these systems go faster and handle more and more data, but also to build revolutionary new products for our clients. responsibilities will include:\n\n- Designing and implementing scalable solutions including new features and enhancements of our Platform.\n- Participating in and helping lead planning sessions with Product Management and Engineering team leads to constructing feature requirements and specifications.\n- Produce prototype features quickly and participate in gathering feedback from clients.\n- Bring innovation to the team in new features, improving build processes and product development lifecycle.\n- Participate in code reviews and provide feedback to increase code efficiency, maintainability and robustness.\n- Support and debug production level issues and provide fixes in an expedient manner.\n- Mentor junior engineers on best practices in software development\n\nMore about you:\n\n- You are focused on building high-quality, intuitive products.\n- You are passionate about learning and teaching.\n- You love challenging yourself to constantly improve and sharing your knowledge to empower others.\n- You view processes as a means and not an end, preferring lean or automated approaches to ensure quality and productivity.\n- You are not satisfied with the status quo and are always looking to improve how things are done and what is built\n\n\nResponsibilities\n\n- Works with appropriate stakeholders to determine user requirements for a set of features.\n- Contributes to the identification of dependencies, and the development of design documents for a product area with little oversight.\n- Creates and implements code for a product, service, or feature, reusing code as applicable.\n- Contributes to efforts to break down larger work items into smaller work items and provides estimation.\n- Acts as a Designated Responsible Individual (DRI) working on-call to monitor system/product feature/service for degradation, downtime, or interruptions and gains approval to restore system/product/service for simple problems.\n- Remains current in skills by investing time and effort into staying abreast of current developments that will improve the availability, reliability, efficiency, observability, and performance of products while also driving consistency in monitoring and operations at scale.\n\n\nQualifications\n\n\nRequired Qualifications:\n\n- Bachelor's Degree in Computer Science or related technical field AND 4+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python OR equivalent experience.\n\nPreferred Qualifications:\n\n- Master's Degree in Computer Science or related technical field AND 6+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR Bachelor's Degree in Computer Science or related technical field AND 8+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR equivalent experience.\n- 5+ years of experience as a professional software developer.\n- Experience building high performance, multi-threaded, distributed systems and applications, preferably in a Linux environment.\n- Experience practicing advanced optimization techniques.\n- Solid fundamental understanding of generalized architecture patterns and service-oriented architecture (SOA).\n- Excellent Computer Science fundamentals with regards to data structures, algorithms, time complexity, etc.\n- Excellent and creative problem-solving abilities. We will consider extensive experience with other languages as well, e.g., Rust, Go, etc.\n\nOther Requirements:\nAbility to meet Microsoft, customer and/or government security screening requirements are required for this role. These requirements include but are not limited to the following specialized security screenings:\n\n- Microsoft Cloud Background Check: This position will be required to pass the Microsoft Cloud background check upon hire/transfer and every two years thereafter.\n\n\n#MicrosoftAI\n\n\nSoftware Engineering IC4 - The typical base pay range for this role across the U.S. is USD $119,800 - $234,700 per year. There is a different range applicable to specific work locations, within the San Francisco Bay area and New York City metropolitan area, and the base pay range for this role in those locations is USD $158,400 - $258,000 per year.\n\n\nCertain roles may be eligible for benefits and other compensation. Find additional benefits and pay information here:\nhttps://careers.microsoft.com/us/en/us-corporate-pay\n\n\nThis position will be open for a minimum of 5 days, with applications accepted on an ongoing basis until the position is filled.\n\n\nMicrosoft is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances. If you need assistance with religious accommodations and/or a reasonable accommodation due to a disability during the application process, read more about requesting accommodations.",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Senior Software Engineer in Redmond, WA, US | Microsoft\n\nWork Location: onsite\n\nOverview\n\n\nSenior Software Engineer – Auction Logic – Monetize Platform\n\n\nWe built a platform to provide an open, transparent marketplace and powerful enterprise technology enabling marketers to connect and engage consumers on thousands of high-quality websites and apps.\n\n\nThe Monetize Platform is an advanced buy-side and sell-side advertising technology platform that enables buyers and sellers to access and trade premium inventory in a transparent and streamlined environment.\n\n\nMicrosoft is hiring an experienced Senior Software Engineer to join the Auction Logic team, specifically focused on build, test, deploy, and monitoring.\n\n\nAs a Senior Software Engineer, you will\n\n- Lead the cross-team engineering efforts to build business critical products for publishers and buyers on the Monetize platform.\n- You will collaborate with a team of smart, passionate engineers.\n- You will own significant areas of the Monetize real-time platforms and function as the architect.\n- You will participate in setting the roadmap and direction for your areas of responsibility.\n\nAbout the team:\n\n\nThe mission of the Auction Logic team is to create the digital marketplace with a purpose of accurately connecting advertisers (buyers) and publishers (sellers) in the most effective and efficient way possible. The team is responsible for building and operating a set of core components of Monetize real-time platform, specifically the distributed set of servers that runs an auction for every ad impression, delivers the ad content, and performs all the necessary accounting. The Monetize real-time platform is a large-scale distributed platform operating under strict real-time constraints, responding to and executing real-time, dynamic auctions in less than 100 milliseconds. In the past few years, we've grown from processing 300k QPS to over 5 million QPS for an approximate total of 100 billion requests per day. These events generate more than 150 TB of new data every day. Engineers work on the real-time components to optimize our software for performance, space, and algorithmic efficiency. The application that processes all those requests, impression bus, is among the responsibilities of the Auction Logic team. You will provide solutions to help connect advertisers and publishers in the digital marketplace as well as resolve complex technical issues that arise because of the immense scale of our platform.\n\n\nAbout the job:\n\n\nAs a technical leader you’ll design and implement solutions that span multiple applications on the real time platform, are high quality, require hard real time constraints, are easy to operate and maintain, and make the lives of product engineers easier. You will own or influence significant parts of the platform and allied areas. You will work closely with other engineers and our product teams, to not only make these systems go faster and handle more and more data, but also to build revolutionary new products for our clients. responsibilities will include:\n\n- Designing and implementing scalable solutions including new features and enhancements of our Platform.\n- Participating in and helping lead planning sessions with Product Management and Engineering team leads to constructing feature requirements and specifications.\n- Produce prototype features quickly and participate in gathering feedback from clients.\n- Bring innovation to the team in new features, improving build processes and product development lifecycle.\n- Participate in code reviews and provide feedback to increase code efficiency, maintainability and robustness.\n- Support and debug production level issues and provide fixes in an expedient manner.\n- Mentor junior engineers on best practices in software development\n\nMore about you:\n\n- You are focused on building high-quality, intuitive products.\n- You are passionate about learning and teaching.\n- You love challenging yourself to constantly improve and sharing your knowledge to empower others.\n- You view processes as a means and not an end, preferring lean or automated approaches to ensure quality and productivity.\n- You are not satisfied with the status quo and are always looking to improve how things are done and what is built\n\n\nResponsibilities\n\n- Works with appropriate stakeholders to determine user requirements for a set of features.\n- Contributes to the identification of dependencies, and the development of design documents for a product area with little oversight.\n- Creates and implements code for a product, service, or feature, reusing code as applicable.\n- Contributes to efforts to break down larger work items into smaller work items and provides estimation.\n- Acts as a Designated Responsible Individual (DRI) working on-call to monitor system/product feature/service for degradation, downtime, or interruptions and gains approval to restore system/product/service for simple problems.\n- Remains current in skills by investing time and effort into staying abreast of current developments that will improve the availability, reliability, efficiency, observability, and performance of products while also driving consistency in monitoring and operations at scale.\n\n\nQualifications\n\n\nRequired Qualifications:\n\n- Bachelor's Degree in Computer Science or related technical field AND 4+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python OR equivalent experience.\n\nPreferred Qualifications:\n\n- Master's Degree in Computer Science or related technical field AND 6+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR Bachelor's Degree in Computer Science or related technical field AND 8+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR equivalent experience.\n- 5+ years of experience as a professional software developer.\n- Experience building high performance, multi-threaded, distributed systems and applications, preferably in a Linux environment.\n- Experience practicing advanced optimization techniques.\n- Solid fundamental understanding of generalized architecture patterns and service-oriented architecture (SOA).\n- Excellent Computer Science fundamentals with regards to data structures, algorithms, time complexity, etc.\n- Excellent and creative problem-solving abilities. We will consider extensive experience with other languages as well, e.g., Rust, Go, etc.\n\nOther Requirements:\nAbility to meet Microsoft, customer and/or government security screening requirements are required for this role. These requirements include but are not limited to the following specialized security screenings:\n\n- Microsoft Cloud Background Check: This position will be required to pass the Microsoft Cloud background check upon hire/transfer and every two years thereafter.\n\n\n#MicrosoftAI\n\n\nSoftware Engineering IC4 - The typical base pay range for this role across the U.S. is USD $119,800 - $234,700 per year. There is a different range applicable to specific work locations, within the San Francisco Bay area and New York City metropolitan area, and the base pay range for this role in those locations is USD $158,400 - $258,000 per year.\n\n\nCertain roles may be eligible for benefits and other compensation. Find additional benefits and pay information here:\nhttps://careers.microsoft.com/us/en/us-corporate-pay\n\n\nThis position will be open for a minimum of 5 days, with applications accepted on an ongoing basis until the position is filled.\n\n\nMicrosoft is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances. If you need assistance with religious accommodations and/or a reasonable accommodation due to a disability during the application process, read more about requesting accommodations.",
+          "is_valid": true,
+          "reason": "Valid description (8426 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Senior Software Engineer in Redmond, WA, US | Microsoft\n\nWork Location: onsite\n\nOverview\n\n\nSenior Software Engineer – Auction Logic – Monetize Platform\n\n\nWe built a platform to provide an open, transparent marketplace and powerful enterprise technology enabling marketers to connect and engage consumers on thousands of high-quality websites and apps.\n\n\nThe Monetize Platform is an advanced buy-side and sell-side advertising technology platform that enables buyers and sellers to access and trade premium inventory in a transparent and streamlined environment.\n\n\nMicrosoft is hiring an experienced Senior Software Engineer to join the Auction Logic team, specifically focused on build, test, deploy, and monitoring.\n\n\nAs a Senior Software Engineer, you will\n\n- Lead the cross-team engineering efforts to build business critical products for publishers and buyers on the Monetize platform.\n- You will collaborate with a team of smart, passionate engineers.\n- You will own significant areas of the Monetize real-time platforms and function as the architect.\n- You will participate in setting the roadmap and direction for your areas of responsibility.\n\nAbout the team:\n\n\nThe mission of the Auction Logic team is to create the digital marketplace with a purpose of accurately connecting advertisers (buyers) and publishers (sellers) in the most effective and efficient way possible. The team is responsible for building and operating a set of core components of Monetize real-time platform, specifically the distributed set of servers that runs an auction for every ad impression, delivers the ad content, and performs all the necessary accounting. The Monetize real-time platform is a large-scale distributed platform operating under strict real-time constraints, responding to and executing real-time, dynamic auctions in less than 100 milliseconds. In the past few years, we've grown from processing 300k QPS to over 5 million QPS for an approximate total of 100 billion requests per day. These events generate more than 150 TB of new data every day. Engineers work on the real-time components to optimize our software for performance, space, and algorithmic efficiency. The application that processes all those requests, impression bus, is among the responsibilities of the Auction Logic team. You will provide solutions to help connect advertisers and publishers in the digital marketplace as well as resolve complex technical issues that arise because of the immense scale of our platform.\n\n\nAbout the job:\n\n\nAs a technical leader you’ll design and implement solutions that span multiple applications on the real time platform, are high quality, require hard real time constraints, are easy to operate and maintain, and make the lives of product engineers easier. You will own or influence significant parts of the platform and allied areas. You will work closely with other engineers and our product teams, to not only make these systems go faster and handle more and more data, but also to build revolutionary new products for our clients. responsibilities will include:\n\n- Designing and implementing scalable solutions including new features and enhancements of our Platform.\n- Participating in and helping lead planning sessions with Product Management and Engineering team leads to constructing feature requirements and specifications.\n- Produce prototype features quickly and participate in gathering feedback from clients.\n- Bring innovation to the team in new features, improving build processes and product development lifecycle.\n- Participate in code reviews and provide feedback to increase code efficiency, maintainability and robustness.\n- Support and debug production level issues and provide fixes in an expedient manner.\n- Mentor junior engineers on best practices in software development\n\nMore about you:\n\n- You are focused on building high-quality, intuitive products.\n- You are passionate about learning and teaching.\n- You love challenging yourself to constantly improve and sharing your knowledge to empower others.\n- You view processes as a means and not an end, preferring lean or automated approaches to ensure quality and productivity.\n- You are not satisfied with the status quo and are always looking to improve how things are done and what is built\n\n\nResponsibilities\n\n- Works with appropriate stakeholders to determine user requirements for a set of features.\n- Contributes to the identification of dependencies, and the development of design documents for a product area with little oversight.\n- Creates and implements code for a product, service, or feature, reusing code as applicable.\n- Contributes to efforts to break down larger work items into smaller work items and provides estimation.\n- Acts as a Designated Responsible Individual (DRI) working on-call to monitor system/product feature/service for degradation, downtime, or interruptions and gains approval to restore system/product/service for simple problems.\n- Remains current in skills by investing time and effort into staying abreast of current developments that will improve the availability, reliability, efficiency, observability, and performance of products while also driving consistency in monitoring and operations at scale.\n\n\nQualifications\n\n\nRequired Qualifications:\n\n- Bachelor's Degree in Computer Science or related technical field AND 4+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python OR equivalent experience.\n\nPreferred Qualifications:\n\n- Master's Degree in Computer Science or related technical field AND 6+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR Bachelor's Degree in Computer Science or related technical field AND 8+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR equivalent experience.\n- 5+ years of experience as a professional software developer.\n- Experience building high performance, multi-threaded, distributed systems and applications, preferably in a Linux environment.\n- Experience practicing advanced optimization techniques.\n- Solid fundamental understanding of generalized architecture patterns and service-oriented architecture (SOA).\n- Excellent Computer Science fundamentals with regards to data structures, algorithms, time complexity, etc.\n- Excellent and creative problem-solving abilities. We will consider extensive experience with other languages as well, e.g., Rust, Go, etc.\n\nOther Requirements:\nAbility to meet Microsoft, customer and/or government security screening requirements are required for this role. These requirements include but are not limited to the following specialized security screenings:\n\n- Microsoft Cloud Background Check: This position will be required to pass the Microsoft Cloud background check upon hire/transfer and every two years thereafter.\n\n\n#MicrosoftAI\n\n\nSoftware Engineering IC4 - The typical base pay range for this role across the U.S. is USD $119,800 - $234,700 per year. There is a different range applicable to specific work locations, within the San Francisco Bay area and New York City metropolitan area, and the base pay range for this role in those locations is USD $158,400 - $258,000 per year.\n\n\nCertain roles may be eligible for benefits and other compensation. Find additional benefits and pay information here:\nhttps://careers.microsoft.com/us/en/us-corporate-pay\n\n\nThis position will be open for a minimum of 5 days, with applications accepted on an ongoing basis until the position is filled.\n\n\nMicrosoft is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances. If you need assistance with religious accommodations and/or a reasonable accommodation due to a disability during the application process, read more about requesting accommodations.",
+          "is_valid": true,
+          "reason": "Valid description (8426 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Senior Software Engineer in Redmond, WA, US | Microsoft\n\nWork Location: onsite\n\nOverview\n\n\nSenior Software Engineer – Auction Logic – Monetize Platform\n\n\nWe built a platform to provide an open, transparent marketplace and powerful enterprise technology enabling marketers to connect and engage consumers on thousands of high-quality websites and apps.\n\n\nThe Monetize Platform is an advanced buy-side and sell-side advertising technology platform that enables buyers and sellers to access and trade premium inventory in a transparent and streamlined environment.\n\n\nMicrosoft is hiring an experienced Senior Software Engineer to join the Auction Logic team, specifically focused on build, test, deploy, and monitoring.\n\n\nAs a Senior Software Engineer, you will\n\n- Lead the cross-team engineering efforts to build business critical products for publishers and buyers on the Monetize platform.\n- You will collaborate with a team of smart, passionate engineers.\n- You will own significant areas of the Monetize real-time platforms and function as the architect.\n- You will participate in setting the roadmap and direction for your areas of responsibility.\n\nAbout the team:\n\n\nThe mission of the Auction Logic team is to create the digital marketplace with a purpose of accurately connecting advertisers (buyers) and publishers (sellers) in the most effective and efficient way possible. The team is responsible for building and operating a set of core components of Monetize real-time platform, specifically the distributed set of servers that runs an auction for every ad impression, delivers the ad content, and performs all the necessary accounting. The Monetize real-time platform is a large-scale distributed platform operating under strict real-time constraints, responding to and executing real-time, dynamic auctions in less than 100 milliseconds. In the past few years, we've grown from processing 300k QPS to over 5 million QPS for an approximate total of 100 billion requests per day. These events generate more than 150 TB of new data every day. Engineers work on the real-time components to optimize our software for performance, space, and algorithmic efficiency. The application that processes all those requests, impression bus, is among the responsibilities of the Auction Logic team. You will provide solutions to help connect advertisers and publishers in the digital marketplace as well as resolve complex technical issues that arise because of the immense scale of our platform.\n\n\nAbout the job:\n\n\nAs a technical leader you’ll design and implement solutions that span multiple applications on the real time platform, are high quality, require hard real time constraints, are easy to operate and maintain, and make the lives of product engineers easier. You will own or influence significant parts of the platform and allied areas. You will work closely with other engineers and our product teams, to not only make these systems go faster and handle more and more data, but also to build revolutionary new products for our clients. responsibilities will include:\n\n- Designing and implementing scalable solutions including new features and enhancements of our Platform.\n- Participating in and helping lead planning sessions with Product Management and Engineering team leads to constructing feature requirements and specifications.\n- Produce prototype features quickly and participate in gathering feedback from clients.\n- Bring innovation to the team in new features, improving build processes and product development lifecycle.\n- Participate in code reviews and provide feedback to increase code efficiency, maintainability and robustness.\n- Support and debug production level issues and provide fixes in an expedient manner.\n- Mentor junior engineers on best practices in software development\n\nMore about you:\n\n- You are focused on building high-quality, intuitive products.\n- You are passionate about learning and teaching.\n- You love challenging yourself to constantly improve and sharing your knowledge to empower others.\n- You view processes as a means and not an end, preferring lean or automated approaches to ensure quality and productivity.\n- You are not satisfied with the status quo and are always looking to improve how things are done and what is built\n\n\nResponsibilities\n\n- Works with appropriate stakeholders to determine user requirements for a set of features.\n- Contributes to the identification of dependencies, and the development of design documents for a product area with little oversight.\n- Creates and implements code for a product, service, or feature, reusing code as applicable.\n- Contributes to efforts to break down larger work items into smaller work items and provides estimation.\n- Acts as a Designated Responsible Individual (DRI) working on-call to monitor system/product feature/service for degradation, downtime, or interruptions and gains approval to restore system/product/service for simple problems.\n- Remains current in skills by investing time and effort into staying abreast of current developments that will improve the availability, reliability, efficiency, observability, and performance of products while also driving consistency in monitoring and operations at scale.\n\n\nQualifications\n\n\nRequired Qualifications:\n\n- Bachelor's Degree in Computer Science or related technical field AND 4+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python OR equivalent experience.\n\nPreferred Qualifications:\n\n- Master's Degree in Computer Science or related technical field AND 6+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR Bachelor's Degree in Computer Science or related technical field AND 8+ years technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\n- OR equivalent experience.\n- 5+ years of experience as a professional software developer.\n- Experience building high performance, multi-threaded, distributed systems and applications, preferably in a Linux environment.\n- Experience practicing advanced optimization techniques.\n- Solid fundamental understanding of generalized architecture patterns and service-oriented architecture (SOA).\n- Excellent Computer Science fundamentals with regards to data structures, algorithms, time complexity, etc.\n- Excellent and creative problem-solving abilities. We will consider extensive experience with other languages as well, e.g., Rust, Go, etc.\n\nOther Requirements:\nAbility to meet Microsoft, customer and/or government security screening requirements are required for this role. These requirements include but are not limited to the following specialized security screenings:\n\n- Microsoft Cloud Background Check: This position will be required to pass the Microsoft Cloud background check upon hire/transfer and every two years thereafter.\n\n\n#MicrosoftAI\n\n\nSoftware Engineering IC4 - The typical base pay range for this role across the U.S. is USD $119,800 - $234,700 per year. There is a different range applicable to specific work locations, within the San Francisco Bay area and New York City metropolitan area, and the base pay range for this role in those locations is USD $158,400 - $258,000 per year.\n\n\nCertain roles may be eligible for benefits and other compensation. Find additional benefits and pay information here:\nhttps://careers.microsoft.com/us/en/us-corporate-pay\n\n\nThis position will be open for a minimum of 5 days, with applications accepted on an ongoing basis until the position is filled.\n\n\nMicrosoft is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances. If you need assistance with religious accommodations and/or a reasonable accommodation due to a disability during the application process, read more about requesting accommodations.",
+          "is_valid": true,
+          "reason": "Valid description (8426 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

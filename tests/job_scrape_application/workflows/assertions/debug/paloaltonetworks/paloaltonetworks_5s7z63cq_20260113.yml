@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: paloaltonetworks
 detail_url: https://jobs.paloaltonetworks.com/en/job/chicago/named-account-manager-sled/47263/89098145424
 expected:

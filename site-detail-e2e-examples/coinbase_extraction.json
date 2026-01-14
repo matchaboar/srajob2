@@ -5,7 +5,7 @@
   "extracted_jobs": [
     {
       "title": "Accounting Intern",
-      "description_preview": "Accounting Intern Ready to be pushed beyond what you think you\u2019re capable of? At Coinbase, our mission is to increase economic freedom in the world. It\u2019s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform \u2014 and with it, the...",
+      "description_preview": "Accounting Intern Ready to be pushed beyond what you think you’re capable of? At Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the...",
       "description_word_count": 1051,
       "location": "Hybrid - New York, NY",
       "is_remote": false,
@@ -26,6 +26,421 @@
     "description_uploads_count": 0,
     "ingested_jobs_sample": [],
     "description_uploads_sample": []
+  },
+  "extractor_trace": {
+    "title": {
+      "final_value": "Accounting Intern",
+      "winning_strategy": "raw_row_title",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "structured_data_title",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_title",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' did not extract title"
+        },
+        {
+          "name": "raw_row_title",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Accounting Intern",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "markdown_heading_title",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No markdown heading found"
+        },
+        {
+          "name": "hinted_title",
+          "priority": "HEURISTIC",
+          "value": "Accounting Intern",
+          "is_valid": true,
+          "reason": "Valid title"
+        },
+        {
+          "name": "first_line_title",
+          "priority": "FALLBACK",
+          "value": "Accounting Intern",
+          "is_valid": true,
+          "reason": "Valid title"
+        }
+      ]
+    },
+    "company": {
+      "final_value": "Coinbase Careers Page",
+      "winning_strategy": "raw_row_company",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "structured_data_company",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_company",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no company"
+        },
+        {
+          "name": "raw_row_company",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Coinbase Careers Page",
+          "is_valid": true,
+          "reason": "Valid company name"
+        },
+        {
+          "name": "url_company",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not derive company from URL"
+        },
+        {
+          "name": "content_pattern_company",
+          "priority": "CONTENT_PATTERN",
+          "value": "This",
+          "is_valid": true,
+          "reason": "Found 'Company is a' pattern"
+        },
+        {
+          "name": "hinted_company",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
+        },
+        {
+          "name": "fallback_company",
+          "priority": "FALLBACK",
+          "value": "Unknown",
+          "is_valid": true,
+          "reason": "Fallback to 'Unknown' company name"
+        }
+      ]
+    },
+    "location": {
+      "final_value": "Hybrid - New York, NY",
+      "winning_strategy": "raw_row_location",
+      "strategy_count": 9,
+      "strategies": [
+        {
+          "name": "structured_data_location",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_location_hint",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no location hint"
+        },
+        {
+          "name": "raw_row_location",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Hybrid - New York, NY",
+          "is_valid": true,
+          "reason": "Valid location"
+        },
+        {
+          "name": "explicit_label_location",
+          "priority": "CUSTOM_350",
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
+        },
+        {
+          "name": "url_location",
+          "priority": "URL_DERIVED",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern found in URL path"
+        },
+        {
+          "name": "content_pattern_location",
+          "priority": "CONTENT_PATTERN",
+          "value": "Tax, Treasury",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
+        },
+        {
+          "name": "country_only_fallback_location",
+          "priority": "CUSTOM_550",
+          "value": "Hybrid - New York, NY",
+          "is_valid": true,
+          "reason": "Country-only fallback: Valid location"
+        },
+        {
+          "name": "hinted_location",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No location in hints"
+        },
+        {
+          "name": "remote_fallback_location",
+          "priority": "FALLBACK",
+          "value": null,
+          "is_valid": false,
+          "reason": "Job not marked as remote"
+        }
+      ]
+    },
+    "remote": {
+      "final_value": false,
+      "winning_strategy": "explicit_remote_flag",
+      "strategy_count": 7,
+      "strategies": [
+        {
+          "name": "explicit_remote_flag",
+          "priority": "STRUCTURED_DATA",
+          "value": false,
+          "is_valid": true,
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "location_remote",
+          "priority": "EXPLICIT_FIELD",
+          "value": false,
+          "is_valid": true,
+          "reason": "Location is specific place: Hybrid - New York, NY"
+        },
+        {
+          "name": "title_remote",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote keyword in title"
+        },
+        {
+          "name": "content_remote_pattern",
+          "priority": "CUSTOM_550",
+          "value": null,
+          "is_valid": false,
+          "reason": "No clear remote pattern in content"
+        },
+        {
+          "name": "hinted_remote",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No remote in hints"
+        },
+        {
+          "name": "remote_company",
+          "priority": "CUSTOM_650",
+          "value": null,
+          "is_valid": false,
+          "reason": "Company 'Coinbase Careers Page' not in remote company list"
+        },
+        {
+          "name": "default_remote",
+          "priority": "FALLBACK",
+          "value": false,
+          "is_valid": true,
+          "reason": "Default to non-remote (no clear remote signals found)"
+        }
+      ]
+    },
+    "level": {
+      "final_value": "junior",
+      "winning_strategy": "explicit_level_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_level_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Explicit level field: junior -> junior"
+        },
+        {
+          "name": "structured_data_level",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "title_level",
+          "priority": "CONTENT_PATTERN",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Level from title: 'intern' -> junior"
+        },
+        {
+          "name": "content_pattern_level",
+          "priority": "CUSTOM_550",
+          "value": "junior",
+          "is_valid": true,
+          "reason": "Level from content: 'Intern' -> junior"
+        },
+        {
+          "name": "hinted_level",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No level in hints"
+        },
+        {
+          "name": "default_level",
+          "priority": "FALLBACK",
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Default to mid level (no clear level signals found)"
+        }
+      ]
+    },
+    "compensation": {
+      "final_value": 40000,
+      "winning_strategy": "content_pattern_compensation",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "explicit_compensation_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "Could not parse compensation: 0"
+        },
+        {
+          "name": "structured_data_compensation",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 40000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $40,000"
+        },
+        {
+          "name": "hinted_compensation",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
+          "name": "unknown_compensation",
+          "priority": "FALLBACK",
+          "value": 0,
+          "is_valid": true,
+          "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "posted_at": {
+      "final_value": "2026-01-01T14:46:12",
+      "winning_strategy": "explicit_posted_at_field",
+      "strategy_count": 6,
+      "strategies": [
+        {
+          "name": "explicit_posted_at_field",
+          "priority": "STRUCTURED_DATA",
+          "value": "2026-01-01T14:46:12",
+          "is_valid": true,
+          "reason": "Valid date: 2026-01-01T14:46:12"
+        },
+        {
+          "name": "structured_data_posted_at",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_posted_at",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no posted_at"
+        },
+        {
+          "name": "content_pattern_posted_at",
+          "priority": "CONTENT_PATTERN",
+          "value": null,
+          "is_valid": false,
+          "reason": "No date pattern in content"
+        },
+        {
+          "name": "hinted_posted_at",
+          "priority": "HEURISTIC",
+          "value": null,
+          "is_valid": false,
+          "reason": "No posted_at in hints"
+        },
+        {
+          "name": "now_fallback_posted_at",
+          "priority": "FALLBACK",
+          "value": "2026-01-14T14:41:13.703859",
+          "is_valid": true,
+          "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "description": {
+      "final_value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+      "winning_strategy": "normalized_markdown_description",
+      "strategy_count": 5,
+      "strategies": [
+        {
+          "name": "structured_data_description",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "normalized_markdown_description",
+          "priority": "SITE_HANDLER",
+          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (7064 chars)"
+        },
+        {
+          "name": "raw_row_description",
+          "priority": "EXPLICIT_FIELD",
+          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (7064 chars)"
+        },
+        {
+          "name": "raw_markdown_description",
+          "priority": "CUSTOM_800",
+          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "is_valid": true,
+          "reason": "Valid description (7064 chars)"
+        },
+        {
+          "name": "empty_description_fallback",
+          "priority": "FALLBACK",
+          "value": "",
+          "is_valid": true,
+          "reason": "No description found, using empty string"
+        }
+      ]
+    }
   },
   "errors": []
 }

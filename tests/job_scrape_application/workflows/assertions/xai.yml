@@ -1,3 +1,4 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: xai
 detail_url: https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007
 expected:
@@ -5,7 +6,7 @@ expected:
   company: xAI
   location_contains: Palo Alto
   is_remote: true
-  level: staff
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

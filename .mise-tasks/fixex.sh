@@ -17,6 +17,12 @@ codex exec \
   the extraction, but you may also want to use agent_scripts to get a spidercrawl scrape and populate unit test fixtures that
   simply state what is wrong against your assumptions. The unit test should check extraction of data such
   as location (city, state, country, remote=true|false|unknown), job title, company name, min salary, max salary,
-  posted_date (or updated_at), job description does not have junk, and job description is not cut off. 
-  If anything fails, please improve the base site handler class and methods for extracting data, but if it needs to be very site specific, 
-  you can update the sub-classes. Run all unit tests to ensure no regression before completing your task of updating the extraction code and tests."
+  posted_date (or updated_at), job description does not have junk, and job description is not cut off.
+  If anything fails, please improve the base site handler class and methods for extracting data, but if it needs to be very site specific,
+  you can update the sub-classes. Run all unit tests to ensure no regression before completing your task of updating the extraction code and tests.
+
+  TIP: For detailed per-field extraction debugging, use the modular extractors at job_scrape_application/workflows/extractors/:
+  - ExtractionContext.from_scrape_result() creates context with debug=True
+  - extract_job_fields(ctx, run_all=True) shows ALL strategies tried for each field
+  - Each strategy result includes: value, is_valid, priority, reason
+  See DEBUGGING.md section 'Modular Extractor Debug Output' for examples."
