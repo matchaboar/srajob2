@@ -9,6 +9,7 @@ This step handles:
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from typing import Iterable, List
@@ -17,6 +18,14 @@ from ..types import ParsedContent, ExtractedFields, NormalizedJob, NORMALIZATION
 from ...helpers.compensation_parsing import normalize_compensation_value
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_text(value: str | None) -> str:
+    """Normalize text by unescaping HTML entities and stripping whitespace."""
+    if not value:
+        return ""
+    return html.unescape(value).strip()
+
 
 # Pattern to split multiple locations (semicolon, pipe, or slash)
 LOCATION_SPLIT_PATTERN = r"[;|/]"
@@ -60,9 +69,20 @@ def normalize_fields(
         NormalizedJob with standardized values
     """
     # Normalize location
+    # Prefer locations_raw (from hints) over single location string
     location, locations, location_states, location_search, countries, country = (
-        _normalize_location_data(extracted.location)
+        _normalize_location_data(
+            extracted.location,
+            locations_raw=extracted.locations_raw,
+        )
     )
+
+    # Default countries to US when remote or location unknown
+    is_remote = extracted.is_remote or False
+    location_unknown = not location or (location and location.lower().strip() in _UNKNOWN_LOCATION_TOKENS)
+    if not countries and (is_remote or location_unknown):
+        countries = ["United States"]
+        country = "United States"
 
     # Normalize compensation
     comp_min, comp_max = _normalize_compensation(
@@ -70,10 +90,14 @@ def normalize_fields(
         extracted.compensation_max,
     )
 
+    # Unescape HTML entities in text fields
+    title = _normalize_text(extracted.title)
+    company = _normalize_text(extracted.company)
+
     return NormalizedJob(
         url=parsed.url,
-        title=extracted.title or "",
-        company=extracted.company or "",
+        title=title,
+        company=company,
         location=location,
         locations=locations,
         location_states=location_states,
@@ -163,27 +187,38 @@ def _split_and_normalize_locations(raw_locations: Iterable[str]) -> List[str]:
 
 def _normalize_location_data(
     raw_location: str | None,
+    locations_raw: list[str] | None = None,
 ) -> tuple[str | None, list[str], list[str], str | None, list[str], str | None]:
     """
     Normalize location string into structured data.
 
+    Args:
+        raw_location: Single location string (may contain multiple locations separated by ; | /)
+        locations_raw: Pre-split list of raw locations (from hints). If provided, takes precedence.
+
     Returns:
         Tuple of (location, locations, location_states, location_search, countries, country)
     """
-    if not raw_location:
-        return None, [], [], None, [], None
+    # If we have pre-split raw locations from hints, use them directly
+    if locations_raw:
+        locations = _split_and_normalize_locations(locations_raw)
+    elif raw_location:
+        # Check for unknown tokens
+        if raw_location.lower().strip() in _UNKNOWN_LOCATION_TOKENS:
+            return None, [], [], None, [], None
 
-    # Check for unknown tokens
-    if raw_location.lower().strip() in _UNKNOWN_LOCATION_TOKENS:
-        return None, [], [], None, [], None
+        # Split and normalize multiple locations (e.g., "Madrid, Spain; Paris, France")
+        locations = _split_and_normalize_locations([raw_location])
 
-    # Split and normalize multiple locations (e.g., "Madrid, Spain; Paris, France")
-    locations = _split_and_normalize_locations([raw_location])
+        if not locations:
+            # Fallback: use raw location if normalization produced nothing
+            if _is_plausible_location(raw_location):
+                locations = [raw_location]
+    else:
+        return None, [], [], None, [], None
 
     if not locations:
-        # Fallback: use raw location if normalization produced nothing
-        if _is_plausible_location(raw_location):
-            locations = [raw_location]
+        return None, [], [], None, [], None
 
     # Primary location
     location = locations[0] if locations else None
@@ -248,6 +283,12 @@ def _derive_countries(locations: list[str]) -> list[str]:
         "ireland": "Ireland",
         "netherlands": "Netherlands",
         "israel": "Israel",
+        "brazil": "Brazil",
+        "mexico": "Mexico",
+        "spain": "Spain",
+        "china": "China",
+        "south korea": "South Korea",
+        "korea": "South Korea",
     }
 
     for loc in locations:

@@ -79,7 +79,7 @@ async def lease_site(
 @activity.defn
 async def complete_site(site_id: str) -> None:
     """Mark a site as completed after successful scraping."""
-    from ...services.convex_client import convex_mutation
+    from ...services.convex_client import ArgumentValidationError, convex_mutation
 
     if not _looks_like_convex_id(site_id):
         # Skip best-effort if id is not a Convex document id
@@ -87,9 +87,9 @@ async def complete_site(site_id: str) -> None:
 
     try:
         await convex_mutation("router:completeSite", {"id": site_id})
-    except Exception as exc:  # noqa: BLE001
-        # Swallow validator errors so workflows continue
-        if "ArgumentValidationError" in str(exc) and ".id" in str(exc):
+    except ArgumentValidationError as exc:
+        # Swallow validator errors for .id field so workflows continue
+        if ".id" in str(exc):
             return
         raise
 
@@ -97,7 +97,7 @@ async def complete_site(site_id: str) -> None:
 @activity.defn
 async def fail_site(payload: Dict[str, Any]) -> None:
     """Mark a site as failed with an error message."""
-    from ...services.convex_client import convex_mutation
+    from ...services.convex_client import ArgumentValidationError, convex_mutation
 
     site_id = payload.get("id")
     if not isinstance(site_id, str) or not _looks_like_convex_id(site_id):
@@ -105,7 +105,8 @@ async def fail_site(payload: Dict[str, Any]) -> None:
 
     try:
         await convex_mutation("router:failSite", {"id": site_id, "error": payload.get("error")})
-    except Exception as exc:  # noqa: BLE001
-        if "ArgumentValidationError" in str(exc) and ".id" in str(exc):
+    except ArgumentValidationError as exc:
+        # Swallow validator errors for .id field so workflows continue
+        if ".id" in str(exc):
             return
         raise

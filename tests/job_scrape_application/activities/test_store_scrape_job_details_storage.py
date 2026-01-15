@@ -9,8 +9,14 @@ from job_scrape_application.workflows import activities as acts  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_store_scrape_ingest_uses_untrimmed_descriptions(monkeypatch: pytest.MonkeyPatch) -> None:
-    long_description = "A" * 5000
+async def test_store_scrape_ingest_uses_trimmed_descriptions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that descriptions are trimmed for both insert and ingest.
+
+    - insertScrapeRecord receives descriptions trimmed by trim_scrape_for_convex
+    - ingestJobsFromScrape receives descriptions trimmed by build_description_preview
+    - Full descriptions go to file storage separately (not tested here)
+    """
+    long_description = "A " * 5000  # 10000 chars, many words to exceed preview limit
     payload = {
         "sourceUrl": "https://example.com/jobs",
         "items": {
@@ -52,7 +58,7 @@ async def test_store_scrape_ingest_uses_untrimmed_descriptions(monkeypatch: pyte
         items = trimmed.get("items") if isinstance(trimmed.get("items"), dict) else {}
         normalized = items.get("normalized") if isinstance(items, dict) else None
         if isinstance(normalized, list) and normalized:
-            normalized = [dict(normalized[0], description="TRIMMED")]
+            normalized = [dict(normalized[0], description="TRIMMED_FOR_INSERT")]
             items = {**items, "normalized": normalized}
             trimmed["items"] = items
         return trimmed
@@ -65,5 +71,10 @@ async def test_store_scrape_ingest_uses_untrimmed_descriptions(monkeypatch: pyte
 
     assert res == "scrape-id"
     assert trim_args.get("max_description") == 2000
-    assert calls["insert"]["items"]["normalized"][0]["description"] == "TRIMMED"
-    assert calls["ingest"]["jobs"][0]["description"] == long_description
+    # insertScrapeRecord gets description trimmed by trim_scrape_for_convex
+    assert calls["insert"]["items"]["normalized"][0]["description"] == "TRIMMED_FOR_INSERT"
+    # ingestJobsFromScrape gets description trimmed by build_description_preview (100 words max)
+    ingest_description = calls["ingest"]["jobs"][0]["description"]
+    assert ingest_description != long_description, "Ingest should receive truncated description"
+    assert ingest_description.endswith("..."), "Truncated description should end with '...'"
+    assert len(ingest_description) < len(long_description), "Truncated description should be shorter"

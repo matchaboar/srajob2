@@ -1944,6 +1944,59 @@ export const deleteSeenJobUrls = mutation({
   },
 });
 
+export const recordScrapeUrlAttempts = mutation({
+  args: {
+    entries: v.array(
+      v.object({
+        url: v.string(),
+        sourceUrl: v.string(),
+        provider: v.optional(v.string()),
+        attempts: v.optional(v.number()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let created = 0;
+    let updated = 0;
+    for (const entry of args.entries) {
+      const url = entry.url.trim();
+      const sourceUrl = entry.sourceUrl.trim();
+      if (!url || !sourceUrl) continue;
+      const existing = await ctx.db
+        .query("scrape_url_attempts")
+        .withIndex("by_url_source", (q) =>
+          q.eq("url", url).eq("sourceUrl", sourceUrl),
+        )
+        .first();
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          attemptCount: existing.attemptCount + 1,
+          lastAttemptAt: now,
+          lastQueueAttempt:
+            typeof entry.attempts === "number"
+              ? entry.attempts
+              : existing.lastQueueAttempt,
+          provider: entry.provider ?? existing.provider,
+        });
+        updated += 1;
+      } else {
+        await ctx.db.insert("scrape_url_attempts", {
+          url,
+          sourceUrl,
+          provider: entry.provider,
+          attemptCount: 1,
+          lastAttemptAt: now,
+          lastQueueAttempt:
+            typeof entry.attempts === "number" ? entry.attempts : undefined,
+        });
+        created += 1;
+      }
+    }
+    return { created, updated };
+  },
+});
+
 export const clearIgnoredJobsForSource = mutation({
   args: {
     sourceUrl: v.string(),

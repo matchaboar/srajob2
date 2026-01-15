@@ -81,5 +81,6 @@ class WorkflowApiHandler(BaseHTTPRequestHandler):
 
 
 def serve(host: str = "0.0.0.0", port: int = 8080) -> None:
+    ThreadingHTTPServer.allow_reuse_address = True
     server = ThreadingHTTPServer((host, port), WorkflowApiHandler)
     server.serve_forever()

@@ -1632,6 +1632,12 @@ export const startBackfillSeenJobUrlsLoop = mutation({
 /**
  * Batch patch jobs by URL with posting date fields.
  * Used for backfilling posting dates efficiently.
+ *
+ * Logic for postingFirstPublishedAt:
+ * - If job already has postingFirstPublishedAt → keep it unchanged
+ * - If job doesn't have postingFirstPublishedAt → set it to the current postedAt in DB
+ *
+ * Then update postedAt with the new value from the API.
  */
 export const batchPatchPostingDates = mutation({
   args: {
@@ -1668,12 +1674,24 @@ export const batchPatchPostingDates = mutation({
 
       const patchData: Record<string, any> = {};
 
+      // Handle postingFirstPublishedAt: only set if not already present
+      const existingFirstPublished = job.postingFirstPublishedAt;
+      if (existingFirstPublished == null) {
+        // No existing first published date - preserve the old postedAt as first published
+        const oldPostedAt = job.postedAt;
+        if (typeof oldPostedAt === "number") {
+          patchData.postingFirstPublishedAt = oldPostedAt;
+        } else if (typeof update.postingFirstPublishedAt === "number") {
+          // Fallback to API's first_published if no old postedAt
+          patchData.postingFirstPublishedAt = update.postingFirstPublishedAt;
+        }
+      }
+      // If existingFirstPublished is already set, leave it unchanged
+
+      // Always update postedAt with the new value
       if (typeof update.postedAt === "number") {
         patchData.postedAt = update.postedAt;
         patchData.postedAtUnknown = false;
-      }
-      if (typeof update.postingFirstPublishedAt === "number") {
-        patchData.postingFirstPublishedAt = update.postingFirstPublishedAt;
       }
 
       if (Object.keys(patchData).length > 0) {

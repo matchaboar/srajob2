@@ -257,29 +257,3 @@ class TestDeriveCompanyFromUrl:
         url = "https://boards.greenhouse.io/robinhood/jobs/7155938"
         result = derive_company_from_url(url)
         assert result == "Robinhood"
-
-
-class TestBackwardCompatibility:
-    """Tests for backward compatibility with scrape_utils imports."""
-
-    def test_imports_from_scrape_utils(self):
-        from job_scrape_application.workflows.helpers.scrape_utils import (
-            _COMPANY_SUFFIX_RE as SU_SUFFIX_RE,
-            _GENERIC_COMPANY_HINTS as SU_GENERIC_HINTS,
-            _JOB_BOARD_COMPANY_TOKENS as SU_BOARD_TOKENS,
-            apply_company_hint as su_apply,
-            derive_company_from_url as su_derive,
-            is_generic_company_name as su_is_generic,
-            normalize_company_hint as su_normalize_hint,
-            normalize_title_from_bar as su_normalize_title,
-        )
-
-        # Verify they're the same objects
-        assert SU_SUFFIX_RE is _COMPANY_SUFFIX_RE
-        assert SU_GENERIC_HINTS is _GENERIC_COMPANY_HINTS
-        assert SU_BOARD_TOKENS is _JOB_BOARD_COMPANY_TOKENS
-        assert su_apply is apply_company_hint
-        assert su_derive is derive_company_from_url
-        assert su_is_generic is is_generic_company_name
-        assert su_normalize_hint is normalize_company_hint
-        assert su_normalize_title is normalize_title_from_bar

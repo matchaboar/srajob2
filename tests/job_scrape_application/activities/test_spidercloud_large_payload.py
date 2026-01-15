@@ -43,10 +43,19 @@ async def _passthrough_filter_new_job_urls(urls: List[str]) -> List[str]:
     return urls
 
 
+async def _noop_convex_mutation(name: str, payload: Dict[str, Any]) -> None:
+    """No-op mock for convex_mutation."""
+    pass
+
+
 @pytest.fixture(autouse=True)
-def _mock_filter_new_job_urls(monkeypatch):
-    """Automatically mock filter_new_job_urls to return all URLs for these tests."""
+def _mock_external_dependencies(monkeypatch):
+    """Automatically mock external dependencies for these tests."""
     monkeypatch.setattr(activities, "filter_new_job_urls", _passthrough_filter_new_job_urls)
+    monkeypatch.setattr(
+        "job_scrape_application.services.convex_client.convex_mutation",
+        _noop_convex_mutation,
+    )
 
 
 @pytest.mark.asyncio

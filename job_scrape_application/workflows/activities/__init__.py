@@ -209,7 +209,9 @@ from .heuristics import (
     _detect_currency_code,
     _domain_from_url,
 )
-from .heuristics import _build_job_detail_heuristic_patch, HEURISTIC_VERSION
+# Use new normalizers pipeline (backwards-compatible adapter)
+from ..normalizers.pipeline import build_job_update as _build_job_detail_heuristic_patch
+from ..normalizers.types import NORMALIZATION_VERSION as HEURISTIC_VERSION
 
 _log_provider_dispatch = log_provider_dispatch
 
@@ -1486,7 +1488,14 @@ async def process_spidercloud_job_batch(
         key = (source_val, pattern_val)
         normalized_url = _to_greenhouse_api_url(url_val, source_val)
         groups.setdefault(key, []).append(normalized_url)
-        attempt_entries.append(row)
+        attempt_entries.append(
+            {
+                "url": normalized_url,
+                "sourceUrl": source_val,
+                "provider": row.get("provider") if isinstance(row.get("provider"), str) else None,
+                "attempts": row.get("attempts"),
+            }
+        )
         posted_at_val = row.get("postedAt")
         if isinstance(posted_at_val, (int, float)):
             mapping = posted_at_groups.setdefault(key, {})

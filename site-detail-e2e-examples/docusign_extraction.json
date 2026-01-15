@@ -1,7 +1,7 @@
 {
   "site_id": "docusign",
   "detail_url": "https://careers.docusign.com/jobs/27215?lang=en-us",
-  "source_url": "https://careers.docusign.com/jobs/27215?lang=en-us",
+  "source_url": "https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&limit=100&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false",
   "extracted_jobs": [
     {
       "title": "Software Engineer",
@@ -9,7 +9,7 @@
       "description_word_count": 1312,
       "location": "Seattle, WA",
       "is_remote": false,
-      "posted_at": 1768508933871,
+      "posted_at": 1768518196011,
       "posted_at_unknown": true,
       "company": "Docusign",
       "level": "mid",
@@ -17,7 +17,7 @@
       "compensation_unknown": true,
       "compensation_reason": "pending markdown structured extraction",
       "url": "https://careers.docusign.com/jobs/27215?lang=en-us",
-      "cost_milli_cents": 462
+      "cost_milli_cents": 460
     }
   ],
   "convex_capture": {
@@ -339,7 +339,7 @@
           "priority": "HEURISTIC",
           "value": 165775,
           "is_valid": true,
-          "reason": "Compensation from hints: $165,775"
+          "reason": "Compensation from hint range: $133,800-$197,750 -> $165,775 (avg)"
         },
         {
           "name": "unknown_compensation",
@@ -351,16 +351,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-15T13:28:53.871000",
+      "final_value": "2026-01-15T16:03:16.011000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-15T13:28:53.871000",
+          "value": "2026-01-15T16:03:16.011000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-15T13:28:53.871000"
+          "reason": "Valid date: 2026-01-15T16:03:16.011000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T13:29:00.508228",
+          "value": "2026-01-15T16:03:20.580482",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

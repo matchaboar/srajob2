@@ -98,7 +98,10 @@ async def test_lease_scrape_url_batch_filters_skip_and_marks_failed(monkeypatch)
         "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
         fake_complete_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.queue_management.fetch_seen_urls_for_site",
+        fake_fetch_seen,
+    )
 
     res = await acts.lease_scrape_url_batch("spidercloud", 5)
 
@@ -154,7 +157,10 @@ async def test_lease_scrape_url_batch_keeps_listing_urls_out_of_seen(monkeypatch
         "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
         fake_complete_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.queue_management.fetch_seen_urls_for_site",
+        fake_fetch_seen,
+    )
 
     res = await acts.lease_scrape_url_batch("spidercloud", 5)
 
@@ -225,7 +231,10 @@ async def test_lease_scrape_url_batch_retries_when_all_skipped(monkeypatch):
         "job_scrape_application.workflows.activities.dbos_queue.complete_scrape_urls",
         fake_complete_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.activities.queue_management.fetch_seen_urls_for_site",
+        fake_fetch_seen,
+    )
 
     res = await acts.lease_scrape_url_batch("spidercloud", 1)
 

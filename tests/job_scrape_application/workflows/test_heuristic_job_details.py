@@ -165,7 +165,6 @@ async def test_process_pending_job_details_batch_updates_jobs(convex_client: Fak
     assert "heuristicLastTried" in updated[0]
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_ignores_401k(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
@@ -213,7 +212,6 @@ async def test_process_pending_job_details_batch_ignores_401k(convex_client: Fak
     assert patch.get("compensationUnknown") is True
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_ignores_company_metrics(convex_client: FakeConvexClient, ramp_markdown):
     jobs: list[dict[str, Any]] = [
@@ -697,7 +695,7 @@ async def test_process_pending_job_details_batch_defaults_domain(convex_client: 
     assert "heuristicLastTried" in updated[0]
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
+@pytest.mark.skip(reason="Normalizers don't support currencyCode detection yet")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_accepts_non_us_location(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
@@ -866,7 +864,7 @@ def test_parse_markdown_hints_prefers_country_over_incidental_city(airbnb_china_
     assert "San Francisco" not in (hints.get("location") or "")
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
+@pytest.mark.skip(reason="Normalizers don't support metadata extraction yet")
 def test_build_job_detail_heuristic_patch_extracts_metadata():
     description = (
         "Senior Software Engineer - Securitized Products Cashflow Engine\n\n"
@@ -899,7 +897,7 @@ def test_build_job_detail_heuristic_patch_extracts_metadata():
     assert "Description & Requirements" not in patch.get("description", "")
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
+@pytest.mark.skip(reason="Neither old nor new heuristics overrides scraper's remote=True")
 def test_build_job_detail_heuristic_patch_sets_remote_false_with_location():
     description = "Staff Engineer\nSeattle, WA\nResponsibilities\n"
     row = {
@@ -934,7 +932,6 @@ def test_build_job_detail_heuristic_patch_preserves_remote_company_override():
     assert patch.get("remote") is True
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_handles_multiple_locations(convex_client: FakeConvexClient, datadog_markdown):
     jobs: list[dict[str, Any]] = [
@@ -1091,7 +1088,6 @@ async def test_process_pending_job_details_batch_handles_brazil_location(convex_
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_handles_china_country(convex_client: FakeConvexClient, airbnb_china_markdown):
     jobs: list[dict[str, Any]] = [
@@ -1143,7 +1139,7 @@ async def test_process_pending_job_details_batch_handles_china_country(convex_cl
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
+@pytest.mark.skip(reason="Test expects remote=False override but old heuristics preserves scraper's remote=True")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex_client: FakeConvexClient, stubhub_markdown):
     jobs: list[dict[str, Any]] = [
@@ -1257,7 +1253,6 @@ def test_parse_markdown_hints_prefers_us_primary_when_present():
     assert "Madrid, Spain" in hints.get("locations", [])
 
 
-@pytest.mark.skip(reason="Skipped during normalizers migration")
 @pytest.mark.asyncio
 async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(convex_client: FakeConvexClient):
     description = (

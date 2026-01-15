@@ -521,8 +521,13 @@ async def test_dbos_schedule_workflow_steps(
         # Return all URLs as "new" (non-existing) for testing
         return urls
 
+    async def fake_convex_mutation(name: str, payload: Dict[str, Any]) -> None:
+        # No-op for mutations during testing
+        pass
+
     stored_scrapes: List[Dict[str, Any]] = []
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_convex_mutation)
     monkeypatch.setattr(acts, "store_scrape", fake_store_scrape)
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen_urls)
     monkeypatch.setattr(acts, "filter_new_job_urls", fake_filter_new_job_urls)

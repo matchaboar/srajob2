@@ -290,3 +290,91 @@ async def test_filter_new_job_urls_error_raises_for_caller_fallback(monkeypatch)
     print("   - filter_new_job_urls raises on error")
     print("   - Caller can catch and fall back to all URLs as new")
     print("   - Prevents incorrectly filtering out all URLs")
+
+
+@pytest.mark.asyncio
+async def test_record_scrape_url_attempts_receives_only_expected_fields(monkeypatch):
+    """
+    Test that _record_scrape_url_attempts is called with entries containing
+    only the fields expected by the Convex recordScrapeUrlAttempts validator:
+    url, sourceUrl, provider, attempts.
+
+    This prevents ArgumentValidationError from extra fields like _id, pattern,
+    postedAt, siteId, urlType being passed through.
+    """
+    # Setup: Create a batch with rows containing many extra fields (as in production)
+    batch = {
+        "urls": [
+            {
+                "_id": "3f5d979c-c4b5-497e-b004-ad785e3f0777",
+                "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+                "sourceUrl": "https://api.greenhouse.io/v1/boards/mongodb/jobs",
+                "provider": "spidercloud",
+                "pattern": None,
+                "postedAt": None,
+                "siteId": "kd789vd62w7jhs98zdp9d27jvs7z5w96",
+                "urlType": "detail",
+                "attempts": 0,
+            },
+            {
+                "_id": "another-uuid-here",
+                "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335946",
+                "sourceUrl": "https://api.greenhouse.io/v1/boards/mongodb/jobs",
+                "provider": "spidercloud",
+                "pattern": "some-pattern",
+                "postedAt": 1704067200000,
+                "siteId": "kd789vd62w7jhs98zdp9d27jvs7z5w96",
+                "urlType": "detail",
+                "attempts": 2,
+            },
+        ]
+    }
+
+    # Capture entries passed to _record_scrape_url_attempts
+    captured_entries: List[Dict[str, Any]] = []
+
+    async def capturing_record_scrape_url_attempts(entries: List[Dict[str, Any]]) -> None:
+        """Capture entries for validation."""
+        captured_entries.extend(entries)
+        return None
+
+    # Mock to skip actual SpiderCloud calls
+    mock_scraper = _SpiderCloudMock()
+
+    def fake_make_spidercloud_scraper():
+        return mock_scraper
+
+    async def fake_filter_new_job_urls(urls: List[str]) -> List[str]:
+        return urls  # All URLs are "new"
+
+    def fake_complete_scrape_urls(payload: dict) -> dict:
+        return {"updated": len(payload.get("items", []))}
+
+    monkeypatch.setattr(activities, "filter_new_job_urls", fake_filter_new_job_urls)
+    monkeypatch.setattr(activities, "_make_spidercloud_scraper", fake_make_spidercloud_scraper)
+    monkeypatch.setattr(activities, "_record_scrape_url_attempts", capturing_record_scrape_url_attempts)
+    monkeypatch.setattr(activities.dbos_queue, "complete_scrape_urls", fake_complete_scrape_urls)
+
+    # Execute
+    await activities.process_spidercloud_job_batch(batch, persist_scrapes=True)
+
+    # Verify: Entries should only have the expected fields
+    ALLOWED_FIELDS = {"url", "sourceUrl", "provider", "attempts"}
+
+    assert len(captured_entries) == 2, f"Expected 2 entries, got {len(captured_entries)}"
+
+    for i, entry in enumerate(captured_entries):
+        extra_fields = set(entry.keys()) - ALLOWED_FIELDS
+        assert not extra_fields, (
+            f"Entry {i} has unexpected fields {extra_fields} that would fail Convex validation. "
+            f"Entry: {entry}"
+        )
+
+        # Verify required fields are present
+        assert "url" in entry, f"Entry {i} missing required 'url' field"
+        assert "sourceUrl" in entry, f"Entry {i} missing required 'sourceUrl' field"
+
+    print("\n✅ FIELD FILTERING CORRECT:")
+    print(f"   - Input rows had fields: _id, url, sourceUrl, provider, pattern, postedAt, siteId, urlType, attempts")
+    print(f"   - Entries passed to Convex have only: {ALLOWED_FIELDS}")
+    print(f"   - Extra fields correctly filtered out")

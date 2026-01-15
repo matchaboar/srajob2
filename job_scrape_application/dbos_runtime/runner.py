@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import concurrent.futures
 import logging
 import threading
+import time
 from typing import Awaitable, Callable
 from urllib.parse import parse_qs, urlparse
 
@@ -15,6 +17,7 @@ from .queue import (
     enqueue_scrape_urls,
     lease_scrape_url_batch,
     queue_status,
+    recover_stale_processing_items,
 )
 from .runs import last_completed_at, record_run
 from .sqlite import initialize_schema, now_ms
@@ -25,6 +28,60 @@ from ..workflows.helpers.spidercloud_error_strategy import decision_for_exceptio
 from ..workflows.site_handlers import get_site_handler
 
 logger = logging.getLogger("dbos.runner")
+
+# Thread pool for blocking DB operations (avoid blocking the event loop)
+_DB_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
+
+
+def _get_db_executor() -> concurrent.futures.ThreadPoolExecutor:
+    global _DB_EXECUTOR
+    if _DB_EXECUTOR is None:
+        _DB_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="db")
+    return _DB_EXECUTOR
+
+
+async def _async_lease_batch(
+    provider: str | None, limit: int, url_type: str | None
+) -> LeaseResult:
+    """Run lease_scrape_url_batch in executor to avoid blocking event loop."""
+    loop = asyncio.get_running_loop()
+    start = time.monotonic()
+    result = await loop.run_in_executor(
+        _get_db_executor(),
+        lambda: lease_scrape_url_batch(provider=provider, limit=limit, url_type=url_type),
+    )
+    elapsed = time.monotonic() - start
+    if elapsed > 1.0:
+        logger.warning("Slow lease_scrape_url_batch: %.3fs url_type=%s", elapsed, url_type)
+    return result
+
+
+async def _async_detail_queue_pending() -> bool:
+    """Run detail_queue_has_pending in executor to avoid blocking event loop."""
+    global _LAST_DETAIL_QUEUE_STATUS_ERROR_MS
+    loop = asyncio.get_running_loop()
+    start = time.monotonic()
+    try:
+        result = await loop.run_in_executor(
+            _get_db_executor(),
+            detail_queue_has_pending,
+        )
+        elapsed = time.monotonic() - start
+        if elapsed > 0.5:
+            logger.warning("Slow detail_queue_has_pending: %.3fs", elapsed)
+        return result
+    except Exception as exc:
+        now = now_ms()
+        if (
+            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS is None
+            or now - _LAST_DETAIL_QUEUE_STATUS_ERROR_MS > _DETAIL_QUEUE_STATUS_ERROR_LOG_MS
+        ):
+            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS = now
+            logger.warning(
+                "Failed to read detail queue status; listing priority disabled. error=%s",
+                exc,
+            )
+        return False
 
 ActivityHandler = Callable[..., Awaitable[object]]
 
@@ -124,24 +181,6 @@ def _reset_cache() -> None:
     _SITES_CACHE = None
 
 
-def _detail_queue_pending() -> bool:
-    global _LAST_DETAIL_QUEUE_STATUS_ERROR_MS
-    try:
-        return detail_queue_has_pending()
-    except Exception as exc:
-        now = now_ms()
-        if (
-            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS is None
-            or now - _LAST_DETAIL_QUEUE_STATUS_ERROR_MS > _DETAIL_QUEUE_STATUS_ERROR_LOG_MS
-        ):
-            _LAST_DETAIL_QUEUE_STATUS_ERROR_MS = now
-            logger.warning(
-                "Failed to read detail queue status; listing priority disabled. error=%s",
-                exc,
-            )
-        return False
-
-
 async def _process_listing_batch(batch: LeaseResult) -> None:
     if not batch.urls:
         return
@@ -197,9 +236,10 @@ async def _run_queue_loop(
     poll_interval: float,
     max_in_flight: int,
     handler: Callable[[LeaseResult], Awaitable[None]],
-    pause_when: Callable[[], bool] | None = None,
+    pause_when_async: Callable[[], Awaitable[bool]] | None = None,
 ) -> None:
     semaphore = asyncio.Semaphore(max(1, max_in_flight))
+    queue_label = url_type or "unknown"
 
     async def _run_batch(batch: LeaseResult) -> None:
         try:
@@ -207,20 +247,38 @@ async def _run_queue_loop(
         finally:
             semaphore.release()
 
+    logger.info("Queue loop starting: %s (concurrency=%d)", queue_label, max_in_flight)
+
     while True:
-        if pause_when and pause_when():
+        try:
+            # Check if we should pause (async to not block event loop)
+            if pause_when_async:
+                should_pause = await pause_when_async()
+                if should_pause:
+                    await asyncio.sleep(poll_interval)
+                    continue
+
+            # Check semaphore without blocking
+            if semaphore.locked():
+                await asyncio.sleep(poll_interval)
+                continue
+
+            # Lease batch using async wrapper (runs in thread pool)
+            batch = await _async_lease_batch(provider=None, limit=limit, url_type=url_type)
+
+            if batch.urls:
+                await semaphore.acquire()
+                asyncio.create_task(_run_batch(batch))
+                # Yield to allow other tasks to run
+                await asyncio.sleep(0)
+                continue
+
+            # No items available, sleep before polling again
             await asyncio.sleep(poll_interval)
-            continue
-        if semaphore.locked():
+
+        except Exception as exc:
+            logger.exception("Queue loop error (%s): %s", queue_label, exc)
             await asyncio.sleep(poll_interval)
-            continue
-        batch = lease_scrape_url_batch(provider=None, limit=limit, url_type=url_type)
-        if batch.urls:
-            await semaphore.acquire()
-            asyncio.create_task(_run_batch(batch))
-            await asyncio.sleep(0)
-            continue
-        await asyncio.sleep(poll_interval)
 
 
 async def _load_schedule_interval_minutes() -> int:
@@ -300,38 +358,42 @@ async def _enqueue_listing_sites() -> int:
 
 async def _run_schedule_loop() -> None:
     while True:
-        interval_minutes = await _load_schedule_interval_minutes()
-        last_run = last_completed_at(SCHEDULE_WORKFLOW_NAME) or 0
-        interval_ms = interval_minutes * 60 * 1000
-        now = now_ms()
-        if now - last_run >= interval_ms:
-            started_at = now
-            if _detail_queue_pending():
-                logger.info(
-                    "Skipping listing schedule; detail queue has pending items.",
-                )
-                await asyncio.sleep(SCHEDULE_POLL_SECONDS)
-                continue
-            try:
-                queued = await _enqueue_listing_sites()
-                record_run(
-                    workflow_name=SCHEDULE_WORKFLOW_NAME,
-                    queue_name="listing",
-                    status="completed",
-                    started_at=started_at,
-                    completed_at=now_ms(),
-                )
-                logger.info("Scheduled listing enqueue queued=%s", queued)
-            except Exception as exc:
-                record_run(
-                    workflow_name=SCHEDULE_WORKFLOW_NAME,
-                    queue_name="listing",
-                    status="failed",
-                    error=str(exc),
-                    started_at=started_at,
-                    completed_at=now_ms(),
-                )
-                logger.exception("Scheduled listing enqueue failed")
+        try:
+            interval_minutes = await _load_schedule_interval_minutes()
+            last_run = last_completed_at(SCHEDULE_WORKFLOW_NAME) or 0
+            interval_ms = interval_minutes * 60 * 1000
+            now = now_ms()
+            if now - last_run >= interval_ms:
+                started_at = now
+                # Use async version to not block event loop
+                if await _async_detail_queue_pending():
+                    logger.info(
+                        "Skipping listing schedule; detail queue has pending items.",
+                    )
+                    await asyncio.sleep(SCHEDULE_POLL_SECONDS)
+                    continue
+                try:
+                    queued = await _enqueue_listing_sites()
+                    record_run(
+                        workflow_name=SCHEDULE_WORKFLOW_NAME,
+                        queue_name="listing",
+                        status="completed",
+                        started_at=started_at,
+                        completed_at=now_ms(),
+                    )
+                    logger.info("Scheduled listing enqueue queued=%s", queued)
+                except Exception as exc:
+                    record_run(
+                        workflow_name=SCHEDULE_WORKFLOW_NAME,
+                        queue_name="listing",
+                        status="failed",
+                        error=str(exc),
+                        started_at=started_at,
+                        completed_at=now_ms(),
+                    )
+                    logger.exception("Scheduled listing enqueue failed")
+        except Exception as exc:
+            logger.exception("Schedule loop error: %s", exc)
         await asyncio.sleep(SCHEDULE_POLL_SECONDS)
 
 
@@ -345,6 +407,16 @@ async def run_worker(
     detail_concurrency: int,
 ) -> None:
     initialize_schema()
+    # Recover items stuck in 'processing' for more than 10 minutes (likely from a previous crash)
+    recovered = recover_stale_processing_items(stale_threshold_ms=10 * 60 * 1000)
+    if recovered > 0:
+        logger.info("Recovered %d stale processing items (>10min)", recovered)
+    logger.info(
+        "Starting worker: listing(batch=%d, poll=%.1fs, concurrency=%d) "
+        "detail(batch=%d, poll=%.1fs, concurrency=%d)",
+        listing_batch, listing_poll, listing_concurrency,
+        detail_batch, detail_poll, detail_concurrency,
+    )
     await asyncio.gather(
         _run_queue_loop(
             url_type="listing",
@@ -352,7 +424,7 @@ async def run_worker(
             poll_interval=listing_poll,
             max_in_flight=listing_concurrency,
             handler=_process_listing_batch,
-            pause_when=_detail_queue_pending,
+            pause_when_async=_async_detail_queue_pending,
         ),
         _run_queue_loop(
             url_type="detail",

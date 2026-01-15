@@ -339,7 +339,7 @@
           "priority": "HEURISTIC",
           "value": 130000,
           "is_valid": true,
-          "reason": "Compensation from hints: $130,000"
+          "reason": "Compensation from hint range: $125,000-$135,000 -> $130,000 (avg)"
         },
         {
           "name": "unknown_compensation",
@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T13:28:46.329429",
+          "value": "2026-01-15T16:03:01.718833",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

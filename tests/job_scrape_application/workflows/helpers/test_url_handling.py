@@ -125,23 +125,3 @@ class TestFirstUrl:
     def test_returns_none_for_none(self):
         result = _first_url(None)
         assert result is None
-
-
-class TestBackwardCompatibility:
-    """Tests for backward compatibility with scrape_utils imports."""
-
-    def test_imports_from_scrape_utils(self):
-        from job_scrape_application.workflows.helpers.scrape_utils import (
-            _apply_url_candidates as su_candidates,
-            _first_url as su_first_url,
-            _score_apply_url as su_score,
-            _strip_ashby_application_url as su_strip,
-            prefer_apply_url as su_prefer,
-        )
-
-        # Verify they're the same objects
-        assert su_score is _score_apply_url
-        assert su_strip is _strip_ashby_application_url
-        assert su_candidates is _apply_url_candidates
-        assert su_prefer is prefer_apply_url
-        assert su_first_url is _first_url

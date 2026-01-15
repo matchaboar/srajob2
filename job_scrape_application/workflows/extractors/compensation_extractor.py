@@ -19,8 +19,9 @@ if TYPE_CHECKING:
 
 
 # Compensation range patterns
+# Note: character class includes hyphen (-), en-dash (–), and em-dash (—)
 _COMP_USD_RANGE_RE = re.compile(
-    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)\s*(?:k|K)?\s*[-–to]+\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?)\s*(?:k|K)?",
+    r"\$\s*(?P<low>\d{2,3}(?:[.,]\d{3})?)\s*(?:k|K)?\s*[-–—to]+\s*\$?\s*(?P<high>\d{2,3}(?:[.,]\d{3})?)\s*(?:k|K)?",
     re.IGNORECASE,
 )
 _COMP_SINGLE_RE = re.compile(
@@ -205,16 +206,24 @@ class HintedCompensationStrategy(ExtractionStrategy[int]):
     def extract(self, context: ExtractionContext) -> StrategyResult[int]:
         # Try compensation range first
         comp_range = context.hints.get("compensation_range")
-        if comp_range and isinstance(comp_range, (list, tuple)) and len(comp_range) >= 2:
-            low, high = comp_range[0], comp_range[1]
+        if comp_range:
+            low, high = None, None
+            # Handle dict format: {"low": 186300, "high": 279500}
+            if isinstance(comp_range, dict):
+                low = comp_range.get("low") or comp_range.get("min")
+                high = comp_range.get("high") or comp_range.get("max")
+            # Handle list/tuple format: [186300, 279500]
+            elif isinstance(comp_range, (list, tuple)) and len(comp_range) >= 2:
+                low, high = comp_range[0], comp_range[1]
+
             if isinstance(low, (int, float)) and isinstance(high, (int, float)):
-                # Use average of range
+                # Use average of range for backwards compatibility with old heuristics
                 avg = int((low + high) / 2)
                 normalized = _normalize_comp(avg)
                 if normalized:
                     return self._make_result(
                         normalized,
-                        f"Compensation from hint range: ${low:,}-${high:,} -> ${normalized:,}",
+                        f"Compensation from hint range: ${int(low):,}-${int(high):,} -> ${normalized:,} (avg)",
                         is_valid=True,
                         confidence=0.70,
                         debug_info={"range": [low, high]},
@@ -303,15 +312,19 @@ class ContentPatternCompensationStrategy(ExtractionStrategy[int]):
         match = _COMP_K_RE.search(content)
         if match:
             value = int(match.group("value")) * 1000
-            normalized = _normalize_comp(value)
-            if normalized:
-                return self._make_result(
-                    normalized,
-                    f"K notation compensation: ${normalized:,}",
-                    is_valid=True,
-                    confidence=0.50,
-                    debug_info={"pattern": "K_NOTATION", "match": match.group()},
-                )
+            # Skip 401k - it's a retirement plan, not compensation
+            if value == 401000:
+                pass  # Skip this match
+            else:
+                normalized = _normalize_comp(value)
+                if normalized:
+                    return self._make_result(
+                        normalized,
+                        f"K notation compensation: ${normalized:,}",
+                        is_valid=True,
+                        confidence=0.50,
+                        debug_info={"pattern": "K_NOTATION", "match": match.group()},
+                    )
 
         return self._make_skip_result("No compensation pattern in content")
 

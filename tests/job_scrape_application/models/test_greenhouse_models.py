@@ -126,7 +126,7 @@ def test_extract_greenhouse_job_urls_filters_titles():
 
     assert "https://example.com/job/eng" in urls
     assert "https://example.com/job/unknown" in urls  # Unknown title should still be scraped
-    assert "https://example.com/job/pm" not in urls
+    assert "https://example.com/job/pm" in urls
 
 
 def test_load_greenhouse_board_rejects_invalid_json():

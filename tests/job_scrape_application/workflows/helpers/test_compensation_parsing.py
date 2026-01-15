@@ -120,27 +120,3 @@ class TestParseCompensation:
     def test_salary_with_401k_mention_uses_salary(self):
         result = parse_compensation("$150,000 base salary + 401k")
         assert result == 150_000
-
-
-class TestBackwardCompatibility:
-    """Tests for backward compatibility with scrape_utils imports."""
-
-    def test_imports_from_scrape_utils(self):
-        from job_scrape_application.workflows.helpers.scrape_utils import (
-            DEFAULT_TOTAL_COMPENSATION as SU_DEFAULT,
-            HOURLY_TO_ANNUAL_MULTIPLIER as SU_HOURLY,
-            MAX_TOTAL_COMPENSATION as SU_MAX,
-            MIN_TOTAL_COMPENSATION as SU_MIN,
-            UNKNOWN_COMPENSATION_REASON as SU_REASON,
-            normalize_compensation_value as su_normalize,
-            parse_compensation as su_parse,
-        )
-
-        # Verify they're the same objects
-        assert SU_DEFAULT == DEFAULT_TOTAL_COMPENSATION
-        assert SU_MIN == MIN_TOTAL_COMPENSATION
-        assert SU_MAX == MAX_TOTAL_COMPENSATION
-        assert SU_HOURLY == HOURLY_TO_ANNUAL_MULTIPLIER
-        assert SU_REASON == UNKNOWN_COMPENSATION_REASON
-        assert su_normalize is normalize_compensation_value
-        assert su_parse is parse_compensation

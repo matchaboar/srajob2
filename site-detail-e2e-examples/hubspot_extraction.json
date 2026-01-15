@@ -9,7 +9,7 @@
       "description_word_count": 937,
       "location": "Remote - Netherlands",
       "is_remote": true,
-      "posted_at": 1768508928114,
+      "posted_at": 1768518184811,
       "posted_at_unknown": true,
       "company": "HubSpot",
       "level": "mid",
@@ -351,16 +351,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-15T13:28:48.114000",
+      "final_value": "2026-01-15T16:03:04.811000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-15T13:28:48.114000",
+          "value": "2026-01-15T16:03:04.811000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-15T13:28:48.114000"
+          "reason": "Valid date: 2026-01-15T16:03:04.811000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T13:28:49.330705",
+          "value": "2026-01-15T16:03:06.798461",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

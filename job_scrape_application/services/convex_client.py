@@ -20,6 +20,187 @@ _BACKOFF_MAX_SECONDS = 4.0
 _RETRY_ON_TIMEOUT = os.getenv("CONVEX_RETRY_ON_TIMEOUT", "1") == "1"
 _DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR = "description_preview_word_limit_exceeded"
 
+# =============================================================================
+# Convex Exception Classes
+# Based on documented error types from Convex:
+# - https://docs.convex.dev/functions/error-handling/
+# - https://docs.convex.dev/error
+# - https://docs.convex.dev/functions/error-handling/application-errors
+# =============================================================================
+
+
+class ConvexFunctionNotFoundError(Exception):
+    """Raised when a Convex function doesn't exist.
+
+    Fail-fast: Yes - no point retrying a missing function.
+    Docs: Function path doesn't match any public function.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex function not found: {function_name}")
+
+
+class ConvexArgumentValidationError(Exception):
+    """Raised when Convex rejects arguments due to schema validation.
+
+    Fail-fast: Yes - arguments don't match the expected validator schema.
+    Docs: https://docs.convex.dev/functions/validation
+    Pattern: "ArgumentValidationError" in error message.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex argument validation failed for {function_name}: {original_message}")
+
+
+class ConvexWriteConflictError(Exception):
+    """Raised when a mutation fails due to optimistic concurrency control (OCC).
+
+    Fail-fast: Yes - indicates concurrent mutations modifying the same documents.
+    Docs: https://docs.convex.dev/error (Write Conflict section)
+    Pattern: "Documents read from or written to" or "write conflict" in error message.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex write conflict for {function_name}: {original_message}")
+
+
+class ConvexReadWriteLimitError(Exception):
+    """Raised when a function exceeds Convex read/write data limits.
+
+    Fail-fast: Yes - function is trying to read/write too much data.
+    Docs: https://docs.convex.dev/production/state/limits
+    Pattern: "limit" combined with "read" or "write" in error message.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex read/write limit exceeded for {function_name}: {original_message}")
+
+
+class ConvexInternalServerError(Exception):
+    """Raised when Convex encounters an internal server error.
+
+    Fail-fast: Yes - infrastructure issue that won't resolve with retries.
+    Docs: https://docs.convex.dev/functions/error-handling/
+    Pattern: "InternalServerError" or "Server Error" in error message.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex internal server error for {function_name}: {original_message}")
+
+
+class ConvexApplicationError(Exception):
+    """Raised when user code throws a ConvexError (application-level error).
+
+    Fail-fast: Yes - intentional error thrown by application logic.
+    Docs: https://docs.convex.dev/functions/error-handling/application-errors
+    Pattern: "ConvexError" in error message.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Convex application error for {function_name}: {original_message}")
+
+
+class ConvexUnknownError(Exception):
+    """Raised when Convex returns an unrecognized error type.
+
+    Fail-fast: Yes - unknown errors should surface immediately for investigation.
+    """
+
+    def __init__(self, function_name: str, original_message: str):
+        self.function_name = function_name
+        self.original_message = original_message
+        super().__init__(f"Unknown Convex error for {function_name}: {original_message}")
+
+
+# Backwards compatibility aliases
+ArgumentValidationError = ConvexArgumentValidationError
+UnknownConvexException = ConvexUnknownError
+
+
+# =============================================================================
+# Error Detection Functions
+# =============================================================================
+
+
+def _is_function_not_found_error(exc: Exception) -> bool:
+    """Check if exception indicates a missing Convex function."""
+    return "Could not find public function for" in str(exc)
+
+
+def _is_argument_validation_error(exc: Exception) -> bool:
+    """Check if exception indicates argument validation failure."""
+    return "ArgumentValidationError" in str(exc)
+
+
+def _is_write_conflict_error(exc: Exception) -> bool:
+    """Check if exception indicates an OCC write conflict."""
+    exc_str = str(exc).lower()
+    return "documents read from or written to" in exc_str or "write conflict" in exc_str
+
+
+def _is_read_write_limit_error(exc: Exception) -> bool:
+    """Check if exception indicates read/write limit exceeded."""
+    exc_str = str(exc).lower()
+    return "limit" in exc_str and ("read" in exc_str or "write" in exc_str)
+
+
+def _is_internal_server_error(exc: Exception) -> bool:
+    """Check if exception indicates a Convex internal server error."""
+    exc_str = str(exc)
+    return "InternalServerError" in exc_str or "Server Error" in exc_str
+
+
+def _is_application_error(exc: Exception) -> bool:
+    """Check if exception is a ConvexError thrown by user code."""
+    exc_str = str(exc)
+    # Match ConvexError but not other error types that happen to contain "Convex"
+    return "ConvexError" in exc_str and "ArgumentValidationError" not in exc_str
+
+
+def _is_timeout_or_warning(exc: Exception) -> bool:
+    """Check if exception is a timeout or warning (not fail-fast)."""
+    exc_str = str(exc).lower()
+    return isinstance(exc, asyncio.TimeoutError) or "timeout" in exc_str or "slow" in exc_str
+
+
+def _is_retryable_network_error(exc: Exception) -> bool:
+    """Check if exception is a transient network error that should be retried."""
+    exc_str = str(exc).lower()
+    network_patterns = [
+        "connection refused",
+        "connection reset",
+        "connection aborted",
+        "network unreachable",
+        "network is unreachable",
+        "network error",
+        "temporary failure",
+        "name resolution",
+        "dns",
+        "socket",
+        "eof",
+        "broken pipe",
+        "ssl",
+        "certificate",
+    ]
+    return any(pattern in exc_str for pattern in network_patterns)
+
+
+def _is_retryable_error(exc: Exception) -> bool:
+    """Check if exception should be retried (timeout, slow, network issues)."""
+    return _is_timeout_or_warning(exc) or _is_retryable_network_error(exc)
+
 # Dedicated executor for Convex calls to prevent timeout threads from blocking
 # the default executor used by asyncio.to_thread() elsewhere in the application.
 # When asyncio.wait_for() times out, the underlying thread continues running -
@@ -82,8 +263,128 @@ async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any
             )
         except Exception as exc:  # noqa: BLE001
             last_error = exc
-            if isinstance(exc, asyncio.TimeoutError) and not _RETRY_ON_TIMEOUT:
-                break
+            exc_str = str(exc)
+
+            # =================================================================
+            # Fail-fast error detection - check specific Convex error types
+            # =================================================================
+
+            # Function not found - fail fast
+            if _is_function_not_found_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.function_not_found",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexFunctionNotFoundError(name, exc_str) from exc
+
+            # Argument validation error - fail fast
+            if _is_argument_validation_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.argument_validation_error",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexArgumentValidationError(name, exc_str) from exc
+
+            # Write conflict (OCC) error - fail fast
+            if _is_write_conflict_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.write_conflict",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexWriteConflictError(name, exc_str) from exc
+
+            # Read/write limit exceeded - fail fast
+            if _is_read_write_limit_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.read_write_limit",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexReadWriteLimitError(name, exc_str) from exc
+
+            # Internal server error - fail fast
+            if _is_internal_server_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.internal_server_error",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexInternalServerError(name, exc_str) from exc
+
+            # Application error (ConvexError from user code) - fail fast
+            if _is_application_error(exc):
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.application_error",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                    })
+                except Exception:
+                    pass
+                raise ConvexApplicationError(name, exc_str) from exc
+
+            # =================================================================
+            # Retryable errors - log at warning level and continue
+            # =================================================================
+
+            if _is_retryable_error(exc):
+                # Log retryable errors at warning level
+                try:
+                    event_type = "convex.timeout_or_warning" if _is_timeout_or_warning(exc) else "convex.network_error"
+                    telemetry.emit_posthog_log({
+                        "event": event_type,
+                        "level": "warning",
+                        "functionName": name,
+                        "error": exc_str,
+                        "attempt": attempt,
+                    })
+                except Exception:
+                    pass
+                # For timeouts, respect the RETRY_ON_TIMEOUT setting
+                if isinstance(exc, asyncio.TimeoutError) and not _RETRY_ON_TIMEOUT:
+                    break
+                # Continue to retry logic for retryable cases
+            else:
+                # =============================================================
+                # Unknown Convex error - fail fast
+                # Any error that isn't recognized should surface immediately
+                # =============================================================
+                try:
+                    telemetry.emit_posthog_log({
+                        "event": "convex.unknown_error",
+                        "level": "fatal",
+                        "functionName": name,
+                        "error": exc_str,
+                        "errorType": type(exc).__name__,
+                    })
+                except Exception:
+                    pass
+                raise ConvexUnknownError(name, exc_str) from exc
+            
             if attempt >= _MAX_RETRIES:
                 break
             elapsed = loop.time() - start

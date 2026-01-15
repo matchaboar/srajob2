@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
+import logging
 import os
 import sqlite3
 import threading
@@ -11,6 +12,13 @@ import time
 _DEFAULT_DB_NAME = "dbos.sqlite"
 _CONNECTIONS = threading.local()
 _SCHEMA_LOCK = threading.Lock()
+_DB_LOCK = threading.Lock()  # Serialize all DB access to prevent lock contention
+
+logger = logging.getLogger("dbos.sqlite")
+
+# Timeout for acquiring SQLite locks (seconds)
+SQLITE_TIMEOUT = 10.0
+SQLITE_BUSY_TIMEOUT_MS = 5000
 
 
 def _resolve_db_path() -> Path:
@@ -26,11 +34,14 @@ def get_connection() -> sqlite3.Connection:
         return conn
     db_path = _resolve_db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=SQLITE_TIMEOUT)
     conn.row_factory = sqlite3.Row
+    # WAL mode is much better for concurrent access
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
+    # Allow retries when database is busy
+    conn.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS};")
     _CONNECTIONS.connection = conn
     return conn
 
@@ -89,14 +100,50 @@ def initialize_schema() -> None:
 
 @contextmanager
 def transaction() -> Iterator[sqlite3.Connection]:
-    conn = get_connection()
-    conn.execute("BEGIN IMMEDIATE;")
+    """Write transaction with exclusive lock. Use read_only() for queries."""
+    start = time.monotonic()
+    acquired = _DB_LOCK.acquire(timeout=SQLITE_TIMEOUT)
+    if not acquired:
+        logger.error("Failed to acquire DB lock after %.1fs", SQLITE_TIMEOUT)
+        raise sqlite3.OperationalError("Database lock timeout")
+    lock_wait = time.monotonic() - start
+    if lock_wait > 0.1:
+        logger.warning("Slow DB lock acquisition: %.3fs", lock_wait)
     try:
+        conn = get_connection()
+        conn.execute("BEGIN IMMEDIATE;")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+    finally:
+        _DB_LOCK.release()
+        elapsed = time.monotonic() - start
+        if elapsed > 1.0:
+            logger.warning("Slow transaction: %.3fs", elapsed)
+
+
+@contextmanager
+def read_only() -> Iterator[sqlite3.Connection]:
+    """Read-only access without write lock. Use for SELECT queries."""
+    start = time.monotonic()
+    acquired = _DB_LOCK.acquire(timeout=SQLITE_TIMEOUT)
+    if not acquired:
+        logger.error("Failed to acquire DB lock for read after %.1fs", SQLITE_TIMEOUT)
+        raise sqlite3.OperationalError("Database lock timeout")
+    lock_wait = time.monotonic() - start
+    if lock_wait > 0.1:
+        logger.warning("Slow DB lock acquisition (read): %.3fs", lock_wait)
+    try:
+        conn = get_connection()
         yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+    finally:
+        _DB_LOCK.release()
+        elapsed = time.monotonic() - start
+        if elapsed > 1.0:
+            logger.warning("Slow read operation: %.3fs", elapsed)
 
 
 def now_ms() -> int:

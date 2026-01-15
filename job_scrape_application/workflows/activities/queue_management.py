@@ -57,39 +57,25 @@ async def complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def _record_scrape_url_attempts(entries: List[Dict[str, Any]]) -> None:
-    """Record scrape URL attempts to Convex for tracking."""
+    """Record scrape URL attempts to Convex for tracking.
+
+    Fails fast with ConvexFunctionNotFoundError if the function doesn't exist,
+    allowing the workflow to move on without unnecessary retry delays.
+    """
     if not entries:
         return
-    try:
-        from ...services.convex_client import convex_mutation
-    except Exception:
-        return
 
-    now = int(time.time() * 1000)
-    payload: List[Dict[str, Any]] = []
-    for entry in entries:
-        url_val = entry.get("url")
-        if not isinstance(url_val, str) or not url_val.strip():
-            continue
-        source_val = entry.get("sourceUrl")
-        provider_val = entry.get("provider")
-        attempts_val = entry.get("attempts")
-        attempt_payload: Dict[str, Any] = {
-            "url": url_val,
-            "sourceUrl": source_val if isinstance(source_val, str) else None,
-            "provider": provider_val if isinstance(provider_val, str) else None,
-            "attemptedAt": now,
-        }
-        if isinstance(attempts_val, (int, float)):
-            attempt_payload["queueAttempt"] = int(attempts_val)
-        payload.append(attempt_payload)
-
-    if not payload:
-        return
+    from ...services.convex_client import convex_mutation, ConvexFunctionNotFoundError
 
     try:
-        await convex_mutation("router:recordScrapeUrlAttempts", {"attempts": payload})
-    except Exception:
+        await convex_mutation("router:recordScrapeUrlAttempts", {"entries": entries})
+    except ConvexFunctionNotFoundError:
+        # Fail fast - function doesn't exist, re-raise to fail the workflow
+        logger.warning("router:recordScrapeUrlAttempts not deployed - failing fast")
+        raise
+    except Exception as exc:
+        # Other errors (timeout, network) - log but don't block the workflow
+        logger.warning("Failed to record scrape URL attempts: %s", exc)
         return
 
 

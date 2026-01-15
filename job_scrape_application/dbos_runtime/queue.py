@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 import uuid
 
-from .sqlite import initialize_schema, now_ms, transaction
+from .sqlite import initialize_schema, now_ms, read_only, transaction
 from ..workflows.helpers.link_extractors import normalize_url
 
 QUEUE_LISTING = "listing"
@@ -170,7 +170,7 @@ def _enqueue_url(
 
 def _detail_already_completed(dedupe_key: str) -> bool:
     initialize_schema()
-    with transaction() as conn:
+    with read_only() as conn:
         row = conn.execute(
             "SELECT 1 FROM job_detail_dedupe WHERE dedupe_key=?",
             (dedupe_key,),
@@ -265,7 +265,7 @@ def complete_scrape_urls(payload: dict[str, Any]) -> dict[str, Any]:
 
 def queue_status() -> dict[str, Any]:
     initialize_schema()
-    with transaction() as conn:
+    with read_only() as conn:
         def _count(queue_name: str, status: str) -> int:
             row = conn.execute(
                 "SELECT COUNT(1) AS total FROM queue_items WHERE queue_name=? AND status=?",
@@ -290,7 +290,7 @@ def queue_status() -> dict[str, Any]:
 
 def detail_queue_has_pending(*, include_processing: bool = False) -> bool:
     initialize_schema()
-    with transaction() as conn:
+    with read_only() as conn:
         if include_processing:
             row = conn.execute(
                 """
@@ -332,7 +332,7 @@ def list_scrape_urls(
     safe_limit = max(1, min(int(limit), 500))
     placeholders = ", ".join("?" for _ in statuses)
 
-    with transaction() as conn:
+    with read_only() as conn:
         rows = conn.execute(
             f"""
             SELECT url, status, created_at, updated_at, source_url, provider, site_id, pattern,
@@ -445,3 +445,31 @@ def _update_status(conn, row_id: str, status: str, *, error: str | None = None) 
         """,
         (status, now, now, error, row_id),
     )
+
+
+def recover_stale_processing_items(*, stale_threshold_ms: int = 300_000) -> int:
+    """Reset items stuck in 'processing' status back to 'pending'.
+
+    Called at worker startup to recover from crashes. Items processing for longer
+    than stale_threshold_ms (default 5 minutes) are considered stale.
+
+    Returns the number of items recovered.
+    """
+    initialize_schema()
+    now = now_ms()
+    cutoff = now - stale_threshold_ms
+
+    with transaction() as conn:
+        result = conn.execute(
+            """
+            UPDATE queue_items
+            SET status = ?, processing_started_at = NULL, updated_at = ?
+            WHERE status = ?
+              AND processing_started_at < ?
+              AND attempts < ?
+            """,
+            (STATUS_PENDING, now, STATUS_PROCESSING, cutoff, MAX_ATTEMPTS),
+        )
+        recovered = result.rowcount
+
+    return recovered

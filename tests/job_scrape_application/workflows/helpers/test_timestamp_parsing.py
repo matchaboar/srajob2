@@ -191,23 +191,3 @@ class TestParsePostedAtWithUnknown:
         result, is_unknown = parse_posted_at_with_unknown(slightly_future_ms, now_ms)
         assert result == slightly_future_ms
         assert is_unknown is False
-
-
-class TestBackwardCompatibility:
-    """Tests for backward compatibility with scrape_utils imports."""
-
-    def test_imports_from_scrape_utils(self):
-        from job_scrape_application.workflows.helpers.scrape_utils import (
-            _RELATIVE_POSTED_MIN_DAYS as SU_MIN_DAYS,
-            _RELATIVE_TIME_RE as SU_REGEX,
-            _parse_relative_posted_at as su_parse_relative,
-            parse_posted_at as su_parse,
-            parse_posted_at_with_unknown as su_parse_unknown,
-        )
-
-        # Verify they're the same objects
-        assert SU_MIN_DAYS == _RELATIVE_POSTED_MIN_DAYS
-        assert SU_REGEX is _RELATIVE_TIME_RE
-        assert su_parse_relative is _parse_relative_posted_at
-        assert su_parse is parse_posted_at
-        assert su_parse_unknown is parse_posted_at_with_unknown

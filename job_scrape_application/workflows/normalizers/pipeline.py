@@ -221,9 +221,21 @@ def _build_update_fields(
     existing_comp = (existing_row or {}).get("totalCompensation") or 0
     if normalized.compensation_max is not None and normalized.compensation_max > 0:
         if not existing_comp or existing_comp <= 0:
+            # New compensation found - update it
             update["totalCompensation"] = int(normalized.compensation_max)
             update["compensationUnknown"] = False
             update["compensationReason"] = "extractor:normalization_pipeline"
+        else:
+            # Compensation already exists and we found one too - mark as known
+            update["compensationUnknown"] = False
+    elif existing_comp and existing_comp > 0:
+        # No new compensation found but existing is valid - mark as known
+        update["compensationUnknown"] = False
+    else:
+        # No compensation at all - propagate existing compensationUnknown
+        existing_comp_unknown = (existing_row or {}).get("compensationUnknown")
+        if existing_comp_unknown is not None:
+            update["compensationUnknown"] = existing_comp_unknown
 
     # Remote - use "remote" key for backwards compat
     from ...constants import is_remote_company
@@ -252,6 +264,10 @@ def _build_update_fields(
 
     if normalized.posted_at_unknown:
         update["postedAtUnknown"] = normalized.posted_at_unknown
+
+    # Description
+    if normalized.description:
+        update["description"] = normalized.description
 
     return update
 
@@ -328,6 +344,9 @@ def build_job_update(
     row: dict[str, Any],
     configs: list[dict[str, Any]] | None = None,
     now_ms: int | None = None,
+    *,
+    use_extractors: bool = True,  # Ignored - kept for backward compatibility
+    **kwargs: Any,  # Accept any additional kwargs for backward compatibility
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """
     Build job update fields from existing row.
@@ -339,6 +358,8 @@ def build_job_update(
         row: Existing job row from database
         configs: Site-specific configurations (unused, kept for signature compat)
         now_ms: Current timestamp in milliseconds (unused, kept for signature compat)
+        use_extractors: Ignored, kept for backward compatibility
+        **kwargs: Additional arguments ignored for backward compatibility
 
     Returns:
         Tuple of (update_fields dict, records list)

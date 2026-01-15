@@ -100,11 +100,20 @@ def extract_fields(
 
     # Extract location
     location = None
+    locations_raw: list[str] = []
     location_result = extractors["location"].extract(ctx)
     if location_result.final_value:
         location = location_result.final_value
         extraction_strategies["location"] = location_result.winning_strategy or "unknown"
         ctx.extracted_location = location
+
+    # Also capture raw locations list from hints if available
+    # This preserves the original split locations from parse_markdown_hints
+    if parsed.hints and isinstance(parsed.hints.get("locations"), list):
+        locations_raw = [
+            loc for loc in parsed.hints["locations"]
+            if isinstance(loc, str) and loc.strip()
+        ]
 
     # Extract remote status
     is_remote = None
@@ -132,6 +141,9 @@ def extract_fields(
             compensation_min = comp_value.get("min")
             compensation_max = comp_value.get("max")
             compensation_text = comp_value.get("text")
+        elif isinstance(comp_value, (int, float)) and comp_value > 0:
+            # Single compensation value - use as max
+            compensation_max = int(comp_value)
         extraction_strategies["compensation"] = comp_result.winning_strategy or "unknown"
 
     # Extract posted_at
@@ -158,6 +170,7 @@ def extract_fields(
         title=title,
         company=company,
         location=location,
+        locations_raw=locations_raw,
         compensation_text=compensation_text,
         compensation_min=compensation_min,
         compensation_max=compensation_max,

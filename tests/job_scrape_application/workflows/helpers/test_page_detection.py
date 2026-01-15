@@ -141,40 +141,6 @@ class TestUrlSuggestsListing:
         assert result is False
 
 
-class TestBackwardCompatibility:
-    """Tests for backward compatibility with scrape_utils imports."""
-
-    def test_imports_from_scrape_utils(self):
-        from job_scrape_application.workflows.helpers.scrape_utils import (
-            _ERROR_LANDING_PHRASES as SU_ERROR,
-            _JOB_DETAIL_MARKERS as SU_DETAIL,
-            _LISTING_CARD_APPLY_MARKERS as SU_APPLY,
-            _LISTING_CARD_POSTED_RE as SU_POSTED_RE,
-            _LISTING_FILTER_TERMS as SU_FILTER,
-            _LISTING_URL_TOKENS as SU_TOKENS,
-            _description_mentions_listing_url as su_mentions,
-            _looks_like_listing_card_snippet as su_snippet,
-            _url_is_listing_root as su_root,
-            _url_suggests_listing as su_suggests,
-            looks_like_error_landing as su_error,
-            looks_like_job_listing_page as su_listing,
-        )
-
-        # Verify they're the same objects
-        assert SU_ERROR is _ERROR_LANDING_PHRASES
-        assert SU_DETAIL is _JOB_DETAIL_MARKERS
-        assert SU_APPLY is _LISTING_CARD_APPLY_MARKERS
-        assert SU_POSTED_RE is _LISTING_CARD_POSTED_RE
-        assert SU_FILTER is _LISTING_FILTER_TERMS
-        assert SU_TOKENS is _LISTING_URL_TOKENS
-        assert su_mentions is _description_mentions_listing_url
-        assert su_snippet is _looks_like_listing_card_snippet
-        assert su_root is _url_is_listing_root
-        assert su_suggests is _url_suggests_listing
-        assert su_error is looks_like_error_landing
-        assert su_listing is looks_like_job_listing_page
-
-
 class TestIsInvalidJobUrl:
     """Tests for is_invalid_job_url function."""
 

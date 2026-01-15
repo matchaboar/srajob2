@@ -309,8 +309,8 @@
       ]
     },
     "compensation": {
-      "final_value": 401000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -330,9 +330,9 @@
         {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
-          "value": 401000,
-          "is_valid": true,
-          "reason": "K notation compensation: $401,000"
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
         },
         {
           "name": "hinted_compensation",
@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T13:28:59.812229",
+          "value": "2026-01-15T16:03:11.112089",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

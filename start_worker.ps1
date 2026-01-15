@@ -5,6 +5,7 @@ param(
     [switch]$ResetWithinSchedule = $false,
     [switch]$UseProd = $false,
     [switch]$UseTemporal = $false,
+    [switch]$ClearSqlite = $false,
     [string]$EnvFile = ""
 )
 
@@ -961,6 +962,24 @@ function Start-WorkerMain {
         Write-Host ""
         Write-Host "=== DBOS Mode ===" -ForegroundColor Cyan
         Run-PreflightChecks -UseProd:$UseProd
+
+        # Clear SQLite database files if requested (includes WAL and SHM to prevent corruption issues)
+        if ($ClearSqlite) {
+            $sqliteBasePath = Join-Path $PSScriptRoot "job_scrape_application/dbos_runtime/dbos.sqlite"
+            $sqliteFiles = @($sqliteBasePath, "${sqliteBasePath}-wal", "${sqliteBasePath}-shm")
+            $deletedFiles = @()
+            foreach ($sqliteFile in $sqliteFiles) {
+                if (Test-Path $sqliteFile) {
+                    Remove-Item -Path $sqliteFile -Force
+                    $deletedFiles += (Split-Path -Leaf $sqliteFile)
+                }
+            }
+            if ($deletedFiles.Count -gt 0) {
+                Write-Host "Cleared SQLite files: $($deletedFiles -join ', ')" -ForegroundColor Yellow
+            } else {
+                Write-Host "No SQLite files to clear." -ForegroundColor DarkGray
+            }
+        }
 
         Write-Host ""
         Write-Host "Starting DBOS workflow runner..." -ForegroundColor Cyan
