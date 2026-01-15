@@ -319,7 +319,7 @@ function Run-PreflightChecks {
                 Write-Host "CONVEX_HTTP_URL not set; skipping site schedule sync."
                 return
             }
-            uv run agent_scripts/update_and_sync_site_schedules.py --env prod
+            uv run agent_scripts/config/update_and_sync_site_schedules.py --env prod
         }
     } else {
         {
@@ -327,7 +327,7 @@ function Run-PreflightChecks {
                 Write-Host "CONVEX_HTTP_URL not set; skipping site schedule sync."
                 return
             }
-            uv run agent_scripts/update_and_sync_site_schedules.py --env dev
+            uv run agent_scripts/config/update_and_sync_site_schedules.py --env dev
         }
     }
 
@@ -879,34 +879,38 @@ function Start-WorkerMain {
     } else {
         Write-Host "CONVEX_HTTP_URL is not set after loading environment files." -ForegroundColor Red
     }
-    $temporalTaskQueue = if ($env:TEMPORAL_TASK_QUEUE) { $env:TEMPORAL_TASK_QUEUE } else { "scraper-task-queue" }
-    $jobDetailsQueue = if ($env:TEMPORAL_JOB_DETAILS_TASK_QUEUE) { $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE } else { "" }
-    $listingQueue = if ($env:TEMPORAL_LISTING_TASK_QUEUE) { $env:TEMPORAL_LISTING_TASK_QUEUE } else { "" }
-    Write-Host ("TEMPORAL_ADDRESS: {0}" -f $TemporalAddress) -ForegroundColor Cyan
-    Write-Host ("TEMPORAL_NAMESPACE: {0}" -f $TemporalNamespace) -ForegroundColor Cyan
-    Write-Host ("TEMPORAL_TASK_QUEUE: {0}" -f $temporalTaskQueue) -ForegroundColor Cyan
-    if ($jobDetailsQueue) {
-        Write-Host ("TEMPORAL_JOB_DETAILS_TASK_QUEUE: {0}" -f $jobDetailsQueue) -ForegroundColor Cyan
-    }
-    if ($listingQueue) {
-        Write-Host ("TEMPORAL_LISTING_TASK_QUEUE: {0}" -f $listingQueue) -ForegroundColor Cyan
-    }
 
-    $workerDebugLogPath = Join-Path "logs" "worker-start.log"
-    if (-not (Test-Path (Split-Path $workerDebugLogPath -Parent))) {
-        New-Item -ItemType Directory -Force -Path (Split-Path $workerDebugLogPath -Parent) | Out-Null
+    # Only log Temporal-specific config when using Temporal mode
+    if ($UseTemporal) {
+        $temporalTaskQueue = if ($env:TEMPORAL_TASK_QUEUE) { $env:TEMPORAL_TASK_QUEUE } else { "scraper-task-queue" }
+        $jobDetailsQueue = if ($env:TEMPORAL_JOB_DETAILS_TASK_QUEUE) { $env:TEMPORAL_JOB_DETAILS_TASK_QUEUE } else { "" }
+        $listingQueue = if ($env:TEMPORAL_LISTING_TASK_QUEUE) { $env:TEMPORAL_LISTING_TASK_QUEUE } else { "" }
+        Write-Host ("TEMPORAL_ADDRESS: {0}" -f $TemporalAddress) -ForegroundColor Cyan
+        Write-Host ("TEMPORAL_NAMESPACE: {0}" -f $TemporalNamespace) -ForegroundColor Cyan
+        Write-Host ("TEMPORAL_TASK_QUEUE: {0}" -f $temporalTaskQueue) -ForegroundColor Cyan
+        if ($jobDetailsQueue) {
+            Write-Host ("TEMPORAL_JOB_DETAILS_TASK_QUEUE: {0}" -f $jobDetailsQueue) -ForegroundColor Cyan
+        }
+        if ($listingQueue) {
+            Write-Host ("TEMPORAL_LISTING_TASK_QUEUE: {0}" -f $listingQueue) -ForegroundColor Cyan
+        }
+
+        $workerDebugLogPath = Join-Path "logs" "worker-start.log"
+        if (-not (Test-Path (Split-Path $workerDebugLogPath -Parent))) {
+            New-Item -ItemType Directory -Force -Path (Split-Path $workerDebugLogPath -Parent) | Out-Null
+        }
+        Write-WorkerDebugLog `
+            -LogPath $workerDebugLogPath `
+            -EnvironmentLabel $environmentLabel `
+            -UseProd:$UseProd `
+            -ConvexUrl $ConvexUrl `
+            -TemporalAddress $TemporalAddress `
+            -TemporalNamespace $TemporalNamespace `
+            -TaskQueue $temporalTaskQueue `
+            -JobDetailsQueue $jobDetailsQueue `
+            -ListingQueue $listingQueue
+        Start-WorkerCountTicker -IntervalSeconds 30 -LogPath $workerDebugLogPath -UseProd:$UseProd -ConvexUrl $ConvexUrl
     }
-    Write-WorkerDebugLog `
-        -LogPath $workerDebugLogPath `
-        -EnvironmentLabel $environmentLabel `
-        -UseProd:$UseProd `
-        -ConvexUrl $ConvexUrl `
-        -TemporalAddress $TemporalAddress `
-        -TemporalNamespace $TemporalNamespace `
-        -TaskQueue $temporalTaskQueue `
-        -JobDetailsQueue $jobDetailsQueue `
-        -ListingQueue $listingQueue
-    Start-WorkerCountTicker -IntervalSeconds 30 -LogPath $workerDebugLogPath -UseProd:$UseProd -ConvexUrl $ConvexUrl
 
     # Ensure any old worker processes from previous runs are terminated
     Stop-ExistingWorkers
@@ -954,9 +958,14 @@ function Start-WorkerMain {
     }
 
     if (-not $UseTemporal) {
+        Write-Host ""
+        Write-Host "=== DBOS Mode ===" -ForegroundColor Cyan
+        Run-PreflightChecks -UseProd:$UseProd
+
+        Write-Host ""
         Write-Host "Starting DBOS workflow runner..." -ForegroundColor Cyan
-        Write-Host "DBOS does not expose a UI; see logs/worker-start.log and logs/worker-errors.log." -ForegroundColor DarkGray
-        Write-Host "For a workflow UI, run with -UseTemporal to enable Temporal Web." -ForegroundColor DarkGray
+        Write-Host "  Errors logged to: logs/worker-errors.log" -ForegroundColor DarkGray
+        Write-Host "  For Temporal UI, run with -UseTemporal flag" -ForegroundColor DarkGray
         $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
         $defaultListingConcurrency = 4
         $defaultDetailConcurrency = 6
@@ -1048,6 +1057,10 @@ function Start-WorkerMain {
         return
     }
 
+    Write-Host ""
+    Write-Host "=== Temporal Mode ===" -ForegroundColor Cyan
+    Run-PreflightChecks -UseProd:$UseProd
+
     $TemporalHost = ($TemporalAddress -split ":")[0]
     $TemporalPort = 7233
     if ($TemporalAddress -match ":(\d+)$") {
@@ -1064,9 +1077,6 @@ function Start-WorkerMain {
     $TemporalDockerfile = "docker/temporal/Dockerfile.temporal-dev"
     $TemporalDockerContext = "docker/temporal"
     $TemporalComposeFile = "docker/temporal/docker-compose.yml"
-
-    Write-Host "[preflight] Running checks before starting services..." -ForegroundColor Cyan
-    Run-PreflightChecks -UseProd:$UseProd
 
     # Check for Podman or Docker
     $cmd = "docker"

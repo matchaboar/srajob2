@@ -3,13 +3,8 @@ from __future__ import annotations
 import html as html_lib
 import json
 import re
-import os
-import sys
 from pathlib import Path
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     AshbyHqHandler,

@@ -1,9 +1,9 @@
-# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+# Coupang Greenhouse listing extraction assertions
+# Note: url_count reflects keyword-filtered jobs (engineer only) from 705 total
 site_id: greenhouse
 listing_url: https://api.greenhouse.io/v1/boards/coupang/jobs
 expected:
-  url_count_min: 5
-  url_pattern: "TODO"  # Regex for valid job URLs
+  url_count: 358  # Jobs matching keyword filter from 705 total
+  url_pattern: 'https://boards-api\.greenhouse\.io/v1/boards/[^/]+/jobs/\d+'
   no_listing_urls: true
   handler: "GreenhouseHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only

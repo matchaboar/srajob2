@@ -1,0 +1,20 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: microsoft_careers
+listing_url: https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com
+expected:
+  url_count: 10
+  url_pattern: "^https://apply\\.careers\\.microsoft\\.com/api/pcsx/position_details\\?position_id=\\d+&domain=microsoft\\.com&hl=en$"
+  no_listing_urls: true
+  handler: "MicrosoftCareersHandler"
+  expected_urls:
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en"
+  - "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
+  blocked_urls: []  # No blocked URLs - all extracted URLs are valid job detail pages

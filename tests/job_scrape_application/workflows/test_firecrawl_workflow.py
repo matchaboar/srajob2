@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import os
-import sys
 from typing import Any, Dict
 
 import pytest
 
 # Ensure repo root is importable for job_scrape_application
-sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 
 

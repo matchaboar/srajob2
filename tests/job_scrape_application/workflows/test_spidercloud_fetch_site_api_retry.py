@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
-import os
-import sys
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (
     SpiderCloudScraper,

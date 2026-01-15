@@ -1,12 +1,7 @@
 """Tests for timestamp_parsing module."""
 
-import os
-import sys
-import time
 
-sys.path.insert(0, os.path.abspath("."))
 
-import pytest
 
 from job_scrape_application.workflows.helpers.timestamp_parsing import (
     _RELATIVE_POSTED_MIN_DAYS,

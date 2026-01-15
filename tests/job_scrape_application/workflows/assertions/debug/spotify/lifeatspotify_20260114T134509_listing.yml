@@ -2,15 +2,14 @@
 site_id: lifeatspotify
 listing_url: https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing
 expected:
-  url_count_min: 5
+  url_count: 5
   url_pattern: "^https://www\\.lifeatspotify\\.com/jobs/[a-zA-Z0-9-]+$"  # Regex for valid job URLs
   no_listing_urls: true
-  handler: "LifeatspotifyHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing"
-  #   - "https://www.lifeatspotify.com/jobs/gm-surfaces-personalization"
-  #   - "https://www.lifeatspotify.com/jobs/senior-machine-learning-engineer-ads-rd"
-  #   - "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home"
-  #   - "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering"
+  handler: "LifeAtSpotifyHandler"
+  expected_urls:
+  - "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing"
+  - "https://www.lifeatspotify.com/jobs/gm-surfaces-personalization"
+  - "https://www.lifeatspotify.com/jobs/senior-machine-learning-engineer-ads-rd"
+  - "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home"
+  - "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering"
+  blocked_urls: []  # No blocked URLs - all extracted URLs are valid job detail pages

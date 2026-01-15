@@ -26,6 +26,89 @@ pnpm run test                                    # Run Vitest tests
 npx convex run --prod router:runSiteNow '{"id":"..."}'  # Trigger site scrape
 ```
 
+## Claude Skills (Recommended)
+
+For common debugging and maintenance tasks, use Claude Skills for guided, automated workflows:
+
+### Available Skills
+
+#### /fix-job-extraction
+Debug job detail extraction issues with automated fixture generation.
+
+```bash
+/fix-job-extraction https://srajob.netlify.app/job/k57abc123xyz
+```
+
+What this does:
+1. Fetches job data from Convex production
+2. Downloads SpiderCloud fixture to debug folder
+3. Creates assertion template with TODOs
+4. Provides test commands and debugging context
+
+Use this when a specific job is not extracting correctly from production.
+
+#### /fix-job-crawl
+Debug job listing extraction issues (URL discovery problems).
+
+```bash
+/fix-job-crawl airbnb
+# or
+/fix-job-crawl https://api.greenhouse.io/v1/boards/airbnb/jobs
+```
+
+What this does:
+1. Fetches listing page from SpiderCloud
+2. Extracts URLs using production handler
+3. Creates listing fixture and assertion
+4. Shows extracted URLs for validation
+
+Use this when a site's listing page is not finding job URLs correctly.
+
+#### /add-site
+Add a new company site to the scraper system.
+
+```bash
+/add-site https://careers.newcompany.com/jobs/12345
+```
+
+What this does:
+1. Analyzes URL to identify company and handler type
+2. Generates both listing and detail fixtures
+3. Creates assertion templates
+4. Provides schedule entry YAML
+5. Guides through testing and deployment
+
+Use this when adding a new company to the scraper.
+
+#### /refresh-fixtures
+Bulk regenerate fixtures for multiple sites.
+
+```bash
+/refresh-fixtures --schedule-env prod --only airbnb purestorage
+# or
+/refresh-fixtures --schedule-env prod --limit 5
+```
+
+What this does:
+1. Fetches fresh fixtures from production schedule
+2. Generates new timestamped fixtures
+3. Creates assertion templates
+4. Provides batch validation commands
+
+Use this when updating fixtures for multiple sites at once.
+
+### Skills vs. Direct Scripts
+
+Claude Skills provide:
+- ✅ Automated multi-step workflows
+- ✅ Guided interaction with validation
+- ✅ Context-aware error handling
+- ✅ Best practices enforcement
+
+For one-off operations or scripting, you can also use the underlying scripts directly:
+- See `agent_scripts/README.md` for direct script usage
+- See `.claude/skills/README.md` for detailed skill documentation
+
 ## Testing Job Detail Extraction
 
 ### Test Files Location
@@ -89,13 +172,13 @@ expected:
 Use the fixture generation script to fetch fresh SpiderCloud data:
 ```bash
 # Regenerate fixtures for a specific site (uses production workflow code)
-uv run python agent_scripts/fetch_spidercloud_fixtures.py --schedule-env prod --schedule-only SITE_NAME
+uv run python agent_scripts/core/fetch_spidercloud_fixtures.py --schedule-env prod --schedule-only SITE_NAME
 
 # Regenerate all fixtures from prod schedule
-uv run python agent_scripts/fetch_spidercloud_fixtures.py --schedule-env prod
+uv run python agent_scripts/core/fetch_spidercloud_fixtures.py --schedule-env prod
 
 # Regenerate from dev schedule
-uv run python agent_scripts/fetch_spidercloud_fixtures.py --schedule-env dev
+uv run python agent_scripts/core/fetch_spidercloud_fixtures.py --schedule-env dev
 ```
 
 The script:
@@ -120,19 +203,25 @@ Ensure `detail_url` in the assertion file matches `request.url` in the fixture.
 
 ## Debugging Production Jobs
 
-For debugging specific user-submitted jobs with extraction issues, use the **automated mise task**:
+For debugging specific user-submitted jobs with extraction issues, **use the Claude Skill (recommended)**:
 
-### Quick Start (Automated)
+### Using Claude Skills (Recommended)
 ```bash
-# Run the automated workflow
+/fix-job-extraction https://srajob.netlify.app/job/k57abc123xyz
+```
+
+See the [Claude Skills](#claude-skills-recommended) section above for full details.
+
+### Using Mise Tasks (Alternative)
+```bash
 mise run fix_job_extraction https://srajob.netlify.app/job/k57abc123xyz
 ```
 
-This automatically:
-1. ✅ Fetches job data from Convex prod
-2. ✅ Downloads SpiderCloud fixture to debug folder
-3. ✅ Creates placeholder assertion file
-4. ✅ Launches Claude Code with full context
+Both approaches automatically:
+1. ✅ Fetch job data from Convex prod
+2. ✅ Download SpiderCloud fixture to debug folder
+3. ✅ Create placeholder assertion file
+4. ✅ Provide debugging context
 
 **Then you just need to:**
 1. Fill in assertion TODOs (location, level, etc.)
@@ -143,7 +232,7 @@ This automatically:
 ### Manual Workflow (if needed)
 ```bash
 # 1. Fetch the job page
-PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python agent_scripts/dump_spidercloud_response.py \
+PYTHONPATH=/home/boarcoder/documents/github/srajob2 uv run python agent_scripts/core/dump_spidercloud_response.py \
   "https://explore.jobs.netflix.net/careers/job/790313551266" \
   --out tests/job_scrape_application/workflows/fixtures/debug/netflix_790313551266_detail.json \
   --use-handler-config

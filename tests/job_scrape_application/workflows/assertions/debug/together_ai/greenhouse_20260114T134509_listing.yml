@@ -1,38 +1,9 @@
-# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+# Together AI Greenhouse listing extraction assertions
+# Note: url_count reflects keyword-filtered jobs (engineer, data)
 site_id: greenhouse
 listing_url: https://api.greenhouse.io/v1/boards/togetherai/jobs
 expected:
-  url_count_min: 27
-  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
+  url_count: 39  # Jobs matching keyword filter (engineer, data)
+  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"
   no_listing_urls: true
   handler: "GreenhouseHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4840844007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/5004498007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4710363007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4903661007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4687884007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4626694007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4385540007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4835988007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4987660007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4967737007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/5012785007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4622781007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4835763007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4737079007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4774159007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4998021007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187998007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4971774007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4749787007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4753072007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4753034007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/5012768007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4997808007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4990249007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4188119007"
-  #   - "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/5015203007"

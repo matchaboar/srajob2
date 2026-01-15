@@ -1,9 +1,6 @@
 """Tests for location_normalization module."""
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
 import pytest
 

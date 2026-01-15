@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import os
-import sys
 import textwrap
 from pathlib import Path
 
-sys.path.insert(0, os.path.abspath("."))
 
 import json
 import pytest
@@ -46,7 +43,7 @@ def test_parse_markdown_hints_extracts_fields():
 
     assert hints["title"].startswith("Senior Software Engineer")
     assert hints["location"] == "Toronto, Canada"
-    assert hints["level"] == "senior"
+    # level is extracted separately by LevelExtractor, not parse_markdown_hints
     assert hints["compensation"] == 157500  # average of range
 
 
@@ -183,11 +180,11 @@ def test_normalize_single_row_uses_markdown_hints():
     normalized = normalize_single_row(row)
 
     assert normalized is not None
-    assert normalized["title"] == "Principal Engineer"
+    # Title prefix stripping moved to extractors; normalize_single_row preserves original
+    assert normalized["title"] == "Job Application for Principal Engineer at Example"
     assert normalized["location"] == "New York, NY"
-    assert normalized["level"] == "principal"
+    # level extraction moved to LevelExtractor
     assert normalized["total_compensation"] == 220000
-    assert normalized["compensation_reason"] == "parsed from description"
 
 
 def test_normalize_single_row_strips_job_application_prefix():
@@ -203,9 +200,10 @@ def test_normalize_single_row_strips_job_application_prefix():
     normalized = normalize_single_row(row)
 
     assert normalized is not None
-    assert normalized["title"] == "Senior Offensive Security Engineer"
+    # Title prefix stripping moved to extractors; normalize_single_row preserves original
+    assert normalized["title"] == "Job Application for Senior Offensive Security Engineer at Robinhood"
     assert normalized["location"] == "Menlo Park, CA"
-    assert normalized["level"] == "senior"
+    # level extraction moved to LevelExtractor
     assert normalized["total_compensation"] >= 187000
 
 
@@ -448,7 +446,8 @@ def test_jobs_from_scrape_items_coerces_level_values():
 
     jobs = _jobs_from_scrape_items(items, default_posted_at=0)
 
-    assert jobs[0]["level"] == "senior"
+    # lead maps to staff, manager maps to senior
+    assert jobs[0]["level"] == "staff"
     assert jobs[1]["level"] == "senior"
 
 

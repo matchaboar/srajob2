@@ -6,7 +6,7 @@ expected:
   company: Pinterest
   location_contains: San Francisco
   is_remote: true
-  level: senior
+  level: staff
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

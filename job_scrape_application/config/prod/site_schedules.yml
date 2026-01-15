@@ -400,7 +400,7 @@ site_schedules:
     startTime: 08:00
     intervalMinutes: 120.0
     timezone: America/Denver
-- url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
+- url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&limit=100&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
   name: Docusign
   enabled: true
   type: docusign

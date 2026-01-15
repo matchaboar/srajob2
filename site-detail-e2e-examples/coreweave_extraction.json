@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-14T14:41:11.081703",
+          "value": "2026-01-15T13:28:47.445079",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

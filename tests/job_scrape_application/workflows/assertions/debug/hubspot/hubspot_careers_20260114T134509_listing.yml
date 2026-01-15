@@ -2,22 +2,21 @@
 site_id: hubspot_careers
 listing_url: https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;
 expected:
-  url_count_min: 12
+  url_count: 12
   url_pattern: "https://www\\.hubspot\\.com/careers/jobs/\\d+$"  # Regex for valid job URLs
   no_listing_urls: true
-  handler: "Hubspot_CareersHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://www.hubspot.com/careers/jobs/5986323"
-  #   - "https://www.hubspot.com/careers/jobs/5986932"
-  #   - "https://www.hubspot.com/careers/jobs/5986934"
-  #   - "https://www.hubspot.com/careers/jobs/7137634"
-  #   - "https://www.hubspot.com/careers/jobs/5990166"
-  #   - "https://www.hubspot.com/careers/jobs/5986426"
-  #   - "https://www.hubspot.com/careers/jobs/5986119"
-  #   - "https://www.hubspot.com/careers/jobs/5986204"
-  #   - "https://www.hubspot.com/careers/jobs/5986360"
-  #   - "https://www.hubspot.com/careers/jobs/5986358"
-  #   - "https://www.hubspot.com/careers/jobs/5986400"
-  #   - "https://www.hubspot.com/careers/jobs/6024525"
+  handler: "HubspotCareersHandler"
+  expected_urls:
+  - "https://www.hubspot.com/careers/jobs/5986323"
+  - "https://www.hubspot.com/careers/jobs/5986932"
+  - "https://www.hubspot.com/careers/jobs/5986934"
+  - "https://www.hubspot.com/careers/jobs/7137634"
+  - "https://www.hubspot.com/careers/jobs/5990166"
+  - "https://www.hubspot.com/careers/jobs/5986426"
+  - "https://www.hubspot.com/careers/jobs/5986119"
+  - "https://www.hubspot.com/careers/jobs/5986204"
+  - "https://www.hubspot.com/careers/jobs/5986360"
+  - "https://www.hubspot.com/careers/jobs/5986358"
+  - "https://www.hubspot.com/careers/jobs/5986400"
+  - "https://www.hubspot.com/careers/jobs/6024525"
+  blocked_urls: []  # No blocked URLs - all extracted URLs are valid job detail pages

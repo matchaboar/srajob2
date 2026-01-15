@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 import sys
 import types
@@ -59,7 +58,6 @@ except ImportError:  # pragma: no cover
     temporalio_exceptions.ApplicationError = type("ApplicationError", (Exception,), {})
     sys.modules.setdefault("temporalio.exceptions", temporalio_exceptions)
 
-sys.path.insert(0, os.path.abspath("."))
 
 from temporalio.exceptions import ApplicationError  # noqa: E402
 from job_scrape_application.workflows import activities as acts  # noqa: E402

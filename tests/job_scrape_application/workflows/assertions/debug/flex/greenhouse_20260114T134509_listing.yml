@@ -2,21 +2,7 @@
 site_id: greenhouse
 listing_url: https://api.greenhouse.io/v1/boards/flex/jobs
 expected:
-  url_count_min: 11
+  url_count: 38
   url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
   no_listing_urls: true
   handler: "GreenhouseHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4602394005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4579730005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4629384005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4641215005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4611485005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4641407005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4632053005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4642708005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4631555005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4641698005"
-  #   - "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4629383005"

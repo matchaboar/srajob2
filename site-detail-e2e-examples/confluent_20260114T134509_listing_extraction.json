@@ -1,0 +1,44 @@
+{
+  "site_id": "confluent_20260114T134509",
+  "listing_url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+  "source_url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+  "handler_name": "ConfluentHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+    "scrape_url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 7,
+    "handler_filtered_count": 7,
+    "api_transformed_count": 7
+  },
+  "extracted_url_count": 7,
+  "filtered_url_count": 7,
+  "normalized_url_count": 7,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1",
+    "https://careers.confluent.io/jobs/job/5400cdd0-87bf-4df5-aed8-3f526715fa4a",
+    "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
+    "https://careers.confluent.io/jobs/job/ca9890c2-4ef6-4e07-ba1b-98a03699e395",
+    "https://careers.confluent.io/jobs/job/8e0d897b-045c-46ee-9457-d6cc79a95dea",
+    "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+    "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49"
+  ],
+  "normalized_urls": [
+    "https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1",
+    "https://careers.confluent.io/jobs/job/5400cdd0-87bf-4df5-aed8-3f526715fa4a",
+    "https://careers.confluent.io/jobs/job/f6dfe798-2126-4c93-9e1e-031d0a315b3e",
+    "https://careers.confluent.io/jobs/job/ca9890c2-4ef6-4e07-ba1b-98a03699e395",
+    "https://careers.confluent.io/jobs/job/8e0d897b-045c-46ee-9457-d6cc79a95dea",
+    "https://careers.confluent.io/jobs/job/9f38c542-fe09-4fb1-bae2-09e3b789119b",
+    "https://careers.confluent.io/jobs/job/388b3ea4-f181-407f-8c03-0d2bd9135b49"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

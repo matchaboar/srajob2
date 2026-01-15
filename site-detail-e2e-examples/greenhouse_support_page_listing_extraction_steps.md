@@ -3,39 +3,16 @@
 **Listing URL:** `https://support.greenhouse.io/hc/en-us`
 **Source URL:** `https://support.greenhouse.io/hc/en-us`
 **Handler:** `GreenhouseHandler`
-**Content Type:** `commonmark`
+**Content Type:** `Unknown`
 
 ---
 
 ## Step 1: SpiderCloud Response
 
-Raw commonmark from SpiderCloud scrape:
+Raw content from SpiderCloud scrape:
 
 ```markdown
-# Greenhouse Support
-
-Welcome to Greenhouse Support. Here are some helpful links:
-
-- [Permissions](https://support.greenhouse.io/hc/en-us/search?query=Permissions)
-- [Reports](https://support.greenhouse.io/hc/en-us/search?query=Reports)
-- [Job board configuration](https://support.greenhouse.io/hc/en-us/search?query=Job+board+configuration)
-- [What's new](https://www.greenhouse.com/greenhouse-latest-features)
-- [Video tutorials](https://learn.greenhouse.io/)
-- [Contact support](https://support.greenhouse.io/hc/en-us/requests/new)
-
-## Check out some job boards:
-
-- [Lyft Jobs](https://boards.greenhouse.io/lyft/jobs/1234567)
-- [Stripe Jobs](https://job-boards.greenhouse.io/stripe/jobs/7654321)
-- [Airbnb Jobs](https://careers.airbnb.com/positions?gh_jid=9876543)
-
-## More resources:
-
-- [Sign In](https://my.greenhouse.io/users/sign_in)
-- [Learn Greenhouse](https://learn.greenhouse.io/recruiter-course?reg=1)
-- [Training Calendar](https://learn.greenhouse.io/calendar)
-- [CSS Styles](https://job-seekers.cdn.greenhouse.io/assets/sprout-C7gwjKnk.css)
-- [JavaScript](https://job-seekers.cdn.greenhouse.io/assets/theme-DoMkWPNL.js)
+(No raw content captured)
 ```
 
 ---
@@ -54,7 +31,7 @@ The handler is selected based on URL pattern matching. Each handler knows how to
 
 ## Step 3: URL Extraction Method
 
-**Method Used:** `response.links`
+**Method Used:** `production_workflow`
 
 URL extraction methods (in priority order):
 1. **JSON API**: Parse structured JSON response with job array
@@ -65,7 +42,7 @@ URL extraction methods (in priority order):
 
 ## Step 4: Detailed Extraction Log
 
-### Handler Detection
+### Handler Detection (Production)
 
 Detected handler: GreenhouseHandler
 
@@ -77,46 +54,61 @@ Detected handler: GreenhouseHandler
 }
 ```
 
-### Raw Content Capture
+### Workflow Setup
 
-Captured 1133 chars of commonmark content
+Set up WorkflowTestHelper with mocked dependencies
 
 ```json
 {
-  "length": 1133,
-  "content_type": "commonmark"
+  "sync_mode": false,
+  "listing_url": "https://support.greenhouse.io/hc/en-us"
 }
 ```
 
-### Calling handler.get_links_from_raw_html()
+### Workflow Execution
 
-Running GreenhouseHandler.get_links_from_raw_html()
+Calling process_spidercloud_listing_batch()
 
 ```json
 {
-  "url": "https://support.greenhouse.io/hc/en-us",
-  "source_url": "https://support.greenhouse.io/hc/en-us",
-  "content_length": 1133
+  "urls": [
+    {
+      "url": "https://support.greenhouse.io/hc/en-us",
+      "sourceUrl": "https://support.greenhouse.io/hc/en-us",
+      "provider": "spidercloud",
+      "siteId": "greenhouse_support_page",
+      "urlType": "listing"
+    }
+  ]
 }
 ```
 
-### Extraction Complete
+### Workflow Complete
 
-Extracted 17 URLs, filtered to 4 detail + 0 pagination, normalized to 4 final
+Workflow returned, enqueued 1 URLs
 
 ```json
 {
-  "extracted_count": 17,
-  "detail_count": 4,
-  "normalized_count": 4,
-  "pagination_count": 0,
-  "sample_normalized_urls": [
-    "https://boards.greenhouse.io/lyft/jobs/1234567",
-    "https://job-boards.greenhouse.io/stripe/jobs/7654321",
-    "https://careers.airbnb.com/positions?gh_jid=9876543",
+  "response": {
+    "queued": 1,
+    "listingCompleted": 1,
+    "sourceUrl": "https://support.greenhouse.io/hc/en-us"
+  },
+  "enqueued_count": 1,
+  "completed_count": 1
+}
+```
+
+### Extraction Complete (Production)
+
+Extracted 1 URLs via production workflow
+
+```json
+{
+  "extracted_count": 1,
+  "sample_urls": [
     "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
-  ],
-  "sample_pagination_urls": []
+  ]
 }
 ```
 
@@ -124,17 +116,14 @@ Extracted 17 URLs, filtered to 4 detail + 0 pagination, normalized to 4 final
 
 ## Step 5: Extracted URLs
 
-**Total URLs Found:** 17
-**URLs After Filtering:** 4
-**URLs After Normalization:** 4
+**Total URLs Found:** 1
+**URLs After Filtering:** 1
+**URLs After Normalization:** 1
 **Pagination URLs:** 0
 
 ### Final Normalized URLs (first 20)
 
-1. `https://boards.greenhouse.io/lyft/jobs/1234567`
-2. `https://job-boards.greenhouse.io/stripe/jobs/7654321`
-3. `https://careers.airbnb.com/positions?gh_jid=9876543`
-4. `https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321`
+1. `https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321`
 
 ---
 
@@ -146,5 +135,5 @@ Extracted 17 URLs, filtered to 4 detail + 0 pagination, normalized to 4 final
 
 ## Step 7: Queue Enqueue Summary
 
-**URLs to Enqueue:** 4
+**URLs to Enqueue:** 1
 

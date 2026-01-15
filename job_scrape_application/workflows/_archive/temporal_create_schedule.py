@@ -22,7 +22,8 @@ from temporalio.client import (
 )
 from temporalio.service import RPCError, RPCStatusCode
 
-from ..config import resolve_config_path, settings
+from job_scrape_application.config.paths import resolve_config_path
+from job_scrape_application.config.config import settings
 
 
 SCHEDULES_YAML = resolve_config_path("schedules.yaml")

@@ -1,23 +1,15 @@
 """Tests for page_detection module."""
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
-import pytest
 
 from job_scrape_application.workflows.helpers.page_detection import (
     _ERROR_LANDING_PHRASES,
-    _INVALID_TITLE_PATTERNS,
-    _INVALID_TITLE_RE,
     _JOB_DETAIL_MARKERS,
     _LISTING_CARD_APPLY_MARKERS,
     _LISTING_CARD_POSTED_RE,
     _LISTING_FILTER_TERMS,
     _LISTING_URL_TOKENS,
-    _NON_JOB_DOMAINS,
-    _NON_JOB_URL_PATTERNS,
     _description_mentions_listing_url,
     _looks_like_listing_card_snippet,
     _url_is_listing_root,

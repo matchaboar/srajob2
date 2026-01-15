@@ -1,0 +1,63 @@
+{
+  "request": {
+    "url": "https://example.com/job/123",
+    "params": {
+      "return_format": [
+        "raw_html"
+      ],
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": true,
+      "metadata": true,
+      "limit": 1
+    },
+    "stream": false
+  },
+  "response": [
+    {
+      "content": {
+        "raw": "<html lang=\"en\"><title>Example Domain</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div>\n</html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 2.6264e-06,
+        "compute_cost_formatted": "0.0000026263999999999998806510",
+        "file_cost": 7.92e-07,
+        "file_cost_formatted": "0.0000007919999999999999956701",
+        "total_cost": 3.4183999999999997e-06,
+        "total_cost_formatted": "0.0000034183999999999998763212",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 1561,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "example.com",
+          "extracted_data": null,
+          "file_size": 487,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://example.com/job/123",
+          "pathname": "/job/123",
+          "resource_type": ".html",
+          "title": "Example Domain",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 404,
+      "url": "https://example.com/job/123"
+    }
+  ]
+}

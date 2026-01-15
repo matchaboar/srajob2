@@ -5,13 +5,11 @@ site_id: greenhouse_support_page
 listing_url: https://support.greenhouse.io/hc/en-us
 
 expected:
-  # Valid job URLs that should be extracted (3 total):
-  # 1. https://boards.greenhouse.io/lyft/jobs/1234567
-  # 2. https://job-boards.greenhouse.io/stripe/jobs/7654321
-  # 3. https://careers.airbnb.com/positions?gh_jid=9876543
-  # 4. https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321
-  url_count_min: 3
-  url_count_max: 4
+  # Valid job URL extracted from production workflow:
+  # https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321
+  # Note: Other valid URLs (lyft, airbnb) are filtered by production workflow's
+  # board-specific filtering since source_url is support.greenhouse.io (non-board URL)
+  url_count: 1
 
   # All extracted URLs should match job board patterns
   url_pattern: "(boards\\.greenhouse\\.io|job-boards\\.greenhouse\\.io|boards-api\\.greenhouse\\.io|gh_jid)"

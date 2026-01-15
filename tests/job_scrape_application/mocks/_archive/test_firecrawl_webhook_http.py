@@ -8,16 +8,13 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.testing.firecrawl_mock import (
     MockFirecrawlWebhookServer,
     MockWebhookQueue,
 )
-from job_scrape_application.workflows.webhook_workflow import ProcessWebhookIngestWorkflow
+from job_scrape_application.workflows._archive.temporal_webhook_workflow import ProcessWebhookIngestWorkflow
 
 
 def _base_payload(job_id: str = "job-1") -> Dict[str, Any]:

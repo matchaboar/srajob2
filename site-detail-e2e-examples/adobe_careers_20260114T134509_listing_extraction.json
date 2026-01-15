@@ -1,0 +1,50 @@
+{
+  "site_id": "adobe_careers_20260114T134509",
+  "listing_url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+  "source_url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+  "handler_name": "AdobeCareersHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
+    "scrape_url": "https://careers.adobe.com/us/en/search-results?keywords=engineer"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 10,
+    "handler_filtered_count": 10,
+    "api_transformed_count": 10
+  },
+  "extracted_url_count": 10,
+  "filtered_url_count": 10,
+  "normalized_url_count": 10,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://careers.adobe.com/us/en/job/R161269/Software-Engineer",
+    "https://careers.adobe.com/us/en/job/R162737/Research-Engineer",
+    "https://careers.adobe.com/us/en/job/R158292/Prompt-Engineer",
+    "https://careers.adobe.com/us/en/job/R162306/Solutions-Engineer",
+    "https://careers.adobe.com/us/en/job/R161781/Data-Engineer",
+    "https://careers.adobe.com/us/en/job/R161803/Full-Stack-Engineer",
+    "https://careers.adobe.com/us/en/job/R162326/Full-Stack-Engineer",
+    "https://careers.adobe.com/us/en/job/R158282/AI-Agent-Engineer",
+    "https://careers.adobe.com/us/en/job/R161983/Software-Development-Engineer",
+    "https://careers.adobe.com/us/en/job/R158465/Software-Development-Engineer"
+  ],
+  "normalized_urls": [
+    "https://careers.adobe.com/us/en/job/R161269/Software-Engineer",
+    "https://careers.adobe.com/us/en/job/R162737/Research-Engineer",
+    "https://careers.adobe.com/us/en/job/R158292/Prompt-Engineer",
+    "https://careers.adobe.com/us/en/job/R162306/Solutions-Engineer",
+    "https://careers.adobe.com/us/en/job/R161781/Data-Engineer",
+    "https://careers.adobe.com/us/en/job/R161803/Full-Stack-Engineer",
+    "https://careers.adobe.com/us/en/job/R162326/Full-Stack-Engineer",
+    "https://careers.adobe.com/us/en/job/R158282/AI-Agent-Engineer",
+    "https://careers.adobe.com/us/en/job/R161983/Software-Development-Engineer",
+    "https://careers.adobe.com/us/en/job/R158465/Software-Development-Engineer"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

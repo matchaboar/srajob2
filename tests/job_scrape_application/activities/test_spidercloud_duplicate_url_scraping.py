@@ -5,13 +5,10 @@ for existing job URLs before sending them to SpiderCloud, which can waste API cr
 
 from __future__ import annotations
 
-import os
-import sys
 from typing import Any, Dict, List
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities
 
@@ -109,7 +106,7 @@ async def test_process_job_batch_now_filters_existing_urls_before_spidercloud(mo
     monkeypatch.setattr(activities.dbos_queue, "complete_scrape_urls", fake_complete_scrape_urls)
 
     # Execute: Call process_spidercloud_job_batch
-    result = await activities.process_spidercloud_job_batch(batch, persist_scrapes=True)
+    await activities.process_spidercloud_job_batch(batch, persist_scrapes=True)
 
     # Verify: Check what was sent to SpiderCloud
     assert len(mock_scraper.scrape_calls) == 1, "Should make one scrape call"
@@ -122,11 +119,11 @@ async def test_process_job_batch_now_filters_existing_urls_before_spidercloud(mo
     assert "https://boards-api.greenhouse.io/v1/boards/company/jobs/111" not in scraped_urls
     assert "https://boards-api.greenhouse.io/v1/boards/company/jobs/222" not in scraped_urls
 
-    print(f"\n✅ DEDUPLICATION WORKING:")
-    print(f"   - URLs in batch: 3")
-    print(f"   - URLs already in database: 2")
+    print("\n✅ DEDUPLICATION WORKING:")
+    print("   - URLs in batch: 3")
+    print("   - URLs already in database: 2")
     print(f"   - URLs sent to SpiderCloud: {len(scraped_urls)}")
-    print(f"   - API credits saved: 2")
+    print("   - API credits saved: 2")
 
 
 @pytest.mark.asyncio
@@ -182,11 +179,11 @@ async def test_all_urls_skipped_when_all_exist(monkeypatch):
     # Result should indicate skipped URLs
     assert result.get("skippedExisting") == 2, "Should report 2 skipped existing URLs"
 
-    print(f"\n✅ ALL URLS SKIPPED:")
-    print(f"   - URLs in batch: 2")
-    print(f"   - All already in database")
-    print(f"   - SpiderCloud calls: 0")
-    print(f"   - API credits saved: 2")
+    print("\n✅ ALL URLS SKIPPED:")
+    print("   - URLs in batch: 2")
+    print("   - All already in database")
+    print("   - SpiderCloud calls: 0")
+    print("   - API credits saved: 2")
 
 
 @pytest.mark.asyncio
@@ -246,16 +243,16 @@ async def test_filter_new_job_urls_is_more_efficient(monkeypatch):
     old_approach_call = convex_calls[0]
     new_approach_call = convex_calls[1]
 
-    print(f"\n📊 EFFICIENCY COMPARISON:")
+    print("\n📊 EFFICIENCY COMPARISON:")
     print(f"   Input: {len(all_urls)} URLs (95 exist, 5 new)")
-    print(f"\n   OLD approach (filter_existing_job_urls):")
+    print("\n   OLD approach (filter_existing_job_urls):")
     print(f"     - Query: {old_approach_call['endpoint']}")
     print(f"     - Data returned: {old_approach_call['returned_count']} URLs")
-    print(f"     - Python processing: Build set, filter list")
-    print(f"\n   NEW approach (filter_new_job_urls):")
+    print("     - Python processing: Build set, filter list")
+    print("\n   NEW approach (filter_new_job_urls):")
     print(f"     - Query: {new_approach_call['endpoint']}")
     print(f"     - Data returned: {new_approach_call['returned_count']} URLs")
-    print(f"     - Python processing: None needed, use directly")
+    print("     - Python processing: None needed, use directly")
     print(f"\n   Network efficiency: {old_approach_call['returned_count'] / new_approach_call['returned_count']:.1f}x more data with old approach")
 
     assert old_approach_call["returned_count"] == 95

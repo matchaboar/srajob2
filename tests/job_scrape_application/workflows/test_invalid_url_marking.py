@@ -7,14 +7,9 @@ boards-api.greenhouse.io URLs that already exist in the database.
 """
 from __future__ import annotations
 
-import os
-import sys
 
 import pytest
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.site_handlers import get_site_handler  # noqa: E402
 from job_scrape_application.workflows.activities import _filter_job_urls  # noqa: E402

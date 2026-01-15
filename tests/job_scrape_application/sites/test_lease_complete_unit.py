@@ -5,10 +5,7 @@ from typing import Any, Dict
 import pytest
 
 # Target module
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath('.'))
 from job_scrape_application.workflows import activities as acts
 from job_scrape_application.services import convex_client
 

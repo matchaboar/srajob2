@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows.helpers.link_extractors import (

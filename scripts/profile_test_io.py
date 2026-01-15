@@ -6,8 +6,6 @@ Run with: uv run python scripts/profile_test_io.py
 """
 from __future__ import annotations
 
-import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -339,7 +337,7 @@ def benchmark_realistic_load_fixture_stdlib(fixtures: list[Path]) -> dict[str, f
                     if isinstance(item, str):
                         try:
                             json_stdlib.loads(item)  # Parse JSONL items
-                        except:
+                        except Exception:
                             pass
             data.append(payload)
         return data
@@ -369,7 +367,7 @@ def benchmark_realistic_load_fixture_orjson(fixtures: list[Path]) -> dict[str, f
                     if isinstance(item, str):
                         try:
                             orjson.loads(item.encode())
-                        except:
+                        except Exception:
                             pass
             data.append(payload)
         return data
@@ -399,7 +397,7 @@ def benchmark_realistic_load_fixture_msgspec(fixtures: list[Path]) -> dict[str, 
                     if isinstance(item, str):
                         try:
                             msgspec.json.decode(item.encode())
-                        except:
+                        except Exception:
                             pass
             data.append(payload)
         return data

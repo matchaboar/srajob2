@@ -149,7 +149,8 @@ class WorkdayHandler(BaseSiteHandler):
                     "wait_for": {
                         "selector": {
                             "selector": "a[data-automation-id='jobTitle']",
-                            "timeout": {"secs": 40, "nanos": 0},
+                            # 90s timeout - Workday pages are JS-heavy and may load slowly
+                            "timeout": {"secs": 90, "nanos": 0},
                         },
                         "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
                     },
@@ -489,7 +490,11 @@ class WorkdayHandler(BaseSiteHandler):
                 continue
             path = (parsed.path if parsed else cleaned).lower()
             if self.is_api_detail_url(cleaned):
-                candidate = cleaned
+                # Strip query string for deduplication - same job URL with different filters is the same job
+                if parsed and parsed.query:
+                    candidate = cleaned.split("?")[0]
+                else:
+                    candidate = cleaned
             elif "/job/" in path:
                 candidate = self.get_api_uri(cleaned) or cleaned
             elif self.is_listing_url(cleaned):

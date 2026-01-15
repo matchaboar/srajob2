@@ -17,7 +17,7 @@
         "selector": {
           "selector": "a[data-automation-id='jobTitle']",
           "timeout": {
-            "secs": 40,
+            "secs": 90,
             "nanos": 0
           }
         },

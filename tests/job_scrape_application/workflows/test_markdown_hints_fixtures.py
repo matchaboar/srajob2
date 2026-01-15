@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints  # noqa: E402
 
@@ -18,7 +15,7 @@ def test_markdown_hints_tokenization_fixture():
 
     assert hints["title"].startswith("Senior Software Engineer")
     assert hints["location"] == "Toronto, Canada"
-    assert hints["level"] == "senior"
+    # level is extracted separately by LevelExtractor, not parse_markdown_hints
     # No compensation in truncated sample; ensure it doesn't crash.
     assert "compensation" not in hints or hints["compensation"] is None
 
@@ -30,7 +27,7 @@ def test_markdown_hints_android_fixture():
     assert hints["title"].startswith("Senior Android Engineer")
     # Combined city pair should be captured from header line.
     assert hints["location"].startswith("Menlo Park")
-    assert hints["level"] == "senior"
+    # level is extracted separately by LevelExtractor, not parse_markdown_hints
 
 
 def test_markdown_hints_offsec_fixture():
@@ -39,7 +36,7 @@ def test_markdown_hints_offsec_fixture():
 
     assert hints["title"] == "Senior Offensive Security Engineer"
     assert hints["location"] == "Menlo Park, CA"
-    assert hints["level"] == "senior"
+    # level is extracted separately by LevelExtractor, not parse_markdown_hints
     assert hints.get("compensation") and hints["compensation"] >= 187000
 
 

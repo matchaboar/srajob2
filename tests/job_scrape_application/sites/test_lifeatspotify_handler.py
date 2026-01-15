@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-import os
-import sys
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.site_handlers.lifeatspotify import (  # noqa: E402
     LifeAtSpotifyHandler,

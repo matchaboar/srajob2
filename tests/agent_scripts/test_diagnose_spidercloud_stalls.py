@@ -9,7 +9,7 @@ import pytest
 
 
 def _load_module():
-    module_path = Path(__file__).resolve().parents[2] / "agent_scripts" / "diagnose_spidercloud_stalls.py"
+    module_path = Path(__file__).resolve().parents[2] / "agent_scripts" / "diagnostics" / "diagnose_spidercloud_stalls.py"
     spec = importlib.util.spec_from_file_location("diagnose_spidercloud_stalls", module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Unable to load diagnose_spidercloud_stalls module")

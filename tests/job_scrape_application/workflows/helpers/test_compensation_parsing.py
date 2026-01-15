@@ -1,11 +1,7 @@
 """Tests for compensation_parsing module."""
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
-import pytest
 
 from job_scrape_application.workflows.helpers.compensation_parsing import (
     DEFAULT_TOTAL_COMPENSATION,

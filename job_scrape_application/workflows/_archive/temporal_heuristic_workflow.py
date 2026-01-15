@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from temporalio import workflow
 
-from .scrape_workflow import ScrapeSummary
+from job_scrape_application.workflows._archive.temporal_scrape_workflow import ScrapeSummary
 
 # Disable workflow sandbox for this module to allow activity imports that pull in HTTP clients.
 __temporal_disable_workflow_sandbox__ = True
@@ -61,7 +61,7 @@ class AssignmentAwareIterator:
         return remaining >= self.average_task_duration()
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .activities import process_pending_job_details_batch  # noqa: F401
+    from job_scrape_application.workflows.activities import process_pending_job_details_batch  # noqa: F401
 
 
 @workflow.defn(name="HeuristicJobDetails")

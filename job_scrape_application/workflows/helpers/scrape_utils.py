@@ -3,13 +3,9 @@ from __future__ import annotations
 import html as html_lib
 import json
 import re
-import time
-import unicodedata
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
@@ -27,16 +23,10 @@ from .compensation_parsing import (
     parse_compensation,
 )
 from .timestamp_parsing import (
-    _RELATIVE_POSTED_MIN_DAYS,
-    _RELATIVE_TIME_RE,
-    _parse_relative_posted_at,
     parse_posted_at,
     parse_posted_at_with_unknown,
 )
 from .company_normalization import (
-    _COMPANY_SUFFIX_RE,
-    _GENERIC_COMPANY_HINTS,
-    _JOB_BOARD_COMPANY_TOKENS,
     apply_company_hint,
     derive_company_from_url,
     is_generic_company_name,
@@ -44,76 +34,34 @@ from .company_normalization import (
     normalize_title_from_bar,
 )
 from .location_normalization import (
-    _CITY_KEYWORD_KEYS,
-    _CITY_KEYWORDS,
-    _COUNTRY_KEY_TO_LABEL,
-    _LOCATION_DICTIONARY,
-    _LOCATION_DICTIONARY_KEYS,
-    _LOCATION_ENTRIES,
-    _STATE_ABBR_BY_KEY,
-    _STATE_ABBR_BY_NAME,
-    _STATE_NAME_BY_ABBR,
     _find_city_in_text,
     _format_location_label,
     _is_plausible_location,
     _normalize_country_label,
-    _normalize_location_key,
     _normalize_locations,
-    _normalize_us_city_state,
-    _register_location_key,
-    _reorder_by_us_preference,
     _resolve_location_from_dictionary,
 )
 from .url_handling import (
-    _apply_url_candidates,
     _first_url,
-    _score_apply_url,
-    _strip_ashby_application_url,
     prefer_apply_url,
 )
 from .page_detection import (
-    _ERROR_LANDING_PHRASES,
-    _INVALID_TITLE_PATTERNS,
-    _INVALID_TITLE_RE,
-    _JOB_DETAIL_MARKERS,
-    _LISTING_CARD_APPLY_MARKERS,
-    _LISTING_CARD_POSTED_RE,
-    _LISTING_FILTER_TERMS,
-    _LISTING_URL_TOKENS,
-    _NON_JOB_DOMAINS,
-    _NON_JOB_URL_PATTERNS,
-    _description_mentions_listing_url,
-    _looks_like_listing_card_snippet,
     _url_is_listing_root,
     _url_suggests_listing,
-    is_invalid_job_title,
-    is_invalid_job_url,
     looks_like_error_landing,
     looks_like_job_listing_page,
-    looks_like_non_job_page,
 )
 from .regex_patterns import (
-    DIGIT_PATTERN,
-    ERROR_404_PATTERN,
     INVALID_JSON_ESCAPE_PATTERN,
     JSON_OBJECT_PATTERN,
-    LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE,
     LOCATION_PREFIX_PATTERN,
     LOCATION_SPLIT_PATTERN,
     MARKDOWN_HEADING_PREFIX_PATTERN,
-    NON_ALNUM_PATTERN,
-    NON_ALNUM_SPACE_PATTERN,
-    NUMBER_TOKEN_PATTERN,
-    PARENTHETICAL_PATTERN,
-    RETIREMENT_PLAN_PATTERN,
     WHITESPACE_PATTERN,
     _COOKIE_SIGNAL_RE,
     _COOKIE_UI_CONTROL_RE,
     _COOKIE_WORD_RE,
     _HTML_TAG_RE,
-    _LEVEL_RE,
-    _LISTING_SELECT_RE,
-    _LISTING_TABLE_HEADER_RE,
     _LOCATION_RE,
     _NAV_BLOCK_REGEX,
     _NAV_MENU_SEQUENCE,
@@ -139,6 +87,81 @@ MAX_JOB_DESCRIPTION_CHARS = 200_000
 MAX_TITLE_CHARS = 500
 # Backward compat alias (used only inside this module previously).
 MAX_DESCRIPTION_CHARS = MAX_SCRAPE_DESCRIPTION_CHARS
+
+# Description preview limits (for Convex DB row - full description goes to file storage)
+# These match the Convex TypeScript constants in jobDescriptionStorage.ts
+DESCRIPTION_PREVIEW_MAX_WORDS = 100
+DESCRIPTION_PREVIEW_MAX_BYTES = 4_000
+DESCRIPTION_TRUNCATION_SUFFIX = "..."
+
+
+def _truncate_to_word_limit(value: str, max_words: int) -> str:
+    """Truncate string to max_words, adding '...' suffix if truncated."""
+    trimmed = value.strip()
+    if not trimmed:
+        return ""
+    words = trimmed.split()
+    if len(words) <= max_words:
+        return trimmed
+    return " ".join(words[:max_words]) + DESCRIPTION_TRUNCATION_SUFFIX
+
+
+def _clamp_string_to_bytes(value: str, max_bytes: int) -> str:
+    """Clamp string to max UTF-8 bytes, adding '...' suffix if truncated.
+
+    Uses binary search to find the longest prefix that fits within max_bytes.
+    """
+    encoded = value.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return value
+
+    # Strip existing suffix if present
+    raw_value = value
+    if raw_value.endswith(DESCRIPTION_TRUNCATION_SUFFIX):
+        raw_value = raw_value[: -len(DESCRIPTION_TRUNCATION_SUFFIX)]
+
+    suffix_bytes = len(DESCRIPTION_TRUNCATION_SUFFIX.encode("utf-8"))
+    target_bytes = max(0, max_bytes - suffix_bytes)
+
+    # Binary search for longest prefix that fits
+    low, high = 0, len(raw_value)
+    while low < high:
+        mid = (low + high + 1) // 2
+        chunk = raw_value[:mid]
+        size = len(chunk.encode("utf-8"))
+        if size <= target_bytes:
+            low = mid
+        else:
+            high = mid - 1
+
+    return raw_value[:low] + DESCRIPTION_TRUNCATION_SUFFIX
+
+
+def build_description_preview(description: str) -> str:
+    """Build a truncated description preview for Convex DB row.
+
+    The full description is stored in Convex file storage, but we store a
+    truncated preview in the DB row for quick access. This mirrors the
+    TypeScript buildDescriptionPreview() in jobDescriptionStorage.ts.
+
+    Truncation rules (applied in order):
+    1. Truncate to DESCRIPTION_PREVIEW_MAX_WORDS (100 words)
+    2. Clamp to DESCRIPTION_PREVIEW_MAX_BYTES (4000 UTF-8 bytes)
+
+    Returns:
+        Truncated description with '...' suffix if truncated, or original if short enough.
+    """
+    if not description:
+        return ""
+
+    # Step 1: Truncate to word limit
+    word_limited = _truncate_to_word_limit(description, DESCRIPTION_PREVIEW_MAX_WORDS)
+
+    # Step 2: Clamp to byte limit
+    clamped = _clamp_string_to_bytes(word_limited, DESCRIPTION_PREVIEW_MAX_BYTES)
+
+    return clamped
+
 
 # Patterns for HTML to text conversion
 _HTML_BR_PATTERN = re.compile(r"<br\s*/?>", flags=re.IGNORECASE)
@@ -2305,7 +2328,6 @@ class _JobRowNormalizer:
         """Normalize using modular extractors."""
         from ..extractors.context import ExtractionContext
         from ..extractors.integration import _extract_job_fields
-        from ..extractors.integration import _should_override_title
 
         # Get URL first - required
         preferred_url = prefer_apply_url(row)

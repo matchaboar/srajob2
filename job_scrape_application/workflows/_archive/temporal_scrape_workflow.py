@@ -6,11 +6,11 @@ from typing import Any, Dict, List
 import asyncio
 
 from temporalio import workflow
-from temporalio.exceptions import ActivityError, ApplicationError, TimeoutError
+from temporalio.exceptions import ActivityError, TimeoutError
 
 # Import activity call prototypes inside workflow via type hints / names
 with workflow.unsafe.imports_passed_through():
-    from .activities import (
+    from job_scrape_application.workflows.activities import (
         SPIDERCLOUD_BATCH_SIZE,
         batch_store_scrapes_background,
         complete_scrape_urls,
@@ -28,10 +28,11 @@ with workflow.unsafe.imports_passed_through():
         store_scrape,
     )
 
-from ..config import runtime_config, settings
-from .helpers.spidercloud_error_strategy import decision_for_exception
-from .helpers.workflow_logging import get_workflow_logger
-from .helpers.workflow_debug import workflow_checkpoint
+from job_scrape_application.config.runtime_config import runtime_config
+from job_scrape_application.config.config import settings
+from job_scrape_application.workflows.helpers.spidercloud_error_strategy import decision_for_exception
+from job_scrape_application.workflows.helpers._archive.workflow_logging import get_workflow_logger
+from job_scrape_application.workflows.helpers._archive.workflow_debug import workflow_checkpoint
 
 
 @dataclass

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
 import sys
 from typing import Any, Dict, List, Tuple
 
 import pytest
 
 # Ensure repo root importable
-sys.path.insert(0, os.path.abspath("."))
 
 # Stub firecrawl dependency for tests that don't exercise it
 import types

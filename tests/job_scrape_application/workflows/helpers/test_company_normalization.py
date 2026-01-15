@@ -1,11 +1,7 @@
 """Tests for company_normalization module."""
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
-import pytest
 
 from job_scrape_application.workflows.helpers.company_normalization import (
     _COMPANY_SUFFIX_RE,

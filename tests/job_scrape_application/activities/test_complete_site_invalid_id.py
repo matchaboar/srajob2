@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.activities import complete_site, fail_site
 

@@ -6,6 +6,6 @@ expected:
   company: HubSpot
   location_contains: Netherlands
   is_remote: true
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1

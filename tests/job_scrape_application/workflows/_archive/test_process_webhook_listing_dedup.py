@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
 import uuid
 from typing import Any, Dict, List
 
@@ -10,9 +8,8 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-sys.path.insert(0, os.path.abspath("."))
 
-from job_scrape_application.workflows.webhook_workflow import ProcessWebhookIngestWorkflow
+from job_scrape_application.workflows._archive.temporal_webhook_workflow import ProcessWebhookIngestWorkflow
 
 
 def _listing_event(job_urls: List[str], event_id: str = "wh-list-1") -> Dict[str, Any]:

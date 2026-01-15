@@ -1,0 +1,59 @@
+{
+  "site_id": "paloalto_networks_20260114T134509",
+  "listing_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+  "source_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+  "handler_name": "PaloAltoNetworksHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
+    "scrape_url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 19,
+    "handler_filtered_count": 19,
+    "api_transformed_count": 19
+  },
+  "extracted_url_count": 19,
+  "filtered_url_count": 19,
+  "normalized_url_count": 19,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-ui-software-engineer-cortex/47263/88366836256",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/principal-software-engineer-kspm-cortex-cloud/47263/89386674768",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-staff-software-engineer/47263/89098145520",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-cloud-ngfw/47263/88655145632",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-threat-intelligence/47263/89453559600",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-staff-software-engineer-wildfire/47263/88393454544",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-sase/47263/88318873136",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/software-engineering-manager-cortex-agentix/47263/89231670064",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-software-engineer-cortex-xpanse-vulnerability/47263/77660825040"
+  ],
+  "normalized_urls": [
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-ui-software-engineer-cortex/47263/88366836256",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/principal-software-engineer-kspm-cortex-cloud/47263/89386674768",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-staff-software-engineer/47263/89098145520",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-cloud-ngfw/47263/88655145632",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-threat-intelligence/47263/89453559600",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-staff-software-engineer-wildfire/47263/88393454544",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-sase/47263/88318873136",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/software-engineering-manager-cortex-agentix/47263/89231670064",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-software-engineer-cortex-xpanse-vulnerability/47263/77660825040",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/principal-software-engineer-cortex-agentix/47263/79556027408",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-software-engineer-cortex/47263/88617892128",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/sr-software-engineer-tools-and-platforms-cortex/47263/85461897024",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/senior-staff-software-engineer-cortex-xpanse/47263/70490312768",
+    "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-software-engineer-ai/47263/89706870784",
+    "https://jobs.paloaltonetworks.com/en/job/tel-aviv/java-automation-manager-cortex-cloud/47263/76545176288",
+    "https://jobs.paloaltonetworks.com/en/job/auckland/solutions-consultant-healthcare/47263/84377752848",
+    "https://jobs.paloaltonetworks.com/en/job/reston/business-development-capture-manager/47263/78328472480",
+    "https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

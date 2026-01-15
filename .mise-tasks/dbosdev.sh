@@ -2,6 +2,5 @@
 #MISE description="Run DBOS runner with Convex dev backend"
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-pwsh "$repo_root/start_worker.ps1" "$@"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$script_dir/lib/dbos_wrapper.sh" "$@"

@@ -35,7 +35,7 @@ TEMP_OUTPUT=$(mktemp /tmp/refresh_fixtures_XXXXXX.json)
 trap "rm -f ${TEMP_OUTPUT}" EXIT
 
 echo "Running fixture generation..."
-PYTHONPATH=. uv run python agent_scripts/refresh_all_site_fixtures.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
+PYTHONPATH=. uv run python agent_scripts/core/refresh_all_site_fixtures.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
 
 # Extract JSON output from the script
 JSON_OUTPUT=$(grep -A 1000 "=== JSON Output ===" "${TEMP_OUTPUT}" | tail -n +2)

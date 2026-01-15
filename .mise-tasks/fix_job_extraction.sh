@@ -43,7 +43,7 @@ trap "rm -f ${TEMP_OUTPUT}" EXIT
 
 # Run the improved fixture generation script
 echo "Running fixture generation..."
-PYTHONPATH=. uv run python agent_scripts/generate_debug_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
+PYTHONPATH=. uv run python agent_scripts/core/generate_debug_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
 
 # Extract JSON output from the script
 JSON_OUTPUT=$(grep -A 100 "=== JSON Output ===" "${TEMP_OUTPUT}" | tail -n +2 | head -20)

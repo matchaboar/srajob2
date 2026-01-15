@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
-import sys
 import uuid
 from typing import Any, Dict, List
 
@@ -11,13 +9,12 @@ from temporalio import activity
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.testing.firecrawl_mock import (  # noqa: E402
     MockFirecrawl,
     MockFirecrawlScenario,
     MockWebhookQueue,
 )
-from job_scrape_application.workflows.webhook_workflow import (  # noqa: E402
+from job_scrape_application.workflows._archive.temporal_webhook_workflow import (  # noqa: E402
     ProcessWebhookIngestWorkflow,
 )
 

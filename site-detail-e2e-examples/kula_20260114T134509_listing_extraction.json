@@ -1,0 +1,57 @@
+{
+  "site_id": "kula_20260114T134509",
+  "listing_url": "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99",
+  "source_url": "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99",
+  "handler_name": "KulaCareersHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99",
+    "scrape_url": "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 17,
+    "handler_filtered_count": 17,
+    "api_transformed_count": 17
+  },
+  "extracted_url_count": 17,
+  "filtered_url_count": 17,
+  "normalized_url_count": 17,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://careers.kula.ai/voltagepark/19780",
+    "https://careers.kula.ai/voltagepark/19788",
+    "https://careers.kula.ai/voltagepark/19812",
+    "https://careers.kula.ai/voltagepark/19813",
+    "https://careers.kula.ai/voltagepark/19815",
+    "https://careers.kula.ai/voltagepark/19816",
+    "https://careers.kula.ai/voltagepark/19827",
+    "https://careers.kula.ai/voltagepark/19828",
+    "https://careers.kula.ai/voltagepark/19829",
+    "https://careers.kula.ai/voltagepark/19830"
+  ],
+  "normalized_urls": [
+    "https://careers.kula.ai/voltagepark/19780",
+    "https://careers.kula.ai/voltagepark/19788",
+    "https://careers.kula.ai/voltagepark/19812",
+    "https://careers.kula.ai/voltagepark/19813",
+    "https://careers.kula.ai/voltagepark/19815",
+    "https://careers.kula.ai/voltagepark/19816",
+    "https://careers.kula.ai/voltagepark/19827",
+    "https://careers.kula.ai/voltagepark/19828",
+    "https://careers.kula.ai/voltagepark/19829",
+    "https://careers.kula.ai/voltagepark/19830",
+    "https://careers.kula.ai/voltagepark/19831",
+    "https://careers.kula.ai/voltagepark/19832",
+    "https://careers.kula.ai/voltagepark/19833",
+    "https://careers.kula.ai/voltagepark/19834",
+    "https://careers.kula.ai/voltagepark/19835",
+    "https://careers.kula.ai/voltagepark/20817",
+    "https://careers.kula.ai/voltagepark/20818"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

@@ -10,17 +10,9 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import sys
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
-
-# Add root to path
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 # Import helper functions from the main test file
 import tests.job_scrape_application.workflows.test_job_detail_extraction_e2e as main_test

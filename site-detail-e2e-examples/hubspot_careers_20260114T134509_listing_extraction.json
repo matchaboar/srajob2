@@ -1,0 +1,52 @@
+{
+  "site_id": "hubspot_careers_20260114T134509",
+  "listing_url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;",
+  "source_url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;",
+  "handler_name": "HubspotCareersHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;",
+    "scrape_url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 12,
+    "handler_filtered_count": 12,
+    "api_transformed_count": 12
+  },
+  "extracted_url_count": 12,
+  "filtered_url_count": 12,
+  "normalized_url_count": 12,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://www.hubspot.com/careers/jobs/5986323",
+    "https://www.hubspot.com/careers/jobs/5986932",
+    "https://www.hubspot.com/careers/jobs/5986934",
+    "https://www.hubspot.com/careers/jobs/7137634",
+    "https://www.hubspot.com/careers/jobs/5990166",
+    "https://www.hubspot.com/careers/jobs/5986426",
+    "https://www.hubspot.com/careers/jobs/5986119",
+    "https://www.hubspot.com/careers/jobs/5986204",
+    "https://www.hubspot.com/careers/jobs/5986360",
+    "https://www.hubspot.com/careers/jobs/5986358"
+  ],
+  "normalized_urls": [
+    "https://www.hubspot.com/careers/jobs/5986323",
+    "https://www.hubspot.com/careers/jobs/5986932",
+    "https://www.hubspot.com/careers/jobs/5986934",
+    "https://www.hubspot.com/careers/jobs/7137634",
+    "https://www.hubspot.com/careers/jobs/5990166",
+    "https://www.hubspot.com/careers/jobs/5986426",
+    "https://www.hubspot.com/careers/jobs/5986119",
+    "https://www.hubspot.com/careers/jobs/5986204",
+    "https://www.hubspot.com/careers/jobs/5986360",
+    "https://www.hubspot.com/careers/jobs/5986358",
+    "https://www.hubspot.com/careers/jobs/5986400",
+    "https://www.hubspot.com/careers/jobs/6024525"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

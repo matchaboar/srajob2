@@ -7,7 +7,7 @@ that can be used in tests without making real network calls.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping
 
 from .protocols import ConvexFunctions
 

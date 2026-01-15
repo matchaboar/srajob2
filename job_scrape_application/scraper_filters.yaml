@@ -2,6 +2,18 @@ title_keywords:
   # Jobs must include at least one of these keywords (case-insensitive).
   required:
     - engineer
+    - data
+    - sde
+    - swe
+    - sre
+    - tpm
+    - devops
+    - product
+    - developer
+    - quant
+    - program
+    - manager
+    - experience
   # If a title is missing/unknown we still keep the job (admin UI needs to see it).
   allow_when_missing: true
 

@@ -12,4 +12,4 @@ if [[ ! "${hours}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   exit 1
 fi
 
-uv run agent_scripts/delete_jobs_from_time.py --hours "${hours}" --env prod
+uv run agent_scripts/maintenance/delete_jobs_from_time.py --hours "${hours}" --env prod

@@ -78,6 +78,65 @@ class FakeDb {
 }
 
 describe("upsertSite", () => {
+  it("updates existing site when name matches (case-insensitive)", async () => {
+    const existingSite = {
+      _id: "sites-existing",
+      url: "https://old.example.com/jobs",
+      name: "Acme Corp",
+      type: "general",
+    };
+    const ctx: any = {
+      db: new FakeDb({ sites: [existingSite] }),
+      runMutation: async () => null,
+    };
+
+    const handler = getHandler(upsertSite);
+    const newUrl = "https://new.example.com/careers";
+
+    // Call with same name (different case) but different URL
+    const id = await handler(ctx, {
+      url: newUrl,
+      name: "acme corp", // lowercase to test case-insensitivity
+      enabled: true,
+      type: "general",
+    });
+
+    // Should update existing site, not create new one
+    expect(id).toBe("sites-existing");
+    expect(ctx.db.sites.size).toBe(1);
+    const stored = ctx.db.sites.get(id);
+    expect(stored?.url).toBe(newUrl);
+    expect(stored?.name).toBe("acme corp");
+  });
+
+  it("creates new site when name does not match any existing", async () => {
+    const existingSite = {
+      _id: "sites-existing",
+      url: "https://old.example.com/jobs",
+      name: "Acme Corp",
+      type: "general",
+    };
+    const ctx: any = {
+      db: new FakeDb({ sites: [existingSite] }),
+      runMutation: async () => null,
+    };
+
+    const handler = getHandler(upsertSite);
+    const newUrl = "https://other.example.com/careers";
+
+    // Call with different name and URL
+    const id = await handler(ctx, {
+      url: newUrl,
+      name: "Other Company",
+      enabled: true,
+      type: "general",
+    });
+
+    // Should create a new site
+    expect(id).not.toBe("sites-existing");
+    expect(ctx.db.sites.size).toBe(2);
+  });
+
   it("preserves query strings in stored site URLs", async () => {
     const ctx: any = {
       db: new FakeDb(),

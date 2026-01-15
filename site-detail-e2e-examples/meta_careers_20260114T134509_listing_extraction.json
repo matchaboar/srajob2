@@ -1,0 +1,50 @@
+{
+  "site_id": "meta_careers_20260114T134509",
+  "listing_url": "https://www.metacareers.com/jobsearch?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ",
+  "source_url": "https://www.metacareers.com/jobsearch?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ",
+  "handler_name": "MetaCareersHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://www.metacareers.com/jobsearch?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ",
+    "scrape_url": "https://www.metacareers.com/jobsearch?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 10,
+    "handler_filtered_count": 10,
+    "api_transformed_count": 10
+  },
+  "extracted_url_count": 10,
+  "filtered_url_count": 10,
+  "normalized_url_count": 10,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://www.metacareers.com/profile/job_details/727671609895617",
+    "https://www.metacareers.com/profile/job_details/740413242477928",
+    "https://www.metacareers.com/profile/job_details/1283364266159062",
+    "https://www.metacareers.com/profile/job_details/1770681236847041",
+    "https://www.metacareers.com/profile/job_details/1368969190886166",
+    "https://www.metacareers.com/profile/job_details/1079158160340219",
+    "https://www.metacareers.com/profile/job_details/2154143301727752",
+    "https://www.metacareers.com/profile/job_details/572429542041302",
+    "https://www.metacareers.com/profile/job_details/623005356728275",
+    "https://www.metacareers.com/profile/job_details/717282874019165"
+  ],
+  "normalized_urls": [
+    "https://www.metacareers.com/profile/job_details/727671609895617",
+    "https://www.metacareers.com/profile/job_details/740413242477928",
+    "https://www.metacareers.com/profile/job_details/1283364266159062",
+    "https://www.metacareers.com/profile/job_details/1770681236847041",
+    "https://www.metacareers.com/profile/job_details/1368969190886166",
+    "https://www.metacareers.com/profile/job_details/1079158160340219",
+    "https://www.metacareers.com/profile/job_details/2154143301727752",
+    "https://www.metacareers.com/profile/job_details/572429542041302",
+    "https://www.metacareers.com/profile/job_details/623005356728275",
+    "https://www.metacareers.com/profile/job_details/717282874019165"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

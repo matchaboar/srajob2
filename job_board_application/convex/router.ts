@@ -2452,9 +2452,19 @@ export const upsertSite = mutation({
     const now = Date.now();
 
     const sites = await ctx.db.query("sites").collect();
-    const existing = (sites as any[]).find(
+    // First check for existing site by name (case-insensitive), then by URL
+    const normalizedInputName = (args.name ?? resolvedName).toLowerCase().trim();
+    const existingByName = args.name
+      ? (sites as any[]).find(
+          (s: any) =>
+            s.name && s.name.toLowerCase().trim() === normalizedInputName,
+        )
+      : null;
+    const existingByUrl = (sites as any[]).find(
       (s: any) => siteCanonicalKey(s.url, s.type) === key,
     );
+    // Prefer name match over URL match to allow URL changes for existing sites
+    const existing = existingByName ?? existingByUrl;
 
     const scheduleConfig = args.scheduleId
       ? scheduleFromRow(await ctx.db.get(args.scheduleId))

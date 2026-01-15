@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Tuple
 from urllib.parse import parse_qs, urlparse
 
 from ..helpers.link_extractors import normalize_url, strip_wrapping_url
-from ..helpers.regex_patterns import URL_PATTERN
-from ..site_handlers import get_site_handler
 from ..site_handlers.base import BaseSiteHandler
 
 

@@ -48,7 +48,7 @@ echo "  Environment:     DEV (elegant-magpie-239)"
 echo "==================================================="
 echo ""
 echo "To sync dev site schedules to Convex, run:"
-echo "  uv run python agent_scripts/update_and_sync_site_schedules.py"
+echo "  uv run python agent_scripts/config/update_and_sync_site_schedules.py"
 echo ""
 echo "Press Ctrl+C to stop all services"
 

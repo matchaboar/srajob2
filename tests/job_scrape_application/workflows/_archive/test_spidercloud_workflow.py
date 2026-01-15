@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import json
-import os
 import sys
 import time
 from collections.abc import Callable
@@ -40,7 +39,6 @@ except Exception:
     sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
 
 # Ensure repo root importable
-sys.path.insert(0, os.path.abspath("."))
 
 try:
     import temporalio  # noqa: F401
@@ -48,9 +46,9 @@ except ImportError:  # pragma: no cover
     pytest.skip("temporalio not installed", allow_module_level=True)
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
-from job_scrape_application.workflows import scrape_workflow as sw  # noqa: E402
+from job_scrape_application.workflows._archive import temporal_scrape_workflow as sw  # noqa: E402
 from job_scrape_application.workflows.activities import factories  # noqa: E402
-from job_scrape_application.workflows.create_schedule import (  # noqa: E402
+from job_scrape_application.workflows._archive.temporal_create_schedule import (  # noqa: E402
     load_schedule_configs,
 )
 from job_scrape_application.components.models import (  # noqa: E402

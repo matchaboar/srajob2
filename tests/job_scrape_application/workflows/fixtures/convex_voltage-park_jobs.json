@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "company": "Voltage Park",
+    "companySlug": "voltage-park",
+    "limit": 3,
+    "count": 1,
+    "env": "prod",
+    "companyMatches": [
+      "voltage park"
+    ],
+    "generatedAtMs": 1768130000000,
+    "generatedAt": "2026-01-11 12:00:00"
+  },
+  "jobs": [
+    {
+      "id": "k180kula19780",
+      "title": "Data Center Site Operations Manager | Voltage Park",
+      "company": "voltage park",
+      "location": "Lisle, Illinois, United States",
+      "locations": [
+        "Lisle, Illinois, United States"
+      ],
+      "country": "United States",
+      "remote": false,
+      "level": "senior",
+      "totalCompensation": 0.0,
+      "compensationUnknown": true,
+      "url": "https://careers.kula.ai/voltagepark/19780",
+      "postedAt": 1768130000000.0,
+      "description": "Data Center Site Operations Manager - Voltage Park\nJob type: Full Time - Department: Operations - Work type: On-Site\nLisle, Illinois, United States\n\n## Job Details\nVoltage Park is your enterprise AI factory. We offer scalable compute power and on-demand GPU infrastructure.\n\n### What You Will Do\n- Launch and operate the Chicago facility\n- Lead a team of data center technicians\n\nApply for this job\nAutofill application"
+    }
+  ]
+}

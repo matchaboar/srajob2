@@ -56,7 +56,17 @@
       "Bash(echo:*)",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(npx convex:*)"
+      "Bash(npx convex:*)",
+      "Bash(DEBUG_EXTRACTION_VERBOSE=0 uv run pytest:*)",
+      "Bash(for page in {1..5})",
+      "Bash(do echo \"Page $page:\")",
+      "Bash(break)",
+      "Bash(xargs:*)",
+      "Bash(git mv:*)",
+      "Skill(fix-job-extraction)",
+      "Skill(fix-job-crawl)",
+      "Skill(add-site)",
+      "Skill(refresh-fixtures)"
     ]
   },
   "outputStyle": "default"

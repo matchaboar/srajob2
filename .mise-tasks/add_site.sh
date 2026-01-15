@@ -51,7 +51,7 @@ trap "rm -f ${TEMP_OUTPUT}" EXIT
 
 # Run the fixture generation script
 echo "Running new site fixture generation..."
-PYTHONPATH=. uv run python agent_scripts/generate_new_site_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
+PYTHONPATH=. uv run python agent_scripts/core/generate_new_site_fixture.py ${PYTHON_ARGS} 2>&1 | tee "${TEMP_OUTPUT}"
 
 # If dry-run, exit here (Python script already showed what would be created)
 if [ "${DRY_RUN}" = "true" ]; then

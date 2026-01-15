@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import html as html_lib
 import inspect
 import json
 import logging
@@ -55,10 +54,9 @@ from ..helpers.scrape_utils import (
     _extract_job_detail_seed_from_json,
     _jobs_from_scrape_items,
     _shrink_payload,
-    _strip_ashby_application_url,
+    build_description_preview,
     build_firecrawl_schema,
     derive_company_from_url,
-    is_invalid_job_url,
     normalize_compensation_value,
     parse_markdown_hints,
     parse_posted_at,
@@ -70,6 +68,8 @@ from ..helpers.scrape_utils import (
     trim_scrape_for_convex,
     looks_like_truncated_description,
 )
+from ..helpers.page_detection import is_invalid_job_url
+from ..helpers.url_handling import _strip_ashby_application_url
 from ..helpers.link_extractors import (
     gather_strings,
     extract_job_urls_from_json_payload,
@@ -207,11 +207,9 @@ from .heuristics import (
     _first_match,
     _build_ordered_regexes,
     _detect_currency_code,
-    _build_job_detail_heuristic_patch,
     _domain_from_url,
-    HEURISTIC_VERSION,
-    COMP_MAGNITUDE_SUFFIX_RE,
 )
+from .heuristics import _build_job_detail_heuristic_patch, HEURISTIC_VERSION
 
 _log_provider_dispatch = log_provider_dispatch
 
@@ -744,11 +742,40 @@ async def scrape_site(
         pass
 
     site_type = (site.get("type") or "general").lower()
-    if isinstance(scraper, SpiderCloudScraper) and site_type == "greenhouse":
-        result = await _scrape_spidercloud_greenhouse(scraper, site, precomputed_skip or [])
-    else:
-        # Tests expect skip_urls to be forwarded for firecrawl so it can dedupe visited URLs
-        result = await scraper.scrape_site(site, skip_urls=precomputed_skip)
+    try:
+        if isinstance(scraper, SpiderCloudScraper) and site_type == "greenhouse":
+            result = await _scrape_spidercloud_greenhouse(scraper, site, precomputed_skip or [])
+        else:
+            # Tests expect skip_urls to be forwarded for firecrawl so it can dedupe visited URLs
+            result = await scraper.scrape_site(site, skip_urls=precomputed_skip)
+    except asyncio.CancelledError:
+        # Handle cancellation gracefully - don't let it block the queue
+        logger.warning(
+            "Scrape activity cancelled site=%s provider=%s",
+            site.get("url"),
+            getattr(scraper, "provider", "unknown"),
+        )
+        # Return an empty result rather than propagating cancellation
+        # The workflow can decide whether to retry
+        return {
+            "sourceUrl": site.get("url"),
+            "items": {"normalized": [], "failed": []},
+            "error": "cancelled",
+            "errorType": "CancelledError",
+        }
+    except asyncio.TimeoutError:
+        # Handle timeout gracefully at activity level
+        logger.error(
+            "Scrape activity timed out site=%s provider=%s",
+            site.get("url"),
+            getattr(scraper, "provider", "unknown"),
+        )
+        return {
+            "sourceUrl": site.get("url"),
+            "items": {"normalized": [], "failed": []},
+            "error": "timeout",
+            "errorType": "TimeoutError",
+        }
 
     if not persist_scrape:
         return result
@@ -2024,6 +2051,107 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         source_url = entry.get("sourceUrl") if isinstance(entry.get("sourceUrl"), str) else ""
         handler = get_site_handler(source_url) if source_url else None
 
+        # Extract posted_at_by_url from items block if available
+        posted_at_by_url: Dict[str, int] = {}
+        items_block_for_posted = scrape_payload.get("items") if isinstance(scrape_payload, dict) else None
+        if isinstance(items_block_for_posted, dict):
+            raw_posted = items_block_for_posted.get("posted_at_by_url")
+            if isinstance(raw_posted, dict):
+                for key, value in raw_posted.items():
+                    if not isinstance(key, str):
+                        continue
+                    if not isinstance(value, (int, float)):
+                        continue
+                    normalized_key = normalize_url(key) or key
+                    posted_at_by_url[normalized_key] = int(value)
+
+            # If no posted_at_by_url in items, try to extract from raw JSON payload using handler
+            if not posted_at_by_url and handler:
+                get_posted_at_fn = getattr(handler, "get_posted_at_by_url", None)
+                if callable(get_posted_at_fn):
+                    raw_block = items_block_for_posted.get("raw")
+                    json_payload = None
+
+                    def _extract_json_from_content(content_text: str) -> Any:
+                        """Extract JSON payload from SpiderCloud response content."""
+                        if not isinstance(content_text, str) or not content_text.strip():
+                            return None
+                        text = content_text.strip()
+
+                        # Handle HTML-wrapped JSON (raw content from SpiderCloud)
+                        # Format: <html><meta ...><pre>{json}</pre></html>
+                        if text.startswith("<html"):
+                            pre_match = re.search(r'<pre[^>]*>(.*?)</pre>', text, re.DOTALL)
+                            if pre_match:
+                                text = pre_match.group(1).strip()
+
+                        # Remove markdown escapes (\_  -> _)
+                        text = text.replace("\\_", "_")
+
+                        # Remove markdown code fence if present
+                        if text.startswith("```"):
+                            lines = text.split("\n")
+                            # Skip opening fence and closing fence
+                            inner_lines = []
+                            in_fence = False
+                            for line in lines:
+                                if line.strip().startswith("```") and not in_fence:
+                                    in_fence = True
+                                    continue
+                                if line.strip() == "```" and in_fence:
+                                    break
+                                if in_fence:
+                                    inner_lines.append(line)
+                            text = "\n".join(inner_lines).strip()
+                        if not text:
+                            return None
+                        try:
+                            return json.loads(text)
+                        except json.JSONDecodeError:
+                            return None
+
+                    # raw_block is a list of {url, events, markdown} dicts
+                    if isinstance(raw_block, list):
+                        for raw_item in raw_block:
+                            if not isinstance(raw_item, dict):
+                                continue
+                            # First try: Look at events[*].content for raw SpiderCloud response
+                            events = raw_item.get("events")
+                            if isinstance(events, list):
+                                for event in events:
+                                    if not isinstance(event, dict):
+                                        continue
+                                    content = event.get("content")
+                                    if not isinstance(content, dict):
+                                        continue
+                                    # Try raw_html first (for API responses), then commonmark
+                                    for content_key in ("raw_html", "raw", "commonmark"):
+                                        raw_content = content.get(content_key)
+                                        if isinstance(raw_content, str):
+                                            json_payload = _extract_json_from_content(raw_content)
+                                            if json_payload:
+                                                break
+                                    if json_payload:
+                                        break
+                            if json_payload:
+                                break
+                            # Second try: Look at markdown field directly
+                            markdown = raw_item.get("markdown")
+                            if isinstance(markdown, str):
+                                json_payload = _extract_json_from_content(markdown)
+                                if json_payload:
+                                    break
+                    if json_payload:
+                        try:
+                            handler_posted_ats = get_posted_at_fn(json_payload)
+                            if isinstance(handler_posted_ats, dict):
+                                for key, value in handler_posted_ats.items():
+                                    if isinstance(key, str) and isinstance(value, (int, float)):
+                                        normalized_key = normalize_url(key) or key
+                                        posted_at_by_url[normalized_key] = int(value)
+                        except Exception:
+                            pass
+
         def _detail_url_from_scrape() -> str | None:
             items_block = scrape_payload.get("items") if isinstance(scrape_payload, dict) else None
             if not isinstance(items_block, dict):
@@ -2075,6 +2203,24 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         ) -> list[dict[str, str]]:
             return [val for idx, val in enumerate(values) if idx < limit]
 
+        def _has_timeout_failures() -> bool:
+            """Check if scrape failed due to timeout - already logged separately."""
+            items_block = scrape_payload.get("items") if isinstance(scrape_payload, dict) else None
+            if not isinstance(items_block, dict):
+                return False
+            failed = items_block.get("failed")
+            if not isinstance(failed, list) or not failed:
+                return False
+            # Check if any failures are due to timeout/cancelled
+            timeout_reasons = {"timeout", "cancelled"}
+            for entry in failed:
+                if not isinstance(entry, dict):
+                    continue
+                reason = entry.get("reason", "").lower()
+                if reason in timeout_reasons:
+                    return True
+            return False
+
         def _should_warn_zero_urls() -> bool:
             if not base_listing_url:
                 return False
@@ -2082,6 +2228,9 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                 if not handler.is_listing_url(base_listing_url):
                     return False
             elif not _is_probable_listing_url(base_listing_url):
+                return False
+            # Don't emit zero_urls if scrape failed due to timeout - that error is already logged
+            if _has_timeout_failures():
                 return False
             return _is_base_listing_page(base_listing_url)
 
@@ -2437,6 +2586,13 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
         url_types = ["detail"] * len(merged_urls)
         delays_ms: list[int] | None = None
 
+        # Build postedAts list from posted_at_by_url
+        posted_ats_to_enqueue: list[int | None] | None = None
+        if posted_at_by_url and merged_urls:
+            posted_ats_to_enqueue = [posted_at_by_url.get(normalize_url(url) or url) for url in merged_urls]
+            if not any(isinstance(val, (int, float)) for val in posted_ats_to_enqueue):
+                posted_ats_to_enqueue = None
+
         skip_reasons: list[dict[str, str]] = []
         skip_reasons.extend({"url": url, "reason": "url_converted"} for url in converted_urls)
         skip_reasons.extend({"url": url, "reason": "invalid_url"} for url in invalid_urls)
@@ -2461,6 +2617,7 @@ async def process_spidercloud_listing_batch(batch: Dict[str, Any]) -> Dict[str, 
                     "pattern": entry.get("pattern"),
                     "delaysMs": delays_ms,
                     "urlTypes": url_types,
+                    "postedAts": posted_ats_to_enqueue,
                 }
             )
         )
@@ -3762,7 +3919,13 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
                     job_urls = [job.get("url") for job in chunk if isinstance(job, dict) and job.get("url")]
                     logger.info("Posting %d job detail(s) to Convex: %s", len(chunk), ", ".join(job_urls[:5]) + ("..." if len(job_urls) > 5 else ""))
 
-                    ingest_payload: Dict[str, Any] = {"jobs": chunk}
+                    # Truncate descriptions for DB row (full descriptions go to file storage separately)
+                    truncated_chunk = [
+                        {**job, "description": build_description_preview(job.get("description", ""))}
+                        if isinstance(job, dict) else job
+                        for job in chunk
+                    ]
+                    ingest_payload: Dict[str, Any] = {"jobs": truncated_chunk}
                     if site_id is not None:
                         ingest_payload["siteId"] = site_id
                     await convex_mutation("router:ingestJobsFromScrape", ingest_payload)
@@ -3930,7 +4093,6 @@ async def store_scrape(scrape: Dict[str, Any]) -> str:
         listing_urls: list[str] = []
         had_listing_urls = False
         extracted_job_urls: list[str] = []
-        existing_job_set: set[str] = set()
         existing_job_set_ready = False
     
         # Best-effort enqueue of job URLs discovered in scrape payloads (e.g., Greenhouse listings).
@@ -4518,7 +4680,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
         return None
 
-    def _looks_like_job_detail_url(url: str) -> bool:
+    def _looks_like_job_detail_url(url: str) -> bool:  # noqa: F811
         try:
             parsed = urlparse(url)
         except Exception:
@@ -4845,6 +5007,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
 
         relative_re = re.compile(r"/(?:careers?/job|jobs)/(?!search)([^\"'<>\s]+)", re.IGNORECASE)
         for match in relative_re.finditer(text):
+            # Skip if this match is inside a full URL (preceded by ://)
+            # e.g., don't extract /jobs/123 from https://example.com/jobs/123
+            start_pos = match.start()
+            prefix = text[max(0, start_pos - 100) : start_pos]
+            if "://" in prefix and not any(c in prefix[prefix.rfind("://"):] for c in " \n\t"):
+                continue
             relative_url = match.group(0).strip()
             if relative_url in markdown_urls:
                 continue
@@ -5233,6 +5401,12 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if not isinstance(text, str):
                     continue
                 for match in relative_re.finditer(text):
+                    # Skip if this match is inside a full URL (preceded by ://)
+                    # e.g., don't extract /jobs/123 from https://example.com/jobs/123
+                    start_pos = match.start()
+                    prefix = text[max(0, start_pos - 100) : start_pos]
+                    if "://" in prefix and not any(c in prefix[prefix.rfind("://"):] for c in " \n\t"):
+                        continue
                     normalized = normalize_url(match.group(0), base_url=source_url)
                     if normalized:
                         link_urls.append(normalized)

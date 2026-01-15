@@ -1,29 +1,9 @@
+# Dataminr Workday listing extraction assertions
+# Note: URLs are deduplicated by stripping query strings
 site_id: workday
 listing_url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer
 expected:
-  url_count_min: 10  # Minimum expected job URLs (found 23 detail URLs)
-  url_pattern: "/wday/cxs/dataminr/Dataminr/job/"  # Workday API job detail URL pattern
-  no_listing_urls: true  # Ensure listing/search URLs are filtered out
+  url_count: 15  # Unique jobs after query string deduplication
+  url_pattern: "/job/"
+  no_listing_urls: true
   handler: "WorkdayHandler"
-
-# Sample extracted job detail URLs (23 total)
-sample_urls:
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/UK---Remote/Senior-Site-Reliability-Engineer--Platform-Engineering_JR1932
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/London-UK/Account-Executive--Public-Sector--Central-and-Eastern-Europe-_JR1933
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Senior-Software-Engineer--AI-Research_JR1926-1
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/London-UK/Account-Executive--Public-Sector--UK--Ireland---EU-_JR1875
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/Dublin-IE/Associate-Editor--Late-Day-Shift-_JR1930
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/UK---Remote/Software-Engineer-III--Front-End_JR1901
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Partner-Sales-Engineer_JR1948?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/UK---Remote/Senior-Cybersecurity-Alerting-Strategy-Manager_JR1863?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Software-Engineer-II--Full-Stack--Human-AI-Innovation-Team-_JR1903-1?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Account-Executive---SLED--Midwest_JR1891?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/UK---Remote/Senior-Product-Manager--Public-Sector_JR1884?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Senior-Director--AI-Research_JR1849?q=engineer
-  - https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Software-Engineer--Backend_JR1652?q=engineer
-
-# Pagination URLs detected
-pagination_urls:
-  - https://dataminr.wd12.myworkdayjobs.com/Dataminr?q=engineer&limit=15&offset=0

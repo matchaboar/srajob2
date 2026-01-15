@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from pathlib import Path
 from typing import Any, Iterable, Optional
 from urllib.parse import parse_qsl, urlparse
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.site_handlers import AvatureHandler
 

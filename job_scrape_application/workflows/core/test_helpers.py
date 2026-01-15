@@ -27,9 +27,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List
 
-from .mock_clients import MockConvexFunctions, MockQueueService, MockSettings
 
 
 @dataclass
@@ -64,6 +63,11 @@ class SpiderFixture:
     def request_url(self) -> str:
         """Alias for url for compatibility."""
         return self.url
+
+    @property
+    def source_url(self) -> str | None:
+        """Return the original source/input URL if stored in fixture."""
+        return self._raw_dict.get("source_url")
 
     @property
     def raw(self) -> Dict[str, Any]:
@@ -271,9 +275,11 @@ class WorkflowTestHelper:
 
         # Patch SpiderCloud client
         if self._is_sync_mode:
-            spider_class = lambda api_key: _MockSyncSpider(self.fixtures, self.spider_calls)
+            def spider_class(api_key):
+                return _MockSyncSpider(self.fixtures, self.spider_calls)
         else:
-            spider_class = lambda api_key: _MockAsyncSpider(self.fixtures, self.spider_calls)
+            def spider_class(api_key):
+                return _MockAsyncSpider(self.fixtures, self.spider_calls)
 
         self.monkeypatch.setattr(
             "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",

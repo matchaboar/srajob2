@@ -21,7 +21,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from ...dbos_runtime.queue import LeaseResult, QueueItem
+    from ...dbos_runtime.queue import LeaseResult
 
 
 @runtime_checkable

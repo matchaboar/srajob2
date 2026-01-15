@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     parse_markdown_hints,

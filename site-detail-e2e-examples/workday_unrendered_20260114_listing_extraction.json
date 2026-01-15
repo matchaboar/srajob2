@@ -3,13 +3,26 @@
   "listing_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
   "source_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
   "handler_name": "WorkdayHandler",
-  "content_type": "raw_html",
-  "extraction_method": "handler.get_links_from_raw_html",
-  "extracted_url_count": 10,
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+    "scrape_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 0,
+    "handler_filtered_count": 0,
+    "api_transformed_count": 0
+  },
+  "extracted_url_count": 0,
   "filtered_url_count": 0,
   "normalized_url_count": 0,
-  "pagination_url_count": 10,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
   "sample_urls": [],
+  "normalized_urls": [],
+  "sample_transformations": [],
   "url_transformations": [],
+  "rejected_urls": [],
   "error": null
 }

@@ -9,8 +9,7 @@ import re
 import time
 import warnings
 from urllib.parse import parse_qsl, parse_qs, urlencode, urlparse, urlunparse
-from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
 from spider import AsyncSpider
 from temporalio.exceptions import ApplicationError
 
@@ -18,7 +17,6 @@ from ...components.models import extract_greenhouse_job_urls, load_greenhouse_bo
 from ...constants import title_matches_required_keywords
 from ...config import runtime_config
 from ..helpers.scrape_utils import (
-    _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
     _METADATA_LABEL_KEYS,
     _normalize_country_label,
     _normalize_section_heading,
@@ -30,11 +28,6 @@ from ..helpers.scrape_utils import (
     coerce_remote,
     derive_company_from_url,
     is_generic_company_name,
-    is_invalid_job_title,
-    is_invalid_job_url,
-    looks_like_error_landing,
-    looks_like_job_listing_page,
-    looks_like_non_job_page,
     normalize_company_hint,
     normalize_title_from_bar,
     parse_markdown_hints,
@@ -42,6 +35,14 @@ from ..helpers.scrape_utils import (
     parse_posted_at_with_unknown,
     split_description_metadata,
     strip_known_nav_blocks,
+)
+from ..helpers.page_detection import (
+    _JOB_DETAIL_MARKERS as JOB_DETAIL_MARKERS,
+    is_invalid_job_title,
+    is_invalid_job_url,
+    looks_like_error_landing,
+    looks_like_job_listing_page,
+    looks_like_non_job_page,
 )
 from ..helpers.link_extractors import gather_strings, normalize_url
 from ..helpers.regex_patterns import (
@@ -84,84 +85,29 @@ from ..helpers.spidercloud_error_strategy import (
 from ..site_handlers import BaseSiteHandler, get_site_handler
 from ...services import telemetry
 from .base import BaseScraper
+from ..spidercloud.types import (
+    CaptchaMatch,
+    CaptchaDetectedError,
+    CaptchaRetriesExceededError,
+    SpiderCloudDependencies as SpidercloudDependencies,  # Alias for backwards compat
+    SPIDERCLOUD_BATCH_SIZE,
+    CAPTCHA_RETRY_LIMIT,
+    CAPTCHA_PROXY_SEQUENCE,
+    STRUCTURED_POSTED_AT_MAX_AGE_DAYS,
+    STRUCTURED_DESCRIPTION_CHROME_MARKERS,
+    MAX_TITLE_CHARS,
+    JOB_TITLE_KEYWORDS,
+)
 
 if TYPE_CHECKING:
     from ..activities import Site
 
-SPIDERCLOUD_BATCH_SIZE = 10
-CAPTCHA_RETRY_LIMIT = 0
-CAPTCHA_PROXY_SEQUENCE = ("residential", "isp")
-STRUCTURED_POSTED_AT_MAX_AGE_DAYS = 365
-STRUCTURED_DESCRIPTION_CHROME_MARKERS = (
-    "saved jobs",
-    "recently viewed jobs",
-    "job alerts",
-    "sign up for job alerts",
-    "join our talent community",
-    "view all of our available opportunities",
-    "view all jobs",
-    "cookie settings",
-    "job_description.share",
-    "job_description.share.html",
-    "loginorregister",
-    "mail_outline",
-    "get future jobs matching this search",
-)
-MAX_TITLE_CHARS = 500
+# Local regex patterns (not shared)
 UUID_LIKE_RE = re.compile(
     r"[0-9a-f]{8}([-\s]?[0-9a-f]{4}){3}[-\s]?[0-9a-f]{12}",
     flags=re.IGNORECASE,
 )
 ORDERED_LIST_LINE_RE = re.compile(r"^\d+[\.)]\s+\S+")
-JOB_TITLE_KEYWORDS = {
-    "accountant",
-    "analyst",
-    "architect",
-    "associate",
-    "backend",
-    "business",
-    "cloud",
-    "consultant",
-    "data",
-    "design",
-    "designer",
-    "developer",
-    "development",
-    "devops",
-    "engineer",
-    "engineering",
-    "finance",
-    "frontend",
-    "fullstack",
-    "growth",
-    "hr",
-    "infrastructure",
-    "intern",
-    "ios",
-    "legal",
-    "manager",
-    "marketing",
-    "mobile",
-    "operations",
-    "people",
-    "platform",
-    "principal",
-    "product",
-    "program",
-    "project",
-    "qa",
-    "quality",
-    "recruiter",
-    "research",
-    "sales",
-    "scientist",
-    "security",
-    "senior",
-    "sre",
-    "staff",
-    "support",
-}
-
 
 logger = logging.getLogger("temporal.worker.activities")
 
@@ -207,67 +153,6 @@ def _summarize_failed_items(
         "sampleReasons": sample_reasons,
     }
 
-
-class CaptchaDetectedError(Exception):
-    """Raised when a SpiderCloud response looks like a captcha wall."""
-
-    def __init__(
-        self,
-        marker: str,
-        markdown: str | None = None,
-        events: Optional[List[Any]] = None,
-        match_text: str | None = None,
-    ):
-        super().__init__(marker)
-        self.marker = marker
-        self.markdown = markdown or ""
-        self.events = events or []
-        self.match_text = match_text
-
-
-class CaptchaRetriesExceededError(Exception):
-    """Raised when captcha retries are exhausted for a SpiderCloud scrape."""
-
-    def __init__(
-        self,
-        url: str,
-        marker: str,
-        match_text: str | None,
-        attempts: int,
-        proxy: str | None,
-        markdown: str | None = None,
-        events: Optional[List[Any]] = None,
-    ) -> None:
-        message = (
-            "Captcha retries exhausted"
-            f" url={url} attempts={attempts} marker={marker} match={match_text} proxy={proxy}"
-        )
-        super().__init__(message)
-        self.url = url
-        self.marker = marker
-        self.match_text = match_text
-        self.attempts = attempts
-        self.proxy = proxy
-        self.markdown = markdown or ""
-        self.events = events or []
-
-
-@dataclass(frozen=True)
-class CaptchaMatch:
-    marker: str
-    match_text: str | None = None
-
-
-@dataclass
-class SpidercloudDependencies:
-    mask_secret: Callable[[Optional[str]], Optional[str]]
-    sanitize_headers: Callable[[Optional[Dict[str, Any]]], Optional[Dict[str, Any]]]
-    build_request_snapshot: Callable[..., Dict[str, Any]]
-    log_dispatch: Callable[..., None]
-    log_sync_response: Callable[..., None]
-    trim_scrape_for_convex: Callable[[Dict[str, Any]], Dict[str, Any]]
-    settings: Any
-    fetch_seen_urls_for_site: Callable[[str, Optional[str], Optional[List[str]]], Awaitable[List[str]]]
 
 
 class SpiderCloudScraper(BaseScraper):
@@ -2092,6 +1977,15 @@ class SpiderCloudScraper(BaseScraper):
         )
         completed_at = int(time.time() * 1000)
 
+        # Extract posted_at timestamps if handler supports it
+        posted_at_by_url: Dict[str, int] | None = None
+        get_posted_at_fn = getattr(handler, "get_posted_at_by_url", None)
+        if callable(get_posted_at_fn) and payload:
+            try:
+                posted_at_by_url = get_posted_at_fn(payload)
+            except Exception:
+                posted_at_by_url = None
+
         items_block: Dict[str, Any] = {
             "normalized": [],
             "provider": self.provider,
@@ -2101,6 +1995,8 @@ class SpiderCloudScraper(BaseScraper):
             "request": request_snapshot,
             "requestedFormat": "json",
         }
+        if posted_at_by_url:
+            items_block["posted_at_by_url"] = posted_at_by_url
 
         scrape_payload: Dict[str, Any] = {
             "sourceUrl": source_url,
@@ -3187,10 +3083,12 @@ class SpiderCloudScraper(BaseScraper):
         request_url = url
         if handler:
             api_url = None
-            if handler.name in {"workday", "microsoft_careers"}:
-                api_url = handler.get_api_uri(url)
-            elif handler.supports_listing_api and handler.is_listing_url(url):
+            # Check listing URLs first - some handlers (e.g. microsoft_careers) have
+            # separate methods for listings vs details
+            if handler.supports_listing_api and handler.is_listing_url(url):
                 api_url = handler.get_listing_api_uri(url)
+            elif handler.name in {"workday", "microsoft_careers"}:
+                api_url = handler.get_api_uri(url)
             if api_url and api_url != url:
                 request_url = api_url
                 logger.debug("SpiderCloud using api_url=%s original_url=%s", request_url, url)
@@ -3322,11 +3220,18 @@ class SpiderCloudScraper(BaseScraper):
                     "errorCaseId": workday_error.get("errorCaseId"),
                 },
             )
+            # Calculate cost from accumulated data before returning
+            credits_used = max(credit_candidates) if credit_candidates else None
+            error_cost_milli_cents = (
+                int(max(cost_candidates_usd) * 100000) if cost_candidates_usd else None
+            )
+            if error_cost_milli_cents is None and credits_used is not None:
+                error_cost_milli_cents = int(float(credits_used) * 10)
             return {
                 "normalized": None,
                 "raw": {"url": url, "events": raw_events, "markdown": combined_markdown},
                 "job_urls": [],
-                "costMilliCents": best_cost_milli_cents,
+                "costMilliCents": error_cost_milli_cents,
                 "startedAt": started_at,
                 "failed": {
                     "url": url,
@@ -3852,10 +3757,12 @@ class SpiderCloudScraper(BaseScraper):
         # Handler configuration (same as streaming mode)
         if handler:
             api_url = None
-            if handler.name in {"workday", "microsoft_careers"}:
-                api_url = handler.get_api_uri(url)
-            elif handler.supports_listing_api and handler.is_listing_url(url):
+            # Check listing URLs first - some handlers (e.g. microsoft_careers) have
+            # separate methods for listings vs details
+            if handler.supports_listing_api and handler.is_listing_url(url):
                 api_url = handler.get_listing_api_uri(url)
+            elif handler.name in {"workday", "microsoft_careers"}:
+                api_url = handler.get_api_uri(url)
             if api_url and api_url != url:
                 request_url = api_url
                 logger.debug("SpiderCloud sync using api_url=%s original_url=%s", request_url, url)
@@ -4194,6 +4101,35 @@ class SpiderCloudScraper(BaseScraper):
                                 "skipCompletion": True,
                             }
                             return idx, url, {"failed": failed_entry}
+                        except asyncio.CancelledError as exc:
+                            # Handle task cancellation gracefully to prevent blocking the queue.
+                            # This can happen when the workflow times out or is explicitly cancelled.
+                            logger.warning(
+                                "SpiderCloud scrape cancelled url=%s timeout=%s",
+                                url,
+                                url_timeout_seconds,
+                            )
+                            self._emit_scrape_log(
+                                event="scrape.single_url.cancelled",
+                                level="warn",
+                                site_url=url,
+                                data={
+                                    "timeoutSeconds": url_timeout_seconds,
+                                    "attempt": attempt,
+                                    "errorType": "cancelled",
+                                },
+                                exc=exc,
+                                capture_exception=False,  # Don't capture cancellation as exception
+                            )
+                            # Treat cancellation like timeout - leave URL pending for retry
+                            failed_entry = {
+                                "url": url,
+                                "reason": "cancelled",
+                                "errorType": "cancelled",
+                                "retryable": False,
+                                "skipCompletion": True,
+                            }
+                            return idx, url, {"failed": failed_entry}
                         except ApplicationError as exc:
                             decision = decision_for_exception(exc, source="spidercloud_api")
                             if decision.action == "retry":
@@ -4244,9 +4180,46 @@ class SpiderCloudScraper(BaseScraper):
 
             tasks = [asyncio.create_task(_scrape_one(idx, url)) for idx, url in enumerate(urls)]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for res in results:
+
+            # Filter out exceptions and convert them to failed entries
+            # This prevents CancelledError or other exceptions from blocking the queue
+            valid_results = []
+            for idx, res in enumerate(results):
                 if isinstance(res, BaseException):
-                    raise res
+                    # Log the exception but don't re-raise - treat as failed item
+                    url = urls[idx] if idx < len(urls) else "unknown"
+                    error_type = type(res).__name__
+                    logger.warning(
+                        "SpiderCloud batch task exception url=%s error_type=%s error=%s",
+                        url,
+                        error_type,
+                        str(res)[:200],
+                    )
+                    self._emit_scrape_log(
+                        event="scrape.batch.task_exception",
+                        level="warn",
+                        site_url=url,
+                        data={
+                            "errorType": error_type,
+                            "error": str(res)[:500],
+                            "taskIndex": idx,
+                        },
+                        exc=res if not isinstance(res, asyncio.CancelledError) else None,
+                        capture_exception=not isinstance(res, asyncio.CancelledError),
+                    )
+                    # Convert exception to a failed entry
+                    failed_entry = {
+                        "url": url,
+                        "reason": error_type.lower(),
+                        "errorType": error_type,
+                        "retryable": False,
+                        "skipCompletion": True,
+                    }
+                    valid_results.append((idx, url, {"failed": failed_entry}))
+                else:
+                    valid_results.append(res)
+
+            results = valid_results
             results.sort(key=lambda item: item[0])
 
             for _, url, result in results:

@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import os
-import sys
 from types import SimpleNamespace
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.testing.firecrawl_mock import (  # noqa: E402
     MockFirecrawl,
     MockFirecrawlScenario,

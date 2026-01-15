@@ -7,7 +7,7 @@ expected:
   # Format may be "Tokyo, JPN" or "Tokyo, Japan"
   location_contains: Tokyo
   is_remote: false
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

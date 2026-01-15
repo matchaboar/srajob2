@@ -312,7 +312,7 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
         if city_match and (allow_remote or not city_match.get("remoteOnly")):
             # Verify it's not a state name that could be confused with a city
             # (e.g., "Washington" should not match if parts[1] is also a state)
-            city_name = (city_match.get("city") or "").lower()
+            (city_match.get("city") or "").lower()
             state_name = (city_match.get("state") or "").lower()
             # If the city name matches and the state in parts[1] matches, use it
             second_part_key = _normalize_location_key(parts[1])

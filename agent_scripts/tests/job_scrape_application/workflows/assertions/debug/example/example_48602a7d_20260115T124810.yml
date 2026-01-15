@@ -1,0 +1,13 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: example
+detail_url: https://example.com/job/123
+expected:
+  title: ""
+  company: ""
+  location_contains: "TODO"  # Fill in expected location
+  is_remote: false
+  level: mid
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

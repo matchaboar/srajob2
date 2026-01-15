@@ -22,11 +22,11 @@ from temporalio.worker import (
     WorkflowOutboundInterceptor,
 )
 
-from ..config import settings
-from ..services import telemetry
-from . import activities
-from .deadlock_logging import install_deadlock_posthog_handler, record_run_metadata, update_run_metadata
-from .scrape_workflow import (
+from job_scrape_application.config.config import settings
+from job_scrape_application.services import telemetry
+from job_scrape_application.workflows import activities
+from job_scrape_application.workflows.deadlock_logging import install_deadlock_posthog_handler, record_run_metadata, update_run_metadata
+from job_scrape_application.workflows._archive.temporal_scrape_workflow import (
     FirecrawlScrapeWorkflow,
     FetchfoxSpidercloudWorkflow,
     ScrapeWorkflow,
@@ -34,13 +34,13 @@ from .scrape_workflow import (
     SpidercloudListingWorkflow,
     SpidercloudScrapeWorkflow,
 )
-from .greenhouse_workflow import GreenhouseScraperWorkflow
-from .webhook_workflow import (
+from job_scrape_application.workflows._archive.temporal_greenhouse_workflow import GreenhouseScraperWorkflow
+from job_scrape_application.workflows._archive.temporal_webhook_workflow import (
     ProcessWebhookIngestWorkflow,
     RecoverMissingFirecrawlWebhookWorkflow,
     SiteLeaseWorkflow,
 )
-from .schedule_audit import schedule_audit_logger, should_run_schedule_audit
+from job_scrape_application.workflows.schedule_audit import schedule_audit_logger, should_run_schedule_audit
 
 WORKFLOW_CLASSES = [
     ScrapeWorkflow,

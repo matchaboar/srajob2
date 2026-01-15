@@ -1,0 +1,18 @@
+{
+  "site_id": "apply_20260115T100625",
+  "listing_url": "https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1",
+  "source_url": "https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1",
+  "handler_name": "MicrosoftCareersHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "extracted_url_count": 0,
+  "filtered_url_count": 0,
+  "normalized_url_count": 0,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [],
+  "normalized_urls": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

@@ -7,12 +7,12 @@ from typing import Any, Dict, List
 from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
-from .helpers.workflow_logging import get_workflow_logger
-from ..config import settings
-from .helpers.workflow_debug import workflow_checkpoint
+from job_scrape_application.workflows.helpers._archive.workflow_logging import get_workflow_logger
+from job_scrape_application.config.config import settings
+from job_scrape_application.workflows.helpers._archive.workflow_debug import workflow_checkpoint
 
 with workflow.unsafe.imports_passed_through():
-    from .activities import (
+    from job_scrape_application.workflows.activities import (
         complete_site,
         fail_site,
         fetch_greenhouse_listing,

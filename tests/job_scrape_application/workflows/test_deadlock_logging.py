@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import types
 from typing import Any, Dict, List
@@ -43,7 +42,6 @@ if "opentelemetry" not in sys.modules:
         BatchLogRecordProcessor=_FakeBatchLogRecordProcessor
     )
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import deadlock_logging
 

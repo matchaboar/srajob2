@@ -2,26 +2,32 @@
 site_id: ashby
 listing_url: https://jobs.ashbyhq.com/factory
 expected:
-  url_count_min: 16
+  url_count: 16
   url_pattern: "https://jobs\\.ashbyhq\\.com/[^/]+/[a-f0-9-]+"  # Regex for valid job URLs
   no_listing_urls: true
-  handler: "AshbyHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607"
-  #   - "https://jobs.ashbyhq.com/factory/ca2b1c66-153e-4353-9a59-4b2acbfbb2f0"
-  #   - "https://jobs.ashbyhq.com/factory/5535c193-cbfb-482c-81d9-8bda93d65391"
-  #   - "https://jobs.ashbyhq.com/factory/c5c92ee0-6ab9-4e91-b73a-63700c85fa5f"
-  #   - "https://jobs.ashbyhq.com/factory/0b9e3171-59b3-4d16-9e83-56bb64a1aedf"
-  #   - "https://jobs.ashbyhq.com/factory/58d0e05c-6841-4651-9dd8-61037a0876a3"
-  #   - "https://jobs.ashbyhq.com/factory/7db3e048-8e2f-48e9-9794-da30c8a4c7c9"
-  #   - "https://jobs.ashbyhq.com/factory/372c8423-be64-463e-9bdd-0dbeb361b81e"
-  #   - "https://jobs.ashbyhq.com/factory/90629486-0281-4746-bb4c-5e614dd5cec8"
-  #   - "https://jobs.ashbyhq.com/factory/260e2f66-ec24-4211-8117-d07498f473a5"
-  #   - "https://jobs.ashbyhq.com/factory/7b479181-f6f0-4f54-ab42-2c0c93c530ea"
-  #   - "https://jobs.ashbyhq.com/factory/f81bfae5-3bb7-4fcb-9c7e-487045677b8c"
-  #   - "https://jobs.ashbyhq.com/factory/85e376b5-09d7-4854-9ac9-b00cd25c8ea1"
-  #   - "https://jobs.ashbyhq.com/factory/f679242d-2fea-4fcb-8b7e-09b50344f3c0"
-  #   - "https://jobs.ashbyhq.com/factory/a70c27d6-74a1-4856-8f57-3b9dae625789"
-  #   - "https://jobs.ashbyhq.com/factory/51e672be-a279-4295-a6b5-6c437da94a28"
+  handler: "AshbyHqHandler"
+  expected_urls:
+  - "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607"
+  - "https://jobs.ashbyhq.com/factory/ca2b1c66-153e-4353-9a59-4b2acbfbb2f0"
+  - "https://jobs.ashbyhq.com/factory/5535c193-cbfb-482c-81d9-8bda93d65391"
+  - "https://jobs.ashbyhq.com/factory/c5c92ee0-6ab9-4e91-b73a-63700c85fa5f"
+  - "https://jobs.ashbyhq.com/factory/0b9e3171-59b3-4d16-9e83-56bb64a1aedf"
+  - "https://jobs.ashbyhq.com/factory/58d0e05c-6841-4651-9dd8-61037a0876a3"
+  - "https://jobs.ashbyhq.com/factory/7db3e048-8e2f-48e9-9794-da30c8a4c7c9"
+  - "https://jobs.ashbyhq.com/factory/372c8423-be64-463e-9bdd-0dbeb361b81e"
+  - "https://jobs.ashbyhq.com/factory/90629486-0281-4746-bb4c-5e614dd5cec8"
+  - "https://jobs.ashbyhq.com/factory/260e2f66-ec24-4211-8117-d07498f473a5"
+  - "https://jobs.ashbyhq.com/factory/7b479181-f6f0-4f54-ab42-2c0c93c530ea"
+  - "https://jobs.ashbyhq.com/factory/f81bfae5-3bb7-4fcb-9c7e-487045677b8c"
+  - "https://jobs.ashbyhq.com/factory/85e376b5-09d7-4854-9ac9-b00cd25c8ea1"
+  - "https://jobs.ashbyhq.com/factory/f679242d-2fea-4fcb-8b7e-09b50344f3c0"
+  - "https://jobs.ashbyhq.com/factory/a70c27d6-74a1-4856-8f57-3b9dae625789"
+  - "https://jobs.ashbyhq.com/factory/51e672be-a279-4295-a6b5-6c437da94a28"
+  blocked_urls:
+  # Application form URLs should be filtered out (not job detail pages)
+  - "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607/application"
+  - "https://jobs.ashbyhq.com/factory/ca2b1c66-153e-4353-9a59-4b2acbfbb2f0/application"
+  - "https://jobs.ashbyhq.com/factory/5535c193-cbfb-482c-81d9-8bda93d65391/application"
+  - "https://jobs.ashbyhq.com/factory/c5c92ee0-6ab9-4e91-b73a-63700c85fa5f/application"
+  - "https://jobs.ashbyhq.com/factory/0b9e3171-59b3-4d16-9e83-56bb64a1aedf/application"
+  - "https://jobs.ashbyhq.com/factory/58d0e05c-6841-4651-9dd8-61037a0876a3/application"

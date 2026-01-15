@@ -45,6 +45,37 @@ class GreenhouseHandler(BaseSiteHandler):
         override = self._BOARD_SLUG_OVERRIDES.get(cleaned.lower())
         return override or cleaned
 
+    @staticmethod
+    def _is_valid_board_slug(slug: str) -> bool:
+        """Check if a board slug is valid (not a template placeholder or encoded garbage).
+
+        Valid slugs are alphanumeric with hyphens/underscores.
+        Invalid examples: {board}, %7Bboard, company%60, etc.
+        """
+        if not slug:
+            return False
+        # Reject URL-encoded special characters that indicate template placeholders
+        # %7B = {, %7D = }, %60 = backtick, etc.
+        if "%" in slug:
+            return False
+        # Reject literal template placeholders
+        if "{" in slug or "}" in slug or "`" in slug:
+            return False
+        # Valid slugs are alphanumeric with hyphens/underscores
+        return bool(re.match(r"^[a-zA-Z0-9_-]+$", slug))
+
+    @staticmethod
+    def _is_valid_job_id(job_id: str) -> bool:
+        """Check if a job ID is valid (numeric, not a template placeholder).
+
+        Valid job IDs are purely numeric.
+        Invalid examples: jobs, {id}, %60, 12345abc, etc.
+        """
+        if not job_id:
+            return False
+        # Job IDs should be purely numeric
+        return job_id.isdigit()
+
     @classmethod
     def matches_url(cls, url: str) -> bool:
         if "gh_jid" in url:
@@ -138,6 +169,14 @@ class GreenhouseHandler(BaseSiteHandler):
                 parts = [p for p in path.split("/") if p]
                 # Need at least company/jobs/id pattern
                 if len(parts) >= 3 and parts[1] == "jobs":
+                    # Validate company slug (no template placeholders like {board})
+                    company_slug = parts[0]
+                    if not self._is_valid_board_slug(company_slug):
+                        return False
+                    # Validate job ID is numeric (not template placeholders)
+                    job_id = parts[2]
+                    if not self._is_valid_job_id(job_id):
+                        return False
                     return True
                 return False
 
@@ -145,6 +184,14 @@ class GreenhouseHandler(BaseSiteHandler):
             if host.startswith("boards-api."):
                 parts = [p for p in path.split("/") if p]
                 if len(parts) >= 5 and parts[3] == "jobs":
+                    # Validate company slug (index 2: v1/boards/company/jobs/id)
+                    company_slug = parts[2]
+                    if not self._is_valid_board_slug(company_slug):
+                        return False
+                    # Validate job ID is numeric (index 4)
+                    job_id = parts[4]
+                    if not self._is_valid_job_id(job_id):
+                        return False
                     return True
                 return False
 
@@ -176,6 +223,50 @@ class GreenhouseHandler(BaseSiteHandler):
             seen.add(normalized)
             filtered.append(normalized)
         return filtered
+
+    def filter_job_urls_for_site(self, urls: List[str], source_url: str | None) -> List[str]:
+        """Filter job URLs to only those matching the source board.
+
+        When we scrape a listing page like https://api.greenhouse.io/v1/boards/airbnb/jobs,
+        we should only extract URLs that belong to the same board (airbnb).
+
+        This prevents extraction of:
+        - URLs from other company boards
+        - Template placeholders that weren't substituted
+        - Marketing/support site URLs
+        """
+        # First apply standard filtering
+        base_filtered = self.filter_job_urls(urls)
+
+        # If no source URL, can't do board-specific filtering
+        if not source_url:
+            return base_filtered
+
+        # Extract the board slug from the source URL
+        source_slug = self._extract_slug_from_url(source_url)
+        if not source_slug:
+            # Can't determine board, fall back to basic filtering
+            return base_filtered
+
+        # Normalize the source slug
+        source_slug = self._normalize_slug(source_slug) or source_slug
+
+        # Filter to only URLs matching the source board
+        site_filtered: List[str] = []
+        for url in base_filtered:
+            url_slug = self._extract_slug_from_url(url)
+            if url_slug:
+                # Normalize and compare
+                url_slug = self._normalize_slug(url_slug) or url_slug
+                if url_slug.lower() == source_slug.lower():
+                    site_filtered.append(url)
+            elif "gh_jid" in url:
+                # gh_jid URLs without a clear slug are allowed (company career sites)
+                # These are typically on external domains with gh_jid parameter
+                site_filtered.append(url)
+            # URLs without a slug or gh_jid are filtered out
+
+        return site_filtered
 
     def _canonicalize_gh_jid_url(self, url: str) -> str:
         try:

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import os
-import sys
 from typing import Any, Dict, List
 
 import pytest
 from firecrawl.v2.utils.error_handler import PaymentRequiredError
 from temporalio.exceptions import ApplicationError
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities
 from job_scrape_application.workflows.exceptions import PaymentRequiredWorkflowError

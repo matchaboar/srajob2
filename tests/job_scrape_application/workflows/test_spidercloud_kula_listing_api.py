@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows.site_handlers.kula_careers import (  # noqa: E402
     KulaCareersHandler,

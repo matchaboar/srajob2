@@ -27,6 +27,7 @@ from ..helpers.location_normalization import (
 )
 from ..helpers.compensation_parsing import normalize_compensation_value
 from ..helpers.scrape_utils import strip_known_nav_blocks
+from ..normalizers.types import NORMALIZATION_VERSION as HEURISTIC_VERSION
 from ...constants import is_remote_company
 
 logger = logging.getLogger(__name__)
@@ -343,7 +344,7 @@ def build_heuristic_patch_from_extractors(
     patch: dict[str, Any] = {
         "heuristicAttempts": int(row.get("heuristicAttempts") or 0) + 1,
         "heuristicLastTried": now_ms,
-        "heuristicVersion": 5,  # Increment version for extractor-based heuristics
+        "heuristicVersion": HEURISTIC_VERSION,
     }
     records: list[dict[str, str]] = []
 
@@ -360,7 +361,7 @@ def build_heuristic_patch_from_extractors(
 
     # Location patch
     location_result = results.get("location")
-    current_location = row.get("location") or ""
+    row.get("location") or ""
     if location_result and location_result.final_value:
         raw_location = location_result.final_value
         # Normalize and split multiple locations

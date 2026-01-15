@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -54,23 +53,13 @@ except ImportError:
     import yaml
     YAMLLoader = yaml.SafeLoader  # type: ignore
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
-from job_scrape_application.dbos_runtime import queue as dbos_queue
-from job_scrape_application.dbos_runtime import sqlite as dbos_sqlite
 from job_scrape_application.workflows import activities as acts
 from job_scrape_application.workflows.core import SpiderFixture, WorkflowTestHelper
-from job_scrape_application.workflows.helpers.scrape_utils import (
-    _jobs_from_scrape_items,
-    trim_scrape_for_convex,
-)
 from job_scrape_application.workflows.site_handlers import get_site_handler
 from job_scrape_application.workflows.extractors import (
     ExtractionContext,
     extract_job_fields,
-    get_debug_trace,
     build_heuristic_patch_from_extractors,
 )
 
@@ -311,7 +300,7 @@ def _validate_job_against_assertions(
             expected=exp_title,
             actual=job.title,
             passed=passed,
-            message=f"Title mismatch" if not passed else "Title matches",
+            message="Title mismatch" if not passed else "Title matches",
         ))
 
     if "title_contains" in expected:
@@ -334,7 +323,7 @@ def _validate_job_against_assertions(
             expected=exp_company,
             actual=job.company,
             passed=passed,
-            message=f"Company mismatch" if not passed else "Company matches",
+            message="Company mismatch" if not passed else "Company matches",
         ))
 
     if "company_contains" in expected:
@@ -357,7 +346,7 @@ def _validate_job_against_assertions(
             expected=exp_location,
             actual=job.location,
             passed=passed,
-            message=f"Location mismatch" if not passed else "Location matches",
+            message="Location mismatch" if not passed else "Location matches",
         ))
 
     if "location_contains" in expected:
@@ -380,7 +369,7 @@ def _validate_job_against_assertions(
             expected=exp_remote,
             actual=job.is_remote,
             passed=passed,
-            message=f"Remote status mismatch" if not passed else "Remote status matches",
+            message="Remote status mismatch" if not passed else "Remote status matches",
         ))
 
     # Level assertion
@@ -392,7 +381,7 @@ def _validate_job_against_assertions(
             expected=exp_level,
             actual=job.level,
             passed=passed,
-            message=f"Level mismatch" if not passed else "Level matches",
+            message="Level mismatch" if not passed else "Level matches",
         ))
 
     # Description assertions
@@ -1340,7 +1329,7 @@ def _write_verbose_extraction_steps(result: JobDetailExtractionResult) -> None:
             lines.append(f"### Job {i + 1} Heuristics")
             lines.append("")
             if patch_info.title_changed:
-                lines.append(f"**⚠️ TITLE CHANGED:**")
+                lines.append("**⚠️ TITLE CHANGED:**")
                 lines.append(f"- Original: `{patch_info.original_title}`")
                 lines.append(f"- After Heuristics: `{patch_info.patched_title}`")
             else:
@@ -1636,7 +1625,7 @@ async def test_job_detail_convex_storage(
             if not isinstance(description, str) or not description.strip():
                 continue
             # The scrape payload may have full description; truncation happens
-            # in ingestJobsFromScrape on the Convex side
+            # in Python before sending to ingestJobsFromScrape mutation
 
 
 @pytest.mark.asyncio
@@ -1654,8 +1643,8 @@ async def test_job_detail_description_handling(
     Test description handling: truncated preview + full upload.
 
     Verifies:
-    - Descriptions over 100 words are truncated for DB row
-    - Full descriptions are uploaded to file storage
+    - Jobs sent to ingestJobsFromScrape have truncated descriptions (≤100 words, ≤4000 bytes)
+    - Full descriptions are uploaded to file storage separately
     """
     _, detail_path = _fixture_paths(entry)
     if not detail_path.exists():
@@ -1668,6 +1657,29 @@ async def test_job_detail_description_handling(
     result = await module.run_detail_extraction()
 
     assert not result.errors, f"Extraction errors: {result.errors}"
+
+    # CRITICAL: Verify ingested jobs have truncated descriptions
+    # This is the key assertion - jobs sent to Convex DB must have truncated descriptions
+    for ingested_job in result.convex_capture.ingested_jobs:
+        if not isinstance(ingested_job, dict):
+            continue
+        description = ingested_job.get("description", "")
+        if not description:
+            continue
+
+        # Check word count limit (100 words max)
+        word_count = _count_words(description)
+        assert word_count <= DESCRIPTION_PREVIEW_MAX_WORDS + 1, (
+            f"Ingested job description exceeds {DESCRIPTION_PREVIEW_MAX_WORDS} word limit: "
+            f"{word_count} words for {ingested_job.get('url', 'unknown')}"
+        )
+
+        # Check byte limit (4000 UTF-8 bytes max)
+        byte_count = len(description.encode("utf-8"))
+        assert byte_count <= 4100, (  # Allow small buffer for "..." suffix
+            f"Ingested job description exceeds 4000 byte limit: "
+            f"{byte_count} bytes for {ingested_job.get('url', 'unknown')}"
+        )
 
     # Check description uploads for jobs with long descriptions
     for job in result.extracted_jobs:

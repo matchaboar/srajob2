@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import html as html_lib
 import json
-import os
 import re
-import sys
 from pathlib import Path
 
 import pytest
 
 
 # Ensure repo root is importable
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.components.models import (  # noqa: E402
     extract_greenhouse_job_urls,

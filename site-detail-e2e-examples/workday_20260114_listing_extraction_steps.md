@@ -3,80 +3,16 @@
 **Listing URL:** `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f`
 **Source URL:** `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f`
 **Handler:** `WorkdayHandler`
-**Content Type:** `raw_html`
+**Content Type:** `Unknown`
 
 ---
 
 ## Step 1: SpiderCloud Response
 
-Raw raw_html from SpiderCloud scrape:
+Raw content from SpiderCloud scrape:
 
-```html
-<html lang="en-US" dir="ltr" data-react-helmet="dir,lang">
-    <title>Careers</title>
-    
-    <meta content="chrome=1;IE=EDGE" http-equiv="X-UA-Compatible">
-    <meta content="text/html; charset=UTF-8" http-equiv="content-type">
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=2.0" name="viewport">
-
-    <link href="https://broadcom.wd1.myworkdayjobs.com/External_Career" rel="canonical">
-
-    
-    <meta property="og:title" name="title">
-    <meta property="og:description" name="description" content="Welcome! Thank you for your interest in Broadcom! We are a global technology leader that designs, develops and supplies a broad range of semiconductor and infrastructure software solutions. For more information please visit our video library and check out our Connected by Broadcom series. Follow us on Linked In Broadcom Inc.">
-    <meta content="https://broadcom.wd1.myworkdayjobs.com/External_Career/assets/logo" property="og:image" name="image">
-    <meta content="website" property="og:type">
-    <meta property="og:url" content="https://broadcom.wd1.myworkdayjobs.com/External_Career">
-
-
-    
-    
-
-    
-
-    <script type="text/javascript">
-        window.workday = window.workday || {
-            tenant: "broadcom",
-            siteId: "External_Career",
-            locale: "",
-            requestLocale: "en-US",
-            supportedLocales:["en-US","es"],
-            clientOrigin: "https://www.myworkday.com",
-            language: null,
-            cdnEndpoint: "www.myworkdaycdn.com",
-            useCdn: true,
-            maintenancePageUrl: "https://www.myworkday.com/wday/drs/outage?t=broadcom&s=External_Career",
-            token: "f8adb7df-33de-485b-9c16-e6d95ca3887a",
-            environment: "PROD",
-            isExternal: true,
-            appName: "cxs",
-            postingAvailable: null,
-            allowedFileTypes: [],
-            blockedFileTypes: ["bas","bat","com","exe","js","lnk","ocx","reg","sct","sys","vb","vbe","vbs","wsc","wsf","wsh"],
-            toggles: ["b9739002c86510002015dea9402c0000","812c4a153c711000151c5ca11e310000","0d6ebcfdc39a10001bc8f95b3aac0000","43b4d9d7cb8e10000a703bad20420000","532bfa92863b100019ab08f4c04b0000","dac26076be8510002347bab78d5a0000","badb3f02bef210000e20c92ac0260000","e466d0b066ff10000c3605be74f10000","292c4bafc34210001a28e93bebcf0000","b3999fdcfb7310001ed650a18cc80000","e42e6d1d2524100010042528c43e0000","f45271d06fcd10001b2d8737149f0000","b8ce26d67ff9100014ec4b645b840000","bc9894c7142610001616fde6e0700000","6edcf8e6cd7f10001b1f86c9e3ef0000","a969fb8f4cfd10000ad4ba96cd820000","459bb3f1e4a9100014b8f73a20850000","ab2374beb65d10002c8233ca9b5a0000","13809c87a71610001b62b41c11800000","31177c86226910001079dc24b7110000","4706b65dd8ee100015f0034e1e480000","6c7d10abcf8e100015455f96664e0000","7d2bc1254b7d10000e2b5811864a0000","158e13f2980210000e5f46c2d5ae0000","466d58ad03691000185ddce1282a0000","75ecc5f3792b1000131d51fc86ab0000","bc814e895c1d10000d1fd3354f4b0000","258d1be19f40100013265e0888c90000","cdbf5f0a33931000115a15a023a40000","20ccbc6c60701000fafdc3dce74a0000","16593e8eb6ca10000935b558a50a0000","e1733537b151100014e202818e520000","db3fa9600f8810001798c5a6d2dd0000","1502396ba0ef1000103c22d48c570000","9c10810cc40b1000460d082ad8de0000","9c10810cc40b100045f3593f47b50000","86e121d8686e100037e6d4083cb50000","6658d90adc4f100014da5605f7080000","195d457a6acb10001008bcba6e490000","10f7a56eb11c100024a6d65b625a0000","e1fdcb592a641000290e46a2b10f0000","5054a9c1a3eb1000262607b170020000"],
-            branding: {"formFields":{"color":"#51F57D"},"progressBar":{"color":"#55BF04"},"button":{"primary":{"color":"#55BF04","borderColor":"#0875E1","hover":{"color":"#005CB9"}},"secondary":{"hover":{}},"shape":"PILL"},"header":{"imageBanner":{"maintainAspectRatio":false,"height":200,"image":{"id":"cac8d35d080c0197048f8b63dd01dbca","altText":null}},"banner":{"borderColor":"#55BF04","textColor":"#FC1605","image":{"id":"cac8d35d080c01a79409dfc78a01365c","altText":null}}},"embedded":false},
-            geoIpCountryCode: "fr" == null ? "": "fr",
-
-        };
-        function createScriptTag (src) {
-            var scriptTag =  document.createElement('script');
-            scriptTag.src = src;
-            scriptTag.setAttribute('defer', 'true');
-            scriptTag.setAttribute('crossorigin', 'anonymous');
-            return scriptTag;
-        }
-        var isIE = typeof Symbol === 'undefined';
-        var sharedAssetPath = '/wday/asset/uic-shared-vendors';
-        var sharedVendorLoaderAsset = sharedAssetPath + '/shared-vendors.min.js';
-        var cdnOrigin = 'https://' + "www.myworkdaycdn.com";
-        var sharedVendorsLoaderUrlOrigin = workday.clientOrigin !== '' ? workday.clientOrigin : cdnOrigin;
-        var sharedVendorsLoaderScript = createScriptTag(sharedVendorsLoaderUrlOrigin + sharedVendorLoaderAsset);
-        sharedVendorsLoaderScript.onload = function () {
-            var jobsScriptSrcFilename = isIE
-                ? 'cx-jobs-ie.min.js'
-                : 'cx-jo
-
-... (truncated, 230584 total chars)
+```markdown
+(No raw content captured)
 ```
 
 ---
@@ -95,7 +31,7 @@ The handler is selected based on URL pattern matching. Each handler knows how to
 
 ## Step 3: URL Extraction Method
 
-**Method Used:** `handler.get_links_from_raw_html`
+**Method Used:** `production_workflow`
 
 URL extraction methods (in priority order):
 1. **JSON API**: Parse structured JSON response with job array
@@ -106,7 +42,7 @@ URL extraction methods (in priority order):
 
 ## Step 4: Detailed Extraction Log
 
-### Handler Detection
+### Handler Detection (Production)
 
 Detected handler: WorkdayHandler
 
@@ -115,55 +51,66 @@ Detected handler: WorkdayHandler
   "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d
 ```
 
-### Raw Content Capture
+### Workflow Setup
 
-Captured 230584 chars of raw_html content
+Set up WorkflowTestHelper with mocked dependencies
 
 ```json
 {
-  "length": 230584,
-  "content_type": "raw_html"
-}
+  "sync_mode": true,
+  "listing_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&l
 ```
 
-### Calling handler.get_links_from_raw_html()
+### Workflow Execution
 
-Running WorkdayHandler.get_links_from_raw_html()
+Calling process_spidercloud_listing_batch()
 
 ```json
 {
-  "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d
+  "urls": [
+    {
+      "url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&location
 ```
 
-### Extraction Complete
+### Workflow Complete
 
-Extracted 42 URLs, filtered to 32 detail + 10 pagination
+Workflow returned, enqueued 32 URLs
 
 ```json
 {
-  "extracted_count": 42,
-  "detail_count": 32,
-  "pagination_count": 10,
-  "sample_detail_urls": [
+  "response": {
+    "queued": 32,
+    "listingCompleted": 1,
+    "sourceUrl": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&loca
+```
+
+### Extraction Complete (Production)
+
+Extracted 32 URLs via production workflow
+
+```json
+{
+  "extracted_count": 32,
+  "sample_urls": [
     "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-California-San-Jose-1320-Ridder-Park-Drive/TCAM-SRAM-Design-Engineer_R024807",
     "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Colorado-Fort-Collins-4380-Ziegler-Road/ASIC-DFT-Engineer_R024665",
     "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Colorado-Colorado-Springs-4420-Arrowswest-Drive/IC-Validation-Engineer_R024835-1",
     "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-2/PCIe-QA-Engineer_R024812",
     "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-San-Jose-Innovation-Drive/Hardware-Field-Applications-Engineer_R024642"
-  ],
-  "sample_pagination_urls": [
-    "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=0
+  ]
+}
 ```
 
 ---
 
 ## Step 5: Extracted URLs
 
-**Total URLs Found:** 42
+**Total URLs Found:** 32
 **URLs After Filtering:** 32
-**Pagination URLs:** 10
+**URLs After Normalization:** 32
+**Pagination URLs:** 0
 
-### Job Detail URLs (first 20)
+### Final Normalized URLs (first 20)
 
 1. `https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-California-San-Jose-1320-Ridder-Park-Drive/TCAM-SRAM-Design-Engineer_R024807`
 2. `https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Colorado-Fort-Collins-4380-Ziegler-Road/ASIC-DFT-Engineer_R024665`
@@ -191,13 +138,7 @@ Extracted 42 URLs, filtered to 32 detail + 10 pagination
 
 ## Step 6: Pagination Detection
 
-**Pagination URLs Found:** 10
-
-1. `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f&limit=20&offset=0`
-2. `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f&limit=20&offset=20`
-3. `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f&limit=20&offset=40`
-4. `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f&limit=20&offset=60`
-5. `https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f&limit=20&offset=80`
+*No pagination URLs detected*
 
 ---
 

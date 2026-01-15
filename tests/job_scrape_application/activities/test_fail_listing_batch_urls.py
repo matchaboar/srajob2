@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sys
 import types
 from typing import Any, Dict, List
@@ -54,7 +53,6 @@ except ImportError:  # pragma: no cover
     temporalio_exceptions.ApplicationError = type("ApplicationError", (Exception,), {})
     sys.modules.setdefault("temporalio.exceptions", temporalio_exceptions)
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 

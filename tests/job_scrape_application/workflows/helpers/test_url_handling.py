@@ -1,11 +1,7 @@
 """Tests for url_handling module."""
 
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("."))
 
-import pytest
 
 from job_scrape_application.workflows.helpers.url_handling import (
     _apply_url_candidates,

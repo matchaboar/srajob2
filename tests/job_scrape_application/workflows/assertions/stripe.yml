@@ -7,7 +7,7 @@ expected:
   # Location from Greenhouse API structured data
   location_contains: San Francisco
   is_remote: false
-  level: senior
+  level: mid
   description_min_words: 50
   cost_milli_cents_min: 1
   posted_at_not_null: true

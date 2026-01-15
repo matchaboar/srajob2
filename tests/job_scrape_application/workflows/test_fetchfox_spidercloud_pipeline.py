@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -9,7 +8,6 @@ from typing import Any, Dict, List
 import pytest
 
 # Ensure repo root importable
-sys.path.insert(0, os.path.abspath("."))
 
 # Stub firecrawl dependency for tests that don't exercise it
 import types
@@ -86,14 +84,14 @@ async def test_fetchfox_crawl_queues_urls_and_passes_skip_list(monkeypatch, data
     async def fake_fetch_seen(source_url: str, pattern: str | None):
         return seen_urls
 
-    async def fake_filter_existing(urls: List[str]):
-        return []
+    async def fake_filter_new_job_urls(urls: List[str]):
+        return urls  # Return all URLs as "new" (non-existing) for testing
 
     def fake_list_scrape_urls(**kwargs):
         return queued_urls
 
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
-    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr(acts, "filter_new_job_urls", fake_filter_new_job_urls)
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
         fake_list_scrape_urls,
@@ -184,8 +182,8 @@ async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_p
     async def fake_fetch_seen(source_url: str, pattern: str | None):
         return []
 
-    async def fake_filter_existing(urls: List[str]):
-        return []
+    async def fake_filter_new_job_urls(urls: List[str]):
+        return urls  # Return all URLs as "new" (non-existing) for testing
 
     def fake_list_scrape_urls(**kwargs):
         queue_calls.append(kwargs)
@@ -196,7 +194,7 @@ async def test_fetchfox_crawl_omits_invalid_site_id(monkeypatch, datadog_crawl_p
         return {"queued": args.get("urls", [])}
 
     monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
-    monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
+    monkeypatch.setattr(acts, "filter_new_job_urls", fake_filter_new_job_urls)
     monkeypatch.setattr(
         "job_scrape_application.workflows.activities.dbos_queue.list_scrape_urls",
         fake_list_scrape_urls,

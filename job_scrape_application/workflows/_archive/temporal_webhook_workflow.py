@@ -8,13 +8,13 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 from temporalio.exceptions import ActivityError, ApplicationError
 
-from .helpers.workflow_logging import get_workflow_logger
-from .exceptions import WorkflowError
+from job_scrape_application.workflows.helpers._archive.workflow_logging import get_workflow_logger
+from job_scrape_application.workflows.exceptions import WorkflowError
 
-from ..config import settings
+from job_scrape_application.config.config import settings
 
 with workflow.unsafe.imports_passed_through():
-    from .activities import (
+    from job_scrape_application.workflows.activities import (
         collect_firecrawl_job_result,
         complete_site,
         fail_site,

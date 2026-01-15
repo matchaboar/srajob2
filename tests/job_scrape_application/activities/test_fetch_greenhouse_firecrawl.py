@@ -1,10 +1,7 @@
-import os
-import sys
 
 import pytest
 from temporalio.exceptions import ApplicationError
 
-sys.path.insert(0, os.path.abspath("."))
 from job_scrape_application.workflows import activities  # noqa: E402
 from firecrawl.v2.utils.error_handler import RequestTimeoutError
 

@@ -9,7 +9,7 @@
       "description_word_count": 821,
       "location": "New York, NY",
       "is_remote": false,
-      "posted_at": 1768426870627,
+      "posted_at": 1768508926064,
       "posted_at_unknown": true,
       "company": "Spotify",
       "level": "mid",
@@ -351,16 +351,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-14T14:41:10.627000",
+      "final_value": "2026-01-15T13:28:46.064000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-14T14:41:10.627000",
+          "value": "2026-01-15T13:28:46.064000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-14T14:41:10.627000"
+          "reason": "Valid date: 2026-01-15T13:28:46.064000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,7 +393,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-14T14:41:12.418300",
+          "value": "2026-01-15T13:28:47.580990",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

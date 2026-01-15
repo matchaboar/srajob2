@@ -1,0 +1,13 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: hubspot_careers
+detail_url: https://www.hubspot.com/careers/jobs/7391386
+expected:
+  title: "Senior Software Engineer II, Backend"
+  company: "HubSpot"
+  location_contains: "United Kingdom"
+  is_remote: true
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from pathlib import Path
 from typing import Any, Dict
 
 import pytest
 
-ROOT = os.path.abspath(".")
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402

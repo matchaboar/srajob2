@@ -1,0 +1,50 @@
+{
+  "site_id": "netflix_20260114T134509",
+  "listing_url": "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10",
+  "source_url": "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10",
+  "handler_name": "NetflixHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10",
+    "scrape_url": "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 10,
+    "handler_filtered_count": 10,
+    "api_transformed_count": 10
+  },
+  "extracted_url_count": 10,
+  "filtered_url_count": 10,
+  "normalized_url_count": 10,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [
+    "https://explore.jobs.netflix.net/careers/job/790312429476",
+    "https://explore.jobs.netflix.net/careers/job/790313604250",
+    "https://explore.jobs.netflix.net/careers/job/790313591443",
+    "https://explore.jobs.netflix.net/careers/job/790313552306",
+    "https://explore.jobs.netflix.net/careers/job/790313551689",
+    "https://explore.jobs.netflix.net/careers/job/790313551266",
+    "https://explore.jobs.netflix.net/careers/job/790313551840",
+    "https://explore.jobs.netflix.net/careers/job/790313542735",
+    "https://explore.jobs.netflix.net/careers/job/790313529500",
+    "https://explore.jobs.netflix.net/careers/job/790313501564"
+  ],
+  "normalized_urls": [
+    "https://explore.jobs.netflix.net/careers/job/790312429476",
+    "https://explore.jobs.netflix.net/careers/job/790313604250",
+    "https://explore.jobs.netflix.net/careers/job/790313591443",
+    "https://explore.jobs.netflix.net/careers/job/790313552306",
+    "https://explore.jobs.netflix.net/careers/job/790313551689",
+    "https://explore.jobs.netflix.net/careers/job/790313551266",
+    "https://explore.jobs.netflix.net/careers/job/790313551840",
+    "https://explore.jobs.netflix.net/careers/job/790313542735",
+    "https://explore.jobs.netflix.net/careers/job/790313529500",
+    "https://explore.jobs.netflix.net/careers/job/790313501564"
+  ],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

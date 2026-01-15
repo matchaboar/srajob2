@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -70,6 +71,54 @@ class DocusignHandler(BaseSiteHandler):
             seen.add(cleaned)
             urls.append(cleaned)
         return urls
+
+    def get_posted_at_by_url(self, payload: Any) -> Dict[str, int]:
+        """Extract posted_at timestamps from DocuSign listing API response.
+
+        Returns a dict mapping job URL -> posted_at timestamp in milliseconds.
+        """
+        if not isinstance(payload, dict):
+            return {}
+        jobs = payload.get("jobs")
+        if not isinstance(jobs, list):
+            return {}
+        result: Dict[str, int] = {}
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            data = job.get("data")
+            if isinstance(data, dict):
+                job_data = data
+            else:
+                job_data = job
+            if not isinstance(job_data, dict):
+                continue
+            url = self._extract_job_url(job_data)
+            if not url:
+                continue
+            posted_at = self._parse_posted_date(job_data)
+            if posted_at is not None:
+                result[url.strip()] = posted_at
+        return result
+
+    def _parse_posted_date(self, data: Dict[str, Any]) -> Optional[int]:
+        """Parse posted_date from job data into milliseconds timestamp."""
+        posted_date = data.get("posted_date")
+        if not isinstance(posted_date, str) or not posted_date.strip():
+            return None
+        try:
+            # DocuSign format: "2025-09-04T16:35:00+0000"
+            dt = datetime.strptime(posted_date, "%Y-%m-%dT%H:%M:%S%z")
+            return int(dt.timestamp() * 1000)
+        except ValueError:
+            pass
+        # Try ISO format without timezone
+        try:
+            dt = datetime.fromisoformat(posted_date.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000)
+        except ValueError:
+            pass
+        return None
 
     def get_pagination_urls_from_json(self, payload: Any, source_url: str | None = None) -> List[str]:
         if not isinstance(payload, dict):

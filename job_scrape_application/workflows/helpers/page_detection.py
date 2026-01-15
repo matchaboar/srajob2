@@ -7,7 +7,6 @@ during job scraping, including error pages, listing pages, and job detail pages.
 from __future__ import annotations
 
 import re
-from typing import Optional
 from urllib.parse import urlparse
 
 from .location_normalization import (

@@ -10,8 +10,10 @@ extend-select = ["TID251"]
 "job_scrape_application.services.get_client" = { msg = "Convex client access must run in activities; do not import get_client in workflow modules." }
 
 [lint.per-file-ignores]
-"activities/**" = ["TID251"]
+"activities/**" = ["TID251", "F401", "F811"]
+"core/**" = ["TID251"]
 "helpers/**" = ["TID251"]
 "scrapers/**" = ["TID251"]
 "site_handlers/**" = ["TID251"]
 "schedule_audit.py" = ["TID251"]
+"**/__init__.py" = ["F401", "F811"]

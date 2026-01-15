@@ -10,6 +10,7 @@ def _load_module():
     module_path = (
         Path(__file__).resolve().parents[2]
         / "agent_scripts"
+        / "config"
         / "update_and_sync_site_schedules.py"
     )
     spec = importlib.util.spec_from_file_location("update_and_sync_site_schedules", module_path)

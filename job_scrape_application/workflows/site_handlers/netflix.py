@@ -371,7 +371,6 @@ class NetflixHandler(BaseSiteHandler):
 
         # Extract title from heading (line starting with # after "** All Jobs")
         title: Optional[str] = None
-        title_idx: Optional[int] = None
         for idx, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("#"):
@@ -379,7 +378,6 @@ class NetflixHandler(BaseSiteHandler):
                 heading_text = stripped.lstrip("#").strip()
                 if heading_text and heading_text not in {"All Jobs", "Job Description"}:
                     title = heading_text
-                    title_idx = idx
                     break
 
         # Find where content starts (after "** All Jobs" or first heading)

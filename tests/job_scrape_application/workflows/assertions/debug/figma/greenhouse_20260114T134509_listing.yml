@@ -2,40 +2,7 @@
 site_id: greenhouse
 listing_url: https://api.greenhouse.io/v1/boards/figma/jobs
 expected:
-  url_count_min: 30
+  url_count: 98
   url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
   no_listing_urls: true
   handler: "GreenhouseHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5220003004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5579903004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5600388004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5616603004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5660560004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5722244004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5654898004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5696366004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5574708004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5678196004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5692726004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5568374004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5722567004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5551463004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5691886004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5551730004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5552530004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5551686004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5552549004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5691911004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5692524004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5692548004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5552522004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5552560004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5602159004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5621177004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5566267004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5551532004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5551649004"
-  #   - "https://boards-api.greenhouse.io/v1/boards/figma/jobs/5759501004"

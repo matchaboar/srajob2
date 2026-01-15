@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
 import sys
 import types
 from typing import cast
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 # Stub firecrawl dependency so activities can import without installing it
 try:

@@ -8,4 +8,4 @@ if [[ -z "${company}" ]]; then
   exit 1
 fi
 
-uv run agent_scripts/delete_skipped_jobs_for_company.py --company "${company}" --env prod
+uv run agent_scripts/maintenance/delete_skipped_jobs_for_company.py --company "${company}" --env prod

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
 import sys
 import types
 from typing import Any, Dict, List
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 if "convex" not in sys.modules:
     class _FakeConvexClient:

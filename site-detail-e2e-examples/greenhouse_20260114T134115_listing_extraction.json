@@ -1,0 +1,28 @@
+{
+  "site_id": "greenhouse_20260114T134115",
+  "listing_url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
+  "source_url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
+  "handler_name": "GreenhouseHandler",
+  "content_type": null,
+  "extraction_method": "production_workflow",
+  "url_pipeline": {
+    "input_url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
+    "scrape_url": "https://api.greenhouse.io/v1/boards/airbnb/jobs"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 0,
+    "handler_filtered_count": 0,
+    "api_transformed_count": 0
+  },
+  "extracted_url_count": 0,
+  "filtered_url_count": 0,
+  "normalized_url_count": 0,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [],
+  "normalized_urls": [],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

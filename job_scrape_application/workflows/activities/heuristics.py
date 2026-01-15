@@ -59,7 +59,7 @@ COMP_MAGNITUDE_SUFFIX_PATTERN = r"^\s*(?:[kmb]|bn|mm|million|billion|trillion)\b
 COMP_MAGNITUDE_SUFFIX_RE = re.compile(COMP_MAGNITUDE_SUFFIX_PATTERN, flags=re.IGNORECASE)
 
 # Heuristic version for tracking
-HEURISTIC_VERSION = 4
+HEURISTIC_VERSION = 5
 
 
 def _domain_from_url(url: str) -> str:

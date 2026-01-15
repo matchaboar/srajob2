@@ -2,49 +2,7 @@
 site_id: greenhouse
 listing_url: https://api.greenhouse.io/v1/boards/twilio/jobs
 expected:
-  url_count_min: 39
+  url_count: 69
   url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
   no_listing_urls: true
   handler: "GreenhouseHandler"
-  # expected_urls: Uncomment and fill with VALID URLs only
-  # --- Extracted URLs (REVIEW EACH - remove invalid ones) ---
-  # expected_urls:
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7312780"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7484699"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/6849268"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7487187"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7350846"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7481047"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7427771"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7452089"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7486353"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7477243"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7396547"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7347209"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7206764"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7247707"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7459836"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7397689"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7474040"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7360566"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7232279"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7186321"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7070250"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7070269"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7406218"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7359642"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7188174"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7472456"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7362957"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7532698"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7394811"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7374339"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7520997"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7351031"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/6793989"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7359649"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7070261"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7477983"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7356177"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7356576"
-  #   - "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7362421"

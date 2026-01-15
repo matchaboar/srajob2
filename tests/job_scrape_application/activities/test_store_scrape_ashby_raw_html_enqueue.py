@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from pathlib import Path
 from typing import Any, Dict
 
 import pytest
 
-sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows.site_handlers.ashby import (  # noqa: E402
@@ -21,7 +18,7 @@ API_FIXTURE_PATH = Path("tests/fixtures/ashby_lambda_spidercloud_api.json")
 SERVAL_API_FIXTURE_PATH = Path("tests/fixtures/ashby_serval_listing_payload.json")
 RAMP_API_FIXTURE_PATH = Path("tests/fixtures/ashby_ramp_spidercloud_api.json")
 LISTING_RAW_FIXTURE_PATH = Path("tests/fixtures/ashby_lambda_spidercloud_listing_raw.json")
-ASHBY_RAW_HTML_URL_COUNT = 41
+ASHBY_RAW_HTML_URL_COUNT = 66
 SERVAL_API_URL_COUNT = 16
 RAMP_API_URL_COUNT = 127
 

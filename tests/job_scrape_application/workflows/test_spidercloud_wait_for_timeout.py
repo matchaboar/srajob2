@@ -6,10 +6,11 @@ synchronize Python-side asyncio timeouts with SpiderCloud's JavaScript
 wait_for timeouts.
 """
 
-import pytest
 
-from job_scrape_application.workflows.site_handlers.base import BaseSiteHandler
-from job_scrape_application.workflows.site_handlers.workday import WorkdayHandler
+
+
+from job_scrape_application.workflows.site_handlers.base import BaseSiteHandler  # noqa: E402
+from job_scrape_application.workflows.site_handlers.workday import WorkdayHandler  # noqa: E402
 
 
 class TestExtractWaitForTimeoutSeconds:
@@ -167,8 +168,8 @@ class TestWorkdayHandlerTimeout:
         handler = WorkdayHandler()
         config = handler.get_spidercloud_config("https://company.wd5.myworkdayjobs.com/jobs")
         timeout = BaseSiteHandler.extract_wait_for_timeout_seconds(config)
-        # Workday: 40s selector + 5s idle + 15s buffer = 60s
-        assert timeout == 60
+        # Workday: 90s selector + 5s idle + 15s buffer = 110s
+        assert timeout == 110
 
     def test_workday_normalized_config_timeout(self):
         """Normalized Workday config should also yield expected timeout."""
@@ -176,5 +177,5 @@ class TestWorkdayHandlerTimeout:
         raw_config = handler.get_spidercloud_config("https://company.wd5.myworkdayjobs.com/jobs")
         normalized_config = handler.normalize_spidercloud_config(raw_config)
         timeout = BaseSiteHandler.extract_wait_for_timeout_seconds(normalized_config)
-        # Should be same as raw: 60s
-        assert timeout == 60
+        # Should be same as raw: 110s
+        assert timeout == 110

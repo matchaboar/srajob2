@@ -1,0 +1,15 @@
+{
+  "site_id": "www",
+  "detail_url": "https://www.hubspot.com/careers/jobs/7210472",
+  "source_url": "https://www.hubspot.com/careers/jobs/7210472",
+  "extracted_jobs": [],
+  "convex_capture": {
+    "ingested_jobs_count": 0,
+    "stored_scrapes_count": 1,
+    "description_uploads_count": 0,
+    "ingested_jobs_sample": [],
+    "description_uploads_sample": []
+  },
+  "extractor_trace": {},
+  "errors": []
+}
