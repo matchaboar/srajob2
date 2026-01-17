@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -44,6 +44,11 @@ async def main() -> None:
     rows = await _fetch_scrape_activity(convex_query)
     matched = [row for row in rows if _matches(row, args.site_url, args.name)]
 
-    print(json.dumps({"count": len(matched), "rows": matched}, ensure_ascii=False, indent=2))
+    print(
+        orjson.dumps(
+            {"count": len(matched), "rows": matched},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 if __name__ == "__main__":
     asyncio.run(main())

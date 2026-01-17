@@ -206,7 +206,7 @@ async def main() -> None:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload_out = {"company_salary_caps": company_caps}
-    output_path.write_text(yaml.safe_dump(payload_out, sort_keys=False))
+    output_path.write_text(yaml.safe_dump(payload_out))
     print(f"Wrote {len(company_caps)} company salary cap entries to {output_path}")
 if __name__ == "__main__":
     asyncio.run(main())

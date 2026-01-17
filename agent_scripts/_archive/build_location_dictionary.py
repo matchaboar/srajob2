@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-import json
+import orjson
 import sys
 import urllib.request
 import zipfile
@@ -146,7 +146,7 @@ def _parse_city_rows(zip_bytes: bytes) -> list[CityRow]:
 
 
 def _load_existing_entries() -> list[dict[str, Any]]:
-    raw = json.loads(DICTIONARY_PATH.read_text("utf-8"))
+    raw = orjson.loads(DICTIONARY_PATH.read_text("utf-8"))
     if isinstance(raw, list):
         return raw
     entries: list[dict[str, Any]] = []
@@ -252,7 +252,10 @@ def main() -> int:
     total_entries = len(_flatten_entries(dictionary.values()))
     if total_entries < TOP_N:
         print(f"warning: only {total_entries} entries found", file=sys.stderr)
-    payload = json.dumps(dictionary, indent=2, ensure_ascii=True, sort_keys=False)
+    payload = orjson.dumps(
+        dictionary,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_ESCAPE_NON_ASCII,
+    ).decode("utf-8")
     DICTIONARY_PATH.write_text(f"{payload}\n", "utf-8")
     print(f"wrote {total_entries} entries across {len(dictionary)} cities to {DICTIONARY_PATH}")
     return 0

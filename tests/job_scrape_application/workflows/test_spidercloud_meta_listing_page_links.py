@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import parse_qs, urlparse
@@ -64,7 +64,7 @@ PROD_SOURCE_URL = (
 
 
 def _load_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload

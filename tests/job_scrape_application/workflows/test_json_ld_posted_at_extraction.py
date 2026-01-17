@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -102,7 +102,7 @@ def _extract_raw_html(payload: Any) -> str | None:
 def _load_raw_html(path: Path) -> str:
     if path.suffix == ".html":
         return path.read_text(encoding="utf-8")
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     raw_html = _extract_raw_html(payload)
@@ -134,7 +134,7 @@ def _extract_expected_date(raw_html: str) -> str | None:
         if not payload_raw:
             continue
         try:
-            parsed = json.loads(payload_raw)
+            parsed = orjson.loads(payload_raw)
         except Exception:
             continue
         expected = _find_date(parsed)

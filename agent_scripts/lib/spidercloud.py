@@ -9,7 +9,7 @@ Consolidates common patterns for:
 
 from __future__ import annotations
 
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
@@ -178,6 +178,9 @@ async def fetch_and_save_fixture(
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2))
+    output_path.write_text(
+        orjson.dumps(fixture, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 
     return fixture

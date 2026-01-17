@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import orjson
 import os
 import re
@@ -34,16 +35,21 @@ def _slugify(value: str) -> str:
     return cleaned.strip("_") or "site"
 
 
-def _load_schedule_entries() -> list[dict[str, Any]]:
+@functools.lru_cache(maxsize=1)
+def _load_schedule_entries() -> tuple[dict[str, Any], ...]:
+    """Load and cache site schedule entries.
+
+    Returns a tuple (for hashability/caching) of schedule entries.
+    """
     if not SCHEDULE_PATH.exists():
-        return []
+        return ()
     payload = yaml.safe_load(SCHEDULE_PATH.read_text(encoding="utf-8"))
     entries = payload if isinstance(payload, list) else payload.get("site_schedules", [])
-    return [
+    return tuple(
         entry
         for entry in entries
         if isinstance(entry, dict) and entry.get("enabled", True)
-    ]
+    )
 
 
 def _latest_listing_fixture(slug: str) -> Path | None:
@@ -117,7 +123,10 @@ async def _generate_listing_fixture(entry: dict[str, Any], slug: str) -> Path | 
         "apply_urls": sorted(set(apply_urls)),
         **capture,
     }
-    fixture_path.write_text(orjson.dumps(fixture_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    fixture_path.write_text(
+        orjson.dumps(fixture_payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
     return fixture_path
 
 
@@ -430,4 +439,4 @@ def _write_listing_ground_truth(
             "blocked_urls": [],
         },
     }
-    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="ut
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")

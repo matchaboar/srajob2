@@ -52,9 +52,9 @@ def get_sample_yaml_files() -> list[Path]:
 # JSON Benchmarks
 # ============================================================================
 
-def benchmark_json_stdlib(fixtures: list[Path]) -> dict[str, float]:
-    """Benchmark stdlib json."""
-    import json as json_stdlib
+def benchmark_orjson_text(fixtures: list[Path]) -> dict[str, float]:
+    """Benchmark orjson reading text inputs."""
+    import orjson
 
     results = {}
 
@@ -63,27 +63,33 @@ def benchmark_json_stdlib(fixtures: list[Path]) -> dict[str, float]:
         data = []
         for f in fixtures:
             content = f.read_text(encoding="utf-8")
-            data.append(json_stdlib.loads(content))
+            data.append(orjson.loads(content))
         return data
 
     avg_ms, parsed_data = timeit(read_all, iterations=20)
-    results["json.loads (read all)"] = avg_ms
+    results["orjson.loads (read text)"] = avg_ms
 
     # Write benchmark (to string, not file)
     def write_all():
         outputs = []
         for d in parsed_data:
-            outputs.append(json_stdlib.dumps(d, indent=2, default=str))
+            outputs.append(
+                orjson.dumps(
+                    d,
+                    default=str,
+                    option=orjson.OPT_INDENT_2,
+                ).decode("utf-8")
+            )
         return outputs
 
     avg_ms, _ = timeit(write_all, iterations=20)
-    results["json.dumps (write all)"] = avg_ms
+    results["orjson.dumps (write text)"] = avg_ms
 
     return results
 
 
-def benchmark_json_orjson(fixtures: list[Path]) -> dict[str, float]:
-    """Benchmark orjson."""
+def benchmark_orjson_bytes(fixtures: list[Path]) -> dict[str, float]:
+    """Benchmark orjson reading bytes inputs."""
     try:
         import orjson
     except ImportError:
@@ -100,7 +106,7 @@ def benchmark_json_orjson(fixtures: list[Path]) -> dict[str, float]:
         return data
 
     avg_ms, parsed_data = timeit(read_all, iterations=20)
-    results["orjson.loads (read all)"] = avg_ms
+    results["orjson.loads (read bytes)"] = avg_ms
 
     # Write benchmark
     def write_all():
@@ -110,7 +116,7 @@ def benchmark_json_orjson(fixtures: list[Path]) -> dict[str, float]:
         return outputs
 
     avg_ms, _ = timeit(write_all, iterations=20)
-    results["orjson.dumps (write all)"] = avg_ms
+    results["orjson.dumps (write bytes)"] = avg_ms
 
     return results
 
@@ -320,30 +326,30 @@ def benchmark_file_mmap(fixtures: list[Path]) -> dict[str, float]:
 # Combined benchmark: realistic test scenario
 # ============================================================================
 
-def benchmark_realistic_load_fixture_stdlib(fixtures: list[Path]) -> dict[str, float]:
-    """Benchmark loading fixture with stdlib json - realistic scenario."""
-    import json as json_stdlib
+def benchmark_realistic_load_fixture_orjson_text(fixtures: list[Path]) -> dict[str, float]:
+    """Benchmark loading fixture with orjson text inputs - realistic scenario."""
+    import orjson
 
     results = {}
 
     def load_fixture():
         data = []
         for f in fixtures:
-            payload = json_stdlib.loads(f.read_text(encoding="utf-8"))
+            payload = orjson.loads(f.read_text(encoding="utf-8"))
             # Simulate what the test does - access response field
             response = payload.get("response", [])
             if isinstance(response, list) and response:
                 for item in response:
                     if isinstance(item, str):
                         try:
-                            json_stdlib.loads(item)  # Parse JSONL items
+                            orjson.loads(item)  # Parse JSONL items
                         except Exception:
                             pass
             data.append(payload)
         return data
 
     avg_ms, _ = timeit(load_fixture, iterations=20)
-    results["stdlib: load + parse JSONL"] = avg_ms
+    results["orjson (text): load + parse JSONL"] = avg_ms
 
     return results
 
@@ -433,8 +439,8 @@ def main():
     print("-" * 70)
 
     json_benchmarks = [
-        ("stdlib json", benchmark_json_stdlib),
-        ("orjson", benchmark_json_orjson),
+        ("orjson (text)", benchmark_orjson_text),
+        ("orjson (bytes)", benchmark_orjson_bytes),
         ("ujson", benchmark_json_ujson),
         ("msgspec", benchmark_json_msgspec),
     ]
@@ -500,8 +506,8 @@ def main():
     print("-" * 70)
 
     realistic_benchmarks = [
-        ("stdlib json", benchmark_realistic_load_fixture_stdlib),
-        ("orjson", benchmark_realistic_load_fixture_orjson),
+        ("orjson (text)", benchmark_realistic_load_fixture_orjson_text),
+        ("orjson (bytes)", benchmark_realistic_load_fixture_orjson),
         ("msgspec", benchmark_realistic_load_fixture_msgspec),
     ]
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 from typing import Any, Dict, List
 
 import pytest
@@ -74,7 +74,7 @@ def test_spidercloud_job_batch_payload_is_reasonably_capped(monkeypatch):
 
     scrapes = result.get("scrapes") or []
     assert scrapes, "expected at least one scrape payload"
-    payload_size = len(json.dumps(scrapes[0]).encode("utf-8"))
+    payload_size = len(orjson.dumps(scrapes[0]))
 
     # Expect detail payloads to be aggressively capped to avoid worker OOMs.
     assert payload_size <= 256_000
@@ -88,7 +88,7 @@ def test_spidercloud_job_batch_total_payload_is_reasonably_capped(monkeypatch):
     batch = _batch_for_urls(urls)
     result = asyncio.run(activities.process_spidercloud_job_batch(batch, persist_scrapes=False))
 
-    total_size = len(json.dumps(result).encode("utf-8"))
+    total_size = len(orjson.dumps(result))
 
     # Expect total batch payloads to remain small enough for Temporal history limits.
     assert total_size <= 1_000_000

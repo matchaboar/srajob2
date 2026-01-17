@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import json
+import orjson
 import logging
 import os
 import time

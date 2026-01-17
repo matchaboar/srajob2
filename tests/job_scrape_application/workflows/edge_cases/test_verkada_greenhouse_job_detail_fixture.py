@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from pathlib import Path
 from typing import Any, Dict
@@ -57,7 +57,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_fixture() -> Dict[str, Any]:
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     if isinstance(payload, list) and payload and isinstance(payload[0], list):
@@ -97,7 +97,7 @@ def _extract_job_payload(html_text: str) -> Dict[str, Any]:
     content = html_lib.unescape(match.group("content")).strip()
     if not content:
         raise AssertionError("Empty <pre> content in fixture HTML")
-    parsed = json.loads(content)
+    parsed = orjson.loads(content)
     if not isinstance(parsed, dict):
         raise AssertionError("Expected JSON object payload from fixture")
     return parsed

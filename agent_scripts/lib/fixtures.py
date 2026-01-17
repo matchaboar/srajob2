@@ -5,7 +5,7 @@ Provides functions for saving and loading SpiderCloud test fixtures.
 
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -34,7 +34,7 @@ def save_fixture(
 
     # Write with consistent formatting
     output_path.write_text(
-        json.dumps(fixture_data, ensure_ascii=False, indent=2),
+        orjson.dumps(fixture_data, option=orjson.OPT_INDENT_2).decode("utf-8"),
         encoding="utf-8",
     )
 
@@ -56,12 +56,12 @@ def load_fixture(
     Raises:
         FileNotFoundError: If fixture file doesn't exist
         ValueError: If fixture is invalid and validate=True
-        json.JSONDecodeError: If fixture is not valid JSON
+        orjson.JSONDecodeError: If fixture is not valid JSON
     """
     if not fixture_path.exists():
         raise FileNotFoundError(f"Fixture not found: {fixture_path}")
 
-    fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
+    fixture_data = orjson.loads(fixture_path.read_text(encoding="utf-8"))
 
     if validate:
         if not isinstance(fixture_data, dict):

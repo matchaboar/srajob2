@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import os
 import sys
 import uuid
@@ -31,10 +31,7 @@ def env_or_exit() -> str:
 async def post_json(client: httpx.AsyncClient, url: str, payload: Dict[str, Any]) -> Any:
     r = await client.post(url, json=payload)
     r.raise_for_status()
-    try:
-        return r.json()
-    except Exception:
-        return json.loads(r.text)
+    return orjson.loads(r.text)
 
 
 async def main() -> None:

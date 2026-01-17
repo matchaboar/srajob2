@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 import warnings
 from abc import ABC, abstractmethod
@@ -444,7 +444,7 @@ def extract_raw_body_from_fetchfox_result(result: Any) -> str:
                         return val
 
     try:
-        return json.dumps(result, ensure_ascii=False)
+        return orjson.dumps(result).decode("utf-8")
     except Exception:
         return str(result)
 
@@ -459,12 +459,19 @@ def stringify(value: Any) -> str:
     return str(value)
 
 
+_CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _strip_control_chars(text: str) -> str:
+    return _CONTROL_CHAR_PATTERN.sub("", text)
+
+
 def _parse_lenient_json(text: str) -> Any | None:
-    cleaned = text.strip()
+    cleaned = _strip_control_chars(text.strip())
     if not cleaned:
         return None
     try:
-        return json.loads(cleaned, strict=False)
+        return orjson.loads(cleaned)
     except Exception:
         pass
     try:
@@ -475,7 +482,7 @@ def _parse_lenient_json(text: str) -> Any | None:
         unescaped = ""
     if unescaped:
         try:
-            return json.loads(unescaped, strict=False)
+            return orjson.loads(_strip_control_chars(unescaped))
         except Exception:
             return None
     return None
@@ -1929,7 +1936,7 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
     if not raw_text:
         return None, {}
 
-    # Strip code fence markers if present (e.g., ```json...``` or ```...```)
+    # Strip code fence markers if present (e.g., ```orjson...``` or ```...```)
     if raw_text.startswith("```"):
         lines = raw_text.split("\n")
         # Find start of content (skip opening fence line)
@@ -1988,12 +1995,12 @@ def _extract_job_detail_seed_from_json(markdown: str) -> tuple[Optional[str], Di
                 return None
         cleaned = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", cleaned)
         try:
-            return json.loads(cleaned)
+            return orjson.loads(cleaned)
         except Exception:
             escaped = _escape_control_chars_in_strings(cleaned)
             if escaped != cleaned:
                 try:
-                    return json.loads(escaped)
+                    return orjson.loads(escaped)
                 except Exception:
                     return None
         return None
@@ -2152,7 +2159,7 @@ def extract_description(row: Dict[str, Any]) -> str:
         if isinstance(val, str) and val.strip():
             return val.strip()
     try:
-        return json.dumps(row, ensure_ascii=False)
+        return orjson.dumps(row).decode("utf-8")
     except Exception:
         return str(row)
 
@@ -2618,7 +2625,7 @@ def _shrink_payload(value: Any, max_chars: int) -> Any:
         return None
 
     try:
-        serialized = json.dumps(value, ensure_ascii=False)
+        serialized = orjson.dumps(value).decode("utf-8")
     except Exception:
         try:
             serialized = str(value)
@@ -2848,7 +2855,7 @@ def trim_scrape_for_convex(
     raw_preview = None
     if isinstance(items, dict) and "raw" in items and raw_preview_chars > 0:
         try:
-            raw_str = json.dumps(items["raw"], ensure_ascii=False)
+            raw_str = orjson.dumps(items["raw"]).decode("utf-8")
             raw_preview = raw_str[:raw_preview_chars]
         except Exception:
             raw_preview = None
@@ -3038,7 +3045,7 @@ def normalize_single_row(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def _parse_firecrawl_json(payload: Any) -> Any:
     if isinstance(payload, str):
         try:
-            return json.loads(payload)
+            return orjson.loads(payload)
         except Exception:
             return None
     return payload

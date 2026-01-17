@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -361,7 +361,7 @@ class AshbyHqHandler(BaseSiteHandler):
                 return None
 
             # Parse as JSON array
-            locations = json.loads(f"[{array_content}]")
+            locations = orjson.loads(f"[{array_content}]")
             if not isinstance(locations, list) or not locations:
                 return None
 
@@ -451,7 +451,7 @@ class AshbyHqHandler(BaseSiteHandler):
             )
             for match in json_ld_pattern.finditer(html):
                 try:
-                    data = json.loads(match.group(1))
+                    data = orjson.loads(match.group(1))
                     if not isinstance(data, dict):
                         continue
                     if data.get("@type") != "JobPosting":
@@ -463,7 +463,7 @@ class AshbyHqHandler(BaseSiteHandler):
                         name = hiring_org.get("name")
                         if isinstance(name, str) and name.strip():
                             return name.strip()
-                except (json.JSONDecodeError, TypeError, KeyError):
+                except (orjson.JSONDecodeError, TypeError, KeyError):
                     continue
         except Exception:
             pass
@@ -488,7 +488,7 @@ class AshbyHqHandler(BaseSiteHandler):
             )
             for match in json_ld_pattern.finditer(html):
                 try:
-                    data = json.loads(match.group(1))
+                    data = orjson.loads(match.group(1))
                     if not isinstance(data, dict):
                         continue
                     if data.get("@type") != "JobPosting":
@@ -513,7 +513,7 @@ class AshbyHqHandler(BaseSiteHandler):
                         return locality
                     elif region:
                         return region
-                except (json.JSONDecodeError, TypeError, KeyError):
+                except (orjson.JSONDecodeError, TypeError, KeyError):
                     continue
         except Exception:
             pass

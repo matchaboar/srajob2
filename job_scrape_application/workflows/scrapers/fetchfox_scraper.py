@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import re
 import time
 from dataclasses import dataclass
@@ -94,7 +94,7 @@ class FetchfoxScraper(BaseScraper):
 
         try:
             result = await asyncio.to_thread(_do_scrape, request)
-            result_obj: Dict[str, Any] = result if isinstance(result, dict) else json.loads(result)
+            result_obj: Dict[str, Any] = result if isinstance(result, dict) else orjson.loads(result)
         except Exception:
             result_obj = {"raw": "Scrape failed or returned invalid data"}
 
@@ -167,7 +167,7 @@ class FetchfoxScraper(BaseScraper):
 
         try:
             result = await asyncio.to_thread(_do_scrape, request)
-            result_obj: Dict[str, Any] = result if isinstance(result, dict) else json.loads(result)
+            result_obj: Dict[str, Any] = result if isinstance(result, dict) else orjson.loads(result)
         except Exception as exc:  # noqa: BLE001
             site_url = site.get("url") or ""
             payload = {
@@ -358,7 +358,7 @@ class FetchfoxScraper(BaseScraper):
 
         try:
             result = await asyncio.to_thread(_do_scrape, request)
-            result_obj: Dict[str, Any] = result if isinstance(result, dict) else json.loads(result)
+            result_obj: Dict[str, Any] = result if isinstance(result, dict) else orjson.loads(result)
         except Exception as exc:  # noqa: BLE001
             raise ApplicationError(f"Greenhouse detail scrape failed: {exc}") from exc
 

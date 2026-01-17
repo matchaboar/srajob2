@@ -240,8 +240,8 @@ def sync_ruff_external_rules() -> bool:
     content = RUFF_TOML_PATH.read_text(encoding="utf-8")
 
     # Build the new external line (use JSON for proper double quotes in TOML)
-    import json
-    new_external = f'external = {json.dumps(rule_ids)}'
+    import orjson
+    new_external = f'external = {orjson.dumps(rule_ids).decode("utf-8")}'
 
     # Pattern to match the external line
     pattern = r'^external\s*=\s*\[.*?\]'

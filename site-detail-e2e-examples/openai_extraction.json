@@ -9,7 +9,7 @@
       "description_word_count": 729,
       "location": "San Francisco, CA",
       "is_remote": false,
-      "posted_at": 1768680359221,
+      "posted_at": 1768685645798,
       "posted_at_unknown": false,
       "company": "Openai",
       "level": "mid",
@@ -31,7 +31,7 @@
         "location": "San Francisco, CA",
         "description": "Software Engineer, Distributed Data Systems (Sora) | OpenAI\n[Skip to main content](#main)\nLog in\n](https://openai.com/)\nSwitch to\n* [ChatGPT(opens in a new window)](https://chatgpt.com/?openaicom-did=4a645027-755a-41f2-8fbd-b5a0b77dc5c0&amp;openaicom_referred=true)\n* [Sora(opens in a new window)](https://sora.com/)\n* [API Platform(opens in a new window)](https://platform.openai.com/)\nSoftware Engineer, Distributed Data Systems (Sora) | OpenAI\nCareers\n## Software Engineer, Distributed Data Systems (Sora)\nSora - San Francisco\n[Apply now(opens in a new window)](https://jobs.ashbyhq.com/openai/da07ba71-81fd-47c7-adb1-2b2d1eaed325/application)\n**About the Team**\nThe Sora team is pioneering multimodal capabilities for OpenAI’s foundation models. We’re a hybrid research and product team focused on integrating multimodal functionalities into our AI products, ensuring they are reliable, user-friendly, and aligned with...",
         "url": "https://openai.com/careers/software-engineer-distributed-data-systems-(sora)-san-francisco",
-        "posted_at": 1768680359221,
+        "posted_at": 1768685645798,
         "level": "mid",
         "remote": false,
         "cost_milli_cents": 451,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.221000",
+      "final_value": "2026-01-17T14:34:05.798000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.221000",
+          "value": "2026-01-17T14:34:05.798000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.221000"
+          "reason": "Valid date: 2026-01-17T14:34:05.798000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.298249",
+          "value": "2026-01-17T14:34:05.823547",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

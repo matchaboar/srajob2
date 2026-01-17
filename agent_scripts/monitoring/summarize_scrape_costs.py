@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -140,14 +140,13 @@ async def main() -> None:
 
     if not isinstance(payload, dict) or payload.get("_error"):
         print(
-            json.dumps(
+            orjson.dumps(
                 {
                     "env": args.env,
                     "error": payload.get("_error") if isinstance(payload, dict) else "unknown",
                 },
-                ensure_ascii=False,
-                indent=2,
-            )
+                option=orjson.OPT_INDENT_2,
+            ).decode("utf-8")
         )
         return
 
@@ -157,7 +156,7 @@ async def main() -> None:
     scrapes_checked = payload.get("scrapesChecked")
 
     if args.format == "json":
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        print(orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"))
         return
 
     title_parts = [

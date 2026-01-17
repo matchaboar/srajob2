@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict
 
@@ -27,28 +27,28 @@ def _load_html() -> str:
 
 
 def _load_api_payload() -> Dict[str, Any]:
-    payload = json.loads(API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(API_FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     return payload
 
 
 def _load_serval_api_payload() -> Dict[str, Any]:
-    payload = json.loads(SERVAL_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(SERVAL_API_FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     return payload
 
 
 def _load_ramp_api_payload() -> Dict[str, Any]:
-    payload = json.loads(RAMP_API_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(RAMP_API_FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     return payload
 
 
 def _load_listing_raw_payload() -> Any:
-    payload = json.loads(LISTING_RAW_FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(LISTING_RAW_FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     if payload and isinstance(payload, list) and isinstance(payload[0], list):

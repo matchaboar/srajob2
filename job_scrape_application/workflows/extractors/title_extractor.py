@@ -5,7 +5,7 @@ Title extraction strategies and extractor.
 from __future__ import annotations
 
 import html
-import json
+import orjson
 import re
 from typing import TYPE_CHECKING
 
@@ -102,11 +102,11 @@ def _load_json_blob(blob: str) -> dict | None:
     if not blob:
         return None
     try:
-        parsed = json.loads(blob)
-    except json.JSONDecodeError:
+        parsed = orjson.loads(blob)
+    except orjson.JSONDecodeError:
         try:
-            parsed = json.loads(blob.replace("\\_", "_"))
-        except json.JSONDecodeError:
+            parsed = orjson.loads(blob.replace("\\_", "_"))
+        except orjson.JSONDecodeError:
             return None
     return parsed if isinstance(parsed, dict) else None
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict
 
@@ -18,7 +18,7 @@ SOURCE_URL = "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer"
 
 
 def _load_fixture() -> Any:
-    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload

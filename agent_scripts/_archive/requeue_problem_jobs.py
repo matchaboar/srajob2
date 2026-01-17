@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
@@ -231,7 +231,7 @@ async def main() -> None:
         if not report_path.exists():
             raise SystemExit(f"Report not found: {report_path}")
 
-        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        payload = orjson.loads(report_path.read_text(encoding="utf-8"))
         problem_jobs = _extract_problem_jobs(payload)
 
     urls, job_ids = _extract_urls_and_ids(problem_jobs)
@@ -275,7 +275,7 @@ async def main() -> None:
                     dry_run=True,
                 )
                 summary["recentCleanup"] = cleanup
-        print(json.dumps(summary, indent=2))
+        print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
         return
 
     deleted_jobs = 0
@@ -328,7 +328,7 @@ async def main() -> None:
         deleted_ignored = cleanup["ignored"]
 
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "env": args.env,
                 "problemUrls": len(urls),
@@ -338,8 +338,8 @@ async def main() -> None:
                 "seenDeleted": deleted_seen,
                 "seenIndexDeleted": deleted_seen_index,
             },
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 if __name__ == "__main__":
     asyncio.run(main())

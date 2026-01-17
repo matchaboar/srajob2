@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -181,6 +181,11 @@ async def main() -> None:
             }
         )
 
-    print(json.dumps({"count": len(results), "results": results}, ensure_ascii=False, indent=2))
+    print(
+        orjson.dumps(
+            {"count": len(results), "results": results},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 if __name__ == "__main__":
     asyncio.run(main())

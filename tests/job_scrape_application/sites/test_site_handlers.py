@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from pathlib import Path
 
@@ -321,7 +321,7 @@ def _extract_json_from_pre(html_text: str) -> dict:
     content = html_lib.unescape(match.group("content")).strip()
     if not content:
         raise AssertionError("Empty <pre> content in fixture HTML")
-    parsed = json.loads(content)
+    parsed = orjson.loads(content)
     if not isinstance(parsed, dict):
         raise AssertionError("Expected JSON object payload from fixture")
     return parsed

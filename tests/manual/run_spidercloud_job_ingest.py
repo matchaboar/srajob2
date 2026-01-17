@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict
@@ -76,7 +76,7 @@ async def main() -> None:
         "descriptionStorageJobId": details.get("descriptionStorageJobId"),
         "descriptionLength": len(details.get("description") or ""),
     }
-    print(json.dumps(summary, indent=2))
+    print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
 
 if __name__ == "__main__":

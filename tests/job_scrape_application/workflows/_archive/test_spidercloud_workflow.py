@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-import json
+import orjson
 import sys
 import time
 from collections.abc import Callable
@@ -77,7 +77,7 @@ def _read_fixture_text(path: Path) -> str:
 
 
 def _load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(_read_fixture_text(path))
+    payload = orjson.loads(_read_fixture_text(path))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -589,7 +589,7 @@ async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
                 },
             ]
         }
-        return json.dumps(payload), []
+        return orjson.dumps(payload).decode("utf-8"), []
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
 
@@ -907,7 +907,7 @@ async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_e
     }
 
     def fake_fetch(_api_url: str, _handler):
-        return "", [{"content": json.dumps(payload)}]
+        return "", [{"content": orjson.dumps(payload).decode("utf-8")}]
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
 
@@ -920,7 +920,7 @@ async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_e
     listing = await scraper.fetch_greenhouse_listing(site)
 
     assert listing["job_urls"] == [job_url]
-    raw_payload = json.loads(listing["raw"])
+    raw_payload = orjson.loads(listing["raw"])
     assert raw_payload["jobs"][0]["absolute_url"] == job_url
 
 
@@ -937,7 +937,7 @@ async def test_spidercloud_greenhouse_listing_reconstructs_chunked_json(monkeypa
             }
         ]
     }
-    payload_text = json.dumps(payload)
+    payload_text = orjson.dumps(payload).decode("utf-8")
     html_payload = f"<html><body><pre>{payload_text}</pre></body></html>"
     chunk_one = html_payload[:40]
     chunk_two = html_payload[40:]
@@ -965,7 +965,7 @@ def test_spidercloud_extract_json_payload_from_pre_html():
     job_url = "https://boards.greenhouse.io/example/jobs/456"
     html_payload = (
         "<html><body><pre>"
-        + json.dumps(
+        + orjson.dumps(
             {
                 "jobs": [
                     {
@@ -976,7 +976,7 @@ def test_spidercloud_extract_json_payload_from_pre_html():
                     }
                 ]
             }
-        )
+        ).decode("utf-8")
         + "</pre></body></html>"
     )
 
@@ -1201,7 +1201,7 @@ def test_spidercloud_extracts_job_urls_from_ashby_listing_payload():
     payload = _load_spidercloud_fixture(
         Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
-    markdown = json.dumps(payload)
+    markdown = orjson.dumps(payload).decode("utf-8")
 
     urls = scraper._extract_listing_job_urls(handler, [payload], markdown)
 
@@ -1214,7 +1214,7 @@ def test_spidercloud_normalize_job_ignores_listing_payload():
     payload = _load_spidercloud_fixture(
         Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
-    markdown = json.dumps(payload)
+    markdown = orjson.dumps(payload).decode("utf-8")
 
     normalized = scraper._normalize_job(
         "https://jobs.ashbyhq.com/lambda",
@@ -1569,8 +1569,8 @@ async def test_spidercloud_github_listing_preserves_query_params(monkeypatch):
             captured["url"] = url
             captured["params"] = params
             if "keywords=engineer" in url and "limit=100" in url:
-                return {"content": json.dumps(payload_full)}
-            return {"content": json.dumps(payload_default)}
+                return {"content": orjson.dumps(payload_full).decode("utf-8")}
+            return {"content": orjson.dumps(payload_default).decode("utf-8")}
 
     monkeypatch.setattr(sc_scraper, "AsyncSpider", FakeAsyncSpider)
 
@@ -2045,8 +2045,8 @@ def test_spidercloud_robinhood_scrape_fixture_matches_request():
     request_path = Path("tests/fixtures/spidercloud_robinhood_request.json")
     response_path = Path("tests/fixtures/spidercloud_robinhood_scrape.json")
 
-    request = json.loads(request_path.read_text(encoding="utf-8"))
-    response = json.loads(response_path.read_text(encoding="utf-8"))
+    request = orjson.loads(request_path.read_text(encoding="utf-8"))
+    response = orjson.loads(response_path.read_text(encoding="utf-8"))
 
     assert request["url"] == "https://api.greenhouse.io/v1/boards/robinhood/jobs"
     assert request["params"]["return_format"] == ["commonmark"]
@@ -2072,8 +2072,8 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
     request_path = Path("tests/fixtures/spidercloud_github_careers_request.json")
     response_path = Path("tests/fixtures/spidercloud_github_careers_scrape.json")
 
-    request = json.loads(request_path.read_text(encoding="utf-8"))
-    response = json.loads(response_path.read_text(encoding="utf-8"))
+    request = orjson.loads(request_path.read_text(encoding="utf-8"))
+    response = orjson.loads(response_path.read_text(encoding="utf-8"))
 
     expected_url = (
         "https://www.github.careers/careers-home/jobs?"
@@ -2722,7 +2722,7 @@ async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeyp
     scraper = _make_spidercloud_scraper()
 
     def fake_fetch(api_url: str, _handler):
-        return json.dumps(payload), []
+        return orjson.dumps(payload).decode("utf-8"), []
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
     site: Site = {"_id": "s-coreweave", "url": "https://api.greenhouse.io/v1/boards/coreweave/jobs"}

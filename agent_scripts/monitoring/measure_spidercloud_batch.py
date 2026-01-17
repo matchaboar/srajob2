@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import time
 from collections import Counter
@@ -110,7 +110,7 @@ async def _scrape_batch(
                         _collect_response(coro),
                         timeout=timeout_seconds,
                     )
-                    payload = json.dumps(response, ensure_ascii=False)
+                    payload = orjson.dumps(response)
                     result["ok"] = True
                     result["elapsed_seconds"] = round(time.time() - t0, 2)
                     result["size_bytes"] = len(payload)
@@ -140,7 +140,10 @@ async def _scrape_batch(
     }
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Measure SpiderCloud batch scrape timings/sizes and write fixtures."
@@ -185,7 +188,7 @@ async def main() -> None:
 
     by_error = Counter([str(r.get("error") or "") for r in payload.get("results", []) if r.get("error")])
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "output": str(output_path),
                 "count": payload.get("meta", {}).get("count"),
@@ -196,8 +199,8 @@ async def main() -> None:
                 "error_samples": payload.get("meta", {}).get("error_samples"),
                 "by_error": dict(by_error),
             },
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 if __name__ == "__main__":
     asyncio.run(main())

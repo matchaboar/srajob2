@@ -9,7 +9,7 @@
       "description_word_count": 989,
       "location": "San Francisco, CA",
       "is_remote": false,
-      "posted_at": 1768680359174,
+      "posted_at": 1768685645801,
       "posted_at_unknown": false,
       "company": "Uber",
       "level": "staff",
@@ -31,7 +31,7 @@
         "location": "San Francisco, CA",
         "description": "Business Development Lead, US Regional Grocery - Chicago, Illinois | Uber Careers\n[Skip to main content](#main)\n[](https://www.uber.com/careers/list?query=)\n# Business Development Lead, US Regional Grocery\nSales, Sales &amp; Account Management\nLos Angeles, California |\nNew York, New York |\nSeattle, Washington |\nMiami, Florida |\nChicago, Illinois |\nSan Francisco, California\n[Apply Now](https://www.uber.com/careers/apply/interstitial/149889)\n**About the Role**\nAs a Business Development Lead, you will be responsible for engaging with senior-level executives, the negotiation process, and ultimately signing key strategic regional grocery brands in the United States.\nWho are we looking for? Someone who has proven they can build best-in-class partnerships with large...",
         "url": "https://www.uber.com/careers/list/149889",
-        "posted_at": 1768680359174,
+        "posted_at": 1768685645801,
         "level": "staff",
         "remote": false,
         "cost_milli_cents": 129,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.174000",
+      "final_value": "2026-01-17T14:34:05.801000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.174000",
+          "value": "2026-01-17T14:34:05.801000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.174000"
+          "reason": "Valid date: 2026-01-17T14:34:05.801000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.417757",
+          "value": "2026-01-17T14:34:05.871586",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

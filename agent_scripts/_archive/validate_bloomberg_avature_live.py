@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import sys
 from typing import Any, Dict, List
@@ -145,6 +145,6 @@ async def main() -> None:
                 }
             )
 
-    print(json.dumps({"results": results}, indent=2))
+    print(orjson.dumps({"results": results}, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

@@ -58,7 +58,7 @@ async def _fetch_site_schedules() -> list[Dict[str, Any]]:
 def _write_yaml(entries: list[Dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"site_schedules": entries}
-    output_path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    output_path.write_text(yaml.safe_dump(payload))
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Export Convex site schedules to YAML.")
     parser.add_argument(

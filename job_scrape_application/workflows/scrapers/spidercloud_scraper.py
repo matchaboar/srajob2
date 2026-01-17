@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import html
 import logging
 import os
@@ -108,8 +108,13 @@ UUID_LIKE_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ORDERED_LIST_LINE_RE = re.compile(r"^\d+[\.)]\s+\S+")
+_CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 logger = logging.getLogger("temporal.worker.activities")
+
+
+def _strip_control_chars(text: str) -> str:
+    return _CONTROL_CHAR_PATTERN.sub("", text)
 
 
 def _summarize_failed_items(
@@ -203,12 +208,42 @@ class SpiderCloudScraper(BaseScraper):
     def _try_parse_json(self, raw: str) -> Any | None:
         if not isinstance(raw, str):
             return None
-        cleaned = raw.strip()
+        cleaned = _strip_control_chars(raw.strip())
         if not cleaned:
             return None
 
         def _raw_decode_json(value: str) -> Any | None:
-            decoder = json.JSONDecoder()
+            def _find_json_end(text: str, start: int) -> int | None:
+                stack: list[str] = []
+                in_string = False
+                escape = False
+                for idx in range(start, len(text)):
+                    ch = text[idx]
+                    if in_string:
+                        if escape:
+                            escape = False
+                            continue
+                        if ch == "\\":
+                            escape = True
+                            continue
+                        if ch == '"':
+                            in_string = False
+                        continue
+                    if ch == '"':
+                        in_string = True
+                        continue
+                    if ch in "{[":
+                        stack.append(ch)
+                    elif ch in "}]":
+                        if not stack:
+                            return None
+                        open_ch = stack.pop()
+                        if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                            return None
+                        if not stack:
+                            return idx + 1
+                return None
+
             idx = 0
             length = len(value)
             values: list[Any] = []
@@ -217,9 +252,14 @@ class SpiderCloudScraper(BaseScraper):
                     idx += 1
                 if idx >= length:
                     break
+                if value[idx] not in "{[":
+                    break
+                end = _find_json_end(value, idx)
+                if end is None:
+                    break
                 try:
-                    result, end = decoder.raw_decode(value, idx)
-                except json.JSONDecodeError:
+                    result = orjson.loads(value[idx:end])
+                except orjson.JSONDecodeError:
                     break
                 values.append(result)
                 idx = end
@@ -232,7 +272,7 @@ class SpiderCloudScraper(BaseScraper):
             return values[0] if len(values) == 1 else values
 
         try:
-            return json.loads(cleaned, strict=False)
+            return orjson.loads(cleaned)
         except Exception:
             pass
         decoded = _raw_decode_json(cleaned)
@@ -247,7 +287,7 @@ class SpiderCloudScraper(BaseScraper):
         if not unescaped or unescaped == cleaned:
             return None
         try:
-            return json.loads(unescaped, strict=False)
+            return orjson.loads(_strip_control_chars(unescaped))
         except Exception:
             pass
         return _raw_decode_json(unescaped)
@@ -434,26 +474,26 @@ class SpiderCloudScraper(BaseScraper):
         min_description_len = 80
 
         def _parse_json_blob(text: str) -> Any | None:
-            text = text.strip()
-            if not text:
+            cleaned = _strip_control_chars(text.strip())
+            if not cleaned:
                 return None
             try:
-                return json.loads(text, strict=False)
+                return orjson.loads(cleaned)
             except Exception:
                 pass
             try:
-                unescaped = text.encode("utf-8", errors="ignore").decode("unicode_escape")
+                unescaped = cleaned.encode("utf-8", errors="ignore").decode("unicode_escape")
             except Exception:
                 unescaped = ""
             if unescaped:
                 try:
-                    return json.loads(unescaped, strict=False)
+                    return orjson.loads(_strip_control_chars(unescaped))
                 except Exception:
                     pass
-            match = re.search(JSON_OBJECT_PATTERN, text, flags=re.DOTALL)
+            match = re.search(JSON_OBJECT_PATTERN, cleaned, flags=re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(0))
+                    return orjson.loads(match.group(0))
                 except Exception:
                     return None
             return None
@@ -824,8 +864,8 @@ class SpiderCloudScraper(BaseScraper):
             return None
 
         try:
-            data = json.loads(text)
-        except (json.JSONDecodeError, ValueError):
+            data = orjson.loads(text)
+        except (orjson.JSONDecodeError, ValueError):
             return None
 
         if not isinstance(data, dict):
@@ -1000,12 +1040,12 @@ class SpiderCloudScraper(BaseScraper):
         This is a best-effort operation - failures are logged but don't block the scrape.
         """
         import base64
-        import json
+        import orjson
 
         try:
             # Serialize raw response to JSON
             try:
-                raw_json = json.dumps(raw_response, ensure_ascii=False, default=str)
+                raw_json = orjson.dumps(raw_response, default=str).decode("utf-8")
             except Exception:
                 raw_json = str(raw_response)
 
@@ -1479,7 +1519,7 @@ class SpiderCloudScraper(BaseScraper):
             )
             if fenced_match:
                 try:
-                    parsed = json.loads(fenced_match.group(1))
+                    parsed = orjson.loads(fenced_match.group(1))
                 except Exception:
                     parsed = None
                 if isinstance(parsed, dict):
@@ -2113,16 +2153,49 @@ class SpiderCloudScraper(BaseScraper):
             return value
 
         def _scan_json_candidates(text: str) -> Iterable[Any]:
-            decoder = json.JSONDecoder()
+            def _find_json_end(raw_text: str, start: int) -> int | None:
+                stack: list[str] = []
+                in_string = False
+                escape = False
+                for idx in range(start, len(raw_text)):
+                    ch = raw_text[idx]
+                    if in_string:
+                        if escape:
+                            escape = False
+                            continue
+                        if ch == "\\":
+                            escape = True
+                            continue
+                        if ch == '"':
+                            in_string = False
+                        continue
+                    if ch == '"':
+                        in_string = True
+                        continue
+                    if ch in "{[":
+                        stack.append(ch)
+                    elif ch in "}]":
+                        if not stack:
+                            return None
+                        open_ch = stack.pop()
+                        if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                            return None
+                        if not stack:
+                            return idx + 1
+                return None
+
             for match in re.finditer(r"[{[]", text):
                 idx = match.start()
+                end = _find_json_end(text, idx)
+                if end is None:
+                    continue
                 try:
-                    parsed, _ = decoder.raw_decode(text[idx:])
-                except json.JSONDecodeError:
+                    parsed = orjson.loads(text[idx:end])
+                except orjson.JSONDecodeError:
                     continue
                 if isinstance(parsed, str):
                     try:
-                        parsed = json.loads(parsed)
+                        parsed = orjson.loads(parsed)
                     except Exception:
                         pass
                 yield parsed
@@ -2130,13 +2203,14 @@ class SpiderCloudScraper(BaseScraper):
         def _parse_json_text(text: str) -> Any | None:
             text = _strip_code_fences(text)
             text = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", text)
+            text = _strip_control_chars(text)
             try:
-                parsed = json.loads(text)
+                parsed = orjson.loads(text)
             except Exception:
                 return None
             if isinstance(parsed, str):
                 try:
-                    parsed = json.loads(parsed)
+                    parsed = orjson.loads(parsed)
                 except Exception:
                     return parsed
             return parsed
@@ -2151,7 +2225,7 @@ class SpiderCloudScraper(BaseScraper):
             content = html.unescape(content).strip()
             if not content:
                 return None
-            candidate = content
+            candidate = _strip_control_chars(content)
             if not candidate.lstrip().startswith("{"):
                 brace_match = re.search(JSON_OBJECT_PATTERN, candidate, flags=re.DOTALL)
                 if brace_match:
@@ -3706,15 +3780,20 @@ class SpiderCloudScraper(BaseScraper):
 
         # Normalize job details - pass raw markdown_text so _normalize_job can
         # extract hints from JSON payloads before normalizing the description
-        require_keywords = attempt <= 1
-        normalized = self._normalize_job(
-            original_url,
-            markdown_text,
-            [raw_result],
-            started_at,
-            require_keywords=require_keywords,
-        )
-        ignored_entry = getattr(self, "_last_ignored_job", None)
+        # Skip normalization for listing pages - they only need URL extraction
+        normalized = None
+        ignored_entry = None
+        is_listing_page = handler and handler.is_listing_url(original_url)
+        if not is_listing_page:
+            require_keywords = attempt <= 1
+            normalized = self._normalize_job(
+                original_url,
+                markdown_text,
+                [raw_result],
+                started_at,
+                require_keywords=require_keywords,
+            )
+            ignored_entry = getattr(self, "_last_ignored_job", None)
 
         # Extract listing job URLs (same logic as streaming mode)
         listing_job_urls: List[str] = []
@@ -3862,7 +3941,7 @@ class SpiderCloudScraper(BaseScraper):
 
         def _safe_json_size(payload: Any) -> Optional[int]:
             try:
-                return len(json.dumps(payload, ensure_ascii=False))
+                return len(orjson.dumps(payload))
             except Exception:
                 return None
 
@@ -4672,7 +4751,7 @@ class SpiderCloudScraper(BaseScraper):
             payload = self._extract_json_payload(merged_text)
         if not raw_text and payload is not None:
             try:
-                raw_text = json.dumps(payload, ensure_ascii=False)
+                raw_text = orjson.dumps(payload).decode("utf-8")
             except Exception:
                 raw_text = str(payload)
 

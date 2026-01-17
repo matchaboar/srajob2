@@ -1,23 +1,23 @@
 {
   "site_id": "workday",
-  "detail_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
-  "source_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
+  "detail_url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707",
+  "source_url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707",
   "extracted_jobs": [
     {
-      "title": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
-      "description_preview": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in...",
-      "description_word_count": 1049,
-      "location": "San Antonio, TX",
+      "title": "Sr. Firmware Engineer",
+      "description_preview": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer...",
+      "description_word_count": 546,
+      "location": "Allentown, PA",
       "is_remote": false,
-      "posted_at": 1767970800000,
+      "posted_at": 1768402800000,
       "posted_at_unknown": false,
-      "company": "Dataminr",
-      "level": "mid",
+      "company": "Broadcom",
+      "level": "senior",
       "total_compensation": 0,
       "compensation_unknown": false,
       "compensation_reason": null,
-      "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
-      "cost_milli_cents": 3
+      "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707",
+      "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
@@ -26,29 +26,29 @@
     "description_uploads_count": 1,
     "ingested_jobs_sample": [
       {
-        "title": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
-        "company": "Dataminr",
-        "location": "San Antonio, TX",
-        "description": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in operational environments where real-world missions rely on your work. If you enjoy direct customer interaction and can translate complex system behaviour into actionable deployment steps, and troubleshooting paths. If you are motivated by improving how users execute cyber operations rather than simply maintaining systems. If you enjoy solving problems that...",
-        "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
-        "posted_at": 1767970800000,
-        "level": "mid",
+        "title": "Sr. Firmware Engineer",
+        "company": "Broadcom",
+        "location": "Allentown, PA",
+        "description": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer Location: Allentown, PA, Fort Collins, CO, or San Jose, CA Job Description: A Firmware engineering position responsible for developing embedded software for Broadcom products targeted at hyperscale data center applications. Broadcom’s market-leading products are enabling the next generation of AI and cloud storage. Essential Duties and Responsibilities: ● Design and...",
+        "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707",
+        "posted_at": 1768402800000,
+        "level": "senior",
         "remote": false,
-        "cost_milli_cents": 3,
-        "_full_description_word_count": 1049
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 546
       }
     ],
     "description_uploads_sample": [
       {
-        "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954",
-        "word_count": 1049,
-        "description_preview": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This..."
+        "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707",
+        "word_count": 546,
+        "description_preview": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If..."
       }
     ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
+      "final_value": "Sr. Firmware Engineer",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -69,7 +69,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "Field Services Engineer, USAF (Onsite in San Antonio, TX)",
+          "value": "Sr. Firmware Engineer",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -97,7 +97,7 @@
       ]
     },
     "company": {
-      "final_value": "Dataminr",
+      "final_value": "Broadcom",
       "winning_strategy": "site_handler_company",
       "strategy_count": 7,
       "strategies": [
@@ -111,30 +111,30 @@
         {
           "name": "site_handler_company",
           "priority": "SITE_HANDLER",
-          "value": "Dataminr",
+          "value": "Broadcom",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "raw_row_company",
           "priority": "EXPLICIT_FIELD",
-          "value": "Dataminr",
+          "value": "Broadcom",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Dataminr",
+          "value": "Broadcom",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "Dataminr",
-          "is_valid": true,
-          "reason": "Found 'Work at Company' pattern"
+          "value": null,
+          "is_valid": false,
+          "reason": "No company pattern matched"
         },
         {
           "name": "hinted_company",
@@ -153,7 +153,7 @@
       ]
     },
     "location": {
-      "final_value": "San Antonio, TX",
+      "final_value": "Allentown, PA",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -174,42 +174,42 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "San Antonio, TX",
+          "value": "Allentown, PA",
           "is_valid": true,
           "reason": "Valid location"
         },
         {
           "name": "explicit_label_location",
           "priority": "CUSTOM_350",
-          "value": null,
-          "is_valid": false,
-          "reason": "No explicit location label found"
+          "value": "Allentown, PA",
+          "is_valid": true,
+          "reason": "Found location label pattern"
         },
         {
           "name": "url_location",
           "priority": "URL_DERIVED",
-          "value": "San Antonio Tx",
+          "value": "Usa Allentown 1110 American Parkway Ne",
           "is_valid": true,
           "reason": "Extracted from URL path"
         },
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No location pattern matched"
+          "value": "Allentown, PA",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_CITY_STATE"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "San Antonio, TX",
+          "value": "Allentown, PA",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
         {
           "name": "hinted_location",
           "priority": "HEURISTIC",
-          "value": "San Antonio, TX",
+          "value": "Allentown, PA",
           "is_valid": true,
           "reason": "From hints.locations (1 locations)"
         },
@@ -253,7 +253,7 @@
           "priority": "EXPLICIT_FIELD",
           "value": null,
           "is_valid": false,
-          "reason": "Location 'San Antonio, TX' present but not inferring remote status"
+          "reason": "Location 'Allentown, PA' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -281,7 +281,7 @@
           "priority": "CUSTOM_650",
           "value": null,
           "is_valid": false,
-          "reason": "Company 'Dataminr' not in remote company list"
+          "reason": "Company 'Broadcom' not in remote company list"
         },
         {
           "name": "default_remote",
@@ -293,16 +293,16 @@
       ]
     },
     "level": {
-      "final_value": "mid",
-      "winning_strategy": "default_level",
+      "final_value": "senior",
+      "winning_strategy": "explicit_level_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": null,
-          "is_valid": false,
-          "reason": "Skipping mid-level default: mid"
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Explicit level field: senior -> senior"
         },
         {
           "name": "structured_data_level",
@@ -314,16 +314,16 @@
         {
           "name": "title_level",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No level indicator in title"
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from title: 'sr' -> senior"
         },
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
-          "value": null,
-          "is_valid": false,
-          "reason": "No level pattern in content"
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from content: 'Senior' -> senior"
         },
         {
           "name": "hinted_level",
@@ -342,7 +342,7 @@
       ]
     },
     "compensation": {
-      "final_value": 118950,
+      "final_value": 140400,
       "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
@@ -363,16 +363,16 @@
         {
           "name": "hinted_compensation",
           "priority": "CUSTOM_450",
-          "value": 118950,
+          "value": 140400,
           "is_valid": true,
-          "reason": "Compensation from hint range: $96,400-$141,500 -> $118,950 (avg)"
+          "reason": "Compensation from hint range: $108,000-$172,800 -> $140,400 (avg)"
         },
         {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
-          "value": 118950,
+          "value": 140400,
           "is_valid": true,
-          "reason": "Compensation range pattern: $96,400-$141,500 -> $118,950"
+          "reason": "Compensation range pattern: $108,000-$172,800 -> $140,400"
         },
         {
           "name": "unknown_compensation",
@@ -384,16 +384,16 @@
       ]
     },
     "cost_milli_cents": {
-      "final_value": 3,
+      "final_value": 2,
       "winning_strategy": "raw_row_cost_milli_cents",
       "strategy_count": 4,
       "strategies": [
         {
           "name": "raw_row_cost_milli_cents",
           "priority": "STRUCTURED_DATA",
-          "value": 3,
+          "value": 2,
           "is_valid": true,
-          "reason": "Valid cost: 3"
+          "reason": "Valid cost: 2"
         },
         {
           "name": "raw_row_cost_cents",
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-09T08:00:00",
+      "final_value": "2026-01-14T08:00:00",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-09T08:00:00",
+          "value": "2026-01-14T08:00:00",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-09T08:00:00"
+          "reason": "Valid date: 2026-01-14T08:00:00"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.101000",
+          "value": "2026-01-17T14:34:05.556458",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
@@ -496,7 +496,7 @@
       ]
     },
     "description": {
-      "final_value": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in operational environments where real-world missions rely on your work. If you enjoy direct customer interaction and can translate complex system behaviour into actionable deployment steps, and troubleshooting paths. If you are motivated by improving how users execute cyber operations rather than simply maintaining systems. If you enjoy solving problems that emerge in dynamic environments - whether that involves diagnosing connectivity failures, understanding permissions and access flows, or adapting to new tools coming online. If you are comfortable being the technical point person for field operators, mission teams, and leadership, and you naturally earn trust by being responsive, competent, and composed. If your passion is for enabling teams, not just implementing technology, but ensuring people understand it and can rely on it with confidence, then this role is for you. Active TS or TS/SCI or obtainable clearance, or experience working in classified settings, is required for this role. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The opportunity Deploy and configure USAF cyber kits across multiple hardware platforms Troubleshoot live issues under operational conditions Support threat hunting teams, cyber protection teams, and mission operators directly Train analysts, operators, and engineers on best-use practices for Polarity and related tools Serve as the “train-the-trainer” lead, building repeatable onboarding and instructional content Work with platforms such as Docker, Kubernetes, Linux, secure enclaves, and classified infrastructures Contribute insights that shape future features, SOP documentation, and operational workflows Support expansion into multiple theaters and operational units as the deployment footprint scales to 550&#43; kits What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Hands-on Linux administration experience Strong troubleshooting and research ability in complex environments, knowledge of computer networking, routing, and connectivity workflows Experience with Docker and/or Kubernetes deployment Experience working with mission-aligned operators or cyber organizations. Ability to teach, onboard, and guide users of varying technical experience Experience with cyber hunt teams, IR teams, or network defense operations. Familiarity with secure enclave operations (NIPR/JWICS/SIPR or equivalent). Exposure to automation or scripting for configuration scaling Experience authoring SOPs or structured training documentation Ability and willingness to travel (~30%) LI-JF About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual base salary range for this position is $96,400 - $141,500. You will also be eligible to receive a discretionary bonus and Company equity. Actual salary will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+      "final_value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer Location: Allentown, PA, Fort Collins, CO, or San Jose, CA Job Description: A Firmware engineering position responsible for developing embedded software for Broadcom products targeted at hyperscale data center applications. Broadcom’s market-leading products are enabling the next generation of AI and cloud storage. Essential Duties and Responsibilities: ● Design and implementation of firmware for new integrated circuit products using C and C&#43;&#43; ● Develop quality software using best practices for all phases of the software design life cycle – analyze requirements, design solutions, code, test, and support. ● Firmware integration and bring-up of new hardware and emulated hardware ● Debug embedded software using typical lab equipment like in-circuit emulators and logic analyzers ● Analysis of new customer feature requests and opportunities to continuously improve the product ● Collaboration across multiple teams to root cause and resolve issues The Successful Candidate Will: ● Possess a deep passion for coding and the science behind computer and software engineering, demonstrating a commitment to continuous learning and staying current with modern industry practices. ● Be proficient with version control (e.g., Git/GitHub) and open-source tools like Python. You automate builds, are highly skilled with C/C&#43;&#43; toolchains, and are comfortable navigating an operating system and writing shell scripts. ● Have a passion for continuous improvement and a commitment to creating quality output. ● Exhibit strong teamwork skills and thrive in a fast moving, multi-site team environment. ● Have a strong understanding of hardware/software interfaces and understand common embedded software design constraints, such as memory usage, power consumption, and speed optimization. Minimum Qual ifi cations: ● Bachelor’s Degree in Electrical Engineering, Computer Engineering, Computer Science, or similar ● 8&#43; years of experience developing software, ideally on an embedded target ● In depth experience in C and C&#43;&#43; with Python a plus Preferred Qual ifi cations: ● Experience with hyperscaler systems and architectures ● Familiarity with developing on emulated hardware or simulated hardware Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800. This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -510,23 +510,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in operational environments where real-world missions rely on your work. If you enjoy direct customer interaction and can translate complex system behaviour into actionable deployment steps, and troubleshooting paths. If you are motivated by improving how users execute cyber operations rather than simply maintaining systems. If you enjoy solving problems that emerge in dynamic environments - whether that involves diagnosing connectivity failures, understanding permissions and access flows, or adapting to new tools coming online. If you are comfortable being the technical point person for field operators, mission teams, and leadership, and you naturally earn trust by being responsive, competent, and composed. If your passion is for enabling teams, not just implementing technology, but ensuring people understand it and can rely on it with confidence, then this role is for you. Active TS or TS/SCI or obtainable clearance, or experience working in classified settings, is required for this role. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The opportunity Deploy and configure USAF cyber kits across multiple hardware platforms Troubleshoot live issues under operational conditions Support threat hunting teams, cyber protection teams, and mission operators directly Train analysts, operators, and engineers on best-use practices for Polarity and related tools Serve as the “train-the-trainer” lead, building repeatable onboarding and instructional content Work with platforms such as Docker, Kubernetes, Linux, secure enclaves, and classified infrastructures Contribute insights that shape future features, SOP documentation, and operational workflows Support expansion into multiple theaters and operational units as the deployment footprint scales to 550&#43; kits What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Hands-on Linux administration experience Strong troubleshooting and research ability in complex environments, knowledge of computer networking, routing, and connectivity workflows Experience with Docker and/or Kubernetes deployment Experience working with mission-aligned operators or cyber organizations. Ability to teach, onboard, and guide users of varying technical experience Experience with cyber hunt teams, IR teams, or network defense operations. Familiarity with secure enclave operations (NIPR/JWICS/SIPR or equivalent). Exposure to automation or scripting for configuration scaling Experience authoring SOPs or structured training documentation Ability and willingness to travel (~30%) LI-JF About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual base salary range for this position is $96,400 - $141,500. You will also be eligible to receive a discretionary bonus and Company equity. Actual salary will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer Location: Allentown, PA, Fort Collins, CO, or San Jose, CA Job Description: A Firmware engineering position responsible for developing embedded software for Broadcom products targeted at hyperscale data center applications. Broadcom’s market-leading products are enabling the next generation of AI and cloud storage. Essential Duties and Responsibilities: ● Design and implementation of firmware for new integrated circuit products using C and C&#43;&#43; ● Develop quality software using best practices for all phases of the software design life cycle – analyze requirements, design solutions, code, test, and support. ● Firmware integration and bring-up of new hardware and emulated hardware ● Debug embedded software using typical lab equipment like in-circuit emulators and logic analyzers ● Analysis of new customer feature requests and opportunities to continuously improve the product ● Collaboration across multiple teams to root cause and resolve issues The Successful Candidate Will: ● Possess a deep passion for coding and the science behind computer and software engineering, demonstrating a commitment to continuous learning and staying current with modern industry practices. ● Be proficient with version control (e.g., Git/GitHub) and open-source tools like Python. You automate builds, are highly skilled with C/C&#43;&#43; toolchains, and are comfortable navigating an operating system and writing shell scripts. ● Have a passion for continuous improvement and a commitment to creating quality output. ● Exhibit strong teamwork skills and thrive in a fast moving, multi-site team environment. ● Have a strong understanding of hardware/software interfaces and understand common embedded software design constraints, such as memory usage, power consumption, and speed optimization. Minimum Qual ifi cations: ● Bachelor’s Degree in Electrical Engineering, Computer Engineering, Computer Science, or similar ● 8&#43; years of experience developing software, ideally on an embedded target ● In depth experience in C and C&#43;&#43; with Python a plus Preferred Qual ifi cations: ● Experience with hyperscaler systems and architectures ● Familiarity with developing on emulated hardware or simulated hardware Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800. This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (7047 chars, 1049 words)"
+          "reason": "Valid description (3771 chars, 546 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in operational environments where real-world missions rely on your work. If you enjoy direct customer interaction and can translate complex system behaviour into actionable deployment steps, and troubleshooting paths. If you are motivated by improving how users execute cyber operations rather than simply maintaining systems. If you enjoy solving problems that emerge in dynamic environments - whether that involves diagnosing connectivity failures, understanding permissions and access flows, or adapting to new tools coming online. If you are comfortable being the technical point person for field operators, mission teams, and leadership, and you naturally earn trust by being responsive, competent, and composed. If your passion is for enabling teams, not just implementing technology, but ensuring people understand it and can rely on it with confidence, then this role is for you. Active TS or TS/SCI or obtainable clearance, or experience working in classified settings, is required for this role. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The opportunity Deploy and configure USAF cyber kits across multiple hardware platforms Troubleshoot live issues under operational conditions Support threat hunting teams, cyber protection teams, and mission operators directly Train analysts, operators, and engineers on best-use practices for Polarity and related tools Serve as the “train-the-trainer” lead, building repeatable onboarding and instructional content Work with platforms such as Docker, Kubernetes, Linux, secure enclaves, and classified infrastructures Contribute insights that shape future features, SOP documentation, and operational workflows Support expansion into multiple theaters and operational units as the deployment footprint scales to 550&#43; kits What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Hands-on Linux administration experience Strong troubleshooting and research ability in complex environments, knowledge of computer networking, routing, and connectivity workflows Experience with Docker and/or Kubernetes deployment Experience working with mission-aligned operators or cyber organizations. Ability to teach, onboard, and guide users of varying technical experience Experience with cyber hunt teams, IR teams, or network defense operations. Familiarity with secure enclave operations (NIPR/JWICS/SIPR or equivalent). Exposure to automation or scripting for configuration scaling Experience authoring SOPs or structured training documentation Ability and willingness to travel (~30%) LI-JF About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual base salary range for this position is $96,400 - $141,500. You will also be eligible to receive a discretionary bonus and Company equity. Actual salary will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer Location: Allentown, PA, Fort Collins, CO, or San Jose, CA Job Description: A Firmware engineering position responsible for developing embedded software for Broadcom products targeted at hyperscale data center applications. Broadcom’s market-leading products are enabling the next generation of AI and cloud storage. Essential Duties and Responsibilities: ● Design and implementation of firmware for new integrated circuit products using C and C&#43;&#43; ● Develop quality software using best practices for all phases of the software design life cycle – analyze requirements, design solutions, code, test, and support. ● Firmware integration and bring-up of new hardware and emulated hardware ● Debug embedded software using typical lab equipment like in-circuit emulators and logic analyzers ● Analysis of new customer feature requests and opportunities to continuously improve the product ● Collaboration across multiple teams to root cause and resolve issues The Successful Candidate Will: ● Possess a deep passion for coding and the science behind computer and software engineering, demonstrating a commitment to continuous learning and staying current with modern industry practices. ● Be proficient with version control (e.g., Git/GitHub) and open-source tools like Python. You automate builds, are highly skilled with C/C&#43;&#43; toolchains, and are comfortable navigating an operating system and writing shell scripts. ● Have a passion for continuous improvement and a commitment to creating quality output. ● Exhibit strong teamwork skills and thrive in a fast moving, multi-site team environment. ● Have a strong understanding of hardware/software interfaces and understand common embedded software design constraints, such as memory usage, power consumption, and speed optimization. Minimum Qual ifi cations: ● Bachelor’s Degree in Electrical Engineering, Computer Engineering, Computer Science, or similar ● 8&#43; years of experience developing software, ideally on an embedded target ● In depth experience in C and C&#43;&#43; with Python a plus Preferred Qual ifi cations: ● Experience with hyperscaler systems and architectures ● Familiarity with developing on emulated hardware or simulated hardware Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800. This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (7047 chars, 1049 words)"
+          "reason": "Valid description (3771 chars, 546 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "See yourself at Dataminr We are seeking a hands-on, customer-facing facing and mission-focused Field Services Engineer to support the deployment and growth of a large US Air Force system. This is an on-site role in San Antonio, TX. This role is ideal for a hands-on keyboard engineer who thrives in operational environments where real-world missions rely on your work. If you enjoy direct customer interaction and can translate complex system behaviour into actionable deployment steps, and troubleshooting paths. If you are motivated by improving how users execute cyber operations rather than simply maintaining systems. If you enjoy solving problems that emerge in dynamic environments - whether that involves diagnosing connectivity failures, understanding permissions and access flows, or adapting to new tools coming online. If you are comfortable being the technical point person for field operators, mission teams, and leadership, and you naturally earn trust by being responsive, competent, and composed. If your passion is for enabling teams, not just implementing technology, but ensuring people understand it and can rely on it with confidence, then this role is for you. Active TS or TS/SCI or obtainable clearance, or experience working in classified settings, is required for this role. AI Innovation at Dataminr Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold. Regenerative AI : our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more here . Agentic AI : we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more here Multimodal AI: our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more here . The opportunity Deploy and configure USAF cyber kits across multiple hardware platforms Troubleshoot live issues under operational conditions Support threat hunting teams, cyber protection teams, and mission operators directly Train analysts, operators, and engineers on best-use practices for Polarity and related tools Serve as the “train-the-trainer” lead, building repeatable onboarding and instructional content Work with platforms such as Docker, Kubernetes, Linux, secure enclaves, and classified infrastructures Contribute insights that shape future features, SOP documentation, and operational workflows Support expansion into multiple theaters and operational units as the deployment footprint scales to 550&#43; kits What you bring At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don&#39;t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed. Hands-on Linux administration experience Strong troubleshooting and research ability in complex environments, knowledge of computer networking, routing, and connectivity workflows Experience with Docker and/or Kubernetes deployment Experience working with mission-aligned operators or cyber organizations. Ability to teach, onboard, and guide users of varying technical experience Experience with cyber hunt teams, IR teams, or network defense operations. Familiarity with secure enclave operations (NIPR/JWICS/SIPR or equivalent). Exposure to automation or scripting for configuration scaling Experience authoring SOPs or structured training documentation Ability and willingness to travel (~30%) LI-JF About Dataminr At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts. Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe. As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits here . We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more. We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities. The annual base salary range for this position is $96,400 - $141,500. You will also be eligible to receive a discretionary bonus and Company equity. Actual salary will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience. Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status. Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&#39;s candidate privacy notice available here . By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&#64;dataminr.com or privacy&#64;dataminr.com .",
+          "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Basic details Job Title: Senior Firmware Engineer Location: Allentown, PA, Fort Collins, CO, or San Jose, CA Job Description: A Firmware engineering position responsible for developing embedded software for Broadcom products targeted at hyperscale data center applications. Broadcom’s market-leading products are enabling the next generation of AI and cloud storage. Essential Duties and Responsibilities: ● Design and implementation of firmware for new integrated circuit products using C and C&#43;&#43; ● Develop quality software using best practices for all phases of the software design life cycle – analyze requirements, design solutions, code, test, and support. ● Firmware integration and bring-up of new hardware and emulated hardware ● Debug embedded software using typical lab equipment like in-circuit emulators and logic analyzers ● Analysis of new customer feature requests and opportunities to continuously improve the product ● Collaboration across multiple teams to root cause and resolve issues The Successful Candidate Will: ● Possess a deep passion for coding and the science behind computer and software engineering, demonstrating a commitment to continuous learning and staying current with modern industry practices. ● Be proficient with version control (e.g., Git/GitHub) and open-source tools like Python. You automate builds, are highly skilled with C/C&#43;&#43; toolchains, and are comfortable navigating an operating system and writing shell scripts. ● Have a passion for continuous improvement and a commitment to creating quality output. ● Exhibit strong teamwork skills and thrive in a fast moving, multi-site team environment. ● Have a strong understanding of hardware/software interfaces and understand common embedded software design constraints, such as memory usage, power consumption, and speed optimization. Minimum Qual ifi cations: ● Bachelor’s Degree in Electrical Engineering, Computer Engineering, Computer Science, or similar ● 8&#43; years of experience developing software, ideally on an embedded target ● In depth experience in C and C&#43;&#43; with Python a plus Preferred Qual ifi cations: ● Experience with hyperscaler systems and architectures ● Familiarity with developing on emulated hardware or simulated hardware Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800. This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (7047 chars, 1049 words)"
+          "reason": "Valid description (3771 chars, 546 words)"
         },
         {
           "name": "empty_description_fallback",

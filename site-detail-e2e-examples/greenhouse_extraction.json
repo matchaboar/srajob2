@@ -1,23 +1,23 @@
 {
   "site_id": "greenhouse",
-  "detail_url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007",
-  "source_url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+  "source_url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
   "extracted_jobs": [
     {
-      "title": "Customer Support Engineer",
-      "description_preview": "Customer Support Engineer About the Role As a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective...",
-      "description_word_count": 676,
-      "location": "San Francisco, CA",
+      "title": "AI Research Engineer - Datadog AI Research (DAIR)",
+      "description_preview": "AI Research Engineer - Datadog AI Research (DAIR) As a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production. Building on...",
+      "description_word_count": 965,
+      "location": "Paris, France",
       "is_remote": false,
-      "posted_at": 1768326285000,
+      "posted_at": 1767981341000,
       "posted_at_unknown": false,
-      "company": "Together AI",
+      "company": "Datadog",
       "level": "mid",
       "total_compensation": 0,
       "compensation_unknown": false,
       "compensation_reason": null,
-      "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007",
-      "cost_milli_cents": 1
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+      "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
@@ -26,30 +26,30 @@
     "description_uploads_count": 1,
     "ingested_jobs_sample": [
       {
-        "title": "Customer Support Engineer",
-        "company": "Together AI",
-        "location": "San Francisco",
-        "description": "Customer Support Engineer \n\nAbout the Role\nAs a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective solutions while serving as a product expert. As a part of the Customer Experience organization, you will collaborate closely with product and sales, driving continuous improvement of our offerings. This is an exciting opportunity for a deeply technical professional passionate about AI and customer success to make a significant impact...",
-        "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007",
-        "apply_url": "https://boards.greenhouse.io/togetherai/jobs/4745173007",
-        "posted_at": 1768326285000,
+        "title": "AI Research Engineer - Datadog AI Research (DAIR)",
+        "company": "Datadog",
+        "location": "Paris, France",
+        "description": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+        "apply_url": "https://boards.greenhouse.io/datadog/jobs/7194969",
+        "posted_at": 1767981341000,
         "level": "mid",
         "remote": false,
-        "cost_milli_cents": 1,
-        "_full_description_word_count": 676
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 965
       }
     ],
     "description_uploads_sample": [
       {
-        "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007",
-        "word_count": 676,
-        "description_preview": "Customer Support Engineer About the Role As a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out..."
+        "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+        "word_count": 965,
+        "description_preview": "AI Research Engineer - Datadog AI Research (DAIR) As a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the..."
       }
     ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "Customer Support Engineer",
+      "final_value": "AI Research Engineer - Datadog AI Research (DAIR)",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -70,7 +70,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "Customer Support Engineer",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -84,21 +84,21 @@
         {
           "name": "hinted_title",
           "priority": "HEURISTIC",
-          "value": "Customer Support Engineer",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)",
           "is_valid": true,
           "reason": "Valid title"
         },
         {
           "name": "first_line_title",
           "priority": "FALLBACK",
-          "value": "Customer Support Engineer",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)",
           "is_valid": true,
           "reason": "Valid title"
         }
       ]
     },
     "company": {
-      "final_value": "Together AI",
+      "final_value": "Datadog",
       "winning_strategy": "raw_row_company",
       "strategy_count": 7,
       "strategies": [
@@ -119,30 +119,30 @@
         {
           "name": "raw_row_company",
           "priority": "EXPLICIT_FIELD",
-          "value": "Together AI",
+          "value": "Datadog",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Together AI",
+          "value": "Datadog",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "About Together AI Together AI",
+          "value": "the pack",
           "is_valid": true,
-          "reason": "Found 'Company is a' pattern"
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
           "priority": "HEURISTIC",
-          "value": "the Role",
-          "is_valid": true,
-          "reason": "Valid company name"
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
         },
         {
           "name": "fallback_company",
@@ -154,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "San Francisco",
+      "final_value": "Paris, France",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -175,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "San Francisco",
+          "value": "Paris, France",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -196,23 +196,23 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No location pattern matched"
+          "value": "Bits AI , Watchdog",
+          "is_valid": true,
+          "reason": "Matched pattern LOCATION_FULL"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "San Francisco",
+          "value": "Paris, France",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
         {
           "name": "hinted_location",
           "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No location in hints"
+          "value": "New York, NY",
+          "is_valid": true,
+          "reason": "From hints.locations (1 locations)"
         },
         {
           "name": "remote_fallback_location",
@@ -254,7 +254,7 @@
           "priority": "EXPLICIT_FIELD",
           "value": null,
           "is_valid": false,
-          "reason": "Location 'San Francisco' present but not inferring remote status"
+          "reason": "Location 'Paris, France' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -275,14 +275,14 @@
           "priority": "HEURISTIC",
           "value": null,
           "is_valid": false,
-          "reason": "No remote in hints"
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
           "priority": "CUSTOM_650",
           "value": null,
           "is_valid": false,
-          "reason": "Company 'Together AI' not in remote company list"
+          "reason": "Company 'Datadog' not in remote company list"
         },
         {
           "name": "default_remote",
@@ -343,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 220000,
-      "winning_strategy": "hinted_compensation",
+      "final_value": 0,
+      "winning_strategy": "unknown_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -364,16 +364,16 @@
         {
           "name": "hinted_compensation",
           "priority": "CUSTOM_450",
-          "value": 220000,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $180,000-$260,000 -> $220,000 (avg)"
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
         },
         {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
-          "value": 220000,
-          "is_valid": true,
-          "reason": "Compensation range pattern: $180,000-$260,000 -> $220,000"
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation pattern in content"
         },
         {
           "name": "unknown_compensation",
@@ -385,16 +385,16 @@
       ]
     },
     "cost_milli_cents": {
-      "final_value": 1,
+      "final_value": 3,
       "winning_strategy": "raw_row_cost_milli_cents",
       "strategy_count": 4,
       "strategies": [
         {
           "name": "raw_row_cost_milli_cents",
           "priority": "STRUCTURED_DATA",
-          "value": 1,
+          "value": 3,
           "is_valid": true,
-          "reason": "Valid cost: 1"
+          "reason": "Valid cost: 3"
         },
         {
           "name": "raw_row_cost_cents",
@@ -420,16 +420,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-13T10:44:45",
+      "final_value": "2026-01-09T10:55:41",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-13T10:44:45",
+          "value": "2026-01-09T10:55:41",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-13T10:44:45"
+          "reason": "Valid date: 2026-01-09T10:55:41"
         },
         {
           "name": "structured_data_posted_at",
@@ -462,7 +462,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.121445",
+          "value": "2026-01-17T14:34:05.653670",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
@@ -497,7 +497,7 @@
       ]
     },
     "description": {
-      "final_value": "Customer Support Engineer\n\nAbout the Role\nAs a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective solutions while serving as a product expert. As a part of the Customer Experience organization, you will collaborate closely with product and sales, driving continuous improvement of our offerings. This is an exciting opportunity for a deeply technical professional passionate about AI and customer success to make a significant impact in a fast-paced, innovative environment.\nResponsibilities\n- Engage directly with customers to tackle and resolve complex technical challenges involving our cutting-edge GPU clusters and our inference and fine-tuning services; ensure swift and effective solutions every time.\n- Become a product expert in all of our Gen AI solutions, serving as the last line of technical defense before issues are escalated to Engineering and Product teams.\n- Collaborate seamlessly across Engineering, Research, and Product teams to address customer concerns; collaborate with senior leaders both internally and externally to ensure the highest levels of customer satisfaction.\n- Transform customer insights into action by identifying patterns in support cases and working with Engineering and Go-To-Market teams to drive Together’s roadmap (e.g., future models to support)\n- Maintain detailed documentation of system configurations, procedures, troubleshooting guides, and FAQs to facilitate knowledge sharing with team and customers.\n- Be flexible in providing support coverage during holidays, nights and weekends as required by business needs to ensure consistent and reliable service for our customers.\nRequirements\n- 5+ years of experience in a customer-facing technical role with at least 1 year in a support function in AI&nbsp;\n- Strong technical background, with knowledge of AI, ML, GPU technologies and their integration into high-performance computing (HPC) environments.\n- Familiarity with infrastructure services (e.g., Kubernetes, SLURM), infrastructure as code solutions (e.g., Ansible) high-performance network fabrics, NFS-based storage management, container infrastructure, and scripting and programming languages.\n- Familiarity with operating storage systems in HPC environments such as Vast and Weka\n- Familiarity with inspecting and resolving network-related errors&nbsp;\n- Strong knowledge of Python, TypeScript, and/or JavaScript with testing/debugging experience using curl and Postman-like tools\n- Foundational understanding in the installation, configuration, administration, troubleshooting, and securing of compute clusters.\n- Complex technical problem solving and troubleshooting, with a proactive approach to issue resolution\n- Ability to work cross-functionally with teams such as Sales, Engineering, Support, Product and Research to drive customer success.\n- Strong sense of ownership and willingness to learn new skills to ensure both team and customer success.\n- Excellent communication and interpersonal skills, with the ability to explain complex technical concepts to non-technical stakeholders.\n- Ability to operate in dynamic environments, adept at managing multiple projects, and comfortable with frequent context switching and prioritization.\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.&nbsp;\nCompensation\nWe offer competitive compensation, startup equity, health insurance, and other benefits, as well as flexibility in terms of remote work. The US base salary range for this full-time position is: $180K-260K + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.",
+      "final_value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -511,23 +511,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "Customer Support Engineer\n\nAbout the Role\nAs a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective solutions while serving as a product expert. As a part of the Customer Experience organization, you will collaborate closely with product and sales, driving continuous improvement of our offerings. This is an exciting opportunity for a deeply technical professional passionate about AI and customer success to make a significant impact in a fast-paced, innovative environment.\nResponsibilities\n- Engage directly with customers to tackle and resolve complex technical challenges involving our cutting-edge GPU clusters and our inference and fine-tuning services; ensure swift and effective solutions every time.\n- Become a product expert in all of our Gen AI solutions, serving as the last line of technical defense before issues are escalated to Engineering and Product teams.\n- Collaborate seamlessly across Engineering, Research, and Product teams to address customer concerns; collaborate with senior leaders both internally and externally to ensure the highest levels of customer satisfaction.\n- Transform customer insights into action by identifying patterns in support cases and working with Engineering and Go-To-Market teams to drive Together’s roadmap (e.g., future models to support)\n- Maintain detailed documentation of system configurations, procedures, troubleshooting guides, and FAQs to facilitate knowledge sharing with team and customers.\n- Be flexible in providing support coverage during holidays, nights and weekends as required by business needs to ensure consistent and reliable service for our customers.\nRequirements\n- 5+ years of experience in a customer-facing technical role with at least 1 year in a support function in AI&nbsp;\n- Strong technical background, with knowledge of AI, ML, GPU technologies and their integration into high-performance computing (HPC) environments.\n- Familiarity with infrastructure services (e.g., Kubernetes, SLURM), infrastructure as code solutions (e.g., Ansible) high-performance network fabrics, NFS-based storage management, container infrastructure, and scripting and programming languages.\n- Familiarity with operating storage systems in HPC environments such as Vast and Weka\n- Familiarity with inspecting and resolving network-related errors&nbsp;\n- Strong knowledge of Python, TypeScript, and/or JavaScript with testing/debugging experience using curl and Postman-like tools\n- Foundational understanding in the installation, configuration, administration, troubleshooting, and securing of compute clusters.\n- Complex technical problem solving and troubleshooting, with a proactive approach to issue resolution\n- Ability to work cross-functionally with teams such as Sales, Engineering, Support, Product and Research to drive customer success.\n- Strong sense of ownership and willingness to learn new skills to ensure both team and customer success.\n- Excellent communication and interpersonal skills, with the ability to explain complex technical concepts to non-technical stakeholders.\n- Ability to operate in dynamic environments, adept at managing multiple projects, and comfortable with frequent context switching and prioritization.\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.&nbsp;\nCompensation\nWe offer competitive compensation, startup equity, health insurance, and other benefits, as well as flexibility in terms of remote work. The US base salary range for this full-time position is: $180K-260K + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (4806 chars, 676 words)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "Customer Support Engineer\n\nAbout the Role\nAs a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective solutions while serving as a product expert. As a part of the Customer Experience organization, you will collaborate closely with product and sales, driving continuous improvement of our offerings. This is an exciting opportunity for a deeply technical professional passionate about AI and customer success to make a significant impact in a fast-paced, innovative environment.\nResponsibilities\n- Engage directly with customers to tackle and resolve complex technical challenges involving our cutting-edge GPU clusters and our inference and fine-tuning services; ensure swift and effective solutions every time.\n- Become a product expert in all of our Gen AI solutions, serving as the last line of technical defense before issues are escalated to Engineering and Product teams.\n- Collaborate seamlessly across Engineering, Research, and Product teams to address customer concerns; collaborate with senior leaders both internally and externally to ensure the highest levels of customer satisfaction.\n- Transform customer insights into action by identifying patterns in support cases and working with Engineering and Go-To-Market teams to drive Together’s roadmap (e.g., future models to support)\n- Maintain detailed documentation of system configurations, procedures, troubleshooting guides, and FAQs to facilitate knowledge sharing with team and customers.\n- Be flexible in providing support coverage during holidays, nights and weekends as required by business needs to ensure consistent and reliable service for our customers.\nRequirements\n- 5+ years of experience in a customer-facing technical role with at least 1 year in a support function in AI&nbsp;\n- Strong technical background, with knowledge of AI, ML, GPU technologies and their integration into high-performance computing (HPC) environments.\n- Familiarity with infrastructure services (e.g., Kubernetes, SLURM), infrastructure as code solutions (e.g., Ansible) high-performance network fabrics, NFS-based storage management, container infrastructure, and scripting and programming languages.\n- Familiarity with operating storage systems in HPC environments such as Vast and Weka\n- Familiarity with inspecting and resolving network-related errors&nbsp;\n- Strong knowledge of Python, TypeScript, and/or JavaScript with testing/debugging experience using curl and Postman-like tools\n- Foundational understanding in the installation, configuration, administration, troubleshooting, and securing of compute clusters.\n- Complex technical problem solving and troubleshooting, with a proactive approach to issue resolution\n- Ability to work cross-functionally with teams such as Sales, Engineering, Support, Product and Research to drive customer success.\n- Strong sense of ownership and willingness to learn new skills to ensure both team and customer success.\n- Excellent communication and interpersonal skills, with the ability to explain complex technical concepts to non-technical stakeholders.\n- Ability to operate in dynamic environments, adept at managing multiple projects, and comfortable with frequent context switching and prioritization.\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.&nbsp;\nCompensation\nWe offer competitive compensation, startup equity, health insurance, and other benefits, as well as flexibility in terms of remote work. The US base salary range for this full-time position is: $180K-260K + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (4806 chars, 676 words)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "Customer Support Engineer\n\nAbout the Role\nAs a Customer Support Engineer at a pioneering AI company, you'll be the first line of defense to support customers as they build out training, fine tuning, and inference solutions with Together AI. You'll dive deep into complex technical challenges, providing swift and effective solutions while serving as a product expert. As a part of the Customer Experience organization, you will collaborate closely with product and sales, driving continuous improvement of our offerings. This is an exciting opportunity for a deeply technical professional passionate about AI and customer success to make a significant impact in a fast-paced, innovative environment.\nResponsibilities\n- Engage directly with customers to tackle and resolve complex technical challenges involving our cutting-edge GPU clusters and our inference and fine-tuning services; ensure swift and effective solutions every time.\n- Become a product expert in all of our Gen AI solutions, serving as the last line of technical defense before issues are escalated to Engineering and Product teams.\n- Collaborate seamlessly across Engineering, Research, and Product teams to address customer concerns; collaborate with senior leaders both internally and externally to ensure the highest levels of customer satisfaction.\n- Transform customer insights into action by identifying patterns in support cases and working with Engineering and Go-To-Market teams to drive Together’s roadmap (e.g., future models to support)\n- Maintain detailed documentation of system configurations, procedures, troubleshooting guides, and FAQs to facilitate knowledge sharing with team and customers.\n- Be flexible in providing support coverage during holidays, nights and weekends as required by business needs to ensure consistent and reliable service for our customers.\nRequirements\n- 5+ years of experience in a customer-facing technical role with at least 1 year in a support function in AI&nbsp;\n- Strong technical background, with knowledge of AI, ML, GPU technologies and their integration into high-performance computing (HPC) environments.\n- Familiarity with infrastructure services (e.g., Kubernetes, SLURM), infrastructure as code solutions (e.g., Ansible) high-performance network fabrics, NFS-based storage management, container infrastructure, and scripting and programming languages.\n- Familiarity with operating storage systems in HPC environments such as Vast and Weka\n- Familiarity with inspecting and resolving network-related errors&nbsp;\n- Strong knowledge of Python, TypeScript, and/or JavaScript with testing/debugging experience using curl and Postman-like tools\n- Foundational understanding in the installation, configuration, administration, troubleshooting, and securing of compute clusters.\n- Complex technical problem solving and troubleshooting, with a proactive approach to issue resolution\n- Ability to work cross-functionally with teams such as Sales, Engineering, Support, Product and Research to drive customer success.\n- Strong sense of ownership and willingness to learn new skills to ensure both team and customer success.\n- Excellent communication and interpersonal skills, with the ability to explain complex technical concepts to non-technical stakeholders.\n- Ability to operate in dynamic environments, adept at managing multiple projects, and comfortable with frequent context switching and prioritization.\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.&nbsp;\nCompensation\nWe offer competitive compensation, startup equity, health insurance, and other benefits, as well as flexibility in terms of remote work. The US base salary range for this full-time position is: $180K-260K + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.",
+          "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (4806 chars, 676 words)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "empty_description_fallback",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 import yaml
@@ -15,7 +15,7 @@ MAX_SITE_READ_GB_PER_DAY = 0.5
 
 
 def _json_size(obj: object) -> int:
-    return len(json.dumps(obj, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+    return len(orjson.dumps(obj))
 
 
 def _load_site_schedule_entries() -> list[dict]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 from typing import Optional
 
 from .html_fields import extract_forms
@@ -95,7 +95,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         }
         for a in actions
     ]
-    _save_text(args.out_plan, json.dumps(serial, ensure_ascii=False, indent=2))
+    _save_text(
+        args.out_plan,
+        orjson.dumps(serial, option=orjson.OPT_INDENT_2).decode("utf-8"),
+    )
 
     print(f"Planned {len(actions)} actions. Plan saved to {args.out_plan}")
 

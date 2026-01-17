@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import os
 import sys
 from typing import Any, Dict, List, Optional
@@ -67,7 +67,7 @@ def stringify_firecrawl_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(value, (int, float)):
             return str(value)
         try:
-            return json.dumps(value, ensure_ascii=False)
+            return orjson.dumps(value).decode("utf-8")
         except Exception:
             return str(value)
 
@@ -121,7 +121,7 @@ def metadata_urls_to_list(value: Any) -> List[str]:
 
     if isinstance(value, str):
         try:
-            parsed = json.loads(value)
+            parsed = orjson.loads(value)
             if isinstance(parsed, list):
                 return [url for url in parsed if isinstance(url, str) and url.strip()]
         except Exception:

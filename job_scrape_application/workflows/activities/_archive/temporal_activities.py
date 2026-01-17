@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import json
+import orjson
 import logging
 import re
 import time
@@ -1180,7 +1180,7 @@ async def crawl_site_fetchfox(  # noqa: DBOS004 - deprecated, mixed async+convex
     try:
         fox = FetchFox(api_key=settings.fetchfox_api_key)
         result = await asyncio.to_thread(fox.crawl, crawl_request)
-        result_obj: Dict[str, Any] | Any = result if isinstance(result, dict) else json.loads(result)
+        result_obj: Dict[str, Any] | Any = result if isinstance(result, dict) else orjson.loads(result)
     except Exception as exc:  # noqa: BLE001
         raise ApplicationError(f"FetchFox crawl failed: {exc}") from exc
     completed_at = int(time.time() * 1000)
@@ -2112,8 +2112,8 @@ async def process_spidercloud_listing_batch(  # noqa: DBOS004 - deprecated, use 
                         if not text:
                             return None
                         try:
-                            return json.loads(text)
-                        except json.JSONDecodeError:
+                            return orjson.loads(text)
+                        except orjson.JSONDecodeError:
                             return None
 
                     # raw_block is a list of {url, events, markdown} dicts
@@ -2329,7 +2329,7 @@ async def process_spidercloud_listing_batch(  # noqa: DBOS004 - deprecated, use 
                     if isinstance(payload, dict):
                         return payload
                 try:
-                    parsed = json.loads(text)
+                    parsed = orjson.loads(text)
                 except Exception:
                     parsed = None
                 if isinstance(parsed, dict):
@@ -3077,12 +3077,12 @@ async def collect_firecrawl_job_result(  # noqa: DBOS004 - deprecated, mixed asy
             raw_text = _extract_first_text_doc(status)
             try:
                 if raw_text:
-                    json_payload = json.loads(raw_text)
+                    json_payload = orjson.loads(raw_text)
             except Exception:
                 json_payload = None
 
         if raw_text is None and json_payload is not None:
-            raw_text = json.dumps(json_payload, ensure_ascii=False)
+            raw_text = orjson.dumps(json_payload).decode("utf-8")
 
         if json_payload is None:
             # Attempt direct fetch of the board JSON as a fallback
@@ -3396,7 +3396,7 @@ def store_scrape(scrape: Dict[str, Any]) -> str:  # noqa: DBOS001
 
         def _estimate_payload_size(value: Any) -> int:
             try:
-                return len(json.dumps(value, ensure_ascii=False))
+                return len(orjson.dumps(value))
             except Exception:
                 try:
                     return len(str(value))
@@ -4848,7 +4848,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             return None
         cleaned = _clean_invalid_json_escapes(_strip_code_fences(value))
         try:
-            return json.loads(cleaned)
+            return orjson.loads(cleaned)
         except Exception:
             parsed_items: list[Any] = []
             for line in cleaned.splitlines():
@@ -4856,7 +4856,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if not line:
                     continue
                 try:
-                    parsed_line = json.loads(line)
+                    parsed_line = orjson.loads(line)
                 except Exception:
                     continue
                 parsed_items.append(parsed_line)
@@ -4965,8 +4965,39 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if brace_start == -1:
                 return None
             try:
-                decoder = json.JSONDecoder()
-                parsed, _ = decoder.raw_decode(raw_text, brace_start)
+                stack: list[str] = []
+                in_string = False
+                escape = False
+                end = None
+                for idx in range(brace_start, len(raw_text)):
+                    ch = raw_text[idx]
+                    if in_string:
+                        if escape:
+                            escape = False
+                            continue
+                        if ch == "\\":
+                            escape = True
+                            continue
+                        if ch == '"':
+                            in_string = False
+                        continue
+                    if ch == '"':
+                        in_string = True
+                        continue
+                    if ch in "{[":
+                        stack.append(ch)
+                    elif ch in "}]":
+                        if not stack:
+                            break
+                        open_ch = stack.pop()
+                        if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                            break
+                        if not stack:
+                            end = idx + 1
+                            break
+                if end is None:
+                    return None
+                parsed = orjson.loads(raw_text[brace_start:end])
                 return parsed if isinstance(parsed, dict) else None
             except Exception:
                 return None
@@ -5256,7 +5287,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if isinstance(payload, dict):
                     return payload
             try:
-                parsed = json.loads(text)
+                parsed = orjson.loads(text)
             except Exception:
                 parsed = None
             if isinstance(parsed, dict):
@@ -5341,7 +5372,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 json_payload = BaseSiteHandler._extract_json_payload_from_html(raw_val)  # noqa: SLF001
                 if json_payload is None:
                     try:
-                        parsed = json.loads(raw_val)
+                        parsed = orjson.loads(raw_val)
                     except Exception:
                         parsed = None
                     if isinstance(parsed, dict):
@@ -5500,7 +5531,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     for text in list(candidates):
         if isinstance(text, str):
             try:
-                parsed_json = json.loads(
+                parsed_json = orjson.loads(
                     _clean_invalid_json_escapes(_strip_code_fences(text))
                 )
             except Exception:
@@ -5552,7 +5583,7 @@ def _extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                     return trimmed
                 return urls
             try:
-                parsed = json.loads(
+                parsed = orjson.loads(
                     _clean_invalid_json_escapes(_strip_code_fences(text))
                 )
                 candidates.extend(gather_strings(parsed))

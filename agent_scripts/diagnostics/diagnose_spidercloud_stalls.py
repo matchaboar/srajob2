@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import time
 from collections import Counter
@@ -261,7 +261,7 @@ async def _spidercloud_batch_test(
                         content_type="application/json",
                     )
                     result = await asyncio.wait_for(coro, timeout=timeout_seconds)
-                    payload = json.dumps(result)
+                    payload = orjson.dumps(result)
                     return url, len(payload), None
             except Exception as exc:  # noqa: BLE001
                 return url, None, str(exc)
@@ -339,6 +339,6 @@ async def main() -> None:
                 timeout_seconds=args.test_timeout,
             )
 
-    print(json.dumps(report, indent=2))
+    print(orjson.dumps(report, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

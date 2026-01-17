@@ -204,10 +204,10 @@ def format_debug_trace(results: dict[str, ExtractionResult]) -> str:
     Returns:
         Multi-line string with debug information.
     """
-    import json
+    import orjson
 
     trace = get_debug_trace(results)
-    return json.dumps(trace, indent=2, default=str)
+    return orjson.dumps(trace, option=orjson.OPT_INDENT_2, default=str).decode("utf-8")
 
 
 # Public API

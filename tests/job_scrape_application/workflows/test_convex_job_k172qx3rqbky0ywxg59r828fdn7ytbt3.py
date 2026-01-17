@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 from job_scrape_application.workflows.normalizers import build_job_update as _build_job_detail_heuristic_patch  # noqa: E402
@@ -16,7 +16,7 @@ FIXTURE_PATH = Path(
 
 
 def _load_fixture() -> dict:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 def test_microsoft_convex_hints_extract_title_location_company_salary_and_posted_at():

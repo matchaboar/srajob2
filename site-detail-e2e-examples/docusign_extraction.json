@@ -9,7 +9,7 @@
       "description_word_count": 1312,
       "location": "Seattle, WA",
       "is_remote": false,
-      "posted_at": 1768680359303,
+      "posted_at": 1768685645818,
       "posted_at_unknown": false,
       "company": "Docusign",
       "level": "mid",
@@ -31,7 +31,7 @@
         "location": "Seattle, WA",
         "description": "Software Engineer in Seattle, Washington | Docusign\n[ Back ](<javascript: history.go(-1)>)\n# Software Engineer\nCAROUSEL\\_PARAGRAPH\n* Engineering\n* Seattle, Washington\n* 09/04/2025\nShare Job ### Share Job\n[](javascript:)![](https://cms.jibecdn.com/prod/jibeapply/assets/SOCIAL-SHARE-TWITTER-X-ICON-en-us-1695672397749.png)\n## Job Description\n## Company Overview\nDocusign brings agreements to life. Over 1.5 million customers and more than a billion people in over 180 countries use Docusign solutions to accelerate the process of doing business and simplify people’s lives. With intelligent agreement management, Docusign unleashes business-critical data that is trapped inside of documents. Until now, these were disconnected from business systems of record, costing businesses time, money, and opportunity. Using Docusign’s Intelligent...",
         "url": "https://careers.docusign.com/jobs/27215?lang=en-us",
-        "posted_at": 1768680359303,
+        "posted_at": 1768685645818,
         "level": "mid",
         "remote": false,
         "cost_milli_cents": 460,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.303000",
+      "final_value": "2026-01-17T14:34:05.818000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.303000",
+          "value": "2026-01-17T14:34:05.818000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.303000"
+          "reason": "Valid date: 2026-01-17T14:34:05.818000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.618277",
+          "value": "2026-01-17T14:34:05.888764",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

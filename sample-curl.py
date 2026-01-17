@@ -3,6 +3,7 @@ import asyncio
 from pprint import pprint
 
 import httpx
+import orjson
 from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
@@ -102,17 +103,15 @@ async def crawl_page() -> dict:
     response = await client.post('https://api.spider.cloud/crawl',
       headers=headers, json=json_data)
     response.raise_for_status()
-    return response.json()
+    return orjson.loads(response.text)
     
 if __name__ == "__main__":
   res = asyncio.run(crawl_page())
   pprint(res)
   with open("sample-crawl-response.json", "w") as f:
-      import json
-      json.dump(res, f, indent=4)
+      f.write(orjson.dumps(res, option=orjson.OPT_INDENT_2).decode("utf-8"))
   with open("sample-crawl-response.json", "r") as f:
-      import json
-      res = json.load(f)
+      res = orjson.loads(f.read())
       print(res)
       # res = json.loads(f.read())
       print([item['url'] for item in res])

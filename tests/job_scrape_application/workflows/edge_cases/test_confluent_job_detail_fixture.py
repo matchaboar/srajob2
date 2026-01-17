@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict
 
@@ -56,7 +56,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_fixture() -> Dict[str, Any]:
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     if isinstance(payload, list) and payload and isinstance(payload[0], list):

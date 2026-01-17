@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import orjson
 
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
@@ -19,6 +20,8 @@ FIXTURE_PATH = Path(
     "tests/job_scrape_application/workflows/fixtures/spidercloud_adobe_job_detail_r160885_raw.json"
 )
 JOB_URL = "https://careers.adobe.com/us/en/job/R160885/2026-Intern-Research-Scientist"
+FIXED_NOW = datetime(2026, 1, 8, tzinfo=timezone.utc)
+FIXED_NOW_MS = int(FIXED_NOW.timestamp() * 1000)
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -36,7 +39,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -59,7 +62,7 @@ def _normalize_adobe_job() -> dict[str, Any]:
     event = _extract_event(payload)
     markdown = event.get("content", {}).get("commonmark", "")
     scraper = _make_scraper()
-    normalized = scraper._normalize_job(JOB_URL, markdown, [event], 0, require_keywords=False)
+    normalized = scraper._normalize_job(JOB_URL, markdown, [event], FIXED_NOW_MS, require_keywords=False)
     assert normalized is not None
     return normalized
 

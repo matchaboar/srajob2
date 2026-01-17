@@ -170,8 +170,8 @@ class FailureInjectingMockSpider:
                     "content": {"commonmark": f"# Job at {url}\n\nDescription here."},
                     "costs": {"total": 100},
                 }
-                import json
-                yield json.dumps(response) + "\n"
+                import orjson
+                yield orjson.dumps(response).decode("utf-8") + "\n"
 
         return _generate_response()
 

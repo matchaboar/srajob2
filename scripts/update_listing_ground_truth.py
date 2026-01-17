@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import argparse
 import html as html_lib
-import json
+import orjson
 import logging
 import re
 from pathlib import Path
@@ -37,7 +37,7 @@ DEBUG_GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_tru
 
 def load_fixture(fixture_path: Path) -> dict[str, Any]:
     """Load a fixture JSON file."""
-    return json.loads(fixture_path.read_text(encoding="utf-8"))
+    return orjson.loads(fixture_path.read_text(encoding="utf-8"))
 
 
 def extract_content_from_fixture(fixture_data: dict[str, Any]) -> tuple[str, str, str]:
@@ -56,7 +56,7 @@ def extract_content_from_fixture(fixture_data: dict[str, Any]) -> tuple[str, str
         if isinstance(first_item, str):
             # JSONL format - parse the JSON string
             try:
-                parsed = json.loads(first_item)
+                parsed = orjson.loads(first_item)
                 content_dict = parsed.get("content", {})
                 commonmark = content_dict.get("commonmark", "")
                 raw_html = content_dict.get("raw", "")
@@ -64,7 +64,7 @@ def extract_content_from_fixture(fixture_data: dict[str, Any]) -> tuple[str, str
                     content_type = "commonmark"
                 elif raw_html:
                     content_type = "raw_html"
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 commonmark = first_item
                 content_type = "raw_string"
         elif isinstance(first_item, dict):
@@ -156,8 +156,8 @@ def extract_urls_from_fixture(fixture_path: Path) -> tuple[list[str], str, str, 
     # Try commonmark first
     if content_to_parse and content_to_parse.startswith(("{", "[")):
         try:
-            json_payload = json.loads(content_to_parse)
-        except json.JSONDecodeError:
+            json_payload = orjson.loads(content_to_parse)
+        except orjson.JSONDecodeError:
             pass
 
     # Try raw_html if commonmark didn't work - this is where Greenhouse JSON often is
@@ -165,8 +165,8 @@ def extract_urls_from_fixture(fixture_path: Path) -> tuple[list[str], str, str, 
         raw_html_stripped = raw_html.strip()
         if raw_html_stripped.startswith(("{", "[")):
             try:
-                json_payload = json.loads(raw_html_stripped)
-            except json.JSONDecodeError:
+                json_payload = orjson.loads(raw_html_stripped)
+            except orjson.JSONDecodeError:
                 pass
 
         # Also try extracting from <pre> tags
@@ -174,8 +174,8 @@ def extract_urls_from_fixture(fixture_path: Path) -> tuple[list[str], str, str, 
             pre_match = re.search(r"<pre>(.+?)</pre>", raw_html, re.DOTALL)
             if pre_match:
                 try:
-                    json_payload = json.loads(pre_match.group(1))
-                except json.JSONDecodeError:
+                    json_payload = orjson.loads(pre_match.group(1))
+                except orjson.JSONDecodeError:
                     pass
 
     if json_payload and handler and hasattr(handler, "get_links_from_json"):

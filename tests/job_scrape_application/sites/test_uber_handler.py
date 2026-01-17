@@ -12,7 +12,7 @@ all of them, we get duplicate job entries. The handler must filter these out.
 
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -37,7 +37,7 @@ def _load_detail_fixture_links() -> list[str]:
     fixture_path = _latest_detail_fixture_path()
     if fixture_path is None or not fixture_path.exists():
         return []
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = orjson.loads(fixture_path.read_text(encoding="utf-8"))
     response = payload.get("response", [])
     if isinstance(response, list) and response:
         first_batch = response[0]

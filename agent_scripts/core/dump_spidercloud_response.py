@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import sys
 from pathlib import Path
@@ -204,8 +204,16 @@ async def main() -> None:
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        orjson.dumps(output, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
     item_count = len(output.get("response", output)) if isinstance(output, dict) else len(output)
-    print(json.dumps({"saved": str(out_path), "items": item_count}, indent=2))
+    print(
+        orjson.dumps(
+            {"saved": str(out_path), "items": item_count},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 if __name__ == "__main__":
     asyncio.run(main())

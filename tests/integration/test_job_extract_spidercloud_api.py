@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -78,12 +78,12 @@ def _extract_payload(events: List[Any]) -> Optional[Dict[str, Any]]:
         return found
     for text in _gather_strings(events):
         try:
-            parsed = json.loads(text)
+            parsed = orjson.loads(text)
         except Exception:
             continue
         if isinstance(parsed, str):
             try:
-                parsed = json.loads(parsed)
+                parsed = orjson.loads(parsed)
             except Exception:
                 pass
         found = _find_jobs_payload(parsed)
@@ -110,11 +110,11 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
     if not raw_candidate:
         return None
     try:
-        return json.loads(raw_candidate)
+        return orjson.loads(raw_candidate)
     except Exception:
         try:
             unescaped = raw_candidate.encode("utf-8", errors="ignore").decode("unicode_escape")
-            return json.loads(unescaped)
+            return orjson.loads(unescaped)
         except Exception:
             return None
 
@@ -206,7 +206,7 @@ async def main() -> None:
 
     if payload:
         summary = _summarize_payload(payload)
-        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
     else:
         sample = response[0] if response else None
         sample_type = type(sample).__name__
@@ -218,7 +218,7 @@ async def main() -> None:
                 sample_str = f"string_sample_len={len(text)} preview={preview}"
                 break
         print(
-            json.dumps(
+            orjson.dumps(
                 {
                     "error": "No JSON payload with jobs[] found.",
                     "response_count": len(response),
@@ -226,8 +226,8 @@ async def main() -> None:
                     "sample_keys": sample_keys,
                     "sample_string": sample_str,
                 },
-                indent=2,
-            )
+                option=orjson.OPT_INDENT_2,
+            ).decode("utf-8")
         )
 
     if args.out:
@@ -237,15 +237,28 @@ async def main() -> None:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(html_text, encoding="utf-8")
-        print(json.dumps({"saved_html": str(out_path), "chars": len(html_text)}, indent=2))
+        print(
+            orjson.dumps(
+                {"saved_html": str(out_path), "chars": len(html_text)},
+                option=orjson.OPT_INDENT_2,
+            ).decode("utf-8")
+        )
 
     if args.out_json:
         if not payload:
-            raise SystemExit("Unable to extract JSON payload for out-json.")
+            raise SystemExit("Unable to extract JSON payload for out-orjson.")
         out_path = Path(args.out_json)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps({"saved_json": str(out_path), "chars": len(json.dumps(payload, ensure_ascii=False))}, indent=2))
+        out_path.write_text(
+            orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
+        print(
+            orjson.dumps(
+                {"saved_json": str(out_path), "chars": len(orjson.dumps(payload))},
+                option=orjson.OPT_INDENT_2,
+            ).decode("utf-8")
+        )
 
 
 if __name__ == "__main__":

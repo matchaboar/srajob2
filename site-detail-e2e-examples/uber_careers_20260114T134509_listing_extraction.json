@@ -23,40 +23,40 @@
   "rejected_url_count": 0,
   "sample_urls": [
     "https://www.uber.com/careers/list/149889",
+    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/150720",
     "https://www.uber.com/careers/list/151351",
-    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/151796",
     "https://www.uber.com/careers/list/146338",
-    "https://www.uber.com/careers/list/153451",
     "https://www.uber.com/careers/list/152427",
     "https://www.uber.com/careers/list/152559",
-    "https://www.uber.com/careers/list/153449"
+    "https://www.uber.com/careers/list/153449",
+    "https://www.uber.com/careers/list/153451"
   ],
   "scraped_urls": [],
   "normalized_urls": [
     "https://www.uber.com/careers/list/149889",
+    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/150720",
     "https://www.uber.com/careers/list/151351",
-    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/151796",
     "https://www.uber.com/careers/list/146338",
-    "https://www.uber.com/careers/list/153451",
     "https://www.uber.com/careers/list/152427",
     "https://www.uber.com/careers/list/152559",
-    "https://www.uber.com/careers/list/153449"
+    "https://www.uber.com/careers/list/153449",
+    "https://www.uber.com/careers/list/153451"
   ],
   "apply_urls": [
     "https://www.uber.com/careers/list/149889",
+    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/150720",
     "https://www.uber.com/careers/list/151351",
-    "https://www.uber.com/careers/list/150718",
     "https://www.uber.com/careers/list/151796",
     "https://www.uber.com/careers/list/146338",
-    "https://www.uber.com/careers/list/153451",
     "https://www.uber.com/careers/list/152427",
     "https://www.uber.com/careers/list/152559",
-    "https://www.uber.com/careers/list/153449"
+    "https://www.uber.com/careers/list/153449",
+    "https://www.uber.com/careers/list/153451"
   ],
   "sample_transformations": [],
   "url_transformations": [],

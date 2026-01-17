@@ -32,7 +32,7 @@ Usage:
 
 from __future__ import annotations
 
-import json
+import orjson
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -104,7 +104,7 @@ class SpiderFixture:
         Returns:
             SpiderFixture instance with loaded data
         """
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = orjson.loads(path.read_text(encoding="utf-8"))
         return cls.from_dict(data)
 
     @classmethod

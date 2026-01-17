@@ -9,7 +9,7 @@ Tests the full flow:
 """
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -36,8 +36,8 @@ def _load_github_fixture() -> Dict[str, Any]:
     if not fixture_path.exists():
         pytest.skip(f"GitHub fixture not found: {fixture_path}")
 
-    with open(fixture_path) as f:
-        data = json.load(f)
+    with open(fixture_path, encoding="utf-8") as f:
+        data = orjson.loads(f.read())
 
     # Convert to fixture format expected by workflow
     return {

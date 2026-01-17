@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import html as html_lib
-import json
+import orjson
 import re
 import textwrap
 from datetime import datetime, timezone
@@ -162,7 +162,7 @@ META_DETAIL_RAW_FIXTURE = (
 
 @lru_cache(maxsize=None)
 def _load_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -170,7 +170,7 @@ def _load_fixture(path: Path) -> Any:
 
 @lru_cache(maxsize=None)
 def _load_request(path: Path) -> Dict[str, Any] | None:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
         request = payload.get("request")
         if isinstance(request, dict):
@@ -239,7 +239,7 @@ def _extract_structured_job_posting_from_raw(raw_html: str) -> Dict[str, Any]:
     match = re.search(JSON_LD_SCRIPT_PATTERN, raw_html, flags=re.IGNORECASE | re.DOTALL)
     assert match, "expected JSON-LD JobPosting script in raw HTML"
     payload_raw = html_lib.unescape(match.group("payload").strip())
-    parsed = json.loads(payload_raw)
+    parsed = orjson.loads(payload_raw)
     assert isinstance(parsed, dict)
     return parsed
 
@@ -708,7 +708,7 @@ def test_greenhouse_purestorage_api_extracts_posted_at():
     assert isinstance(content, dict)
     raw_payload = content.get("raw")
     assert isinstance(raw_payload, str)
-    job_payload = json.loads(raw_payload)
+    job_payload = orjson.loads(raw_payload)
 
     handler = GreenhouseHandler()
     raw_posted_at = handler.extract_posted_at(job_payload, _extract_source_url(payload))
@@ -770,7 +770,7 @@ def test_spidercloud_greenhouse_datadog_job_detail_posted_at_and_description():
     assert normalized is not None
     raw_content = event.get("content", {})
     assert isinstance(raw_content, dict)
-    raw_payload = json.loads(raw_content.get("raw", ""))
+    raw_payload = orjson.loads(raw_content.get("raw", ""))
     expected_posted_at, posted_unknown = parse_posted_at_with_unknown(raw_payload.get("updated_at"))
     assert posted_unknown is False
     assert normalized["posted_at"] == expected_posted_at

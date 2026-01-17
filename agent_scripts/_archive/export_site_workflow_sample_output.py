@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import logging
 import os
 import re
@@ -43,7 +43,7 @@ def _pagination_limit(entry: dict[str, Any]) -> int:
         return int(limit)
     return 3
 def _load_fixture(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise AssertionError(f"Fixture {path} must contain a dict payload")
     if not isinstance(payload.get("request"), dict):
@@ -267,9 +267,12 @@ async def main() -> None:
                     url = call.get("url")
                     params = call.get("params", {})
                     if isinstance(params, dict):
-                        params_text = json.dumps(params, sort_keys=True)
+                        params_text = orjson.dumps(
+                            params,
+                            option=orjson.OPT_SORT_KEYS,
+                        ).decode("utf-8")
                     else:
-                        params_text = json.dumps(params)
+                        params_text = orjson.dumps(params).decode("utf-8")
                     lines.append(f"  - `{url}` params={params_text}")
             else:
                 lines.append("  - _none_")

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import logging
 import os
 import re
@@ -650,7 +650,7 @@ async def _fetch_schedule_fixtures(
             **listing_capture_clean,
         }
         listing_path.write_text(
-            json.dumps(listing_capture_with_meta, ensure_ascii=False, indent=2),
+            orjson.dumps(listing_capture_with_meta, option=orjson.OPT_INDENT_2).decode("utf-8"),
             encoding="utf-8",
         )
         if not listing_job_urls:
@@ -728,7 +728,7 @@ async def _fetch_schedule_fixtures(
             **detail_capture_clean,
         }
         detail_path.write_text(
-            json.dumps(detail_capture_with_meta, ensure_ascii=False, indent=2),
+            orjson.dumps(detail_capture_with_meta, option=orjson.OPT_INDENT_2).decode("utf-8"),
             encoding="utf-8",
         )
 
@@ -874,8 +874,11 @@ async def main() -> None:
                     "request": {"endpoint": endpoint, "url": url, "params": params},
                     "response": response,
                 }
-                path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
-                logger.info(f"  wrote {path} ({len(json.dumps(fixture))} bytes)")
+                path.write_text(
+                    orjson.dumps(fixture, option=orjson.OPT_INDENT_2).decode("utf-8"),
+                    encoding="utf-8",
+                )
+                logger.info(f"  wrote {path} ({len(orjson.dumps(fixture))} bytes)")
             except Exception as exc:  # noqa: BLE001
                 logger.error(f"  failed to fetch {filename}: {exc}")
 if __name__ == "__main__":

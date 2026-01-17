@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -175,7 +175,7 @@ async def main() -> None:
         "problem_jobs": problems,
     }
 
-    output = json.dumps(payload, ensure_ascii=False, indent=2)
+    output = orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8")
     if args.out:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)

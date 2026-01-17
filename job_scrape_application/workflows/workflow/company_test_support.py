@@ -20,7 +20,7 @@ Directory Structure:
 
 from __future__ import annotations
 
-import json
+import orjson
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -82,7 +82,7 @@ class CompanyTestCase:
         identifier = assertion_path.stem
 
         # Load fixture to extract URL
-        fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
+        fixture_data = orjson.loads(fixture_path.read_text(encoding="utf-8"))
         url = ""
         source_url = ""
 
@@ -234,8 +234,8 @@ def _process_fixture_to_jobs(fixture_data: dict[str, Any], url: str) -> list[dic
             return parsed
         if raw_html.strip().startswith("{"):
             try:
-                parsed = json.loads(raw_html)
-            except json.JSONDecodeError:
+                parsed = orjson.loads(raw_html)
+            except orjson.JSONDecodeError:
                 return None
             if isinstance(parsed, dict):
                 data_obj = parsed.get("data")
@@ -285,8 +285,8 @@ def _process_fixture_to_jobs(fixture_data: dict[str, Any], url: str) -> list[dic
         for item in response:
             if isinstance(item, str):
                 try:
-                    parsed_item = json.loads(item.strip())
-                except (json.JSONDecodeError, TypeError):
+                    parsed_item = orjson.loads(item.strip())
+                except (orjson.JSONDecodeError, TypeError):
                     continue
                 if isinstance(parsed_item, dict):
                     job = _process_item(parsed_item)

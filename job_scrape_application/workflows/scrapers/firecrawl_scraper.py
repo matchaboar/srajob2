@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import re
 import time
 from dataclasses import dataclass
@@ -259,7 +259,7 @@ class FirecrawlScraper(BaseScraper):
                 raw_text = raw_json
             else:
                 try:
-                    raw_text = json.dumps(raw_json or {}, ensure_ascii=False)
+                    raw_text = orjson.dumps(raw_json or {}).decode("utf-8")
                 except Exception:
                     raw_text = "{}"
 

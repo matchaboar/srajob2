@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import logging
 import os
 import re
@@ -138,7 +138,7 @@ async def process_site(
 
         # Save listing fixture
         listing_fixture_path.write_text(
-            json.dumps(listing_capture, ensure_ascii=False, indent=2),
+            orjson.dumps(listing_capture, option=orjson.OPT_INDENT_2).decode("utf-8"),
             encoding="utf-8",
         )
 
@@ -219,7 +219,7 @@ async def process_site(
                     label="detail",
                 )
                 detail_fixture_path.write_text(
-                    json.dumps(detail_capture, ensure_ascii=False, indent=2),
+                    orjson.dumps(detail_capture, option=orjson.OPT_INDENT_2).decode("utf-8"),
                     encoding="utf-8",
                 )
                 # Generate detail assertion
@@ -315,10 +315,20 @@ async def main() -> int:
     if not entries:
         logger.warning("No sites to process")
         if args.output_format == "json":
-            print(json.dumps({"generated_count": 0, "fixtures": []}, indent=2))
+            print(
+                orjson.dumps(
+                    {"generated_count": 0, "fixtures": []},
+                    option=orjson.OPT_INDENT_2,
+                ).decode("utf-8")
+            )
         else:
             print("\n=== JSON Output ===")
-            print(json.dumps({"generated_count": 0, "fixtures": []}, indent=2))
+            print(
+                orjson.dumps(
+                    {"generated_count": 0, "fixtures": []},
+                    option=orjson.OPT_INDENT_2,
+                ).decode("utf-8")
+            )
         return 0
 
     # Generate timestamp for this batch
@@ -342,10 +352,10 @@ async def main() -> int:
     }
 
     if args.output_format == "json":
-        print(json.dumps(output, indent=2))
+        print(orjson.dumps(output, option=orjson.OPT_INDENT_2).decode("utf-8"))
     else:
         print("\n=== JSON Output ===")
-        print(json.dumps(output, indent=2))
+        print(orjson.dumps(output, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
     return 0
 if __name__ == "__main__":

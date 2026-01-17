@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from pathlib import Path
 
@@ -33,7 +33,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_spidercloud_fixture(path: Path) -> object:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -68,7 +68,7 @@ def _extract_json_ld(raw_html: str) -> dict:
     if not match:
         raise AssertionError("Missing JSON-LD payload in JibeApply fixture")
     payload_raw = html_lib.unescape(match.group("payload").strip())
-    return json.loads(payload_raw)
+    return orjson.loads(payload_raw)
 
 
 def test_jibeapply_markdown_hints_extract_company_location_salary_remote():
@@ -129,7 +129,7 @@ def test_spidercloud_jibeapply_detail_normalizes_company_title_location_and_desc
 
 def test_convex_job_normalizer_uses_hint_company_title_and_posted_at():
     fixture_path = Path("tests/job_scrape_application/workflows/fixtures/convex_job_k1748.json")
-    row = json.loads(fixture_path.read_text(encoding="utf-8"))
+    row = orjson.loads(fixture_path.read_text(encoding="utf-8"))
     normalizer = _JobRowNormalizer()
 
     normalized = normalizer.normalize_row(row)

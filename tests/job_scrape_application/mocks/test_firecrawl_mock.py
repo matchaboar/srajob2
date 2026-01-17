@@ -69,7 +69,7 @@ def test_mock_firecrawl_webhook_failure_recorded():
     client = MockFirecrawl(
         scenario=MockFirecrawlScenario.WEBHOOK_POST_FAILS,
         webhook_queue=queue,
-        webhook_delay=0.01,
+        webhook_delay=0,
     )
 
     webhook = {
@@ -78,6 +78,7 @@ def test_mock_firecrawl_webhook_failure_recorded():
     }
     client.start_crawl("https://example.com", webhook=webhook)
 
+    client.flush_webhooks()
     assert queue.drain() == []
     assert client.webhook_failures
 
@@ -87,7 +88,7 @@ def test_mock_firecrawl_callable_webhook_failure_still_returns_200():
     client = MockFirecrawl(
         scenario=MockFirecrawlScenario.WEBHOOK_POST_FAILS,
         webhook_queue=queue,
-        webhook_delay=0.01,
+        webhook_delay=0,
     )
 
     resp = client(
@@ -96,5 +97,6 @@ def test_mock_firecrawl_callable_webhook_failure_still_returns_200():
     )
 
     assert resp.status_code == 200
+    client.flush_webhooks()
     assert queue.drain() == []
     assert client.webhook_failures

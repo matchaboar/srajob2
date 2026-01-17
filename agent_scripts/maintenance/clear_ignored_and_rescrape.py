@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
@@ -115,7 +115,7 @@ async def main() -> None:
     }
 
     if args.dry_run:
-        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
         return
 
     deleted_ignored = 0
@@ -166,6 +166,6 @@ async def main() -> None:
         }
     )
 
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

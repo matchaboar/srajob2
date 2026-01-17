@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -23,11 +23,11 @@ JOB_URL = "https://careers.cisco.com/global/en/job/1451067/Indirect-Tax-Analyst-
 
 
 def _load_convex_fixture() -> dict:
-    return json.loads(CONVEX_FIXTURE.read_text(encoding="utf-8"))
+    return orjson.loads(CONVEX_FIXTURE.read_text(encoding="utf-8"))
 
 
 def _load_spidercloud_fixture() -> list:
-    payload = json.loads(SPIDERCLOUD_FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(SPIDERCLOUD_FIXTURE.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     if not isinstance(payload, list):

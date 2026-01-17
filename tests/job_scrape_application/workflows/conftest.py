@@ -11,6 +11,23 @@ from dbos import DBOS
 from dbos import _sys_db_sqlite
 
 
+# Store original sleep function at module level and patch once
+_original_sleep = _sys_db_sqlite.time.sleep
+_sleep_patched = False
+
+
+def _fast_sleep(seconds: float) -> None:
+    _original_sleep(min(seconds, 0.05))
+
+
+def _patch_sleep_once() -> None:
+    """Patch DBOS sleep function once per process for faster tests."""
+    global _sleep_patched
+    if not _sleep_patched:
+        _sys_db_sqlite.time.sleep = _fast_sleep
+        _sleep_patched = True
+
+
 @pytest.fixture
 def reset_dbos(tmp_path: Path) -> Generator[None, None, None]:
     """Reset DBOS for testing.
@@ -26,12 +43,8 @@ def reset_dbos(tmp_path: Path) -> Generator[None, None, None]:
     # Clean up any existing instance
     DBOS.destroy()
 
-    original_sleep = _sys_db_sqlite.time.sleep
-
-    def _fast_sleep(seconds: float) -> None:
-        original_sleep(min(seconds, 0.05))
-
-    _sys_db_sqlite.time.sleep = _fast_sleep
+    # Patch sleep once for faster tests
+    _patch_sleep_once()
 
     # Use shared in-memory SQLite for faster tests.
     db_path = "file::memory:?cache=shared"
@@ -55,7 +68,6 @@ def reset_dbos(tmp_path: Path) -> Generator[None, None, None]:
 
     # Cleanup after test
     DBOS.destroy()
-    _sys_db_sqlite.time.sleep = original_sleep
 
 
 @pytest.fixture

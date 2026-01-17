@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import os
 import time
 from collections import Counter
@@ -122,7 +122,7 @@ def main() -> None:
         for status, rows in queue_by_status.items()
     }
 
-    print(json.dumps(summary, indent=2))
+    print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
 
 if __name__ == "__main__":

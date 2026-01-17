@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
@@ -120,8 +120,11 @@ async def main() -> None:
     if args.out:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        out_path.write_text(
+            orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
     else:
-        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

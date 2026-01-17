@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import logging
 import os
 from typing import Any, Dict, Optional
@@ -176,7 +176,7 @@ def log_sync_response(
     response_preview = None
     if response is not None:
         try:
-            serialized = json.dumps(response, default=str)
+            serialized = orjson.dumps(response, default=str).decode("utf-8")
         except Exception:
             serialized = str(response)
 

@@ -8,7 +8,7 @@ jobs are stored in the debug/ subfolder.
 
 from __future__ import annotations
 
-import json
+import orjson
 import logging
 from pathlib import Path
 
@@ -86,7 +86,7 @@ async def test_debug_job_extraction(
     user-submitted jobs that had issues in production.
     """
     # Load fixture - it should be in the same format as other detail fixtures
-    fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
+    fixture_data = orjson.loads(fixture_path.read_text(encoding="utf-8"))
 
     # For debug fixtures, we need to construct a mock schedule entry
     # Extract site name from identifier (e.g., "netflix" from "netflix_790313551266")

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import sys
 from datetime import datetime
@@ -115,7 +115,10 @@ async def fetch_spidercloud_fixture(url: str, output_path: Path) -> bool:
         }
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2))
+        output_path.write_text(
+            orjson.dumps(fixture, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
         return True
 
     except Exception as e:
@@ -294,10 +297,10 @@ async def main() -> int:
     }
 
     if args.output_format == "json":
-        print(json.dumps(output_info, indent=2))
+        print(orjson.dumps(output_info, option=orjson.OPT_INDENT_2).decode("utf-8"))
     else:
         print("\n=== JSON Output ===")
-        print(json.dumps(output_info, indent=2))
+        print(orjson.dumps(output_info, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
     return 0
 if __name__ == "__main__":

@@ -14,7 +14,8 @@ Enable verbose output with DEBUG_EXTRACTION_VERBOSE=1
 
 from __future__ import annotations
 
-import json
+import functools
+import orjson
 import logging
 import os
 import re
@@ -89,7 +90,7 @@ class _MockAsyncSpider:
                         parts.append(item)
                     elif isinstance(item, dict):
                         # Convert dict to JSON string for JSONL streaming
-                        parts.append(json.dumps(item))
+                        parts.append(orjson.dumps(item).decode("utf-8"))
                 full_response = "".join(parts)
                 if full_response and not full_response.endswith("\n"):
                     full_response += "\n"
@@ -575,7 +576,7 @@ class ListingTestModule:
                 if isinstance(first_item, str):
                     # JSONL format - parse the JSON string
                     try:
-                        parsed = json.loads(first_item)
+                        parsed = orjson.loads(first_item)
                         content_dict = parsed.get("content", {})
                         raw_content = content_dict.get("commonmark", "")
                         raw_html_content = content_dict.get("raw", "")
@@ -584,7 +585,7 @@ class ListingTestModule:
                         elif raw_html_content:
                             raw_content = raw_html_content
                             content_type = "raw_html"
-                    except json.JSONDecodeError:
+                    except orjson.JSONDecodeError:
                         raw_content = first_item
                         content_type = "raw_string"
                 elif isinstance(first_item, dict):
@@ -643,8 +644,8 @@ class ListingTestModule:
             json_payload: Optional[Any] = None
             if content_to_parse and content_to_parse.startswith(("{", "[")):
                 try:
-                    json_payload = json.loads(content_to_parse)
-                except json.JSONDecodeError:
+                    json_payload = orjson.loads(content_to_parse)
+                except orjson.JSONDecodeError:
                     # Commonmark may have HTML entities - try raw content instead
                     # Raw content wraps JSON in <pre> tags for API responses
                     raw_html = ""
@@ -659,8 +660,8 @@ class ListingTestModule:
                         pre_match = re.search(r"<pre>(.+?)</pre>", raw_html, re.DOTALL)
                         if pre_match:
                             try:
-                                json_payload = json.loads(pre_match.group(1))
-                            except json.JSONDecodeError:
+                                json_payload = orjson.loads(pre_match.group(1))
+                            except orjson.JSONDecodeError:
                                 pass
 
             if json_payload and handler and hasattr(handler, "get_links_from_json"):
@@ -1012,7 +1013,7 @@ def _write_listing_extraction_result(result: ExtractedListingResult) -> None:
         "error": result.error,
     }
 
-    output_path.write_text(json.dumps(output, indent=2, ensure_ascii=False))
+    output_path.write_text(orjson.dumps(output, option=orjson.OPT_INDENT_2).decode("utf-8"))
     logger.info("Wrote listing extraction result to %s", output_path)
 
 
@@ -1122,7 +1123,10 @@ def _write_verbose_listing_steps(result: ExtractedListingResult) -> None:
                 lines.append("")
                 lines.append("```json")
                 try:
-                    lines.append(json.dumps(step.data, indent=2, default=str)[:2000])
+                    lines.append(
+                        orjson.dumps(step.data, option=orjson.OPT_INDENT_2, default=str)
+                        .decode("utf-8")[:2000]
+                    )
                 except Exception:
                     lines.append(str(step.data)[:2000])
                 lines.append("```")
@@ -1218,7 +1222,10 @@ def _write_verbose_listing_steps(result: ExtractedListingResult) -> None:
         lines.append("")
         lines.append("```json")
         try:
-            lines.append(json.dumps(result.enqueue_payload, indent=2, default=str)[:2000])
+            lines.append(
+                orjson.dumps(result.enqueue_payload, option=orjson.OPT_INDENT_2, default=str)
+                .decode("utf-8")[:2000]
+            )
         except Exception:
             lines.append(str(result.enqueue_payload)[:2000])
         lines.append("```")
@@ -1282,7 +1289,7 @@ def trace_urls_through_pipeline(
                 print(f"  {entry['stage']}: {entry['status']} - {entry.get('reason', '')}")
     """
     # Load fixture
-    fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
+    fixture_data = orjson.loads(fixture_path.read_text(encoding="utf-8"))
     request = fixture_data.get("request", {})
     listing_url = request.get("url", "")
     source_url = source_url or request.get("source_url") or listing_url
@@ -1298,11 +1305,11 @@ def trace_urls_through_pipeline(
         first_item = response[0]
         if isinstance(first_item, str):
             try:
-                parsed = json.loads(first_item)
+                parsed = orjson.loads(first_item)
                 raw_content = parsed.get("content", {}).get("commonmark", "")
                 if not raw_content:
                     raw_content = parsed.get("content", {}).get("raw", "")
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 raw_content = first_item
         elif isinstance(first_item, dict):
             raw_content = first_item.get("content", {}).get("commonmark", "")
@@ -1334,10 +1341,10 @@ def trace_urls_through_pipeline(
     # Try JSON parsing
     if raw_content.strip().startswith(("{", "[")):
         try:
-            payload = json.loads(raw_content)
+            payload = orjson.loads(raw_content)
             if handler and hasattr(handler, "get_links_from_json"):
                 all_extracted = handler.get_links_from_json(payload)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             pass
 
     # Fall back to HTML parsing
@@ -1533,9 +1540,14 @@ def _discover_debug_listing_fixtures() -> List[Tuple[str, Path, Optional[Path]]]
     return fixtures
 
 
+@functools.lru_cache(maxsize=16)
 def _load_debug_listing_fixture(path: Path) -> Dict[str, Any]:
-    """Load a debug listing fixture file."""
-    return json.loads(path.read_text(encoding="utf-8"))
+    """Load a debug listing fixture file.
+
+    Caches loaded fixtures to avoid repeated file I/O and JSON parsing
+    for large fixture files.
+    """
+    return orjson.loads(path.read_text(encoding="utf-8"))
 
 
 @pytest.fixture

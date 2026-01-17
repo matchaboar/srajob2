@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -20,7 +20,7 @@ EXPECTED_LOCATION = "London, United Kingdom"
 
 
 def _load_fixture() -> dict:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 def test_bloomberg_convex_job_hints_extract_title_company_location_remote_and_comp():

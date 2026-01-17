@@ -23,40 +23,40 @@
   "rejected_url_count": 0,
   "sample_urls": [
     "https://explore.jobs.netflix.net/careers/job/790312429476",
+    "https://explore.jobs.netflix.net/careers/job/790313551689",
     "https://explore.jobs.netflix.net/careers/job/790313552306",
     "https://explore.jobs.netflix.net/careers/job/790313591443",
     "https://explore.jobs.netflix.net/careers/job/790313604250",
-    "https://explore.jobs.netflix.net/careers/job/790313551266",
-    "https://explore.jobs.netflix.net/careers/job/790313551689",
-    "https://explore.jobs.netflix.net/careers/job/790313529500",
     "https://explore.jobs.netflix.net/careers/job/790313542735",
+    "https://explore.jobs.netflix.net/careers/job/790313551266",
     "https://explore.jobs.netflix.net/careers/job/790313551840",
-    "https://explore.jobs.netflix.net/careers/job/790313501564"
+    "https://explore.jobs.netflix.net/careers/job/790313501564",
+    "https://explore.jobs.netflix.net/careers/job/790313529500"
   ],
   "scraped_urls": [],
   "normalized_urls": [
     "https://explore.jobs.netflix.net/careers/job/790312429476",
+    "https://explore.jobs.netflix.net/careers/job/790313551689",
     "https://explore.jobs.netflix.net/careers/job/790313552306",
     "https://explore.jobs.netflix.net/careers/job/790313591443",
     "https://explore.jobs.netflix.net/careers/job/790313604250",
-    "https://explore.jobs.netflix.net/careers/job/790313551266",
-    "https://explore.jobs.netflix.net/careers/job/790313551689",
-    "https://explore.jobs.netflix.net/careers/job/790313529500",
     "https://explore.jobs.netflix.net/careers/job/790313542735",
+    "https://explore.jobs.netflix.net/careers/job/790313551266",
     "https://explore.jobs.netflix.net/careers/job/790313551840",
-    "https://explore.jobs.netflix.net/careers/job/790313501564"
+    "https://explore.jobs.netflix.net/careers/job/790313501564",
+    "https://explore.jobs.netflix.net/careers/job/790313529500"
   ],
   "apply_urls": [
     "https://explore.jobs.netflix.net/careers/job/790312429476",
+    "https://explore.jobs.netflix.net/careers/job/790313551689",
     "https://explore.jobs.netflix.net/careers/job/790313552306",
     "https://explore.jobs.netflix.net/careers/job/790313591443",
     "https://explore.jobs.netflix.net/careers/job/790313604250",
-    "https://explore.jobs.netflix.net/careers/job/790313551266",
-    "https://explore.jobs.netflix.net/careers/job/790313551689",
-    "https://explore.jobs.netflix.net/careers/job/790313529500",
     "https://explore.jobs.netflix.net/careers/job/790313542735",
+    "https://explore.jobs.netflix.net/careers/job/790313551266",
     "https://explore.jobs.netflix.net/careers/job/790313551840",
-    "https://explore.jobs.netflix.net/careers/job/790313501564"
+    "https://explore.jobs.netflix.net/careers/job/790313501564",
+    "https://explore.jobs.netflix.net/careers/job/790313529500"
   ],
   "sample_transformations": [],
   "url_transformations": [],

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Iterable, Optional
 from urllib.parse import parse_qsl, urlparse
@@ -15,14 +15,14 @@ PAGE_3 = FIXTURE_DIR / "spidercloud_bloomberg_avature_search_page_3.json"
 
 
 def _load_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
 
 
 def _load_request(path: Path) -> Optional[dict[str, Any]]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
         request = payload.get("request")
         if isinstance(request, dict):

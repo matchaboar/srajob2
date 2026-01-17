@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from pathlib import Path
 from typing import Any, Dict
@@ -60,7 +60,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_fixture() -> Dict[str, Any]:
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     if isinstance(payload, list) and payload and isinstance(payload[0], list):
@@ -100,7 +100,7 @@ def _extract_job_payload(html_text: str) -> Dict[str, Any]:
     content = html_lib.unescape(match.group("content")).strip()
     if not content:
         raise AssertionError("Empty <pre> content in fixture HTML")
-    parsed = json.loads(content)
+    parsed = orjson.loads(content)
     if not isinstance(parsed, dict):
         raise AssertionError("Expected JSON object payload from fixture")
     return parsed
@@ -146,7 +146,7 @@ def test_purestorage_greenhouse_job_detail_fixture_strips_html_and_salary_noise(
     job_payload = _extract_job_payload(html)
 
     handler = GreenhouseHandler()
-    markdown, title = handler.normalize_markdown(json.dumps(job_payload))
+    markdown, title = handler.normalize_markdown(orjson.dumps(job_payload).decode("utf-8"))
 
     assert title == "System Engineer, Enterprise (Germany South)"
     assert "<div" not in markdown

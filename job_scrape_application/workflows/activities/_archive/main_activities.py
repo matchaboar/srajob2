@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import json
+import orjson
 import logging
 import os
 import re
@@ -1287,7 +1287,7 @@ async def crawl_site_fetchfox(  # deprecated, mixed async+convex
     try:
         fox = FetchFox(api_key=settings.fetchfox_api_key)
         result = await asyncio.to_thread(fox.crawl, crawl_request)
-        result_obj: Dict[str, Any] | Any = result if isinstance(result, dict) else json.loads(result)
+        result_obj: Dict[str, Any] | Any = result if isinstance(result, dict) else orjson.loads(result)
     except Exception as exc:  # noqa: BLE001
         raise ApplicationError(f"FetchFox crawl failed: {exc}") from exc
     completed_at = int(time.time() * 1000)

@@ -36,15 +36,16 @@ try:
         return orjson.dumps(obj, default=str, option=options).decode("utf-8")
 
 except ImportError:
-    import json
+    import orjson
 
     def json_loads(data: bytes | str) -> Any:
         if isinstance(data, bytes):
             data = data.decode("utf-8")
-        return json.loads(data)
+        return orjson.loads(data)
 
     def json_dumps(obj: Any, indent: int = 2) -> str:
-        return json.dumps(obj, indent=indent, default=str)
+        options = orjson.OPT_INDENT_2 if indent else 0
+        return orjson.dumps(obj, default=str, option=options).decode("utf-8")
 
 # Use CSafeLoader for faster YAML parsing (falls back to safe_load if not available)
 try:

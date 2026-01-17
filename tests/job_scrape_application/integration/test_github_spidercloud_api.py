@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 import re
@@ -74,7 +74,7 @@ def _extract_payload(events: List[Any]) -> Optional[Dict[str, Any]]:
         return found
     for text in _gather_strings(events):
         try:
-            parsed = json.loads(text)
+            parsed = orjson.loads(text)
         except Exception:
             continue
         found = _find_jobs_payload(parsed)
@@ -103,11 +103,11 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
     if not raw_candidate:
         return None
     try:
-        return json.loads(raw_candidate)
+        return orjson.loads(raw_candidate)
     except Exception:
         try:
             unescaped = raw_candidate.encode("utf-8", errors="ignore").decode("unicode_escape")
-            return json.loads(unescaped)
+            return orjson.loads(unescaped)
         except Exception:
             return None
 
@@ -134,7 +134,7 @@ def _summarize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 @pytest.mark.asyncio
 async def test_github_api_payload_is_html_wrapped_and_yields_more_than_10_jobs(monkeypatch) -> None:
     fixture_path = Path("tests/fixtures/github_careers_api_jobs_12.json")
-    payload_full = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload_full = orjson.loads(fixture_path.read_text(encoding="utf-8"))
     payload_default = {
         "jobs": payload_full["jobs"][:10],
         "count": 10,
@@ -159,8 +159,8 @@ async def test_github_api_payload_is_html_wrapped_and_yields_more_than_10_jobs(m
             content_type: str | None = None,
         ):
             return [
-                {"content": json.dumps(payload_default)},
-                {"raw_html": f"<pre>{json.dumps(payload_full)}</pre>"},
+                {"content": orjson.dumps(payload_default).decode("utf-8")},
+                {"raw_html": f"<pre>{orjson.dumps(payload_full).decode('utf-8')}</pre>"},
             ]
 
     monkeypatch.setattr(f"{__name__}.AsyncSpider", FakeAsyncSpider)

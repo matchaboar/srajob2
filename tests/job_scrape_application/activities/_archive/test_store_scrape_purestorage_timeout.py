@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict
 
@@ -21,7 +21,7 @@ LISTING_URL = "https://api.greenhouse.io/v1/boards/purestorage/jobs"
 
 
 def _load_fixture() -> Any:
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     return payload

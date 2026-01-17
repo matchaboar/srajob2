@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import math
 import re
 from typing import Any, Dict, List, Optional
@@ -257,12 +257,12 @@ class MetaCareersHandler(BaseSiteHandler):
         if not content:
             return None
         try:
-            parsed = json.loads(content)
+            parsed = orjson.loads(content)
         except Exception:
             parsed = None
         if isinstance(parsed, str):
             try:
-                parsed = json.loads(parsed)
+                parsed = orjson.loads(parsed)
             except Exception:
                 parsed = None
         return parsed if isinstance(parsed, dict) else None

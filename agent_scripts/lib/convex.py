@@ -5,7 +5,7 @@ Provides functions for querying Convex production database for job and site data
 
 from __future__ import annotations
 
-import json
+import orjson
 import re
 import subprocess
 import sys
@@ -75,7 +75,7 @@ def fetch_job_by_id(
 
     cmd.extend([
         "jobs:getJobById",
-        json.dumps({"id": job_id}),
+        orjson.dumps({"id": job_id}).decode("utf-8"),
     ])
 
     try:
@@ -97,13 +97,13 @@ def fetch_job_by_id(
             print(f"Job not found: {job_id}", file=sys.stderr)
             return None
 
-        data = json.loads(output)
+        data = orjson.loads(output)
         return data if isinstance(data, dict) else None
 
     except subprocess.TimeoutExpired:
         print(f"Convex query timed out for job: {job_id}", file=sys.stderr)
         return None
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         print(f"Failed to parse Convex response: {e}", file=sys.stderr)
         return None
     except Exception as e:
@@ -142,7 +142,7 @@ def fetch_site_by_id(
 
     cmd.extend([
         "sites:getSiteById",
-        json.dumps({"id": site_id}),
+        orjson.dumps({"id": site_id}).decode("utf-8"),
     ])
 
     try:
@@ -164,13 +164,13 @@ def fetch_site_by_id(
             print(f"Site not found: {site_id}", file=sys.stderr)
             return None
 
-        data = json.loads(output)
+        data = orjson.loads(output)
         return data if isinstance(data, dict) else None
 
     except subprocess.TimeoutExpired:
         print(f"Convex query timed out for site: {site_id}", file=sys.stderr)
         return None
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         print(f"Failed to parse Convex response: {e}", file=sys.stderr)
         return None
     except Exception as e:
@@ -212,7 +212,7 @@ def run_convex_query(
     cmd.append(function)
 
     if args:
-        cmd.append(json.dumps(args))
+        cmd.append(orjson.dumps(args).decode("utf-8"))
 
     try:
         result = subprocess.run(
@@ -231,9 +231,9 @@ def run_convex_query(
         if not output:
             return None
 
-        return json.loads(output)
+        return orjson.loads(output)
 
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"Convex query timed out: {function}") from e
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         raise RuntimeError(f"Failed to parse Convex response: {e}") from e

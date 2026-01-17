@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import re
 from pathlib import Path
 from typing import Any, Dict
@@ -21,23 +21,23 @@ def test_store_scrape_accepts_spidercloud_batch_fixture(monkeypatch):
 
     def _load_json(text: str) -> Dict[str, Any]:
         try:
-            return json.loads(text, strict=False)
-        except json.JSONDecodeError:
+            return orjson.loads(text)
+        except orjson.JSONDecodeError:
             pass
         try:
             cleaned = re.sub(INVALID_JSON_ESCAPE_PATTERN, "", text)
             cleaned = cleaned.replace("\r", " ").replace("\n", " ")
-            return json.loads(cleaned, strict=False)
+            return orjson.loads(cleaned)
         except Exception:
             pass
         try:
             stripped = text.replace("\\", "").replace("\r", " ").replace("\n", " ")
-            return json.loads(stripped, strict=False)
+            return orjson.loads(stripped)
         except Exception:
             pass
         try:
             decoded = text.encode("utf-8").decode("unicode_escape")
-            return json.loads(decoded, strict=False)
+            return orjson.loads(decoded)
         except Exception:
             pass
         try:
@@ -52,8 +52,8 @@ def test_store_scrape_accepts_spidercloud_batch_fixture(monkeypatch):
             if not stripped:
                 continue
             try:
-                return json.loads(stripped, strict=False)
-            except json.JSONDecodeError:
+                return orjson.loads(stripped)
+            except orjson.JSONDecodeError:
                 continue
         raise
 

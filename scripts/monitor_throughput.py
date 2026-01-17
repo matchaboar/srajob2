@@ -14,7 +14,7 @@ Usage:
 """
 import argparse
 import asyncio
-import json
+import orjson
 import sys
 from pathlib import Path
 
@@ -59,7 +59,7 @@ async def main():
         result = {"metrics": metrics}
         if args.queue_status:
             result["queue_status"] = dbos_queue.queue_status()
-        print(json.dumps(result, indent=2))
+        print(orjson.dumps(result, option=orjson.OPT_INDENT_2).decode("utf-8"))
     else:
         # Human-readable output
         print("=" * 60)

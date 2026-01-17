@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 import pytest
@@ -51,7 +51,7 @@ def _build_scrape_payload(results: list[dict], urls: list[str]) -> dict:
 def test_spidercloud_batch_fixture_trim_limits() -> None:
     if not FIXTURE_PATH.exists():
         pytest.skip("Missing spidercloud batch fixture; run agent_scripts/measure_spidercloud_batch.py")
-    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     results = payload.get("results", [])
@@ -59,7 +59,7 @@ def test_spidercloud_batch_fixture_trim_limits() -> None:
     scrape_payload = _build_scrape_payload(results, urls)
 
     trimmed = trim_scrape_for_convex(scrape_payload)
-    trimmed_bytes = len(json.dumps(trimmed, ensure_ascii=False))
+    trimmed_bytes = len(orjson.dumps(trimmed))
 
     assert trimmed_bytes <= MAX_TEMPORAL_PAYLOAD_BYTES
 
@@ -97,9 +97,9 @@ def test_spidercloud_trim_reduces_large_payload() -> None:
         "provider": "spidercloud",
     }
 
-    raw_bytes = len(json.dumps(scrape_payload, ensure_ascii=False))
+    raw_bytes = len(orjson.dumps(scrape_payload))
     trimmed = trim_scrape_for_convex(scrape_payload)
-    trimmed_bytes = len(json.dumps(trimmed, ensure_ascii=False))
+    trimmed_bytes = len(orjson.dumps(trimmed))
 
     assert trimmed_bytes < raw_bytes
     items = trimmed.get("items", {})

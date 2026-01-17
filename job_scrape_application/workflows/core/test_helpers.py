@@ -55,7 +55,7 @@ Legacy Usage (for reference):
 
 from __future__ import annotations
 
-import json
+import orjson
 import re
 import warnings
 from dataclasses import dataclass, field
@@ -187,7 +187,7 @@ class SpiderFixture:
     @classmethod
     def from_file(cls, path: Path) -> "SpiderFixture":
         """Load a fixture from a JSON file."""
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = orjson.loads(path.read_text(encoding="utf-8"))
         return cls.from_dict(data)
 
     @classmethod
@@ -539,7 +539,7 @@ class WorkflowTestHelper:
         This mock processes fixture data the same way the real scraper would,
         extracting normalized job data from the SpiderCloud response.
         """
-        import json
+        import orjson
 
         def extract_json_from_content(raw_html: str) -> Dict[str, Any] | None:
             """Extract JSON object from HTML or markdown content."""
@@ -552,8 +552,8 @@ class WorkflowTestHelper:
             end = raw_html.rfind("}")
             if start != -1 and end > start:
                 try:
-                    return json.loads(raw_html[start : end + 1])
-                except json.JSONDecodeError:
+                    return orjson.loads(raw_html[start : end + 1])
+                except orjson.JSONDecodeError:
                     pass
 
             return None
@@ -687,11 +687,11 @@ class WorkflowTestHelper:
                     # Handle JSONL string format (streaming)
                     if isinstance(item, str):
                         try:
-                            parsed_item = json.loads(item.strip())
+                            parsed_item = orjson.loads(item.strip())
                             job = process_response_item(parsed_item, url)
                             if job:
                                 normalized_jobs.append(job)
-                        except (json.JSONDecodeError, TypeError):
+                        except (orjson.JSONDecodeError, TypeError):
                             continue
                     # Handle nested list format (single-request: [[{...}]])
                     elif isinstance(item, list):

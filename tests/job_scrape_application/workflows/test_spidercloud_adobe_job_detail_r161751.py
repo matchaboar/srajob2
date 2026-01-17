@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import orjson
 
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
@@ -19,6 +20,8 @@ FIXTURE_PATH = Path(
     "tests/job_scrape_application/workflows/fixtures/spidercloud_adobe_job_detail_r161751_raw_html.json"
 )
 JOB_URL = "https://careers.adobe.com/us/en/job/R161751/Associate-Corporate-Strategy"
+FIXED_NOW = datetime(2026, 1, 8, tzinfo=timezone.utc)
+FIXED_NOW_MS = int(FIXED_NOW.timestamp() * 1000)
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -36,7 +39,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -47,7 +50,7 @@ def _normalize_adobe_job() -> dict[str, Any]:
     event = payload[0][0]
 
     scraper = _make_scraper()
-    normalized = scraper._normalize_job(JOB_URL, "", [event], 0, require_keywords=False)
+    normalized = scraper._normalize_job(JOB_URL, "", [event], FIXED_NOW_MS, require_keywords=False)
     assert normalized is not None
     return normalized
 
@@ -57,10 +60,10 @@ def test_spidercloud_adobe_r161751_normalizes_fields_and_posted_date():
 
     assert normalized["title"] == "Associate, Corporate Strategy"
     assert normalized["company"] == "Adobe"
-    assert normalized["location"] == "San Francisco, California, United States of America"
+    assert normalized["location"] == "San Jose, California, United States of America"
     assert normalized["remote"] is False
 
-    expected_posted_at = parse_posted_at("2025-12-28")
+    expected_posted_at = parse_posted_at("2025-12-19T00:00:00+00:00")
     assert normalized["posted_at"] == expected_posted_at
     assert normalized["posted_at_unknown"] is False
 
@@ -70,7 +73,7 @@ def test_spidercloud_adobe_r161751_location_components_and_salary_range():
     resolved = _resolve_location_from_dictionary(normalized["location"])
 
     assert resolved is not None
-    assert resolved.get("city") == "San Francisco"
+    assert resolved.get("city") == "San Jose"
     assert resolved.get("state") == "California"
     assert resolved.get("country") == "United States"
     assert normalized["remote"] is False

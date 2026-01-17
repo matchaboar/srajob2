@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import re
 import html as html_lib
 from typing import Any, Dict, List, Optional
@@ -662,7 +662,7 @@ class GreenhouseHandler(BaseSiteHandler):
             # Unescape markdown backslash escapes (e.g., \_ -> _) before parsing JSON
             # SpiderCloud returns commonmark format which escapes special characters
             unescaped = content.replace("\\_", "_").replace("\\#", "#").replace("\\*", "*")
-            data = json.loads(unescaped)
+            data = orjson.loads(unescaped)
             title = data.get("title") if isinstance(data, dict) else None
             desc = _html_to_text(data.get("content") or "") if isinstance(data, dict) else ""
             if title and desc:
@@ -700,7 +700,7 @@ class GreenhouseHandler(BaseSiteHandler):
         # Try to parse as JSON
         try:
             unescaped = content.replace("\\_", "_").replace("\\#", "#").replace("\\*", "*")
-            data = json.loads(unescaped)
+            data = orjson.loads(unescaped)
             if not isinstance(data, dict):
                 return None
 

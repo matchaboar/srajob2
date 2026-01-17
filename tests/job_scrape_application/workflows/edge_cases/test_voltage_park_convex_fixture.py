@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -22,7 +22,7 @@ FIXTURE_PATH = FIXTURES / "convex_voltage-park_jobs.json"
 
 
 def _load_job() -> dict:
-    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     jobs = payload.get("jobs") or []
     assert jobs, "expected jobs in convex_voltage-park_jobs.json"
     return jobs[0]

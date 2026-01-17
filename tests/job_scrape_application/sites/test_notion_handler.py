@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -14,7 +14,7 @@ def _load_commonmark() -> str:
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_notion_careers_commonmark.json"
     )
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+    payload = orjson.loads(fixture_path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     event = payload[0][0]

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import subprocess
 from pathlib import Path
@@ -57,13 +57,13 @@ def run_convex(args: List[str], *, env: Dict[str, str]) -> Any:
         stdout = result.stdout.strip()
         if not stdout:
             return None
-        return json.loads(stdout)
+        return orjson.loads(stdout)
     except subprocess.CalledProcessError as e:
         print(f"Error running convex command: {' '.join(args[:5])}...")
         if e.stderr:
             print(f"Error: {e.stderr.strip()[:200]}")
         return None
-    except json.JSONDecodeError:
+    except orjson.JSONDecodeError:
         return None
 
 
@@ -73,7 +73,7 @@ def build_convex_run_args(env: str, function_name: str, payload: Dict[str, Any])
     if env == "prod":
         cmd.append("--prod")
     cmd.append(function_name)
-    cmd.append(json.dumps(payload))
+    cmd.append(orjson.dumps(payload).decode("utf-8"))
     return cmd
 
 
@@ -137,7 +137,7 @@ async def fetch_greenhouse_listing(url: str) -> List[Dict[str, Any]]:
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.get(url, headers={"Accept": "application/json"})
         response.raise_for_status()
-        data = response.json()
+        data = orjson.loads(response.text)
         return data.get("jobs", [])
 
 
@@ -146,7 +146,7 @@ async def fetch_docusign_listing(url: str) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.get(url, headers={"Accept": "application/json"})
         response.raise_for_status()
-        return response.json()
+        return orjson.loads(response.text)
 
 
 def build_updates_from_jobs(jobs: List[Dict[str, Any]], board_slug: str) -> List[Dict[str, Any]]:

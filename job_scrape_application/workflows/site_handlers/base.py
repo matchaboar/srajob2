@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 import html as html_lib
-import json
+import orjson
 import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
@@ -540,13 +540,13 @@ class BaseSiteHandler(ABC):
 
         def _parse_json_blob(value: str) -> Any | None:
             try:
-                parsed = json.loads(value)
+                parsed = orjson.loads(value)
             except Exception:
                 parsed = None
             if parsed is not None:
                 if isinstance(parsed, str):
                     try:
-                        return json.loads(parsed)
+                        return orjson.loads(parsed)
                     except Exception:
                         return parsed
                 return parsed
@@ -556,7 +556,7 @@ class BaseSiteHandler(ABC):
                 unescaped = ""
             if unescaped:
                 try:
-                    return json.loads(unescaped)
+                    return orjson.loads(unescaped)
                 except Exception:
                     pass
             for pattern in (JSON_OBJECT_PATTERN, JSON_ARRAY_PATTERN):
@@ -564,7 +564,7 @@ class BaseSiteHandler(ABC):
                 if not match:
                     continue
                 try:
-                    return json.loads(match.group(0))
+                    return orjson.loads(match.group(0))
                 except Exception:
                     continue
             return None
@@ -890,13 +890,13 @@ class BaseSiteHandler(ABC):
 
         def _parse_json_blob(text: str) -> Any | None:
             try:
-                parsed = json.loads(text)
+                parsed = orjson.loads(text)
             except Exception:
                 parsed = None
             if parsed is not None:
                 if isinstance(parsed, str):
                     try:
-                        return json.loads(parsed)
+                        return orjson.loads(parsed)
                     except Exception:
                         return parsed
                 return parsed
@@ -906,7 +906,7 @@ class BaseSiteHandler(ABC):
                 unescaped = ""
             if unescaped:
                 try:
-                    return json.loads(unescaped)
+                    return orjson.loads(unescaped)
                 except Exception:
                     pass
             for pattern in (JSON_OBJECT_PATTERN, JSON_ARRAY_PATTERN):
@@ -914,7 +914,7 @@ class BaseSiteHandler(ABC):
                 if not match:
                     continue
                 try:
-                    return json.loads(match.group(0))
+                    return orjson.loads(match.group(0))
                 except Exception:
                     continue
             return None

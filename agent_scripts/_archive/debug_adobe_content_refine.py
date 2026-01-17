@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import os
 from typing import Any, Dict, List
 from urllib.parse import quote
@@ -57,7 +57,7 @@ async def _collect_response(response: Any) -> List[Any]:
 
 async def main() -> None:
     api_key = _load_api_key()
-    payload_json = json.dumps(PAYLOAD, separators=(",", ":"))
+    payload_json = orjson.dumps(PAYLOAD).decode("utf-8")
     payload_enc = quote(payload_json, safe="")
     url = (
         f"{BASE_URL}?locale=en_us&siteType=external&deviceType=desktop&payload={payload_enc}"
@@ -84,7 +84,7 @@ async def main() -> None:
             )
         )
 
-    print(json.dumps(response, ensure_ascii=False, indent=2))
+    print(orjson.dumps(response, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
 
 if __name__ == "__main__":

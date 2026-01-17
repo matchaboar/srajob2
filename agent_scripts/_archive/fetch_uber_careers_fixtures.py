@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -88,7 +88,7 @@ def _build_payload(page: int, *, query: str, limit: int) -> Dict[str, Any]:
 
 
 async def _fetch_payload(api_key: str, payload: Dict[str, Any], listing_url: str) -> tuple[List[Any], Dict[str, Any]]:
-    payload_json = json.dumps(payload, separators=(",", ":"))
+    payload_json = orjson.dumps(payload).decode("utf-8")
     script = f"""
     (function() {{
       const payload = {payload_json};
@@ -195,8 +195,16 @@ async def main() -> None:
         snippet = _extract_snippet(response)
         out_path = out_dir / f"spidercloud_uber_careers_api_page_{page + 1}.json"
         fixture = {"request": request_meta, "response": response}
-        out_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps({"page": page + 1, "status": status, "out": str(out_path)}, indent=2))
+        out_path.write_text(
+            orjson.dumps(fixture, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
+        print(
+            orjson.dumps(
+                {"page": page + 1, "status": status, "out": str(out_path)},
+                option=orjson.OPT_INDENT_2,
+            ).decode("utf-8")
+        )
         if snippet:
             print(snippet.replace("\n", " "))
 

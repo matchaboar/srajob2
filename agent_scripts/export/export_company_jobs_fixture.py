@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import re
 import time
 from pathlib import Path
@@ -218,7 +218,10 @@ async def _collect_company_jobs(
     return matches
 def _write_fixture(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export the first N Convex jobs for a company into a JSON fixture.",
@@ -291,6 +294,11 @@ async def main() -> None:
     }
 
     _write_fixture(output_path, payload)
-    print(json.dumps({"output": str(output_path), "count": len(normalized)}, indent=2))
+    print(
+        orjson.dumps(
+            {"output": str(output_path), "count": len(normalized)},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 if __name__ == "__main__":
     asyncio.run(main())

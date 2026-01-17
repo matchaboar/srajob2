@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import os
 from typing import Any, Dict, List, Optional
 
@@ -91,7 +91,7 @@ def _extract_snippet(events: List[Any]) -> str:
 
 async def main() -> None:
     api_key = _load_api_key()
-    payload_json = json.dumps(PAYLOAD)
+    payload_json = orjson.dumps(PAYLOAD).decode("utf-8")
 
     param_sets: List[Dict[str, Any]] = [
         {"request": "http", "method": "POST", "body": payload_json},

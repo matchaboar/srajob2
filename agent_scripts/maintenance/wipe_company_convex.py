@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 import os
 import re
 import subprocess
@@ -58,13 +58,13 @@ def _run_convex(
         stdout = result.stdout.strip()
         if not stdout:
             return None
-        return json.loads(stdout)
+        return orjson.loads(stdout)
     except subprocess.CalledProcessError as e:
         print(f"Error running convex command: {' '.join(args)}")
         if e.stderr:
             print(f"Error: {e.stderr.strip()}")
         return None
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         print(f"Failed to parse JSON output from convex command: {e}")
         return None
 
@@ -74,7 +74,7 @@ def _build_convex_run_args(env: str, function_name: str, payload: Dict[str, Any]
     if env == "prod":
         cmd.append("--prod")
     cmd.append(function_name)
-    cmd.append(json.dumps(payload))
+    cmd.append(orjson.dumps(payload).decode("utf-8"))
     return cmd
 
 
@@ -330,7 +330,7 @@ def main() -> None:
         output["companyJobs"] = company_wipe
     if job_id_wipe is not None:
         output["jobIds"] = job_id_wipe
-    print(json.dumps(output, indent=2))
+    print(orjson.dumps(output, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
     if not matched_sites:
         label = args.company or args.domain or DEFAULT_DOMAIN
@@ -338,7 +338,7 @@ def main() -> None:
         return
 
     if args.skip_run:
-        print(json.dumps({"runNow": []}, indent=2))
+        print(orjson.dumps({"runNow": []}, option=orjson.OPT_INDENT_2).decode("utf-8"))
         return
 
     triggered: List[Dict[str, Any]] = []
@@ -350,7 +350,7 @@ def main() -> None:
         run_result = _run_convex(run_cmd, env=env)
         triggered.append({"id": site_id, "url": site.get("url"), "result": run_result})
 
-    print(json.dumps({"runNow": triggered}, indent=2))
+    print(orjson.dumps({"runNow": triggered}, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
 
 if __name__ == "__main__":

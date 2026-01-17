@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -113,13 +113,16 @@ def _spider_params(payload: Dict[str, Any]) -> Dict[str, Any]:
         "preserve_host": True,
         "limit": 1,
         "method": "POST",
-        "body": json.dumps(payload),
+        "body": orjson.dumps(payload).decode("utf-8"),
     }
 
 
 def _write_fixture(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 
 
 def _extract_payload_from_response(response: List[Any]) -> Optional[Dict[str, Any]]:
@@ -129,7 +132,7 @@ def _extract_payload_from_response(response: List[Any]) -> Optional[Dict[str, An
                 value = event.get(key)
                 if isinstance(value, str) and value.strip().startswith("{"):
                     try:
-                        parsed = json.loads(value)
+                        parsed = orjson.loads(value)
                     except Exception:
                         parsed = None
                     if isinstance(parsed, dict):

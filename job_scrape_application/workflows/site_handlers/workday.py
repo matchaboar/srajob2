@@ -389,12 +389,12 @@ class WorkdayHandler(BaseSiteHandler):
         # Handle JSON in raw HTML (Workday API responses with <pre> tags)
         stripped_text = markdown.strip()
         if "<pre>{" in stripped_text:
-            import json
+            import orjson
             match = re.search(r"<pre>({.+})</pre>", stripped_text, re.DOTALL)
             if match:
                 json_content = match.group(1)
                 try:
-                    parsed = json.loads(json_content)
+                    parsed = orjson.loads(json_content)
                     posting_info = parsed.get("jobPostingInfo", {})
                     if isinstance(posting_info, dict):
                         title = posting_info.get("title")
@@ -422,8 +422,8 @@ class WorkdayHandler(BaseSiteHandler):
             json_content = "\n".join(lines_raw[start_idx_json:end_idx_json]).strip()
             if json_content.startswith("{"):
                 try:
-                    import json
-                    parsed = json.loads(json_content)
+                    import orjson
+                    parsed = orjson.loads(json_content)
                     # Extract from jobPostingInfo
                     posting_info = parsed.get("jobPostingInfo", {})
                     if isinstance(posting_info, dict):

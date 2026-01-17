@@ -7,7 +7,7 @@ This test verifies two critical bug fixes:
 """
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -92,8 +92,8 @@ def test_github_valid_response_with_jobs():
         import pytest
         pytest.skip(f"Fixture not found: {fixture_path}")
 
-    with open(fixture_path) as f:
-        fixture_data = json.load(f)
+    with open(fixture_path, encoding="utf-8") as f:
+        fixture_data = orjson.loads(f.read())
 
     site_url = "https://www.github.careers/api/jobs?keywords=engineer&sortBy=relevance&limit=100"
     started_at = 1234567890000

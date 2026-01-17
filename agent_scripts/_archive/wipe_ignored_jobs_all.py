@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 import os
 import subprocess
 from pathlib import Path
@@ -35,7 +35,7 @@ def _run_convex(args: List[str], *, env: Dict[str, str]) -> Any:
     stdout = result.stdout.strip()
     if not stdout:
         return None
-    return json.loads(stdout)
+    return orjson.loads(stdout)
 
 
 def _build_convex_run_args(env: str, function_name: str, payload: Dict[str, Any]) -> List[str]:
@@ -43,7 +43,7 @@ def _build_convex_run_args(env: str, function_name: str, payload: Dict[str, Any]
     if env == "prod":
         cmd.append("--prod")
     cmd.append(function_name)
-    cmd.append(json.dumps(payload))
+    cmd.append(orjson.dumps(payload).decode("utf-8"))
     return cmd
 
 
@@ -159,7 +159,7 @@ def main() -> None:
             total_scanned += scanned
 
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "env": args.env,
                 "dryRun": args.dry_run,
@@ -168,8 +168,8 @@ def main() -> None:
                 "totalScanned": total_scanned,
                 "details": details,
             },
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 
 

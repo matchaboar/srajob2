@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import threading
 import time
 import uuid
@@ -92,7 +92,7 @@ class MockFirecrawlResponse:
 
     @property
     def text(self) -> str:
-        return json.dumps(self.payload, ensure_ascii=False)
+        return orjson.dumps(self.payload).decode("utf-8")
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
@@ -118,6 +118,7 @@ class MockFirecrawl:
         self.started_jobs: List[MockFirecrawlJob] = []
         self.webhooks_sent: List[Dict[str, Any]] = []
         self.webhook_failures: List[Dict[str, Any]] = []
+        self._pending_webhooks: List[Callable[[], None]] = []
 
     def __call__(
         self,
@@ -196,6 +197,13 @@ class MockFirecrawl:
 
         return job
 
+    def flush_webhooks(self) -> None:
+        """Immediately deliver all pending webhooks. Use in tests to avoid timers."""
+        pending = self._pending_webhooks[:]
+        self._pending_webhooks.clear()
+        for deliver_fn in pending:
+            deliver_fn()
+
     def _schedule_webhook(self, job: MockFirecrawlJob, webhook: Any, *, url: str) -> None:
         payload = self._build_webhook_payload(job, webhook, url=url)
 
@@ -213,9 +221,13 @@ class MockFirecrawl:
             except Exception as exc:  # noqa: BLE001
                 self.webhook_failures.append({"payload": payload, "error": str(exc)})
 
-        timer = threading.Timer(self.webhook_delay, _deliver)
-        timer.daemon = True
-        timer.start()
+        # Queue for synchronous flush when delay is 0, otherwise use timer
+        if self.webhook_delay == 0:
+            self._pending_webhooks.append(_deliver)
+        else:
+            timer = threading.Timer(self.webhook_delay, _deliver)
+            timer.daemon = True
+            timer.start()
 
     def _build_webhook_payload(
         self,

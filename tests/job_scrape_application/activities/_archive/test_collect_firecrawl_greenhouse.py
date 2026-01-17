@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from typing import Any, Dict
 
 import pytest
@@ -38,7 +38,7 @@ RAW_GREENHOUSE_DATA: Dict[str, Any] = {
     ]
 }
 
-RAW_GREENHOUSE_JSON = json.dumps(RAW_GREENHOUSE_DATA)
+RAW_GREENHOUSE_JSON = orjson.dumps(RAW_GREENHOUSE_DATA).decode("utf-8")
 EXPECTED_URLS = [job["absolute_url"] for job in RAW_GREENHOUSE_DATA["jobs"]]
 
 
@@ -48,7 +48,7 @@ class FakeBatchStatus:
         self.data = [{"raw_html": raw}]
 
     def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        return {"status": self.status, "data": [json.loads(self.data[0]["raw_html"])]}
+        return {"status": self.status, "data": [orjson.loads(self.data[0]["raw_html"])]}
 
 
 class FakeFirecrawl:

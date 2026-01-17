@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import re
 import sys
@@ -96,7 +96,9 @@ async def fetch_spidercloud_listing(url: str, output_path: Path) -> bool:
         params.setdefault("limit", 1)
 
         print(f"Fetching listing page: {url}")
-        print(f"SpiderCloud params: {json.dumps(params, indent=2)}")
+        print(
+            f"SpiderCloud params: {orjson.dumps(params, option=orjson.OPT_INDENT_2).decode('utf-8')}"
+        )
 
         async with AsyncSpider(api_key=api_key) as client:
             response_items = []
@@ -131,7 +133,10 @@ async def fetch_spidercloud_listing(url: str, output_path: Path) -> bool:
         }
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2))
+        output_path.write_text(
+            orjson.dumps(fixture, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
         return True
 
     except Exception as e:
@@ -148,7 +153,7 @@ def extract_urls_from_fixture(fixture_path: Path, listing_url: str) -> List[str]
         from job_scrape_application.workflows.site_handlers import get_site_handler
         from job_scrape_application.workflows.helpers.link_extractors import normalize_url
 
-        fixture_data = json.loads(fixture_path.read_text())
+        fixture_data = orjson.loads(fixture_path.read_text())
         handler = get_site_handler(listing_url)
 
         # Extract raw content from fixture
@@ -161,9 +166,9 @@ def extract_urls_from_fixture(fixture_path: Path, listing_url: str) -> List[str]
             first_item = response[0]
             if isinstance(first_item, str):
                 try:
-                    parsed = json.loads(first_item)
+                    parsed = orjson.loads(first_item)
                     raw_content = parsed.get("content", {}).get("commonmark", "") or parsed.get("content", {}).get("raw", "")
-                except json.JSONDecodeError:
+                except orjson.JSONDecodeError:
                     raw_content = first_item
             elif isinstance(first_item, dict):
                 raw_content = first_item.get("content", {}).get("commonmark", "") or first_item.get("content", {}).get("raw", "")
@@ -377,10 +382,10 @@ async def main() -> int:
     }
 
     if args.output_format == "json":
-        print(json.dumps(output_info, indent=2))
+        print(orjson.dumps(output_info, option=orjson.OPT_INDENT_2).decode("utf-8"))
     else:
         print("\n=== JSON Output ===")
-        print(json.dumps(output_info, indent=2))
+        print(orjson.dumps(output_info, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
     return 0
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ produces wrong values, these tests should FAIL.
 
 from __future__ import annotations
 
-import json
+import orjson
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -49,7 +49,7 @@ class ExtractorTestCase:
         identifier = assertion_path.stem
 
         # Load fixture
-        fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
+        fixture_data = orjson.loads(fixture_path.read_text(encoding="utf-8"))
 
         # Extract URL from fixture
         url = ""
@@ -100,7 +100,7 @@ class ExtractorTestCase:
                         # Check if raw content is JSON
                         if raw_content.strip().startswith("{"):
                             try:
-                                parsed_raw = json.loads(raw_content)
+                                parsed_raw = orjson.loads(raw_content)
                                 if isinstance(parsed_raw, dict):
                                     data_obj = parsed_raw.get("data")
                                     if isinstance(data_obj, dict):
@@ -124,7 +124,7 @@ class ExtractorTestCase:
                                         if job_desc:
                                             import html
                                             raw_markdown = html.unescape(job_desc)
-                            except (json.JSONDecodeError, Exception):
+                            except (orjson.JSONDecodeError, Exception):
                                 if not raw_markdown or _is_trivial_commonmark(raw_markdown):
                                     raw_markdown = raw_content
                         # Handle HTML-wrapped JSON (e.g., <html>...<pre>{...}</pre>...</html>)
@@ -134,7 +134,7 @@ class ExtractorTestCase:
                             if pre_match:
                                 json_str = pre_match.group(1)
                                 try:
-                                    parsed_raw = json.loads(json_str)
+                                    parsed_raw = orjson.loads(json_str)
                                     if isinstance(parsed_raw, dict):
                                         data_obj = parsed_raw.get("data")
                                         if isinstance(data_obj, dict):
@@ -158,7 +158,7 @@ class ExtractorTestCase:
                                             if job_desc:
                                                 import html
                                                 raw_markdown = html.unescape(job_desc)
-                                except (json.JSONDecodeError, Exception):
+                                except (orjson.JSONDecodeError, Exception):
                                     pass
                         else:
                             if not raw_markdown or _is_trivial_commonmark(raw_markdown):
@@ -172,11 +172,11 @@ class ExtractorTestCase:
                             )
                             if jsonld_match:
                                 try:
-                                    jsonld = json.loads(jsonld_match.group(1))
+                                    jsonld = orjson.loads(jsonld_match.group(1))
                                     if isinstance(jsonld, dict):
                                         structured_data = jsonld
                                         raw_row = jsonld
-                                except (json.JSONDecodeError, Exception):
+                                except (orjson.JSONDecodeError, Exception):
                                     pass
 
         elif isinstance(fixture_data, dict):
@@ -190,7 +190,7 @@ class ExtractorTestCase:
                 if isinstance(first_line, list) and first_line:
                     first_line = first_line[0]
                 if isinstance(first_line, str):
-                    parsed = json.loads(first_line)
+                    parsed = orjson.loads(first_line)
                     content = parsed.get("content", {})
                     commonmark = content.get("commonmark", "")
                     raw_content = content.get("raw", "")
@@ -208,10 +208,10 @@ class ExtractorTestCase:
                                 if json_text.strip().startswith("{"):
                                     # Clean markdown-escaped underscores (common in Greenhouse API responses)
                                     cleaned_json = json_text.replace("\\_", "_")
-                                    structured_data = json.loads(cleaned_json)
+                                    structured_data = orjson.loads(cleaned_json)
                                     if isinstance(structured_data, dict):
                                         raw_row = structured_data
-                        except (json.JSONDecodeError, Exception):
+                        except (orjson.JSONDecodeError, Exception):
                             pass
                     # Handle HTML-wrapped JSON (e.g., <pre>{...}</pre>)
                     if structured_data is None and raw_content and "<pre>" in raw_content:
@@ -219,23 +219,23 @@ class ExtractorTestCase:
                             import re
                             pre_match = re.search(r"<pre>(.*?)</pre>", raw_content, re.DOTALL)
                             if pre_match:
-                                parsed_raw = json.loads(pre_match.group(1))
+                                parsed_raw = orjson.loads(pre_match.group(1))
                                 if isinstance(parsed_raw, dict):
                                     structured_data = parsed_raw
                                     raw_row = parsed_raw
-                        except (json.JSONDecodeError, Exception):
+                        except (orjson.JSONDecodeError, Exception):
                             pass
                     # Handle direct JSON in raw field (e.g., Microsoft API)
                     elif not commonmark and raw_content.strip().startswith("{"):
                         try:
-                            parsed_raw = json.loads(raw_content)
+                            parsed_raw = orjson.loads(raw_content)
                             if isinstance(parsed_raw, dict):
                                 structured_data = parsed_raw
                                 raw_row = parsed_raw
                                 data = parsed_raw.get("data")
                                 if isinstance(data, dict) and "jobDescription" in data:
                                     raw_markdown = data.get("jobDescription", "")
-                        except (json.JSONDecodeError, Exception):
+                        except (orjson.JSONDecodeError, Exception):
                             pass
                 elif isinstance(first_line, dict):
                     content = first_line.get("content", first_line)
@@ -256,16 +256,16 @@ class ExtractorTestCase:
                     if raw_html_content:
                         if raw_html_content.strip().startswith("{"):
                             try:
-                                parsed_raw = json.loads(raw_html_content)
-                            except (json.JSONDecodeError, Exception):
+                                parsed_raw = orjson.loads(raw_html_content)
+                            except (orjson.JSONDecodeError, Exception):
                                 parsed_raw = None
                         elif "<pre>" in raw_html_content:
                             try:
                                 import re
                                 pre_match = re.search(r"<pre>(.*?)</pre>", raw_html_content, re.DOTALL)
                                 if pre_match:
-                                    parsed_raw = json.loads(pre_match.group(1))
-                            except (json.JSONDecodeError, Exception):
+                                    parsed_raw = orjson.loads(pre_match.group(1))
+                            except (orjson.JSONDecodeError, Exception):
                                 parsed_raw = None
 
                     if isinstance(parsed_raw, dict):
@@ -305,11 +305,11 @@ class ExtractorTestCase:
                             )
                             if jsonld_match:
                                 try:
-                                    jsonld = json.loads(jsonld_match.group(1))
+                                    jsonld = orjson.loads(jsonld_match.group(1))
                                     if isinstance(jsonld, dict):
                                         structured_data = jsonld
                                         raw_row = jsonld
-                                except (json.JSONDecodeError, Exception):
+                                except (orjson.JSONDecodeError, Exception):
                                     pass
 
                     # Extract metadata as structured data (for Ashby, etc.)
@@ -328,7 +328,7 @@ class ExtractorTestCase:
                         # Check if raw content is JSON
                         if raw_content.strip().startswith("{"):
                             try:
-                                parsed_raw = json.loads(raw_content)
+                                parsed_raw = orjson.loads(raw_content)
                                 if isinstance(parsed_raw, dict):
                                     structured_data = parsed_raw
                                     raw_row = parsed_raw
@@ -351,7 +351,7 @@ class ExtractorTestCase:
                                         # Use data object as structured_data for other fields
                                         structured_data = data_obj
                                         raw_row = data_obj
-                            except (json.JSONDecodeError, Exception):
+                            except (orjson.JSONDecodeError, Exception):
                                 raw_markdown = raw_content
                         else:
                             raw_markdown = raw_content
@@ -362,22 +362,22 @@ class ExtractorTestCase:
                 if raw_content:
                     if raw_content.strip().startswith("{"):
                         try:
-                            parsed_raw = json.loads(raw_content)
+                            parsed_raw = orjson.loads(raw_content)
                             if isinstance(parsed_raw, dict):
                                 structured_data = parsed_raw
                                 raw_row = parsed_raw
-                        except (json.JSONDecodeError, Exception):
+                        except (orjson.JSONDecodeError, Exception):
                             pass
                     elif "<pre>" in raw_content:
                         try:
                             import re
                             pre_match = re.search(r"<pre>(.*?)</pre>", raw_content, re.DOTALL)
                             if pre_match:
-                                parsed_raw = json.loads(pre_match.group(1))
+                                parsed_raw = orjson.loads(pre_match.group(1))
                                 if isinstance(parsed_raw, dict):
                                     structured_data = parsed_raw
                                     raw_row = parsed_raw
-                        except (json.JSONDecodeError, Exception):
+                        except (orjson.JSONDecodeError, Exception):
                             pass
 
         # Load assertion

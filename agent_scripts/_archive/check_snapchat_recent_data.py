@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 import time
 from pathlib import Path
@@ -139,7 +139,7 @@ async def _run() -> None:
         if recent_ignored:
             any_recent = True
 
-    print(json.dumps(summary, indent=2))
+    print(orjson.dumps(summary, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
     if not matched_sites:
         print("No matching Snapchat sites found; nothing to wipe.")
@@ -193,7 +193,12 @@ async def _run() -> None:
                 "cursor": last_cursor,
             }
 
-    print(json.dumps({"wipe": wipe_results, "applied": args.apply}, indent=2))
+    print(
+        orjson.dumps(
+            {"wipe": wipe_results, "applied": args.apply},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 def main() -> None:
     asyncio.run(_run())
 if __name__ == "__main__":

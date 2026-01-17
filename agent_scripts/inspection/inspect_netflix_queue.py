@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -269,6 +269,6 @@ async def main() -> None:
         ]
         report["rows"] = trimmed
 
-    print(json.dumps(report, indent=2))
+    print(orjson.dumps(report, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

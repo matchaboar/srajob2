@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -151,13 +151,13 @@ def plan_with_llm(form: Form, resume: Dict, llm: BaseLLMClient) -> List[FillActi
     ]
     prompt = (
         f"{LLM_INSTRUCTIONS}\n\n"
-        f"Candidate (YAML-like JSON):\n{json.dumps(resume, ensure_ascii=False, indent=2)}\n\n"
-        f"Fields: {json.dumps(fields_summary, ensure_ascii=False)}\n\n"
+        f"Candidate (YAML-like JSON):\n{orjson.dumps(resume, option=orjson.OPT_INDENT_2).decode('utf-8')}\n\n"
+        f"Fields: {orjson.dumps(fields_summary).decode('utf-8')}\n\n"
         "Return JSON with keys: selector, value, op per field."
     )
     try:
         raw = llm.complete(prompt)
-        data = json.loads(raw)
+        data = orjson.loads(raw)
     except Exception:
         # If LLM fails, fall back to rule-based
         return plan_with_rules(form, resume)
@@ -177,4 +177,3 @@ def plan_with_llm(form: Form, resume: Dict, llm: BaseLLMClient) -> List[FillActi
         actions.append(FillAction(selector=sel, value=value, field=f, op=op))
 
     return actions
-

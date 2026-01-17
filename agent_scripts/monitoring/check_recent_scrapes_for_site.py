@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -214,12 +214,13 @@ async def main() -> None:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(
-            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+            orjson.dumps(result, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
         )
         print(f"\nFull output saved to: {args.out}")
     else:
         print("\n" + "-" * 60)
         print("Full JSON output:")
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(orjson.dumps(result, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

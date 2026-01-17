@@ -9,7 +9,7 @@
       "description_word_count": 937,
       "location": "Remote - Netherlands",
       "is_remote": true,
-      "posted_at": 1768680359227,
+      "posted_at": 1768685645800,
       "posted_at_unknown": false,
       "company": "HubSpot",
       "level": "mid",
@@ -31,7 +31,7 @@
         "location": "Remote - Netherlands",
         "description": "## Account Executive, Corporate - Benelux\n### Sales\n### Remote - Netherlands\n**HubSpot Philosophy and Product**\nWe believe the world has changed. We see businesses using more kinds of software, not less, that all needs to work together. To help our customers grow better in this environment, HubSpot is evolving from an “all-in-one” suite into an “all-on-one” platform.\nHubSpot is a set of tools that supports a companies customer facing teams including Marketing, Sales and Service helping them to optimize each stage of the buyer’s journey and grow their business.\n[HubSpot’s flywheel philosophy ](https://www.hubspot.com/flywheel)uses the momentum of happy customers to...",
         "url": "https://www.hubspot.com/careers/jobs/5986323",
-        "posted_at": 1768680359227,
+        "posted_at": 1768685645800,
         "level": "mid",
         "remote": true,
         "cost_milli_cents": 150,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.227000",
+      "final_value": "2026-01-17T14:34:05.800000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.227000",
+          "value": "2026-01-17T14:34:05.800000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.227000"
+          "reason": "Valid date: 2026-01-17T14:34:05.800000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.352101",
+          "value": "2026-01-17T14:34:05.835812",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

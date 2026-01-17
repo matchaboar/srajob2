@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import time
 from pathlib import Path
 from typing import Any, Dict, List
@@ -76,7 +76,10 @@ def _normalize_log_entry(log: Dict[str, Any]) -> Dict[str, Any]:
     }
 def _write_fixture(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export Avature scrape logs and queued URLs into a JSON fixture.",
@@ -149,10 +152,15 @@ async def main() -> None:
     }
 
     _write_fixture(output_path, payload)
-    print(json.dumps({
-        "output": str(output_path),
-        "logCount": len(normalized_logs),
-        "queueCount": len(queue),
-    }, indent=2))
+    print(
+        orjson.dumps(
+            {
+                "output": str(output_path),
+                "logCount": len(normalized_logs),
+                "queueCount": len(queue),
+            },
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import time
 import uuid
 from collections import Counter
@@ -27,7 +27,7 @@ MIN_FIXTURE_ROWS = 100
 def _load_fixture_rows() -> List[Dict[str, Any]]:
     if not FIXTURE_PATH.exists():
         pytest.skip("Missing queue fixture; run agent_scripts/export_scrape_queue_fixture.py")
-    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     rows = payload.get("rows", []) if isinstance(payload, dict) else []
     if not isinstance(rows, list):
         pytest.skip("Queue fixture rows missing or invalid")

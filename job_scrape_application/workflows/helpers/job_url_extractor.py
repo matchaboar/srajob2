@@ -6,7 +6,7 @@ No external API calls are made - this is deterministic processing only.
 
 from __future__ import annotations
 
-import json
+import orjson
 import re
 from html.parser import HTMLParser
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -404,7 +404,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             return None
         cleaned = _clean_invalid_json_escapes(_strip_code_fences(value))
         try:
-            return json.loads(cleaned)
+            return orjson.loads(cleaned)
         except Exception:
             parsed_items: list[Any] = []
             for line in cleaned.splitlines():
@@ -412,7 +412,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if not line:
                     continue
                 try:
-                    parsed_line = json.loads(line)
+                    parsed_line = orjson.loads(line)
                 except Exception:
                     continue
                 parsed_items.append(parsed_line)
@@ -503,6 +503,37 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
         if "window.__appData" not in text:
             return []
 
+        def _find_json_end(raw_text: str, start: int) -> int | None:
+            stack: list[str] = []
+            in_string = False
+            escape = False
+            for idx in range(start, len(raw_text)):
+                ch = raw_text[idx]
+                if in_string:
+                    if escape:
+                        escape = False
+                        continue
+                    if ch == "\\":
+                        escape = True
+                        continue
+                    if ch == '"':
+                        in_string = False
+                    continue
+                if ch == '"':
+                    in_string = True
+                    continue
+                if ch in "{[":
+                    stack.append(ch)
+                elif ch in "}]":
+                    if not stack:
+                        return None
+                    open_ch = stack.pop()
+                    if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                        return None
+                    if not stack:
+                        return idx + 1
+            return None
+
         def _find_slug(raw_text: str, payload: Dict[str, Any]) -> Optional[str]:
             org = payload.get("organization") if isinstance(payload, dict) else None
             if isinstance(org, dict):
@@ -521,8 +552,10 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
             if brace_start == -1:
                 return None
             try:
-                decoder = json.JSONDecoder()
-                parsed, _ = decoder.raw_decode(raw_text, brace_start)
+                end = _find_json_end(raw_text, brace_start)
+                if end is None:
+                    return None
+                parsed = orjson.loads(raw_text[brace_start:end])
                 return parsed if isinstance(parsed, dict) else None
             except Exception:
                 return None
@@ -812,7 +845,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 if isinstance(payload, dict):
                     return payload
             try:
-                parsed = json.loads(text)
+                parsed = orjson.loads(text)
             except Exception:
                 parsed = None
             if isinstance(parsed, dict):
@@ -897,7 +930,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                 json_payload = BaseSiteHandler._extract_json_payload_from_html(raw_val)  # noqa: SLF001
                 if json_payload is None:
                     try:
-                        parsed = json.loads(raw_val)
+                        parsed = orjson.loads(raw_val)
                     except Exception:
                         parsed = None
                     if isinstance(parsed, dict):
@@ -1056,7 +1089,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
     for text in list(candidates):
         if isinstance(text, str):
             try:
-                parsed_json = json.loads(
+                parsed_json = orjson.loads(
                     _clean_invalid_json_escapes(_strip_code_fences(text))
                 )
             except Exception:
@@ -1108,7 +1141,7 @@ def extract_job_urls_from_scrape(scrape: Dict[str, Any]) -> list[str]:
                     return trimmed
                 return urls
             try:
-                parsed = json.loads(
+                parsed = orjson.loads(
                     _clean_invalid_json_escapes(_strip_code_fences(text))
                 )
                 candidates.extend(gather_strings(parsed))

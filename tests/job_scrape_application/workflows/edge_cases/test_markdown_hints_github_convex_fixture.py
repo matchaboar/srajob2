@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -17,7 +17,7 @@ EXPECTED_TITLES = {
 
 
 def test_markdown_hints_github_convex_fixture_titles():
-    payload = json.loads((FIXTURES / "convex_github_jobs.json").read_text(encoding="utf-8"))
+    payload = orjson.loads((FIXTURES / "convex_github_jobs.json").read_text(encoding="utf-8"))
     jobs = payload.get("jobs", [])
     assert jobs, "expected jobs in convex_github_jobs.json"
 

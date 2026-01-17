@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -37,7 +37,10 @@ def main() -> None:
             entries = data.get("site_schedules", [])
         payload = {"site_schedules": entries}
         out_path = convex_dir / f"site_schedules.{env}.json"
-        out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        out_path.write_text(
+            orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+            encoding="utf-8",
+        )
         print(f"Wrote {out_path}")
 
 

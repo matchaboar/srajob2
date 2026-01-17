@@ -1,14 +1,14 @@
 """
 Debug the voltage_park fixture escaping issue.
 """
-import json
+import orjson
 from pathlib import Path
 
 fixture_path = Path('tests/job_scrape_application/workflows/fixtures/dbos_schedule/voltage_park_listing.json')
 raw_text = fixture_path.read_text()
 
 # Parse the fixture
-fixture = json.loads(raw_text)
+fixture = orjson.loads(raw_text)
 first_response = fixture['response'][0]
 
 print("=== First response item ===")

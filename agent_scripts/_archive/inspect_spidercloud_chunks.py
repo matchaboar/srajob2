@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Iterable, List
 
@@ -72,7 +72,7 @@ def main() -> None:
     parser.add_argument("--max-samples", type=int, default=3, help="Max fragment samples to print")
     args = parser.parse_args()
 
-    payload = json.loads(Path(args.path).read_text(encoding="utf-8"))
+    payload = orjson.loads(Path(args.path).read_text(encoding="utf-8"))
     raw_events = payload if isinstance(payload, list) else [payload]
 
     fragments = [s for s in _gather_strings(raw_events) if isinstance(s, str) and s.strip()]
@@ -82,7 +82,7 @@ def main() -> None:
     merged = _merge_json_fragments(raw_events)
 
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "raw_events_type": type(raw_events).__name__,
                 "raw_events_len": len(raw_events),
@@ -93,9 +93,8 @@ def main() -> None:
                 "merged_len": len(merged) if merged else None,
                 "merged_preview": merged[:160].replace("\n", "\\n") if merged else "",
             },
-            indent=2,
-            ensure_ascii=False,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 
     if jsonish and args.max_samples > 0:

@@ -20,7 +20,7 @@ This script will:
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 import re
 import subprocess
 import sys
@@ -45,7 +45,14 @@ def fetch_job_from_convex(job_id: str) -> dict | None:
     """Fetch job details from Convex prod."""
     try:
         result = subprocess.run(
-            ["npx", "convex", "run", "--prod", "router:getJobById", json.dumps({"id": job_id})],
+            [
+                "npx",
+                "convex",
+                "run",
+                "--prod",
+                "router:getJobById",
+                orjson.dumps({"id": job_id}).decode("utf-8"),
+            ],
             capture_output=True,
             text=True,
             cwd=ROOT / "job_board_application",
@@ -60,11 +67,11 @@ def fetch_job_from_convex(job_id: str) -> dict | None:
         if not output or output == "null":
             return None
 
-        return json.loads(output)
+        return orjson.loads(output)
     except subprocess.TimeoutExpired:
         print("Timeout fetching job from Convex", file=sys.stderr)
         return None
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         print(f"Error parsing Convex response: {e}", file=sys.stderr)
         return None
 def get_site_handler_info(url: str) -> dict:
@@ -187,7 +194,7 @@ def generate_report(job_id: str, job_data: dict, handler_info: dict, fixture_inf
         "",
         "## Full Job Data (JSON)",
         "```json",
-        json.dumps(job_data, indent=2, default=str),
+        orjson.dumps(job_data, option=orjson.OPT_INDENT_2, default=str).decode("utf-8"),
         "```",
     ])
 
@@ -240,12 +247,16 @@ def main():
 
     # Generate output
     if args.json:
-        output = json.dumps({
-            "job_id": job_id,
-            "job_data": job_data,
-            "handler_info": handler_info,
-            "fixture_info": fixture_info,
-        }, indent=2, default=str)
+        output = orjson.dumps(
+            {
+                "job_id": job_id,
+                "job_data": job_data,
+                "handler_info": handler_info,
+                "fixture_info": fixture_info,
+            },
+            option=orjson.OPT_INDENT_2,
+            default=str,
+        ).decode("utf-8")
     else:
         output = generate_report(job_id, job_data, handler_info, fixture_info)
 

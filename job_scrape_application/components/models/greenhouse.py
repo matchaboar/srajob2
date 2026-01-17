@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html
-import json
+import orjson
 import re
 from typing import Any, Iterable, List, Optional
 
@@ -60,18 +60,52 @@ def _find_jobs_payload(node: Any) -> Optional[dict[str, Any]]:
     return None
 
 
+def _find_json_end(text: str, start: int) -> int | None:
+    stack: list[str] = []
+    in_string = False
+    escape = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if not stack:
+                return None
+            open_ch = stack.pop()
+            if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                return None
+            if not stack:
+                return idx + 1
+    return None
+
+
 def _scan_json_candidates(text: str) -> Iterable[Any]:
-    decoder = json.JSONDecoder()
     for match in re.finditer(r"[{[]", text):
         idx = match.start()
+        end = _find_json_end(text, idx)
+        if end is None:
+            continue
         try:
-            parsed, _ = decoder.raw_decode(text[idx:])
-        except json.JSONDecodeError:
+            parsed = orjson.loads(text[idx:end])
+        except orjson.JSONDecodeError:
             continue
         if isinstance(parsed, str):
             try:
-                parsed = json.loads(parsed)
-            except Exception:
+                parsed = orjson.loads(parsed)
+            except orjson.JSONDecodeError:
                 pass
         yield parsed
 
@@ -116,14 +150,14 @@ def load_greenhouse_board(raw_payload: Any) -> GreenhouseBoardResponse:
         if not text_payload.strip():
             return GreenhouseBoardResponse()
         try:
-            data = json.loads(text_payload)
-        except json.JSONDecodeError:
+            data = orjson.loads(text_payload)
+        except orjson.JSONDecodeError:
             cleaned = _strip_invalid_json_escapes(text_payload)
             if not cleaned.strip():
                 return GreenhouseBoardResponse()
             try:
-                data = json.loads(cleaned)
-            except json.JSONDecodeError:
+                data = orjson.loads(cleaned)
+            except orjson.JSONDecodeError:
                 extracted = _extract_jobs_payload_from_text(text_payload)
                 if extracted is None and cleaned != text_payload:
                     extracted = _extract_jobs_payload_from_text(cleaned)
@@ -135,7 +169,7 @@ def load_greenhouse_board(raw_payload: Any) -> GreenhouseBoardResponse:
 
     if isinstance(data, str):
         try:
-            data = json.loads(data)
+            data = orjson.loads(data)
         except Exception:
             extracted = _extract_jobs_payload_from_text(data)
             if extracted is not None:

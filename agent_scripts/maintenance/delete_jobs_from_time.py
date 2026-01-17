@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-import json
+import orjson
 import os
 import subprocess
 import time
@@ -31,7 +31,7 @@ def _run_convex(
     if env == "prod":
         cmd.append("--prod")
     cmd.append(function_name)
-    cmd.append(json.dumps(payload))
+    cmd.append(orjson.dumps(payload).decode("utf-8"))
     result = subprocess.run(
         cmd,
         cwd=str(CONVEX_DIR),
@@ -43,7 +43,7 @@ def _run_convex(
     stdout = result.stdout.strip()
     if not stdout:
         return None
-    return json.loads(stdout)
+    return orjson.loads(stdout)
 
 
 def _run_delete_loop(
@@ -214,7 +214,7 @@ def main() -> None:
     has_more = any(result.get("hasMore") for result in totals.values())
 
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "windowStart": window_start,
                 "windowEnd": window_end,
@@ -223,8 +223,8 @@ def main() -> None:
                 "totals": totals,
                 "hasMore": has_more,
             },
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 
     if has_more:

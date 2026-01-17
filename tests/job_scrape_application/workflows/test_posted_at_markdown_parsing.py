@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from typing import Any
 
@@ -102,7 +102,7 @@ def test_share_job_k17d5s24_has_no_posted_at() -> None:
 
 def test_workday_job_detail_extracts_date_posted() -> None:
     handler = _DummyHandler()
-    payload = json.loads(
+    payload = orjson.loads(
         Path(
             "tests/job_scrape_application/workflows/fixtures/broadcom_workday_r024197_raw.json"
         ).read_text(encoding="utf-8")
@@ -115,7 +115,7 @@ def test_workday_job_detail_extracts_date_posted() -> None:
 
 def test_share_job_query_id_selects_posted_at() -> None:
     handler = _DummyHandler()
-    payload = json.loads(
+    payload = orjson.loads(
         Path("tests/job_scrape_application/workflows/fixtures/convex_share_job_k176k6n2_payload.json").read_text(
             encoding="utf-8"
         )

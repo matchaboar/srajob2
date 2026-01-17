@@ -9,7 +9,7 @@
       "description_word_count": 821,
       "location": "New York, NY",
       "is_remote": false,
-      "posted_at": 1768680359168,
+      "posted_at": 1768685645743,
       "posted_at_unknown": false,
       "company": "Spotify",
       "level": "mid",
@@ -31,7 +31,7 @@
         "location": "New York, NY",
         "description": "# Data Scientist\n### Growth Analytics (Performance Marketing)\nLink copied to clipboard.\n](https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing#)\nData, Research &amp; Insights\n](https://www.lifeatspotify.com/job-categories/data-research-insights)\nData\nPermanent\nNew York\nWe are looking for a Data Scientist to join the Business Analytics team at Spotify. In this role, you’ll shape Spotify’s performance marketing and growth strategy by developing models, designing experiments and measuring the impact of marketing investments. Partnering with the Growth Analytics Lead, you’ll turn data into strategies that guide budget allocation, optimize spend and accelerate efficient growth across paid media channels. You’ll collaborate with a global, cross-functional team of analysts, data scientists, marketers, business leaders, and...",
         "url": "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
-        "posted_at": 1768680359168,
+        "posted_at": 1768685645743,
         "level": "mid",
         "remote": false,
         "cost_milli_cents": 126,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.168000",
+      "final_value": "2026-01-17T14:34:05.743000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.168000",
+          "value": "2026-01-17T14:34:05.743000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.168000"
+          "reason": "Valid date: 2026-01-17T14:34:05.743000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.260941",
+          "value": "2026-01-17T14:34:05.773270",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

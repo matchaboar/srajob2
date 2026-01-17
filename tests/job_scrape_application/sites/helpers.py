@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -12,7 +12,7 @@ def _read_fixture_text(path: Path) -> str:
 
 
 def load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(_read_fixture_text(path))
+    payload = orjson.loads(_read_fixture_text(path))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload

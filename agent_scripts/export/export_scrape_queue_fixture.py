@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
@@ -34,7 +34,10 @@ def _unique_rows(rows: Iterable[Dict[str, Any]], *, max_rows: int) -> List[Dict[
     return unique
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Export DBOS queue rows into a fixture.")
     parser.add_argument("--provider", default="spidercloud", help="queue provider filter")
@@ -100,15 +103,15 @@ async def main() -> None:
     _write_json(output_path, payload)
 
     print(
-        json.dumps(
+        orjson.dumps(
             {
                 "output": str(output_path),
                 "count": len(unique_rows),
                 "provider": args.provider,
                 "statuses": statuses,
             },
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
     )
 if __name__ == "__main__":
     asyncio.run(main())

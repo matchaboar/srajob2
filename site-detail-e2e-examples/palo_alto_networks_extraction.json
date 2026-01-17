@@ -9,7 +9,7 @@
       "description_word_count": 730,
       "location": "Santa Clara, CA, US",
       "is_remote": false,
-      "posted_at": 1768680359439,
+      "posted_at": 1768685645683,
       "posted_at_unknown": false,
       "company": "Palo Alto Networks",
       "level": "senior",
@@ -31,7 +31,7 @@
         "location": "Santa Clara, CA, US",
         "description": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility...",
         "url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520",
-        "posted_at": 1768680359439,
+        "posted_at": 1768685645683,
         "level": "senior",
         "remote": false,
         "cost_milli_cents": 39,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2026-01-17T13:05:59.439000",
+      "final_value": "2026-01-17T14:34:05.683000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-17T13:05:59.439000",
+          "value": "2026-01-17T14:34:05.683000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-17T13:05:59.439000"
+          "reason": "Valid date: 2026-01-17T14:34:05.683000"
         },
         {
           "name": "structured_data_posted_at",
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.564128",
+          "value": "2026-01-17T14:34:05.724401",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

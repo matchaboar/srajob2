@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import re
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -52,7 +52,7 @@ def _extract_first_html(payload: Any) -> Optional[str]:
 
 
 def _load_html(path: Path) -> str:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         payload = payload.get("response")
     html = _extract_first_html(payload)

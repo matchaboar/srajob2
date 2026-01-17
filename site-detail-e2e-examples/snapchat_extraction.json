@@ -9,7 +9,7 @@
       "description_word_count": 756,
       "location": "Vienna, Austria",
       "is_remote": false,
-      "posted_at": 1764965159191,
+      "posted_at": 1764970445657,
       "posted_at_unknown": false,
       "company": "Snap",
       "level": "senior",
@@ -31,7 +31,7 @@
         "location": "Vienna, Austria",
         "description": "# Technical Program Manager\nVienna\nFull time\nPosted 43 days ago\n[Snap Inc](https://www.snap.com/en-US/?lang=en-US) is a technology company. We believe the camera presents the greatest opportunity to improve the way people live and communicate. Snap contributes to human progress by empowering people to express themselves, live in the moment, learn about the world, and have fun together. The Company’s three core products are [Snapchat](https://www.snapchat.com/?lang=en-US), a visual messaging app that enhances your relationships with friends, family, and the world; [Lens Studio](https://ar.snap.com/lens-studio?lang=en-US), an augmented reality platform that powers AR across Snapchat and other services; and its AR glasses, [Spectacles](https://www.spectacles.com/?lang=en-US).\nSpecs is home to...",
         "url": "https://careers.snap.com/job?id=R0043496",
-        "posted_at": 1764965159191,
+        "posted_at": 1764970445657,
         "level": "senior",
         "remote": false,
         "cost_milli_cents": 103,
@@ -419,16 +419,16 @@
       ]
     },
     "posted_at": {
-      "final_value": "2025-12-05T13:05:59.191000",
+      "final_value": "2025-12-05T14:34:05.657000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2025-12-05T13:05:59.191000",
+          "value": "2025-12-05T14:34:05.657000",
           "is_valid": true,
-          "reason": "Valid date: 2025-12-05T13:05:59.191000"
+          "reason": "Valid date: 2025-12-05T14:34:05.657000"
         },
         {
           "name": "structured_data_posted_at",
@@ -447,7 +447,7 @@
         {
           "name": "content_pattern_posted_at",
           "priority": "CONTENT_PATTERN",
-          "value": "2025-12-05T13:05:59.324000",
+          "value": "2025-12-05T14:34:05.696000",
           "is_valid": true,
           "reason": "Date from markdown via handler"
         },
@@ -461,7 +461,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T13:05:59.324863",
+          "value": "2026-01-17T14:34:05.696953",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

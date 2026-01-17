@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from pathlib import Path
 
@@ -42,7 +42,7 @@ def _extract_first_html(payload: object) -> str:
 
 
 def _load_spidercloud_fixture(path: Path) -> object:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -55,7 +55,7 @@ def _extract_json_from_pre(html_text: str) -> dict:
     content = html_lib.unescape(match.group("content")).strip()
     if not content:
         raise AssertionError("Empty <pre> content in fixture HTML")
-    parsed = json.loads(content)
+    parsed = orjson.loads(content)
     if not isinstance(parsed, dict):
         raise AssertionError("Expected JSON object payload from fixture")
     return parsed
@@ -155,7 +155,7 @@ def test_load_greenhouse_board_strips_invalid_escapes():
             }
         ]
     }
-    valid_json = json.dumps(payload)
+    valid_json = orjson.dumps(payload).decode("utf-8")
     invalid_json = valid_json.replace("\\\\q", "\\q")
 
     board = load_greenhouse_board(invalid_json)
@@ -175,7 +175,7 @@ def test_load_greenhouse_board_parses_html_with_pre():
             }
         ]
     }
-    html_payload = f"<html><body><pre>{json.dumps(payload)}</pre></body></html>"
+    html_payload = f"<html><body><pre>{orjson.dumps(payload).decode('utf-8')}</pre></body></html>"
 
     board = load_greenhouse_board(html_payload)
 
@@ -194,7 +194,7 @@ def test_load_greenhouse_board_parses_json_with_prefix():
             }
         ]
     }
-    text_payload = f"blocked-response\n{json.dumps(payload)}\ntrailer"
+    text_payload = f"blocked-response\n{orjson.dumps(payload).decode('utf-8')}\ntrailer"
 
     board = load_greenhouse_board(text_payload)
 
@@ -251,7 +251,7 @@ def test_greenhouse_handler_extracts_xai_detail_fields():
     posted_at = handler.extract_posted_at(job_payload, job_payload.get("absolute_url"))
     assert posted_at == job_payload.get("first_published")
 
-    markdown, title = handler.normalize_markdown(json.dumps(job_payload))
+    markdown, title = handler.normalize_markdown(orjson.dumps(job_payload).decode("utf-8"))
     assert title == job_payload.get("title")
     assert "About xAI" in markdown
 
@@ -272,7 +272,7 @@ def test_greenhouse_handler_extracts_verkada_detail_fields():
     posted_at = handler.extract_posted_at(job_payload, job_payload.get("absolute_url"))
     assert posted_at == job_payload.get("first_published")
 
-    markdown, title = handler.normalize_markdown(json.dumps(job_payload))
+    markdown, title = handler.normalize_markdown(orjson.dumps(job_payload).decode("utf-8"))
     assert title == job_payload.get("title")
     assert "Who We Are" in markdown
     assert "<div" not in markdown

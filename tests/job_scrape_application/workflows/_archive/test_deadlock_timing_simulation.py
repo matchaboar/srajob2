@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ast
-import json
+import orjson
 import os
 import re
 import time
@@ -641,7 +641,7 @@ async def test_deadlock_timing_workflow_run_slow_event_processing():
                 body_payload = {}
             attributes = event.get("attributes") or {}
             temporal_raw = attributes.get("temporal_workflow")
-            temporal_payload = json.loads(temporal_raw) if temporal_raw else {}
+            temporal_payload = orjson.loads(temporal_raw) if temporal_raw else {}
             combined = {**body_payload, **temporal_payload}
             combined.update(
                 {
@@ -652,7 +652,9 @@ async def test_deadlock_timing_workflow_run_slow_event_processing():
                     "taskQueue": attributes.get("taskQueue"),
                 }
             )
-            summaries.append(json.dumps(combined, sort_keys=True))
+            summaries.append(
+                orjson.dumps(combined, option=orjson.OPT_SORT_KEYS).decode("utf-8")
+            )
         return summaries
 
     _timer(f"workflow_run_slow_event_processing_{event_count}", _process_run_slow_events)
@@ -888,12 +890,12 @@ async def test_deadlock_timing_large_json_parse():
         }
         for i in range(rows)
     ]
-    raw = json.dumps(payload)
+    raw = orjson.dumps(payload)
 
     def _parse_payload():
         total = 0
         for _ in range(repeats):
-            parsed = json.loads(raw)
+            parsed = orjson.loads(raw)
             total += len(parsed)
         return total
 

@@ -25,38 +25,38 @@
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en"
   ],
   "scraped_urls": [],
   "normalized_urls": [
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en"
   ],
   "apply_urls": [
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en"
   ],
   "sample_transformations": [],
   "url_transformations": [],

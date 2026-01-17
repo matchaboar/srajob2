@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -353,7 +353,7 @@ Available sites: {sites}
 
         # Output results
         print("\n=== Results ===")
-        print(json.dumps(result, indent=2))
+        print(orjson.dumps(result, option=orjson.OPT_INDENT_2).decode("utf-8"))
         return 0
 
     except NotImplementedError as e:

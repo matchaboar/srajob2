@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -29,7 +29,7 @@ def test_kula_handler_builds_listing_api_url():
 
 
 def test_kula_handler_extracts_job_urls():
-    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload = orjson.loads(FIXTURE.read_text(encoding="utf-8"))
     handler = KulaCareersHandler()
     job_ids = handler.get_links_from_json(payload)
     assert "19780" in job_ids

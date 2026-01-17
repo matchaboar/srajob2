@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import json
+import functools
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -33,8 +34,14 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
+@functools.lru_cache(maxsize=8)
 def _load_spidercloud_fixture(path: Path) -> object:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    """Load and cache SpiderCloud fixture files.
+
+    Caches loaded fixtures to avoid repeated file I/O and JSON parsing
+    for large fixture files used by multiple tests.
+    """
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -239,7 +246,7 @@ async def test_greenhouse_api_listing_extracts_job_urls(monkeypatch):
         "url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
         "events": [{
             "content": {
-                "raw": json.dumps({
+                "raw": orjson.dumps({
                     "jobs": [
                         {
                             "absolute_url": "https://careers.airbnb.com/positions/12345?gh_jid=12345",
@@ -250,7 +257,7 @@ async def test_greenhouse_api_listing_extracts_job_urls(monkeypatch):
                             "title": "Senior Engineer",
                         },
                     ]
-                })
+                }).decode("utf-8")
             }
         }]
     }]
@@ -487,7 +494,7 @@ async def test_greenhouse_api_valid_json_skips_captcha_detection():
         "title": "Senior Application Security Engineer II",
         "content": "Security check your browser before applying.",
     }
-    fake_client = _FakeClient([{"content": {"raw": json.dumps(job_payload)}}])
+    fake_client = _FakeClient([{"content": {"raw": orjson.dumps(job_payload).decode("utf-8")}}])
 
     result = await scraper._scrape_single_url_sync(
         fake_client,
@@ -532,7 +539,7 @@ def test_extract_markdown_prefers_commonmark_over_metadata():
 
 def test_normalize_job_handles_api_json_string():
     scraper = _make_scraper()
-    json_body = json.dumps({"title": "Software Engineer", "content": "<p>Role</p>"})
+    json_body = orjson.dumps({"title": "Software Engineer", "content": "<p>Role</p>"}).decode("utf-8")
     normalized = scraper._normalize_job("https://boards-api.greenhouse.io/v1/boards/demo/jobs/1", json_body, [], 0)
     assert normalized is not None
     assert normalized["title"] == "Software Engineer"
@@ -569,13 +576,13 @@ def test_normalize_job_uses_greenhouse_updated_at():
 
 def test_normalize_job_falls_back_when_greenhouse_updated_at_missing():
     scraper = _make_scraper()
-    payload = json.loads(Path("tests/fixtures/greenhouse_api_job.json").read_text(encoding="utf-8"))
+    payload = orjson.loads(Path("tests/fixtures/greenhouse_api_job.json").read_text(encoding="utf-8"))
     payload.pop("updated_at", None)
     payload.pop("first_published", None)
     started_at = 456
     normalized = scraper._normalize_job(
         "https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/5001698007",
-        json.dumps(payload),
+        orjson.dumps(payload).decode("utf-8"),
         [],
         started_at,
     )
@@ -597,7 +604,7 @@ def test_normalize_job_extracts_microsoft_posted_ts_from_detail_payload():
     }
     normalized = scraper._normalize_job(
         "https://apply.careers.microsoft.com/careers/job/1970393556653560",
-        json.dumps(payload),
+        orjson.dumps(payload).decode("utf-8"),
         [],
         started_at,
     )

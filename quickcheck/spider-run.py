@@ -1,4 +1,4 @@
-import json
+import orjson
 import os
 import requests
 from dotenv import load_dotenv
@@ -38,7 +38,7 @@ with open('./output.json', 'w', encoding='utf-8') as f:
 # pretty print the json in that file
 
 with open('./output.json', 'r', encoding='utf-8') as f:
-    data = json.load(f)
-    print(json.dumps(data, indent=2))
+    data = orjson.loads(f.read())
+    print(orjson.dumps(data, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
 # print(response.json())

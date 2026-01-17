@@ -21,7 +21,7 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
     return raw if isinstance(raw, dict) else {}
 def _write_yaml(path: Path, payload: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    path.write_text(yaml.safe_dump(payload))
 def _parse_days(days_csv: str) -> List[str]:
     return [d.strip().lower() for d in days_csv.split(",") if d.strip()]
 def _update_entries(

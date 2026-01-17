@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import math
 import re
 from typing import Any, Dict, List, Optional
@@ -243,7 +243,7 @@ class UberCareersHandler(BaseSiteHandler):
         if not content:
             return None
         try:
-            payload = json.loads(content)
+            payload = orjson.loads(content)
         except Exception:
             return None
         if isinstance(payload, dict) and isinstance(payload.get("results"), list):
@@ -310,7 +310,7 @@ class UberCareersHandler(BaseSiteHandler):
         return location
 
     def _build_execution_script(self, payload: Dict[str, Any]) -> str:
-        payload_json = json.dumps(payload, separators=(",", ":"))
+        payload_json = orjson.dumps(payload).decode("utf-8")
         return f"""
 (function() {{
   const payload = {payload_json};

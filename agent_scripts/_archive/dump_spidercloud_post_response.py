@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict, List
@@ -66,8 +66,16 @@ async def main() -> None:
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"saved": str(out_path), "items": len(response)}, indent=2))
+    out_path.write_text(
+        orjson.dumps(response, option=orjson.OPT_INDENT_2).decode("utf-8"),
+        encoding="utf-8",
+    )
+    print(
+        orjson.dumps(
+            {"saved": str(out_path), "items": len(response)},
+            option=orjson.OPT_INDENT_2,
+        ).decode("utf-8")
+    )
 
 
 if __name__ == "__main__":

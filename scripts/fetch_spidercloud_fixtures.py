@@ -15,7 +15,7 @@ Outputs:
 from __future__ import annotations
 
 import asyncio
-import json
+import orjson
 import os
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -94,8 +94,11 @@ async def main() -> None:
                         content_type="application/json",
                     )
                 )
-                path.write_text(json.dumps(response, ensure_ascii=False, indent=2), encoding="utf-8")
-                print(f"  wrote {path} ({len(json.dumps(response))} bytes)")
+                path.write_text(
+                    orjson.dumps(response, option=orjson.OPT_INDENT_2).decode("utf-8"),
+                    encoding="utf-8",
+                )
+                print(f"  wrote {path} ({len(orjson.dumps(response))} bytes)")
             except Exception as exc:  # noqa: BLE001
                 print(f"  failed to fetch {filename}: {exc}")
 

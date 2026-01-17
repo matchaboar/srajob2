@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 from pathlib import Path
 
 
@@ -14,7 +14,7 @@ FIXTURE_PATH = Path(
 
 
 def _load_fixture() -> dict:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return orjson.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 def test_microsoft_convex_job_posted_at_is_known():

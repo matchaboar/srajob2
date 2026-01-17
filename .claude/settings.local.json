@@ -77,7 +77,8 @@
       "Bash(do:*)",
       "Bash(if rg -q '\"\"type\"\":\"\"result\"\"' /tmp/claude/-home-boarcoder-documents-github-srajob2/tasks/$id.output)",
       "Bash(then)",
-      "Bash(else)"
+      "Bash(else)",
+      "Bash(sort:*)"
     ]
   },
   "outputStyle": "default"

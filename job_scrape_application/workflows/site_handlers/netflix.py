@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import html as html_lib
-import json
+import orjson
 import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
@@ -200,7 +200,7 @@ class NetflixHandler(BaseSiteHandler):
 
     def _parse_json_blob(self, text: str) -> Any | None:
         try:
-            parsed = json.loads(text)
+            parsed = orjson.loads(text)
         except Exception:
             parsed = None
         if parsed is not None:
@@ -208,7 +208,7 @@ class NetflixHandler(BaseSiteHandler):
         match = re.search(JSON_OBJECT_PATTERN, text, flags=re.DOTALL)
         if match:
             try:
-                return json.loads(match.group(0))
+                return orjson.loads(match.group(0))
             except Exception:
                 return None
         return None

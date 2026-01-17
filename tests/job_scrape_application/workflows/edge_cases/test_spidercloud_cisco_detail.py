@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,7 +34,7 @@ def _make_scraper() -> SpiderCloudScraper:
 
 
 def _load_spidercloud_fixture(path: Path) -> Any:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")
     return payload
@@ -63,7 +63,7 @@ def _extract_json_ld_date(raw_html: str) -> str | None:
         if not payload_raw:
             continue
         try:
-            parsed = json.loads(payload_raw)
+            parsed = orjson.loads(payload_raw)
         except Exception:
             continue
         expected = _find_date(parsed)

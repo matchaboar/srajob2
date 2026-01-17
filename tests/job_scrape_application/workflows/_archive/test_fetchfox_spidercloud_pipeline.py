@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -45,7 +45,7 @@ import job_scrape_application.services.convex_client as convex_client  # noqa: E
 @pytest.fixture
 def datadog_crawl_payload() -> Dict[str, Any]:
     fixture_path = Path("tests/job_scrape_application/fixtures/fetchfox_datadog_crawl.json")
-    return json.loads(fixture_path.read_text())
+    return orjson.loads(fixture_path.read_text())
 
 
 def _dedupe(urls: List[str]) -> List[str]:

@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import html
-import json
+import orjson
 import os
 import re
 import time
@@ -89,12 +89,12 @@ def _extract_payload(events: List[Any]) -> Optional[Dict[str, Any]]:
         return found
     for text in _gather_strings(events):
         try:
-            parsed = json.loads(text)
+            parsed = orjson.loads(text)
         except Exception:
             continue
         if isinstance(parsed, str):
             try:
-                parsed = json.loads(parsed)
+                parsed = orjson.loads(parsed)
             except Exception:
                 pass
         found = _find_jobs_payload(parsed)
@@ -121,11 +121,11 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
         if brace_match:
             candidate = brace_match.group(0)
     try:
-        parsed = json.loads(candidate)
+        parsed = orjson.loads(candidate)
     except Exception:
         try:
             unescaped = candidate.encode("utf-8", errors="ignore").decode("unicode_escape")
-            parsed = json.loads(unescaped)
+            parsed = orjson.loads(unescaped)
         except Exception:
             return None
     return _find_jobs_payload(parsed) if parsed is not None else None
@@ -248,6 +248,6 @@ async def main() -> None:
         },
     }
 
-    print(json.dumps(report, indent=2))
+    print(orjson.dumps(report, option=orjson.OPT_INDENT_2).decode("utf-8"))
 if __name__ == "__main__":
     asyncio.run(main())

@@ -7,7 +7,7 @@ structured data.
 
 from __future__ import annotations
 
-import json
+import orjson
 import re
 import unicodedata
 from pathlib import Path
@@ -184,7 +184,7 @@ def _format_location_label(city: str | None, state: str | None, country: str | N
 # Load location dictionary from JSON file
 _LOCATION_DICT_PATH = Path(__file__).resolve().parents[3] / "job_board_application" / "convex" / "locationDictionary.json"
 try:
-    _raw_location_entries = json.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
+    _raw_location_entries = orjson.loads(_LOCATION_DICT_PATH.read_text(encoding="utf-8"))
 except FileNotFoundError:
     _raw_location_entries = []
 

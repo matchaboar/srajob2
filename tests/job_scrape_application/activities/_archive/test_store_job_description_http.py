@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import sys
 import types
 from pathlib import Path
@@ -130,7 +130,7 @@ def test_store_job_descriptions_via_http_skips_truncated_description(monkeypatch
         return True
 
     fixture = Path("tests/fixtures/spidercloud_affable_kiwi_job_detail_raw.json")
-    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload = orjson.loads(fixture.read_text(encoding="utf-8"))
     entry = payload[0][0] if isinstance(payload[0], list) else payload[0]
     snippet = entry["metadata"]["raw"]["description"]
 

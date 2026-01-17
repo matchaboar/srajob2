@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import orjson
 import logging
 import re
 from pathlib import Path
@@ -264,7 +264,7 @@ def _fixture_paths(entry: Dict[str, Any]) -> tuple[Path, Path]:
 
 
 def _load_fixture(path: Path) -> Dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise AssertionError(f"Fixture {path} must contain a dict payload")
     if not isinstance(payload.get("request"), dict):
@@ -734,8 +734,8 @@ async def test_dbos_schedule_voltage_park_url_extraction(
                     joined = "".join(item if isinstance(item, str) else "" for item in response)
                     # The workflow expects a parsed dict, not a raw JSON string
                     # when using stream=False (sync mode)
-                    import json
-                    parsed = json.loads(joined)
+                    import orjson
+                    parsed = orjson.loads(joined)
                     yield parsed
                 else:
                     yield response

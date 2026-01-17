@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import json
+import orjson
 from typing import Any
 
 from .queue import enqueue_scrape_urls, queue_status
 
 
 def _json_response(handler: BaseHTTPRequestHandler, payload: dict[str, Any], status: int = 200) -> None:
-    body = json.dumps(payload).encode("utf-8")
+    body = orjson.dumps(payload)
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json")
     handler.send_header("Content-Length", str(len(body)))
@@ -38,8 +38,8 @@ class WorkflowApiHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
         try:
-            payload = json.loads(raw.decode("utf-8"))
-        except json.JSONDecodeError:
+            payload = orjson.loads(raw)
+        except orjson.JSONDecodeError:
             _json_response(self, {"error": "Invalid JSON"}, status=400)
             return
 
