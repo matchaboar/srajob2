@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import functools
 import orjson
 import os
 import re
@@ -35,7 +34,6 @@ def _slugify(value: str) -> str:
     return cleaned.strip("_") or "site"
 
 
-@functools.lru_cache(maxsize=1)
 def _load_schedule_entries() -> tuple[dict[str, Any], ...]:
     """Load and cache site schedule entries.
 

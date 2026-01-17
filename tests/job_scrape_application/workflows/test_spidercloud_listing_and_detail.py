@@ -6,7 +6,6 @@ import orjson
 import re
 import textwrap
 from datetime import datetime, timezone
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict
 
@@ -160,7 +159,6 @@ META_DETAIL_RAW_FIXTURE = (
 )
 
 
-@lru_cache(maxsize=None)
 def _load_fixture(path: Path) -> Any:
     payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
@@ -168,7 +166,6 @@ def _load_fixture(path: Path) -> Any:
     return payload
 
 
-@lru_cache(maxsize=None)
 def _load_request(path: Path) -> Dict[str, Any] | None:
     payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
@@ -244,7 +241,6 @@ def _extract_structured_job_posting_from_raw(raw_html: str) -> Dict[str, Any]:
     return parsed
 
 
-@lru_cache(maxsize=1)
 def _make_scraper() -> SpiderCloudScraper:
     async def _fetch_seen_urls_for_site(*_args, **_kwargs) -> list[str]:
         return []

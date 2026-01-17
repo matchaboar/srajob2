@@ -8,6 +8,7 @@ Tests that the DBOS workflow, given a job_detail URL, will:
 4. Upload full description to Convex file storage
 
 Results can be output to ./site-detail-e2e-examples for inspection.
+Set WRITE_EXTRACTION_OUTPUTS=1 to always write output files.
 """
 
 from __future__ import annotations
@@ -15,7 +16,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-from functools import lru_cache
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -79,6 +79,12 @@ DESCRIPTION_PREVIEW_MAX_WORDS = 100
 DESCRIPTION_TRUNCATION_SUFFIX = "..."
 
 logger = logging.getLogger(__name__)
+
+
+def _should_write_extraction_output() -> bool:
+    return os.environ.get("WRITE_EXTRACTION_OUTPUTS", "").lower() in ("1", "true", "yes") or (
+        os.environ.get("DEBUG_EXTRACTION_VERBOSE", "").lower() in ("1", "true", "yes")
+    )
 
 
 # =============================================================================
@@ -213,7 +219,6 @@ def _find_latest_timestamped_fixture(fixture_dir: Path, slug: str, suffix: str) 
     return None
 
 
-@lru_cache(maxsize=None)
 def _fixture_request_url(path: Path) -> Optional[str]:
     try:
         payload = json_loads(path.read_bytes())
@@ -230,7 +235,6 @@ def _fixture_request_url(path: Path) -> Optional[str]:
     return None
 
 
-@lru_cache(maxsize=None)
 def _ground_truth_detail_url(site_id: str) -> Optional[str]:
     assertion_path = _latest_ground_truth_path(site_id)
     if not assertion_path or not assertion_path.exists():
@@ -1314,6 +1318,8 @@ SCHEDULE_ENTRIES_WITH_DETAILS = _get_sites_with_detail_fixtures()
 
 def _write_extraction_result(result: JobDetailExtractionResult) -> None:
     """Write extraction result to output directory."""
+    if not _should_write_extraction_output():
+        return
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{result.site_id}_extraction.json"
 
@@ -1402,6 +1408,8 @@ def _write_verbose_extraction_steps(result: JobDetailExtractionResult) -> None:
 
     Enable by setting DEBUG_EXTRACTION_VERBOSE=1
     """
+    if not _should_write_extraction_output():
+        return
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{result.site_id}_extraction_steps.md"
 

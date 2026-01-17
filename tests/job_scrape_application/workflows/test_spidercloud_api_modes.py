@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import orjson
 from pathlib import Path
 from typing import Any, Dict, List
@@ -34,13 +33,8 @@ def _make_scraper() -> SpiderCloudScraper:
     return SpiderCloudScraper(deps)
 
 
-@functools.lru_cache(maxsize=8)
 def _load_spidercloud_fixture(path: Path) -> object:
-    """Load and cache SpiderCloud fixture files.
-
-    Caches loaded fixtures to avoid repeated file I/O and JSON parsing
-    for large fixture files used by multiple tests.
-    """
+    """Load SpiderCloud fixture files."""
     payload = orjson.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "response" in payload:
         return payload.get("response")

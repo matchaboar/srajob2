@@ -6,7 +6,6 @@ import sys
 import time
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 import pytest
@@ -71,7 +70,6 @@ from job_scrape_application.workflows.helpers.scrape_utils import trim_scrape_fo
 from job_scrape_application.workflows.helpers.scrape_utils import _jobs_from_scrape_items  # noqa: E402
 
 
-@lru_cache(maxsize=None)
 def _read_fixture_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 

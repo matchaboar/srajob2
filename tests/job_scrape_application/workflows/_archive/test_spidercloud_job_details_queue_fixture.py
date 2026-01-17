@@ -4,7 +4,6 @@ import orjson
 import time
 import uuid
 from collections import Counter
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -23,7 +22,6 @@ FIXTURE_PATH = Path(
 MIN_FIXTURE_ROWS = 100
 
 
-@lru_cache(maxsize=1)
 def _load_fixture_rows() -> List[Dict[str, Any]]:
     if not FIXTURE_PATH.exists():
         pytest.skip("Missing queue fixture; run agent_scripts/export_scrape_queue_fixture.py")

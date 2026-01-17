@@ -9,12 +9,12 @@ Tests that the DBOS workflow, given a listing page URL, will:
 5. Enqueue job detail URLs for downstream processing
 
 Results can be output to ./site-detail-e2e-examples for inspection.
-Enable verbose output with DEBUG_EXTRACTION_VERBOSE=1
+Enable verbose output with DEBUG_EXTRACTION_VERBOSE=1.
+Set WRITE_EXTRACTION_OUTPUTS=1 to always write output files.
 """
 
 from __future__ import annotations
 
-import functools
 import orjson
 import logging
 import os
@@ -30,13 +30,17 @@ from job_scrape_application.workflows.workflow.test_utils import SpiderFixture, 
 from job_scrape_application.workflows.helpers.link_extractors import normalize_url
 from job_scrape_application.workflows.site_handlers import get_site_handler
 
-SCHEDULE_PATH = Path("job_scrape_application/config/prod/site_schedules.yml")
-FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
 DEBUG_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
 DEBUG_GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth/debug")
 OUTPUT_DIR = Path("./site-detail-e2e-examples")
 
 logger = logging.getLogger(__name__)
+
+
+def _should_write_extraction_output() -> bool:
+    return os.environ.get("WRITE_EXTRACTION_OUTPUTS", "").lower() in ("1", "true", "yes") or (
+        os.environ.get("DEBUG_EXTRACTION_VERBOSE", "").lower() in ("1", "true", "yes")
+    )
 
 
 # =============================================================================
@@ -152,36 +156,6 @@ def _slugify(value: str) -> str:
     return cleaned.strip("_") or "site"
 
 
-def _resolve_input_url(
-    fixture: SpiderFixture,
-    site_id: str,
-    schedule_path: Path = SCHEDULE_PATH,
-) -> str:
-    """Resolve the input URL from fixture or schedule config.
-
-    Priority:
-    1. fixture.source_url - explicitly stored in fixture
-    2. Schedule config lookup by site_id
-    3. Fallback to fixture.request_url
-    """
-    # Check fixture for explicit source_url
-    source = fixture.source_url
-    if source:
-        return source
-
-    # Try to find in schedule config
-    if schedule_path.exists():
-        try:
-            schedules = yaml.safe_load(schedule_path.read_text())
-            for entry in schedules.get("site_schedules", []):
-                if entry.get("name", "").lower() == site_id.lower():
-                    return entry.get("url", fixture.request_url)
-        except Exception:
-            pass
-
-    return fixture.request_url
-
-
 @dataclass
 class ListingExtractionStepLog:
     """Log entry for a single listing extraction step."""
@@ -270,17 +244,6 @@ class ExtractedListingResult:
                 if trace.stage == stage and trace.status == status:
                     urls.append(url)
         return urls
-
-
-@dataclass
-class ListingAssertions:
-    """Expected assertions for listing extraction."""
-    site_id: str
-    listing_url: str
-    expected_url_count_min: int = 1
-    expected_url_pattern: Optional[str] = None
-    expected_no_listing_urls: bool = True
-    expected_handler: Optional[str] = None
 
 
 def _derive_apply_urls(
@@ -961,6 +924,8 @@ class ListingTestModule:
 
 def _write_listing_extraction_result(result: ExtractedListingResult) -> None:
     """Write listing extraction result to JSON file."""
+    if not _should_write_extraction_output():
+        return
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{result.site_id}_listing_extraction.json"
 
@@ -1031,6 +996,8 @@ def _write_verbose_listing_steps(result: ExtractedListingResult) -> None:
 
     Enable by setting DEBUG_EXTRACTION_VERBOSE=1
     """
+    if not _should_write_extraction_output():
+        return
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{result.site_id}_listing_extraction_steps.md"
 
@@ -1540,20 +1507,10 @@ def _discover_debug_listing_fixtures() -> List[Tuple[str, Path, Optional[Path]]]
     return fixtures
 
 
-@functools.lru_cache(maxsize=16)
 def _load_debug_listing_fixture(path: Path) -> Dict[str, Any]:
     """Load a debug listing fixture file.
-
-    Caches loaded fixtures to avoid repeated file I/O and JSON parsing
-    for large fixture files.
     """
     return orjson.loads(path.read_text(encoding="utf-8"))
-
-
-@pytest.fixture
-def debug_listing_fixtures() -> List[Tuple[str, Path, Optional[Path]]]:
-    """Fixture providing discovered debug listing fixtures."""
-    return _discover_debug_listing_fixtures()
 
 
 # Generate test IDs from discovered fixtures

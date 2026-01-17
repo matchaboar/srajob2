@@ -21,20 +21,34 @@ SQLITE_TIMEOUT = 10.0
 SQLITE_BUSY_TIMEOUT_MS = 5000
 
 
-def _resolve_db_path() -> Path:
+def _resolve_db_target() -> tuple[str, bool]:
+    env_uri = os.getenv("DBOS_SQLITE_URI")
+    if env_uri:
+        return env_uri, True
+
     env_path = os.getenv("DBOS_SQLITE_PATH")
     if env_path:
-        return Path(env_path)
-    return Path(__file__).resolve().parent / _DEFAULT_DB_NAME
+        if env_path == ":memory:" or env_path.startswith("file:"):
+            return env_path, True
+        return env_path, False
+
+    default_path = str(Path(__file__).resolve().parent / _DEFAULT_DB_NAME)
+    return default_path, False
 
 
 def get_connection() -> sqlite3.Connection:
     conn = getattr(_CONNECTIONS, "connection", None)
     if conn is not None:
         return conn
-    db_path = _resolve_db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=SQLITE_TIMEOUT)
+    db_target, is_uri = _resolve_db_target()
+    if not is_uri:
+        Path(db_target).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(
+        db_target,
+        check_same_thread=False,
+        timeout=SQLITE_TIMEOUT,
+        uri=is_uri,
+    )
     conn.row_factory = sqlite3.Row
     # WAL mode is much better for concurrent access
     conn.execute("PRAGMA journal_mode=WAL;")
