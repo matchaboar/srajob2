@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;",
     "params": {

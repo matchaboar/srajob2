@@ -8,7 +8,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 
-from job_scrape_application.workflows.activities import store_scrape  # noqa: E402
+# Import store_scrape from workflow module
+from job_scrape_application.workflows.workflow.process_spidercloud_job_batch import store_scrape  # noqa: E402
 
 PAGE_LINKS_FIXTURE = (
     Path("tests/job_scrape_application/workflows/fixtures")
@@ -69,7 +70,7 @@ def _load_fixture(path: Path) -> Any:
     return payload
 
 
-async def _run_store_scrape(
+def _run_store_scrape(
     raw_payload: Any,
     source_url: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -77,7 +78,7 @@ async def _run_store_scrape(
     calls: list[Dict[str, Any]] = []
     queue_calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -93,7 +94,7 @@ async def _run_store_scrape(
         "job_scrape_application.services.convex_client.convex_mutation", fake_mutation
     )
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
 
@@ -105,7 +106,7 @@ async def _run_store_scrape(
         "items": {"provider": "spidercloud", "raw": raw_payload},
     }
 
-    await store_scrape(scrape_payload)
+    store_scrape(scrape_payload)
 
     if not queue_calls:
         return []
@@ -237,14 +238,13 @@ def _job_detail_ids_from_links(links: list[str]) -> set[str]:
     return ids
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_listing_page_links_include_profile_job_details(
+def test_spidercloud_meta_listing_page_links_include_profile_job_details(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE_LINKS_FIXTURE)
     source_url = "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering"
 
-    urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
 
     job_ids = _job_detail_ids(urls)
     assert job_ids, "Expected job detail URLs from listing payload"
@@ -252,14 +252,13 @@ async def test_spidercloud_meta_listing_page_links_include_profile_job_details(
     assert not _contains_non_job_meta_links(urls)
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_listing_links_include_profile_job_details(
+def test_spidercloud_meta_listing_links_include_profile_job_details(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(LINKS_FIXTURE)
     source_url = "https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering"
 
-    urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
 
     job_ids = _job_detail_ids(urls)
     assert job_ids, "Expected job detail URLs from listing payload"
@@ -267,8 +266,7 @@ async def test_spidercloud_meta_listing_links_include_profile_job_details(
     assert not _contains_non_job_meta_links(urls)
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_listing_links_extracts_job_details(
+def test_spidercloud_meta_listing_links_extracts_job_details(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(GRAPHQL_FIXTURE)
@@ -277,13 +275,12 @@ async def test_spidercloud_meta_listing_links_extracts_job_details(
         "?teams[0]=Software%20Engineering&offices[0]=Seattle%2C%20WA"
     )
 
-    urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
 
     job_ids = _job_detail_ids(urls)
     assert job_ids, "Expected job detail URLs from listing payload"
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("fixture_path", "source_url"),
     [
@@ -301,13 +298,13 @@ async def test_spidercloud_meta_listing_links_extracts_job_details(
         ),
     ],
 )
-async def test_spidercloud_meta_listing_pages_enqueue_next_pages(
+def test_spidercloud_meta_listing_pages_enqueue_next_pages(
     fixture_path: Path,
     source_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(fixture_path)
-    urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
 
     current_page = None
     parsed = urlparse(source_url)
@@ -327,8 +324,7 @@ async def test_spidercloud_meta_listing_pages_enqueue_next_pages(
         assert len(job_ids) == len(set(job_ids)), "Job detail URLs should be unique per page"
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_page3_links_use_spidercloud_links(
+def test_spidercloud_meta_page3_links_use_spidercloud_links(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE3_FIXTURE)
@@ -337,19 +333,18 @@ async def test_spidercloud_meta_page3_links_use_spidercloud_links(
     fixture_job_ids = _job_detail_ids_from_links(fixture_links)
     assert fixture_job_ids, "Expected job detail links in SpiderCloud links payload"
 
-    urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+    urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
     extracted_ids = set(_job_detail_ids(urls))
     assert extracted_ids & fixture_job_ids, (
         "Expected job detail links sourced from SpiderCloud links payload"
     )
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_listing_prod_page_links_enqueue_pages(
+def test_spidercloud_meta_listing_prod_page_links_enqueue_pages(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PROD_PAGE1_FIXTURE)
-    urls = await _run_store_scrape(raw_payload, PROD_SOURCE_URL, monkeypatch)
+    urls = _run_store_scrape(raw_payload, PROD_SOURCE_URL, monkeypatch)
 
     assert not any(
         _has_meta_listing_page_for_source(urls, PROD_SOURCE_URL, page=p) for p in (2, 3, 4)
@@ -359,8 +354,7 @@ async def test_spidercloud_meta_listing_prod_page_links_enqueue_pages(
     assert job_ids, "Expected job detail URLs from prod listing page links"
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_meta_listing_prod_pages_add_new_urls(
+def test_spidercloud_meta_listing_prod_pages_add_new_urls(
     monkeypatch: pytest.MonkeyPatch,
 ):
     fixture_sets = [
@@ -373,7 +367,7 @@ async def test_spidercloud_meta_listing_prod_pages_add_new_urls(
     seen: set[str] = set()
     for fixture_path, source_url in fixture_sets:
         raw_payload = _load_fixture(fixture_path)
-        urls = await _run_store_scrape(raw_payload, source_url, monkeypatch)
+        urls = _run_store_scrape(raw_payload, source_url, monkeypatch)
         job_ids = _job_detail_ids(urls)
         if not job_ids:
             continue

@@ -1,0 +1,30 @@
+site_id: docusign
+listing_url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&limit=100&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
+expected:
+  url_count: 10
+  no_listing_urls: true
+  handler: DocusignHandler
+  scraped_urls: []
+  normalized_urls:
+  - https://careers.docusign.com/jobs/27215?lang=en-us
+  - https://careers.docusign.com/jobs/27441?lang=en-us
+  - https://careers.docusign.com/jobs/28171?lang=en-us
+  - https://careers.docusign.com/jobs/28248?lang=en-us
+  - https://careers.docusign.com/jobs/28249?lang=en-us
+  - https://careers.docusign.com/jobs/28259?lang=en-us
+  - https://careers.docusign.com/jobs/28351?lang=en-us
+  - https://careers.docusign.com/jobs/28380?lang=en-us
+  - https://careers.docusign.com/jobs/28395?lang=en-us
+  - https://careers.docusign.com/jobs/28412?lang=en-us
+  apply_urls:
+  - https://careers.docusign.com/jobs/27215?lang=en-us
+  - https://careers.docusign.com/jobs/27441?lang=en-us
+  - https://careers.docusign.com/jobs/28171?lang=en-us
+  - https://careers.docusign.com/jobs/28248?lang=en-us
+  - https://careers.docusign.com/jobs/28249?lang=en-us
+  - https://careers.docusign.com/jobs/28259?lang=en-us
+  - https://careers.docusign.com/jobs/28351?lang=en-us
+  - https://careers.docusign.com/jobs/28380?lang=en-us
+  - https://careers.docusign.com/jobs/28395?lang=en-us
+  - https://careers.docusign.com/jobs/28412?lang=en-us
+  blocked_urls: []

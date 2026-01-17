@@ -14,18 +14,37 @@
       "company": "Lambda",
       "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
       "cost_milli_cents": 19
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Senior Software Engineer - AI Cloud",
+        "company": "Lambda",
+        "location": "San Francisco, Seattle, California, Washington, United States",
+        "description": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU.\n\nIf you'd like to build the world's best AI cloud, join us.\n\n*Note: This position requires presence in our San Francisco office location 4 days per week; Lambda’s designated work from home day is currently Tuesday.\n\nRole Summary\n\nHelp build the world’s best deep learning cloud by delivering frontend and backend systems...",
+        "url": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+        "posted_at": 1756306800000,
+        "level": "senior",
+        "remote": true,
+        "cost_milli_cents": 19,
+        "_full_description_word_count": 514
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+        "word_count": 514,
+        "description_preview": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,14 +125,14 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Ashbyhq",
+          "value": "Lambda",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "Equal Opportunity Employer\n\nLambda",
+          "value": "Equal Opportunity Employer Lambda",
           "is_valid": true,
           "reason": "Found 'Company is a' pattern"
         },
@@ -176,9 +195,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Lambda, The Superintelligence Cloud",
+          "value": "location",
           "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "reason": "Matched pattern OFFICE_IN"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +225,7 @@
     "remote": {
       "final_value": true,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +235,25 @@
           "reason": "Explicit boolean remote=True"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: San Francisco, Seattle, California, Washington, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'San Francisco, Seattle, California, Washington, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +272,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +361,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +375,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 19,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 19,
+          "is_valid": true,
+          "reason": "Valid cost: 19"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +461,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:06.054603",
+          "value": "2026-01-17T13:05:59.104553",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no first_published"
         }
       ]
     },
@@ -416,21 +512,21 @@
           "priority": "SITE_HANDLER",
           "value": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU.\n\nIf you'd like to build the world's best AI cloud, join us.\n\n*Note: This position requires presence in our San Francisco office location 4 days per week; Lambda’s designated work from home day is currently Tuesday.\n\nRole Summary\n\nHelp build the world’s best deep learning cloud by delivering frontend and backend systems that power Lambda's ML and AI platform.\n\nWhat You’ll Do\n\nDesign and build intuitive, beautiful web interfaces for ML/AI cloud users\n\nIntegrate top-tier tooling, workflows, and models from the AI space\n\nOwn features end-to-end—from design to deployment to monitoring\n\nYou (Must-Haves)\n\nFrontend Experience (6+ years)\n\nResponsive web apps using:\n\nTypeScript\n\nReact (or equivalent experience in Vue or Svelte)\n\nHTML and modern CSS\n\nVite\n\nBackend Experience (8+ years)\n\nBusiness-critical services using:\n\nPython, Unix/Command line\n\nDjango or FastAPI\n\nRelational databases like PostgreSQL or MySQL\n\nAdditional Core Experience\n\nCI/CD: Automation around testing and deployment\n\nReliability & Observability: Logging, alerting, and building highly available systems\n\nCloud Native Services: AWS, Okta, Cloudflare, etc.\n\nNice-to-Haves\n\nExperience with Kubernetes\n\nInfrastructure as Code (Terraform, Atlantis, Crossplane, etc.)\n\nEvent-based or serverless tech (e.g., AWS Lambda, Kinesis)\n\nExperience in ML, AI, or data science\n\nApplication security and web hardening\n\nLeadership or mentorship experience\n\nStrong academic background (EECS, Math, Software Engineering, Physics)\n\nSalary Range\nThe annual salary range for this position has been set based on market data and other factors. However, a salary higher or lower than this range may be appropriate for a candidate whose qualifications differ meaningfully from those listed in the job description.\n\nFinal Note\n\nYou don’t need to meet all qualifications to apply. Lambda values a variety of backgrounds, experiences, and skills.\n\nAbout Lambda\n\nFounded in 2012, with 500+ employees, and growing fast\n\nOur investors notably include TWG Global, US Innovative Technology Fund (USIT), Andra Capital, SGW, Andrej Karpathy, ARK Invest, Fincadia Advisors, G Squared, In-Q-Tel (IQT), KHK & Partners, NVIDIA, Pegatron, Supermicro, Wistron, Wiwynn, Gradient Ventures, Mercato Partners, SVB, 1517, and Crescent Cove\n\nWe have research papers accepted at top machine learning and graphics conferences, including NeurIPS, ICCV, SIGGRAPH, and TOG\n\nOur values are publicly available: https://lambda.ai/careers\n\nWe offer generous cash & equity compensation\n\nHealth, dental, and vision coverage for you and your dependents\n\nWellness and commuter stipends for select roles\n\n401k Plan with 2% company match (USA employees)\n\nFlexible paid time off plan that we all actually use\n\nA Final Note:\n\nYou do not need to match all of the listed expectations to apply for this position. We are committed to building a team with a variety of backgrounds, experiences, and skills.\n\nEqual Opportunity Employer\n\nLambda is an Equal Opportunity employer. Applicants are considered without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.",
           "is_valid": true,
-          "reason": "Valid description (3578 chars)"
+          "reason": "Valid description (3578 chars, 514 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU.\n\nIf you'd like to build the world's best AI cloud, join us.\n\n*Note: This position requires presence in our San Francisco office location 4 days per week; Lambda’s designated work from home day is currently Tuesday.\n\nRole Summary\n\nHelp build the world’s best deep learning cloud by delivering frontend and backend systems that power Lambda's ML and AI platform.\n\nWhat You’ll Do\n\nDesign and build intuitive, beautiful web interfaces for ML/AI cloud users\n\nIntegrate top-tier tooling, workflows, and models from the AI space\n\nOwn features end-to-end—from design to deployment to monitoring\n\nYou (Must-Haves)\n\nFrontend Experience (6+ years)\n\nResponsive web apps using:\n\nTypeScript\n\nReact (or equivalent experience in Vue or Svelte)\n\nHTML and modern CSS\n\nVite\n\nBackend Experience (8+ years)\n\nBusiness-critical services using:\n\nPython, Unix/Command line\n\nDjango or FastAPI\n\nRelational databases like PostgreSQL or MySQL\n\nAdditional Core Experience\n\nCI/CD: Automation around testing and deployment\n\nReliability & Observability: Logging, alerting, and building highly available systems\n\nCloud Native Services: AWS, Okta, Cloudflare, etc.\n\nNice-to-Haves\n\nExperience with Kubernetes\n\nInfrastructure as Code (Terraform, Atlantis, Crossplane, etc.)\n\nEvent-based or serverless tech (e.g., AWS Lambda, Kinesis)\n\nExperience in ML, AI, or data science\n\nApplication security and web hardening\n\nLeadership or mentorship experience\n\nStrong academic background (EECS, Math, Software Engineering, Physics)\n\nSalary Range\nThe annual salary range for this position has been set based on market data and other factors. However, a salary higher or lower than this range may be appropriate for a candidate whose qualifications differ meaningfully from those listed in the job description.\n\nFinal Note\n\nYou don’t need to meet all qualifications to apply. Lambda values a variety of backgrounds, experiences, and skills.\n\nAbout Lambda\n\nFounded in 2012, with 500+ employees, and growing fast\n\nOur investors notably include TWG Global, US Innovative Technology Fund (USIT), Andra Capital, SGW, Andrej Karpathy, ARK Invest, Fincadia Advisors, G Squared, In-Q-Tel (IQT), KHK & Partners, NVIDIA, Pegatron, Supermicro, Wistron, Wiwynn, Gradient Ventures, Mercato Partners, SVB, 1517, and Crescent Cove\n\nWe have research papers accepted at top machine learning and graphics conferences, including NeurIPS, ICCV, SIGGRAPH, and TOG\n\nOur values are publicly available: https://lambda.ai/careers\n\nWe offer generous cash & equity compensation\n\nHealth, dental, and vision coverage for you and your dependents\n\nWellness and commuter stipends for select roles\n\n401k Plan with 2% company match (USA employees)\n\nFlexible paid time off plan that we all actually use\n\nA Final Note:\n\nYou do not need to match all of the listed expectations to apply for this position. We are committed to building a team with a variety of backgrounds, experiences, and skills.\n\nEqual Opportunity Employer\n\nLambda is an Equal Opportunity employer. Applicants are considered without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.",
           "is_valid": true,
-          "reason": "Valid description (3578 chars)"
+          "reason": "Valid description (3578 chars, 514 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Lambda, The Superintelligence Cloud, is a leader in AI cloud infrastructure serving tens of thousands of customers. Our customers range from AI researchers to enterprises and hyperscalers. Lambda's mission is to make compute as ubiquitous as electricity and give everyone the power of superintelligence. One person, one GPU.\n\nIf you'd like to build the world's best AI cloud, join us.\n\n*Note: This position requires presence in our San Francisco office location 4 days per week; Lambda’s designated work from home day is currently Tuesday.\n\nRole Summary\n\nHelp build the world’s best deep learning cloud by delivering frontend and backend systems that power Lambda's ML and AI platform.\n\nWhat You’ll Do\n\nDesign and build intuitive, beautiful web interfaces for ML/AI cloud users\n\nIntegrate top-tier tooling, workflows, and models from the AI space\n\nOwn features end-to-end—from design to deployment to monitoring\n\nYou (Must-Haves)\n\nFrontend Experience (6+ years)\n\nResponsive web apps using:\n\nTypeScript\n\nReact (or equivalent experience in Vue or Svelte)\n\nHTML and modern CSS\n\nVite\n\nBackend Experience (8+ years)\n\nBusiness-critical services using:\n\nPython, Unix/Command line\n\nDjango or FastAPI\n\nRelational databases like PostgreSQL or MySQL\n\nAdditional Core Experience\n\nCI/CD: Automation around testing and deployment\n\nReliability & Observability: Logging, alerting, and building highly available systems\n\nCloud Native Services: AWS, Okta, Cloudflare, etc.\n\nNice-to-Haves\n\nExperience with Kubernetes\n\nInfrastructure as Code (Terraform, Atlantis, Crossplane, etc.)\n\nEvent-based or serverless tech (e.g., AWS Lambda, Kinesis)\n\nExperience in ML, AI, or data science\n\nApplication security and web hardening\n\nLeadership or mentorship experience\n\nStrong academic background (EECS, Math, Software Engineering, Physics)\n\nSalary Range\nThe annual salary range for this position has been set based on market data and other factors. However, a salary higher or lower than this range may be appropriate for a candidate whose qualifications differ meaningfully from those listed in the job description.\n\nFinal Note\n\nYou don’t need to meet all qualifications to apply. Lambda values a variety of backgrounds, experiences, and skills.\n\nAbout Lambda\n\nFounded in 2012, with 500+ employees, and growing fast\n\nOur investors notably include TWG Global, US Innovative Technology Fund (USIT), Andra Capital, SGW, Andrej Karpathy, ARK Invest, Fincadia Advisors, G Squared, In-Q-Tel (IQT), KHK & Partners, NVIDIA, Pegatron, Supermicro, Wistron, Wiwynn, Gradient Ventures, Mercato Partners, SVB, 1517, and Crescent Cove\n\nWe have research papers accepted at top machine learning and graphics conferences, including NeurIPS, ICCV, SIGGRAPH, and TOG\n\nOur values are publicly available: https://lambda.ai/careers\n\nWe offer generous cash & equity compensation\n\nHealth, dental, and vision coverage for you and your dependents\n\nWellness and commuter stipends for select roles\n\n401k Plan with 2% company match (USA employees)\n\nFlexible paid time off plan that we all actually use\n\nA Final Note:\n\nYou do not need to match all of the listed expectations to apply for this position. We are committed to building a team with a variety of backgrounds, experiences, and skills.\n\nEqual Opportunity Employer\n\nLambda is an Equal Opportunity employer. Applicants are considered without regard to race, color, religion, creed, national origin, age, sex, gender, marital status, sexual orientation and identity, genetic information, veteran status, citizenship, or any other factors prohibited by local, state, or federal law.",
           "is_valid": true,
-          "reason": "Valid description (3578 chars)"
+          "reason": "Valid description (3578 chars, 514 words)"
         },
         {
           "name": "empty_description_fallback",

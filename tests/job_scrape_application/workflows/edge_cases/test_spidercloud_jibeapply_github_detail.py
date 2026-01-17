@@ -134,8 +134,8 @@ def test_convex_job_normalizer_uses_hint_company_title_and_posted_at():
 
     normalized = normalizer.normalize_row(row)
     assert normalized is not None
-    # Company is now extracted from URL domain (jibeapply.com) rather than description hints
-    assert normalized["company"] == "Jibeapply"
+    # Company is extracted from description hints or URL domain
+    assert normalized["company"] == "GitHub"
     assert normalized["job_title"] == "Staff Software Engineer, Data Engineering"
     assert normalized["posted_at"] == int(row["postedAt"])
     assert normalized["posted_at_unknown"] is False

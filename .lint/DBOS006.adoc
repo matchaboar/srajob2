@@ -1,0 +1,75 @@
+= DBOS006: Async workflow uses sync context methods
+
+== Summary
+
+Async workflows must use async DBOS context methods.
+
+== Description
+
+Coroutine (async) workflows must use the async versions of DBOS context methods:
+
+|===
+| Sync Method | Async Method
+
+| `DBOS.sleep`
+| `DBOS.sleep_async`
+
+| `DBOS.recv`
+| `DBOS.recv_async`
+
+| `DBOS.send`
+| `DBOS.send_async`
+
+| `DBOS.set_event`
+| `DBOS.set_event_async`
+
+| `DBOS.get_event`
+| `DBOS.get_event_async`
+|===
+
+Using synchronous context methods in an async workflow can block the event loop and cause performance issues or deadlocks. The async versions are designed to work correctly within an async context.
+
+== Examples
+
+.Bad: Using sync sleep in async workflow
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    # ERROR: use sleep_async in async workflows
+    DBOS.sleep(10)
+----
+
+.Good: Using async sleep_async
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    await DBOS.sleep_async(10)
+----
+
+.Bad: Using sync recv in async workflow
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    # ERROR: use recv_async in async workflows
+    message = DBOS.recv("channel")
+----
+
+.Good: Using async recv_async
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    message = await DBOS.recv_async("channel")
+----
+
+== Suppression
+
+Add `# noqa: DBOS006` to the offending line.
+
+== See Also
+
+* DBOS005 - Async workflows must use async workflow launch methods
+* DBOS007 - Do not use raw sleep or asyncio primitives

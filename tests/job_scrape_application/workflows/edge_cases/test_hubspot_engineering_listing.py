@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 
-from job_scrape_application.workflows import activities as acts
+from job_scrape_application.workflows.helpers.job_url_extractor import (
+    extract_job_urls_from_scrape as _extract_job_urls_from_scrape,
+)
+from job_scrape_application.workflows.workflow import store_scrape
 
 
 ENGINEERING_LISTING_FIXTURE = Path("tests/fixtures/hubspot_careers_jobs_engineering_page1.html")
@@ -27,7 +29,7 @@ def test_hubspot_engineering_listing_extracts_engineer_jobs():
     html = ENGINEERING_LISTING_FIXTURE.read_text(encoding="utf-8")
     scrape = _build_scrape_payload(ENGINEERING_SOURCE_URL, html)
 
-    urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(scrape)
 
     assert "https://www.hubspot.com/careers/jobs/7294272" in urls
     assert all("hubs_signup-cta=careers-apply" not in url for url in urls)
@@ -40,15 +42,14 @@ def test_hubspot_listing_fallback_pagination_includes_first_four_pages():
         html,
     )
 
-    urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(scrape)
 
     assert "https://www.hubspot.com/careers/jobs?page=2" in urls
     assert "https://www.hubspot.com/careers/jobs?page=3" in urls
     assert "https://www.hubspot.com/careers/jobs?page=4" in urls
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
+def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
     html = ENGINEERING_LISTING_FIXTURE.read_text(encoding="utf-8")
     scrape_payload = {
         "sourceUrl": ENGINEERING_SOURCE_URL,
@@ -61,7 +62,7 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
     calls: list[dict] = []
     queue_calls: list[dict] = []
 
-    async def fake_mutation(name: str, args: dict):
+    def fake_mutation(name: str, args: dict):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -73,17 +74,20 @@ async def test_store_scrape_enqueues_hubspot_engineering_jobs(monkeypatch):
         queue_calls.append(payload)
         return {"queued": len(payload.get("urls", []))}
 
-    async def fake_seen(*_args, **_kwargs):
+    def fake_seen(*_args, **_kwargs):
         return []
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.helpers.scrape_utils.fetch_seen_urls_for_site",
+        fake_seen,
+    )
 
-    await acts.store_scrape(scrape_payload)
+    store_scrape(scrape_payload)
 
     assert queue_calls, "store_scrape should enqueue HubSpot engineering job URLs"
 

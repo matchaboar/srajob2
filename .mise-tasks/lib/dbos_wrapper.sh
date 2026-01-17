@@ -4,19 +4,18 @@
 #   --prod          Use production environment
 #   --force         Force fresh scrape
 #   --reset-db      Delete SQLite database before running
-#   --tui           Use rich TUI dashboard with live updates
 
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../.." && pwd)"
 db_file="$repo_root/job_scrape_application/dbos_runtime/dbos.sqlite"
+dbos_system_file="$repo_root/job_scrape_application/dbos_runtime/dbos_system.sqlite"
 
 # Parse arguments
 USE_PROD=false
 FORCE_SCRAPE=false
 RESET_DB=false
-USE_TUI=false
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -31,10 +30,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --reset-db)
             RESET_DB=true
-            shift
-            ;;
-        --tui)
-            USE_TUI=true
             shift
             ;;
         *)
@@ -209,6 +204,45 @@ conn.close()
 # Track child process PID
 CHILD_PID=""
 
+# Gracefully stop the child process and its workers.
+stop_child_process() {
+    local initial_signal="$1"
+    local grace_seconds="${2:-10}"
+
+    if [[ -z "$CHILD_PID" ]] || ! kill -0 "$CHILD_PID" 2>/dev/null; then
+        return
+    fi
+
+    kill "-${initial_signal}" "$CHILD_PID" 2>/dev/null || true
+
+    local start_time=$SECONDS
+    while kill -0 "$CHILD_PID" 2>/dev/null; do
+        if (( SECONDS - start_time >= grace_seconds )); then
+            break
+        fi
+        sleep 0.2
+    done
+
+    if kill -0 "$CHILD_PID" 2>/dev/null; then
+        kill -TERM "$CHILD_PID" 2>/dev/null || true
+        start_time=$SECONDS
+        while kill -0 "$CHILD_PID" 2>/dev/null; do
+            if (( SECONDS - start_time >= 5 )); then
+                break
+            fi
+            sleep 0.2
+        done
+    fi
+
+    if kill -0 "$CHILD_PID" 2>/dev/null; then
+        # Kill any direct children before forcing the parent down.
+        pkill -TERM -P "$CHILD_PID" 2>/dev/null || true
+        sleep 0.2
+        pkill -KILL -P "$CHILD_PID" 2>/dev/null || true
+        kill -KILL "$CHILD_PID" 2>/dev/null || true
+    fi
+}
+
 # Cleanup function for graceful shutdown
 cleanup() {
     echo ""
@@ -225,14 +259,7 @@ handle_sigint() {
     echo ""
     echo "[signal] Received SIGINT, shutting down..."
 
-    # Kill the child process if running
-    if [[ -n "$CHILD_PID" ]] && kill -0 "$CHILD_PID" 2>/dev/null; then
-        kill -INT "$CHILD_PID" 2>/dev/null || true
-        # Give it a moment to exit gracefully
-        sleep 0.5
-        # Force kill if still running
-        kill -9 "$CHILD_PID" 2>/dev/null || true
-    fi
+    stop_child_process "INT" 12
 
     cleanup
     exit 130
@@ -243,11 +270,7 @@ handle_sigterm() {
     echo ""
     echo "[signal] Received SIGTERM, shutting down..."
 
-    if [[ -n "$CHILD_PID" ]] && kill -0 "$CHILD_PID" 2>/dev/null; then
-        kill -TERM "$CHILD_PID" 2>/dev/null || true
-        sleep 0.5
-        kill -9 "$CHILD_PID" 2>/dev/null || true
-    fi
+    stop_child_process "TERM" 10
 
     cleanup
     exit 143
@@ -257,6 +280,45 @@ handle_sigterm() {
 trap handle_sigint INT
 trap handle_sigterm TERM
 
+# Kill zombie processes holding deleted SQLite files (prevents "readonly database" errors)
+kill_zombie_sqlite_processes() {
+    local dbos_runtime_dir="$1"
+    if ! command -v lsof &>/dev/null; then
+        return
+    fi
+
+    # Find PIDs holding deleted SQLite files in the dbos_runtime directory
+    local zombie_pids=()
+    while IFS= read -r line; do
+        if [[ "$line" =~ \.sqlite.*\(deleted\) ]] || [[ "$line" =~ dbos.*\.sqlite ]]; then
+            local pid
+            pid=$(echo "$line" | awk '{print $2}')
+            if [[ -n "$pid" && "$pid" != "$$" ]]; then
+                # Check if we've already added this PID
+                local found=false
+                for existing in "${zombie_pids[@]}"; do
+                    if [[ "$existing" == "$pid" ]]; then
+                        found=true
+                        break
+                    fi
+                done
+                if [[ "$found" == "false" ]]; then
+                    zombie_pids+=("$pid")
+                fi
+            fi
+        fi
+    done < <(lsof +D "$dbos_runtime_dir" 2>/dev/null || true)
+
+    for pid in "${zombie_pids[@]}"; do
+        echo "[preflight] Killing process $pid holding deleted SQLite files"
+        kill -9 "$pid" 2>/dev/null || true
+    done
+
+    if [[ ${#zombie_pids[@]} -gt 0 ]]; then
+        sleep 0.5
+    fi
+}
+
 # Print initial queue status
 if [[ "$RESET_DB" == "true" ]]; then
     print_queue_status "before reset"
@@ -264,10 +326,16 @@ else
     print_queue_status "before start"
 fi
 
+# Kill any zombie processes holding deleted SQLite files
+dbos_runtime_dir="$repo_root/job_scrape_application/dbos_runtime"
+kill_zombie_sqlite_processes "$dbos_runtime_dir"
+
 # Reset database if requested (includes WAL and SHM files to prevent corruption issues)
 if [[ "$RESET_DB" == "true" ]]; then
     removed_files=()
-    for f in "$db_file" "${db_file}-wal" "${db_file}-shm"; do
+    # Remove both the queue database and DBOS system database
+    for f in "$db_file" "${db_file}-wal" "${db_file}-shm" \
+             "$dbos_system_file" "${dbos_system_file}-wal" "${dbos_system_file}-shm"; do
         if [[ -f "$f" ]]; then
             rm -f "$f"
             removed_files+=("$(basename "$f")")
@@ -293,22 +361,20 @@ fi
 if [[ "$FORCE_SCRAPE" == "true" ]]; then
     PS_ARGS+=("-ForceScrapeAll")
 fi
+if [[ "$RESET_DB" == "true" ]]; then
+    # Pass -ClearSqlite to trigger zombie process detection in PowerShell
+    PS_ARGS+=("-ClearSqlite")
+fi
 PS_ARGS+=("${EXTRA_ARGS[@]}")
 
-# Run with TUI or standard mode
-if [[ "$USE_TUI" == "true" ]]; then
-    # TUI mode - use Python rich-based dashboard
-    exec uv run python "$script_dir/dbos_tui.py" --db "$db_file" --cmd pwsh "$repo_root/start_worker.ps1" "${PS_ARGS[@]}"
-else
-    # Standard mode - run as child process with signal handling
-    pwsh "$repo_root/start_worker.ps1" "${PS_ARGS[@]}" &
-    CHILD_PID=$!
+# Run as child process with signal handling
+pwsh "$repo_root/start_worker.ps1" "${PS_ARGS[@]}" &
+CHILD_PID=$!
 
-    # Wait for child process and capture its exit status
-    wait "$CHILD_PID"
-    EXIT_CODE=$?
+# Wait for child process and capture its exit status
+wait "$CHILD_PID"
+EXIT_CODE=$?
 
-    # Show final status on normal exit
-    cleanup
-    exit $EXIT_CODE
-fi
+# Show final status on normal exit
+cleanup
+exit $EXIT_CODE

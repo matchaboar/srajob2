@@ -2,7 +2,9 @@ from __future__ import annotations
 
 
 
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.workflows.helpers.job_url_extractor import (  # noqa: E402
+    extract_job_urls_from_scrape as _extract_job_urls_from_scrape,
+)
 from job_scrape_application.workflows.helpers.link_extractors import (
     dedupe_str_list,
     extract_job_urls_from_json_payload,
@@ -193,7 +195,7 @@ def test_extract_job_urls_from_scrape_normalizes_missing_host():
         },
     }
 
-    urls = acts._extract_job_urls_from_scrape(payload)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(payload)
 
     assert "https://www.metacareers.com/profile/job_details/727671609895617" in urls
 

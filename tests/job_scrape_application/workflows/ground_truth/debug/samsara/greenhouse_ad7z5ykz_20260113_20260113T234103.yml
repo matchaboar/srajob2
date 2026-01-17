@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/samsara/greenhouse_ad7z5ykz_20260113_20260113T234103_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/samsara/jobs/7534517
+expected:
+  title: "Senior Software Engineer - Enterprise Management"
+  company: "Samsara"
+  location_contains: "Remote"
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

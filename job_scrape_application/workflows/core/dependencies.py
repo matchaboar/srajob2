@@ -170,17 +170,17 @@ class DependencyContainer:
 
     # Convenience methods for accessing services
 
-    async def query(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
+    def query(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
         """Execute a Convex query."""
         if self.convex is None:
             raise RuntimeError("Convex not configured in DependencyContainer")
-        return await self.convex.query(name, args)
+        return self.convex.query(name, args)
 
-    async def mutation(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
+    def mutation(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
         """Execute a Convex mutation."""
         if self.convex is None:
             raise RuntimeError("Convex not configured in DependencyContainer")
-        return await self.convex.mutation(name, args)
+        return self.convex.mutation(name, args)
 
     def enqueue_urls(self, payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
         """Add URLs to the scrape queue."""
@@ -285,13 +285,13 @@ def _create_capturing_convex_functions(
     """Create Convex functions that capture calls for fixture generation."""
     from ...services.convex_client import convex_action, convex_mutation, convex_query
 
-    async def capturing_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
-        result = await convex_query(name, args)
+    def capturing_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
+        result = convex_query(name, args)
         captured_queries.append({"name": name, "args": dict(args) if args else {}, "result": result})
         return result
 
-    async def capturing_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
-        result = await convex_mutation(name, args)
+    def capturing_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
+        result = convex_mutation(name, args)
         captured_mutations.append({"name": name, "args": dict(args) if args else {}, "result": result})
         return result
 

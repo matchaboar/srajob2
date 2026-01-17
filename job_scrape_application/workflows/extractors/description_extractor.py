@@ -4,6 +4,7 @@ Description extraction strategies and extractor.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from .base import (
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
 # Minimum description length to be considered valid
 MIN_DESCRIPTION_LENGTH = 50
+MIN_DESCRIPTION_WORDS = 25  # Minimum word count for valid description
 
 # Maximum description length (will be truncated)
 MAX_DESCRIPTION_LENGTH = 50_000
@@ -29,19 +31,23 @@ def _clean_description(text: str) -> str:
     if not text:
         return ""
 
+    # Remove script tags and their content (especially JSON-LD structured data)
+    text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL | re.IGNORECASE)
+
     # Remove excessive whitespace
     lines = []
     for line in text.splitlines():
         stripped = line.rstrip()
         lines.append(stripped)
 
-    # Remove more than 2 consecutive blank lines
+    # Collapse multiple consecutive blank lines to at most one blank line
+    # This ensures no more than 2 newlines between content lines
     result = []
     blank_count = 0
     for line in lines:
         if not line.strip():
             blank_count += 1
-            if blank_count <= 2:
+            if blank_count <= 1:
                 result.append("")
         else:
             blank_count = 0
@@ -64,12 +70,17 @@ def _is_valid_description(value: str | None) -> tuple[bool, str]:
     if len(value) < MIN_DESCRIPTION_LENGTH:
         return False, f"Description too short: {len(value)} chars"
 
+    # Check word count
+    word_count = len(value.split())
+    if word_count < MIN_DESCRIPTION_WORDS:
+        return False, f"Description too few words: {word_count} words"
+
     # Check for placeholder content
     lower = value.lower()
     if lower in {"description", "job description", "n/a", "none", "tbd"}:
         return False, f"Placeholder description: {value[:50]}"
 
-    return True, f"Valid description ({len(value)} chars)"
+    return True, f"Valid description ({len(value)} chars, {word_count} words)"
 
 
 class NormalizedMarkdownDescriptionStrategy(ExtractionStrategy[str]):
@@ -145,6 +156,11 @@ class StructuredDataDescriptionStrategy(ExtractionStrategy[str]):
     name = "structured_data_description"
     priority = StrategyPriority.STRUCTURED_DATA
 
+    # Minimum word count for structured data description to be preferred
+    # over raw_markdown. If structured_data.description is shorter than this
+    # and raw_markdown is significantly longer, skip structured_data.
+    MIN_PREFERRED_WORDS = 200
+
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
         data = context.structured_data or context.json_payload
         if not isinstance(data, dict):
@@ -156,6 +172,17 @@ class StructuredDataDescriptionStrategy(ExtractionStrategy[str]):
                 cleaned = _clean_description(value)
                 is_valid, reason = _is_valid_description(cleaned)
                 if is_valid:
+                    # Check if this is likely a metadata summary rather than full description
+                    # If raw_markdown is available and significantly longer, skip this
+                    word_count = len(cleaned.split())
+                    if word_count < self.MIN_PREFERRED_WORDS and context.raw_markdown:
+                        raw_word_count = len(context.raw_markdown.split())
+                        # If raw_markdown has 3x more words, it's likely the full description
+                        if raw_word_count > word_count * 3:
+                            return self._make_skip_result(
+                                f"Structured data description ({word_count} words) appears to be a "
+                                f"summary; raw_markdown ({raw_word_count} words) likely has full content"
+                            )
                     return self._make_result(
                         cleaned,
                         f"Description from structured data ({key})",

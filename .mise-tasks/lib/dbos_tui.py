@@ -9,17 +9,18 @@ import sqlite3
 import subprocess
 import sys
 import threading
-from collections import deque
 from pathlib import Path
 
 from rich.markup import escape
 from textual.app import App, ComposeResult
-from textual.containers import Container, Vertical, VerticalScroll
+from textual.containers import Container, Vertical
 from textual.reactive import reactive
-from textual.widgets import DataTable, Footer, Header, Static, TabbedContent, TabPane
+from textual.widgets import DataTable, Footer, Header, RichLog, Static, TabbedContent, TabPane
 
 # Regex to match ANSI escape codes (SGR and other sequences)
 ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07")
+# Pattern to match SGR sequences: ESC [ params m (pre-compiled for performance)
+ANSI_SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
 
 # ANSI SGR code to Rich style mapping
 ANSI_FG_COLORS = {
@@ -56,14 +57,11 @@ def ansi_to_rich(text: str) -> str:
     Handles SGR (Select Graphic Rendition) sequences for colors and styles.
     Non-SGR sequences are stripped.
     """
-    # Pattern to match SGR sequences: ESC [ params m
-    sgr_pattern = re.compile(r"\x1b\[([0-9;]*)m")
-
     result = []
     open_tags: list[str] = []  # Stack of open Rich tags
     last_end = 0
 
-    for match in sgr_pattern.finditer(text):
+    for match in ANSI_SGR_RE.finditer(text):
         # Add text before this match, escaping Rich markup characters
         before_text = text[last_end : match.start()]
         result.append(escape(before_text))
@@ -109,65 +107,10 @@ def ansi_to_rich(text: str) -> str:
 MAX_LOG_LINES = 500
 REFRESH_INTERVAL = 1.0
 
-
-class ReverseLogWidget(Static):
-    """A log widget that displays newest entries at the top with batched rendering."""
-
-    DEFAULT_CSS = """
-    ReverseLogWidget {
-        height: auto;
-        padding: 0 1;
-    }
-    """
-
-    RENDER_INTERVAL = 0.2  # Batch render every 200ms
-
-    def __init__(self, max_lines: int = MAX_LOG_LINES, **kwargs):
-        super().__init__(markup=True, **kwargs)
-        self._lines: deque[str] = deque(maxlen=max_lines)
-        self._dirty = False
-        self._render_timer = None
-
-    def on_mount(self) -> None:
-        """Start the render timer when mounted."""
-        self._render_timer = self.set_interval(self.RENDER_INTERVAL, self._maybe_render)
-
-    def write_line(self, text: str) -> None:
-        """Add a line to the log (will appear at top). O(1) operation."""
-        self._lines.appendleft(text)
-        self._dirty = True
-
-    def _maybe_render(self) -> None:
-        """Render only if there are pending changes."""
-        if not self._dirty:
-            return
-        self._dirty = False
-        self._render_lines()
-
-    def _render_lines(self) -> None:
-        """Render all lines with newest at top."""
-        if not self._lines:
-            self.update("[dim]No output yet...[/dim]")
-            return
-
-        self.update("\n".join(self._lines))
-
-    def clear(self) -> None:
-        """Clear all log lines."""
-        self._lines.clear()
-        self._dirty = True
-
-
-def get_db_connection(db_path: Path) -> sqlite3.Connection | None:
-    """Get a database connection if the file exists."""
-    if not db_path.exists():
-        return None
-    try:
-        conn = sqlite3.connect(str(db_path), timeout=1.0)
-        conn.row_factory = sqlite3.Row
-        return conn
-    except sqlite3.Error:
-        return None
+# Log level detection patterns (pre-defined for performance)
+FATAL_PATTERNS = frozenset(["fatal", "critical", "panic", "abort"])
+ERROR_PATTERNS = frozenset(["error", "exception", "traceback", "failed", "failure", "[stderr]", "raise "])
+WARN_PATTERNS = frozenset(["warn", "warning", "deprecated", "caution"])
 
 
 class QueueSummaryWidget(Static):
@@ -369,28 +312,31 @@ class DBOSTUIApp(App):
 
     #log-container {
         column-span: 2;
+        height: 1fr;
         border: heavy $secondary;
         border-title-color: $secondary-lighten-2;
         background: $surface-darken-2;
     }
 
     #log-tabs {
-        height: 100%;
+        height: 1fr;
+    }
+
+    #log-tabs ContentSwitcher {
+        height: 1fr;
     }
 
     #log-tabs > TabPane {
         padding: 0;
+        height: 1fr;
     }
 
-    #log-scroll, #error-scroll {
-        height: 100%;
+    RichLog {
+        height: 1fr;
+        width: 100%;
         background: transparent;
-    }
-
-    /* Style the error tab count indicator */
-    .error-count {
-        color: $error;
-        text-style: bold;
+        scrollbar-gutter: stable;
+        padding: 0 1;
     }
 
     .panel-title {
@@ -418,18 +364,15 @@ class DBOSTUIApp(App):
     DataTable > .datatable--hover {
         background: $primary-darken-1;
     }
-
-    ReverseLogWidget {
-        height: auto;
-        background: transparent;
-    }
     """
 
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh", "Refresh"),
-        ("e", "show_errors", "Errors"),
-        ("l", "show_logs", "Logs"),
+        ("1", "show_info", "Info"),
+        ("2", "show_warn", "Warn"),
+        ("3", "show_error", "Error"),
+        ("4", "show_fatal", "Fatal"),
     ]
 
     process_running = reactive(False)
@@ -441,7 +384,17 @@ class DBOSTUIApp(App):
         self.process: subprocess.Popen | None = None
         self.exit_code: int | None = None
         self._stop_threads = False
-        self._error_count = 0
+        self._log_counts: dict[str, int] = {"info": 0, "warn": 0, "error": 0, "fatal": 0}
+        self._tab_titles_dirty: set[str] = set()
+        # Cached widget references (populated on mount)
+        self._log_widgets: dict[str, RichLog] = {}
+        self._tabs: TabbedContent | None = None
+        self._summary_widget: QueueSummaryWidget | None = None
+        self._site_stats_table: SiteStatsTable | None = None
+        self._failed_table: FailedItemsTable | None = None
+        self._processing_table: ProcessingItemsTable | None = None
+        # Persistent read-only DB connection
+        self._db_conn: sqlite3.Connection | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -466,22 +419,48 @@ class DBOSTUIApp(App):
 
         with Container(id="log-container"):
             with TabbedContent(id="log-tabs"):
-                with TabPane("Logs", id="logs-tab"):
-                    with VerticalScroll(id="log-scroll"):
-                        yield ReverseLogWidget(id="log", max_lines=MAX_LOG_LINES)
-                with TabPane("Errors (0)", id="errors-tab"):
-                    with VerticalScroll(id="error-scroll"):
-                        yield ReverseLogWidget(id="error-log", max_lines=MAX_LOG_LINES)
+                with TabPane("Info (0)", id="info-tab"):
+                    yield RichLog(id="info-log", max_lines=MAX_LOG_LINES, markup=True, auto_scroll=True)
+                with TabPane("Warn (0)", id="warn-tab"):
+                    yield RichLog(id="warn-log", max_lines=MAX_LOG_LINES, markup=True, auto_scroll=True)
+                with TabPane("Error (0)", id="error-tab"):
+                    yield RichLog(id="error-log", max_lines=MAX_LOG_LINES, markup=True, auto_scroll=True)
+                with TabPane("Fatal (0)", id="fatal-tab"):
+                    yield RichLog(id="fatal-log", max_lines=MAX_LOG_LINES, markup=True, auto_scroll=True)
 
         yield Footer()
 
     def on_mount(self) -> None:
+        # Cache widget references to avoid query_one on every update
+        self._log_widgets = {
+            "info": self.query_one("#info-log", RichLog),
+            "warn": self.query_one("#warn-log", RichLog),
+            "error": self.query_one("#error-log", RichLog),
+            "fatal": self.query_one("#fatal-log", RichLog),
+        }
+        self._tabs = self.query_one("#log-tabs", TabbedContent)
+        self._summary_widget = self.query_one("#summary", QueueSummaryWidget)
+        self._site_stats_table = self.query_one("#site-stats-table", SiteStatsTable)
+        self._failed_table = self.query_one("#failed-table", FailedItemsTable)
+        self._processing_table = self.query_one("#processing-table", ProcessingItemsTable)
+
         self.refresh_all()
         self.set_interval(REFRESH_INTERVAL, self.refresh_all)
+        # Batched tab title updates every 200ms
+        self.set_interval(0.2, self._flush_tab_titles)
 
-        # Set up SIGINT handler - kill process group directly, then exit
+        # Set up SIGINT handler - close pipes, kill process, then exit immediately
         def handle_sigint(signum, frame):
             self._stop_threads = True
+            # Close pipes first to unblock reader threads
+            if self.process:
+                try:
+                    if self.process.stdout:
+                        self.process.stdout.close()
+                    if self.process.stderr:
+                        self.process.stderr.close()
+                except Exception:
+                    pass
             self._kill_process_group_sync()
             # Reset terminal and exit
             print("\033[?1049l", end="", flush=True)  # Exit alternate screen
@@ -494,10 +473,30 @@ class DBOSTUIApp(App):
         if self.cmd:
             self.start_worker()
 
+    def _get_db_connection(self) -> sqlite3.Connection | None:
+        """Get or create a persistent read-only DB connection."""
+        if self._db_conn is not None:
+            return self._db_conn
+
+        if not self.db_path.exists():
+            return None
+
+        try:
+            # Read-only connection with URI mode
+            self._db_conn = sqlite3.connect(
+                f"file:{self.db_path}?mode=ro",
+                uri=True,
+                timeout=5.0,
+                check_same_thread=False,
+            )
+            self._db_conn.row_factory = sqlite3.Row
+            return self._db_conn
+        except sqlite3.Error:
+            return None
+
     def refresh_all(self) -> None:
         """Refresh all data displays with a single DB query."""
-        # Single query to fetch all queue items
-        conn = get_db_connection(self.db_path)
+        conn = self._get_db_connection()
         if conn:
             try:
                 cursor = conn.cursor()
@@ -507,47 +506,58 @@ class DBOSTUIApp(App):
                     ORDER BY queue_name, updated_at DESC
                 """)
                 all_rows = [dict(row) for row in cursor.fetchall()]
-                conn.close()
 
-                # Distribute to widgets
-                self.query_one("#summary", QueueSummaryWidget).update_data(all_rows)
-                self.query_one("#site-stats-table", SiteStatsTable).update_data(all_rows)
+                # Distribute to cached widgets
+                if self._summary_widget:
+                    self._summary_widget.update_data(all_rows)
+                if self._site_stats_table:
+                    self._site_stats_table.update_data(all_rows)
 
                 # Filter for specific statuses
                 failed_rows = [r for r in all_rows if r["status"] == "failed"]
                 processing_rows = [r for r in all_rows if r["status"] == "processing"]
 
-                self.query_one("#failed-table", FailedItemsTable).update_data(failed_rows)
-                self.query_one("#processing-table", ProcessingItemsTable).update_data(processing_rows)
+                if self._failed_table:
+                    self._failed_table.update_data(failed_rows)
+                if self._processing_table:
+                    self._processing_table.update_data(processing_rows)
             except sqlite3.Error:
-                pass
+                # Connection may be stale, reset it
+                self._db_conn = None
 
         # Check process status
         if self.process and self.process.poll() is not None:
             self.exit_code = self.process.returncode
             self.process_running = False
-            log = self.query_one("#log", ReverseLogWidget)
-            log.write_line(f"[bold yellow]Process exited with code {self.exit_code}[/bold yellow]")
+            info_log = self._log_widgets.get("info")
+            if info_log:
+                info_log.write(f"[bold yellow]Process exited with code {self.exit_code}[/bold yellow]")
+                self._log_counts["info"] += 1
+                self._tab_titles_dirty.add("info")
 
     def action_refresh(self) -> None:
         """Manual refresh action."""
         self.refresh_all()
 
-    def action_show_errors(self) -> None:
-        """Switch to errors tab."""
-        try:
-            tabs = self.query_one("#log-tabs", TabbedContent)
-            tabs.active = "errors-tab"
-        except Exception:
-            pass
+    def action_show_info(self) -> None:
+        """Switch to info tab."""
+        if self._tabs:
+            self._tabs.active = "info-tab"
 
-    def action_show_logs(self) -> None:
-        """Switch to logs tab."""
-        try:
-            tabs = self.query_one("#log-tabs", TabbedContent)
-            tabs.active = "logs-tab"
-        except Exception:
-            pass
+    def action_show_warn(self) -> None:
+        """Switch to warn tab."""
+        if self._tabs:
+            self._tabs.active = "warn-tab"
+
+    def action_show_error(self) -> None:
+        """Switch to error tab."""
+        if self._tabs:
+            self._tabs.active = "error-tab"
+
+    def action_show_fatal(self) -> None:
+        """Switch to fatal tab."""
+        if self._tabs:
+            self._tabs.active = "fatal-tab"
 
     def start_worker(self) -> None:
         """Start the worker subprocess."""
@@ -591,52 +601,57 @@ class DBOSTUIApp(App):
             pipe.close()
 
     def _write_log(self, text: str) -> None:
-        """Write a line to the log widget (must be called from main thread)."""
+        """Write a line to the appropriate log widget based on severity."""
         try:
-            log = self.query_one("#log", ReverseLogWidget)
-            # Add color coding for common log patterns
-            styled_text = self._style_log_line(text)
-            log.write_line(styled_text)
+            text_lower = text.lower()
+            styled_text = self._style_log_line(text, text_lower)
+            level = self._detect_log_level(text_lower)
 
-            # Check if this is an error/exception and write to error log
-            if self._is_error_line(text):
-                error_log = self.query_one("#error-log", ReverseLogWidget)
-                error_log.write_line(styled_text)
-                self._error_count += 1
-                self._update_error_tab_title()
+            # Route to appropriate log widget (use cached reference)
+            log_widget = self._log_widgets.get(level)
+            if log_widget:
+                log_widget.write(styled_text)
+                self._log_counts[level] += 1
+                self._tab_titles_dirty.add(level)  # Mark for batched update
         except Exception:
             pass
 
-    def _is_error_line(self, text: str) -> bool:
-        """Detect if a log line represents an error or exception."""
-        text_lower = text.lower()
-        # Check for common error patterns
-        error_patterns = [
-            "error",
-            "exception",
-            "traceback",
-            "failed",
-            "failure",
-            "critical",
-            "fatal",
-            "[stderr]",
-            "raise ",
-            "assert",
-        ]
-        return any(pattern in text_lower for pattern in error_patterns)
+    def _detect_log_level(self, text_lower: str) -> str:
+        """Detect log level from lowercase text. Returns 'info', 'warn', 'error', or 'fatal'."""
+        # Fatal patterns (most severe)
+        if any(p in text_lower for p in FATAL_PATTERNS):
+            return "fatal"
 
-    def _update_error_tab_title(self) -> None:
-        """Update the error tab title with the current error count."""
-        try:
-            tabs = self.query_one("#log-tabs", TabbedContent)
-            errors_tab = self.query_one("#errors-tab", TabPane)
-            # Update the tab label
-            new_label = f"Errors ({self._error_count})"
-            tabs.get_tab("errors-tab").label = new_label
-        except Exception:
-            pass
+        # Error patterns
+        if any(p in text_lower for p in ERROR_PATTERNS):
+            return "error"
 
-    def _style_log_line(self, text: str) -> str:
+        # Warning patterns
+        if any(p in text_lower for p in WARN_PATTERNS):
+            return "warn"
+
+        # Default to info
+        return "info"
+
+    def _flush_tab_titles(self) -> None:
+        """Batch update dirty tab titles."""
+        if not self._tab_titles_dirty or not self._tabs:
+            return
+        label_names = {"info": "Info", "warn": "Warn", "error": "Error", "fatal": "Fatal"}
+        for level in list(self._tab_titles_dirty):
+            try:
+                tab_id = f"{level}-tab"
+                new_label = f"{label_names[level]} ({self._log_counts[level]})"
+                self._tabs.get_tab(tab_id).label = new_label
+            except Exception:
+                pass
+        self._tab_titles_dirty.clear()
+
+    def _update_tab_title(self, level: str) -> None:
+        """Mark a tab title for batched update."""
+        self._tab_titles_dirty.add(level)
+
+    def _style_log_line(self, text: str, text_lower: str) -> str:
         """Apply color styling to log lines, converting ANSI codes to Rich markup."""
         # Handle stderr prefix specially
         if text.startswith("[stderr]"):
@@ -655,8 +670,6 @@ class DBOSTUIApp(App):
         # If no ANSI colors were found, apply heuristic coloring
         has_rich_tags = "[" in converted and "]" in converted and converted != escape(text)
         if not has_rich_tags:
-            # Quick check - only scan if likely to match
-            text_lower = text.lower()
             if "error" in text_lower or "fail" in text_lower:
                 return f"[red]{converted}[/red]"
             if "warn" in text_lower:
@@ -704,6 +717,13 @@ class DBOSTUIApp(App):
         """Quit the application."""
         self._stop_threads = True
 
+        # Close DB connection
+        if self._db_conn:
+            try:
+                self._db_conn.close()
+            except Exception:
+                pass
+
         # Close pipes first to unblock reader threads
         if self.process:
             try:
@@ -732,7 +752,7 @@ def print_final_status(db_path: Path) -> None:
         return
 
     try:
-        conn = sqlite3.connect(str(db_path), timeout=1.0)
+        conn = sqlite3.connect(str(db_path), timeout=5.0)
         cursor = conn.cursor()
 
         print("\n" + "=" * 70)

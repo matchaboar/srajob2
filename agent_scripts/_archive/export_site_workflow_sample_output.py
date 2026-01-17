@@ -126,18 +126,18 @@ async def _collect_listing_output(entry: dict[str, Any]) -> _ListingResult:
     }
     calls: list[dict[str, Any]] = []
 
-    async def fake_convex_query(name: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    def fake_convex_query(name: str, payload: dict[str, Any]) -> dict[str, Any] | None:
         if name == "router:getSiteById" and payload.get("id") == site_id:
             return {"paginationLimit": _pagination_limit(entry)}
         return None
 
-    async def fake_store_scrape(scrape: dict[str, Any]) -> str:
+    def fake_store_scrape(scrape: dict[str, Any]) -> str:
         return "scrape-1"
 
-    async def fake_fetch_seen_urls(*_args: Any, **_kwargs: Any) -> list[str]:
+    def fake_fetch_seen_urls(*_args: Any, **_kwargs: Any) -> list[str]:
         return []
 
-    async def fake_filter_existing_job_urls(urls: list[str]) -> list[str]:
+    def fake_filter_existing_job_urls(urls: list[str]) -> list[str]:
         return []
 
     import job_scrape_application.services.convex_client as convex_client

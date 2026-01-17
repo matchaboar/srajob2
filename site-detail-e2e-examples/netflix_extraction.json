@@ -1,7 +1,7 @@
 {
   "site_id": "netflix",
   "detail_url": "https://explore.jobs.netflix.net/careers/job/790312429476",
-  "source_url": "https://explore.jobs.netflix.net/careers/job/790312429476",
+  "source_url": "https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date",
   "extracted_jobs": [
     {
       "title": "Systems Development Engineer L5",
@@ -9,23 +9,42 @@
       "description_word_count": 706,
       "location": "Remote",
       "is_remote": true,
-      "posted_at": 1768518182581,
-      "posted_at_unknown": true,
+      "posted_at": 1768680358941,
+      "posted_at_unknown": false,
       "company": "Netflix",
-      "level": "mid",
+      "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://explore.jobs.netflix.net/careers/job/790312429476",
-      "cost_milli_cents": 940
+      "cost_milli_cents": 941
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Systems Development Engineer L5",
+        "company": "Netflix",
+        "location": "Remote",
+        "description": "# Systems Development Engineer L5\nCalifornia - Remote, United States of America\n#### Job Posting Date\n11-03-2025\n#### Job Requisition ID\nJR36538\n#### Teams\nEngineering\n#### Work Type\nRemote\nNetflix is one of the world's leading entertainment services, with over 300 million paid memberships in over 190 countries enjoying TV series, films and games across a wide variety of genres and languages. Members can play, pause and resume watching as much as they want, anytime, anywhere, and can change their plans at any time.\nThe Production Systems Engineering team is responsible for designing and delivering scalable technical solutions in support...",
+        "url": "https://explore.jobs.netflix.net/careers/job/790312429476",
+        "posted_at": 1768680358941,
+        "level": "mid",
+        "remote": true,
+        "cost_milli_cents": 941,
+        "_full_description_word_count": 706
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://explore.jobs.netflix.net/careers/job/790312429476",
+        "word_count": 706,
+        "description_preview": "# Systems Development Engineer L5 California - Remote, United States of America #### Job Posting Date 11-03-2025 #### Job Requisition ID JR36538 #### Teams Engineering #### Work Type Remote Netflix..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -206,7 +225,7 @@
     "remote": {
       "final_value": true,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -214,6 +233,20 @@
           "value": true,
           "is_valid": true,
           "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
         },
         {
           "name": "location_remote",
@@ -260,16 +293,16 @@
       ]
     },
     "level": {
-      "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "final_value": "senior",
+      "winning_strategy": "content_pattern_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -288,9 +321,9 @@
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
-          "value": null,
-          "is_valid": false,
-          "reason": "No level pattern in content"
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from experience: 6+ years -> senior"
         },
         {
           "name": "hinted_level",
@@ -309,8 +342,8 @@
       ]
     },
     "compensation": {
-      "final_value": 400000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 700000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +361,18 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 700000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $700,000"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 400000,
           "is_valid": true,
           "reason": "Compensation range pattern: $100,000-$700,000 -> $400,000"
-        },
-        {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 700000,
-          "is_valid": true,
-          "reason": "Compensation from hints: $700,000"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +383,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 941,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 941,
+          "is_valid": true,
+          "reason": "Valid cost: 941"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-15T16:03:02.581000",
+      "final_value": "2026-01-17T13:05:58.941000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-15T16:03:02.581000",
+          "value": "2026-01-17T13:05:58.941000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-15T16:03:02.581000"
+          "reason": "Valid date: 2026-01-17T13:05:58.941000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,9 +461,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:07.028889",
+          "value": "2026-01-17T13:05:59.107673",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'netflix' returned no first_published"
         }
       ]
     },
@@ -416,21 +512,21 @@
           "priority": "SITE_HANDLER",
           "value": "# Systems Development Engineer L5\nCalifornia - Remote, United States of America\n#### Job Posting Date\n11-03-2025\n#### Job Requisition ID\nJR36538\n#### Teams\nEngineering\n#### Work Type\nRemote\nNetflix is one of the world's leading entertainment services, with over 300 million paid memberships in over 190 countries enjoying TV series, films and games across a wide variety of genres and languages. Members can play, pause and resume watching as much as they want, anytime, anywhere, and can change their plans at any time.\nThe Production Systems Engineering team is responsible for designing and delivering scalable technical solutions in support of Netflix’s content creation businesses. We excel at delivering thoughtfully designed solutions and take pride in our ability to partner with our cross-functional engineering teams to provide the best possible outcome for our stakeholders. Though technical in nature, these solutions empower our creative businesses and bring value to millions of subscribers worldwide.\nOur team is looking for an experienced Senior Systems Development Engineer to help us design, develop, and deploy these solutions in support of our stunning colleagues in content. You will work with internal product and engineering teams, technical creatives, production teams, and external vendors to deliver these solutions and infrastructure. You will bring a broad set of technical skills and a career that has influenced your mind into one that constantly asks “how can I make this scalable?”\n**As a member of the team, you will...**\n* Design, implement and support the services and solutions that improve the experience and productivity for a broad range of creative content domains (e.g. post-production, animation, visual effects, genAI, virtual production).\n* Work at a scale where your deployments will have a wide-reaching impact, across multiple studios, supporting distributed teams in multiple regions.\n* Design, automate, and develop solutions to enhance the efficiency and resiliency of our systems and services by taking into account hybrid environments and planning for them.\n* Maintain and extend internal tooling and automation, including configuration management and service based infrastructure management.\n* Participate in system and infrastructure updates and migrations, including on-call rotation, as well as troubleshooting tasks to maintain system resiliency and performance.\n**About you**\n* You have a minimum of 6 years of experience in developing, automating and deploying complex systems to deliver technology solutions to end-users\n* You are able to distill and understand large, complex systems into their most critical components and understand the value each brings to the overall solution, spanning from hardware-level to software architectures.\n* You have a passion for automation, efficiency, and scalability, consistently driving operational excellence.\n* You excel at identifying high-leverage, high-value opportunities and focus your attention on them independently.\n* You enjoy and can effectively work collaboratively with business and product teams to develop product plans and roadmaps and then are able to lead the hands-on implementation of those plans.\n* You use data-driven decision making, applying thorough analytics and real-time insights for strategic and operational decisions.\n* Broad experience deploying configuration management across multiple platforms (Linux, Windows, macOS) with disparate methodologies.\n**Nice to have**\n* Experience in VFX, animation, or a similar creative services industry\nOur compensation structure consists solely of an annual salary; we do not have bonuses. You choose each year how much of your compensation you want in salary versus stock options. To determine your personal top of market compensation, we rely on market indicators and consider your specific job family, background, skills, and experience to determine your compensation in the market range. The range for this role is $100K - $700K.\n[Inclusion](https://about.netflix.com/en/inclusion) is a Netflix value and we strive to host a meaningful interview experience for all candidates. If you want an accommodation/adjustment for a disability or any other reason during the hiring process, please send a request to your recruiting partner.\nWe are an equal-opportunity employer and celebrate diversity, recognizing that diversity builds stronger teams. We approach diversity and inclusion seriously and thoughtfully. We do not discriminate on the basis of race, religion, color, ancestry, national origin, caste, sex, sexual orientation, gender, gender identity or expression, age, disability, medical condition, pregnancy, genetic makeup, marital status, or military service.\nJob is open for no less than 7 days and will be removed when the position is filled.",
           "is_valid": true,
-          "reason": "Valid description (4825 chars)"
+          "reason": "Valid description (4825 chars, 706 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "# Systems Development Engineer L5\nCalifornia - Remote, United States of America\n#### Job Posting Date\n11-03-2025\n#### Job Requisition ID\nJR36538\n#### Teams\nEngineering\n#### Work Type\nRemote\nNetflix is one of the world's leading entertainment services, with over 300 million paid memberships in over 190 countries enjoying TV series, films and games across a wide variety of genres and languages. Members can play, pause and resume watching as much as they want, anytime, anywhere, and can change their plans at any time.\nThe Production Systems Engineering team is responsible for designing and delivering scalable technical solutions in support of Netflix’s content creation businesses. We excel at delivering thoughtfully designed solutions and take pride in our ability to partner with our cross-functional engineering teams to provide the best possible outcome for our stakeholders. Though technical in nature, these solutions empower our creative businesses and bring value to millions of subscribers worldwide.\nOur team is looking for an experienced Senior Systems Development Engineer to help us design, develop, and deploy these solutions in support of our stunning colleagues in content. You will work with internal product and engineering teams, technical creatives, production teams, and external vendors to deliver these solutions and infrastructure. You will bring a broad set of technical skills and a career that has influenced your mind into one that constantly asks “how can I make this scalable?”\n**As a member of the team, you will...**\n* Design, implement and support the services and solutions that improve the experience and productivity for a broad range of creative content domains (e.g. post-production, animation, visual effects, genAI, virtual production).\n* Work at a scale where your deployments will have a wide-reaching impact, across multiple studios, supporting distributed teams in multiple regions.\n* Design, automate, and develop solutions to enhance the efficiency and resiliency of our systems and services by taking into account hybrid environments and planning for them.\n* Maintain and extend internal tooling and automation, including configuration management and service based infrastructure management.\n* Participate in system and infrastructure updates and migrations, including on-call rotation, as well as troubleshooting tasks to maintain system resiliency and performance.\n**About you**\n* You have a minimum of 6 years of experience in developing, automating and deploying complex systems to deliver technology solutions to end-users\n* You are able to distill and understand large, complex systems into their most critical components and understand the value each brings to the overall solution, spanning from hardware-level to software architectures.\n* You have a passion for automation, efficiency, and scalability, consistently driving operational excellence.\n* You excel at identifying high-leverage, high-value opportunities and focus your attention on them independently.\n* You enjoy and can effectively work collaboratively with business and product teams to develop product plans and roadmaps and then are able to lead the hands-on implementation of those plans.\n* You use data-driven decision making, applying thorough analytics and real-time insights for strategic and operational decisions.\n* Broad experience deploying configuration management across multiple platforms (Linux, Windows, macOS) with disparate methodologies.\n**Nice to have**\n* Experience in VFX, animation, or a similar creative services industry\nOur compensation structure consists solely of an annual salary; we do not have bonuses. You choose each year how much of your compensation you want in salary versus stock options. To determine your personal top of market compensation, we rely on market indicators and consider your specific job family, background, skills, and experience to determine your compensation in the market range. The range for this role is $100K - $700K.\n[Inclusion](https://about.netflix.com/en/inclusion) is a Netflix value and we strive to host a meaningful interview experience for all candidates. If you want an accommodation/adjustment for a disability or any other reason during the hiring process, please send a request to your recruiting partner.\nWe are an equal-opportunity employer and celebrate diversity, recognizing that diversity builds stronger teams. We approach diversity and inclusion seriously and thoughtfully. We do not discriminate on the basis of race, religion, color, ancestry, national origin, caste, sex, sexual orientation, gender, gender identity or expression, age, disability, medical condition, pregnancy, genetic makeup, marital status, or military service.\nJob is open for no less than 7 days and will be removed when the position is filled.",
           "is_valid": true,
-          "reason": "Valid description (4825 chars)"
+          "reason": "Valid description (4825 chars, 706 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "# Systems Development Engineer L5\nCalifornia - Remote, United States of America\n#### Job Posting Date\n11-03-2025\n#### Job Requisition ID\nJR36538\n#### Teams\nEngineering\n#### Work Type\nRemote\nNetflix is one of the world's leading entertainment services, with over 300 million paid memberships in over 190 countries enjoying TV series, films and games across a wide variety of genres and languages. Members can play, pause and resume watching as much as they want, anytime, anywhere, and can change their plans at any time.\nThe Production Systems Engineering team is responsible for designing and delivering scalable technical solutions in support of Netflix’s content creation businesses. We excel at delivering thoughtfully designed solutions and take pride in our ability to partner with our cross-functional engineering teams to provide the best possible outcome for our stakeholders. Though technical in nature, these solutions empower our creative businesses and bring value to millions of subscribers worldwide.\nOur team is looking for an experienced Senior Systems Development Engineer to help us design, develop, and deploy these solutions in support of our stunning colleagues in content. You will work with internal product and engineering teams, technical creatives, production teams, and external vendors to deliver these solutions and infrastructure. You will bring a broad set of technical skills and a career that has influenced your mind into one that constantly asks “how can I make this scalable?”\n**As a member of the team, you will...**\n* Design, implement and support the services and solutions that improve the experience and productivity for a broad range of creative content domains (e.g. post-production, animation, visual effects, genAI, virtual production).\n* Work at a scale where your deployments will have a wide-reaching impact, across multiple studios, supporting distributed teams in multiple regions.\n* Design, automate, and develop solutions to enhance the efficiency and resiliency of our systems and services by taking into account hybrid environments and planning for them.\n* Maintain and extend internal tooling and automation, including configuration management and service based infrastructure management.\n* Participate in system and infrastructure updates and migrations, including on-call rotation, as well as troubleshooting tasks to maintain system resiliency and performance.\n**About you**\n* You have a minimum of 6 years of experience in developing, automating and deploying complex systems to deliver technology solutions to end-users\n* You are able to distill and understand large, complex systems into their most critical components and understand the value each brings to the overall solution, spanning from hardware-level to software architectures.\n* You have a passion for automation, efficiency, and scalability, consistently driving operational excellence.\n* You excel at identifying high-leverage, high-value opportunities and focus your attention on them independently.\n* You enjoy and can effectively work collaboratively with business and product teams to develop product plans and roadmaps and then are able to lead the hands-on implementation of those plans.\n* You use data-driven decision making, applying thorough analytics and real-time insights for strategic and operational decisions.\n* Broad experience deploying configuration management across multiple platforms (Linux, Windows, macOS) with disparate methodologies.\n**Nice to have**\n* Experience in VFX, animation, or a similar creative services industry\nOur compensation structure consists solely of an annual salary; we do not have bonuses. You choose each year how much of your compensation you want in salary versus stock options. To determine your personal top of market compensation, we rely on market indicators and consider your specific job family, background, skills, and experience to determine your compensation in the market range. The range for this role is $100K - $700K.\n[Inclusion](https://about.netflix.com/en/inclusion) is a Netflix value and we strive to host a meaningful interview experience for all candidates. If you want an accommodation/adjustment for a disability or any other reason during the hiring process, please send a request to your recruiting partner.\nWe are an equal-opportunity employer and celebrate diversity, recognizing that diversity builds stronger teams. We approach diversity and inclusion seriously and thoughtfully. We do not discriminate on the basis of race, religion, color, ancestry, national origin, caste, sex, sexual orientation, gender, gender identity or expression, age, disability, medical condition, pregnancy, genetic makeup, marital status, or military service.\nJob is open for no less than 7 days and will be removed when the position is filled.",
           "is_valid": true,
-          "reason": "Valid description (4825 chars)"
+          "reason": "Valid description (4825 chars, 706 words)"
         },
         {
           "name": "empty_description_fallback",

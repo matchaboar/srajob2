@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/coinbase_20260116T212045_detail.json
+# Generated: 2026-01-16T21:20:48.196091+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: coinbase
+detail_url: https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144
+expected:
+  title_contains: "Accounting Manager, Canada CIRO"
+  company: "Coinbase Careers Page"
+  location_contains: "Remote - Canada"
+  is_remote: true
+  level: "senior"
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

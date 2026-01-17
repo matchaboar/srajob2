@@ -9,23 +9,42 @@
       "description_word_count": 730,
       "location": "New York, NY",
       "is_remote": false,
-      "posted_at": 1768518188311,
-      "posted_at_unknown": true,
+      "posted_at": 1768680359076,
+      "posted_at_unknown": false,
       "company": "Notion",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297",
       "cost_milli_cents": 20
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Account Executive, Mid-Market",
+        "company": "Notion",
+        "location": "New York, United States",
+        "description": "# Account Executive, Mid-Market\n\nABOUT US: Notion helps you build beautiful tools for your life’s work. In today's world of endless apps and tabs, Notion provides one place for teams to get everything done, seamlessly connecting docs, notes, projects, calendar, and email—with AI built in to find answers and automate work. Millions of users, from individuals to large organizations like Toyota, Figma, and OpenAI, love Notion for its flexibility and choose it because it helps them save time and money. In-person collaboration is essential to Notion's culture. We require all team members to work from our offices on Mondays and...",
+        "url": "https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297",
+        "posted_at": 1768680359076,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 20,
+        "_full_description_word_count": 730
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297",
+        "word_count": 730,
+        "description_preview": "# Account Executive, Mid-Market ABOUT US: Notion helps you build beautiful tools for your life’s work. In today's world of endless apps and tabs, Notion provides one place for teams..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +125,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Ashbyhq",
+          "value": "Notion",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "the GTM Sales Team",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -176,9 +195,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No location pattern matched"
+          "value": "New York",
+          "is_valid": true,
+          "reason": "Matched pattern BASED_IN"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +225,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +235,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: New York, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'New York, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +272,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +294,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "title_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -310,7 +343,7 @@
     },
     "compensation": {
       "final_value": 205000,
-      "winning_strategy": "content_pattern_compensation",
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +361,18 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 205000,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $180,000-$230,000 -> $205,000 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 205000,
           "is_valid": true,
           "reason": "Compensation range pattern: $180,000-$230,000 -> $205,000"
-        },
-        {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 205000,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $180,000-$230,000 -> $205,000 (avg)"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +383,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 20,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 20,
+          "is_valid": true,
+          "reason": "Valid cost: 20"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-15T16:03:08.311000",
+      "final_value": "2026-01-17T13:05:59.076000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-15T16:03:08.311000",
+          "value": "2026-01-17T13:05:59.076000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-15T16:03:08.311000"
+          "reason": "Valid date: 2026-01-17T13:05:59.076000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,9 +461,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:16.132834",
+          "value": "2026-01-17T13:05:59.313088",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no first_published"
         }
       ]
     },
@@ -416,21 +512,21 @@
           "priority": "SITE_HANDLER",
           "value": "# Account Executive, Mid-Market\n\nABOUT US: Notion helps you build beautiful tools for your life’s work. In today's world of endless apps and tabs, Notion provides one place for teams to get everything done, seamlessly connecting docs, notes, projects, calendar, and email—with AI built in to find answers and automate work. Millions of users, from individuals to large organizations like Toyota, Figma, and OpenAI, love Notion for its flexibility and choose it because it helps them save time and money. In-person collaboration is essential to Notion's culture. We require all team members to work from our offices on Mondays and Thursdays, our designated Anchor Days. Certain teams or positions may require additional in-office workdays. ABOUT THE ROLE: We are looking for a motivated Account Executive with an entrepreneurial and building spirit to join the GTM Sales Team. You will be instrumental in helping build pipeline, generate revenue, and expand our most strategic customers. As an Account Executive, you will play an important role defining/iterating on our sales motions and providing customer feedback to help share our roadmap. WHAT YOU'LL ACHIEVE: - Prospect and develop new potential accounts by educating contacts about how they can increase their team's collaboration, transparency, and productivity with Notion - Actively work to maintain strong relationships with Notion's existing customer base while identifying opportunity for expanding usage - Be creative and iterate on the contract renewal process to retain and grow customers while mitigating churn or contraction - Hold face-to-face and Zoom meetings with prospective customers to understand their business challenges and goals - Drive executive level relationships - Run product demos to close business at or above quota level - Help build playbooks and define our sales motion - Liaise with our incredible user base to provide world class customer experience - Work cross-functionally and collaboratively with internal teams (sales, inside sales, customer success, solution engineer, deal-desk, ops, legal) SKILLS YOU'LL NEED TO BRING: - 3-5 years of full cycle sales at a fast growing software company - A track record of high achievement in current and previous roles hitting or exceeding quotas - A phenomenally strong communicator - Engaging and compelling presentation skills - A positive and openness minded attitude - A strong desire to be successful without sacrificing your values - A builder mentality who thrives in collaborative environments - An ability to operate within the gray and find creative or out-of-the-box solutions when faced with ambiguity NICE TO HAVES: - You've been an early sales hire at a fast growing start up before - You've got strong technical chops - Direct sales plus experience of selling through Partners - Experience of quarterly sales planning - New logo acquisition sales experience Our customers come from all walks of life and so do we. We hire great people from a wide variety of backgrounds, not just because it's the right thing to do, but because it makes our company stronger. If you share our values and our enthusiasm for small businesses, you will find a home at Notion. Notion is proud to be an equal opportunity employer. We do not discriminate in hiring or any employment decision based on race, color, religion, national origin, age, sex (including pregnancy, childbirth, or related medical conditions), marital status, ancestry, physical or mental disability, genetic information, veteran status, gender identity or expression, sexual orientation, or other applicable legally protected characteristic. Notion considers qualified applicants with criminal histories, consistent with applicable federal, state and local law. Notion is also committed to providing reasonable accommodations for qualified individuals with disabilities and disabled veterans in our job application procedures. If you need assistance or an accommodation due to a disability, please let your recruiter know. Notion is committed to providing highly competitive cash compensation, equity, and benefits. The compensation offered for this role will be based on multiple factors such as location, the role’s scope and complexity, and the candidate’s experience and expertise, and may vary from the range provided below. For roles based in San Francisco or New York City, the estimated range for total on target earnings (including base salary and on target incentive pay) for this role is $180,000 - $230,000 per year. By clicking “Submit Application”, I understand and agree that Notion and its affiliates and subsidiaries will collect and process my information in accordance with Notion’s Global Recruiting Privacy Policy https://notion.notion.site/Notion-Global-Recruiting-Privacy-Policy-fc3eb4e829354a26a2bb6fd5e289b550?pvs=74 and NYLL 144 https://notion.notion.site/Ashby-AI-Bias-Audit-2b0efdeead05803bbbfae159ec86c528. #LI-Onsite",
           "is_valid": true,
-          "reason": "Valid description (4944 chars)"
+          "reason": "Valid description (4944 chars, 730 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "# Account Executive, Mid-Market\n\nABOUT US: Notion helps you build beautiful tools for your life’s work. In today's world of endless apps and tabs, Notion provides one place for teams to get everything done, seamlessly connecting docs, notes, projects, calendar, and email—with AI built in to find answers and automate work. Millions of users, from individuals to large organizations like Toyota, Figma, and OpenAI, love Notion for its flexibility and choose it because it helps them save time and money. In-person collaboration is essential to Notion's culture. We require all team members to work from our offices on Mondays and Thursdays, our designated Anchor Days. Certain teams or positions may require additional in-office workdays. ABOUT THE ROLE: We are looking for a motivated Account Executive with an entrepreneurial and building spirit to join the GTM Sales Team. You will be instrumental in helping build pipeline, generate revenue, and expand our most strategic customers. As an Account Executive, you will play an important role defining/iterating on our sales motions and providing customer feedback to help share our roadmap. WHAT YOU'LL ACHIEVE: - Prospect and develop new potential accounts by educating contacts about how they can increase their team's collaboration, transparency, and productivity with Notion - Actively work to maintain strong relationships with Notion's existing customer base while identifying opportunity for expanding usage - Be creative and iterate on the contract renewal process to retain and grow customers while mitigating churn or contraction - Hold face-to-face and Zoom meetings with prospective customers to understand their business challenges and goals - Drive executive level relationships - Run product demos to close business at or above quota level - Help build playbooks and define our sales motion - Liaise with our incredible user base to provide world class customer experience - Work cross-functionally and collaboratively with internal teams (sales, inside sales, customer success, solution engineer, deal-desk, ops, legal) SKILLS YOU'LL NEED TO BRING: - 3-5 years of full cycle sales at a fast growing software company - A track record of high achievement in current and previous roles hitting or exceeding quotas - A phenomenally strong communicator - Engaging and compelling presentation skills - A positive and openness minded attitude - A strong desire to be successful without sacrificing your values - A builder mentality who thrives in collaborative environments - An ability to operate within the gray and find creative or out-of-the-box solutions when faced with ambiguity NICE TO HAVES: - You've been an early sales hire at a fast growing start up before - You've got strong technical chops - Direct sales plus experience of selling through Partners - Experience of quarterly sales planning - New logo acquisition sales experience Our customers come from all walks of life and so do we. We hire great people from a wide variety of backgrounds, not just because it's the right thing to do, but because it makes our company stronger. If you share our values and our enthusiasm for small businesses, you will find a home at Notion. Notion is proud to be an equal opportunity employer. We do not discriminate in hiring or any employment decision based on race, color, religion, national origin, age, sex (including pregnancy, childbirth, or related medical conditions), marital status, ancestry, physical or mental disability, genetic information, veteran status, gender identity or expression, sexual orientation, or other applicable legally protected characteristic. Notion considers qualified applicants with criminal histories, consistent with applicable federal, state and local law. Notion is also committed to providing reasonable accommodations for qualified individuals with disabilities and disabled veterans in our job application procedures. If you need assistance or an accommodation due to a disability, please let your recruiter know. Notion is committed to providing highly competitive cash compensation, equity, and benefits. The compensation offered for this role will be based on multiple factors such as location, the role’s scope and complexity, and the candidate’s experience and expertise, and may vary from the range provided below. For roles based in San Francisco or New York City, the estimated range for total on target earnings (including base salary and on target incentive pay) for this role is $180,000 - $230,000 per year. By clicking “Submit Application”, I understand and agree that Notion and its affiliates and subsidiaries will collect and process my information in accordance with Notion’s Global Recruiting Privacy Policy https://notion.notion.site/Notion-Global-Recruiting-Privacy-Policy-fc3eb4e829354a26a2bb6fd5e289b550?pvs=74 and NYLL 144 https://notion.notion.site/Ashby-AI-Bias-Audit-2b0efdeead05803bbbfae159ec86c528. #LI-Onsite",
           "is_valid": true,
-          "reason": "Valid description (4944 chars)"
+          "reason": "Valid description (4944 chars, 730 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "# Account Executive, Mid-Market\n\nABOUT US: Notion helps you build beautiful tools for your life’s work. In today's world of endless apps and tabs, Notion provides one place for teams to get everything done, seamlessly connecting docs, notes, projects, calendar, and email—with AI built in to find answers and automate work. Millions of users, from individuals to large organizations like Toyota, Figma, and OpenAI, love Notion for its flexibility and choose it because it helps them save time and money. In-person collaboration is essential to Notion's culture. We require all team members to work from our offices on Mondays and Thursdays, our designated Anchor Days. Certain teams or positions may require additional in-office workdays. ABOUT THE ROLE: We are looking for a motivated Account Executive with an entrepreneurial and building spirit to join the GTM Sales Team. You will be instrumental in helping build pipeline, generate revenue, and expand our most strategic customers. As an Account Executive, you will play an important role defining/iterating on our sales motions and providing customer feedback to help share our roadmap. WHAT YOU'LL ACHIEVE: - Prospect and develop new potential accounts by educating contacts about how they can increase their team's collaboration, transparency, and productivity with Notion - Actively work to maintain strong relationships with Notion's existing customer base while identifying opportunity for expanding usage - Be creative and iterate on the contract renewal process to retain and grow customers while mitigating churn or contraction - Hold face-to-face and Zoom meetings with prospective customers to understand their business challenges and goals - Drive executive level relationships - Run product demos to close business at or above quota level - Help build playbooks and define our sales motion - Liaise with our incredible user base to provide world class customer experience - Work cross-functionally and collaboratively with internal teams (sales, inside sales, customer success, solution engineer, deal-desk, ops, legal) SKILLS YOU'LL NEED TO BRING: - 3-5 years of full cycle sales at a fast growing software company - A track record of high achievement in current and previous roles hitting or exceeding quotas - A phenomenally strong communicator - Engaging and compelling presentation skills - A positive and openness minded attitude - A strong desire to be successful without sacrificing your values - A builder mentality who thrives in collaborative environments - An ability to operate within the gray and find creative or out-of-the-box solutions when faced with ambiguity NICE TO HAVES: - You've been an early sales hire at a fast growing start up before - You've got strong technical chops - Direct sales plus experience of selling through Partners - Experience of quarterly sales planning - New logo acquisition sales experience Our customers come from all walks of life and so do we. We hire great people from a wide variety of backgrounds, not just because it's the right thing to do, but because it makes our company stronger. If you share our values and our enthusiasm for small businesses, you will find a home at Notion. Notion is proud to be an equal opportunity employer. We do not discriminate in hiring or any employment decision based on race, color, religion, national origin, age, sex (including pregnancy, childbirth, or related medical conditions), marital status, ancestry, physical or mental disability, genetic information, veteran status, gender identity or expression, sexual orientation, or other applicable legally protected characteristic. Notion considers qualified applicants with criminal histories, consistent with applicable federal, state and local law. Notion is also committed to providing reasonable accommodations for qualified individuals with disabilities and disabled veterans in our job application procedures. If you need assistance or an accommodation due to a disability, please let your recruiter know. Notion is committed to providing highly competitive cash compensation, equity, and benefits. The compensation offered for this role will be based on multiple factors such as location, the role’s scope and complexity, and the candidate’s experience and expertise, and may vary from the range provided below. For roles based in San Francisco or New York City, the estimated range for total on target earnings (including base salary and on target incentive pay) for this role is $180,000 - $230,000 per year. By clicking “Submit Application”, I understand and agree that Notion and its affiliates and subsidiaries will collect and process my information in accordance with Notion’s Global Recruiting Privacy Policy https://notion.notion.site/Notion-Global-Recruiting-Privacy-Policy-fc3eb4e829354a26a2bb6fd5e289b550?pvs=74 and NYLL 144 https://notion.notion.site/Ashby-AI-Bias-Audit-2b0efdeead05803bbbfae159ec86c528. #LI-Onsite",
           "is_valid": true,
-          "reason": "Valid description (4944 chars)"
+          "reason": "Valid description (4944 chars, 730 words)"
         },
         {
           "name": "empty_description_fallback",

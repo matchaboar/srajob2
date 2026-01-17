@@ -9,23 +9,42 @@
       "description_word_count": 625,
       "location": "Lisle, Illinois, United States",
       "is_remote": false,
-      "posted_at": 1768518181296,
-      "posted_at_unknown": true,
+      "posted_at": 1768680358671,
+      "posted_at_unknown": false,
       "company": "Voltage Park",
       "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://careers.kula.ai/voltagepark/19780",
       "cost_milli_cents": 150
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Data Center Site Operations Manager - Voltage Park",
+        "company": "Voltage Park",
+        "location": "Lisle, Illinois, United States",
+        "description": "Data Center Site Operations Manager - Voltage Park\nReturn to jobs list\n](https://careers.kula.ai/voltagepark)\n![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub)\nData Center Site Operations Manager\nJob type: Full Time · Department: Operations · Work type: On-Site · USD 110000 -\n130000 / year\nLisle, Illinois, United States\nApply for this position\nVoltage Park is your enterprise AI factory. We offer scalable compute power, on-demand and reserved bare metal AI infrastructure using NVIDIA GPUs, with world-class service, performance, and value. Founded with the mission of making accessible AI computing for all, our flexible, affordable GPU solutions power everyone from builders to enterprises.\nAs part of...",
+        "url": "https://careers.kula.ai/voltagepark/19780",
+        "posted_at": 1768680358671,
+        "level": "senior",
+        "remote": false,
+        "cost_milli_cents": 150,
+        "_full_description_word_count": 625
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://careers.kula.ai/voltagepark/19780",
+        "word_count": 625,
+        "description_preview": "Data Center Site Operations Manager - Voltage Park Return to jobs list ](https://careers.kula.ai/voltagepark) ![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub) Data Center Site Operations Manager Job type: Full Time · Department: Operations · Work..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -206,7 +225,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +235,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Lisle, Illinois, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Lisle, Illinois, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +272,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -288,9 +321,9 @@
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
-          "value": null,
-          "is_valid": false,
-          "reason": "Skipping verb token in content: Manager"
+          "value": "mid",
+          "is_valid": true,
+          "reason": "Level from experience: 4+ years -> mid"
         },
         {
           "name": "hinted_level",
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +361,18 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
           "is_valid": false,
           "reason": "No compensation pattern in content"
-        },
-        {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +383,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 150,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 150,
+          "is_valid": true,
+          "reason": "Valid cost: 150"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-15T16:03:01.296000",
+      "final_value": "2026-01-17T13:05:58.671000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-15T16:03:01.296000",
+          "value": "2026-01-17T13:05:58.671000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-15T16:03:01.296000"
+          "reason": "Valid date: 2026-01-17T13:05:58.671000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,9 +461,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:07.002624",
+          "value": "2026-01-17T13:05:58.880725",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'kula' returned no first_published"
         }
       ]
     },
@@ -416,21 +512,21 @@
           "priority": "SITE_HANDLER",
           "value": "Data Center Site Operations Manager - Voltage Park\nReturn to jobs list\n](https://careers.kula.ai/voltagepark)\n![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub)\nData Center Site Operations Manager\nJob type: Full Time · Department: Operations · Work type: On-Site · USD 110000 -\n130000 / year\nLisle, Illinois, United States\nApply for this position\nVoltage Park is your enterprise AI factory. We offer scalable compute power, on-demand and reserved bare metal AI infrastructure using NVIDIA GPUs, with world-class service, performance, and value. Founded with the mission of making accessible AI computing for all, our flexible, affordable GPU solutions power everyone from builders to enterprises.\nAs part of this effort, we’re hiring a **Data Center Site Operations Manager** to lead operations at our new Chicago facility. You’ll oversee the tenant fit-out of our space, stand up our operational environment, and build a high-performance team responsible for day-to-day data center operations. This is a hands-on leadership role, where you’ll both guide a team and roll up your sleeves to ensure a smooth deployment and sustained operational excellence.\nThis is an on-site role in Lisle, Illinois. Travel to our other data center sites across the US will be required.We are not able to provide visa sponsorship for this position at this time.\n### **What You Will Do**\n#### **Launch and Operate the Chicago Facility**\n* Oversee the setup of data center systems specific to our deployment within an existing colocation facility\n* Coordinate equipment installation, including rack and roll delivery, cabling, network installation, and power-up procedures\n* Manage vendor relationships, scheduling, and performance to ensure successful deployment\n* Track and manage all inventory and incoming hardware\n#### **Onsite Operational Leadership**\n* Lead a team of data center technicians handling maintenance, break fix, diagnostics, and routine inspections\n* Develop and implement procedures for uptime, preventive maintenance, and incident response\n* Act as the primary on-site point of contact for operational issues and escalation\n#### **Cross-Functional and Team Collaboration**\n* Partner with NetOps, Engineering, and Supply Chain teams to support deployments and ongoing operations\n* Participate in hiring, training, and mentoring on-site technicians\n* Travel to other Voltage Park data centers to learn processes and align operational standards\n### **Who You Are**\n#### **Required Qualifications**\n* 4+ years of experience in data center operations\n* 2+ years of leadership experience\n* Strong understanding of data center infrastructure (racking, cabling, cooling basics, power distribution, network hardware installations)\n* Ability to lead technicians through break/fix, installation, troubleshooting, and maintenance workflows\n* Troubleshooting skills and ability to respond quickly to operational issues\n* Strong vendor management experience (scheduling, accountability, performance tracking)\n* Detail-oriented, organized, and thrives working in fast-moving environments\n* Ability to manage a team responsible for supporting a 24/7 data center environment\n* Ability to meet physical requirements, including lifting up to 50 lbs\n#### **Ideal Experience**\n* Experience with data center tenant fit-outs\n* Experience in high-density or hyperscale environments\n* Relevant certifications such as CompTIA, Cisco, Juniper, or similar\n### **Our Culture**\n* You enjoy working with a small group of friendly, highly motivated, high execution colleagues\n* You’re comfortable with a high degree of autonomy. We expect you to independently prioritize your work and understand how it maps to the overall needs and goals of the company\n* You’re knowledgeable in your domain but also enjoy wearing multiple hats and venturing outside of your comfort zone when the need arises\n*Voltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.*",
           "is_valid": true,
-          "reason": "Valid description (4367 chars)"
+          "reason": "Valid description (4367 chars, 625 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Data Center Site Operations Manager - Voltage Park\nReturn to jobs list\n](https://careers.kula.ai/voltagepark)\n![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub)\nData Center Site Operations Manager\nJob type: Full Time · Department: Operations · Work type: On-Site · USD 110000 -\n130000 / year\nLisle, Illinois, United States\nApply for this position\nVoltage Park is your enterprise AI factory. We offer scalable compute power, on-demand and reserved bare metal AI infrastructure using NVIDIA GPUs, with world-class service, performance, and value. Founded with the mission of making accessible AI computing for all, our flexible, affordable GPU solutions power everyone from builders to enterprises.\nAs part of this effort, we’re hiring a **Data Center Site Operations Manager** to lead operations at our new Chicago facility. You’ll oversee the tenant fit-out of our space, stand up our operational environment, and build a high-performance team responsible for day-to-day data center operations. This is a hands-on leadership role, where you’ll both guide a team and roll up your sleeves to ensure a smooth deployment and sustained operational excellence.\nThis is an on-site role in Lisle, Illinois. Travel to our other data center sites across the US will be required.We are not able to provide visa sponsorship for this position at this time.\n### **What You Will Do**\n#### **Launch and Operate the Chicago Facility**\n* Oversee the setup of data center systems specific to our deployment within an existing colocation facility\n* Coordinate equipment installation, including rack and roll delivery, cabling, network installation, and power-up procedures\n* Manage vendor relationships, scheduling, and performance to ensure successful deployment\n* Track and manage all inventory and incoming hardware\n#### **Onsite Operational Leadership**\n* Lead a team of data center technicians handling maintenance, break fix, diagnostics, and routine inspections\n* Develop and implement procedures for uptime, preventive maintenance, and incident response\n* Act as the primary on-site point of contact for operational issues and escalation\n#### **Cross-Functional and Team Collaboration**\n* Partner with NetOps, Engineering, and Supply Chain teams to support deployments and ongoing operations\n* Participate in hiring, training, and mentoring on-site technicians\n* Travel to other Voltage Park data centers to learn processes and align operational standards\n### **Who You Are**\n#### **Required Qualifications**\n* 4+ years of experience in data center operations\n* 2+ years of leadership experience\n* Strong understanding of data center infrastructure (racking, cabling, cooling basics, power distribution, network hardware installations)\n* Ability to lead technicians through break/fix, installation, troubleshooting, and maintenance workflows\n* Troubleshooting skills and ability to respond quickly to operational issues\n* Strong vendor management experience (scheduling, accountability, performance tracking)\n* Detail-oriented, organized, and thrives working in fast-moving environments\n* Ability to manage a team responsible for supporting a 24/7 data center environment\n* Ability to meet physical requirements, including lifting up to 50 lbs\n#### **Ideal Experience**\n* Experience with data center tenant fit-outs\n* Experience in high-density or hyperscale environments\n* Relevant certifications such as CompTIA, Cisco, Juniper, or similar\n### **Our Culture**\n* You enjoy working with a small group of friendly, highly motivated, high execution colleagues\n* You’re comfortable with a high degree of autonomy. We expect you to independently prioritize your work and understand how it maps to the overall needs and goals of the company\n* You’re knowledgeable in your domain but also enjoy wearing multiple hats and venturing outside of your comfort zone when the need arises\n*Voltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.*",
           "is_valid": true,
-          "reason": "Valid description (4367 chars)"
+          "reason": "Valid description (4367 chars, 625 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Data Center Site Operations Manager - Voltage Park\nReturn to jobs list\n](https://careers.kula.ai/voltagepark)\n![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub)\nData Center Site Operations Manager\nJob type: Full Time · Department: Operations · Work type: On-Site · USD 110000 -\n130000 / year\nLisle, Illinois, United States\nApply for this position\nVoltage Park is your enterprise AI factory. We offer scalable compute power, on-demand and reserved bare metal AI infrastructure using NVIDIA GPUs, with world-class service, performance, and value. Founded with the mission of making accessible AI computing for all, our flexible, affordable GPU solutions power everyone from builders to enterprises.\nAs part of this effort, we’re hiring a **Data Center Site Operations Manager** to lead operations at our new Chicago facility. You’ll oversee the tenant fit-out of our space, stand up our operational environment, and build a high-performance team responsible for day-to-day data center operations. This is a hands-on leadership role, where you’ll both guide a team and roll up your sleeves to ensure a smooth deployment and sustained operational excellence.\nThis is an on-site role in Lisle, Illinois. Travel to our other data center sites across the US will be required.We are not able to provide visa sponsorship for this position at this time.\n### **What You Will Do**\n#### **Launch and Operate the Chicago Facility**\n* Oversee the setup of data center systems specific to our deployment within an existing colocation facility\n* Coordinate equipment installation, including rack and roll delivery, cabling, network installation, and power-up procedures\n* Manage vendor relationships, scheduling, and performance to ensure successful deployment\n* Track and manage all inventory and incoming hardware\n#### **Onsite Operational Leadership**\n* Lead a team of data center technicians handling maintenance, break fix, diagnostics, and routine inspections\n* Develop and implement procedures for uptime, preventive maintenance, and incident response\n* Act as the primary on-site point of contact for operational issues and escalation\n#### **Cross-Functional and Team Collaboration**\n* Partner with NetOps, Engineering, and Supply Chain teams to support deployments and ongoing operations\n* Participate in hiring, training, and mentoring on-site technicians\n* Travel to other Voltage Park data centers to learn processes and align operational standards\n### **Who You Are**\n#### **Required Qualifications**\n* 4+ years of experience in data center operations\n* 2+ years of leadership experience\n* Strong understanding of data center infrastructure (racking, cabling, cooling basics, power distribution, network hardware installations)\n* Ability to lead technicians through break/fix, installation, troubleshooting, and maintenance workflows\n* Troubleshooting skills and ability to respond quickly to operational issues\n* Strong vendor management experience (scheduling, accountability, performance tracking)\n* Detail-oriented, organized, and thrives working in fast-moving environments\n* Ability to manage a team responsible for supporting a 24/7 data center environment\n* Ability to meet physical requirements, including lifting up to 50 lbs\n#### **Ideal Experience**\n* Experience with data center tenant fit-outs\n* Experience in high-density or hyperscale environments\n* Relevant certifications such as CompTIA, Cisco, Juniper, or similar\n### **Our Culture**\n* You enjoy working with a small group of friendly, highly motivated, high execution colleagues\n* You’re comfortable with a high degree of autonomy. We expect you to independently prioritize your work and understand how it maps to the overall needs and goals of the company\n* You’re knowledgeable in your domain but also enjoy wearing multiple hats and venturing outside of your comfort zone when the need arises\n*Voltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.*",
           "is_valid": true,
-          "reason": "Valid description (4367 chars)"
+          "reason": "Valid description (4367 chars, 625 words)"
         },
         {
           "name": "empty_description_fallback",

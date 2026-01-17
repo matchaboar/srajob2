@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://careers.snap.com/jobs"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://careers.snap.com/jobs",
     "params": {

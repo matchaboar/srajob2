@@ -3,6 +3,12 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, TypedDict, cast
 
+__all__ = [
+    "ScrapeErrorInput",
+    "ScrapeErrorPayload",
+    "clean_scrape_error_payload",
+]
+
 
 class ScrapeErrorInputRequired(TypedDict):
     error: str
@@ -66,30 +72,3 @@ def clean_scrape_error_payload(payload: ScrapeErrorInput) -> ScrapeErrorPayload:
             cleaned[key] = value
 
     return cast(ScrapeErrorPayload, cleaned)
-
-
-async def log_scrape_error(payload: ScrapeErrorInput) -> None:
-    """Persist scrape/HTTP errors to Convex for audit visibility."""
-
-    from ...services.convex_client import convex_mutation
-    from ...services import telemetry
-
-    data = clean_scrape_error_payload(payload)
-    try:
-        await convex_mutation("router:insertScrapeError", data)
-    except Exception:
-        # Best-effort; do not raise
-        pass
-
-    try:
-        telemetry.emit_posthog_log(
-            {
-                "event": "scrape.error",
-                "level": "error",
-                "siteUrl": data.get("sourceUrl", ""),
-                "data": data,
-            }
-        )
-    except Exception:
-        # Best-effort; do not raise
-        return

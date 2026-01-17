@@ -1,0 +1,84 @@
+= DBOS007: Forbidden sleep/asyncio primitives
+
+== Summary
+
+DBOS workflows and steps must not use raw sleep or asyncio primitives.
+
+== Description
+
+Within DBOS workflows and steps, you must not use:
+
+* `time.sleep` - Blocks the event loop entirely
+* `asyncio.sleep` - Runs in a different event loop and is not durable
+
+Instead, use the DBOS-provided sleep functions:
+
+* `DBOS.sleep` - For synchronous workflows/steps
+* `DBOS.sleep_async` - For async workflows/steps
+
+DBOS sleep functions are *durable*: if a workflow crashes and restarts, the sleep will resume from where it left off rather than starting over. Raw sleep calls are not durable and will reset on workflow recovery.
+
+== Examples
+
+.Bad: Using time.sleep in DBOS step
+[source,python]
+----
+@DBOS.step
+def rate_limited_call():
+    result = make_api_call()
+    time.sleep(1)  # ERROR: blocks event loop, not durable
+    return result
+----
+
+.Bad: Using asyncio.sleep in DBOS workflow
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    await do_work()
+    await asyncio.sleep(60)  # ERROR: not durable
+    await do_more_work()
+----
+
+.Good: Using DBOS.sleep in sync context
+[source,python]
+----
+@DBOS.step
+def rate_limited_call():
+    result = make_api_call()
+    DBOS.sleep(1)  # Durable sleep
+    return result
+----
+
+.Good: Using DBOS.sleep_async in async context
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    await do_work()
+    await DBOS.sleep_async(60)  # Durable sleep
+    await do_more_work()
+----
+
+== Why Durability Matters
+
+Consider a workflow that waits 24 hours between steps:
+
+[source,python]
+----
+@DBOS.workflow
+async def daily_workflow():
+    await morning_task()
+    await DBOS.sleep_async(86400)  # 24 hours
+    await evening_task()
+----
+
+If the system crashes after 23 hours using `asyncio.sleep`, the workflow would restart and wait another 24 hours. With `DBOS.sleep_async`, the workflow remembers it already waited 23 hours and only waits 1 more hour.
+
+== Suppression
+
+Add `# noqa: DBOS007` to the offending line.
+
+== See Also
+
+* DBOS006 - Async workflows must use async DBOS context methods

@@ -5,32 +5,69 @@ import asyncio
 import concurrent.futures
 import logging
 import threading
-import time
 from typing import Awaitable, Callable
-from urllib.parse import parse_qs, urlparse
+
+from dbos import DBOS, DBOSConfig
 
 from .api import serve as serve_api
 from .queue import (
     LeaseResult,
     complete_scrape_urls,
     detail_queue_has_pending,
-    enqueue_scrape_urls,
     lease_scrape_url_batch,
     queue_status,
     recover_stale_processing_items,
 )
 from .runs import last_completed_at, record_run
 from .sqlite import initialize_schema, now_ms
+from .step import (
+    load_schedule_interval_minutes,
+    reset_schedule_cache,
+    reset_sites_cache,
+)
 from ..services import telemetry
-from ..services.convex_client import convex_query
-from ..workflows import activities as workflow_activities
-from ..workflows.helpers.spidercloud_error_strategy import decision_for_exception
-from ..workflows.site_handlers import get_site_handler
+from ..workflows.result import Failure, Success
+from ..workflows.workflow import (
+    scrape_listing_batch,
+    scrape_job_detail_batch,
+    enqueue_scheduled_listings,
+)
 
 logger = logging.getLogger("dbos.runner")
 
+# DBOS workflows are now the only processing path (activities removed)
+
+# Track if DBOS has been initialized
+_DBOS_INITIALIZED = False
+
 # Thread pool for blocking DB operations (avoid blocking the event loop)
 _DB_EXECUTOR: concurrent.futures.ThreadPoolExecutor | None = None
+
+
+def _initialize_dbos() -> None:
+    """Initialize DBOS for workflow support."""
+    global _DBOS_INITIALIZED
+    if _DBOS_INITIALIZED:
+        return
+
+    try:
+        # Use a file-based SQLite database for DBOS system tables.
+        # Note: in-memory databases (sqlite:///:memory:) don't work reliably with DBOS
+        # because different connections/threads get separate databases, causing the
+        # "no such table: workflow_status" error.
+        from .sqlite import _resolve_db_path
+        dbos_db_path = _resolve_db_path().parent / "dbos_system.sqlite"
+        config = DBOSConfig(
+            name="job-scrape-worker",
+            database_url=f"sqlite:///{dbos_db_path}",
+        )
+        DBOS(config=config)
+        DBOS.launch()
+        _DBOS_INITIALIZED = True
+        logger.info("DBOS initialized successfully")
+    except Exception as exc:
+        logger.warning("Failed to initialize DBOS: %s. Falling back to activities.", exc)
+        _DBOS_INITIALIZED = False
 
 
 def _get_db_executor() -> concurrent.futures.ThreadPoolExecutor:
@@ -45,31 +82,21 @@ async def _async_lease_batch(
 ) -> LeaseResult:
     """Run lease_scrape_url_batch in executor to avoid blocking event loop."""
     loop = asyncio.get_running_loop()
-    start = time.monotonic()
-    result = await loop.run_in_executor(
+    return await loop.run_in_executor(
         _get_db_executor(),
         lambda: lease_scrape_url_batch(provider=provider, limit=limit, url_type=url_type),
     )
-    elapsed = time.monotonic() - start
-    if elapsed > 1.0:
-        logger.warning("Slow lease_scrape_url_batch: %.3fs url_type=%s", elapsed, url_type)
-    return result
 
 
 async def _async_detail_queue_pending() -> bool:
     """Run detail_queue_has_pending in executor to avoid blocking event loop."""
     global _LAST_DETAIL_QUEUE_STATUS_ERROR_MS
     loop = asyncio.get_running_loop()
-    start = time.monotonic()
     try:
-        result = await loop.run_in_executor(
+        return await loop.run_in_executor(
             _get_db_executor(),
             detail_queue_has_pending,
         )
-        elapsed = time.monotonic() - start
-        if elapsed > 0.5:
-            logger.warning("Slow detail_queue_has_pending: %.3fs", elapsed)
-        return result
     except Exception as exc:
         now = now_ms()
         if (
@@ -83,35 +110,6 @@ async def _async_detail_queue_pending() -> bool:
             )
         return False
 
-ActivityHandler = Callable[..., Awaitable[object]]
-
-
-def _load_activity_handler(name: str) -> ActivityHandler:
-    handler = getattr(workflow_activities, name, None)
-    if handler is None:
-        available = [
-            attr
-            for attr in (
-                "process_spidercloud_job_batch",
-                "process_spidercloud_listing_batch",
-            )
-            if hasattr(workflow_activities, attr)
-        ]
-        message = (
-            f"Missing workflow activity '{name}'. "
-            f"Available: {', '.join(available) if available else 'none'}"
-        )
-        logger.error(message)
-        try:
-            telemetry.emit_posthog_exception(
-                RuntimeError(message),
-                properties={"activityName": name},
-            )
-        except Exception:
-            pass
-        raise RuntimeError(message)
-    return handler
-
 
 def _setup_logging() -> None:
     handlers: list[logging.Handler] = [logging.StreamHandler()]
@@ -123,110 +121,88 @@ def _setup_logging() -> None:
 
 SCHEDULE_WORKFLOW_NAME = "listing-schedule"
 SCHEDULE_POLL_SECONDS = 60
-DEFAULT_SCHEDULE_INTERVAL_MINUTES = 15
-SCHEDULE_CONFIG_REFRESH_SECONDS = 600
-SITES_REFRESH_SECONDS = 300
 
-_SCHEDULE_CACHE: tuple[int, dict[str, object]] | None = None
-_SITES_CACHE: tuple[int, list[dict[str, object]]] | None = None
 _DETAIL_QUEUE_STATUS_ERROR_LOG_MS = 60_000
 _LAST_DETAIL_QUEUE_STATUS_ERROR_MS: int | None = None
 
 
-def _dedupe_urls(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        deduped.append(value)
-    return deduped
-
-
-def _limit_listing_urls(urls: list[str], limit: int | None) -> list[str]:
-    if not urls:
-        return []
-    deduped = _dedupe_urls(urls)
-    if not limit or limit <= 0:
-        return deduped
-    filtered: list[str] = []
-    for url in deduped:
-        try:
-            parsed = urlparse(url)
-            params = parse_qs(parsed.query)
-        except Exception:
-            params = {}
-        page_val = None
-        for key in ("page", "from", "start", "offset"):
-            value = params.get(key, [None])[0]
-            if value is None:
-                continue
-            try:
-                page_val = int(value)
-            except Exception:
-                page_val = None
-            if page_val is not None:
-                break
-        if page_val is None or page_val <= limit:
-            filtered.append(url)
-    if len(filtered) <= limit:
-        return filtered
-    return filtered[:limit]
-
-
 def _reset_cache() -> None:
-    global _SCHEDULE_CACHE, _SITES_CACHE
-    _SCHEDULE_CACHE = None
-    _SITES_CACHE = None
+    """Reset schedule and sites caches."""
+    reset_schedule_cache()
+    reset_sites_cache()
 
 
-async def _process_listing_batch(batch: LeaseResult) -> None:
+async def _process_listing_batch(batch: LeaseResult) -> None:  # noqa: DBOS004 - event loop function
     if not batch.urls:
         return
+
+    if not _DBOS_INITIALIZED:
+        logger.error("DBOS not initialized, cannot process listing batch")
+        return
+
     try:
-        handler = _load_activity_handler("process_spidercloud_listing_batch")
-        await handler({"urls": batch.urls})
+        result = await scrape_listing_batch(batch={"urls": batch.urls})
+        match result:
+            case Success(value=data):
+                logger.info(
+                    "Listing batch completed: queued=%d completed=%d source=%s",
+                    data.queued,
+                    data.completed,
+                    data.source_url,
+                )
+            case Failure(error_type=error_type, message=message):
+                logger.error(
+                    "Listing batch failed (non-retryable) [%s]: %s",
+                    error_type,
+                    message,
+                )
     except Exception as exc:
-        decision = decision_for_exception(exc, source="spidercloud_api")
-        logger.exception(
-            "Listing batch failed action=%s reason=%s",
-            decision.action,
-            decision.error,
-        )
+        logger.exception("Listing workflow failed: %s", exc)
+        # Mark batch as failed
         if batch.urls:
-            status = "pending" if decision.action == "retry" else "failed"
-            payload = {
+            complete_scrape_urls({
                 "items": [{"id": row.get("_id"), "url": row.get("url")} for row in batch.urls],
-                "status": status,
-                "error": decision.error,
-            }
-            if status == "pending" and decision.retry_after_seconds is not None:
-                payload["runAfterMs"] = int(decision.retry_after_seconds * 1000)
-            complete_scrape_urls(payload)
+                "status": "failed",
+                "error": f"workflow_error: {str(exc)[:100]}",
+            })
 
 
-async def _process_detail_batch(batch: LeaseResult) -> None:
+async def _process_detail_batch(batch: LeaseResult) -> None:  # noqa: DBOS004 - event loop function
     if not batch.urls:
         return
+
+    if not _DBOS_INITIALIZED:
+        logger.error("DBOS not initialized, cannot process detail batch")
+        return
+
     try:
-        handler = _load_activity_handler("process_spidercloud_job_batch")
-        await handler({"urls": batch.urls}, persist_scrapes=True)
-    except Exception as exc:
-        decision = decision_for_exception(exc, source="spidercloud_api")
-        logger.exception(
-            "Detail batch failed action=%s reason=%s",
-            decision.action,
-            decision.error,
+        result = await scrape_job_detail_batch(
+            batch={"urls": batch.urls},
+            persist_scrapes=True,
         )
-        payload = {
+        match result:
+            case Success(value=data):
+                logger.info(
+                    "Detail batch completed: stored=%d invalid=%d failed=%d source=%s",
+                    data.stored,
+                    data.invalid,
+                    data.failed,
+                    data.source_url,
+                )
+            case Failure(error_type=error_type, message=message):
+                logger.error(
+                    "Detail batch failed (non-retryable) [%s]: %s",
+                    error_type,
+                    message,
+                )
+    except Exception as exc:
+        logger.exception("Detail workflow failed: %s", exc)
+        # Mark batch as failed
+        complete_scrape_urls({
             "items": [{"id": row.get("_id"), "url": row.get("url")} for row in batch.urls],
-            "status": "pending" if decision.action == "retry" else "failed",
-            "error": decision.error,
-        }
-        if payload["status"] == "pending" and decision.retry_after_seconds is not None:
-            payload["runAfterMs"] = int(decision.retry_after_seconds * 1000)
-        complete_scrape_urls(payload)
+            "status": "failed",
+            "error": f"workflow_error: {str(exc)[:100]}",
+        })
 
 
 async def _run_queue_loop(
@@ -269,8 +245,6 @@ async def _run_queue_loop(
             if batch.urls:
                 await semaphore.acquire()
                 asyncio.create_task(_run_batch(batch))
-                # Yield to allow other tasks to run
-                await asyncio.sleep(0)
                 continue
 
             # No items available, sleep before polling again
@@ -281,107 +255,56 @@ async def _run_queue_loop(
             await asyncio.sleep(poll_interval)
 
 
-async def _load_schedule_interval_minutes() -> int:
-    global _SCHEDULE_CACHE
-    now = now_ms()
-    if _SCHEDULE_CACHE is not None:
-        fetched_at, cached = _SCHEDULE_CACHE
-        if now - fetched_at < SCHEDULE_CONFIG_REFRESH_SECONDS * 1000:
-            return _interval_from_config(cached)
-
-    try:
-        config = await convex_query("temporal:getScrapeSchedule", {})
-    except Exception:
-        return DEFAULT_SCHEDULE_INTERVAL_MINUTES
-    if isinstance(config, dict):
-        _SCHEDULE_CACHE = (now, config)
-        return _interval_from_config(config)
-    return DEFAULT_SCHEDULE_INTERVAL_MINUTES
-
-
-def _interval_from_config(config: dict[str, object]) -> int:
-    interval = config.get("intervalMinutes")
-    if isinstance(interval, (int, float)) and interval > 0:
-        return int(interval)
-    if config.get("mode") == "daily":
-        return 24 * 60
-    return DEFAULT_SCHEDULE_INTERVAL_MINUTES
-
-
-async def _enqueue_listing_sites() -> int:
-    global _SITES_CACHE
-    now = now_ms()
-    sites: list[dict[str, object]] | None = None
-    if _SITES_CACHE is not None:
-        fetched_at, cached_sites = _SITES_CACHE
-        if now - fetched_at < SITES_REFRESH_SECONDS * 1000:
-            sites = cached_sites
-    if sites is None:
-        fetched = await convex_query("router:listSites", {"enabledOnly": True})
-        if not isinstance(fetched, list):
-            return 0
-        sites = [site for site in fetched if isinstance(site, dict)]
-        _SITES_CACHE = (now, sites)
-    queued = 0
-    for site in sites:
-        url = site.get("url")
-        if not isinstance(url, str) or not url.strip():
-            continue
-        site_type = site.get("type") if isinstance(site.get("type"), str) else None
-        pagination_limit = site.get("paginationLimit")
-        if isinstance(pagination_limit, (int, float)):
-            pagination_limit = max(0, int(pagination_limit))
-        else:
-            pagination_limit = 0
-        handler = get_site_handler(url, site_type)
-        listing_urls = [url.strip()]
-        if handler:
-            pagination_urls = handler.get_pagination_urls_from_listing(url)
-            if pagination_urls:
-                listing_urls.extend(pagination_urls)
-        listing_urls = _limit_listing_urls(listing_urls, pagination_limit)
-        if not listing_urls:
-            continue
-        payload = {
-            "urls": listing_urls,
-            "sourceUrl": url,
-            "provider": site.get("scrapeProvider") or "spidercloud",
-            "siteId": site.get("_id"),
-            "pattern": site.get("pattern"),
-            "urlTypes": ["listing"] * len(listing_urls),
-        }
-        result = enqueue_scrape_urls(payload)
-        if isinstance(result, dict) and isinstance(result.get("queued"), int):
-            queued += int(result["queued"])
-    return queued
-
-
-async def _run_schedule_loop() -> None:
+async def _run_schedule_loop() -> None:  # noqa: DBOS004 - event loop function
     while True:
         try:
-            interval_minutes = await _load_schedule_interval_minutes()
+            if not _DBOS_INITIALIZED:
+                logger.warning("DBOS not initialized, skipping schedule loop iteration")
+                await asyncio.sleep(SCHEDULE_POLL_SECONDS)
+                continue
+
+            interval_minutes = load_schedule_interval_minutes()
             last_run = last_completed_at(SCHEDULE_WORKFLOW_NAME) or 0
             interval_ms = interval_minutes * 60 * 1000
             now = now_ms()
             if now - last_run >= interval_ms:
                 started_at = now
-                # Use async version to not block event loop
-                if await _async_detail_queue_pending():
-                    logger.info(
-                        "Skipping listing schedule; detail queue has pending items.",
-                    )
-                    await asyncio.sleep(SCHEDULE_POLL_SECONDS)
-                    continue
+
                 try:
-                    queued = await _enqueue_listing_sites()
-                    record_run(
-                        workflow_name=SCHEDULE_WORKFLOW_NAME,
-                        queue_name="listing",
-                        status="completed",
-                        started_at=started_at,
-                        completed_at=now_ms(),
-                    )
-                    logger.info("Scheduled listing enqueue queued=%s", queued)
+                    result = enqueue_scheduled_listings()
+                    match result:
+                        case Success(value=data):
+                            if data.skipped_pending_details:
+                                logger.info(
+                                    "Skipping listing schedule; detail queue has pending items.",
+                                )
+                            else:
+                                record_run(
+                                    workflow_name=SCHEDULE_WORKFLOW_NAME,
+                                    queue_name="listing",
+                                    status="completed",
+                                    started_at=started_at,
+                                    completed_at=now_ms(),
+                                )
+                                logger.info(
+                                    "Scheduled listing enqueue: queued=%d sites=%d",
+                                    data.queued,
+                                    data.sites_processed,
+                                )
+                        case Failure(error_type=error_type, message=message):
+                            logger.error(
+                                "Scheduled listing enqueue failed (non-retryable) [%s]: %s",
+                                error_type,
+                                message,
+                            )
+                            record_run(
+                                workflow_name=SCHEDULE_WORKFLOW_NAME,
+                                queue_name="listing",
+                                status="failed",
+                                error=f"[{error_type}] {message}",
+                                started_at=started_at,
+                                completed_at=now_ms(),
+                            )
                 except Exception as exc:
                     record_run(
                         workflow_name=SCHEDULE_WORKFLOW_NAME,
@@ -391,13 +314,13 @@ async def _run_schedule_loop() -> None:
                         started_at=started_at,
                         completed_at=now_ms(),
                     )
-                    logger.exception("Scheduled listing enqueue failed")
+                    logger.exception("Scheduled listing enqueue failed: %s", exc)
         except Exception as exc:
             logger.exception("Schedule loop error: %s", exc)
         await asyncio.sleep(SCHEDULE_POLL_SECONDS)
 
 
-async def run_worker(
+async def run_worker(  # noqa: DBOS004 - event loop function
     *,
     listing_batch: int,
     detail_batch: int,
@@ -407,6 +330,11 @@ async def run_worker(
     detail_concurrency: int,
 ) -> None:
     initialize_schema()
+
+    # Initialize DBOS (required for workflow processing)
+    logger.info("Initializing DBOS workflows")
+    _initialize_dbos()
+
     # Recover items stuck in 'processing' for more than 10 minutes (likely from a previous crash)
     recovered = recover_stale_processing_items(stale_threshold_ms=10 * 60 * 1000)
     if recovered > 0:

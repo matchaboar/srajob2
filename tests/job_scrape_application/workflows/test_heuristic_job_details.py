@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import sys
 from collections.abc import Callable
 from typing import Any, Dict
@@ -42,9 +41,12 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("temporalio not installed", allow_module_level=True)
 
-from job_scrape_application.workflows.activities import (  # noqa: E402
-    HEURISTIC_VERSION,
-    _build_job_detail_heuristic_patch,
+from job_scrape_application.workflows.normalizers import (  # noqa: E402
+    NORMALIZATION_VERSION as HEURISTIC_VERSION,
+    build_job_update as _build_job_detail_heuristic_patch,
+)
+# Import heuristics orchestrator
+from job_scrape_application.workflows.workflow.process_pending_heuristics import (  # noqa: E402
     process_pending_job_details_batch,
 )
 from job_scrape_application.workflows.helpers.scrape_utils import parse_markdown_hints, strip_known_nav_blocks  # noqa: E402
@@ -77,33 +79,25 @@ class FakeConvexClient:
     def set_mutation_response(self, name: str, response: Any) -> None:
         self.mutation_handlers[name] = lambda _args: response
 
-    async def query(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+    def query(self, name: str, args: Dict[str, Any] | None = None) -> Any:
         self.query_calls.append({"name": name, "args": args})
         handler = self.query_handlers.get(name)
         if handler is None:
             fallback = self.query_fallback
             if fallback is None:
                 raise AssertionError(f"unexpected query {name}")
-            result = fallback(name, args)
-        else:
-            result = handler(args)
-        if inspect.isawaitable(result):
-            return await result
-        return result
+            return fallback(name, args)
+        return handler(args)
 
-    async def mutation(self, name: str, args: Dict[str, Any] | None = None) -> Any:
+    def mutation(self, name: str, args: Dict[str, Any] | None = None) -> Any:
         self.mutation_calls.append({"name": name, "args": args})
         handler = self.mutation_handlers.get(name)
         if handler is None:
             fallback = self.mutation_fallback
             if fallback is None:
                 raise AssertionError(f"unexpected mutation {name}")
-            result = fallback(name, args)
-        else:
-            result = handler(args)
-        if inspect.isawaitable(result):
-            return await result
-        return result
+            return fallback(name, args)
+        return handler(args)
 
 
 @pytest.fixture()
@@ -114,8 +108,7 @@ def convex_client(monkeypatch: pytest.MonkeyPatch) -> FakeConvexClient:
     return client
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_updates_jobs(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_updates_jobs(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job1",
@@ -134,14 +127,14 @@ async def test_process_pending_job_details_batch_updates_jobs(convex_client: Fak
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return configs
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -153,7 +146,7 @@ async def test_process_pending_job_details_batch_updates_jobs(convex_client: Fak
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert any(call.get("field") == "location" for call in recorded)
@@ -165,8 +158,7 @@ async def test_process_pending_job_details_batch_updates_jobs(convex_client: Fak
     assert "heuristicLastTried" in updated[0]
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_ignores_401k(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_ignores_401k(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-401k",
@@ -184,14 +176,14 @@ async def test_process_pending_job_details_batch_ignores_401k(convex_client: Fak
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -203,7 +195,7 @@ async def test_process_pending_job_details_batch_ignores_401k(convex_client: Fak
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for 401k fixture"
@@ -212,8 +204,7 @@ async def test_process_pending_job_details_batch_ignores_401k(convex_client: Fak
     assert patch.get("compensationUnknown") is True
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_ignores_company_metrics(convex_client: FakeConvexClient, ramp_markdown):
+def test_process_pending_job_details_batch_ignores_company_metrics(convex_client: FakeConvexClient, ramp_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-ramp",
@@ -231,14 +222,14 @@ async def test_process_pending_job_details_batch_ignores_company_metrics(convex_
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -250,7 +241,7 @@ async def test_process_pending_job_details_batch_ignores_company_metrics(convex_
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for ramp fixture"
@@ -260,8 +251,7 @@ async def test_process_pending_job_details_batch_ignores_company_metrics(convex_
     assert not any(call.get("field") == "compensation" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_prefers_job_id_field(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_prefers_job_id_field(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-detail-1",
@@ -279,14 +269,14 @@ async def test_process_pending_job_details_batch_prefers_job_id_field(convex_cli
 
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             return {"created": True}
         if name == "router:updateJobWithHeuristic":
@@ -297,15 +287,14 @@ async def test_process_pending_job_details_batch_prefers_job_id_field(convex_cli
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated
     assert updated[0]["id"] == "job-1"
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_reports_remaining(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_reports_remaining(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remaining",
@@ -323,7 +312,7 @@ async def test_process_pending_job_details_batch_reports_remaining(convex_client
     state = {"pending": len(jobs)}
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -332,7 +321,7 @@ async def test_process_pending_job_details_batch_reports_remaining(convex_client
             return {"pending": state["pending"]}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             return {"created": True}
         if name == "router:updateJobWithHeuristic":
@@ -344,7 +333,7 @@ async def test_process_pending_job_details_batch_reports_remaining(convex_client
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert result["remaining"] == 0
@@ -352,8 +341,7 @@ async def test_process_pending_job_details_batch_reports_remaining(convex_client
     assert updated, "expected job to be updated"
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_convex_error(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_handles_convex_error(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-error",
@@ -368,7 +356,7 @@ async def test_process_pending_job_details_batch_handles_convex_error(convex_cli
         }
     ]
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -377,13 +365,13 @@ async def test_process_pending_job_details_batch_handles_convex_error(convex_cli
             return {"pending": 0}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         raise Exception("[Request ID: req-123] Server Error")
 
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 0
     assert result["errors"], "expected errors to be reported"
@@ -391,8 +379,7 @@ async def test_process_pending_job_details_batch_handles_convex_error(convex_cli
     assert any(err["op"] == "router:updateJobWithHeuristic" for err in result["errors"])
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_update_error_does_not_count_processed(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_update_error_does_not_count_processed(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-update-error",
@@ -409,7 +396,7 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
 
     recorded: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -418,7 +405,7 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
             return {"pending": 1}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -429,7 +416,7 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 0
     assert result["updated"] == []
@@ -438,8 +425,7 @@ async def test_process_pending_job_details_batch_update_error_does_not_count_pro
     assert recorded, "expected heuristic learning to still be attempted"
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_records_request_id_from_headers(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_records_request_id_from_headers(convex_client: FakeConvexClient):
     class FakeResponse:
         def __init__(self):
             self.headers = {"x-request-id": "hdr-req"}
@@ -462,7 +448,7 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
         }
     ]
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -471,7 +457,7 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
             return {"pending": 1}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             return {"created": True}
         if name == "router:updateJobWithHeuristic":
@@ -481,14 +467,13 @@ async def test_process_pending_job_details_batch_records_request_id_from_headers
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 0
     assert any(err["requestId"] == "hdr-req" for err in result["errors"])
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_counts_success_even_if_record_fails(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_counts_success_even_if_record_fails(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-record-fail",
@@ -502,7 +487,7 @@ async def test_process_pending_job_details_batch_counts_success_even_if_record_f
         }
     ]
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -511,7 +496,7 @@ async def test_process_pending_job_details_batch_counts_success_even_if_record_f
             return {"pending": 0}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             raise Exception("[Request ID: rec-err] Server Error")
         if name == "router:updateJobWithHeuristic":
@@ -521,14 +506,13 @@ async def test_process_pending_job_details_batch_counts_success_even_if_record_f
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert any(err["op"] == "router:recordJobDetailHeuristic" for err in result["errors"])
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_includes_heuristic_version(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_includes_heuristic_version(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-version",
@@ -545,7 +529,7 @@ async def test_process_pending_job_details_batch_includes_heuristic_version(conv
 
     captured_updates: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -554,7 +538,7 @@ async def test_process_pending_job_details_batch_includes_heuristic_version(conv
             return {"pending": 0}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             return {"created": True}
         if name == "router:updateJobWithHeuristic":
@@ -565,14 +549,13 @@ async def test_process_pending_job_details_batch_includes_heuristic_version(conv
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    await process_pending_job_details_batch()
+    process_pending_job_details_batch()
 
     assert captured_updates, "expected update mutation to be called"
     assert captured_updates[0]["heuristicVersion"] == HEURISTIC_VERSION
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_remaining_query_failure(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_handles_remaining_query_failure(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remaining-fail",
@@ -586,7 +569,7 @@ async def test_process_pending_job_details_batch_handles_remaining_query_failure
         }
     ]
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -595,7 +578,7 @@ async def test_process_pending_job_details_batch_handles_remaining_query_failure
             raise Exception("count failed")
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             return {"created": True}
         if name == "router:updateJobWithHeuristic":
@@ -605,14 +588,13 @@ async def test_process_pending_job_details_batch_handles_remaining_query_failure
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert result["remaining"] is None
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_query_error_annotates_op(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_query_error_annotates_op(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-query-error",
@@ -626,7 +608,7 @@ async def test_process_pending_job_details_batch_query_error_annotates_op(convex
         }
     ]
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
@@ -635,21 +617,20 @@ async def test_process_pending_job_details_batch_query_error_annotates_op(convex
             return {"pending": 1}
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         raise AssertionError(f"unexpected mutation {name}")
 
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 0
     assert result["updated"] == []
     assert any(err["op"] == "router:listJobDetailConfigs" for err in result["errors"])
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_defaults_domain(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_defaults_domain(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job2",
@@ -666,14 +647,14 @@ async def test_process_pending_job_details_batch_defaults_domain(convex_client: 
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return { "created": True }
@@ -685,7 +666,7 @@ async def test_process_pending_job_details_batch_defaults_domain(convex_client: 
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert recorded, "expected heuristic to be recorded"
@@ -696,8 +677,7 @@ async def test_process_pending_job_details_batch_defaults_domain(convex_client: 
 
 
 @pytest.mark.skip(reason="Normalizers don't support currencyCode detection yet")
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_accepts_non_us_location(convex_client: FakeConvexClient):
+def test_process_pending_job_details_batch_accepts_non_us_location(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job3",
@@ -714,14 +694,14 @@ async def test_process_pending_job_details_batch_accepts_non_us_location(convex_
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -733,7 +713,7 @@ async def test_process_pending_job_details_batch_accepts_non_us_location(convex_
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated and updated[0]["location"] == "Bangalore, India"
@@ -932,8 +912,7 @@ def test_build_job_detail_heuristic_patch_preserves_remote_company_override():
     assert patch.get("remote") is True
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_multiple_locations(convex_client: FakeConvexClient, datadog_markdown):
+def test_process_pending_job_details_batch_handles_multiple_locations(convex_client: FakeConvexClient, datadog_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-datadog",
@@ -954,14 +933,14 @@ async def test_process_pending_job_details_batch_handles_multiple_locations(conv
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -973,7 +952,7 @@ async def test_process_pending_job_details_batch_handles_multiple_locations(conv
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for datadog fixture"
@@ -988,8 +967,7 @@ async def test_process_pending_job_details_batch_handles_multiple_locations(conv
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_updates_description_when_cleaned(convex_client: FakeConvexClient, datadog_markdown):
+def test_process_pending_job_details_batch_updates_description_when_cleaned(convex_client: FakeConvexClient, datadog_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-datadog-legacy",
@@ -1009,14 +987,14 @@ async def test_process_pending_job_details_batch_updates_description_when_cleane
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1028,7 +1006,7 @@ async def test_process_pending_job_details_batch_updates_description_when_cleane
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for cleaned description"
@@ -1038,8 +1016,7 @@ async def test_process_pending_job_details_batch_updates_description_when_cleane
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_brazil_location(convex_client: FakeConvexClient, airbnb_markdown):
+def test_process_pending_job_details_batch_handles_brazil_location(convex_client: FakeConvexClient, airbnb_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-airbnb",
@@ -1057,14 +1034,14 @@ async def test_process_pending_job_details_batch_handles_brazil_location(convex_
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1076,7 +1053,7 @@ async def test_process_pending_job_details_batch_handles_brazil_location(convex_
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for airbnb fixture"
@@ -1088,8 +1065,7 @@ async def test_process_pending_job_details_batch_handles_brazil_location(convex_
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_china_country(convex_client: FakeConvexClient, airbnb_china_markdown):
+def test_process_pending_job_details_batch_handles_china_country(convex_client: FakeConvexClient, airbnb_china_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-airbnb-china",
@@ -1107,14 +1083,14 @@ async def test_process_pending_job_details_batch_handles_china_country(convex_cl
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1126,7 +1102,7 @@ async def test_process_pending_job_details_batch_handles_china_country(convex_cl
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for airbnb china fixture"
@@ -1140,8 +1116,7 @@ async def test_process_pending_job_details_batch_handles_china_country(convex_cl
 
 
 @pytest.mark.skip(reason="Test expects remote=False override but old heuristics preserves scraper's remote=True")
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex_client: FakeConvexClient, stubhub_markdown):
+def test_process_pending_job_details_batch_handles_stubhub_markdown(convex_client: FakeConvexClient, stubhub_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-stubhub",
@@ -1160,14 +1135,14 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1179,7 +1154,7 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for stubhub fixture"
@@ -1195,8 +1170,7 @@ async def test_process_pending_job_details_batch_handles_stubhub_markdown(convex
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_batch_handles_canadian_location(convex_client: FakeConvexClient, robinhood_markdown):
+def test_process_pending_job_details_batch_handles_canadian_location(convex_client: FakeConvexClient, robinhood_markdown):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-robinhood",
@@ -1214,14 +1188,14 @@ async def test_process_pending_job_details_batch_handles_canadian_location(conve
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1233,7 +1207,7 @@ async def test_process_pending_job_details_batch_handles_canadian_location(conve
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for robinhood fixture"
@@ -1253,8 +1227,7 @@ def test_parse_markdown_hints_prefers_us_primary_when_present():
     assert "Madrid, Spain" in hints.get("locations", [])
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(convex_client: FakeConvexClient):
+def test_process_pending_job_details_prefers_first_comma_chunk_over_actual_location(convex_client: FakeConvexClient):
     description = (
         "Senior/Staff, Back-end Engineer (Ads Landing)\n"
         "Seoul, South Korea\n"
@@ -1278,14 +1251,14 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1297,7 +1270,7 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for coupang listing"
@@ -1308,8 +1281,7 @@ async def test_process_pending_job_details_prefers_first_comma_chunk_over_actual
     assert any(call.get("field") == "location" for call in recorded)
 
 
-@pytest.mark.asyncio
-async def test_process_pending_job_details_defaults_country_for_remote(convex_client: FakeConvexClient):
+def test_process_pending_job_details_defaults_country_for_remote(convex_client: FakeConvexClient):
     jobs: list[dict[str, Any]] = [
         {
             "_id": "job-remote",
@@ -1328,14 +1300,14 @@ async def test_process_pending_job_details_defaults_country_for_remote(convex_cl
     recorded: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
         if name == "router:listPendingJobDetails":
             return jobs
         if name == "router:listJobDetailConfigs":
             return []
         raise AssertionError(f"unexpected query {name}")
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:recordJobDetailHeuristic":
             recorded.append(args or {})
             return {"created": True}
@@ -1347,7 +1319,7 @@ async def test_process_pending_job_details_defaults_country_for_remote(convex_cl
     convex_client.set_query_fallback(fake_query)
     convex_client.set_mutation_fallback(fake_mutation)
 
-    result = await process_pending_job_details_batch()
+    result = process_pending_job_details_batch()
 
     assert result["processed"] == 1
     assert updated, "expected heuristic update for remote listing"

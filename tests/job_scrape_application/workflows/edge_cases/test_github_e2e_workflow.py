@@ -21,7 +21,12 @@ try:
 except ImportError:
     pytest.skip("temporalio not installed", allow_module_level=True)
 
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.workflows.helpers.job_url_extractor import (  # noqa: E402
+    extract_job_urls_from_scrape as _extract_job_urls_from_scrape,
+)
+from job_scrape_application.workflows.activities.url_processing import (  # noqa: E402
+    _filter_job_urls,
+)
 from job_scrape_application.workflows.site_handlers import get_site_handler  # noqa: E402
 
 
@@ -58,9 +63,9 @@ def _extract_fixture_detail_urls(
 ) -> List[str]:
     """Extract job detail URLs from fixture using workflow activities."""
     scrape_payload = _fixture_scrape_payload(fixture, source_url)
-    extracted_urls = acts._extract_job_urls_from_scrape(scrape_payload)  # noqa: SLF001
+    extracted_urls = _extract_job_urls_from_scrape(scrape_payload)
     handler = get_site_handler(source_url) if source_url else None
-    filtered_urls = acts._filter_job_urls(  # noqa: SLF001
+    filtered_urls = _filter_job_urls(
         extracted_urls,
         handler,
         source_url=source_url,
@@ -100,8 +105,7 @@ def test_github_workflow_url_extraction():
         print(f"    {i}. {url}")
 
 
-@pytest.mark.asyncio
-async def test_github_workflow_error_classification():
+def test_github_workflow_error_classification():
     """
     Test error classification logic with GitHub fixture.
 

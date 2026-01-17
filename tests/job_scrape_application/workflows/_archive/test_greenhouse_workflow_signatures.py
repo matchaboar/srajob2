@@ -12,7 +12,7 @@ async def test_greenhouse_workflow_uses_args_kw(monkeypatch):
     calls = []
     state = {"leased_once": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append((activity, args, kwargs))
         if activity is gh.lease_site:
             if state["leased_once"]:

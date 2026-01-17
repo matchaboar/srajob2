@@ -1,0 +1,9 @@
+[pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = ["-n", "logical", "--dist", "loadgroup"]
+norecursedirs = ["_archive", ".*", "build", "dist", "*.egg", "venv", ".venv"]
+markers = [
+    "mock_firecrawl: marks tests that mock the Firecrawl client (safe to run without real workers)",
+    "mock_fetchfox: marks tests that mock the FetchFox client (safe to run without real workers)",
+]

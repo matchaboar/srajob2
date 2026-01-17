@@ -77,7 +77,10 @@ class AshbyHqHandler(BaseSiteHandler):
         return f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
 
     def get_api_uri(self, uri: str) -> Optional[str]:
-        return self.get_listing_api_uri(uri)
+        # Only transform listing URLs to API; detail URLs should stay as-is
+        if self.is_listing_url(uri):
+            return self.get_listing_api_uri(uri)
+        return None
 
     def get_company_uri(self, uri: str) -> Optional[str]:
         slug = self._job_board_slug(uri)
@@ -137,10 +140,12 @@ class AshbyHqHandler(BaseSiteHandler):
             if not isinstance(url, str):
                 continue
             cleaned = strip_wrapping_url(url)
-            if not cleaned or cleaned in seen:
+            if not cleaned:
                 continue
             cleaned = fix_scheme_slashes(cleaned)
             cleaned = self._strip_application_suffix(cleaned)
+            if cleaned in seen:
+                continue
             try:
                 parsed = urlparse(cleaned)
             except Exception:
@@ -327,8 +332,11 @@ class AshbyHqHandler(BaseSiteHandler):
 
     def extract_location_hint(self, markdown: str) -> Optional[str]:
         """
-        Extract location from Ashby's secondaryLocationNames field in embedded data.
-        This provides more accurate location info than parsing from description text.
+        Extract location from Ashby page content.
+
+        Priority order:
+        1. JSON-LD jobLocation (Schema.org structured data) - most authoritative
+        2. secondaryLocationNames from Ashby's embedded JavaScript data
 
         If the job has both remote and physical locations, returns a combined string
         like "Remote; San Francisco, CA" so that remote detection works properly.
@@ -336,6 +344,12 @@ class AshbyHqHandler(BaseSiteHandler):
         if not markdown:
             return None
 
+        # First, try to extract from JSON-LD (most authoritative)
+        json_ld_location = self._extract_location_from_json_ld(markdown)
+        if json_ld_location:
+            return json_ld_location
+
+        # Fall back to secondaryLocationNames from embedded data
         match = _SECONDARY_LOCATIONS_PATTERN.search(markdown)
         if not match:
             return None
@@ -376,3 +390,132 @@ class AshbyHqHandler(BaseSiteHandler):
             return cleaned_locations[0]
         except Exception:
             return None
+
+    def extract_company(self, payload: Any, url: str) -> Optional[str]:
+        """
+        Extract company name from Ashby page content.
+
+        Priority order:
+        1. JSON-LD hiringOrganization.name (from structured data dict)
+        2. JSON-LD hiringOrganization.name (from raw HTML string)
+        3. Page title pattern "Title @ Company"
+        """
+        # Handle dict payload (structured data)
+        if isinstance(payload, dict):
+            # Check for hiringOrganization.name in structured data
+            hiring_org = payload.get("hiringOrganization")
+            if isinstance(hiring_org, dict):
+                name = hiring_org.get("name")
+                if isinstance(name, str) and name.strip():
+                    return name.strip()
+            return None
+
+        # Handle string payload (raw HTML)
+        if not isinstance(payload, str):
+            return None
+
+        html = payload
+
+        # Try JSON-LD hiringOrganization first
+        company = self._extract_company_from_json_ld(html)
+        if company:
+            return company
+
+        # Fall back to page title pattern "Title @ Company"
+        title_match = _TITLE_TAG_PATTERN.search(html)
+        if title_match:
+            raw_title = html_lib.unescape(title_match.group(1)).strip()
+            if " @ " in raw_title:
+                # Extract company after the @ symbol
+                company = raw_title.split(" @ ", 1)[1].strip()
+                if company:
+                    return company
+
+        return None
+
+    def _extract_company_from_json_ld(self, html: str) -> Optional[str]:
+        """
+        Extract company from JSON-LD JobPosting structured data.
+
+        Looks for <script type="application/ld+json"> blocks containing JobPosting
+        with hiringOrganization.name field.
+        """
+        if not html:
+            return None
+
+        try:
+            # Find JSON-LD script blocks
+            json_ld_pattern = re.compile(
+                r'<script[^>]*application/ld\+json[^>]*>(.+?)</script>',
+                re.DOTALL | re.IGNORECASE,
+            )
+            for match in json_ld_pattern.finditer(html):
+                try:
+                    data = json.loads(match.group(1))
+                    if not isinstance(data, dict):
+                        continue
+                    if data.get("@type") != "JobPosting":
+                        continue
+
+                    # Extract company from hiringOrganization.name
+                    hiring_org = data.get("hiringOrganization")
+                    if isinstance(hiring_org, dict):
+                        name = hiring_org.get("name")
+                        if isinstance(name, str) and name.strip():
+                            return name.strip()
+                except (json.JSONDecodeError, TypeError, KeyError):
+                    continue
+        except Exception:
+            pass
+
+        return None
+
+    def _extract_location_from_json_ld(self, html: str) -> Optional[str]:
+        """
+        Extract location from JSON-LD JobPosting structured data.
+
+        Looks for <script type="application/ld+json"> blocks containing JobPosting
+        with jobLocation.address fields.
+        """
+        if not html:
+            return None
+
+        try:
+            # Find JSON-LD script blocks
+            json_ld_pattern = re.compile(
+                r'<script[^>]*application/ld\+json[^>]*>(.+?)</script>',
+                re.DOTALL | re.IGNORECASE,
+            )
+            for match in json_ld_pattern.finditer(html):
+                try:
+                    data = json.loads(match.group(1))
+                    if not isinstance(data, dict):
+                        continue
+                    if data.get("@type") != "JobPosting":
+                        continue
+
+                    # Extract location from jobLocation.address
+                    job_location = data.get("jobLocation")
+                    if not isinstance(job_location, dict):
+                        continue
+
+                    address = job_location.get("address")
+                    if not isinstance(address, dict):
+                        continue
+
+                    # Build location string from addressLocality + addressRegion
+                    locality = address.get("addressLocality")
+                    region = address.get("addressRegion")
+
+                    if locality and region:
+                        return f"{locality}, {region}"
+                    elif locality:
+                        return locality
+                    elif region:
+                        return region
+                except (json.JSONDecodeError, TypeError, KeyError):
+                    continue
+        except Exception:
+            pass
+
+        return None

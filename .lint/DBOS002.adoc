@@ -1,0 +1,60 @@
+= DBOS002: Sync/async signature mismatch
+
+== Summary
+
+Functions with `@DBOS.step` must have correct sync/async signature.
+
+== Description
+
+When a function is decorated with `@DBOS.step`, its signature must match the type of calls it makes:
+
+* If the function calls *async* functions (e.g., `httpx.AsyncClient` methods), it MUST be declared as `async def`.
+* If the function calls *sync* functions (e.g., `httpx.get`/`post` module-level functions, convex functions), it MUST be declared as `def` (not `async def`).
+
+Mismatched signatures can cause runtime errors or unexpected behavior in the DBOS workflow system.
+
+== Examples
+
+.Bad: Sync function calling async client
+[source,python]
+----
+@DBOS.step
+def fetch_data(client: httpx.AsyncClient) -> dict:
+    # ERROR: calling async method from sync function
+    return await client.get("https://api.example.com/data")
+----
+
+.Good: Async function calling async client
+[source,python]
+----
+@DBOS.step
+async def fetch_data(client: httpx.AsyncClient) -> dict:
+    response = await client.get("https://api.example.com/data")
+    return response.json()
+----
+
+.Bad: Async function with only sync calls
+[source,python]
+----
+@DBOS.step
+async def fetch_data() -> dict:
+    # WARN: async function but only sync calls
+    return httpx.get("https://api.example.com/data").json()
+----
+
+.Good: Sync function with sync calls
+[source,python]
+----
+@DBOS.step
+def fetch_data() -> dict:
+    return httpx.get("https://api.example.com/data").json()
+----
+
+== Suppression
+
+Add `# noqa: DBOS002` to the function definition line.
+
+== See Also
+
+* DBOS001 - Missing @DBOS.step decorator
+* DBOS004 - Convex functions must not be async

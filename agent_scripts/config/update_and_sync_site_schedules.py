@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import math
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
@@ -70,11 +69,11 @@ def _coerce_pagination_limit(value: Any) -> int | None:
     if num < 0:
         return None
     return num
-async def _push_to_convex(entries: List[Dict[str, Any]], *, skip_sync: bool = False) -> None:
+def _push_to_convex(entries: List[Dict[str, Any]], *, skip_sync: bool = False) -> None:
     if skip_sync:
         schedule_map: Dict[str, Dict[str, Any]] = {}
     else:
-        schedules = await convex_query("router:listSchedules", {}) or []
+        schedules = convex_query("router:listSchedules", {}) or []
         schedule_map = {
             _schedule_key(row.get("name", "")): row for row in schedules if isinstance(row, dict)
         }
@@ -100,7 +99,7 @@ async def _push_to_convex(entries: List[Dict[str, Any]], *, skip_sync: bool = Fa
         }
         if existing and existing.get("_id"):
             args["id"] = existing["_id"]
-        schedule_id = await convex_mutation("router:upsertSchedule", _strip_none(args))
+        schedule_id = convex_mutation("router:upsertSchedule", _strip_none(args))
         schedule_ids[key] = schedule_id
 
     # Log which sites are being synced to Convex
@@ -133,8 +132,8 @@ async def _push_to_convex(entries: List[Dict[str, Any]], *, skip_sync: bool = Fa
             "scheduleId": schedule_id,
             "enabled": bool(entry.get("enabled", True)),
         }
-        await convex_mutation("router:upsertSite", _strip_none(args))
-async def main() -> None:
+        convex_mutation("router:upsertSite", _strip_none(args))
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Update site schedules to weekdays every 2 hours and sync to Convex."
     )
@@ -186,10 +185,10 @@ async def main() -> None:
     print(f"Updated schedules in {yaml_path}")
 
     if args.skipsync:
-        await _push_to_convex(updated_entries, skip_sync=True)
+        _push_to_convex(updated_entries, skip_sync=True)
         print("Pushed schedules to Convex without downloading existing schedules.")
     elif not args.no_push:
-        await _push_to_convex(updated_entries)
+        _push_to_convex(updated_entries)
         print("Pushed schedules to Convex.")
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

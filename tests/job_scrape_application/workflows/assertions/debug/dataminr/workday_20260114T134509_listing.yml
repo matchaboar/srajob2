@@ -1,9 +1,0 @@
-# Dataminr Workday listing extraction assertions
-# Note: URLs are deduplicated by stripping query strings
-site_id: workday
-listing_url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer
-expected:
-  url_count: 15  # Unique jobs after query string deduplication
-  url_pattern: "/job/"
-  no_listing_urls: true
-  handler: "WorkdayHandler"

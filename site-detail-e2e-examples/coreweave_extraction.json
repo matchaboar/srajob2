@@ -14,18 +14,38 @@
       "company": "CoreWeave",
       "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4595172006",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Accounting Manager - M\\u0026A",
+        "company": "CoreWeave",
+        "location": "Livingston, NJ/ Sunnyvale, CA / Bellevue, WA",
+        "description": "Accounting Manager - M\\u0026A\n\nCoreWeave is The Essential Cloud for AI™. Built for pioneers by pioneers, CoreWeave delivers a platform of technology, tools, and teams that enables innovators to build and scale AI with confidence. Trusted by leading AI labs, startups, and global enterprises, CoreWeave combines superior infrastructure performance with deep technical expertise to accelerate breakthroughs and turn compute into capability. Founded in 2017, CoreWeave became a publicly traded company (Nasdaq: CRWV) in March 2025. Learn more at&nbsp; www.coreweave.com .\nWhat You’ll Do:\nThe Accounting Manager-M&amp;A will report directly to the Financial Close and Reporting Senior Manager and will be...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4595172006",
+        "apply_url": "https://boards.greenhouse.io/coreweave/jobs/4595172006",
+        "posted_at": 1766523704000,
+        "level": "senior",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 1220
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4595172006",
+        "word_count": 1220,
+        "description_preview": "Accounting Manager - M\\u0026A CoreWeave is The Essential Cloud for AI™. Built for pioneers by pioneers, CoreWeave delivers a platform of technology, tools, and teams that enables innovators to build..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "CoreWeave",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -134,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "Livingston, NJ/ Sunnyvale, CA / Bellevue, WA",
+      "final_value": "Livingston, NJ",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Livingston, NJ/ Sunnyvale, CA / Bellevue, WA",
+          "value": "Livingston, NJ",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -176,9 +196,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Built for pioneers by pioneers, CoreWeave delivers a platform of technology",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Livingston, NJ/ Sunnyvale, CA / Bellevue, WA"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Livingston, NJ' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -290,7 +324,7 @@
           "priority": "CUSTOM_550",
           "value": null,
           "is_valid": false,
-          "reason": "Skipping verb token in content: Manager"
+          "reason": "No level pattern in content"
         },
         {
           "name": "hinted_level",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 141500,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 168000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 168000,
+          "is_valid": true,
+          "reason": "Compensation from hints: $168,000"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 141500,
@@ -335,18 +376,46 @@
           "reason": "Compensation range pattern: $115,000-$168,000 -> $141,500"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 168000,
-          "is_valid": true,
-          "reason": "Compensation from hints: $168,000"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:03.879850",
+          "value": "2026-01-17T13:05:59.066065",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Accounting Manager - M\\u0026A\n\nCoreWeave is The Essential Cloud for AI™. Built for pioneers by pioneers, CoreWeave delivers a platform of technology, tools, and teams that enables innovators to build and scale AI with confidence. Trusted by leading AI labs, startups, and global enterprises, CoreWeave combines superior infrastructure performance with deep technical expertise to accelerate breakthroughs and turn compute into capability. Founded in 2017, CoreWeave became a publicly traded company (Nasdaq: CRWV) in March 2025. Learn more at&nbsp; www.coreweave.com .\nWhat You’ll Do:\nThe Accounting Manager-M&amp;A will report directly to the Financial Close and Reporting Senior Manager and will be responsible for performing a variety of assignments relating to the monthly, quarterly, and annual accounting close. The Accounting Manager-M&amp;A&nbsp; will ensure accurate and timely financial reporting while maintaining compliance with internal policies, US GAAP, and Sarbanes-Oxley (“SOX”) control requirements.\nAbout The Role:\n- Lead the global month-end, quarter-end, and year-end financial close process for the acquired entity and prepare period-end upload to parent ERP, ensuring all transactions are recorded in a timely and accurate manner.\n- Full ownership of all balance sheet reconciliations and supporting deliverables.\n- Ensure all intercompany transactions are properly recorded, eliminated, and reconciled.\n- Partner with business stakeholders for cash management and funding.\n- Design process streams, manage issues and status in support of the overall&nbsp;\n- integrations working closely with workstream leaders across various functions.\n- Manage calculation and review of all expense allocations.\n- Design, implement and perform applicable SOX controls\n- Manage accounting for international subsidiaries and supervise work of local service providers\n- Develop and implement AI tools to streamline various financial operations.\n- Variance and forecast analysis for acquired entities, ensuring that all required periods are compared and that detailed explanations for the fluxes that meet internal thresholds are provided by agreed-upon deadlines, including following up as necessary for any late items.\n- Proactively identify opportunities for improvement in processes or systems,taking initiative and ownership to implement solutions.\n- Foster a collaborative team environment and ensure strong communication across the accounting team and other departments.\nWho You Are:\n- Bachelor’s degree in accounting, finance, or related field; CPA, CMA, or equivalent certification (or working towards) preferred\n- 7+ years of comprehensive accounting experience, with at least 2 years of experience from a Big 4 public accounting firm\n- Has led the month-end close process at a mid-to-large-sized public company setting\n- Has managed direct reports, providing guidance, career development, coaching, and support\n- Thoroughly understands the requirements of well-documented SOX-compliant work papers\n- Strong systems and operational accounting experience\n- Solid understanding of US GAAP and financial reporting standards\n- Strong analytical and problem-solving skills\n- NetSuite and FloQast (or other similar) experience is preferred\nWondering if you’re a good fit? We believe in investing in our people, and value candidates who can bring their own diversified experiences to our teams – even if you aren't a 100% skill or experience match. Here are a few qualities we’ve found compatible with our team. If some of this describes you, we’d love to talk.&nbsp;\n- You love to collaborate — you thrive in team environments and believe the best ideas come from working together\n- You’re curious about our business and streamlined processes — you ask thoughtful questions, dig deep, and constantly seek ways to improve how we operate\n- You’re an expert in financial reporting — you bring precision, insight, and confidence to every close and disclosure\nWhy CoreWeave?\nAt CoreWeave, we work hard, have fun, and move fast!&nbsp; We’re in an exciting stage of hyper-growth that you will not want to miss out on. We’re not afraid of a little chaos, and we’re constantly learning. Our team cares deeply about how we build our product and how we work together, which is represented through our core values:&nbsp;\n- Be Curious at Your Core\n- Act Like an Owner\n- Empower Employees\n- Deliver Best-in-Class Client Experiences\n- Achieve More Together\nWe support and encourage an entrepreneurial outlook and independent thinking. We foster an environment that encourages collaboration and provides the opportunity to develop innovative solutions to complex problems. As we get set for take off, the growth opportunities within the organization are constantly expanding. You will be surrounded by some of the best talent in the industry, who will want to learn from you, too. Come join us!&nbsp;\nThe base salary range for this role is $115,000 to $168,000. The starting salary will be determined based on job-related knowledge, skills, experience, and market location. We strive for both market alignment and internal equity when determining compensation. In addition to base salary, our total rewards package includes a discretionary bonus, equity awards, and a comprehensive benefits program (all based on eligibility).\nWhat We Offer\nThe range we’ve posted represents the typical compensation range for this role. To determine actual compensation, we review the market rate for each candidate which can include a variety of factors. These include qualifications, experience, interview performance, and location.\nIn addition to a competitive salary, we offer a variety of benefits to support your needs, including:\n- Medical, dental, and vision insurance - 100% paid for by CoreWeave\n- Company-paid Life Insurance&nbsp;\n- Voluntary supplemental life insurance&nbsp;\n- Short and long-term disability insurance&nbsp;\n- Flexible Spending Account\n- Health Savings Account\n- Tuition Reimbursement&nbsp;\n- Ability to Participate in Employee Stock Purchase Program (ESPP)\n- Mental Wellness Benefits through Spring Health&nbsp;\n- Family-Forming support provided by Carrot\n- Paid Parental Leave&nbsp;\n- Flexible, full-service childcare support with Kinside\n- 401(k) with a generous employer match\n- Flexible PTO\n- Catered lunch each day in our office and data center locations\n- A casual work environment\n- A work culture focused on innovative disruption\nOur Workplace\nWhile we prioritize a hybrid work environment, remote work may be considered for candidates located more than 30 miles from an office, based on role requirements for specialized skill sets. New hires will be invited to attend onboarding at one of our hubs within their first month. Teams also gather quarterly to support collaboration\nCalifornia Consumer Privacy Act - California applicants only\nCoreWeave is an equal opportunity employer, committed to fostering an inclusive and supportive workplace. All qualified applicants and candidates will receive consideration for employment without regard to race, color, religion, sex, disability, age, sexual orientation, gender identity, national origin, veteran status, or genetic information.\nAs part of this commitment and consistent with the Americans with Disabilities Act (ADA) , CoreWeave will ensure that qualified applicants and candidates with disabilities are provided reasonable accommodations for the hiring process, unless such accommodation would cause an undue hardship. If reasonable accommodation is needed, please contact: careers@coreweave.com .\n&nbsp;\nExport Control Compliance\nThis position requires access to export controlled information. &nbsp;To conform to U.S. Government export regulations applicable to that information, applicant must either be (A) a U.S. person, defined as a (i) U.S. citizen or national, (ii) U.S. lawful permanent resident (green card holder), (iii) refugee under 8 U.S.C. § 1157, or (iv) asylee under 8 U.S.C. § 1158, (B) eligible to access the export controlled information without a required export authorization, or (C) eligible and reasonably likely to obtain the required export authorization from the applicable U.S. government agency. &nbsp;CoreWeave may, for legitimate business reasons, decline to pursue any export licensing process.",
           "is_valid": true,
-          "reason": "Valid description (8299 chars)"
+          "reason": "Valid description (8299 chars, 1220 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Accounting Manager - M\\u0026A\n\nCoreWeave is The Essential Cloud for AI™. Built for pioneers by pioneers, CoreWeave delivers a platform of technology, tools, and teams that enables innovators to build and scale AI with confidence. Trusted by leading AI labs, startups, and global enterprises, CoreWeave combines superior infrastructure performance with deep technical expertise to accelerate breakthroughs and turn compute into capability. Founded in 2017, CoreWeave became a publicly traded company (Nasdaq: CRWV) in March 2025. Learn more at&nbsp; www.coreweave.com .\nWhat You’ll Do:\nThe Accounting Manager-M&amp;A will report directly to the Financial Close and Reporting Senior Manager and will be responsible for performing a variety of assignments relating to the monthly, quarterly, and annual accounting close. The Accounting Manager-M&amp;A&nbsp; will ensure accurate and timely financial reporting while maintaining compliance with internal policies, US GAAP, and Sarbanes-Oxley (“SOX”) control requirements.\nAbout The Role:\n- Lead the global month-end, quarter-end, and year-end financial close process for the acquired entity and prepare period-end upload to parent ERP, ensuring all transactions are recorded in a timely and accurate manner.\n- Full ownership of all balance sheet reconciliations and supporting deliverables.\n- Ensure all intercompany transactions are properly recorded, eliminated, and reconciled.\n- Partner with business stakeholders for cash management and funding.\n- Design process streams, manage issues and status in support of the overall&nbsp;\n- integrations working closely with workstream leaders across various functions.\n- Manage calculation and review of all expense allocations.\n- Design, implement and perform applicable SOX controls\n- Manage accounting for international subsidiaries and supervise work of local service providers\n- Develop and implement AI tools to streamline various financial operations.\n- Variance and forecast analysis for acquired entities, ensuring that all required periods are compared and that detailed explanations for the fluxes that meet internal thresholds are provided by agreed-upon deadlines, including following up as necessary for any late items.\n- Proactively identify opportunities for improvement in processes or systems,taking initiative and ownership to implement solutions.\n- Foster a collaborative team environment and ensure strong communication across the accounting team and other departments.\nWho You Are:\n- Bachelor’s degree in accounting, finance, or related field; CPA, CMA, or equivalent certification (or working towards) preferred\n- 7+ years of comprehensive accounting experience, with at least 2 years of experience from a Big 4 public accounting firm\n- Has led the month-end close process at a mid-to-large-sized public company setting\n- Has managed direct reports, providing guidance, career development, coaching, and support\n- Thoroughly understands the requirements of well-documented SOX-compliant work papers\n- Strong systems and operational accounting experience\n- Solid understanding of US GAAP and financial reporting standards\n- Strong analytical and problem-solving skills\n- NetSuite and FloQast (or other similar) experience is preferred\nWondering if you’re a good fit? We believe in investing in our people, and value candidates who can bring their own diversified experiences to our teams – even if you aren't a 100% skill or experience match. Here are a few qualities we’ve found compatible with our team. If some of this describes you, we’d love to talk.&nbsp;\n- You love to collaborate — you thrive in team environments and believe the best ideas come from working together\n- You’re curious about our business and streamlined processes — you ask thoughtful questions, dig deep, and constantly seek ways to improve how we operate\n- You’re an expert in financial reporting — you bring precision, insight, and confidence to every close and disclosure\nWhy CoreWeave?\nAt CoreWeave, we work hard, have fun, and move fast!&nbsp; We’re in an exciting stage of hyper-growth that you will not want to miss out on. We’re not afraid of a little chaos, and we’re constantly learning. Our team cares deeply about how we build our product and how we work together, which is represented through our core values:&nbsp;\n- Be Curious at Your Core\n- Act Like an Owner\n- Empower Employees\n- Deliver Best-in-Class Client Experiences\n- Achieve More Together\nWe support and encourage an entrepreneurial outlook and independent thinking. We foster an environment that encourages collaboration and provides the opportunity to develop innovative solutions to complex problems. As we get set for take off, the growth opportunities within the organization are constantly expanding. You will be surrounded by some of the best talent in the industry, who will want to learn from you, too. Come join us!&nbsp;\nThe base salary range for this role is $115,000 to $168,000. The starting salary will be determined based on job-related knowledge, skills, experience, and market location. We strive for both market alignment and internal equity when determining compensation. In addition to base salary, our total rewards package includes a discretionary bonus, equity awards, and a comprehensive benefits program (all based on eligibility).\nWhat We Offer\nThe range we’ve posted represents the typical compensation range for this role. To determine actual compensation, we review the market rate for each candidate which can include a variety of factors. These include qualifications, experience, interview performance, and location.\nIn addition to a competitive salary, we offer a variety of benefits to support your needs, including:\n- Medical, dental, and vision insurance - 100% paid for by CoreWeave\n- Company-paid Life Insurance&nbsp;\n- Voluntary supplemental life insurance&nbsp;\n- Short and long-term disability insurance&nbsp;\n- Flexible Spending Account\n- Health Savings Account\n- Tuition Reimbursement&nbsp;\n- Ability to Participate in Employee Stock Purchase Program (ESPP)\n- Mental Wellness Benefits through Spring Health&nbsp;\n- Family-Forming support provided by Carrot\n- Paid Parental Leave&nbsp;\n- Flexible, full-service childcare support with Kinside\n- 401(k) with a generous employer match\n- Flexible PTO\n- Catered lunch each day in our office and data center locations\n- A casual work environment\n- A work culture focused on innovative disruption\nOur Workplace\nWhile we prioritize a hybrid work environment, remote work may be considered for candidates located more than 30 miles from an office, based on role requirements for specialized skill sets. New hires will be invited to attend onboarding at one of our hubs within their first month. Teams also gather quarterly to support collaboration\nCalifornia Consumer Privacy Act - California applicants only\nCoreWeave is an equal opportunity employer, committed to fostering an inclusive and supportive workplace. All qualified applicants and candidates will receive consideration for employment without regard to race, color, religion, sex, disability, age, sexual orientation, gender identity, national origin, veteran status, or genetic information.\nAs part of this commitment and consistent with the Americans with Disabilities Act (ADA) , CoreWeave will ensure that qualified applicants and candidates with disabilities are provided reasonable accommodations for the hiring process, unless such accommodation would cause an undue hardship. If reasonable accommodation is needed, please contact: careers@coreweave.com .\n&nbsp;\nExport Control Compliance\nThis position requires access to export controlled information. &nbsp;To conform to U.S. Government export regulations applicable to that information, applicant must either be (A) a U.S. person, defined as a (i) U.S. citizen or national, (ii) U.S. lawful permanent resident (green card holder), (iii) refugee under 8 U.S.C. § 1157, or (iv) asylee under 8 U.S.C. § 1158, (B) eligible to access the export controlled information without a required export authorization, or (C) eligible and reasonably likely to obtain the required export authorization from the applicable U.S. government agency. &nbsp;CoreWeave may, for legitimate business reasons, decline to pursue any export licensing process.",
           "is_valid": true,
-          "reason": "Valid description (8299 chars)"
+          "reason": "Valid description (8299 chars, 1220 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Accounting Manager - M\\u0026A\n\nCoreWeave is The Essential Cloud for AI™. Built for pioneers by pioneers, CoreWeave delivers a platform of technology, tools, and teams that enables innovators to build and scale AI with confidence. Trusted by leading AI labs, startups, and global enterprises, CoreWeave combines superior infrastructure performance with deep technical expertise to accelerate breakthroughs and turn compute into capability. Founded in 2017, CoreWeave became a publicly traded company (Nasdaq: CRWV) in March 2025. Learn more at&nbsp; www.coreweave.com .\nWhat You’ll Do:\nThe Accounting Manager-M&amp;A will report directly to the Financial Close and Reporting Senior Manager and will be responsible for performing a variety of assignments relating to the monthly, quarterly, and annual accounting close. The Accounting Manager-M&amp;A&nbsp; will ensure accurate and timely financial reporting while maintaining compliance with internal policies, US GAAP, and Sarbanes-Oxley (“SOX”) control requirements.\nAbout The Role:\n- Lead the global month-end, quarter-end, and year-end financial close process for the acquired entity and prepare period-end upload to parent ERP, ensuring all transactions are recorded in a timely and accurate manner.\n- Full ownership of all balance sheet reconciliations and supporting deliverables.\n- Ensure all intercompany transactions are properly recorded, eliminated, and reconciled.\n- Partner with business stakeholders for cash management and funding.\n- Design process streams, manage issues and status in support of the overall&nbsp;\n- integrations working closely with workstream leaders across various functions.\n- Manage calculation and review of all expense allocations.\n- Design, implement and perform applicable SOX controls\n- Manage accounting for international subsidiaries and supervise work of local service providers\n- Develop and implement AI tools to streamline various financial operations.\n- Variance and forecast analysis for acquired entities, ensuring that all required periods are compared and that detailed explanations for the fluxes that meet internal thresholds are provided by agreed-upon deadlines, including following up as necessary for any late items.\n- Proactively identify opportunities for improvement in processes or systems,taking initiative and ownership to implement solutions.\n- Foster a collaborative team environment and ensure strong communication across the accounting team and other departments.\nWho You Are:\n- Bachelor’s degree in accounting, finance, or related field; CPA, CMA, or equivalent certification (or working towards) preferred\n- 7+ years of comprehensive accounting experience, with at least 2 years of experience from a Big 4 public accounting firm\n- Has led the month-end close process at a mid-to-large-sized public company setting\n- Has managed direct reports, providing guidance, career development, coaching, and support\n- Thoroughly understands the requirements of well-documented SOX-compliant work papers\n- Strong systems and operational accounting experience\n- Solid understanding of US GAAP and financial reporting standards\n- Strong analytical and problem-solving skills\n- NetSuite and FloQast (or other similar) experience is preferred\nWondering if you’re a good fit? We believe in investing in our people, and value candidates who can bring their own diversified experiences to our teams – even if you aren't a 100% skill or experience match. Here are a few qualities we’ve found compatible with our team. If some of this describes you, we’d love to talk.&nbsp;\n- You love to collaborate — you thrive in team environments and believe the best ideas come from working together\n- You’re curious about our business and streamlined processes — you ask thoughtful questions, dig deep, and constantly seek ways to improve how we operate\n- You’re an expert in financial reporting — you bring precision, insight, and confidence to every close and disclosure\nWhy CoreWeave?\nAt CoreWeave, we work hard, have fun, and move fast!&nbsp; We’re in an exciting stage of hyper-growth that you will not want to miss out on. We’re not afraid of a little chaos, and we’re constantly learning. Our team cares deeply about how we build our product and how we work together, which is represented through our core values:&nbsp;\n- Be Curious at Your Core\n- Act Like an Owner\n- Empower Employees\n- Deliver Best-in-Class Client Experiences\n- Achieve More Together\nWe support and encourage an entrepreneurial outlook and independent thinking. We foster an environment that encourages collaboration and provides the opportunity to develop innovative solutions to complex problems. As we get set for take off, the growth opportunities within the organization are constantly expanding. You will be surrounded by some of the best talent in the industry, who will want to learn from you, too. Come join us!&nbsp;\nThe base salary range for this role is $115,000 to $168,000. The starting salary will be determined based on job-related knowledge, skills, experience, and market location. We strive for both market alignment and internal equity when determining compensation. In addition to base salary, our total rewards package includes a discretionary bonus, equity awards, and a comprehensive benefits program (all based on eligibility).\nWhat We Offer\nThe range we’ve posted represents the typical compensation range for this role. To determine actual compensation, we review the market rate for each candidate which can include a variety of factors. These include qualifications, experience, interview performance, and location.\nIn addition to a competitive salary, we offer a variety of benefits to support your needs, including:\n- Medical, dental, and vision insurance - 100% paid for by CoreWeave\n- Company-paid Life Insurance&nbsp;\n- Voluntary supplemental life insurance&nbsp;\n- Short and long-term disability insurance&nbsp;\n- Flexible Spending Account\n- Health Savings Account\n- Tuition Reimbursement&nbsp;\n- Ability to Participate in Employee Stock Purchase Program (ESPP)\n- Mental Wellness Benefits through Spring Health&nbsp;\n- Family-Forming support provided by Carrot\n- Paid Parental Leave&nbsp;\n- Flexible, full-service childcare support with Kinside\n- 401(k) with a generous employer match\n- Flexible PTO\n- Catered lunch each day in our office and data center locations\n- A casual work environment\n- A work culture focused on innovative disruption\nOur Workplace\nWhile we prioritize a hybrid work environment, remote work may be considered for candidates located more than 30 miles from an office, based on role requirements for specialized skill sets. New hires will be invited to attend onboarding at one of our hubs within their first month. Teams also gather quarterly to support collaboration\nCalifornia Consumer Privacy Act - California applicants only\nCoreWeave is an equal opportunity employer, committed to fostering an inclusive and supportive workplace. All qualified applicants and candidates will receive consideration for employment without regard to race, color, religion, sex, disability, age, sexual orientation, gender identity, national origin, veteran status, or genetic information.\nAs part of this commitment and consistent with the Americans with Disabilities Act (ADA) , CoreWeave will ensure that qualified applicants and candidates with disabilities are provided reasonable accommodations for the hiring process, unless such accommodation would cause an undue hardship. If reasonable accommodation is needed, please contact: careers@coreweave.com .\n&nbsp;\nExport Control Compliance\nThis position requires access to export controlled information. &nbsp;To conform to U.S. Government export regulations applicable to that information, applicant must either be (A) a U.S. person, defined as a (i) U.S. citizen or national, (ii) U.S. lawful permanent resident (green card holder), (iii) refugee under 8 U.S.C. § 1157, or (iv) asylee under 8 U.S.C. § 1158, (B) eligible to access the export controlled information without a required export authorization, or (C) eligible and reasonably likely to obtain the required export authorization from the applicable U.S. government agency. &nbsp;CoreWeave may, for legitimate business reasons, decline to pursue any export licensing process.",
           "is_valid": true,
-          "reason": "Valid description (8299 chars)"
+          "reason": "Valid description (8299 chars, 1220 words)"
         },
         {
           "name": "empty_description_fallback",

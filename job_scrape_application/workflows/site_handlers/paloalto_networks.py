@@ -25,6 +25,14 @@ _RELATED_JOBS_SECTION_RE = re.compile(
     r'<(?:h[1-6]|div)[^>]*class="[^"]*section\d+__heading[^"]*"[^>]*>\s*Related\s+Jobs\s*</(?:h[1-6]|div)>',
     flags=re.IGNORECASE,
 )
+_RELATED_JOBS_MARKDOWN_RE = re.compile(
+    r"^\s*(?:#+\s*)?related\s+jobs\s*$",
+    flags=re.IGNORECASE | re.MULTILINE,
+)
+_MORE_PALOALTO_SECTION_RE = re.compile(
+    r"\bmore\s+palo\s+alto\s+networks\b",
+    flags=re.IGNORECASE,
+)
 
 
 class PaloAltoNetworksHandler(BaseSiteHandler):
@@ -126,9 +134,17 @@ class PaloAltoNetworksHandler(BaseSiteHandler):
         if not markdown:
             return "", None
 
-        # Strip content from "Related Jobs" section onwards
-        match = _RELATED_JOBS_SECTION_RE.search(markdown)
-        if match:
-            markdown = markdown[: match.start()].strip()
+        # Strip content from "Related Jobs" / "More Palo Alto Networks" sections onwards
+        cut_points: list[int] = []
+        for pattern in (
+            _RELATED_JOBS_SECTION_RE,
+            _RELATED_JOBS_MARKDOWN_RE,
+            _MORE_PALOALTO_SECTION_RE,
+        ):
+            match = pattern.search(markdown)
+            if match:
+                cut_points.append(match.start())
+        if cut_points:
+            markdown = markdown[: min(cut_points)].strip()
 
         return markdown, None

@@ -5,6 +5,7 @@ Location extraction strategies and extractor.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 
@@ -14,6 +15,7 @@ from .base import (
     StrategyPriority,
     StrategyResult,
 )
+from ..helpers.location_normalization import _resolve_location_from_dictionary
 
 if TYPE_CHECKING:
     from .context import ExtractionContext
@@ -132,8 +134,108 @@ _NON_LOCATION_WORDS = frozenset(
         "role",
         "position",
         "opportunity",
+        # Days of the week (matched incorrectly as locations)
+        "monday",
+        "mondays",
+        "tuesday",
+        "tuesdays",
+        "wednesday",
+        "wednesdays",
+        "thursday",
+        "thursdays",
+        "friday",
+        "fridays",
+        "saturday",
+        "saturdays",
+        "sunday",
+        "sundays",
+        # Office/workplace terms that aren't locations
+        "perks",
+        "benefits",
+        "onboarding",
+        "locations",
+        "office",
+        "offices",
+        "technical",
+        "walkthroughs",
+        "dives",
+        "deep",
+        "securing",
+        "data",
+        "join",
+        # HR/business terms
+        "equipment",
+        "ordering",
+        "employees",
+        "department",
+        "departments",
+        "requirements",
+        "requirement",
+        "statement",
+        "collaborate",
+        "seamlessly",
+        "research",
+        "across",
+        "degree",
+        "bachelor",
+        "bachelors",
+        # Company names that might appear
+        "anthropic",
+        "openai",
+        "google",
+        "meta",
+        "apple",
+        "amazon",
+        "netflix",
+        "uber",
+        "lyft",
+        "airbnb",
+        "stripe",
+        "figma",
     }
 )
+
+
+def _strip_diacritics(value: str) -> str:
+    """Remove diacritics for consistent matching."""
+    normalized = unicodedata.normalize("NFKD", value)
+    return "".join(char for char in normalized if not unicodedata.combining(char))
+
+
+def _split_location_candidates(value: str) -> list[str]:
+    cleaned = value.strip()
+    if not cleaned:
+        return []
+    if re.search(r"[|/;]", cleaned):
+        parts = re.split(r"\s*(?:/|\||;)\s*", cleaned)
+        return [part.strip(" ,") for part in parts if part.strip(" ,")]
+    return [cleaned]
+
+
+def _normalize_location_value(value: str) -> str:
+    cleaned = " ".join(value.split())
+    cleaned = _strip_diacritics(cleaned)
+    resolved = _resolve_location_from_dictionary(cleaned)
+    if resolved and "," not in cleaned:
+        city = resolved.get("city")
+        if city:
+            return city
+    return cleaned
+
+
+def _select_valid_location(
+    value: str,
+    *,
+    allow_country_only: bool,
+) -> tuple[str | None, str]:
+    last_reason = "Empty location"
+    for candidate in _split_location_candidates(value):
+        normalized = _normalize_location_value(candidate)
+        is_valid, reason = _is_valid_location(normalized, allow_country_only=allow_country_only)
+        last_reason = reason
+        if is_valid:
+            return normalized, reason
+    return None, last_reason
 
 
 def _is_valid_location(value: str | None, *, allow_country_only: bool = False) -> tuple[bool, str]:
@@ -152,8 +254,21 @@ def _is_valid_location(value: str | None, *, allow_country_only: bool = False) -
     if len(value) < 2:
         return False, f"Location too short: {len(value)} chars"
 
+    # Reject very short values that aren't known abbreviations
+    known_short_locations = {"la", "dc", "sf", "ny", "nyc", "la"}
+    if len(value) < 5 and value.lower() not in known_short_locations:
+        # Short values must be in "City, XX" format or a known abbreviation
+        if not re.match(r"^[A-Z][a-z]+,\s*[A-Z]{2}$", value):
+            return False, f"Location too short and not a known format: {value}"
+
     if len(value) > 200:
         return False, f"Location too long: {len(value)} chars"
+
+    # Reject sentence-like values (too many words)
+    # But allow multi-location strings with semicolons (e.g., "New York, NY; San Francisco, CA")
+    word_count = len(value.split())
+    if word_count > 8 and ";" not in value:
+        return False, f"Too many words ({word_count}) - looks like a sentence, not a location"
 
     # Check for job title words (not a location)
     # Use word boundary matching to avoid false positives like "Bellevue" containing "vue"
@@ -165,7 +280,20 @@ def _is_valid_location(value: str | None, *, allow_country_only: bool = False) -
             return False, f"Contains job title word '{word}'"
 
     # Check for "Unknown" or similar
-    if lower in {"unknown", "n/a", "na", "none", "tbd", "to be determined"}:
+    placeholder_values = {
+        "unknown",
+        "unavailable",
+        "not available",
+        "n/a",
+        "na",
+        "none",
+        "tbd",
+        "to be determined",
+    }
+    if lower in placeholder_values:
+        return False, f"Placeholder location: {value}"
+    tokens = [token for token in re.split(r"[^a-z]+", lower) if token]
+    if tokens and all(token in {"unknown", "unavailable", "na", "n", "a"} for token in tokens):
         return False, f"Placeholder location: {value}"
 
     # Check country-only values (too generic for inferred locations, but OK for explicit sources)
@@ -202,6 +330,73 @@ def _is_valid_location(value: str | None, *, allow_country_only: bool = False) -
         degree_abbrevs = {"ba", "bs", "ma", "ms", "phd", "mba", "md", "jd", "llm", "edd", "bsc", "msc"}
         if city.lower() in degree_abbrevs:
             return False, f"Looks like degree abbreviation, not city: {city}"
+        # Reject city names with too many words (likely a sentence fragment)
+        word_count = len(city.split())
+        if word_count > 4:
+            return False, f"City name has too many words ({word_count}): {city}"
+        # Reject if city contains common non-location words
+        city_lower = city.lower()
+        non_city_indicators = {
+            "is a", "are a", "the", "we are", "you are", "they are",
+            "offer", "provide", "looking", "seeking", "hiring",
+            "growth", "stage", "based", "located", "company",
+            "position", "role", "job", "work", "career",
+            "full time", "part time", "full-time", "part-time",
+            "week", "year", "month", "day", "per ",
+            "relocation", "assistance", "employee",
+            "swipe", "touch", "device", "autocomplete",
+        }
+        for indicator in non_city_indicators:
+            if indicator in city_lower:
+                return False, f"City contains non-location word '{indicator}': {city}"
+
+    # Reject strings that look like sentence fragments (multiple common words)
+    common_sentence_words = {
+        "to", "the", "a", "an", "is", "are", "was", "were", "be", "been",
+        "have", "has", "had", "do", "does", "did", "will", "would", "could",
+        "should", "may", "might", "must", "shall", "can", "we", "you", "they",
+        "our", "your", "their", "this", "that", "these", "those",
+        "and", "or", "but", "for", "with", "from", "by", "about", "into",
+        "through", "during", "before", "after", "above", "below", "between",
+        "when", "where", "why", "how", "what", "which", "who", "whom", "whose",
+    }
+    words = lower.split()
+    sentence_word_count = sum(1 for w in words if w.strip(",.;:!?") in common_sentence_words)
+    total_words = len(words)
+    if total_words > 2 and sentence_word_count >= 2:
+        return False, f"Looks like sentence fragment (sentence words: {sentence_word_count}/{total_words})"
+    # Reject if disqualifying sentence words appear in first few words
+    # These are words that never appear in place names
+    disqualifying_sentence_words = {
+        "with", "from", "by", "about", "into", "through", "during",
+        "before", "after", "above", "below", "between",
+        "is", "are", "was", "were", "be", "been",
+        "have", "has", "had", "do", "does", "did",
+        "will", "would", "could", "should", "may", "might", "must",
+        "we", "you", "they", "i", "he", "she", "it",
+        "our", "your", "their", "my", "his", "her", "its",
+        "this", "that", "these", "those", "which", "who", "whom",
+    }
+    if total_words >= 2:
+        for i, w in enumerate(words[:3]):
+            cleaned = w.strip(",.;:!?")
+            if cleaned in disqualifying_sentence_words:
+                return False, f"Contains disqualifying word '{cleaned}' in position {i}"
+
+    # Reject if starts with common verbs/prepositions (not place names)
+    non_location_start_words = {
+        "to", "the", "a", "an", "and", "or", "but", "for", "with", "from", "by",
+        "at", "in", "on", "of", "as", "if", "per", "via", "out", "up", "off",
+        "be", "do", "go", "get", "set", "let", "put", "run", "use", "try",
+        "all", "any", "our", "your", "their", "its", "his", "her",
+        "we", "you", "they", "i", "it", "he", "she",
+        "who", "what", "when", "where", "why", "how", "which",
+        "kick", "things", "offer", "provide", "need", "want", "like",
+        "full", "part", "half", "some", "many", "few", "more", "less",
+    }
+    first_word = words[0].strip(",.;:!?") if words else ""
+    if first_word in non_location_start_words:
+        return False, f"Starts with non-location word: {first_word}"
 
     return True, "Valid location"
 
@@ -219,6 +414,7 @@ class StructuredDataLocationStrategy(ExtractionStrategy[str]):
 
         # Try common location keys
         for key in (
+            "locationName",  # Ashby embedded data
             "location",
             "jobLocation",
             "job_location",
@@ -231,30 +427,69 @@ class StructuredDataLocationStrategy(ExtractionStrategy[str]):
             if value is None:
                 continue
 
-            # Handle dict with name field
+            # Handle dict with nested address (Schema.org JobPosting format)
             if isinstance(value, dict):
-                value = value.get("name") or value.get("location") or value.get("address")
+                def _clean_address_part(part: object | None) -> str | None:
+                    if part is None:
+                        return None
+                    if isinstance(part, dict):
+                        part = part.get("name") or part.get("value") or part.get("addressCountry")
+                    if not isinstance(part, str):
+                        part = str(part)
+                    cleaned = part.strip()
+                    if not cleaned:
+                        return None
+                    lower_cleaned = cleaned.lower()
+                    if lower_cleaned in {"unknown", "unavailable", "n/a", "na", "none"}:
+                        return None
+                    tokens = [token for token in re.split(r"[^a-z]+", lower_cleaned) if token]
+                    if tokens and all(token in {"unknown", "unavailable", "na", "n", "a"} for token in tokens):
+                        return None
+                    return cleaned
+
+                # Try name/location first
+                extracted = _clean_address_part(value.get("name") or value.get("location"))
+                address_country = None
+                # Try nested address for Schema.org Place format
+                address = value.get("address")
+                if isinstance(address, dict):
+                    # Build location from addressLocality + addressRegion
+                    locality = _clean_address_part(address.get("addressLocality"))
+                    region = _clean_address_part(address.get("addressRegion"))
+                    address_country = _clean_address_part(address.get("addressCountry"))
+                    if not extracted:
+                        if locality and region:
+                            extracted = f"{locality}, {region}"
+                        elif locality:
+                            extracted = locality
+                        elif region:
+                            extracted = region
+                if not extracted and address_country:
+                    extracted = address_country
+                value = extracted
 
             # Handle list of locations
             if isinstance(value, list) and value:
-                # Join first few locations
-                locations = []
                 for loc in value[:5]:
                     if isinstance(loc, dict):
                         loc = loc.get("name") or loc.get("location")
                     if isinstance(loc, str) and loc.strip():
-                        locations.append(loc.strip())
-                if locations:
-                    value = "; ".join(locations)
+                        selected, reason = _select_valid_location(loc, allow_country_only=True)
+                        if selected:
+                            return self._make_result(
+                                selected,
+                                reason,
+                                is_valid=True,
+                                confidence=0.95,
+                                debug_info={"key": key, "raw_value": data.get(key)},
+                            )
 
             if isinstance(value, str) and value.strip():
-                cleaned = value.strip()
-                # Allow country-only for explicit structured data
-                is_valid, reason = _is_valid_location(cleaned, allow_country_only=True)
+                selected, reason = _select_valid_location(value, allow_country_only=True)
                 return self._make_result(
-                    cleaned if is_valid else None,
+                    selected if selected else None,
                     reason,
-                    is_valid=is_valid,
+                    is_valid=bool(selected),
                     confidence=0.95,
                     debug_info={"key": key, "raw_value": data.get(key)},
                 )
@@ -333,11 +568,11 @@ class RawRowLocationStrategy(ExtractionStrategy[str]):
 
         cleaned = raw_location.strip()
         # Don't accept country-only from raw row - let more specific patterns win
-        is_valid, reason = _is_valid_location(cleaned)
+        selected, reason = _select_valid_location(cleaned, allow_country_only=False)
         return self._make_result(
-            cleaned if is_valid else None,
+            selected if selected else None,
             reason,
-            is_valid=is_valid,
+            is_valid=bool(selected),
             confidence=0.85,
             debug_info={"raw_value": raw_location},
         )
@@ -446,10 +681,10 @@ class ExplicitLabelLocationStrategy(ExtractionStrategy[str]):
         match = _LOCATION_LINE_RE.search(content)
         if match:
             location = match.group("location").strip()
-            is_valid, reason = _is_valid_location(location)
-            if is_valid:
+            selected, reason = _select_valid_location(location, allow_country_only=False)
+            if selected:
                 return self._make_result(
-                    location,
+                    selected,
                     "Found 'Location:' label",
                     is_valid=True,
                     confidence=0.85,
@@ -460,10 +695,10 @@ class ExplicitLabelLocationStrategy(ExtractionStrategy[str]):
         match = _LOCATION_LABEL_RE.search(content)
         if match:
             location = match.group("location").strip()
-            is_valid, reason = _is_valid_location(location)
-            if is_valid:
+            selected, reason = _select_valid_location(location, allow_country_only=False)
+            if selected:
                 return self._make_result(
-                    location,
+                    selected,
                     "Found location label pattern",
                     is_valid=True,
                     confidence=0.80,
@@ -482,14 +717,33 @@ class ContentPatternLocationStrategy(ExtractionStrategy[str]):
     name = "content_pattern_location"
     priority = StrategyPriority.CONTENT_PATTERN
 
+    # Pattern: "Based in [Location]"
+    _BASED_IN_RE = re.compile(
+        r"\bbased\s+in\s+(?P<location>[A-Z][A-Za-z .'-]+(?:,\s*[A-Z]{2})?)\b",
+        re.IGNORECASE,
+    )
+    # Pattern: "Office: [Location]" or "Office in [Location]"
+    _OFFICE_IN_RE = re.compile(
+        r"\boffice[:\s]+(?:in\s+)?(?P<location>[A-Z][A-Za-z .'-]+(?:,\s*[A-Z]{2})?)\b",
+        re.IGNORECASE,
+    )
+    # Pattern: "Remote (Austin, TX)" or "Remote - San Francisco, CA"
+    _REMOTE_WITH_LOCATION_RE = re.compile(
+        r"\bremote\s*[(\-]\s*(?P<location>[A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\s*\)?",
+        re.IGNORECASE,
+    )
+
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
         content = context.description_body or context.normalized_markdown
         if not content:
             return self._make_skip_result("No content available")
 
-        # Try patterns in order of specificity
+        # Try patterns in order of specificity (highest confidence first)
         patterns = [
+            (self._REMOTE_WITH_LOCATION_RE, "REMOTE_WITH_LOCATION", 0.75),
             (_LOCATION_PAREN_RE, "LOCATION_PAREN", 0.75),
+            (self._BASED_IN_RE, "BASED_IN", 0.70),
+            (self._OFFICE_IN_RE, "OFFICE_IN", 0.70),
             (_LOCATION_CITY_STATE_RE, "LOCATION_CITY_STATE", 0.70),
             (_LOCATION_FULL_RE, "LOCATION_FULL", 0.65),
             (_SIMPLE_LOCATION_LINE_RE, "SIMPLE_LOCATION_LINE", 0.60),
@@ -499,10 +753,14 @@ class ContentPatternLocationStrategy(ExtractionStrategy[str]):
             match = pattern.search(content)
             if match:
                 location = match.group("location").strip()
-                is_valid, reason = _is_valid_location(location)
-                if is_valid:
+                if name == "REMOTE_WITH_LOCATION":
+                    parts = [part.strip() for part in location.split(",") if part.strip()]
+                    if len(parts) != 2 or parts[1].upper() not in _VALID_REGION_CODES:
+                        continue
+                selected, reason = _select_valid_location(location, allow_country_only=False)
+                if selected:
                     return self._make_result(
-                        location,
+                        selected,
                         f"Matched pattern {name}",
                         is_valid=True,
                         confidence=confidence,
@@ -525,6 +783,7 @@ class HintedLocationStrategy(ExtractionStrategy[str]):
     _REMOTE_ONLY_VALUES = frozenset({
         "remote", "remote only", "fully remote", "100% remote",
         "work from home", "wfh", "anywhere", "work from anywhere",
+        "remote - us", "remote - usa", "remote - united states",
     })
 
     def _is_remote_only(self, value: str) -> bool:
@@ -543,7 +802,8 @@ class HintedLocationStrategy(ExtractionStrategy[str]):
                     # Skip remote-only values
                     if self._is_remote_only(cleaned):
                         continue
-                    is_valid, _ = _is_valid_location(cleaned)
+                    # Allow country-only since hints come from parsed markdown
+                    is_valid, _ = _is_valid_location(cleaned, allow_country_only=True)
                     if is_valid:
                         valid_locs.append(cleaned)
             if valid_locs:
@@ -563,7 +823,8 @@ class HintedLocationStrategy(ExtractionStrategy[str]):
             # Skip remote-only values
             if self._is_remote_only(cleaned):
                 return self._make_skip_result(f"Remote-only location '{cleaned}' skipped")
-            is_valid, reason = _is_valid_location(cleaned)
+            # Allow country-only since hints come from parsed markdown
+            is_valid, reason = _is_valid_location(cleaned, allow_country_only=True)
             return self._make_result(
                 cleaned if is_valid else None,
                 reason,
@@ -575,7 +836,7 @@ class HintedLocationStrategy(ExtractionStrategy[str]):
         return self._make_skip_result("No location in hints")
 
     def validate(self, value: str) -> tuple[bool, str]:
-        return _is_valid_location(value)
+        return _is_valid_location(value, allow_country_only=True)
 
 
 class CountryOnlyFallbackLocationStrategy(ExtractionStrategy[str]):

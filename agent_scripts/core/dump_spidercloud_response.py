@@ -14,6 +14,35 @@ from spider import AsyncSpider
 sys.path.insert(0, os.path.abspath("."))
 
 from job_scrape_application.workflows.core import CapturingSpiderClient
+from job_scrape_application.workflows.helpers.job_url_extractor import extract_job_urls_from_scrape
+from job_scrape_application.workflows.workflow.scrape_listing_batch import _filter_valid_job_urls
+from job_scrape_application.workflows import activities as workflow_activities
+
+
+def _derive_apply_urls(urls: List[str], handler: Any | None) -> List[str]:
+    apply_urls: List[str] = []
+    seen: set[str] = set()
+    for url in urls:
+        if not isinstance(url, str) or not url.strip():
+            continue
+        candidate = None
+        if handler and hasattr(handler, "get_company_uri"):
+            try:
+                candidate = handler.get_company_uri(url)
+            except Exception:
+                candidate = None
+        if candidate and handler and hasattr(handler, "is_listing_url"):
+            try:
+                if handler.is_listing_url(candidate):
+                    candidate = None
+            except Exception:
+                candidate = None
+        final_url = candidate or url
+        if final_url in seen:
+            continue
+        seen.add(final_url)
+        apply_urls.append(final_url)
+    return apply_urls
 async def _collect_response(response: Any) -> List[Any]:
     if hasattr(response, "__aiter__"):
         items: List[Any] = []
@@ -75,6 +104,8 @@ async def main() -> None:
             from job_scrape_application.workflows.site_handlers import get_site_handler
         except Exception as exc:
             raise SystemExit(f"Could not load site handlers: {exc}") from exc
+        from job_scrape_application.workflows.site_handlers import get_site_handler
+
         handler = get_site_handler(args.url)
         if handler:
             params.update(handler.normalize_spidercloud_config(handler.get_spidercloud_config(args.url)))
@@ -133,6 +164,31 @@ async def main() -> None:
             output = fixture
         else:
             output = {"request": {"url": args.url, "params": params}, "response": response}
+
+        handler = get_site_handler(args.url)
+        is_listing_url = False
+        if handler and hasattr(handler, "is_listing_url"):
+            try:
+                is_listing_url = handler.is_listing_url(args.url)
+            except Exception:
+                is_listing_url = False
+        if not is_listing_url:
+            try:
+                is_listing_url = workflow_activities._is_probable_listing_url(args.url)  # noqa: SLF001
+            except Exception:
+                is_listing_url = False
+
+        if is_listing_url and isinstance(output, dict):
+            scrape_payload = {"items": {"raw": output.get("response", [])}, "sourceUrl": args.url}
+            scraped_urls = extract_job_urls_from_scrape(scrape_payload)
+            normalized_urls, _ = _filter_valid_job_urls(scraped_urls, args.url, None)
+            apply_urls = _derive_apply_urls(normalized_urls, handler)
+            output = {
+                "scraped_urls": sorted(set(scraped_urls)),
+                "normalized_urls": sorted(set(normalized_urls)),
+                "apply_urls": sorted(set(apply_urls)),
+                **output,
+            }
     else:
         # Standard raw response output
         async with AsyncSpider(api_key=api_key) as client:

@@ -392,6 +392,20 @@ class SpiderCloudScraper(BaseScraper):
                 return location
         return None
 
+    def _extract_greenhouse_workplace_type(self, payload: Dict[str, Any]) -> Optional[str]:
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, list):
+            return None
+        for item in metadata:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            if isinstance(name, str) and name.strip().lower() == "workplace type":
+                value = item.get("value")
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+        return None
+
     def _extract_markdown(self, obj: Any) -> Optional[str]:
         """Return a markdown/text payload found in a response fragment."""
 
@@ -985,7 +999,6 @@ class SpiderCloudScraper(BaseScraper):
 
         This is a best-effort operation - failures are logged but don't block the scrape.
         """
-        import asyncio
         import base64
         import json
 
@@ -1005,35 +1018,23 @@ class SpiderCloudScraper(BaseScraper):
                     f"[TRUNCATED - Original size: {len(raw_json)} bytes]\n{raw_json[:100000]}".encode("utf-8")
                 ).decode("ascii")
 
-            # Import convex_action lazily to avoid circular imports
-            # (storeScrapeError is a Convex action, not a mutation, so it can use file storage)
-            from ...services.convex_client import convex_action
+            # Use DBOS step function for storing scrape errors
+            from .step import store_scrape_error_step
 
-            async def _do_store() -> None:
-                await convex_action(
-                    "router:storeScrapeError",
-                    {
-                        "sourceUrl": source_url,
-                        "event": "scrape.single_url_sync.invalid_response",
-                        "error": f"SpiderCloud returned invalid response type: {raw_type}",
-                        "metadata": {
-                            "apiUrl": api_url,
-                            "attempt": attempt,
-                            "rawType": raw_type,
-                            "rawLength": len(raw_json),
-                        },
-                        "rawResponseBase64": raw_base64,
+            def _do_store() -> None:
+                store_scrape_error_step(
+                    source_url=source_url,
+                    event="scrape.single_url_sync.invalid_response",
+                    error=f"SpiderCloud returned invalid response type: {raw_type}",
+                    metadata={
+                        "apiUrl": api_url,
+                        "attempt": attempt,
+                        "rawType": raw_type,
+                        "rawLength": len(raw_json),
                     },
+                    raw_response_base64=raw_base64,
                 )
-
-            # Run async action - try to get existing loop or create new one
-            try:
-                loop = asyncio.get_running_loop()
-                # If we're already in an async context, create a task
-                loop.create_task(_do_store())
-            except RuntimeError:
-                # No running loop, run synchronously
-                asyncio.run(_do_store())
+                _do_store()
 
         except Exception as exc:
             # Best-effort - log but don't fail the scrape
@@ -1885,8 +1886,6 @@ class SpiderCloudScraper(BaseScraper):
                     attempt_params.get("proxy"),
                     exc,
                 )
-                if attempt < max_attempts:
-                    await asyncio.sleep(0.5 * attempt)  # Brief backoff before retry
                 continue
 
             if isinstance(payload, dict):
@@ -1915,9 +1914,6 @@ class SpiderCloudScraper(BaseScraper):
                 attempt_params.get("proxy"),
                 raw_events_summary,
             )
-            if attempt < max_attempts:
-                await asyncio.sleep(0.5 * attempt)  # Brief backoff before retry
-
         if not isinstance(payload, dict):
             logger.error(
                 "Site API fetch returned non-dict after %s attempts handler=%s url=%s payload_type=%s",
@@ -2538,6 +2534,16 @@ class SpiderCloudScraper(BaseScraper):
             for key, value in structured_hints.items():
                 if _should_fill_hint(key):
                     hints[key] = value
+        if handler and handler.name == "greenhouse" and isinstance(hints, dict):
+            workplace_type = None
+            if isinstance(greenhouse_payload, dict):
+                workplace_type = self._extract_greenhouse_workplace_type(greenhouse_payload)
+            if isinstance(workplace_type, str) and workplace_type:
+                workplace_lower = workplace_type.lower()
+                if "remote" in workplace_lower:
+                    hints["remote"] = True
+                elif "onsite" in workplace_lower or "on-site" in workplace_lower:
+                    hints["remote"] = False
         hint_title = hints.get("title") if isinstance(hints, dict) else None
         content_title = hint_title or self._title_from_markdown(cleaned_markdown)
 
@@ -2778,7 +2784,28 @@ class SpiderCloudScraper(BaseScraper):
             country_lower = country_label.strip().lower()
             return any(part != country_lower for part in hint_parts)
 
-        location = structured_location or greenhouse_location or handler_location or location_hint
+        payload_location = None
+        if isinstance(listing_payload, dict):
+            for key in ("location", "locations", "standardizedLocations", "jobLocation", "locationName"):
+                value = listing_payload.get(key)
+                if isinstance(value, str) and value.strip():
+                    payload_location = value.strip()
+                    break
+                if isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, str) and item.strip():
+                            payload_location = item.strip()
+                            break
+                    if payload_location:
+                        break
+
+        location = (
+            structured_location
+            or greenhouse_location
+            or handler_location
+            or payload_location
+            or location_hint
+        )
         # NOTE: Previously we had logic to prefer location_hint over greenhouse_location
         # when greenhouse_location was just a country name and location_hint seemed more
         # specific. However, this caused bugs because location_hint is parsed from markdown
@@ -2800,8 +2827,8 @@ class SpiderCloudScraper(BaseScraper):
                 location = hint_label
             elif "remote" in hint_label.lower() and "remote" not in structured_label.lower():
                 location = hint_label
-            elif "remote" in structured_label.lower() and "remote" not in hint_label.lower():
-                location = hint_label
+            # If structured_label contains "remote", keep it (don't switch to hint_label)
+            # This preserves remote status from authoritative structured data
         remote = coerce_remote(hints.get("remote") if isinstance(hints, dict) else None, location or "", title or "")
         # Only apply hint-based location override when we don't have authoritative location data.
         # greenhouse_location comes from the Greenhouse API JSON and is authoritative.
@@ -3997,6 +4024,10 @@ class SpiderCloudScraper(BaseScraper):
                             url_timeout_seconds = max(timeout_seconds, wait_for_timeout)
                             # Cap at 3 minutes to prevent runaway requests
                             url_timeout_seconds = min(url_timeout_seconds, 180)
+                        elif handler_config.get("request") == "basic":
+                            # API calls (no browser) get extended timeout (120s)
+                            # to accommodate slow network/large payloads
+                            url_timeout_seconds = 120
 
                     attempt = 0
                     result: Dict[str, Any] | None = None

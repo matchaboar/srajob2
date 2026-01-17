@@ -180,8 +180,8 @@ def test_normalize_single_row_uses_markdown_hints():
     normalized = normalize_single_row(row)
 
     assert normalized is not None
-    # Title prefix stripping moved to extractors; normalize_single_row preserves original
-    assert normalized["title"] == "Job Application for Principal Engineer at Example"
+    # Title extractors strip " at Company" suffix (e.g., " at Example" stripped)
+    assert normalized["title"] == "Job Application for Principal Engineer"
     assert normalized["location"] == "New York, NY"
     # level extraction moved to LevelExtractor
     assert normalized["total_compensation"] == 220000
@@ -200,8 +200,8 @@ def test_normalize_single_row_strips_job_application_prefix():
     normalized = normalize_single_row(row)
 
     assert normalized is not None
-    # Title prefix stripping moved to extractors; normalize_single_row preserves original
-    assert normalized["title"] == "Job Application for Senior Offensive Security Engineer at Robinhood"
+    # Title extractors strip " at Company" suffix (e.g., " at Robinhood" stripped)
+    assert normalized["title"] == "Job Application for Senior Offensive Security Engineer"
     assert normalized["location"] == "Menlo Park, CA"
     # level extraction moved to LevelExtractor
     assert normalized["total_compensation"] >= 187000

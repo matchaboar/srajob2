@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://api.ashbyhq.com/posting-api/job-board/factory"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://api.ashbyhq.com/posting-api/job-board/factory",
     "params": {

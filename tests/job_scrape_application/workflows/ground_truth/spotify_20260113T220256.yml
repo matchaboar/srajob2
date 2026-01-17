@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/spotify_20260113T220256_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: spotify
+detail_url: https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing
+expected:
+  title_contains: Data Scientist
+  company: Spotify
+  location_contains: New York
+  is_remote: false
+  level: mid
+  description_min_words: 100
+  cost_milli_cents_min: 1

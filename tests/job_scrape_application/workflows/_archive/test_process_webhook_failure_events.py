@@ -20,7 +20,7 @@ async def test_process_webhook_handles_fail_event(monkeypatch):
 
     fetch_calls = {"count": 0}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []

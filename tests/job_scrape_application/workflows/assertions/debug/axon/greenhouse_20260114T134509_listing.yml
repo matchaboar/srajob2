@@ -1,8 +1,0 @@
-# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
-site_id: greenhouse
-listing_url: https://api.greenhouse.io/v1/boards/axon/jobs
-expected:
-  url_count: 174
-  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"  # Regex for valid job URLs
-  no_listing_urls: true
-  handler: "GreenhouseHandler"

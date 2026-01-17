@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://explore.jobs.netflix.net/api/apply/v2/jobs?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date&start=0&num=10",
     "params": {

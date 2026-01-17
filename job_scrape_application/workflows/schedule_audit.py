@@ -131,10 +131,10 @@ def _schedule_decision_for_site(site: Dict[str, Any], schedule_map: Dict[str, Di
     }
 
 
-async def _gather_schedule_audit(worker_id: str, now_ms: Optional[int] = None) -> List[Dict[str, Any]]:
+def _gather_schedule_audit(worker_id: str, now_ms: Optional[int] = None) -> List[Dict[str, Any]]:
     now_ms = now_ms or int(__import__("time").time() * 1000)
-    sites = await convex_query("router:listSites", {"enabledOnly": True})
-    schedules = await convex_query("router:listSchedules", {})
+    sites = convex_query("router:listSites", {"enabledOnly": True})
+    schedules = convex_query("router:listSchedules", {})
     schedule_map = {str(s.get("_id")): s for s in schedules or [] if isinstance(s, dict)}
 
     if not isinstance(sites, list):
@@ -188,7 +188,7 @@ async def schedule_audit_logger(worker_id: str) -> None:
     try:
         while True:
             try:
-                payloads = await _gather_schedule_audit(worker_id)
+                payloads = _gather_schedule_audit(worker_id)
                 if not payloads:
                     await asyncio.sleep(60 * 30)
                     continue

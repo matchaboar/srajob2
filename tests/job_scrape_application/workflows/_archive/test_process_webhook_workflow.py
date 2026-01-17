@@ -36,7 +36,7 @@ async def test_process_webhook_workflow_continues_on_failure(monkeypatch):
         "record": None,
     }
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -122,7 +122,7 @@ async def test_process_webhook_greenhouse_scrapes_new_job_urls(monkeypatch):
         "record": None,
     }
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -212,7 +212,7 @@ async def test_process_webhook_batches_up_to_50_urls(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"filter": [], "scrape": [], "mark": [], "complete": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -295,7 +295,7 @@ async def test_process_webhook_stores_single_job_scrape(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"store": [], "mark": [], "complete": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -362,7 +362,7 @@ async def test_process_webhook_retries_on_transient_429(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"mark": [], "fail": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -424,7 +424,7 @@ async def test_process_webhook_payment_required_marks_failed(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"mark": [], "fail": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -488,7 +488,7 @@ async def test_process_webhook_yields_for_large_batch(monkeypatch):
     calls: Dict[str, Any] = {"mark": [], "complete": [], "record": None}
     yield_calls: list[int] = []
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -521,7 +521,7 @@ async def test_process_webhook_yields_for_large_batch(monkeypatch):
             return None
         raise AssertionError(f"Unexpected activity {fn}")
 
-    async def fake_yield_if_needed(iteration: int, *, every: int = 500) -> None:
+    def fake_yield_if_needed(iteration: int, *, every: int = 500) -> None:
         if iteration > 0 and iteration % every == 0:
             yield_calls.append(iteration)
 

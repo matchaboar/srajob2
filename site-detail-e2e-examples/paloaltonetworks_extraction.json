@@ -1,35 +1,54 @@
 {
   "site_id": "paloaltonetworks",
-  "detail_url": "https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944",
-  "source_url": "https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944",
+  "detail_url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896",
+  "source_url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896",
   "extracted_jobs": [
     {
-      "title": "Named Account Manager - SLED",
-      "description_preview": "Our Mission At Palo Alto Networks® everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. We have the vision of a world where each day is safer and more secure than the one before. These aren’t easy goals to accomplish...",
-      "description_word_count": 1041,
-      "location": "Los Angeles, CA",
-      "is_remote": true,
-      "posted_at": 1767744000000,
+      "title": "Principal Program Manager, PMO",
+      "description_preview": "Our Mission At Palo Alto Networks® everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation...",
+      "description_word_count": 859,
+      "location": "Santa Clara, CA, US",
+      "is_remote": false,
+      "posted_at": 1768680358748,
       "posted_at_unknown": false,
       "company": "Palo Alto Networks",
-      "level": "senior",
+      "level": "staff",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
-      "url": "https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944",
-      "cost_milli_cents": 74
+      "compensation_unknown": false,
+      "compensation_reason": null,
+      "url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896",
+      "cost_milli_cents": 38
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Principal Program Manager, PMO",
+        "company": "Palo Alto Networks",
+        "location": "Santa Clara, CA, US",
+        "description": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility...",
+        "url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896",
+        "posted_at": 1768680358748,
+        "level": "staff",
+        "remote": false,
+        "cost_milli_cents": 38,
+        "_full_description_word_count": 859
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896",
+        "word_count": 859,
+        "description_preview": "Our Mission At Palo Alto Networks® everything starts and ends with our mission: Being the cybersecurity partner of choice, protecting our digital way of life. Our vision is a world..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "Named Account Manager - SLED",
+      "final_value": "Principal Program Manager, PMO",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -50,7 +69,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "Named Account Manager - SLED",
+          "value": "Principal Program Manager, PMO",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -106,14 +125,14 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Paloaltonetworks",
+          "value": "Palo Alto Networks",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "The Named Account Manager - SLED",
+          "value": "Our vision",
           "is_valid": true,
           "reason": "Found 'Company is a' pattern"
         },
@@ -134,7 +153,7 @@
       ]
     },
     "location": {
-      "final_value": "Los Angeles, CA, US",
+      "final_value": "Santa Clara, CA, US",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,21 +174,21 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Los Angeles, CA, US",
+          "value": "Santa Clara, CA, US",
           "is_valid": true,
           "reason": "Valid location"
         },
         {
           "name": "explicit_label_location",
           "priority": "CUSTOM_350",
-          "value": "to leadership, we",
-          "is_valid": true,
-          "reason": "Found location label pattern"
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
         },
         {
           "name": "url_location",
           "priority": "URL_DERIVED",
-          "value": "Los Angeles",
+          "value": "Santa Clara",
           "is_valid": true,
           "reason": "Extracted from URL path"
         },
@@ -183,7 +202,7 @@
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "Los Angeles, CA, US",
+          "value": "Santa Clara, CA, US",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
@@ -204,23 +223,37 @@
       ]
     },
     "remote": {
-      "final_value": true,
+      "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
           "priority": "STRUCTURED_DATA",
-          "value": true,
+          "value": false,
           "is_valid": true,
-          "reason": "Explicit boolean remote=True"
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
         },
         {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Los Angeles, CA, US"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Santa Clara, CA, US' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +272,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -260,16 +293,16 @@
       ]
     },
     "level": {
-      "final_value": "senior",
+      "final_value": "staff",
       "winning_strategy": "explicit_level_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "senior",
+          "value": "staff",
           "is_valid": true,
-          "reason": "Explicit level field: senior -> senior"
+          "reason": "Explicit level field: staff -> staff"
         },
         {
           "name": "structured_data_level",
@@ -281,9 +314,9 @@
         {
           "name": "title_level",
           "priority": "CONTENT_PATTERN",
-          "value": "senior",
+          "value": "staff",
           "is_valid": true,
-          "reason": "Level from title: 'manager' -> senior"
+          "reason": "Level from title: 'principal' -> staff"
         },
         {
           "name": "content_pattern_level",
@@ -309,8 +342,8 @@
       ]
     },
     "compensation": {
-      "final_value": 0,
-      "winning_strategy": "unknown_compensation",
+      "final_value": 203000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +361,18 @@
           "reason": "No structured data available"
         },
         {
-          "name": "content_pattern_compensation",
-          "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation pattern in content"
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 203000,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $155,000-$251,000 -> $203,000 (avg)"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 155000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $155,000"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +383,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 38,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 38,
+          "is_valid": true,
+          "reason": "Valid cost: 38"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-06T17:00:00",
+      "final_value": "2026-01-17T13:05:58.748000",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-06T17:00:00",
+          "value": "2026-01-17T13:05:58.748000",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-06T17:00:00"
+          "reason": "Valid date: 2026-01-17T13:05:58.748000"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,14 +461,42 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:23.669140",
+          "value": "2026-01-17T13:05:59.356115",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
       ]
     },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'paloalto_networks' returned no first_published"
+        }
+      ]
+    },
     "description": {
-      "final_value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n\nWe have the vision of a world where each day is safer and more secure than the one before. These aren’t easy goals to accomplish – but we’re not here for easy. We’re here for better. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Named Account Manager - SLED is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nYou’ll be responsible for meeting and exceeding your quota by crafting and implementing strategic territory plans targeting deployments of the Palo Alto Networks Next Generation Security Platform. This is a unique opportunity for a closer with a go-getter mentality to win business and market share by actively displacing competing technologies.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\n\nYour Impact\n\nAs a Named Account Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customer\n\nBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsors\n\nYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments\n\nUnderstanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks\n\nEngage a programmatic approach to demand to generate, develop, and expand your territory\n\nLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.\n\nStay updated on industry news and trends, and how they affect Palo Alto Networks products and services\n\nTravel as necessary within your territory, and to company-wide meetings\n\nYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security context\n\nExperience cultivating mutually beneficial relationships with our channel partners to bring channel-centric go-to-market approach for our customers\n\nHave and able to lead all aspects of the sales cycle with the ability to uncover, qualifying, developing, and closing new, white-space territories and accounts\n\nPossess a successful track record selling complex-solutions\n\nExcellent time management skills, and work with high levels of autonomy and self-direction\n\nHighly competitive, ramp quickly, extremely adaptive, and pride yourself on exceeding production goals\n\nThe Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\nWe’re trailblazers that dream big, take risks, and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.\n\n Motor-Vehicle Requirement:\n This role may require travel to and from Palo Alto Networks, Inc. business meetings and events and requires reliable transportation to do so.  If a hire chooses to drive in connection with company business, the hire for this role must maintain a valid driver’s license.",
+      "final_value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n We are seeking a Principal Program Manager to join our GTM/CX PMO team, focused on leading execution of complex, cross-functional programs within one of our core go-to-market and customer experience domains:\n\nCPQ & Quote-to-CashSales, Account Management & ForecastingPartner Ecosystems & IntegrationsCustomer Support, Success and Services platformsThis role partners closely with business and technology leaders to translate strategy into well-orchestrated delivery, ensuring initiatives are planned, aligned, and executed with rigor across people, process, and technology.\n\nThe ideal candidate is a seasoned program leader who excels in driving execution in highly matrixed environments, navigating ambiguity, and enabling teams to deliver meaningful progress against critical GTM and CX priorities.\n\nYour Impact\n\nProgram Delivery Leadership\n\nLead end-to-end execution of strategic programs within a core GTM/CX domain, from planning through deployment and stabilization.Develop and maintain integrated program plans covering scope, milestones, dependencies, risks, and readiness activities.Ensure consistent delivery discipline across cross-functional teams spanning IT, Sales, RevOps, Finance, Support, Customer Success and Services, Product, and external partners.Drive alignment on sequencing and tradeoffs to support timely, high-quality delivery.Cross-Functional Orchestration\n\nServe as the central point of coordination across business and technology stakeholders to maintain momentum, clarity, and accountability.Manage interdependencies across CRM, CPQ, billing, entitlement, partner platforms, data/analytics, and support systems.Proactively identify execution risks related to process change, data readiness, system integrations, and enablement and drive resolution with appropriate owners.Partner with change management and enablement teams to support operational readiness and adoption.\n Delivery Quality & Outcomes Enablement\n\nEstablish and track delivery success measures tied to program milestones, release readiness, and operational stability.Ensure teams are set up to achieve intended outcomes.Provide structured forums for issue resolution, dependency management, and decision escalation.Executive & Stakeholder Engagement\n\nPartner with senior leaders across Sales, Customer Success/Services, Support, Finance, and IT to maintain alignment on priorities, progress, and delivery risks.Provide clear, decision-oriented updates on program status, tradeoffs, and execution implications.Build trust through consistency, transparency, and follow-through, serving as a steady execution leader in complex initiatives.Represent the program in executive and cross-functional forums.\n\nYour Experience\n\n12+ years of program management experience leading large, cross-functional initiatives in one or more of the following domains:CPQ / Quote-to-CashSales Operations, Account Management, ForecastingPartner Ecosystems, Integrations, and Co-sell motionsCustomer Support, Customer Success and Services platformsDemonstrated success driving delivery across enterprise-scale technology and operating model changes.Strong ability to work across business and IT, navigating complex stakeholder environments with credibility and influence.Excellent executive communication skills — able to convey status, risks, and implications clearly and succinctly.Proven capability to lead through influence, structure, and execution rigor rather than formal authority.Background in consulting, enterprise SaaS, or large-scale GTM/CX transformations strongly preferred.Local SF Bay Area candidates who can be onsite 3 days/week.The Team\n\nYou will be part of a growing, passionate, and dynamic team with an opportunity to work on challenging and exciting projects — centered on what we believe is one of the most significant mission statements in the world. We also strive to be the most people-centric company ever! That means we’re constantly working to make your experience amazing, and you are part of the team breaking boundaries of what the workplace can be!\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $155000 - $251000/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -414,23 +510,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n\nWe have the vision of a world where each day is safer and more secure than the one before. These aren’t easy goals to accomplish – but we’re not here for easy. We’re here for better. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Named Account Manager - SLED is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nYou’ll be responsible for meeting and exceeding your quota by crafting and implementing strategic territory plans targeting deployments of the Palo Alto Networks Next Generation Security Platform. This is a unique opportunity for a closer with a go-getter mentality to win business and market share by actively displacing competing technologies.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\n\nYour Impact\n\nAs a Named Account Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customer\n\nBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsors\n\nYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments\n\nUnderstanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks\n\nEngage a programmatic approach to demand to generate, develop, and expand your territory\n\nLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.\n\nStay updated on industry news and trends, and how they affect Palo Alto Networks products and services\n\nTravel as necessary within your territory, and to company-wide meetings\n\nYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security context\n\nExperience cultivating mutually beneficial relationships with our channel partners to bring channel-centric go-to-market approach for our customers\n\nHave and able to lead all aspects of the sales cycle with the ability to uncover, qualifying, developing, and closing new, white-space territories and accounts\n\nPossess a successful track record selling complex-solutions\n\nExcellent time management skills, and work with high levels of autonomy and self-direction\n\nHighly competitive, ramp quickly, extremely adaptive, and pride yourself on exceeding production goals\n\nThe Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\nWe’re trailblazers that dream big, take risks, and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.\n\n Motor-Vehicle Requirement:\n This role may require travel to and from Palo Alto Networks, Inc. business meetings and events and requires reliable transportation to do so.  If a hire chooses to drive in connection with company business, the hire for this role must maintain a valid driver’s license.",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n We are seeking a Principal Program Manager to join our GTM/CX PMO team, focused on leading execution of complex, cross-functional programs within one of our core go-to-market and customer experience domains:\n\nCPQ & Quote-to-CashSales, Account Management & ForecastingPartner Ecosystems & IntegrationsCustomer Support, Success and Services platformsThis role partners closely with business and technology leaders to translate strategy into well-orchestrated delivery, ensuring initiatives are planned, aligned, and executed with rigor across people, process, and technology.\n\nThe ideal candidate is a seasoned program leader who excels in driving execution in highly matrixed environments, navigating ambiguity, and enabling teams to deliver meaningful progress against critical GTM and CX priorities.\n\nYour Impact\n\nProgram Delivery Leadership\n\nLead end-to-end execution of strategic programs within a core GTM/CX domain, from planning through deployment and stabilization.Develop and maintain integrated program plans covering scope, milestones, dependencies, risks, and readiness activities.Ensure consistent delivery discipline across cross-functional teams spanning IT, Sales, RevOps, Finance, Support, Customer Success and Services, Product, and external partners.Drive alignment on sequencing and tradeoffs to support timely, high-quality delivery.Cross-Functional Orchestration\n\nServe as the central point of coordination across business and technology stakeholders to maintain momentum, clarity, and accountability.Manage interdependencies across CRM, CPQ, billing, entitlement, partner platforms, data/analytics, and support systems.Proactively identify execution risks related to process change, data readiness, system integrations, and enablement and drive resolution with appropriate owners.Partner with change management and enablement teams to support operational readiness and adoption.\n Delivery Quality & Outcomes Enablement\n\nEstablish and track delivery success measures tied to program milestones, release readiness, and operational stability.Ensure teams are set up to achieve intended outcomes.Provide structured forums for issue resolution, dependency management, and decision escalation.Executive & Stakeholder Engagement\n\nPartner with senior leaders across Sales, Customer Success/Services, Support, Finance, and IT to maintain alignment on priorities, progress, and delivery risks.Provide clear, decision-oriented updates on program status, tradeoffs, and execution implications.Build trust through consistency, transparency, and follow-through, serving as a steady execution leader in complex initiatives.Represent the program in executive and cross-functional forums.\n\nYour Experience\n\n12+ years of program management experience leading large, cross-functional initiatives in one or more of the following domains:CPQ / Quote-to-CashSales Operations, Account Management, ForecastingPartner Ecosystems, Integrations, and Co-sell motionsCustomer Support, Customer Success and Services platformsDemonstrated success driving delivery across enterprise-scale technology and operating model changes.Strong ability to work across business and IT, navigating complex stakeholder environments with credibility and influence.Excellent executive communication skills — able to convey status, risks, and implications clearly and succinctly.Proven capability to lead through influence, structure, and execution rigor rather than formal authority.Background in consulting, enterprise SaaS, or large-scale GTM/CX transformations strongly preferred.Local SF Bay Area candidates who can be onsite 3 days/week.The Team\n\nYou will be part of a growing, passionate, and dynamic team with an opportunity to work on challenging and exciting projects — centered on what we believe is one of the most significant mission statements in the world. We also strive to be the most people-centric company ever! That means we’re constantly working to make your experience amazing, and you are part of the team breaking boundaries of what the workplace can be!\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $155000 - $251000/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.",
           "is_valid": true,
-          "reason": "Valid description (7246 chars)"
+          "reason": "Valid description (6444 chars, 859 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n\nWe have the vision of a world where each day is safer and more secure than the one before. These aren’t easy goals to accomplish – but we’re not here for easy. We’re here for better. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Named Account Manager - SLED is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nYou’ll be responsible for meeting and exceeding your quota by crafting and implementing strategic territory plans targeting deployments of the Palo Alto Networks Next Generation Security Platform. This is a unique opportunity for a closer with a go-getter mentality to win business and market share by actively displacing competing technologies.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\n\nYour Impact\n\nAs a Named Account Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customer\n\nBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsors\n\nYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments\n\nUnderstanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks\n\nEngage a programmatic approach to demand to generate, develop, and expand your territory\n\nLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.\n\nStay updated on industry news and trends, and how they affect Palo Alto Networks products and services\n\nTravel as necessary within your territory, and to company-wide meetings\n\nYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security context\n\nExperience cultivating mutually beneficial relationships with our channel partners to bring channel-centric go-to-market approach for our customers\n\nHave and able to lead all aspects of the sales cycle with the ability to uncover, qualifying, developing, and closing new, white-space territories and accounts\n\nPossess a successful track record selling complex-solutions\n\nExcellent time management skills, and work with high levels of autonomy and self-direction\n\nHighly competitive, ramp quickly, extremely adaptive, and pride yourself on exceeding production goals\n\nThe Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\nWe’re trailblazers that dream big, take risks, and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.\n\n Motor-Vehicle Requirement:\n This role may require travel to and from Palo Alto Networks, Inc. business meetings and events and requires reliable transportation to do so.  If a hire chooses to drive in connection with company business, the hire for this role must maintain a valid driver’s license.",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n We are seeking a Principal Program Manager to join our GTM/CX PMO team, focused on leading execution of complex, cross-functional programs within one of our core go-to-market and customer experience domains:\n\nCPQ & Quote-to-CashSales, Account Management & ForecastingPartner Ecosystems & IntegrationsCustomer Support, Success and Services platformsThis role partners closely with business and technology leaders to translate strategy into well-orchestrated delivery, ensuring initiatives are planned, aligned, and executed with rigor across people, process, and technology.\n\nThe ideal candidate is a seasoned program leader who excels in driving execution in highly matrixed environments, navigating ambiguity, and enabling teams to deliver meaningful progress against critical GTM and CX priorities.\n\nYour Impact\n\nProgram Delivery Leadership\n\nLead end-to-end execution of strategic programs within a core GTM/CX domain, from planning through deployment and stabilization.Develop and maintain integrated program plans covering scope, milestones, dependencies, risks, and readiness activities.Ensure consistent delivery discipline across cross-functional teams spanning IT, Sales, RevOps, Finance, Support, Customer Success and Services, Product, and external partners.Drive alignment on sequencing and tradeoffs to support timely, high-quality delivery.Cross-Functional Orchestration\n\nServe as the central point of coordination across business and technology stakeholders to maintain momentum, clarity, and accountability.Manage interdependencies across CRM, CPQ, billing, entitlement, partner platforms, data/analytics, and support systems.Proactively identify execution risks related to process change, data readiness, system integrations, and enablement and drive resolution with appropriate owners.Partner with change management and enablement teams to support operational readiness and adoption.\n Delivery Quality & Outcomes Enablement\n\nEstablish and track delivery success measures tied to program milestones, release readiness, and operational stability.Ensure teams are set up to achieve intended outcomes.Provide structured forums for issue resolution, dependency management, and decision escalation.Executive & Stakeholder Engagement\n\nPartner with senior leaders across Sales, Customer Success/Services, Support, Finance, and IT to maintain alignment on priorities, progress, and delivery risks.Provide clear, decision-oriented updates on program status, tradeoffs, and execution implications.Build trust through consistency, transparency, and follow-through, serving as a steady execution leader in complex initiatives.Represent the program in executive and cross-functional forums.\n\nYour Experience\n\n12+ years of program management experience leading large, cross-functional initiatives in one or more of the following domains:CPQ / Quote-to-CashSales Operations, Account Management, ForecastingPartner Ecosystems, Integrations, and Co-sell motionsCustomer Support, Customer Success and Services platformsDemonstrated success driving delivery across enterprise-scale technology and operating model changes.Strong ability to work across business and IT, navigating complex stakeholder environments with credibility and influence.Excellent executive communication skills — able to convey status, risks, and implications clearly and succinctly.Proven capability to lead through influence, structure, and execution rigor rather than formal authority.Background in consulting, enterprise SaaS, or large-scale GTM/CX transformations strongly preferred.Local SF Bay Area candidates who can be onsite 3 days/week.The Team\n\nYou will be part of a growing, passionate, and dynamic team with an opportunity to work on challenging and exciting projects — centered on what we believe is one of the most significant mission statements in the world. We also strive to be the most people-centric company ever! That means we’re constantly working to make your experience amazing, and you are part of the team breaking boundaries of what the workplace can be!\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $155000 - $251000/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.",
           "is_valid": true,
-          "reason": "Valid description (7246 chars)"
+          "reason": "Valid description (6444 chars, 859 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n\nWe have the vision of a world where each day is safer and more secure than the one before. These aren’t easy goals to accomplish – but we’re not here for easy. We’re here for better. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWe’re changing the nature of work. Palo Alto Networks is evolving to meet the needs of our employees now and in the future through FLEXWORK, our approach to how we work. From benefits to learning, location to leadership, we’ve rethought and recreated every aspect of the employee experience at Palo Alto Networks.  And because it FLEXes around each individual employee based on their individual choices, employees are empowered to push boundaries and help us all evolve, together.\n\nYour Career\n\nThe Named Account Manager - SLED is a significant driver of company revenue and growth. As an experienced and dynamic sales professional, you’re responsible for leading and driving sales engagements. You’re motivated by the desire to solve critical challenges facing our customer’s secure environment, so you’re prepared to connect them with a solution for every stage of threat prevention.\n\nYou’ll be responsible for meeting and exceeding your quota by crafting and implementing strategic territory plans targeting deployments of the Palo Alto Networks Next Generation Security Platform. This is a unique opportunity for a closer with a go-getter mentality to win business and market share by actively displacing competing technologies.\n\nPalo Alto Networks is leading the charge in platformization, offering best-in-breed solutions that enable customers to build a truly zero-trust security architecture and navigate critical transformations. To ensure our sales team is equipped to guide customers, we've developed FLIGHT, an immersive onboarding program. Flight blends virtual and in-person learning at our headquarters, where new sales hires will participate in dynamic cohorts, fully dedicated to their training without customer distractions. This focused approach ensures they emerge as well-prepared sales professionals, ready to help customers leverage our comprehensive portfolio.\n\n\nYour Impact\n\nAs a Named Account Manager,  you will drive and orchestrate complex sales cycles and work with our internal partners and teams to best serve the customer\n\nBring your experience and consultative selling skills to initiate long-standing relationships with prospective customers and executive sponsors\n\nYour focus will be to create and implement strategic account plans focused on attaining enterprise-wide deployments\n\nUnderstanding of the strategic competitive landscape and customer needs so you can effectively position Palo Alto Networks\n\nEngage a programmatic approach to demand to generate, develop, and expand your territory\n\nLeverage prospect stories to create a compelling value proposition with insights into value for that specific account.\n\nStay updated on industry news and trends, and how they affect Palo Alto Networks products and services\n\nTravel as necessary within your territory, and to company-wide meetings\n\nYour Experience\n\nExperience and knowledge of SaaS-based architectures, ideally in a networking and/or security context\n\nExperience cultivating mutually beneficial relationships with our channel partners to bring channel-centric go-to-market approach for our customers\n\nHave and able to lead all aspects of the sales cycle with the ability to uncover, qualifying, developing, and closing new, white-space territories and accounts\n\nPossess a successful track record selling complex-solutions\n\nExcellent time management skills, and work with high levels of autonomy and self-direction\n\nHighly competitive, ramp quickly, extremely adaptive, and pride yourself on exceeding production goals\n\nThe Team\n\nOur sales team members work hand-in-hand with large organizations around the world to keep their digital environments protected. We educate, inspire, and empower our potential clients in their journey to security.\n\nAs part of our sales team, you are empowered with unmatched systems and tools, constantly updated research and sales libraries, and a team built on joint success. You won’t find someone at Palo Alto Networks that isn’t committed to your success – with everyone pitching in to assist when it comes to solutions selling, learning, and development. As a member of our sales team, you are motivated by a solutions-focused sales environment and find fulfillment in working with clients to resolve incredibly complex cyberthreats.\n\nOur Commitment\n\nWe’re trailblazers that dream big, take risks, and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.\n\n Motor-Vehicle Requirement:\n This role may require travel to and from Palo Alto Networks, Inc. business meetings and events and requires reliable transportation to do so.  If a hire chooses to drive in connection with company business, the hire for this role must maintain a valid driver’s license.",
+          "value": "Our Mission\n\nAt Palo Alto Networks® everything starts and ends with our mission:\n\nBeing the cybersecurity partner of choice, protecting our digital way of life.\n Our vision is a world where each day is safer and more secure than the one before. We are a company built on the foundation of challenging and disrupting the way things are done, and we’re looking for innovators who are as committed to shaping the future of cybersecurity as we are.\n\nWho We Are\n\nWe believe collaboration thrives in person. That’s why most of our teams work from the office full time, with flexibility when it’s needed. This model supports real-time problem-solving, stronger relationships, and the kind of precision that drives great outcomes.\n\nYour Career\n We are seeking a Principal Program Manager to join our GTM/CX PMO team, focused on leading execution of complex, cross-functional programs within one of our core go-to-market and customer experience domains:\n\nCPQ & Quote-to-CashSales, Account Management & ForecastingPartner Ecosystems & IntegrationsCustomer Support, Success and Services platformsThis role partners closely with business and technology leaders to translate strategy into well-orchestrated delivery, ensuring initiatives are planned, aligned, and executed with rigor across people, process, and technology.\n\nThe ideal candidate is a seasoned program leader who excels in driving execution in highly matrixed environments, navigating ambiguity, and enabling teams to deliver meaningful progress against critical GTM and CX priorities.\n\nYour Impact\n\nProgram Delivery Leadership\n\nLead end-to-end execution of strategic programs within a core GTM/CX domain, from planning through deployment and stabilization.Develop and maintain integrated program plans covering scope, milestones, dependencies, risks, and readiness activities.Ensure consistent delivery discipline across cross-functional teams spanning IT, Sales, RevOps, Finance, Support, Customer Success and Services, Product, and external partners.Drive alignment on sequencing and tradeoffs to support timely, high-quality delivery.Cross-Functional Orchestration\n\nServe as the central point of coordination across business and technology stakeholders to maintain momentum, clarity, and accountability.Manage interdependencies across CRM, CPQ, billing, entitlement, partner platforms, data/analytics, and support systems.Proactively identify execution risks related to process change, data readiness, system integrations, and enablement and drive resolution with appropriate owners.Partner with change management and enablement teams to support operational readiness and adoption.\n Delivery Quality & Outcomes Enablement\n\nEstablish and track delivery success measures tied to program milestones, release readiness, and operational stability.Ensure teams are set up to achieve intended outcomes.Provide structured forums for issue resolution, dependency management, and decision escalation.Executive & Stakeholder Engagement\n\nPartner with senior leaders across Sales, Customer Success/Services, Support, Finance, and IT to maintain alignment on priorities, progress, and delivery risks.Provide clear, decision-oriented updates on program status, tradeoffs, and execution implications.Build trust through consistency, transparency, and follow-through, serving as a steady execution leader in complex initiatives.Represent the program in executive and cross-functional forums.\n\nYour Experience\n\n12+ years of program management experience leading large, cross-functional initiatives in one or more of the following domains:CPQ / Quote-to-CashSales Operations, Account Management, ForecastingPartner Ecosystems, Integrations, and Co-sell motionsCustomer Support, Customer Success and Services platformsDemonstrated success driving delivery across enterprise-scale technology and operating model changes.Strong ability to work across business and IT, navigating complex stakeholder environments with credibility and influence.Excellent executive communication skills — able to convey status, risks, and implications clearly and succinctly.Proven capability to lead through influence, structure, and execution rigor rather than formal authority.Background in consulting, enterprise SaaS, or large-scale GTM/CX transformations strongly preferred.Local SF Bay Area candidates who can be onsite 3 days/week.The Team\n\nYou will be part of a growing, passionate, and dynamic team with an opportunity to work on challenging and exciting projects — centered on what we believe is one of the most significant mission statements in the world. We also strive to be the most people-centric company ever! That means we’re constantly working to make your experience amazing, and you are part of the team breaking boundaries of what the workplace can be!\n\nCompensation Disclosure\n\nThe compensation offered for this position will depend on qualifications, experience, and work location. For candidates who receive an offer at the posted level, the starting base salary (for non-sales roles) or base salary + commission target (for sales/commissioned roles) is expected to be between $155000 - $251000/YR. The offered compensation may also include restricted stock units and a bonus. A description of our employee benefits may be found here.\n\nOur Commitment\n\n We’re problem solvers that take risks and challenge cybersecurity’s status quo. It’s simple: we can’t accomplish our mission without diverse teams innovating, together.\n\nWe are committed to providing reasonable accommodations for all qualified individuals with a disability. If you require assistance or accommodation due to a disability or special need, please contact us at  accommodations@paloaltonetworks.com.\n\nPalo Alto Networks is an equal opportunity employer. We celebrate diversity in our workplace, and all qualified applicants will receive consideration for employment without regard to age, ancestry, color, family or medical care leave, gender identity or expression, genetic information, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran status, race, religion, sex (including pregnancy), sexual orientation, or other legally protected characteristics.\n\nAll your information will be kept confidential according to EEO guidelines.\n\n Is role eligible for Immigration Sponsorship? No. Please note that we will not sponsor applicants for work visas for this position.",
           "is_valid": true,
-          "reason": "Valid description (7246 chars)"
+          "reason": "Valid description (6444 chars, 859 words)"
         },
         {
           "name": "empty_description_fallback",

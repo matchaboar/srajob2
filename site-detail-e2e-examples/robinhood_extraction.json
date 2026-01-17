@@ -14,18 +14,38 @@
       "company": "Robinhood",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Android Developer",
+        "company": "Robinhood",
+        "location": "Toronto, Canada",
+        "description": "Android Developer\n\nJoin us in building the future of finance.\nOur mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\nAbout the team + role\nWe’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\nWe’re looking for passionate and skilled developers who lead by example, building...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+        "apply_url": "https://boards.greenhouse.io/robinhood/jobs/5702135",
+        "posted_at": 1767650643000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 762
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/5702135",
+        "word_count": 762,
+        "description_preview": "Android Developer Join us in building the future of finance. Our mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Robinhood",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "us in building the future of finance",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -176,9 +196,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Work cross-functionally with Product Designers, Product Managers",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Toronto, Canada"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Toronto, Canada' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 124000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 129500,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 129500,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $119,000-$140,000 -> $129,500 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 124000,
@@ -335,18 +376,46 @@
           "reason": "Single compensation pattern: $124,000"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 129500,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $119,000-$140,000 -> $129,500 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:09.582504",
+          "value": "2026-01-17T13:05:59.315459",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Android Developer\n\nJoin us in building the future of finance.\nOur mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\nAbout the team + role\nWe’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\nWe’re looking for passionate and skilled developers who lead by example, building up the product and people around them through hard work, mentorship, and proven best practices.\nLearn more about some of our available roles below!\nSupport Products: The Support Products team owns the end to end customer facing support experience including chat and phone channel, user triage experience, support entry point, help center and more.\nCrypto: As a member of our Crypto team you will help ship Robinhood's new standalone wallet app, while also improving the crypto experience within Robinhhood's flagship application. Learn more what the crypto team is up to here\nActivation: Sherwood is focused on creating the best in class news experience in the RH trading app. As a member of the Sherwood team you will&nbsp; help deliver actionable, accessible financial news to retail traders at any point in their investing journey.\nWhat you’ll do\n- Work with a fast-growing team to revolutionize finance at speed and scale\n- Build smooth, stable, and elegant products with Kotlin and the newest Android APIs\n- Own features from inception to design, implementation, and launch\n- Work cross-functionally with Product Designers, Product Managers, Backend Developers, and Data team\n- Work with Kotlin, Android SDK &amp; Jetpack Compose, MVVM, Coroutines &amp; Flow (preferred) OR RxJava, and Retrofit &amp; Room\nWhat you bring\n- 1.5+ years of professional Android development experience building consumer Android applications at scale, preferably in Kotlin and Compose\n- Attention to detail, passion for writing clean, readable and&nbsp; maintainable code\n- Proficiency in Kotlin or Java, and Jetpack\n- Motivation to improve Robinhood’s app and codebase to ensure the highest quality for our customers\n- Strong product sense and ability to collaborate with Product Managers and Designers\n- Excellent communication skills and passion for solving technical challenges\n- Bachelor’s degree in Computer Science or a related field preferred; equivalent training or work experience also acceptable\n&nbsp;\nWhat we offer\n- Market competitive and pay equity-focused compensation structure\n- 100% paid health insurance for employees with 90% coverage for dependents\n- Annual lifestyle wallet for personal wellness, learning and development, and more!\n- Lifetime maximum benefit for family forming and fertility benefits\n- Dedicated mental health support for employees and eligible dependents\n- Generous time away including company holidays, paid time off, sick time, parental leave, and more!\n- Lively office environment with catered meals, fully stocked kitchens, and geo-specific commuter benefits\nOur team is committed to providing an inclusive and welcoming interview experience for all candidates. If you require a specific accommodation during the application or interview process due to a physical or mental condition, please complete this&nbsp; Applicant Accommodation Form to notify our team. The form should only be completed if you need a specific accommodation.\nAI Usage Disclosure: Robinhood uses artificial intelligence (AI) tools to support parts of our recruiting process. These tools enhance the efficiency and consistency of our hiring process; however, all hiring decisions are made by our hiring teams.\nVacancy Notice: This job posting represents an existing vacancy that we are actively seeking to fill.\nIn addition to the base pay range listed below, this role is also eligible for bonus opportunities + equity + benefits.\nBase pay for the successful applicant will depend on a variety of job-related factors, which may include education, training, experience, location, business needs, or market demands. The expected base pay range for this role is based on the location where the work will be performed.\nBase Pay Range:\nToronto, ON $119,000 &mdash; $140,000 CAD Click here to learn more about our Total Rewards, which vary by region and entity.\nIf our mission energizes you and you’re ready to build the future of finance, we look forward to seeing your application.\nRobinhood provides equal opportunity for all applicants, offers reasonable accommodations upon request, and complies with applicable equal employment and privacy laws. Inclusion is built into how we hire and work—welcoming different backgrounds, perspectives, and experiences so everyone can do their best. Please review the&nbsp; Privacy Policy for your country of application.",
           "is_valid": true,
-          "reason": "Valid description (4984 chars)"
+          "reason": "Valid description (4984 chars, 762 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Android Developer\n\nJoin us in building the future of finance.\nOur mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\nAbout the team + role\nWe’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\nWe’re looking for passionate and skilled developers who lead by example, building up the product and people around them through hard work, mentorship, and proven best practices.\nLearn more about some of our available roles below!\nSupport Products: The Support Products team owns the end to end customer facing support experience including chat and phone channel, user triage experience, support entry point, help center and more.\nCrypto: As a member of our Crypto team you will help ship Robinhood's new standalone wallet app, while also improving the crypto experience within Robinhhood's flagship application. Learn more what the crypto team is up to here\nActivation: Sherwood is focused on creating the best in class news experience in the RH trading app. As a member of the Sherwood team you will&nbsp; help deliver actionable, accessible financial news to retail traders at any point in their investing journey.\nWhat you’ll do\n- Work with a fast-growing team to revolutionize finance at speed and scale\n- Build smooth, stable, and elegant products with Kotlin and the newest Android APIs\n- Own features from inception to design, implementation, and launch\n- Work cross-functionally with Product Designers, Product Managers, Backend Developers, and Data team\n- Work with Kotlin, Android SDK &amp; Jetpack Compose, MVVM, Coroutines &amp; Flow (preferred) OR RxJava, and Retrofit &amp; Room\nWhat you bring\n- 1.5+ years of professional Android development experience building consumer Android applications at scale, preferably in Kotlin and Compose\n- Attention to detail, passion for writing clean, readable and&nbsp; maintainable code\n- Proficiency in Kotlin or Java, and Jetpack\n- Motivation to improve Robinhood’s app and codebase to ensure the highest quality for our customers\n- Strong product sense and ability to collaborate with Product Managers and Designers\n- Excellent communication skills and passion for solving technical challenges\n- Bachelor’s degree in Computer Science or a related field preferred; equivalent training or work experience also acceptable\n&nbsp;\nWhat we offer\n- Market competitive and pay equity-focused compensation structure\n- 100% paid health insurance for employees with 90% coverage for dependents\n- Annual lifestyle wallet for personal wellness, learning and development, and more!\n- Lifetime maximum benefit for family forming and fertility benefits\n- Dedicated mental health support for employees and eligible dependents\n- Generous time away including company holidays, paid time off, sick time, parental leave, and more!\n- Lively office environment with catered meals, fully stocked kitchens, and geo-specific commuter benefits\nOur team is committed to providing an inclusive and welcoming interview experience for all candidates. If you require a specific accommodation during the application or interview process due to a physical or mental condition, please complete this&nbsp; Applicant Accommodation Form to notify our team. The form should only be completed if you need a specific accommodation.\nAI Usage Disclosure: Robinhood uses artificial intelligence (AI) tools to support parts of our recruiting process. These tools enhance the efficiency and consistency of our hiring process; however, all hiring decisions are made by our hiring teams.\nVacancy Notice: This job posting represents an existing vacancy that we are actively seeking to fill.\nIn addition to the base pay range listed below, this role is also eligible for bonus opportunities + equity + benefits.\nBase pay for the successful applicant will depend on a variety of job-related factors, which may include education, training, experience, location, business needs, or market demands. The expected base pay range for this role is based on the location where the work will be performed.\nBase Pay Range:\nToronto, ON $119,000 &mdash; $140,000 CAD Click here to learn more about our Total Rewards, which vary by region and entity.\nIf our mission energizes you and you’re ready to build the future of finance, we look forward to seeing your application.\nRobinhood provides equal opportunity for all applicants, offers reasonable accommodations upon request, and complies with applicable equal employment and privacy laws. Inclusion is built into how we hire and work—welcoming different backgrounds, perspectives, and experiences so everyone can do their best. Please review the&nbsp; Privacy Policy for your country of application.",
           "is_valid": true,
-          "reason": "Valid description (4984 chars)"
+          "reason": "Valid description (4984 chars, 762 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Android Developer\n\nJoin us in building the future of finance.\nOur mission is to democratize finance for all. An estimated $124 trillion of assets will be inherited by younger generations in the next two decades. The largest transfer of wealth in human history. If you’re ready to be at the epicenter of this historic cultural and financial shift, keep reading.\nAbout the team + role\nWe’re excited to invite talented and motivated Android Developers to join our award-winning team to help expand Robinhood’s mobile experience for our customers.\nWe’re looking for passionate and skilled developers who lead by example, building up the product and people around them through hard work, mentorship, and proven best practices.\nLearn more about some of our available roles below!\nSupport Products: The Support Products team owns the end to end customer facing support experience including chat and phone channel, user triage experience, support entry point, help center and more.\nCrypto: As a member of our Crypto team you will help ship Robinhood's new standalone wallet app, while also improving the crypto experience within Robinhhood's flagship application. Learn more what the crypto team is up to here\nActivation: Sherwood is focused on creating the best in class news experience in the RH trading app. As a member of the Sherwood team you will&nbsp; help deliver actionable, accessible financial news to retail traders at any point in their investing journey.\nWhat you’ll do\n- Work with a fast-growing team to revolutionize finance at speed and scale\n- Build smooth, stable, and elegant products with Kotlin and the newest Android APIs\n- Own features from inception to design, implementation, and launch\n- Work cross-functionally with Product Designers, Product Managers, Backend Developers, and Data team\n- Work with Kotlin, Android SDK &amp; Jetpack Compose, MVVM, Coroutines &amp; Flow (preferred) OR RxJava, and Retrofit &amp; Room\nWhat you bring\n- 1.5+ years of professional Android development experience building consumer Android applications at scale, preferably in Kotlin and Compose\n- Attention to detail, passion for writing clean, readable and&nbsp; maintainable code\n- Proficiency in Kotlin or Java, and Jetpack\n- Motivation to improve Robinhood’s app and codebase to ensure the highest quality for our customers\n- Strong product sense and ability to collaborate with Product Managers and Designers\n- Excellent communication skills and passion for solving technical challenges\n- Bachelor’s degree in Computer Science or a related field preferred; equivalent training or work experience also acceptable\n&nbsp;\nWhat we offer\n- Market competitive and pay equity-focused compensation structure\n- 100% paid health insurance for employees with 90% coverage for dependents\n- Annual lifestyle wallet for personal wellness, learning and development, and more!\n- Lifetime maximum benefit for family forming and fertility benefits\n- Dedicated mental health support for employees and eligible dependents\n- Generous time away including company holidays, paid time off, sick time, parental leave, and more!\n- Lively office environment with catered meals, fully stocked kitchens, and geo-specific commuter benefits\nOur team is committed to providing an inclusive and welcoming interview experience for all candidates. If you require a specific accommodation during the application or interview process due to a physical or mental condition, please complete this&nbsp; Applicant Accommodation Form to notify our team. The form should only be completed if you need a specific accommodation.\nAI Usage Disclosure: Robinhood uses artificial intelligence (AI) tools to support parts of our recruiting process. These tools enhance the efficiency and consistency of our hiring process; however, all hiring decisions are made by our hiring teams.\nVacancy Notice: This job posting represents an existing vacancy that we are actively seeking to fill.\nIn addition to the base pay range listed below, this role is also eligible for bonus opportunities + equity + benefits.\nBase pay for the successful applicant will depend on a variety of job-related factors, which may include education, training, experience, location, business needs, or market demands. The expected base pay range for this role is based on the location where the work will be performed.\nBase Pay Range:\nToronto, ON $119,000 &mdash; $140,000 CAD Click here to learn more about our Total Rewards, which vary by region and entity.\nIf our mission energizes you and you’re ready to build the future of finance, we look forward to seeing your application.\nRobinhood provides equal opportunity for all applicants, offers reasonable accommodations upon request, and complies with applicable equal employment and privacy laws. Inclusion is built into how we hire and work—welcoming different backgrounds, perspectives, and experiences so everyone can do their best. Please review the&nbsp; Privacy Policy for your country of application.",
           "is_valid": true,
-          "reason": "Valid description (4984 chars)"
+          "reason": "Valid description (4984 chars, 762 words)"
         },
         {
           "name": "empty_description_fallback",

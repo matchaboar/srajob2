@@ -1,0 +1,15 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/netflix_790313551266_20260113T053309_detail.json
+site_id: netflix
+detail_url: https://explore.jobs.netflix.net/careers/job/790313551266
+expected:
+  title: Software Engineer L5, Ads Campaign Management
+  company: Netflix
+  location_contains: New York
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  description_not_contains: '{"domain":'
+  description_not_contains_2: '{"display_banner":'
+  description_not_contains_3: '{"themeOptions":'
+  cost_milli_cents_min: 1
+  # posted_at_not_null: true  # Not always available for Netflix scrapes

@@ -3,8 +3,8 @@
   "listing_url": "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com",
   "source_url": "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com",
   "handler_name": "MicrosoftCareersHandler",
-  "content_type": null,
-  "extraction_method": "production_workflow",
+  "content_type": "raw_html",
+  "extraction_method": null,
   "url_pipeline": {
     "input_url": "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com",
     "scrape_url": "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com"
@@ -14,9 +14,11 @@
     "handler_filtered_count": 10,
     "api_transformed_count": 10
   },
+  "scraped_url_count": 0,
   "extracted_url_count": 10,
   "filtered_url_count": 10,
   "normalized_url_count": 10,
+  "apply_url_count": 10,
   "pagination_url_count": 0,
   "rejected_url_count": 0,
   "sample_urls": [
@@ -24,23 +26,36 @@
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
   ],
+  "scraped_urls": [],
   "normalized_urls": [
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
-    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
+  ],
+  "apply_urls": [
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en",
+    "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en",
     "https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en"
   ],
   "sample_transformations": [],

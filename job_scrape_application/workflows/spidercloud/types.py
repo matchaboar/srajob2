@@ -58,6 +58,14 @@ class CaptchaRetriesExceededError(Exception):
         self.events = events or []
 
 
+class UnrenderedHttpException(Exception):
+    """Raised when a listing page returns unrendered HTML."""
+
+    def __init__(self, url: str, message: str | None = None) -> None:
+        self.url = url
+        super().__init__(message or f"Listing HTML was not rendered for {url}")
+
+
 @dataclass
 class SpiderCloudDependencies:
     """Dependencies injected into SpiderCloud scraper."""

@@ -14,18 +14,38 @@
       "company": "MongoDB",
       "level": "junior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "2026 - Analytics Engineering Intern, NYC",
+        "company": "MongoDB",
+        "location": "New York City",
+        "description": "2026 - Analytics Engineering Intern, NYC\n\nWe're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines.\nWhat we are looking for in you\n- In the process of receiving a Bachelor’s or Master's degree in Computer Science, Data Science, Engineering or a related field.\n- Proficiency in one or more programming languages (Python, R, Java etc).\n- Solid understanding of data modeling principles and ETL processes.\n-...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+        "apply_url": "https://boards.greenhouse.io/mongodb/jobs/7335945",
+        "posted_at": 1766419686000,
+        "level": "junior",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 959
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+        "word_count": 959,
+        "description_preview": "2026 - Analytics Engineering Intern, NYC We're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems,..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "MongoDB",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "our dynamic Analytics Engineering team",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -134,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "New York City",
+      "final_value": "New York",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "New York City",
+          "value": "New York",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -176,9 +196,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Master's degree in Computer Science, Data Science",
+          "value": "location",
           "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "reason": "Matched pattern OFFICE_IN"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: New York City"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'New York' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 56576,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 69472,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 69472,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $56,576-$82,368 -> $69,472 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 56576,
@@ -335,18 +376,46 @@
           "reason": "Single compensation pattern: $56,576"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 69472,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $56,576-$82,368 -> $69,472 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:07.775792",
+          "value": "2026-01-17T13:05:59.095529",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "2026 - Analytics Engineering Intern, NYC\n\nWe're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines.\nWhat we are looking for in you\n- In the process of receiving a Bachelor’s or Master's degree in Computer Science, Data Science, Engineering or a related field.\n- Proficiency in one or more programming languages (Python, R, Java etc).\n- Solid understanding of data modeling principles and ETL processes.\n- Strong technical foundation with experience in SQL for complex data querying and manipulation.\n- Familiarity with workflow orchestration tools and building end-to-end data pipelines is a significant plus.\n- Ability to work effectively in a team and communicate complex ideas clearly.\n- Proactive, self-driven, and comfortable with a fast-paced, collaborative environment.\n- Interest in the broader domain of analytics and data-driven decision making.\n- Have a minimum of one quarter/semester remaining in university studies after the internship concludes. Graduation date in Fall 2026 or Spring 2027\n- Must be authorized to work in the United States. Company sponsorship may be available for eligible candidates applying for certain roles.\nWhat you'll find at MongoDB\n- Authentic Culture: A workplace where you are encouraged to bring your whole self to work, we believe that Embracing the Power of Differences is the best way to broaden our own perspectives and foster innovation.\n- Personalized Mentorship: Pair up with a Mentor, a Program Advisor from the Early Talent Recruitment Team, and an Employee Resource Group (ERG) Guide to foster your growth.\n- Career Coaching Sessions: Access to a tailored training program designed uniquely for interns’ personal and professional development.\n- Work-Life Harmony: Embrace \"Bloom for Interns\" with access to mental and physical health benefits, paid time off, free lunch, and more!\n- Impactful Projects: Contribute to projects where you can Make it Matter - your meaningful work will see the light of day.\n- Exclusive Networking: Attend \"Speaker Series\" and \"Roundtables\" to connect with our executives and departmental leaders.\n- Vibrant Community: Build connections with fellow interns and join after-work social events, virtual gatherings, and local city activities to create connections and friendships.\n- Relocation Support: Financial assistance, housing, and a commuting stipend to allow you to comfortably settle into your new location.\n- Path to Full-Time: A chance to see if MongoDB is where you see yourself long term with the possibility of receiving a full time offer at the end of the summer!\nMongoDB internships are full-time (40 hours/week) for 10 consecutive weeks lasting from dates in June until August. All interns are considered hybrid employees, designated the \"in office\" working model and are expected to be in their office location 3-5 days a week.\nDue to the high volume of applications our Early Talent Recruitment Team receives, it may take up to six weeks to hear back regarding an update on your application status. Our goal is to get back sooner, but we appreciate your patience as our team carefully reviews each application.\n&nbsp;\nAbout Us\nMongoDB is built for change, empowering our customers and our people to innovate at the speed of the market. We have redefined the database for the AI era, enabling innovators to create, transform, and disrupt industries with software. MongoDB’s unified database platform—the most widely available, globally distributed database on the market—helps organizations modernize legacy workloads, embrace innovation, and unleash AI. Our cloud-native platform, MongoDB Atlas, is the only globally distributed, multi-cloud database and is available across AWS, Google Cloud, and Microsoft Azure.\nWith offices worldwide and nearly 60,000 customers—including 75% of the Fortune 100 and AI-native startups—relying on MongoDB for their most important applications, we’re powering the next era of software.\nOur compass at MongoDB is our Leadership Commitment, guiding how and why we make decisions, show up for each other, and win. It’s what makes us MongoDB.\nTo drive the personal growth and business impact of our employees, we’re committed to developing a supportive and enriching culture for everyone. From employee affinity groups, to fertility assistance and a generous parental leave policy , we value our employees’ wellbeing and want to support them along every step of their professional and personal journeys. Learn more about what it’s like to work at MongoDB , and help us make an impact on the world!\nMongoDB is committed to providing any necessary accommodations for individuals with disabilities within our application and interview process. To request an accommodation due to a disability, please inform your Early Talent Recruiter.\nMongoDB, Inc. provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type and makes all hiring decisions without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state or local laws.\nReq ID: 3263273697\nMongoDB’s base salary range for this role is posted below. Compensation at the time of offer is unique to each candidate and based on a variety of factors such as skill set, experience, qualifications, and work location. Salary is one part of MongoDB’s total compensation and benefits package. Other benefits for eligible employees may include: equity, participation in the employee stock purchase program, flexible paid time off, 20 weeks fully-paid gender-neutral parental leave, fertility and adoption assistance, 401(k) plan, mental health counseling, access to transgender-inclusive health insurance coverage, and health benefits offerings. Please note, the base salary range listed below and the benefits in this paragraph are only applicable to U.S.-based candidates.\nMongoDB’s base salary range for this role in the U.S. is: $56,576 &mdash; $82,368 USD",
           "is_valid": true,
-          "reason": "Valid description (6317 chars)"
+          "reason": "Valid description (6317 chars, 959 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "2026 - Analytics Engineering Intern, NYC\n\nWe're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines.\nWhat we are looking for in you\n- In the process of receiving a Bachelor’s or Master's degree in Computer Science, Data Science, Engineering or a related field.\n- Proficiency in one or more programming languages (Python, R, Java etc).\n- Solid understanding of data modeling principles and ETL processes.\n- Strong technical foundation with experience in SQL for complex data querying and manipulation.\n- Familiarity with workflow orchestration tools and building end-to-end data pipelines is a significant plus.\n- Ability to work effectively in a team and communicate complex ideas clearly.\n- Proactive, self-driven, and comfortable with a fast-paced, collaborative environment.\n- Interest in the broader domain of analytics and data-driven decision making.\n- Have a minimum of one quarter/semester remaining in university studies after the internship concludes. Graduation date in Fall 2026 or Spring 2027\n- Must be authorized to work in the United States. Company sponsorship may be available for eligible candidates applying for certain roles.\nWhat you'll find at MongoDB\n- Authentic Culture: A workplace where you are encouraged to bring your whole self to work, we believe that Embracing the Power of Differences is the best way to broaden our own perspectives and foster innovation.\n- Personalized Mentorship: Pair up with a Mentor, a Program Advisor from the Early Talent Recruitment Team, and an Employee Resource Group (ERG) Guide to foster your growth.\n- Career Coaching Sessions: Access to a tailored training program designed uniquely for interns’ personal and professional development.\n- Work-Life Harmony: Embrace \"Bloom for Interns\" with access to mental and physical health benefits, paid time off, free lunch, and more!\n- Impactful Projects: Contribute to projects where you can Make it Matter - your meaningful work will see the light of day.\n- Exclusive Networking: Attend \"Speaker Series\" and \"Roundtables\" to connect with our executives and departmental leaders.\n- Vibrant Community: Build connections with fellow interns and join after-work social events, virtual gatherings, and local city activities to create connections and friendships.\n- Relocation Support: Financial assistance, housing, and a commuting stipend to allow you to comfortably settle into your new location.\n- Path to Full-Time: A chance to see if MongoDB is where you see yourself long term with the possibility of receiving a full time offer at the end of the summer!\nMongoDB internships are full-time (40 hours/week) for 10 consecutive weeks lasting from dates in June until August. All interns are considered hybrid employees, designated the \"in office\" working model and are expected to be in their office location 3-5 days a week.\nDue to the high volume of applications our Early Talent Recruitment Team receives, it may take up to six weeks to hear back regarding an update on your application status. Our goal is to get back sooner, but we appreciate your patience as our team carefully reviews each application.\n&nbsp;\nAbout Us\nMongoDB is built for change, empowering our customers and our people to innovate at the speed of the market. We have redefined the database for the AI era, enabling innovators to create, transform, and disrupt industries with software. MongoDB’s unified database platform—the most widely available, globally distributed database on the market—helps organizations modernize legacy workloads, embrace innovation, and unleash AI. Our cloud-native platform, MongoDB Atlas, is the only globally distributed, multi-cloud database and is available across AWS, Google Cloud, and Microsoft Azure.\nWith offices worldwide and nearly 60,000 customers—including 75% of the Fortune 100 and AI-native startups—relying on MongoDB for their most important applications, we’re powering the next era of software.\nOur compass at MongoDB is our Leadership Commitment, guiding how and why we make decisions, show up for each other, and win. It’s what makes us MongoDB.\nTo drive the personal growth and business impact of our employees, we’re committed to developing a supportive and enriching culture for everyone. From employee affinity groups, to fertility assistance and a generous parental leave policy , we value our employees’ wellbeing and want to support them along every step of their professional and personal journeys. Learn more about what it’s like to work at MongoDB , and help us make an impact on the world!\nMongoDB is committed to providing any necessary accommodations for individuals with disabilities within our application and interview process. To request an accommodation due to a disability, please inform your Early Talent Recruiter.\nMongoDB, Inc. provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type and makes all hiring decisions without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state or local laws.\nReq ID: 3263273697\nMongoDB’s base salary range for this role is posted below. Compensation at the time of offer is unique to each candidate and based on a variety of factors such as skill set, experience, qualifications, and work location. Salary is one part of MongoDB’s total compensation and benefits package. Other benefits for eligible employees may include: equity, participation in the employee stock purchase program, flexible paid time off, 20 weeks fully-paid gender-neutral parental leave, fertility and adoption assistance, 401(k) plan, mental health counseling, access to transgender-inclusive health insurance coverage, and health benefits offerings. Please note, the base salary range listed below and the benefits in this paragraph are only applicable to U.S.-based candidates.\nMongoDB’s base salary range for this role in the U.S. is: $56,576 &mdash; $82,368 USD",
           "is_valid": true,
-          "reason": "Valid description (6317 chars)"
+          "reason": "Valid description (6317 chars, 959 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "2026 - Analytics Engineering Intern, NYC\n\nWe're seeking an eager and innovative intern to join our dynamic Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines.\nWhat we are looking for in you\n- In the process of receiving a Bachelor’s or Master's degree in Computer Science, Data Science, Engineering or a related field.\n- Proficiency in one or more programming languages (Python, R, Java etc).\n- Solid understanding of data modeling principles and ETL processes.\n- Strong technical foundation with experience in SQL for complex data querying and manipulation.\n- Familiarity with workflow orchestration tools and building end-to-end data pipelines is a significant plus.\n- Ability to work effectively in a team and communicate complex ideas clearly.\n- Proactive, self-driven, and comfortable with a fast-paced, collaborative environment.\n- Interest in the broader domain of analytics and data-driven decision making.\n- Have a minimum of one quarter/semester remaining in university studies after the internship concludes. Graduation date in Fall 2026 or Spring 2027\n- Must be authorized to work in the United States. Company sponsorship may be available for eligible candidates applying for certain roles.\nWhat you'll find at MongoDB\n- Authentic Culture: A workplace where you are encouraged to bring your whole self to work, we believe that Embracing the Power of Differences is the best way to broaden our own perspectives and foster innovation.\n- Personalized Mentorship: Pair up with a Mentor, a Program Advisor from the Early Talent Recruitment Team, and an Employee Resource Group (ERG) Guide to foster your growth.\n- Career Coaching Sessions: Access to a tailored training program designed uniquely for interns’ personal and professional development.\n- Work-Life Harmony: Embrace \"Bloom for Interns\" with access to mental and physical health benefits, paid time off, free lunch, and more!\n- Impactful Projects: Contribute to projects where you can Make it Matter - your meaningful work will see the light of day.\n- Exclusive Networking: Attend \"Speaker Series\" and \"Roundtables\" to connect with our executives and departmental leaders.\n- Vibrant Community: Build connections with fellow interns and join after-work social events, virtual gatherings, and local city activities to create connections and friendships.\n- Relocation Support: Financial assistance, housing, and a commuting stipend to allow you to comfortably settle into your new location.\n- Path to Full-Time: A chance to see if MongoDB is where you see yourself long term with the possibility of receiving a full time offer at the end of the summer!\nMongoDB internships are full-time (40 hours/week) for 10 consecutive weeks lasting from dates in June until August. All interns are considered hybrid employees, designated the \"in office\" working model and are expected to be in their office location 3-5 days a week.\nDue to the high volume of applications our Early Talent Recruitment Team receives, it may take up to six weeks to hear back regarding an update on your application status. Our goal is to get back sooner, but we appreciate your patience as our team carefully reviews each application.\n&nbsp;\nAbout Us\nMongoDB is built for change, empowering our customers and our people to innovate at the speed of the market. We have redefined the database for the AI era, enabling innovators to create, transform, and disrupt industries with software. MongoDB’s unified database platform—the most widely available, globally distributed database on the market—helps organizations modernize legacy workloads, embrace innovation, and unleash AI. Our cloud-native platform, MongoDB Atlas, is the only globally distributed, multi-cloud database and is available across AWS, Google Cloud, and Microsoft Azure.\nWith offices worldwide and nearly 60,000 customers—including 75% of the Fortune 100 and AI-native startups—relying on MongoDB for their most important applications, we’re powering the next era of software.\nOur compass at MongoDB is our Leadership Commitment, guiding how and why we make decisions, show up for each other, and win. It’s what makes us MongoDB.\nTo drive the personal growth and business impact of our employees, we’re committed to developing a supportive and enriching culture for everyone. From employee affinity groups, to fertility assistance and a generous parental leave policy , we value our employees’ wellbeing and want to support them along every step of their professional and personal journeys. Learn more about what it’s like to work at MongoDB , and help us make an impact on the world!\nMongoDB is committed to providing any necessary accommodations for individuals with disabilities within our application and interview process. To request an accommodation due to a disability, please inform your Early Talent Recruiter.\nMongoDB, Inc. provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type and makes all hiring decisions without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state or local laws.\nReq ID: 3263273697\nMongoDB’s base salary range for this role is posted below. Compensation at the time of offer is unique to each candidate and based on a variety of factors such as skill set, experience, qualifications, and work location. Salary is one part of MongoDB’s total compensation and benefits package. Other benefits for eligible employees may include: equity, participation in the employee stock purchase program, flexible paid time off, 20 weeks fully-paid gender-neutral parental leave, fertility and adoption assistance, 401(k) plan, mental health counseling, access to transgender-inclusive health insurance coverage, and health benefits offerings. Please note, the base salary range listed below and the benefits in this paragraph are only applicable to U.S.-based candidates.\nMongoDB’s base salary range for this role in the U.S. is: $56,576 &mdash; $82,368 USD",
           "is_valid": true,
-          "reason": "Valid description (6317 chars)"
+          "reason": "Valid description (6317 chars, 959 words)"
         },
         {
           "name": "empty_description_fallback",

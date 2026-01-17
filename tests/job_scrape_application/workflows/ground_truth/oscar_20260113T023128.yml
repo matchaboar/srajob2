@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/oscar_20260113T023128_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: oscar
+detail_url: https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7297858
+expected:
+  title: Senior Security Engineer I, Platform Security
+  company: Oscar Health
+  location_contains: New York
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

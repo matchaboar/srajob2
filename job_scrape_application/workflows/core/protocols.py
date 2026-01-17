@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     Dict,
     List,
@@ -144,9 +143,9 @@ class SpiderClientProtocol(Protocol):
 
 
 # Type aliases for common function signatures
-ConvexQueryFn = Callable[[str, Mapping[str, Any] | None], Awaitable[Any]]
-ConvexMutationFn = Callable[[str, Mapping[str, Any] | None], Awaitable[Any]]
-ConvexActionFn = Callable[[str, Mapping[str, Any] | None], Awaitable[Any]]
+ConvexQueryFn = Callable[[str, Mapping[str, Any] | None], Any]
+ConvexMutationFn = Callable[[str, Mapping[str, Any] | None], Any]
+ConvexActionFn = Callable[[str, Mapping[str, Any] | None], Any]
 
 
 @dataclass

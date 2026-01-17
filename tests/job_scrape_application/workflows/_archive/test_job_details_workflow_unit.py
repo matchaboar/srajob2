@@ -130,7 +130,7 @@ async def test_job_details_no_urls_returns_empty_summary(monkeypatch):
 async def test_listing_workflow_uses_listing_batch_size(monkeypatch):
     calls: list[dict[str, Any]] = []
 
-    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
+    def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
         if activity is sw.lease_scrape_url_batch:
             calls.append({"args": args})
             return {"urls": []}
@@ -183,7 +183,7 @@ async def test_listing_batch_failure_records_reason(monkeypatch):
 
     state = {"leases": 0}
 
-    async def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
+    def fake_execute(activity, args=None, **kwargs):  # type: ignore[override]
         if activity is sw.lease_scrape_url_batch:
             state["leases"] += 1
             return batch if state["leases"] == 1 else {"urls": []}
@@ -409,7 +409,7 @@ async def test_job_details_yields_on_large_batches(monkeypatch):
 
     sleep_calls: List[object] = []
 
-    async def fake_sleep(duration) -> None:
+    def fake_sleep(duration) -> None:
         sleep_calls.append(duration)
 
     monkeypatch.setattr(sw.settings, "persist_scrapes_in_activity", False)
@@ -460,7 +460,7 @@ async def test_heuristic_workflow_uses_dynamic_batch_limit(monkeypatch):
         ticks["count"] += 1
         return base_time + timedelta(seconds=ticks["count"])
 
-    async def fake_execute(_activity, args=None, **kwargs):  # type: ignore[override]
+    def fake_execute(_activity, args=None, **kwargs):  # type: ignore[override]
         if isinstance(args, list):
             calls.append(args)
         if len(calls) == 1:

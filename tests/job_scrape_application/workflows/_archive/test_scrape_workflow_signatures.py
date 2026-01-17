@@ -3,7 +3,6 @@ from __future__ import annotations
 import types
 from datetime import datetime, timedelta
 
-import pytest
 
 from job_scrape_application.workflows import activities as acts  # noqa: E402
 from job_scrape_application.workflows._archive import temporal_scrape_workflow as sw  # noqa: E402
@@ -11,11 +10,10 @@ from job_scrape_application.services import convex_client  # noqa: E402
 from job_scrape_application.workflows._archive import temporal_worker as worker  # noqa: E402
 
 
-@pytest.mark.asyncio
 async def test_lease_site_sends_filters(monkeypatch):
     captured: dict[str, object] = {}
 
-    async def fake_mutation(name: str, args: dict[str, object] | None = None):
+    def fake_mutation(name: str, args: dict[str, object] | None = None):
         captured["name"] = name
         captured["args"] = args or {}
         return {"_id": "site-1"}
@@ -34,12 +32,11 @@ async def test_lease_site_sends_filters(monkeypatch):
     }
 
 
-@pytest.mark.asyncio
 async def test_scrape_workflow_uses_args_kw(monkeypatch):
     calls = []
     state = {"leased_once": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append((activity, args, kwargs))
         if activity is acts.lease_site:
             if state["leased_once"]:
@@ -99,11 +96,10 @@ async def test_scrape_workflow_uses_args_kw(monkeypatch):
             assert kwargs["args"][0]["workflowName"] == "ScrapeWorkflow"
 
 
-@pytest.mark.asyncio
 async def test_scrape_workflow_handles_no_sites(monkeypatch):
     calls = []
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append((activity, args, kwargs))
         if activity is acts.lease_site:
             return None
@@ -169,11 +165,10 @@ def test_worker_registers_job_detail_activities():
     assert "fail_listing_batch_urls" in names
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_passes_metadata(monkeypatch):
+def test_store_scrape_passes_metadata(monkeypatch):
     captured: list[dict[str, object]] = []
 
-    async def fake_mutation(name: str, args: dict[str, object] | None = None):
+    def fake_mutation(name: str, args: dict[str, object] | None = None):
         captured.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-123"
@@ -213,7 +208,7 @@ async def test_store_scrape_passes_metadata(monkeypatch):
         },
     }
 
-    await acts.store_scrape(scrape_payload)
+    acts.store_scrape(scrape_payload)
 
     insert = next(c for c in captured if c["name"] == "router:insertScrapeRecord")
     assert insert["args"]["provider"] == "firecrawl"

@@ -76,7 +76,8 @@ def extract_fields(
     if parsed.hints:
         ctx.hints = parsed.hints
     if parsed.json_ld_posting:
-        ctx.json_ld = parsed.json_ld_posting
+        ctx.structured_data = parsed.json_ld_posting
+        ctx.json_payload = parsed.json_ld_posting
 
     # Run extractors
     extractors = _get_extractors()

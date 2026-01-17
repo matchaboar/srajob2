@@ -1,0 +1,52 @@
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/nexhealth/jobs
+expected:
+  url_count: 21
+  no_listing_urls: true
+  handler: GreenhouseHandler
+  scraped_urls: []
+  normalized_urls:
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/4920010004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447195004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447197004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447410004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447414004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447434004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5486175004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5535859004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5546317004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5546331004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5584552004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5612388004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5675105004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5676321004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5680730004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5680785004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5696091004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5707524004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5711517004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5741902004
+  - https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5755156004
+  apply_urls:
+  - https://boards.greenhouse.io/nexhealth/jobs/4920010004
+  - https://boards.greenhouse.io/nexhealth/jobs/5447195004
+  - https://boards.greenhouse.io/nexhealth/jobs/5447197004
+  - https://boards.greenhouse.io/nexhealth/jobs/5447410004
+  - https://boards.greenhouse.io/nexhealth/jobs/5447414004
+  - https://boards.greenhouse.io/nexhealth/jobs/5447434004
+  - https://boards.greenhouse.io/nexhealth/jobs/5486175004
+  - https://boards.greenhouse.io/nexhealth/jobs/5535859004
+  - https://boards.greenhouse.io/nexhealth/jobs/5546317004
+  - https://boards.greenhouse.io/nexhealth/jobs/5546331004
+  - https://boards.greenhouse.io/nexhealth/jobs/5584552004
+  - https://boards.greenhouse.io/nexhealth/jobs/5612388004
+  - https://boards.greenhouse.io/nexhealth/jobs/5675105004
+  - https://boards.greenhouse.io/nexhealth/jobs/5676321004
+  - https://boards.greenhouse.io/nexhealth/jobs/5680730004
+  - https://boards.greenhouse.io/nexhealth/jobs/5680785004
+  - https://boards.greenhouse.io/nexhealth/jobs/5696091004
+  - https://boards.greenhouse.io/nexhealth/jobs/5707524004
+  - https://boards.greenhouse.io/nexhealth/jobs/5711517004
+  - https://boards.greenhouse.io/nexhealth/jobs/5741902004
+  - https://boards.greenhouse.io/nexhealth/jobs/5755156004
+  blocked_urls: []

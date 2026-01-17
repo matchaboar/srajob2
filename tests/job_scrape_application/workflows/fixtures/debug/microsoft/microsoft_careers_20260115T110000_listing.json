@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://apply.careers.microsoft.com/api/pcsx/search?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&sort_by=timestamp&filter_distance=160&filter_include_remote=1&domain=microsoft.com",
     "params": {

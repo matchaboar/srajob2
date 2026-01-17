@@ -15,6 +15,8 @@ from job_scrape_application.components.models import (  # noqa: E402
     load_greenhouse_board,
 )
 
+_PRE_TAG_RE = re.compile(r"<pre[^>]*>(?P<content>.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
+
 
 def _extract_first_html(payload: object) -> str:
     if isinstance(payload, dict):
@@ -47,7 +49,7 @@ def _load_spidercloud_fixture(path: Path) -> object:
 
 
 def _extract_json_from_pre(html_text: str) -> dict:
-    match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html_text, flags=re.IGNORECASE | re.DOTALL)
+    match = _PRE_TAG_RE.search(html_text)
     if not match:
         raise AssertionError("Unable to locate <pre> JSON block in fixture HTML")
     content = html_lib.unescape(match.group("content")).strip()

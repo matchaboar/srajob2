@@ -1,0 +1,57 @@
+= DBOS004: Async function calls Convex
+
+== Summary
+
+Functions calling convex must not be async.
+
+== Description
+
+Functions that call `convex_query`, `convex_mutation`, or `convex_action` must be declared as `def` (not `async def`). This rule applies to both direct calls and transitive calls (functions that call other functions that call convex).
+
+The Python Convex client is synchronous. Attempting to use it in an async context or awaiting convex calls will cause runtime errors or unexpected behavior.
+
+This rule enforces two constraints:
+
+1. *No async functions calling convex*: Functions that call convex directly or transitively must not be declared as `async def`.
+2. *No awaiting convex calls*: Convex function calls must not be awaited since they are synchronous.
+
+== Examples
+
+.Bad: Async function calling convex directly
+[source,python]
+----
+@DBOS.step
+async def get_user(user_id: str) -> User:
+    # ERROR: async function should not call sync convex
+    return convex_query("users:get", {"id": user_id})
+----
+
+.Bad: Awaiting convex call
+[source,python]
+----
+@DBOS.step
+async def get_user(user_id: str) -> User:
+    # ERROR: convex functions are sync, cannot await
+    return await convex_query("users:get", {"id": user_id})
+----
+
+.Good: Sync function calling convex
+[source,python]
+----
+@DBOS.step
+def get_user(user_id: str) -> User:
+    return convex_query("users:get", {"id": user_id})
+----
+
+== Exemptions
+
+Functions decorated with `@DBOS.workflow()` are automatically exempt from this rule. DBOS workflows are designed to be async and coordinate steps that call convex synchronously.
+
+== Suppression
+
+For other cases, add `# noqa: DBOS004` to the function definition or await line.
+
+== See Also
+
+* DBOS001 - Missing @DBOS.step decorator
+* DBOS002 - Sync/async signature mismatch

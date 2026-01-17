@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/dataminr_20260113T220010_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: dataminr
+detail_url: https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945
+expected:
+  title: Customer Success Associate
+  company: Dataminr
+  location_contains: Melbourne
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

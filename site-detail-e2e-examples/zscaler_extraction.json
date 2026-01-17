@@ -14,18 +14,38 @@
       "company": "Zscaler",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Account Executive",
+        "company": "Zscaler",
+        "location": "Tokyo, JPN",
+        "description": "Account Executive\n\nAbout Zscaler\nZscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\nHere, impact in your role matters more than title and trust is built on results. We believe in transparency and value constructive, honest debate —we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+        "apply_url": "https://boards.greenhouse.io/zscaler/jobs/4771753007",
+        "posted_at": 1767810576000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 702
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+        "word_count": 702,
+        "description_preview": "Account Executive About Zscaler Zscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Zscaler",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "The Zscaler Sales and Go-to-Market team",
+          "value": "our Sales",
           "is_valid": true,
-          "reason": "Found 'Company is a' pattern"
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Tokyo, JPN"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Tokyo, JPN' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +376,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:03.065280",
+          "value": "2026-01-17T13:05:59.265074",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Account Executive\n\nAbout Zscaler\nZscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\nHere, impact in your role matters more than title and trust is built on results. We believe in transparency and value constructive, honest debate —we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture of execution centered on customer obsession, collaboration, ownership and accountability.&nbsp;\nWe value high-impact, high-accountability with a sense of urgency where you’re enabled to do your best work and embrace your potential. If you’re driven by purpose, thrive on solving complex challenges and want to make a positive difference on a global scale, we invite you to bring your talents to Zscaler and help shape the future of cybersecurity.\nThe Zscaler Sales and Go-to-Market team is a global group of professionals who are passionate about delighting our customers, nurturing trusted partnerships, and sharing their expertise to drive a secure, cloud-enabled digital future and further cement our position as the world leader in cloud security. Sales, Customer Success, Sales Enablement, Solution Architects, Business Development, Transformation, and Technology Partnerships all work together to demonstrate the power and agility of Zscaler cloud transformation to the world.\nWe're looking for an experienced Account Executive to join our Sales and Go-to-Market team. Reporting to the Regional Director, you'll be responsible for:\n- Building relationships with key stakeholders, including c-suite decision-makers\n- Creating a long-term account strategy aligned with customer goals\n- Collaborating with our teams to meet customer needs and contribute to account planning\n- Being a trusted advisor, understanding client businesses and aligning Zscaler solutions with their goals\nWhat We're Looking for (Minimum Qualifications)\n- 10+ years of full-cycle sales experience within software or security industry\n- Bachelor's degree or equivalent experience\n- Progressive selling experience engaging with accounts and selling at C-Level\n- High level of written and spoken Japanese fluency\nWhat Will Make You Stand Out (Preferred Qualifications)\n- You have established relationships with current and prospective customers\n- You understand the bigger picture, customer goals and how technology can facilitate them\n- Proficiency in strategic sales planning with experience closing net new logos\n#LI-TY2\n#LI-Hybrid\nAt Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.\nOur Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:\n- Various health plans\n- Time off plans for vacation and sick time\n- Parental leave options\n- Retirement options\n- Education reimbursement\n- In-office perks, and more!\nLearn more about Zscaler’s Future of Work strategy, hybrid working model, and benefits here .\nBy applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.\nZscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. See more information by clicking on the Know Your Rights: Workplace Discrimination is Illegal link.\nPay Transparency\nZscaler complies with all applicable federal, state, and local pay transparency rules.\nZscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.",
           "is_valid": true,
-          "reason": "Valid description (4819 chars)"
+          "reason": "Valid description (4819 chars, 702 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Account Executive\n\nAbout Zscaler\nZscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\nHere, impact in your role matters more than title and trust is built on results. We believe in transparency and value constructive, honest debate —we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture of execution centered on customer obsession, collaboration, ownership and accountability.&nbsp;\nWe value high-impact, high-accountability with a sense of urgency where you’re enabled to do your best work and embrace your potential. If you’re driven by purpose, thrive on solving complex challenges and want to make a positive difference on a global scale, we invite you to bring your talents to Zscaler and help shape the future of cybersecurity.\nThe Zscaler Sales and Go-to-Market team is a global group of professionals who are passionate about delighting our customers, nurturing trusted partnerships, and sharing their expertise to drive a secure, cloud-enabled digital future and further cement our position as the world leader in cloud security. Sales, Customer Success, Sales Enablement, Solution Architects, Business Development, Transformation, and Technology Partnerships all work together to demonstrate the power and agility of Zscaler cloud transformation to the world.\nWe're looking for an experienced Account Executive to join our Sales and Go-to-Market team. Reporting to the Regional Director, you'll be responsible for:\n- Building relationships with key stakeholders, including c-suite decision-makers\n- Creating a long-term account strategy aligned with customer goals\n- Collaborating with our teams to meet customer needs and contribute to account planning\n- Being a trusted advisor, understanding client businesses and aligning Zscaler solutions with their goals\nWhat We're Looking for (Minimum Qualifications)\n- 10+ years of full-cycle sales experience within software or security industry\n- Bachelor's degree or equivalent experience\n- Progressive selling experience engaging with accounts and selling at C-Level\n- High level of written and spoken Japanese fluency\nWhat Will Make You Stand Out (Preferred Qualifications)\n- You have established relationships with current and prospective customers\n- You understand the bigger picture, customer goals and how technology can facilitate them\n- Proficiency in strategic sales planning with experience closing net new logos\n#LI-TY2\n#LI-Hybrid\nAt Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.\nOur Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:\n- Various health plans\n- Time off plans for vacation and sick time\n- Parental leave options\n- Retirement options\n- Education reimbursement\n- In-office perks, and more!\nLearn more about Zscaler’s Future of Work strategy, hybrid working model, and benefits here .\nBy applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.\nZscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. See more information by clicking on the Know Your Rights: Workplace Discrimination is Illegal link.\nPay Transparency\nZscaler complies with all applicable federal, state, and local pay transparency rules.\nZscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.",
           "is_valid": true,
-          "reason": "Valid description (4819 chars)"
+          "reason": "Valid description (4819 chars, 702 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Account Executive\n\nAbout Zscaler\nZscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\nHere, impact in your role matters more than title and trust is built on results. We believe in transparency and value constructive, honest debate —we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture of execution centered on customer obsession, collaboration, ownership and accountability.&nbsp;\nWe value high-impact, high-accountability with a sense of urgency where you’re enabled to do your best work and embrace your potential. If you’re driven by purpose, thrive on solving complex challenges and want to make a positive difference on a global scale, we invite you to bring your talents to Zscaler and help shape the future of cybersecurity.\nThe Zscaler Sales and Go-to-Market team is a global group of professionals who are passionate about delighting our customers, nurturing trusted partnerships, and sharing their expertise to drive a secure, cloud-enabled digital future and further cement our position as the world leader in cloud security. Sales, Customer Success, Sales Enablement, Solution Architects, Business Development, Transformation, and Technology Partnerships all work together to demonstrate the power and agility of Zscaler cloud transformation to the world.\nWe're looking for an experienced Account Executive to join our Sales and Go-to-Market team. Reporting to the Regional Director, you'll be responsible for:\n- Building relationships with key stakeholders, including c-suite decision-makers\n- Creating a long-term account strategy aligned with customer goals\n- Collaborating with our teams to meet customer needs and contribute to account planning\n- Being a trusted advisor, understanding client businesses and aligning Zscaler solutions with their goals\nWhat We're Looking for (Minimum Qualifications)\n- 10+ years of full-cycle sales experience within software or security industry\n- Bachelor's degree or equivalent experience\n- Progressive selling experience engaging with accounts and selling at C-Level\n- High level of written and spoken Japanese fluency\nWhat Will Make You Stand Out (Preferred Qualifications)\n- You have established relationships with current and prospective customers\n- You understand the bigger picture, customer goals and how technology can facilitate them\n- Proficiency in strategic sales planning with experience closing net new logos\n#LI-TY2\n#LI-Hybrid\nAt Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.\nOur Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:\n- Various health plans\n- Time off plans for vacation and sick time\n- Parental leave options\n- Retirement options\n- Education reimbursement\n- In-office perks, and more!\nLearn more about Zscaler’s Future of Work strategy, hybrid working model, and benefits here .\nBy applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.\nZscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. See more information by clicking on the Know Your Rights: Workplace Discrimination is Illegal link.\nPay Transparency\nZscaler complies with all applicable federal, state, and local pay transparency rules.\nZscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.",
           "is_valid": true,
-          "reason": "Valid description (4819 chars)"
+          "reason": "Valid description (4819 chars, 702 words)"
         },
         {
           "name": "empty_description_fallback",

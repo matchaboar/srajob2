@@ -45,12 +45,14 @@ def _normalize_posted_at(value: Any) -> datetime | None:
 
     # String parsing
     if isinstance(value, str):
-        from ..helpers.timestamp_parsing import parse_posted_at
+        from ..helpers.timestamp_parsing import parse_posted_at_with_unknown
 
         try:
-            result = parse_posted_at(value)
-            if result:
-                return result
+            # parse_posted_at_with_unknown returns (timestamp_ms, is_unknown)
+            result_ms, is_unknown = parse_posted_at_with_unknown(value)
+            if not is_unknown and result_ms:
+                # Convert milliseconds timestamp to datetime
+                return datetime.fromtimestamp(result_ms / 1000)
         except Exception:
             pass
 

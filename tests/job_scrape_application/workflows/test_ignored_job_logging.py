@@ -3,8 +3,6 @@ from __future__ import annotations
 import sys
 from typing import Any, Dict, List, Tuple
 
-import pytest
-
 # Ensure repo root importable
 
 # Stub firecrawl dependency for tests that don't exercise it
@@ -35,15 +33,14 @@ except Exception:
     firecrawl_v2_utils_error.RequestTimeoutError = firecrawl_v2_utils.error_handler.RequestTimeoutError
     sys.modules.setdefault("firecrawl.v2.utils.error_handler", firecrawl_v2_utils_error)
 
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.workflows.workflow import store_scrape  # noqa: E402
 import job_scrape_application.services.convex_client as convex_client  # noqa: E402
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_logs_ignored_with_title_and_description(monkeypatch):
+def test_store_scrape_logs_ignored_with_title_and_description(monkeypatch):
     calls: List[Tuple[str, Dict[str, Any]]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+    def fake_convex_mutation(name: str, args: Dict[str, Any]):
         calls.append((name, args))
         if name == "router:insertScrapeRecord":
             return "scrape-ignored-1"
@@ -69,7 +66,7 @@ async def test_store_scrape_logs_ignored_with_title_and_description(monkeypatch)
         },
     }
 
-    await acts.store_scrape(payload)
+    store_scrape(payload)
 
     inserted = [args for name, args in calls if name == "router:insertIgnoredJob"]
     assert inserted, "Expected insertIgnoredJob to be called"
@@ -77,11 +74,10 @@ async def test_store_scrape_logs_ignored_with_title_and_description(monkeypatch)
     assert inserted[0]["description"] == "raw description"
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_logs_ignored_with_unknown_title(monkeypatch):
+def test_store_scrape_logs_ignored_with_unknown_title(monkeypatch):
     calls: List[Tuple[str, Dict[str, Any]]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+    def fake_convex_mutation(name: str, args: Dict[str, Any]):
         calls.append((name, args))
         if name == "router:insertScrapeRecord":
             return "scrape-ignored-2"
@@ -105,19 +101,18 @@ async def test_store_scrape_logs_ignored_with_unknown_title(monkeypatch):
         },
     }
 
-    await acts.store_scrape(payload)
+    store_scrape(payload)
 
     inserted = [args for name, args in calls if name == "router:insertIgnoredJob"]
     assert inserted, "Expected insertIgnoredJob to be called"
     assert inserted[0]["title"] == "Unknown"
-    assert inserted[0]["description"] is None
+    assert inserted[0].get("description") is None
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_skips_http_404_ignored(monkeypatch):
+def test_store_scrape_skips_http_404_ignored(monkeypatch):
     calls: List[Tuple[str, Dict[str, Any]]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any]):
+    def fake_convex_mutation(name: str, args: Dict[str, Any]):
         calls.append((name, args))
         if name == "router:insertScrapeRecord":
             return "scrape-ignored-404"
@@ -143,7 +138,7 @@ async def test_store_scrape_skips_http_404_ignored(monkeypatch):
         },
     }
 
-    await acts.store_scrape(payload)
+    store_scrape(payload)
 
     inserted = [args for name, args in calls if name == "router:insertIgnoredJob"]
     assert not inserted, "Expected http_404 ignored entries to be skipped"

@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/dataminr/workday_20260114T134509_detail.json
+site_id: workday
+detail_url: https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954
+expected:
+  title: "Field Services Engineer, USAF (Onsite in San Antonio, TX)"
+  company: "Dataminr"
+  location_contains: "San Antonio"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

@@ -1,9 +1,0 @@
-# Together AI Greenhouse listing extraction assertions
-# Note: url_count reflects keyword-filtered jobs (engineer, data)
-site_id: greenhouse
-listing_url: https://api.greenhouse.io/v1/boards/togetherai/jobs
-expected:
-  url_count: 39  # Jobs matching keyword filter (engineer, data)
-  url_pattern: "https://boards-api\\.greenhouse\\.io/v1/boards/[^/]+/jobs/\\d+"
-  no_listing_urls: true
-  handler: "GreenhouseHandler"

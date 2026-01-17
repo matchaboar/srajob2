@@ -80,9 +80,6 @@ def _run_delete_loop(
         cursor = result.get("cursor") or None
         has_more = bool(result.get("hasMore"))
 
-        if has_more and sleep_ms > 0:
-            time.sleep(sleep_ms / 1000)
-
     return {
         "iterations": iterations,
         "hasMore": has_more,

@@ -1,0 +1,43 @@
+= DBOS001: Missing @DBOS.step decorator
+
+== Summary
+
+Functions calling convex or httpx must have `@DBOS.step` decorator.
+
+== Description
+
+Functions that make external calls to Convex (via `convex_query`, `convex_mutation`, `convex_action`) or HTTP requests (via `httpx` methods) must be decorated with `@DBOS.step` to ensure proper retry handling and workflow durability.
+
+The `@DBOS.step` decorator marks a function as an idempotent step within a DBOS workflow. When a workflow is retried (e.g., after a crash), steps that have already completed successfully are skipped, and their cached results are returned. This prevents duplicate external calls.
+
+== Examples
+
+.Bad: Missing decorator
+[source,python]
+----
+def fetch_user_data(user_id: str) -> dict:
+    return convex_query("users:get", {"id": user_id})
+----
+
+.Good: With decorator
+[source,python]
+----
+@DBOS.step
+def fetch_user_data(user_id: str) -> dict:
+    return convex_query("users:get", {"id": user_id})
+----
+
+== Suppression
+
+Add `# noqa: DBOS001` to the function definition line:
+
+[source,python]
+----
+def fetch_user_data(user_id: str) -> dict:  # noqa: DBOS001
+    return convex_query("users:get", {"id": user_id})
+----
+
+== See Also
+
+* DBOS002 - Sync/async signature matching
+* DBOS004 - Convex functions must not be async

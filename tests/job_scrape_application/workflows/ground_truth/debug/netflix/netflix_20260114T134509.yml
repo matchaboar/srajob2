@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/netflix/netflix_20260114T134509_detail.json
+site_id: netflix
+detail_url: https://explore.jobs.netflix.net/careers/job/790312429476
+expected:
+  title: "Systems Development Engineer L5"
+  company: "Netflix"
+  location_contains: Remote
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

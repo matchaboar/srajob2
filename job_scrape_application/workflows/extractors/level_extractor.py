@@ -42,6 +42,22 @@ _LEVEL_RE = re.compile(
     r"chief|head|c-level|cto|ceo|cfo)\b",
     re.IGNORECASE,
 )
+_ACCOUNT_MANAGER_RE = re.compile(
+    r"\b(?:named\s+)?account manager\b",
+    re.IGNORECASE,
+)
+_ACCOUNT_MANAGER_SENIOR_TOKENS = (
+    "senior",
+    "sr",
+    "principal",
+    "staff",
+    "director",
+    "vp",
+    "chief",
+    "head",
+    "lead",
+    "distinguished",
+)
 
 
 def _normalize_level(value: str) -> str:
@@ -112,6 +128,20 @@ class ExplicitLevelFieldStrategy(ExtractionStrategy[str]):
 
         normalized = _normalize_level(raw_level)
         if normalized:
+            title = context.extracted_title or context.get_raw_field("job_title", "title")
+            if (
+                normalized == "senior"
+                and isinstance(title, str)
+                and _ACCOUNT_MANAGER_RE.search(title.lower())
+                and not any(token in title.lower() for token in _ACCOUNT_MANAGER_SENIOR_TOKENS)
+            ):
+                return self._make_skip_result(
+                    "Skipping explicit senior level for account manager title"
+                )
+            if normalized == "mid":
+                return self._make_skip_result(
+                    f"Skipping mid-level default: {raw_level}"
+                )
             return self._make_result(
                 normalized,
                 f"Explicit level field: {raw_level} -> {normalized}",
@@ -161,16 +191,71 @@ class TitleLevelStrategy(ExtractionStrategy[str]):
 
     name = "title_level"
     priority = StrategyPriority.CONTENT_PATTERN
+    _STAFF_TOKENS = (
+        "staff",
+        "principal",
+        "director",
+        "vp",
+        "chief",
+        "head",
+        "lead",
+        "leader",
+        "distinguished",
+    )
+    _LEADER_RE = re.compile(r"\bleader\b", re.IGNORECASE)
+    _ACCOUNT_MANAGER_PATTERNS = (
+        re.compile(r"\bnamed account manager\b", re.IGNORECASE),
+        re.compile(r"\baccount manager\b", re.IGNORECASE),
+    )
+
+    def _is_valid_title(self, title: str | None) -> bool:
+        """Check if a title value is valid (not None, not HTML, not empty)."""
+        if not title or not isinstance(title, str):
+            return False
+        stripped = title.strip()
+        # Skip if title looks like HTML
+        if stripped.startswith("<") and ">" in stripped:
+            return False
+        # Skip if title is just whitespace/special chars after stripping tags
+        if len(stripped) < 3:
+            return False
+        return True
+
+    def _has_word_token(self, title_lower: str, tokens: tuple[str, ...]) -> bool:
+        return any(re.search(rf"\b{re.escape(token)}\b", title_lower) for token in tokens)
+
+    def _is_account_manager_title(self, title_lower: str) -> bool:
+        if not any(pattern.search(title_lower) for pattern in self._ACCOUNT_MANAGER_PATTERNS):
+            return False
+        if self._has_word_token(
+            title_lower,
+            ("senior", "sr", "principal", "staff", "director", "vp", "chief", "head", "lead", "distinguished"),
+        ):
+            return False
+        return True
 
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
+        # Try multiple sources for the job title, in order of reliability
         title = context.extracted_title
-        if not title:
+        if not self._is_valid_title(title):
+            title = context.handler_extracted_title
+        if not self._is_valid_title(title):
+            title = context.hints.get("title")
+        if not self._is_valid_title(title):
             title = context.get_raw_field("job_title", "title")
 
-        if not title or not isinstance(title, str):
+        if not self._is_valid_title(title):
             return self._make_skip_result("No title available")
 
         title_lower = title.lower()
+
+        if self._is_account_manager_title(title_lower):
+            return self._make_result(
+                "mid",
+                f"Account manager title maps to mid level: {title}",
+                is_valid=True,
+                confidence=0.80,
+            )
 
         # Check for level indicators in title
         match = _LEVEL_RE.search(title_lower)
@@ -188,12 +273,20 @@ class TitleLevelStrategy(ExtractionStrategy[str]):
 
         # Check for common title patterns - order matters!
         # Staff-level titles first (highest seniority)
-        if any(token in title_lower for token in ("staff", "principal", "director", "vp", "chief", "head", "lead", "distinguished")):
+        if self._has_word_token(title_lower, self._STAFF_TOKENS):
             return self._make_result(
                 "staff",
                 f"Staff/Executive level in title: {title}",
                 is_valid=True,
                 confidence=0.85,
+            )
+
+        if self._LEADER_RE.search(title_lower):
+            return self._make_result(
+                "senior",
+                f"Leader in title: {title}",
+                is_valid=True,
+                confidence=0.80,
             )
 
         if any(token in title_lower for token in ("senior", "sr ", "sr.", "sr-", "sr/")):
@@ -275,6 +368,66 @@ class ContentPatternLevelStrategy(ExtractionStrategy[str]):
     # when found in content (but are still valid in titles where they indicate job level)
     _VERB_TOKENS = frozenset({"lead", "head", "manager"})
 
+    # Phrases that indicate the level indicator describes someone else's role, not this job
+    # e.g., "Reporting to the Senior Manager" - Senior describes the manager, not this job
+    _SKIP_CONTEXT_PHRASES = (
+        "reporting to",
+        "report to",
+        "reports to",
+        "work with",
+        "works with",
+        "working with",
+        "collaborate with",
+        "partner with",
+        "alongside",
+        "under the",
+    )
+
+    _MINIMUM_YEARS_RE = re.compile(
+        r"(?:minimum of|at least|atleast|min(?:imum)?)\s+(?P<years>\d{1,2})\s*(?:years?|yrs?)",
+        re.IGNORECASE,
+    )
+    _RANGE_YEARS_RE = re.compile(
+        r"(?P<min>\d{1,2})\s*[-–]\s*(?P<max>\d{1,2})\s*(?:years?|yrs?)",
+        re.IGNORECASE,
+    )
+    _PLUS_YEARS_RE = re.compile(
+        r"(?P<years>\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|work\s+|relevant\s+)?experience",
+        re.IGNORECASE,
+    )
+
+    def _is_describing_other_role(self, content: str, match_start: int) -> bool:
+        """Check if the level match describes someone else's role rather than this job."""
+        # Look at the 50 characters before the match
+        prefix_start = max(0, match_start - 50)
+        prefix = content[prefix_start:match_start].lower()
+
+        for phrase in self._SKIP_CONTEXT_PHRASES:
+            if phrase in prefix:
+                return True
+        return False
+
+    def _level_from_years(self, years: int) -> str | None:
+        if 3 <= years <= 5:
+            return "mid"
+        if years >= 6:
+            return "senior"
+        return None
+
+    def _extract_experience_years(self, content: str) -> int | None:
+        for match in self._MINIMUM_YEARS_RE.finditer(content):
+            return int(match.group("years"))
+
+        for match in self._RANGE_YEARS_RE.finditer(content):
+            window = content[max(0, match.start() - 20):match.end() + 40].lower()
+            if "experience" in window or "exp" in window:
+                return int(match.group("min"))
+
+        for match in self._PLUS_YEARS_RE.finditer(content):
+            return int(match.group("years"))
+
+        return None
+
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
         content = context.description_body or context.normalized_markdown
         if not content:
@@ -289,15 +442,34 @@ class ContentPatternLevelStrategy(ExtractionStrategy[str]):
             # Skip tokens that are commonly verbs when found in content
             # (e.g., "Lead analytics engineering efforts" - "lead" is a verb, not a title)
             if level_text.lower() in self._VERB_TOKENS:
-                return self._make_skip_result(f"Skipping verb token in content: {level_text}")
-            normalized = _normalize_level(level_text)
+                match = None
+            else:
+                # Skip if this level indicator describes someone else's role
+                # (e.g., "Reporting to the Senior Manager" - Senior describes the manager)
+                if self._is_describing_other_role(first_section, match.start()):
+                    match = None
+
+            if match:
+                normalized = _normalize_level(level_text)
+                if normalized:
+                    return self._make_result(
+                        normalized,
+                        f"Level from content: '{level_text}' -> {normalized}",
+                        is_valid=True,
+                        confidence=0.60,
+                        debug_info={"match_position": match.start()},
+                    )
+
+        experience_years = self._extract_experience_years(content)
+        if experience_years is not None:
+            normalized = self._level_from_years(experience_years)
             if normalized:
                 return self._make_result(
                     normalized,
-                    f"Level from content: '{level_text}' -> {normalized}",
+                    f"Level from experience: {experience_years}+ years -> {normalized}",
                     is_valid=True,
-                    confidence=0.60,
-                    debug_info={"match_position": match.start()},
+                    confidence=0.55,
+                    debug_info={"years": experience_years},
                 )
 
         return self._make_skip_result("No level pattern in content")

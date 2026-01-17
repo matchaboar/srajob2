@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States",
     "params": {

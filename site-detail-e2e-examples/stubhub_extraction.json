@@ -14,18 +14,38 @@
       "company": "StubHub",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Analytics Engineer II",
+        "company": "StubHub",
+        "location": "Los Angeles, California, United States",
+        "description": "Analytics Engineer II \n\nStubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth, we’re here to delight them all the way from the moment they start looking for a ticket until they step through the gate. The same goes for our sellers. From fans selling a single ticket to the promoters of a worldwide stadium tour, we want StubHub to be the safest, most convenient way to offer a ticket to the millions of fans who browse our platform around the world.\nWe...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101",
+        "apply_url": "https://boards.greenhouse.io/stubhubinc/jobs/4704159101",
+        "posted_at": 1766169213000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 765
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101",
+        "word_count": 765,
+        "description_preview": "Analytics Engineer II StubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth,..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "StubHub",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -162,9 +182,9 @@
         {
           "name": "explicit_label_location",
           "priority": "CUSTOM_350",
-          "value": "Hybrid (3 days in office/2 days remote) – New York, NY or Santa Monica, CA",
-          "is_valid": true,
-          "reason": "Found 'Location:' label"
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
         },
         {
           "name": "url_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Los Angeles, California, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Los Angeles, California, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 150000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 175000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 175000,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $150,000-$200,000 -> $175,000 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 150000,
@@ -335,18 +376,46 @@
           "reason": "Single compensation pattern: $150,000"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 175000,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $150,000-$200,000 -> $175,000 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:02.697393",
+          "value": "2026-01-17T13:05:59.016735",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Analytics Engineer II\n\nStubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth, we’re here to delight them all the way from the moment they start looking for a ticket until they step through the gate. The same goes for our sellers. From fans selling a single ticket to the promoters of a worldwide stadium tour, we want StubHub to be the safest, most convenient way to offer a ticket to the millions of fans who browse our platform around the world.\nWe are seeking talented Analytics Engineer from mid to senior levels to join StubHub’s Data Engineering &amp; Analytics organization. In this role you will be responsible for scaling both analytic products (data assets, dashboards, tools/services) and analytic frameworks (decision frameworks, metrics, analytical models). You will be a “force multiplier” who significantly improves and speeds up StubHub’s ability to make great data-informed decisions.&nbsp;\nLocation: Hybrid (3 days in office/2 days remote) – New York, NY or Santa Monica, CA\nAbout the team:\nThe Analytics Engineering team exists to enable robust data-informed decision making that steers our business growth goals, through the creation of high-quality data products and scaled insights. Analytics Engineering helps solve the scale problems and common data access patterns encountered by analysts, data scientists, and other business data consumers. All data modules and tools owned by AE are then leveraged not only by members of that business domain, but also data consumers from across the company. We are looking for the right person who can operate and translate across all parts of the business.&nbsp;\nWhat You'll Do:\n- Manage cross-functional analytical data models, metric frameworks and implementations, and self-serve dashboards/tools\n- Specialize in one or more business domains, building deep expertise and anticipating the needs of that business vertical\n- Collaborate cross functionally with business and product teams while simultaneously \"speaking the language” of engineering teams, oftentimes acting as proxy for one or the other\nWhat You've Done:\n- 3-5 years of relevant analytics engineering, data engineering, or business intelligence experience in a fast paced, high growth environment &nbsp;\n- Proficiency with transforming and analyzing large scale data with modern cloud computing platforms (e.g. SparkSQL, BigQuery, Snowflake, Databricks)\n- High proficiency with SQL and experience with one or more programming languages (e.g. Python, Java) and markup/configuration languages (e.g. YAML)\n- Proficiency in building data models and pipelines using orchestration software (e.g. Airflow, dbt)\n- Experience building reports/dashboards with business intelligence (BI) tools, such as Tableau and Looker\n- Exposure to both batch data processing and real-time streaming technologies\n- Familiarity with data cataloging and metadata management tools\n- Passionate about working with non-technical stakeholders to understand, anticipate, and deliver on their data needs\nWhat We Offer:\n- Accelerated Growth Environment: &nbsp;An environment designed for swift skill and knowledge enhancement, where you have the autonomy to lead experiments and tests on a massive scale.\n- Top Tier Compensation Package: &nbsp;Competitive base, equity, and upside that tracks with your impact.\n- Flexible Time Off: &nbsp;Enjoy unlimited Flex Time Off, giving you the flexibility to manage your schedule and take time to recharge as needed.\n- Comprehensive Benefits Package: &nbsp;Prioritize your well-being with a comprehensive benefits package, featuring 401k, and premium Health, Vision, and Dental Insurance options.\nThe anticipated gross base pay range is below for this role. Actual compensation will vary depending on factors such as a candidate’s qualifications, skills, experience, and competencies. Base annual salary is one component of StubHub’s total compensation and competitive benefits package, which includes equity, 401(k), paid time off, paid parental leave, and comprehensive health benefits.&nbsp;\nSalary Range $150,000 &mdash; $200,000 USD About Us &nbsp;\nStubHub is the world’s leading marketplace to buy and sell tickets to any live event, anywhere. Through StubHub in North America and viagogo, our international platform, we service customers in 195 countries in 33 languages and 49 available currencies. With more than 300 million tickets available annually on our platform to events around the world -- from sports to music, comedy to dance, festivals to theater -- StubHub offers the safest, most convenient way to buy or sell tickets to the most memorable live experiences. Come join our team for a front-row seat to the action.&nbsp;\n&nbsp;\nFor California Residents: California Job Applicant Privacy Notice found&nbsp; here\n&nbsp;\nWe are an equal opportunity employer and value diversity on our team. We do not discriminate on the basis of race, color, religion, sex, national origin, gender, sexual orientation, age, disability, veteran status, or any other legally protected status.",
           "is_valid": true,
-          "reason": "Valid description (5127 chars)"
+          "reason": "Valid description (5127 chars, 765 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Analytics Engineer II\n\nStubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth, we’re here to delight them all the way from the moment they start looking for a ticket until they step through the gate. The same goes for our sellers. From fans selling a single ticket to the promoters of a worldwide stadium tour, we want StubHub to be the safest, most convenient way to offer a ticket to the millions of fans who browse our platform around the world.\nWe are seeking talented Analytics Engineer from mid to senior levels to join StubHub’s Data Engineering &amp; Analytics organization. In this role you will be responsible for scaling both analytic products (data assets, dashboards, tools/services) and analytic frameworks (decision frameworks, metrics, analytical models). You will be a “force multiplier” who significantly improves and speeds up StubHub’s ability to make great data-informed decisions.&nbsp;\nLocation: Hybrid (3 days in office/2 days remote) – New York, NY or Santa Monica, CA\nAbout the team:\nThe Analytics Engineering team exists to enable robust data-informed decision making that steers our business growth goals, through the creation of high-quality data products and scaled insights. Analytics Engineering helps solve the scale problems and common data access patterns encountered by analysts, data scientists, and other business data consumers. All data modules and tools owned by AE are then leveraged not only by members of that business domain, but also data consumers from across the company. We are looking for the right person who can operate and translate across all parts of the business.&nbsp;\nWhat You'll Do:\n- Manage cross-functional analytical data models, metric frameworks and implementations, and self-serve dashboards/tools\n- Specialize in one or more business domains, building deep expertise and anticipating the needs of that business vertical\n- Collaborate cross functionally with business and product teams while simultaneously \"speaking the language” of engineering teams, oftentimes acting as proxy for one or the other\nWhat You've Done:\n- 3-5 years of relevant analytics engineering, data engineering, or business intelligence experience in a fast paced, high growth environment &nbsp;\n- Proficiency with transforming and analyzing large scale data with modern cloud computing platforms (e.g. SparkSQL, BigQuery, Snowflake, Databricks)\n- High proficiency with SQL and experience with one or more programming languages (e.g. Python, Java) and markup/configuration languages (e.g. YAML)\n- Proficiency in building data models and pipelines using orchestration software (e.g. Airflow, dbt)\n- Experience building reports/dashboards with business intelligence (BI) tools, such as Tableau and Looker\n- Exposure to both batch data processing and real-time streaming technologies\n- Familiarity with data cataloging and metadata management tools\n- Passionate about working with non-technical stakeholders to understand, anticipate, and deliver on their data needs\nWhat We Offer:\n- Accelerated Growth Environment: &nbsp;An environment designed for swift skill and knowledge enhancement, where you have the autonomy to lead experiments and tests on a massive scale.\n- Top Tier Compensation Package: &nbsp;Competitive base, equity, and upside that tracks with your impact.\n- Flexible Time Off: &nbsp;Enjoy unlimited Flex Time Off, giving you the flexibility to manage your schedule and take time to recharge as needed.\n- Comprehensive Benefits Package: &nbsp;Prioritize your well-being with a comprehensive benefits package, featuring 401k, and premium Health, Vision, and Dental Insurance options.\nThe anticipated gross base pay range is below for this role. Actual compensation will vary depending on factors such as a candidate’s qualifications, skills, experience, and competencies. Base annual salary is one component of StubHub’s total compensation and competitive benefits package, which includes equity, 401(k), paid time off, paid parental leave, and comprehensive health benefits.&nbsp;\nSalary Range $150,000 &mdash; $200,000 USD About Us &nbsp;\nStubHub is the world’s leading marketplace to buy and sell tickets to any live event, anywhere. Through StubHub in North America and viagogo, our international platform, we service customers in 195 countries in 33 languages and 49 available currencies. With more than 300 million tickets available annually on our platform to events around the world -- from sports to music, comedy to dance, festivals to theater -- StubHub offers the safest, most convenient way to buy or sell tickets to the most memorable live experiences. Come join our team for a front-row seat to the action.&nbsp;\n&nbsp;\nFor California Residents: California Job Applicant Privacy Notice found&nbsp; here\n&nbsp;\nWe are an equal opportunity employer and value diversity on our team. We do not discriminate on the basis of race, color, religion, sex, national origin, gender, sexual orientation, age, disability, veteran status, or any other legally protected status.",
           "is_valid": true,
-          "reason": "Valid description (5127 chars)"
+          "reason": "Valid description (5127 chars, 765 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Analytics Engineer II\n\nStubHub is on a mission to redefine the live event experience on a global scale. Whether someone is looking to attend their first event or their hundredth, we’re here to delight them all the way from the moment they start looking for a ticket until they step through the gate. The same goes for our sellers. From fans selling a single ticket to the promoters of a worldwide stadium tour, we want StubHub to be the safest, most convenient way to offer a ticket to the millions of fans who browse our platform around the world.\nWe are seeking talented Analytics Engineer from mid to senior levels to join StubHub’s Data Engineering &amp; Analytics organization. In this role you will be responsible for scaling both analytic products (data assets, dashboards, tools/services) and analytic frameworks (decision frameworks, metrics, analytical models). You will be a “force multiplier” who significantly improves and speeds up StubHub’s ability to make great data-informed decisions.&nbsp;\nLocation: Hybrid (3 days in office/2 days remote) – New York, NY or Santa Monica, CA\nAbout the team:\nThe Analytics Engineering team exists to enable robust data-informed decision making that steers our business growth goals, through the creation of high-quality data products and scaled insights. Analytics Engineering helps solve the scale problems and common data access patterns encountered by analysts, data scientists, and other business data consumers. All data modules and tools owned by AE are then leveraged not only by members of that business domain, but also data consumers from across the company. We are looking for the right person who can operate and translate across all parts of the business.&nbsp;\nWhat You'll Do:\n- Manage cross-functional analytical data models, metric frameworks and implementations, and self-serve dashboards/tools\n- Specialize in one or more business domains, building deep expertise and anticipating the needs of that business vertical\n- Collaborate cross functionally with business and product teams while simultaneously \"speaking the language” of engineering teams, oftentimes acting as proxy for one or the other\nWhat You've Done:\n- 3-5 years of relevant analytics engineering, data engineering, or business intelligence experience in a fast paced, high growth environment &nbsp;\n- Proficiency with transforming and analyzing large scale data with modern cloud computing platforms (e.g. SparkSQL, BigQuery, Snowflake, Databricks)\n- High proficiency with SQL and experience with one or more programming languages (e.g. Python, Java) and markup/configuration languages (e.g. YAML)\n- Proficiency in building data models and pipelines using orchestration software (e.g. Airflow, dbt)\n- Experience building reports/dashboards with business intelligence (BI) tools, such as Tableau and Looker\n- Exposure to both batch data processing and real-time streaming technologies\n- Familiarity with data cataloging and metadata management tools\n- Passionate about working with non-technical stakeholders to understand, anticipate, and deliver on their data needs\nWhat We Offer:\n- Accelerated Growth Environment: &nbsp;An environment designed for swift skill and knowledge enhancement, where you have the autonomy to lead experiments and tests on a massive scale.\n- Top Tier Compensation Package: &nbsp;Competitive base, equity, and upside that tracks with your impact.\n- Flexible Time Off: &nbsp;Enjoy unlimited Flex Time Off, giving you the flexibility to manage your schedule and take time to recharge as needed.\n- Comprehensive Benefits Package: &nbsp;Prioritize your well-being with a comprehensive benefits package, featuring 401k, and premium Health, Vision, and Dental Insurance options.\nThe anticipated gross base pay range is below for this role. Actual compensation will vary depending on factors such as a candidate’s qualifications, skills, experience, and competencies. Base annual salary is one component of StubHub’s total compensation and competitive benefits package, which includes equity, 401(k), paid time off, paid parental leave, and comprehensive health benefits.&nbsp;\nSalary Range $150,000 &mdash; $200,000 USD About Us &nbsp;\nStubHub is the world’s leading marketplace to buy and sell tickets to any live event, anywhere. Through StubHub in North America and viagogo, our international platform, we service customers in 195 countries in 33 languages and 49 available currencies. With more than 300 million tickets available annually on our platform to events around the world -- from sports to music, comedy to dance, festivals to theater -- StubHub offers the safest, most convenient way to buy or sell tickets to the most memorable live experiences. Come join our team for a front-row seat to the action.&nbsp;\n&nbsp;\nFor California Residents: California Job Applicant Privacy Notice found&nbsp; here\n&nbsp;\nWe are an equal opportunity employer and value diversity on our team. We do not discriminate on the basis of race, color, religion, sex, national origin, gender, sexual orientation, age, disability, veteran status, or any other legally protected status.",
           "is_valid": true,
-          "reason": "Valid description (5127 chars)"
+          "reason": "Valid description (5127 chars, 765 words)"
         },
         {
           "name": "empty_description_fallback",

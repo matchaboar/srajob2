@@ -1,35 +1,55 @@
 {
   "site_id": "okta",
-  "detail_url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7378568",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092",
   "source_url": "https://api.greenhouse.io/v1/boards/okta/jobs",
   "extracted_jobs": [
     {
-      "title": "ABX Marketing Manager",
-      "description_preview": "ABX Marketing Manager Get to know Okta Okta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business...",
-      "description_word_count": 1027,
-      "location": "Bellevue, WA",
+      "title": "AI/ML Engineer II- Intelligence Accelerator",
+      "description_preview": "AI/ML Engineer II- Intelligence Accelerator Get to know Okta Okta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core...",
+      "description_word_count": 1094,
+      "location": "Toronto, Canada",
       "is_remote": false,
-      "posted_at": 1766014241000,
+      "posted_at": 1765999115000,
       "posted_at_unknown": false,
       "company": "Okta",
-      "level": "senior",
+      "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
-      "url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7378568",
+      "compensation_unknown": false,
+      "compensation_reason": null,
+      "url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "AI/ML Engineer II- Intelligence Accelerator",
+        "company": "Okta",
+        "location": "Toronto, Ontario, Canada",
+        "description": "AI/ML Engineer II- Intelligence Accelerator\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092",
+        "apply_url": "https://boards.greenhouse.io/okta/jobs/7435092",
+        "posted_at": 1765999115000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 1094
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092",
+        "word_count": 1094,
+        "description_preview": "AI/ML Engineer II- Intelligence Accelerator Get to know Okta Okta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "ABX Marketing Manager",
+      "final_value": "AI/ML Engineer II- Intelligence Accelerator",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -50,7 +70,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "ABX Marketing Manager",
+          "value": "AI/ML Engineer II- Intelligence Accelerator",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -64,14 +84,14 @@
         {
           "name": "hinted_title",
           "priority": "HEURISTIC",
-          "value": "ABX Marketing Manager",
+          "value": "AI/ML Engineer II- Intelligence Accelerator",
           "is_valid": true,
           "reason": "Valid title"
         },
         {
           "name": "first_line_title",
           "priority": "FALLBACK",
-          "value": "ABX Marketing Manager",
+          "value": "AI/ML Engineer II- Intelligence Accelerator",
           "is_valid": true,
           "reason": "Valid title"
         }
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Okta",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "Get to know Okta\nOkta",
+          "value": "our team",
           "is_valid": true,
-          "reason": "Found 'Company is a' pattern"
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -134,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+      "final_value": "Toronto, Ontario, Canada",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+          "value": "Toronto, Ontario, Canada",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -176,21 +196,21 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Our flexible and neutral products, Okta Platform and Auth",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada",
+          "value": "Toronto, Ontario, Canada",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
         {
           "name": "hinted_location",
           "priority": "HEURISTIC",
-          "value": "Washington, DC",
+          "value": "Toronto, Canada",
           "is_valid": true,
           "reason": "From hints.locations (1 locations)"
         },
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Bellevue, Washington; Chicago, Illinois; Toronto, Ontario, Canada"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Toronto, Ontario, Canada' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -260,16 +294,16 @@
       ]
     },
     "level": {
-      "final_value": "senior",
-      "winning_strategy": "explicit_level_field",
+      "final_value": "mid",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "senior",
-          "is_valid": true,
-          "reason": "Explicit level field: senior -> senior"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -281,16 +315,16 @@
         {
           "name": "title_level",
           "priority": "CONTENT_PATTERN",
-          "value": "senior",
-          "is_valid": true,
-          "reason": "Level from title: 'manager' -> senior"
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
         },
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
           "value": null,
           "is_valid": false,
-          "reason": "Skipping verb token in content: Manager"
+          "reason": "No level pattern in content"
         },
         {
           "name": "hinted_level",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 128000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 135000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +362,18 @@
           "reason": "No structured data available"
         },
         {
-          "name": "content_pattern_compensation",
-          "priority": "CONTENT_PATTERN",
-          "value": 128000,
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 135000,
           "is_valid": true,
-          "reason": "Single compensation pattern: $128,000"
+          "reason": "Compensation from hint range: $110,000-$160,000 -> $135,000 (avg)"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 160000,
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 110000,
           "is_valid": true,
-          "reason": "Compensation from hint range: $128,000-$192,000 -> $160,000 (avg)"
+          "reason": "Single compensation pattern: $110,000"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +384,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2025-12-17T16:30:41",
+      "final_value": "2025-12-17T12:18:35",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2025-12-17T16:30:41",
+          "value": "2025-12-17T12:18:35",
           "is_valid": true,
-          "reason": "Valid date: 2025-12-17T16:30:41"
+          "reason": "Valid date: 2025-12-17T12:18:35"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,14 +462,42 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:02.460184",
+          "value": "2026-01-17T01:53:41.640994",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
       ]
     },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
+        }
+      ]
+    },
     "description": {
-      "final_value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+      "final_value": "AI/ML Engineer II- Intelligence Accelerator\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nAbout the Role\nThe Intelligence Accelerator team in the Data Platform Group is the engine behind Okta’s AI/ML evolution. We are responsible for building the foundational AI/ML services and systems that fast-track AI/ML for Okta and deliver differentiated value to our users. Working hand-in-glove with the Data Platform team, Data Scientists, Product Managers, and the SREs, you will bridge the gap between data, research and platform offerings, playing a critical role in enabling the technical adoption of ML and Generative AI across the company.\nWe are assembling an elite unit designed to be fast, creative, and flexible. We practice extreme ownership. We expect great things from our engineers and reward them with stimulating challenges, novel technologies, and the chance to hold equity. Join the Intelligence Accelerator and help us change the cloud security landscape forever.\nAs a Machine Learning Engineer within the Intelligence Accelerator team, you will contribute to the development of our next-generation AI/ML platform. You will work with the team to build the \"paved road\" that empowers Okta’s Applied AI teams to rapidly build and deploy intelligent features—enabling leveraging classical models, LLMs and autonomous agents.\nYou will join a group that prioritizes engineering rigor—designing for scale, rigorous code reviews, automated testing, and CI/CD for ML (MLOps). In this role, you will:\n- Contribute to the Foundation: Help design and maintain scalable infrastructure for core machine learning lifecycles, including distributed training clusters, real-time inference serving, and high-performance feature stores.\n- Implement Agentic Infrastructure: Work on the bleeding-edge stack for Agentic AI, helping to implement standards like the Model Context Protocol (MCP) to securely connect LLMs with internal tools, data, and APIs.\n- Enable Applied AI: Build internal developer tooling that allow our product engineering teams to leverage Generative AI workflows, RAG pipelines, and vector databases without worrying about the underlying infrastructure.\nThis is your opportunity to build the systems that power Okta’s future, working with emerging tech stacks in a fast, flexible, and elite environment\nWhat You'll Do\n- Architect &amp; Deploy ML Infrastructure: Design, build, and maintain robust, scalable ML infrastructure using modern tools (Airflow, MLFlow, feature stores, vector databases) while implementing automated CI/CD workflows for model training, validation, and deployment.\n- Drive Innovation &amp; Security: Evaluate and adopt new ML technologies while ensuring data security, privacy, and compliance within the ML infrastructure\n- Build Scalable Data Pipelines: Design and maintain pipelines to ingest, process, and transform data from various sources, data warehouses, ensuring data quality, security, and compliance of data feeding into ML models and offline model artifact deployment\n- Optimize &amp; Monitor Systems: Deploy and monitor ML systems with data scientists and engineers, troubleshoot infrastructure issues, and optimize their performance\n- Collaborate &amp; Evangelize: Work with cross-functional teams to align AI/ML platform strategies with company objectives while acting as an AI/ML evangelist and provide mentorship to analysts and stakeholders.\nWhat You'll Bring\n- Engineering Experience: 3+ years of software engineering experience with a strong focus on backend systems, distributed computing, or cloud infrastructure (AWS/GCP/Azure).\n- ML Infrastructure: Experience building and scaling ML platforms using technologies like Kubernetes, Ray, Kubeflow, or similar orchestration tools.\n- Production Mindset: You treat infrastructure as code. You have a track record of implementing CI/CD pipelines, automated testing, and observability for Machine Learning workloads.\n- GenAI Fluency: Familiarity with the modern LLM stack (e.g., LangChain, vector databases, RAG patterns) and an interest in emerging standards like Model Context Protocol (MCP) and Agentic workflows.\n- Language Proficiency: Expert-level proficiency in Python and familiarity with Go, Java, or C++.\n- Collaborative Spirit: Experience working directly with Data Scientists or Applied AI teams to translate research needs into robust production systems\nNice to Have\n- Experience with Java and/or Java EE web applications.\n- Familiarity with authentication protocols, access management, or cloud security best practices.\n- Exposure to prompt engineering, LLM ecosystems (Hugging Face, LangChain, vector databases), and identity and access management or security focused ML applications.\n**This person must attend in person orientation in Toronto the first week of work.&nbsp;\n#LI-Hybrid\n#LI-BB1\nBelow is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $110,000 &mdash; $160,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -414,23 +511,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "value": "AI/ML Engineer II- Intelligence Accelerator\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nAbout the Role\nThe Intelligence Accelerator team in the Data Platform Group is the engine behind Okta’s AI/ML evolution. We are responsible for building the foundational AI/ML services and systems that fast-track AI/ML for Okta and deliver differentiated value to our users. Working hand-in-glove with the Data Platform team, Data Scientists, Product Managers, and the SREs, you will bridge the gap between data, research and platform offerings, playing a critical role in enabling the technical adoption of ML and Generative AI across the company.\nWe are assembling an elite unit designed to be fast, creative, and flexible. We practice extreme ownership. We expect great things from our engineers and reward them with stimulating challenges, novel technologies, and the chance to hold equity. Join the Intelligence Accelerator and help us change the cloud security landscape forever.\nAs a Machine Learning Engineer within the Intelligence Accelerator team, you will contribute to the development of our next-generation AI/ML platform. You will work with the team to build the \"paved road\" that empowers Okta’s Applied AI teams to rapidly build and deploy intelligent features—enabling leveraging classical models, LLMs and autonomous agents.\nYou will join a group that prioritizes engineering rigor—designing for scale, rigorous code reviews, automated testing, and CI/CD for ML (MLOps). In this role, you will:\n- Contribute to the Foundation: Help design and maintain scalable infrastructure for core machine learning lifecycles, including distributed training clusters, real-time inference serving, and high-performance feature stores.\n- Implement Agentic Infrastructure: Work on the bleeding-edge stack for Agentic AI, helping to implement standards like the Model Context Protocol (MCP) to securely connect LLMs with internal tools, data, and APIs.\n- Enable Applied AI: Build internal developer tooling that allow our product engineering teams to leverage Generative AI workflows, RAG pipelines, and vector databases without worrying about the underlying infrastructure.\nThis is your opportunity to build the systems that power Okta’s future, working with emerging tech stacks in a fast, flexible, and elite environment\nWhat You'll Do\n- Architect &amp; Deploy ML Infrastructure: Design, build, and maintain robust, scalable ML infrastructure using modern tools (Airflow, MLFlow, feature stores, vector databases) while implementing automated CI/CD workflows for model training, validation, and deployment.\n- Drive Innovation &amp; Security: Evaluate and adopt new ML technologies while ensuring data security, privacy, and compliance within the ML infrastructure\n- Build Scalable Data Pipelines: Design and maintain pipelines to ingest, process, and transform data from various sources, data warehouses, ensuring data quality, security, and compliance of data feeding into ML models and offline model artifact deployment\n- Optimize &amp; Monitor Systems: Deploy and monitor ML systems with data scientists and engineers, troubleshoot infrastructure issues, and optimize their performance\n- Collaborate &amp; Evangelize: Work with cross-functional teams to align AI/ML platform strategies with company objectives while acting as an AI/ML evangelist and provide mentorship to analysts and stakeholders.\nWhat You'll Bring\n- Engineering Experience: 3+ years of software engineering experience with a strong focus on backend systems, distributed computing, or cloud infrastructure (AWS/GCP/Azure).\n- ML Infrastructure: Experience building and scaling ML platforms using technologies like Kubernetes, Ray, Kubeflow, or similar orchestration tools.\n- Production Mindset: You treat infrastructure as code. You have a track record of implementing CI/CD pipelines, automated testing, and observability for Machine Learning workloads.\n- GenAI Fluency: Familiarity with the modern LLM stack (e.g., LangChain, vector databases, RAG patterns) and an interest in emerging standards like Model Context Protocol (MCP) and Agentic workflows.\n- Language Proficiency: Expert-level proficiency in Python and familiarity with Go, Java, or C++.\n- Collaborative Spirit: Experience working directly with Data Scientists or Applied AI teams to translate research needs into robust production systems\nNice to Have\n- Experience with Java and/or Java EE web applications.\n- Familiarity with authentication protocols, access management, or cloud security best practices.\n- Exposure to prompt engineering, LLM ecosystems (Hugging Face, LangChain, vector databases), and identity and access management or security focused ML applications.\n**This person must attend in person orientation in Toronto the first week of work.&nbsp;\n#LI-Hybrid\n#LI-BB1\nBelow is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $110,000 &mdash; $160,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
           "is_valid": true,
-          "reason": "Valid description (7327 chars)"
+          "reason": "Valid description (7607 chars, 1094 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "value": "AI/ML Engineer II- Intelligence Accelerator\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nAbout the Role\nThe Intelligence Accelerator team in the Data Platform Group is the engine behind Okta’s AI/ML evolution. We are responsible for building the foundational AI/ML services and systems that fast-track AI/ML for Okta and deliver differentiated value to our users. Working hand-in-glove with the Data Platform team, Data Scientists, Product Managers, and the SREs, you will bridge the gap between data, research and platform offerings, playing a critical role in enabling the technical adoption of ML and Generative AI across the company.\nWe are assembling an elite unit designed to be fast, creative, and flexible. We practice extreme ownership. We expect great things from our engineers and reward them with stimulating challenges, novel technologies, and the chance to hold equity. Join the Intelligence Accelerator and help us change the cloud security landscape forever.\nAs a Machine Learning Engineer within the Intelligence Accelerator team, you will contribute to the development of our next-generation AI/ML platform. You will work with the team to build the \"paved road\" that empowers Okta’s Applied AI teams to rapidly build and deploy intelligent features—enabling leveraging classical models, LLMs and autonomous agents.\nYou will join a group that prioritizes engineering rigor—designing for scale, rigorous code reviews, automated testing, and CI/CD for ML (MLOps). In this role, you will:\n- Contribute to the Foundation: Help design and maintain scalable infrastructure for core machine learning lifecycles, including distributed training clusters, real-time inference serving, and high-performance feature stores.\n- Implement Agentic Infrastructure: Work on the bleeding-edge stack for Agentic AI, helping to implement standards like the Model Context Protocol (MCP) to securely connect LLMs with internal tools, data, and APIs.\n- Enable Applied AI: Build internal developer tooling that allow our product engineering teams to leverage Generative AI workflows, RAG pipelines, and vector databases without worrying about the underlying infrastructure.\nThis is your opportunity to build the systems that power Okta’s future, working with emerging tech stacks in a fast, flexible, and elite environment\nWhat You'll Do\n- Architect &amp; Deploy ML Infrastructure: Design, build, and maintain robust, scalable ML infrastructure using modern tools (Airflow, MLFlow, feature stores, vector databases) while implementing automated CI/CD workflows for model training, validation, and deployment.\n- Drive Innovation &amp; Security: Evaluate and adopt new ML technologies while ensuring data security, privacy, and compliance within the ML infrastructure\n- Build Scalable Data Pipelines: Design and maintain pipelines to ingest, process, and transform data from various sources, data warehouses, ensuring data quality, security, and compliance of data feeding into ML models and offline model artifact deployment\n- Optimize &amp; Monitor Systems: Deploy and monitor ML systems with data scientists and engineers, troubleshoot infrastructure issues, and optimize their performance\n- Collaborate &amp; Evangelize: Work with cross-functional teams to align AI/ML platform strategies with company objectives while acting as an AI/ML evangelist and provide mentorship to analysts and stakeholders.\nWhat You'll Bring\n- Engineering Experience: 3+ years of software engineering experience with a strong focus on backend systems, distributed computing, or cloud infrastructure (AWS/GCP/Azure).\n- ML Infrastructure: Experience building and scaling ML platforms using technologies like Kubernetes, Ray, Kubeflow, or similar orchestration tools.\n- Production Mindset: You treat infrastructure as code. You have a track record of implementing CI/CD pipelines, automated testing, and observability for Machine Learning workloads.\n- GenAI Fluency: Familiarity with the modern LLM stack (e.g., LangChain, vector databases, RAG patterns) and an interest in emerging standards like Model Context Protocol (MCP) and Agentic workflows.\n- Language Proficiency: Expert-level proficiency in Python and familiarity with Go, Java, or C++.\n- Collaborative Spirit: Experience working directly with Data Scientists or Applied AI teams to translate research needs into robust production systems\nNice to Have\n- Experience with Java and/or Java EE web applications.\n- Familiarity with authentication protocols, access management, or cloud security best practices.\n- Exposure to prompt engineering, LLM ecosystems (Hugging Face, LangChain, vector databases), and identity and access management or security focused ML applications.\n**This person must attend in person orientation in Toronto the first week of work.&nbsp;\n#LI-Hybrid\n#LI-BB1\nBelow is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $110,000 &mdash; $160,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
           "is_valid": true,
-          "reason": "Valid description (7327 chars)"
+          "reason": "Valid description (7607 chars, 1094 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "ABX Marketing Manager\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nABX Marketing Manager\nAbout the Role\nWe are seeking a highly strategic and results-driven ABX Marketing Manager to own, develop, and execute our Account-Based Experience 1:few strategy for our most strategic and high-value target accounts. This role is the critical link between Marketing and Sales, responsible for creating personalized, multi-channel experiences that drive engagement, accelerate pipeline, and generate measurable revenue growth. If you thrive in a collaborative, data-driven environment and are passionate about crafting targeted experiences that turn accounts into advocates, this is the role for you.\nKey Responsibilities\nI. ABX Strategy &amp; Planning\n- Own the ABX 1:Few Program Strategy: Develop, implement, and manage comprehensive ABX programs (1:few) for defined target account tiers, ensuring alignment with overall GTM strategy and revenue goals.\n- Marketing Partnership: Partner closely with regional marketers and sales to communicate program details to include inputs like - target account lists, engagement goals, and sales-ready definitions.\n- Account Insight: Conduct in-depth research on target accounts and key buyer personas to uncover pain points, business needs, and technology landscape, translating these insights into actionable campaign plans.\nII. Campaign Execution &amp; Personalization\n- Multi-Channel Execution: Design and execute integrated, personalized, multi-channel campaigns across digital advertising (e.g., LinkedIn, intent platforms), email, direct mail/gifting, virtual and in-person events, and content experiences.\n- Content Alignment: Work with Product Marketing and Content teams to map and tailor messaging and content to specific personas, account needs, and stages of the buying journey.\n- MarTech Orchestration: Utilize the ABX technology stack (e.g., 6sense, Rollworks, Gemini ) and Salesforce / Marketo to orchestrate campaigns, track engagement, and ensure seamless handoffs.\nIII. Measurement &amp; Optimization\n- Performance Analysis: Monitor, track, and report on ABX program performance, key account engagement, pipeline influence, velocity, and ROI.\n- Data-Driven Optimization: Conduct regular deal analysis and leverage data to generate insights, make recommendations for campaign optimization, and continually refine target account selection and engagement tactics.\n- Enablement &amp; Feedback: Develop playbooks and training materials to enable Sales and SDR teams on ABX programs, messaging, and follow-up, ensuring a strong feedback loop.\nQualifications and Skills\nRequired\n- Experience: 5-7+ years of experience in B2B marketing, with 5+ years specifically in Account-Based Marketing (ABM) or Account-Based Experience (ABX) in a SaaS/B2B environment.\n- Strategic &amp; Analytical Mindset: Proven ability to translate business objectives and complex account data into measurable marketing strategies and programs.\n- Tech Stack Proficiency: Hands-on experience with core ABM/ABX platforms (e.g., 6sense ) and marketing automation (e.g., Marketo ) and CRM ( Salesforce ).\n- Cross-Functional Collaboration: Exceptional ability to build strong working relationships with Growth Experiments, Regional Marketing, Sales, xDRs.\n- Project Management: Strong organizational skills and attention to detail, with the ability to manage multiple projects, budgets, and deadlines simultaneously.\nPreferred/Bonus\n- Experience with leveraging AI/GenAI tools for scalable personalization and account intelligence.\n- Familiarity with intent data platforms ( Bombora, G2, etc. ).\n- Industry knowledge (Retail, Financial Services, Technology)\n#LI-Hybrid&nbsp;\nBelow is the annual base salary range for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York and Washington. Your actual base salary will depend on factors such as your skills, qualifications, experience, and work location. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental and vision insurance, 401(k), flexible spending account, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program please visit: https://rewards.okta.com/us .&nbsp;&nbsp;&nbsp;\nThe annual base salary range for this position for candidates located in California (excluding San Francisco Bay Area), Colorado, Illinois, New York, and Washington is between: $128,000 &mdash; $192,000 USD Below is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $122,000 &mdash; $172,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
+          "value": "AI/ML Engineer II- Intelligence Accelerator\n\nGet to know Okta\nOkta is The World’s Identity Company. We free everyone to safely use any technology, anywhere, on any device or app. Our flexible and neutral products, Okta Platform and Auth0 Platform, provide secure access, authentication, and automation, placing identity at the core of business security and growth.\nAt Okta, we celebrate a variety of perspectives and experiences. We are not looking for someone who checks every single box - we’re looking for lifelong learners and people who can make us better with their unique experiences.&nbsp;\nJoin our team! We’re building a world where Identity belongs to you.\nAbout the Role\nThe Intelligence Accelerator team in the Data Platform Group is the engine behind Okta’s AI/ML evolution. We are responsible for building the foundational AI/ML services and systems that fast-track AI/ML for Okta and deliver differentiated value to our users. Working hand-in-glove with the Data Platform team, Data Scientists, Product Managers, and the SREs, you will bridge the gap between data, research and platform offerings, playing a critical role in enabling the technical adoption of ML and Generative AI across the company.\nWe are assembling an elite unit designed to be fast, creative, and flexible. We practice extreme ownership. We expect great things from our engineers and reward them with stimulating challenges, novel technologies, and the chance to hold equity. Join the Intelligence Accelerator and help us change the cloud security landscape forever.\nAs a Machine Learning Engineer within the Intelligence Accelerator team, you will contribute to the development of our next-generation AI/ML platform. You will work with the team to build the \"paved road\" that empowers Okta’s Applied AI teams to rapidly build and deploy intelligent features—enabling leveraging classical models, LLMs and autonomous agents.\nYou will join a group that prioritizes engineering rigor—designing for scale, rigorous code reviews, automated testing, and CI/CD for ML (MLOps). In this role, you will:\n- Contribute to the Foundation: Help design and maintain scalable infrastructure for core machine learning lifecycles, including distributed training clusters, real-time inference serving, and high-performance feature stores.\n- Implement Agentic Infrastructure: Work on the bleeding-edge stack for Agentic AI, helping to implement standards like the Model Context Protocol (MCP) to securely connect LLMs with internal tools, data, and APIs.\n- Enable Applied AI: Build internal developer tooling that allow our product engineering teams to leverage Generative AI workflows, RAG pipelines, and vector databases without worrying about the underlying infrastructure.\nThis is your opportunity to build the systems that power Okta’s future, working with emerging tech stacks in a fast, flexible, and elite environment\nWhat You'll Do\n- Architect &amp; Deploy ML Infrastructure: Design, build, and maintain robust, scalable ML infrastructure using modern tools (Airflow, MLFlow, feature stores, vector databases) while implementing automated CI/CD workflows for model training, validation, and deployment.\n- Drive Innovation &amp; Security: Evaluate and adopt new ML technologies while ensuring data security, privacy, and compliance within the ML infrastructure\n- Build Scalable Data Pipelines: Design and maintain pipelines to ingest, process, and transform data from various sources, data warehouses, ensuring data quality, security, and compliance of data feeding into ML models and offline model artifact deployment\n- Optimize &amp; Monitor Systems: Deploy and monitor ML systems with data scientists and engineers, troubleshoot infrastructure issues, and optimize their performance\n- Collaborate &amp; Evangelize: Work with cross-functional teams to align AI/ML platform strategies with company objectives while acting as an AI/ML evangelist and provide mentorship to analysts and stakeholders.\nWhat You'll Bring\n- Engineering Experience: 3+ years of software engineering experience with a strong focus on backend systems, distributed computing, or cloud infrastructure (AWS/GCP/Azure).\n- ML Infrastructure: Experience building and scaling ML platforms using technologies like Kubernetes, Ray, Kubeflow, or similar orchestration tools.\n- Production Mindset: You treat infrastructure as code. You have a track record of implementing CI/CD pipelines, automated testing, and observability for Machine Learning workloads.\n- GenAI Fluency: Familiarity with the modern LLM stack (e.g., LangChain, vector databases, RAG patterns) and an interest in emerging standards like Model Context Protocol (MCP) and Agentic workflows.\n- Language Proficiency: Expert-level proficiency in Python and familiarity with Go, Java, or C++.\n- Collaborative Spirit: Experience working directly with Data Scientists or Applied AI teams to translate research needs into robust production systems\nNice to Have\n- Experience with Java and/or Java EE web applications.\n- Familiarity with authentication protocols, access management, or cloud security best practices.\n- Exposure to prompt engineering, LLM ecosystems (Hugging Face, LangChain, vector databases), and identity and access management or security focused ML applications.\n**This person must attend in person orientation in Toronto the first week of work.&nbsp;\n#LI-Hybrid\n#LI-BB1\nBelow is the annual salary range for candidates located in Canada. Your actual salary will depend on factors such as your skills, qualifications, and experience. In addition, Okta offers equity (where applicable), bonus, and benefits, including health, dental, and vision insurance, RRSP with a match, healthcare spending, telemedicine, and paid leave (including PTO and parental leave) in accordance with our applicable plans and policies. To learn more about our Total Rewards program, please visit:&nbsp; https://rewards.okta.com/can .\nThe annual base salary range for this position for candidates located in Canada is between: $110,000 &mdash; $160,000 CAD What you can look forward to as a Full-Time Okta employee!\n- Amazing Benefits\n- Making Social Impact\n- Developing Talent and Fostering Connection + Community at Okta\nOkta cultivates a dynamic work environment, providing the best tools, technology and benefits to empower our employees to work productively in a setting that best and uniquely suits their needs. Each organization is unique in the degree of flexibility and mobility in which they work so that all employees are enabled to be their most creative and successful versions of themselves, regardless of where they live. Find your place at Okta today! https://www.okta.com/company/careers/ .\nSome roles may require travel to one of our office locations for in-person onboarding.\nOkta is an Equal Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, ancestry, marital status, age, physical or mental disability, or status as a protected veteran. We also consider for employment qualified applicants with arrest and convictions records, consistent with applicable laws.\nIf reasonable accommodation is needed to complete any part of the job application, interview process, or onboarding please use this Form to request an accommodation.\nOkta is committed to complying with applicable data privacy and security laws and regulations. For more information, please see our Personnel and Job Candidate Privacy Notice at&nbsp; https://www.okta.com/legal/personnel-policy/.",
           "is_valid": true,
-          "reason": "Valid description (7327 chars)"
+          "reason": "Valid description (7607 chars, 1094 words)"
         },
         {
           "name": "empty_description_fallback",

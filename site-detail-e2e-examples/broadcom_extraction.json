@@ -14,18 +14,37 @@
       "company": "Broadcom",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-2/R-D-Engineer-IC-Design-4_R024388",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Firmware Engineer",
+        "company": "Broadcom",
+        "location": "USA-CA Irvine Alton Parkway Bldg 2",
+        "description": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Job Description: An experienced firmware engineer who can architect, develop and debug firmware running on Arm processors Chip and board bring up and embedded firmware development for ARM-based microcontrollers inside various optical modules, such as NPO/LPO Interface to hardware control loops: implement automatic gain control/equalizer/CDR loop DSP integration: interface with high-speed DSPs to configure serdes and monitor...",
+        "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-2/R-D-Engineer-IC-Design-4_R024388",
+        "posted_at": 1768230000000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 368
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-2/R-D-Engineer-IC-Design-4_R024388",
+        "word_count": 368,
+        "description_preview": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -206,7 +225,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +235,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: USA-CA Irvine Alton Parkway Bldg 2"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'USA-CA Irvine Alton Parkway Bldg 2' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -261,15 +294,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -310,7 +343,7 @@
     },
     "compensation": {
       "final_value": 140400,
-      "winning_strategy": "content_pattern_compensation",
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +361,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 140400,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $108,000-$172,800 -> $140,400 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 140400,
@@ -335,18 +375,46 @@
           "reason": "Compensation range pattern: $108,000-$172,800 -> $140,400"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 140400,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $108,000-$172,800 -> $140,400 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +461,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:08.652057",
+          "value": "2026-01-17T13:05:59.034809",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'workday' returned no first_published"
         }
       ]
     },
@@ -416,21 +512,21 @@
           "priority": "SITE_HANDLER",
           "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Job Description: An experienced firmware engineer who can architect, develop and debug firmware running on Arm processors Chip and board bring up and embedded firmware development for ARM-based microcontrollers inside various optical modules, such as NPO/LPO Interface to hardware control loops: implement automatic gain control/equalizer/CDR loop DSP integration: interface with high-speed DSPs to configure serdes and monitor link health Job Requirement: B.S degree in EE or Computer Engineering and 8&#43; years of related experience M.S degree and 6&#43; years of related experience/Ph.D in EE or Computer and 3&#43; years of related experience Expert proficiency in Embedded C/C&#43;&#43; with a strong understanding of memory management, pointers and register-level programming Good knowledge of ARM subsystem Good knowledge of control loops. Good knowledge of optical components (lasers, Mach-zehnder modulators, photo-detectors, TIAs) and optical standards (IEEE 802.3 OIF) Proficiency with peripherals: ADC, DAC, GPIO, MDIO, I2C, SPI, UART Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800 This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (2549 chars)"
+          "reason": "Valid description (2549 chars, 368 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Job Description: An experienced firmware engineer who can architect, develop and debug firmware running on Arm processors Chip and board bring up and embedded firmware development for ARM-based microcontrollers inside various optical modules, such as NPO/LPO Interface to hardware control loops: implement automatic gain control/equalizer/CDR loop DSP integration: interface with high-speed DSPs to configure serdes and monitor link health Job Requirement: B.S degree in EE or Computer Engineering and 8&#43; years of related experience M.S degree and 6&#43; years of related experience/Ph.D in EE or Computer and 3&#43; years of related experience Expert proficiency in Embedded C/C&#43;&#43; with a strong understanding of memory management, pointers and register-level programming Good knowledge of ARM subsystem Good knowledge of control loops. Good knowledge of optical components (lasers, Mach-zehnder modulators, photo-detectors, TIAs) and optical standards (IEEE 802.3 OIF) Proficiency with peripherals: ADC, DAC, GPIO, MDIO, I2C, SPI, UART Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800 This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (2549 chars)"
+          "reason": "Valid description (2549 chars, 368 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Please Note: 1. If you are a first time user, please create your candidate login account before you apply for a job. (Click Sign In &gt; Create Account) 2. If you already have a Candidate Account, please Sign-In before you apply. Job Description: Job Description: An experienced firmware engineer who can architect, develop and debug firmware running on Arm processors Chip and board bring up and embedded firmware development for ARM-based microcontrollers inside various optical modules, such as NPO/LPO Interface to hardware control loops: implement automatic gain control/equalizer/CDR loop DSP integration: interface with high-speed DSPs to configure serdes and monitor link health Job Requirement: B.S degree in EE or Computer Engineering and 8&#43; years of related experience M.S degree and 6&#43; years of related experience/Ph.D in EE or Computer and 3&#43; years of related experience Expert proficiency in Embedded C/C&#43;&#43; with a strong understanding of memory management, pointers and register-level programming Good knowledge of ARM subsystem Good knowledge of control loops. Good knowledge of optical components (lasers, Mach-zehnder modulators, photo-detectors, TIAs) and optical standards (IEEE 802.3 OIF) Proficiency with peripherals: ADC, DAC, GPIO, MDIO, I2C, SPI, UART Additional Job Description: Compensation and Benefits The annual base salary range for this position is $108,000 - $172,800 This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements. Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence. Broadcom is proud to be an equal opportunity employer. We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. We will also consider qualified applicants with arrest and conviction records consistent with local law. If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.",
           "is_valid": true,
-          "reason": "Valid description (2549 chars)"
+          "reason": "Valid description (2549 chars, 368 words)"
         },
         {
           "name": "empty_description_fallback",

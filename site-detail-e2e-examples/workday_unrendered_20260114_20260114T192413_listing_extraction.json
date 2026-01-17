@@ -1,0 +1,32 @@
+{
+  "site_id": "workday_unrendered_20260114_20260114T192413",
+  "listing_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+  "source_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+  "handler_name": "WorkdayHandler",
+  "content_type": "raw_html",
+  "extraction_method": null,
+  "url_pipeline": {
+    "input_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000",
+    "scrape_url": "https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 0,
+    "handler_filtered_count": 0,
+    "api_transformed_count": 0
+  },
+  "scraped_url_count": 0,
+  "extracted_url_count": 0,
+  "filtered_url_count": 0,
+  "normalized_url_count": 0,
+  "apply_url_count": 0,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [],
+  "scraped_urls": [],
+  "normalized_urls": [],
+  "apply_urls": [],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": "Listing HTML was not rendered for https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000"
+}

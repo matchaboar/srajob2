@@ -3,8 +3,8 @@
   "listing_url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
   "source_url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
   "handler_name": "CiscoCareersHandler",
-  "content_type": null,
-  "extraction_method": "production_workflow",
+  "content_type": "commonmark",
+  "extraction_method": null,
   "url_pipeline": {
     "input_url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
     "scrape_url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1"
@@ -14,9 +14,11 @@
     "handler_filtered_count": 10,
     "api_transformed_count": 10
   },
+  "scraped_url_count": 0,
   "extracted_url_count": 10,
   "filtered_url_count": 10,
   "normalized_url_count": 10,
+  "apply_url_count": 10,
   "pagination_url_count": 0,
   "rejected_url_count": 0,
   "sample_urls": [
@@ -31,7 +33,20 @@
     "https://careers.cisco.com/global/en/job/2000681/Systems-Architect-Research",
     "https://careers.cisco.com/global/en/job/1433857/Account-Executive-Splunk-m-f-d"
   ],
+  "scraped_urls": [],
   "normalized_urls": [
+    "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence",
+    "https://careers.cisco.com/global/en/job/2000898/Account-Executive-Portfolio-Defence",
+    "https://careers.cisco.com/global/en/job/2002346/Systems-Engineer",
+    "https://careers.cisco.com/global/en/job/2003227/Regional-Sales-Manager-Mid-Market-m-f-d",
+    "https://careers.cisco.com/global/en/job/1447056/Account-Executive-Splunk-m-f-d",
+    "https://careers.cisco.com/global/en/job/2000336/Working-Student-CX-EMEA-Renewals-Team-Germany-Non-Technical-Intern-I",
+    "https://careers.cisco.com/global/en/job/2000672/Account-Executive-Public-Sector-Healthcare-Germany",
+    "https://careers.cisco.com/global/en/job/2000675/Systems-Architect-Higher-Education",
+    "https://careers.cisco.com/global/en/job/2000681/Systems-Architect-Research",
+    "https://careers.cisco.com/global/en/job/1433857/Account-Executive-Splunk-m-f-d"
+  ],
+  "apply_urls": [
     "https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence",
     "https://careers.cisco.com/global/en/job/2000898/Account-Executive-Portfolio-Defence",
     "https://careers.cisco.com/global/en/job/2002346/Systems-Engineer",

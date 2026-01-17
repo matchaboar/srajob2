@@ -116,12 +116,21 @@ class _FakeClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return False
 
-    async def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
+    def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
         # Record params for assertions; emit payloads once.
         self.calls.append({"url": url, "params": params, "stream": stream, "content_type": content_type})
         self.proxy_calls.append(params.get("proxy"))
+        if stream:
+            return self._stream_response()
+        return self._sync_response()
+
+    async def _stream_response(self):
         for payload in self.payloads:
             yield payload
+
+    async def _sync_response(self):
+        # Return first payload for sync mode
+        return self.payloads[0] if self.payloads else {}
 
 
 @pytest.mark.asyncio
@@ -166,6 +175,105 @@ async def test_openai_listing_scrape_extracts_job_urls(monkeypatch):
     assert job_urls
     assert any("openai.com/careers/" in url for url in job_urls)
     assert not any("/careers/search" in url for url in job_urls)
+
+
+@pytest.mark.asyncio
+async def test_scrape_listing_batch_extracts_job_urls_from_spidercloud_response(monkeypatch):
+    """Integration test: verifies scrape_listing_batch extracts URLs from SpiderCloud job_urls field.
+
+    This tests the full flow:
+    1. SpiderCloud scraper populates items.job_urls field
+    2. scrape_listing_batch._extract_job_urls_from_scrape reads this field
+    """
+    from job_scrape_application.workflows.workflow.scrape_listing_batch import (
+        _extract_job_urls_from_scrape,
+    )
+
+    # Load OpenAI fixture
+    response_path = Path(
+        "tests/job_scrape_application/workflows/fixtures/spidercloud_openai_careers_listing.json"
+    )
+    response = _load_spidercloud_fixture(response_path)
+    if response and isinstance(response[0], list):
+        response = response[0]
+
+    assert isinstance(response, list) and response, "OpenAI fixture should contain at least one event"
+
+    source_url = response[0].get("url")
+    assert isinstance(source_url, str) and source_url, "Fixture missing source URL"
+
+    # Use scraper to process the fixture
+    scraper = _make_scraper()
+    fake_client = _FakeClient(response)
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    # Get the scraper's output payload
+    payload = await scraper._scrape_urls_batch([source_url], source_url=source_url)
+
+    # Verify SpiderCloud populates job_urls
+    items = payload.get("items") or {}
+    spidercloud_job_urls = items.get("job_urls") or []
+    assert spidercloud_job_urls, "SpiderCloud should populate job_urls field"
+
+    # Verify scrape_listing_batch can extract these URLs
+    extracted_urls = _extract_job_urls_from_scrape(payload)
+    assert extracted_urls, "scrape_listing_batch should extract URLs from job_urls field"
+
+    # Verify the extracted URLs match what SpiderCloud found
+    for url in spidercloud_job_urls:
+        assert url in extracted_urls, f"URL {url} should be in extracted URLs"
+
+
+@pytest.mark.asyncio
+async def test_greenhouse_api_listing_extracts_job_urls(monkeypatch):
+    """Test that Greenhouse API listing responses populate job_urls correctly.
+
+    Greenhouse API responses are JSON, not HTML, so this tests a different code path.
+    """
+    from job_scrape_application.workflows.workflow.scrape_listing_batch import (
+        _extract_job_urls_from_scrape,
+    )
+
+    # Mock Greenhouse API response
+    greenhouse_api_response = [{
+        "url": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
+        "events": [{
+            "content": {
+                "raw": json.dumps({
+                    "jobs": [
+                        {
+                            "absolute_url": "https://careers.airbnb.com/positions/12345?gh_jid=12345",
+                            "title": "Software Engineer",
+                        },
+                        {
+                            "absolute_url": "https://careers.airbnb.com/positions/67890?gh_jid=67890",
+                            "title": "Senior Engineer",
+                        },
+                    ]
+                })
+            }
+        }]
+    }]
+
+    scraper = _make_scraper()
+    fake_client = _FakeClient(greenhouse_api_response)
+    monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
+
+    payload = await scraper._scrape_urls_batch(
+        ["https://api.greenhouse.io/v1/boards/airbnb/jobs"],
+        source_url="https://api.greenhouse.io/v1/boards/airbnb/jobs"
+    )
+
+    # Verify job_urls field is populated
+    items = payload.get("items") or {}
+    job_urls = items.get("job_urls") or []
+    assert len(job_urls) == 2, f"Expected 2 job URLs, got {len(job_urls)}"
+
+    # Verify scrape_listing_batch extracts them
+    extracted = _extract_job_urls_from_scrape(payload)
+    assert len(extracted) >= 2, f"Expected at least 2 extracted URLs, got {len(extracted)}"
+    assert any("12345" in url for url in extracted), "Should contain job 12345"
+    assert any("67890" in url for url in extracted), "Should contain job 67890"
 
 
 @pytest.mark.skip(reason="Skipped during normalizers migration")
@@ -361,7 +469,7 @@ async def test_scrape_single_url_sets_raw_format_for_api(monkeypatch):
         yield payload
 
     fake_client.scrape_url = _fake_scrape_url  # type: ignore[assignment]
-    result = await scraper._scrape_single_url(
+    result = await scraper._scrape_single_url_sync(
         fake_client,
         "https://boards-api.greenhouse.io/v1/boards/demo/jobs/1",
         {"return_format": ["commonmark"]},
@@ -381,7 +489,7 @@ async def test_greenhouse_api_valid_json_skips_captcha_detection():
     }
     fake_client = _FakeClient([{"content": {"raw": json.dumps(job_payload)}}])
 
-    result = await scraper._scrape_single_url(
+    result = await scraper._scrape_single_url_sync(
         fake_client,
         "https://boards-api.greenhouse.io/v1/boards/axon/jobs/6281323003",
         {"return_format": ["raw_html"]},
@@ -396,7 +504,7 @@ async def test_scrape_single_url_keeps_commonmark_for_non_api():
     scraper = _make_scraper()
     payload = {"commonmark": "### Senior Software Engineer\nBody"}
     fake_client = _FakeClient([payload])
-    result = await scraper._scrape_single_url(
+    result = await scraper._scrape_single_url_sync(
         fake_client,
         "https://example.com/job",
         {"return_format": ["commonmark"]},
@@ -504,10 +612,10 @@ async def test_batch_truncates_over_batch_size(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([])
     monkeypatch.setattr("job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider", lambda **_: fake_client)
-    async def _fake_single_url(*_args, **_kwargs):
+    def _fake_single_url(*_args, **_kwargs):
         return {"normalized": {"url": "u"}}
 
-    monkeypatch.setattr(scraper, "_scrape_single_url", _fake_single_url)
+    monkeypatch.setattr(scraper, "_scrape_single_url_sync", _fake_single_url)
 
     urls = [f"https://example.com/{i}" for i in range(SPIDERCLOUD_BATCH_SIZE + 5)]
     payload = await scraper._scrape_urls_batch(urls, source_url="https://example.com")
@@ -518,5 +626,5 @@ async def test_batch_truncates_over_batch_size(monkeypatch):
 async def test_raw_html_description_is_used(monkeypatch):
     scraper = _make_scraper()
     fake_client = _FakeClient([{"commonmark": "# Software Engineer\nBody"}])
-    result = await scraper._scrape_single_url(fake_client, "https://example.com/job", {"return_format": ["commonmark"]})
+    result = await scraper._scrape_single_url_sync(fake_client, "https://example.com/job", {"return_format": ["commonmark"]})
     assert "Body" in result["normalized"]["description"]

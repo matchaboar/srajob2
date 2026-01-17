@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+
+from firecrawl import Firecrawl
 
 from ...config import settings
 from ...components.models import extract_greenhouse_job_urls, load_greenhouse_board
+from ..helpers.provider import (
+    build_request_snapshot,
+    log_provider_dispatch,
+    log_sync_response,
+    mask_secret,
+    sanitize_headers,
+)
 from ..helpers.scrape_utils import (
     build_firecrawl_schema,
     build_job_template,
@@ -23,6 +32,10 @@ from ..scrapers import (
     SpidercloudDependencies,
 )
 from .constants import FIRECRAWL_CACHE_MAX_AGE_MS
+from .step import log_scrape_error
+
+if TYPE_CHECKING:
+    from .types import Site
 
 Site = Dict[str, Any]
 
@@ -101,7 +114,7 @@ def build_spidercloud_scraper(
     )
 
 
-async def select_scraper_for_site(
+def select_scraper_for_site(
     site: Site,
     *,
     make_fetchfox: Callable[[], BaseScraper],
@@ -139,13 +152,13 @@ async def select_scraper_for_site(
         if settings.spider_api_key:
             return factories["spidercloud"](), None
         if firecrawl_enabled:
-            skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
+            skip_urls = fetch_seen_urls_for_site(site["url"], site.get("pattern"))
             return factories["firecrawl"](), skip_urls
         preferred = "fetchfox"
 
     if preferred == "firecrawl":
         if firecrawl_enabled:
-            skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
+            skip_urls = fetch_seen_urls_for_site(site["url"], site.get("pattern"))
             return factories["firecrawl"](), skip_urls
         # Fall back to fetchfox if no Firecrawl key
         preferred = "fetchfox"
@@ -156,7 +169,73 @@ async def select_scraper_for_site(
     if preferred == "fetchfox" and not fetchfox_enabled and settings.spider_api_key:
         return factories["spidercloud"](), None
     if preferred == "fetchfox" and not fetchfox_enabled and firecrawl_enabled:
-        skip_urls = await fetch_seen_urls_for_site(site["url"], site.get("pattern"))
+        skip_urls = fetch_seen_urls_for_site(site["url"], site.get("pattern"))
         return factories["firecrawl"](), skip_urls
 
     return scraper, None
+
+
+# ============================================================================
+# Convenience wrapper functions for creating scrapers with default dependencies
+# These are the functions that tests commonly monkeypatch
+# ============================================================================
+
+
+def _make_fetchfox_scraper() -> FetchfoxScraper:
+    """Create a FetchfoxScraper with default dependencies."""
+    return build_fetchfox_scraper(
+        build_request_snapshot=build_request_snapshot,
+        log_provider_dispatch=log_provider_dispatch,
+        log_sync_response=log_sync_response,
+    )
+
+
+def _make_firecrawl_scraper() -> FirecrawlScraper:
+    """Create a FirecrawlScraper with default dependencies.
+
+    DEPRECATED: Firecrawl scraper is deprecated and not used in DBOS workflows.
+    Use SpiderCloud scraper instead.
+
+    Raises:
+        NotImplementedError: Always raised. Firecrawl is deprecated.
+    """
+    raise NotImplementedError(
+        "FirecrawlScraper is deprecated. Use SpiderCloudScraper instead. "
+        "If you need Firecrawl for testing, import from "
+        "job_scrape_application.workflows.activities._archive.temporal_activities"
+    )
+
+
+def _make_spidercloud_scraper() -> SpiderCloudScraper:
+    """Create a SpiderCloudScraper with default dependencies."""
+    return build_spidercloud_scraper(
+        mask_secret=mask_secret,
+        sanitize_headers=sanitize_headers,
+        build_request_snapshot=build_request_snapshot,
+        log_provider_dispatch=log_provider_dispatch,
+        log_sync_response=log_sync_response,
+        trim_scrape_for_convex=trim_scrape_for_convex,
+    )
+
+
+def select_scraper_for_site_with_defaults(
+    site: Site,
+) -> Tuple[BaseScraper, Optional[List[str]]]:
+    """Return the scraper instance and any precomputed skip URLs for a site.
+
+    Uses the default _make_* functions which can be patched in tests.
+    """
+    scraper, skip_urls = select_scraper_for_site(
+        site,
+        make_fetchfox=_make_fetchfox_scraper,
+        make_firecrawl=_make_firecrawl_scraper,
+        make_spidercloud=_make_spidercloud_scraper,
+    )
+
+    # Allow callers/tests to monkeypatch fetch_seen_urls_for_site and still forward skip URLs
+    if isinstance(scraper, FirecrawlScraper) and not skip_urls:
+        url = site.get("url")
+        if url:
+            skip_urls = fetch_seen_urls_for_site(url, site.get("pattern"))
+
+    return scraper, skip_urls

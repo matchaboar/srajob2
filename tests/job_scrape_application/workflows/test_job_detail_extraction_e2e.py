@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from functools import lru_cache
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -54,7 +55,8 @@ except ImportError:
     YAMLLoader = yaml.SafeLoader  # type: ignore
 
 
-from job_scrape_application.workflows import activities as acts
+# Import workflow for SpiderCloud job batch processing
+from job_scrape_application.workflows.workflow import process_spidercloud_job_batch
 from job_scrape_application.workflows.core import SpiderFixture, WorkflowTestHelper
 from job_scrape_application.workflows.site_handlers import get_site_handler
 from job_scrape_application.workflows.extractors import (
@@ -66,11 +68,14 @@ from job_scrape_application.workflows.extractors import (
 SCHEDULE_PATH = Path("job_scrape_application/config/prod/site_schedules.yml")
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
 SINGLE_REQUEST_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/single_request")
-ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions")
+GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth")
 DEBUG_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
-DEBUG_ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions/debug")
+DEBUG_GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth/debug")
+MAX_DETAIL_FIXTURE_BYTES = 250 * 1024
+LARGE_FIXTURE_ALLOWLIST = {"adobe"}
 OUTPUT_DIR = Path("./site-detail-e2e-examples")
 DESCRIPTION_PREVIEW_MAX_WORDS = 100
+DESCRIPTION_TRUNCATION_SUFFIX = "..."
 
 logger = logging.getLogger(__name__)
 
@@ -105,28 +110,28 @@ def _find_assertion_for_fixture(fixture_path: Path) -> Optional[Path]:
 
     Searches in order:
     1. Same directory as fixture (for debug fixtures organized by company)
-    2. DEBUG_ASSERTIONS_DIR with company subdirectory
-    3. ASSERTIONS_DIR (for legacy fixtures)
+    2. DEBUG_GROUND_TRUTH_DIR with company subdirectory
+    3. GROUND_TRUTH_DIR (for legacy fixtures)
     """
     identifier = _extract_fixture_identifier(fixture_path)
 
     # Check for company subdirectory pattern (e.g., fixtures/debug/airbnb/)
     parent_name = fixture_path.parent.name
     if parent_name not in ("dbos_schedule", "single_request", "debug"):
-        # Company subdirectory - look in assertions/debug/{company}/
-        company_assertion_dir = DEBUG_ASSERTIONS_DIR / parent_name
+        # Company subdirectory - look in ground_truth/debug/{company}/
+        company_assertion_dir = DEBUG_GROUND_TRUTH_DIR / parent_name
         if company_assertion_dir.exists():
             assertion_path = company_assertion_dir / f"{identifier}.yml"
             if assertion_path.exists():
                 return assertion_path
 
-    # Check DEBUG_ASSERTIONS_DIR
-    assertion_path = DEBUG_ASSERTIONS_DIR / f"{identifier}.yml"
+    # Check DEBUG_GROUND_TRUTH_DIR
+    assertion_path = DEBUG_GROUND_TRUTH_DIR / f"{identifier}.yml"
     if assertion_path.exists():
         return assertion_path
 
-    # Check ASSERTIONS_DIR (legacy)
-    assertion_path = ASSERTIONS_DIR / f"{identifier}.yml"
+    # Check GROUND_TRUTH_DIR (legacy)
+    assertion_path = GROUND_TRUTH_DIR / f"{identifier}.yml"
     if assertion_path.exists():
         return assertion_path
 
@@ -192,19 +197,118 @@ def _schedule_id(entry: Dict[str, Any]) -> str:
     return _slugify(str(entry.get("name") or entry.get("url") or "site"))
 
 
+def _find_latest_timestamped_fixture(fixture_dir: Path, slug: str, suffix: str) -> Optional[Path]:
+    """Find the most recent timestamped fixture file for a slug.
+
+    Searches for files matching pattern: {slug}_{timestamp}_{suffix}.json
+    where timestamp is in format YYYYMMDDTHHMMSS.
+    Returns the most recent one based on filename sorting (lexicographic = chronological for ISO timestamps).
+    """
+    # Pattern: netflix_20260116T120000_detail.json
+    pattern = f"{slug}_*_{suffix}.json"
+    matches = sorted(fixture_dir.glob(pattern), reverse=True)  # Most recent first
+    if matches:
+        return matches[0]
+    return None
+
+
+@lru_cache(maxsize=None)
+def _fixture_request_url(path: Path) -> Optional[str]:
+    try:
+        payload = json_loads(path.read_bytes())
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    request = payload.get("request")
+    if not isinstance(request, dict):
+        return None
+    url = request.get("url")
+    if isinstance(url, str) and url.strip():
+        return url.strip()
+    return None
+
+
+@lru_cache(maxsize=None)
+def _ground_truth_detail_url(site_id: str) -> Optional[str]:
+    assertion_path = _latest_ground_truth_path(site_id)
+    if not assertion_path or not assertion_path.exists():
+        return None
+    try:
+        data = yaml.load(assertion_path.read_bytes(), Loader=YAMLLoader)
+    except Exception:
+        return None
+    if isinstance(data, dict):
+        detail_url = data.get("detail_url")
+        if isinstance(detail_url, str) and detail_url.strip():
+            return detail_url.strip()
+    return None
+
+
+def _collect_fixture_pairs(fixture_dir: Path, slug: str) -> List[tuple[Path, Path]]:
+    pairs: List[tuple[Path, Path]] = []
+    pattern = f"{slug}_*_detail.json"
+    for detail_path in sorted(fixture_dir.glob(pattern), reverse=True):
+        listing_name = detail_path.name.replace("_detail.json", "_listing.json")
+        listing_path = detail_path.with_name(listing_name)
+        if not listing_path.exists():
+            legacy_listing = fixture_dir / f"{slug}_listing.json"
+            if legacy_listing.exists():
+                listing_path = legacy_listing
+        pairs.append((listing_path, detail_path))
+    legacy_detail = fixture_dir / f"{slug}_detail.json"
+    if legacy_detail.exists():
+        legacy_listing = fixture_dir / f"{slug}_listing.json"
+        pairs.append((legacy_listing, legacy_detail))
+    return pairs
+
+
 def _fixture_paths(entry: Dict[str, Any]) -> tuple[Path, Path]:
     """Get fixture paths for a schedule entry.
 
-    Prefers single_request fixtures when available (for SINGLE_REQUEST_MODE),
-    falls back to dbos_schedule fixtures (JSONL streaming mode).
+    Search order:
+    1. Fixture whose request.url matches ground_truth detail_url (if available)
+    2. Timestamped single_request fixtures (e.g., netflix_20260116T120000_detail.json)
+    3. Legacy single_request fixtures (e.g., netflix_detail.json)
+    4. Timestamped dbos_schedule fixtures
+    5. Legacy dbos_schedule fixtures
     """
     slug = _schedule_id(entry)
-    # Prefer single request fixtures if they exist
-    single_request_detail = SINGLE_REQUEST_FIXTURE_DIR / f"{slug}_detail.json"
-    single_request_listing = SINGLE_REQUEST_FIXTURE_DIR / f"{slug}_listing.json"
-    if single_request_detail.exists():
-        return single_request_listing, single_request_detail
-    # Fallback to JSONL streaming fixtures
+
+    expected_url = _ground_truth_detail_url(slug)
+    if expected_url:
+        candidates = (
+            _collect_fixture_pairs(SINGLE_REQUEST_FIXTURE_DIR, slug)
+            + _collect_fixture_pairs(FIXTURE_DIR, slug)
+        )
+        for listing_path, detail_path in candidates:
+            if detail_path.exists() and _fixture_request_url(detail_path) == expected_url:
+                return listing_path, detail_path
+
+    # Next, try timestamped single_request fixtures
+    timestamped_detail = _find_latest_timestamped_fixture(SINGLE_REQUEST_FIXTURE_DIR, slug, "detail")
+    if timestamped_detail:
+        timestamped_listing = _find_latest_timestamped_fixture(SINGLE_REQUEST_FIXTURE_DIR, slug, "listing")
+        if timestamped_listing:
+            return timestamped_listing, timestamped_detail
+
+    # Then, try legacy single_request fixtures
+    legacy_detail = SINGLE_REQUEST_FIXTURE_DIR / f"{slug}_detail.json"
+    legacy_listing = SINGLE_REQUEST_FIXTURE_DIR / f"{slug}_listing.json"
+    if legacy_detail.exists():
+        return legacy_listing, legacy_detail
+
+    # Then, try timestamped dbos_schedule fixtures
+    timestamped_detail = _find_latest_timestamped_fixture(FIXTURE_DIR, slug, "detail")
+    if timestamped_detail:
+        timestamped_listing = _find_latest_timestamped_fixture(FIXTURE_DIR, slug, "listing")
+        if timestamped_listing:
+            return timestamped_listing, timestamped_detail
+        legacy_listing = FIXTURE_DIR / f"{slug}_listing.json"
+        if legacy_listing.exists():
+            return legacy_listing, timestamped_detail
+
+    # Fallback to legacy dbos_schedule fixtures
     return FIXTURE_DIR / f"{slug}_listing.json", FIXTURE_DIR / f"{slug}_detail.json"
 
 
@@ -236,13 +340,94 @@ def _truncate_to_words(text: str, max_words: int) -> str:
 _ASSERTIONS_CACHE: Dict[str, Optional[Dict[str, Any]]] = {}
 
 
-def _load_assertions(site_id: str) -> Optional[Dict[str, Any]]:
-    """Load assertion YAML file for a site if it exists. Results are cached."""
-    if site_id in _ASSERTIONS_CACHE:
+def _load_assertions_from_path(assertion_path: Path) -> Optional[Dict[str, Any]]:
+    """Load assertion YAML file from a specific path."""
+    cache_key = str(assertion_path)
+    if cache_key in _ASSERTIONS_CACHE:
+        return _ASSERTIONS_CACHE[cache_key]
+
+    if not assertion_path.exists():
+        _ASSERTIONS_CACHE[cache_key] = None
+        return None
+    try:
+        result = yaml.load(assertion_path.read_bytes(), Loader=YAMLLoader)
+        _ASSERTIONS_CACHE[cache_key] = result
+        return result
+    except Exception as exc:
+        logger.warning("Failed to load assertions from %s: %s", assertion_path, exc)
+        _ASSERTIONS_CACHE[cache_key] = None
+        return None
+
+
+def _fixture_detail_url(fixture: Dict[str, Any]) -> Optional[str]:
+    request = fixture.get("request")
+    if not isinstance(request, dict):
+        return None
+    url = request.get("url")
+    if isinstance(url, str) and url.strip():
+        return url.strip()
+    return None
+
+
+def _timestamped_ground_truth_paths(site_id: str) -> List[Path]:
+    candidates = []
+    pattern = re.compile(rf"^{re.escape(site_id)}_(\\d{{8}}T\\d{{6}})$")
+    for path in GROUND_TRUTH_DIR.glob(f"{site_id}_*.yml"):
+        if path.name.endswith("_listing.yml"):
+            continue
+        if pattern.match(path.stem):
+            candidates.append(path)
+    candidates.sort(key=lambda p: p.stem, reverse=True)
+    return candidates
+
+
+def _latest_ground_truth_path(site_id: str) -> Optional[Path]:
+    candidates = _timestamped_ground_truth_paths(site_id)
+    if candidates:
+        return candidates[0]
+    legacy = GROUND_TRUTH_DIR / f"{site_id}.yml"
+    if legacy.exists():
+        return legacy
+    return None
+
+
+def _load_assertions(site_id: str, fixture: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Load assertion YAML file for a site if it exists.
+
+    If fixture contains _meta.ground_truth_file or _meta.assertion_file, use that path.
+    Otherwise, fall back to searching by site_id.
+    Results are cached.
+    """
+    # Check if fixture has _meta with ground_truth_file or assertion_file reference
+    if fixture is not None:
+        meta = fixture.get("_meta", {})
+        # Prefer ground_truth_file (new style), fall back to assertion_file (legacy)
+        ground_truth_file = meta.get("ground_truth_file") or meta.get("assertion_file")
+        if ground_truth_file:
+            assertion_path = Path(ground_truth_file)
+            # Handle both absolute and relative paths
+            if not assertion_path.is_absolute():
+                assertion_path = Path.cwd() / assertion_path
+            if assertion_path.exists():
+                return _load_assertions_from_path(assertion_path)
+        fixture_url = _fixture_detail_url(fixture)
+        if fixture_url:
+            candidates = [GROUND_TRUTH_DIR / f"{site_id}.yml"] + _timestamped_ground_truth_paths(site_id)
+            for candidate in candidates:
+                if not candidate.exists():
+                    continue
+                data = _load_assertions_from_path(candidate)
+                if not data:
+                    continue
+                if data.get("detail_url") == fixture_url:
+                    return data
+
+    # Fall back to legacy site_id lookup
+    if fixture is None and site_id in _ASSERTIONS_CACHE:
         return _ASSERTIONS_CACHE[site_id]
 
-    assertion_path = ASSERTIONS_DIR / f"{site_id}.yml"
-    if not assertion_path.exists():
+    assertion_path = _latest_ground_truth_path(site_id)
+    if not assertion_path or not assertion_path.exists():
         _ASSERTIONS_CACHE[site_id] = None
         return None
     try:
@@ -294,7 +479,8 @@ def _validate_job_against_assertions(
     # Title assertions
     if "title" in expected:
         exp_title = expected["title"]
-        passed = job.title == exp_title
+        # Strip whitespace for comparison (some sources have trailing spaces)
+        passed = job.title.strip() == exp_title.strip()
         results.append(AssertionResult(
             field="title",
             expected=exp_title,
@@ -464,6 +650,18 @@ def _validate_job_against_assertions(
             actual=job.url,
             passed=passed,
             message=f"URL should contain '{exp_substr}'" if not passed else "URL contains expected substring",
+        ))
+
+    # Full description word count assertion (proves full description goes to file storage)
+    if "full_description_word_count_min" in expected:
+        min_words = expected["full_description_word_count_min"]
+        passed = job.description_word_count >= min_words
+        results.append(AssertionResult(
+            field="full_description_word_count_min",
+            expected=f">= {min_words}",
+            actual=job.description_word_count,
+            passed=passed,
+            message=f"Full description too short ({job.description_word_count} words, need {min_words})" if not passed else "Full description has sufficient words for file storage",
         ))
 
     return results
@@ -767,47 +965,20 @@ class WorkflowTestModule:
 
     def _override_captures(self) -> None:
         """Override helper's capture to use ConvexStorageCapture format."""
-        # Override store_scrape to capture in our format
-        async def custom_store_scrape(scrape: Dict[str, Any]) -> str:
-            self.capture.stored_scrapes.append(scrape)
-            return f"scrape-{len(self.capture.stored_scrapes)}"
-
-        # Override mutation to capture ingested jobs
+        # Override mutation to capture ingested jobs in our format
         original_mutation = self._helper._fake_convex_mutation
 
-        async def custom_mutation(name: str, payload: Dict[str, Any]) -> Any:
+        def custom_mutation(name: str, payload: Dict[str, Any]) -> Any:
             if name == "router:ingestJobsFromScrape":
                 jobs = payload.get("jobs", [])
                 if isinstance(jobs, list):
                     self.capture.ingested_jobs.extend(jobs)
-            return await original_mutation(name, payload)
+            return original_mutation(name, payload)
 
-        # Override description upload to capture in our format
-        async def custom_store_descriptions(
-            jobs: List[Dict[str, Any]],
-            source_url: str | None,
-            provider: str | None,
-            workflow_name: str | None,
-            log_workflow_event=None,
-        ) -> None:
-            for job in jobs:
-                description = job.get("description")
-                url = job.get("url")
-                if isinstance(description, str) and description.strip():
-                    self.capture.description_uploads.append({
-                        "url": url,
-                        "description": description,
-                        "word_count": _count_words(description),
-                    })
-
-        # Apply overrides
-        self.monkeypatch.setattr(acts, "store_scrape", custom_store_scrape)
+        # Apply overrides - the WorkflowTestHelper handles most patching
         self.monkeypatch.setattr(
             "job_scrape_application.services.convex_client.convex_mutation",
             custom_mutation,
-        )
-        self.monkeypatch.setattr(
-            acts, "_store_job_descriptions_via_http", custom_store_descriptions
         )
 
     async def run_detail_extraction(self) -> JobDetailExtractionResult:
@@ -916,11 +1087,18 @@ class WorkflowTestModule:
                     data=batch,
                 ))
 
-            response = await acts.process_spidercloud_job_batch(
+            response = await process_spidercloud_job_batch(
                 batch, persist_scrapes=True
             )
 
             result.raw_scrape_response = response
+
+            # Merge helper's captured data to our capture (step functions store to helper.captured)
+            helper_captured = self._helper.captured
+            self.capture.stored_scrapes.extend(helper_captured.stored_scrapes)
+            self.capture.ingested_jobs.extend(helper_captured.ingested_jobs)
+            self.capture.description_uploads.extend(helper_captured.description_uploads)
+
             result.convex_capture = self.capture
 
             if verbose:
@@ -1114,11 +1292,15 @@ def _get_sites_with_detail_fixtures() -> List[Dict[str, Any]]:
     entries = _load_schedule_entries()
     result = []
     for entry in entries:
+        site_id = _schedule_id(entry)
         _, detail_path = _fixture_paths(entry)
         if detail_path.exists():
             try:
                 # Check fixture size to skip very large ones
-                if detail_path.stat().st_size > 250 * 1024:
+                if (
+                    detail_path.stat().st_size > MAX_DETAIL_FIXTURE_BYTES
+                    and site_id not in LARGE_FIXTURE_ALLOWLIST
+                ):
                     continue
                 result.append(entry)
             except Exception:
@@ -1507,11 +1689,12 @@ async def test_job_detail_extraction_accuracy(
     entry: Dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """
     Test that job detail extraction accurately captures all fields.
 
-    Validates extracted values against YAML assertion files in the assertions/ folder.
+    Validates extracted values against YAML ground truth files in the ground_truth/ folder.
     Each assertion file specifies expected values for title, company, location, etc.
 
     Verifies:
@@ -1540,8 +1723,8 @@ async def test_job_detail_extraction_accuracy(
     # Verify no fatal errors
     assert not result.errors, f"Extraction errors: {result.errors}"
 
-    # Load assertions for this site
-    assertions = _load_assertions(site_id)
+    # Load assertions for this site (uses _meta.assertion_file from fixture if available)
+    assertions = _load_assertions(site_id, fixture=detail_fixture)
 
     # Check if this test should be skipped (e.g., job listing removed)
     if assertions:
@@ -1584,6 +1767,7 @@ async def test_job_detail_convex_storage(
     entry: Dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """
     Test that job details are properly stored to Convex.
@@ -1638,6 +1822,7 @@ async def test_job_detail_description_handling(
     entry: Dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """
     Test description handling: truncated preview + full upload.
@@ -1681,6 +1866,17 @@ async def test_job_detail_description_handling(
             f"{byte_count} bytes for {ingested_job.get('url', 'unknown')}"
         )
 
+    full_word_count_by_url: Dict[str, int] = {}
+    for ingested_job in result.convex_capture.ingested_jobs:
+        if not isinstance(ingested_job, dict):
+            continue
+        url = ingested_job.get("url")
+        if not isinstance(url, str) or not url:
+            continue
+        full_count = ingested_job.get("_full_description_word_count")
+        if isinstance(full_count, int):
+            full_word_count_by_url[url] = full_count
+
     # Check description uploads for jobs with long descriptions
     for job in result.extracted_jobs:
         if job.description_word_count > DESCRIPTION_PREVIEW_MAX_WORDS:
@@ -1693,9 +1889,109 @@ async def test_job_detail_description_handling(
             # Note: Upload may not happen if job ID lookup fails
             if matching_uploads:
                 upload = matching_uploads[0]
+                expected_word_count = full_word_count_by_url.get(
+                    job.url, job.description_word_count
+                )
                 assert (
-                    upload["word_count"] == job.description_word_count
+                    upload["word_count"] == expected_word_count
                 ), f"Upload word count mismatch for {job.url}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry",
+    SCHEDULE_ENTRIES_WITH_DETAILS,
+    ids=lambda entry: _schedule_id(entry),
+)
+async def test_extractors_use_full_description_not_truncated(
+    entry: Dict[str, Any],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
+) -> None:
+    """
+    CRITICAL: Verify extractors ALWAYS operate on full description, NOT truncated.
+
+    This test ensures that:
+    1. The extraction pipeline (ExtractionContext) receives the full description
+    2. All extraction strategies see the complete job description
+    3. Truncation happens ONLY when preparing data for Convex jobs table
+    4. Full description is separately posted to Convex file storage
+
+    The workflow must:
+    - Extract from FULL description (for accurate title, location, remote detection)
+    - Post TRUNCATED description (≤100 words) to Convex jobs table row
+    - Post FULL description to Convex file storage via separate API
+    """
+    site_id = _schedule_id(entry)
+    _, detail_path = _fixture_paths(entry)
+    if not detail_path.exists():
+        pytest.skip(f"No detail fixture for {site_id}")
+
+    detail_fixture = _load_fixture(detail_path)
+    module = WorkflowTestModule(entry, detail_fixture, tmp_path, monkeypatch)
+    await module.setup()
+
+    result = await module.run_detail_extraction()
+
+    assert not result.errors, f"Extraction errors: {result.errors}"
+    assert result.extracted_jobs, f"No jobs extracted for {site_id}"
+
+    # Verify extractor trace shows full description was used
+    if result.extractor_trace:
+        desc_trace = result.extractor_trace.get("description")
+        if desc_trace and desc_trace.final_value:
+            # The description in extractor trace should be the FULL description
+            # (no truncation suffix unless it exceeds MAX_DESCRIPTION_LENGTH = 50,000)
+            full_desc_word_count = len(desc_trace.final_value.split())
+
+            # Verify extraction operated on substantial content
+            # (if truncation happened during extraction, word count would be capped)
+            for job in result.extracted_jobs:
+                if job.description:
+                    # Extracted job should have same word count as extractor saw
+                    assert job.description_word_count == full_desc_word_count, (
+                        f"Extractor word count ({full_desc_word_count}) doesn't match "
+                        f"extracted job ({job.description_word_count}) - truncation may have "
+                        f"happened before extraction!"
+                    )
+
+    # Verify that scrapes stored contain FULL descriptions (pre-truncation)
+    for scrape in result.convex_capture.stored_scrapes:
+        items = scrape.get("items") if isinstance(scrape, dict) else {}
+        if not isinstance(items, dict):
+            continue
+        normalized = items.get("normalized")
+        if not isinstance(normalized, list):
+            continue
+        for row in normalized:
+            if not isinstance(row, dict):
+                continue
+            full_desc = row.get("description")
+            if not isinstance(full_desc, str) or not full_desc.strip():
+                continue
+
+            # Stored scrape should have FULL description (may be > 100 words)
+            # The truncation happens AFTER extraction when preparing for ingest
+            # We verify this by checking the description hasn't been truncated yet
+            assert not full_desc.endswith(DESCRIPTION_TRUNCATION_SUFFIX) or len(full_desc.split()) <= DESCRIPTION_PREVIEW_MAX_WORDS, (
+                "Stored scrape description should be full (not truncated) unless it was short"
+            )
+
+    # Verify that ingested jobs have TRUNCATED descriptions (for DB row)
+    for ingested_job in result.convex_capture.ingested_jobs:
+        if not isinstance(ingested_job, dict):
+            continue
+        truncated_desc = ingested_job.get("description", "")
+        if not truncated_desc:
+            continue
+
+        truncated_word_count = _count_words(truncated_desc)
+        # MUST be truncated to max 100 words (or shorter if original was shorter)
+        assert truncated_word_count <= DESCRIPTION_PREVIEW_MAX_WORDS + 1, (
+            f"Ingested description should be truncated but has {truncated_word_count} words "
+            f"(max {DESCRIPTION_PREVIEW_MAX_WORDS})"
+        )
 
 
 @pytest.mark.asyncio
@@ -1708,6 +2004,7 @@ async def test_job_detail_metadata_extraction(
     entry: Dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """
     Test that metadata like cost is captured.
@@ -1742,15 +2039,13 @@ async def test_job_detail_metadata_extraction(
     # (may be None for some fixtures)
 
 
-@pytest.mark.asyncio
-async def test_output_directory_created(tmp_path: Path) -> None:
+def test_output_directory_created(tmp_path: Path) -> None:
     """Test that output directory is created."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     assert OUTPUT_DIR.exists(), "Output directory should exist"
 
 
-@pytest.mark.asyncio
-async def test_description_truncation_logic() -> None:
+def test_description_truncation_logic() -> None:
     """Test the description truncation helper."""
     short_text = "This is a short description."
     long_text = " ".join(["word"] * 150)

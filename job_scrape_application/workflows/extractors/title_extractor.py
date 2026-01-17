@@ -4,6 +4,8 @@ Title extraction strategies and extractor.
 
 from __future__ import annotations
 
+import html
+import json
 import re
 from typing import TYPE_CHECKING
 
@@ -23,6 +25,8 @@ _INVALID_TITLES = frozenset(
     {
         "job description",
         "description",
+        "description & requirements",
+        "description &amp; requirements",
         "the role",
         "our team",
         "about",
@@ -36,16 +40,190 @@ _INVALID_TITLES = frozenset(
         "careers",
         "job",
         "jobs",
+        "open positions",
+        "all open positions",
+        "openings",
+        "all openings",
         "role",
         "apply now",
         "apply",
         "home",
         "homepage",
+        "requirements",
+        "qualifications",
+        "responsibilities",
     }
 )
 
 # Markdown heading pattern
 _HEADING_RE = re.compile(r"^[ \t]*#{1,3}\s+(?P<title>.+)$", re.MULTILINE)
+
+# Location suffixes that should be stripped from job titles when they appear after " - "
+# e.g., "Software Engineer - San Francisco" -> "Software Engineer"
+# This is a conservative list of common patterns that clearly indicate location, not product/team names
+_LOCATION_SUFFIX_PATTERNS = frozenset({
+    # US cities commonly seen in job titles
+    "san francisco", "new york", "los angeles", "seattle", "austin", "boston",
+    "chicago", "denver", "atlanta", "miami", "dallas", "houston", "phoenix",
+    "portland", "san diego", "san jose", "washington dc", "dc",
+    # Other major cities
+    "london", "toronto", "vancouver", "sydney", "melbourne", "dublin",
+    "amsterdam", "berlin", "paris", "munich", "zurich", "tel aviv",
+    # US state abbreviations
+    "ca", "ny", "wa", "tx", "ma", "co", "il", "ga", "fl",
+    # Generic location indicators
+    "remote", "hybrid", "onsite", "on-site", "on site",
+})
+
+# Company name patterns that should be stripped from job titles
+# e.g., "Product Manager - Acme Corp" -> "Product Manager"
+_COMPANY_SUFFIX_INDICATORS = frozenset({
+    "inc", "inc.", "llc", "ltd", "corp", "corporation", "company", "co",
+    "limited", "gmbh", "ag", "sa", "plc",
+})
+
+# Pattern to match " at Company Name" or " @ Company Name" suffix at the end of titles
+# Matches: "Software Engineer at Acme Corp", "PM at Palo Alto Networks", "Engineer @ Google"
+# Does NOT match: "Engineer at scale" (lowercase company), "Work at home" (generic phrase)
+_AT_COMPANY_SUFFIX_RE = re.compile(
+    r"\s+(?:at|@)\s+(?P<company>[A-Z][A-Za-z0-9](?:[A-Za-z0-9 ]*[A-Za-z0-9])?)$"
+)
+
+_JOB_ID_COMPANY_SUFFIX_RE = re.compile(
+    r"\s*[-–—]\s*(?P<job_id>\d{4,})\s*[-–—]\s*(?P<company>.+?)\s*$"
+)
+
+
+_CODE_BLOCK_RE = re.compile(r"```(?:json)?\s*(?P<blob>.*?)```", re.DOTALL | re.IGNORECASE)
+_PRE_TAG_RE = re.compile(r"<pre>(?P<blob>.*?)</pre>", re.DOTALL | re.IGNORECASE)
+
+
+def _load_json_blob(blob: str) -> dict | None:
+    if not blob:
+        return None
+    try:
+        parsed = json.loads(blob)
+    except json.JSONDecodeError:
+        try:
+            parsed = json.loads(blob.replace("\\_", "_"))
+        except json.JSONDecodeError:
+            return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _extract_json_from_text(text: str) -> dict | None:
+    if not text or not isinstance(text, str):
+        return None
+    code_match = _CODE_BLOCK_RE.search(text)
+    if code_match:
+        parsed = _load_json_blob(code_match.group("blob"))
+        if parsed:
+            return parsed
+    pre_match = _PRE_TAG_RE.search(text)
+    if pre_match:
+        parsed = _load_json_blob(pre_match.group("blob"))
+        if parsed:
+            return parsed
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end > start:
+        return _load_json_blob(text[start : end + 1])
+    return None
+
+
+def _strip_at_company_suffix(title: str) -> str:
+    """Strip ' at Company Name' suffix from titles.
+
+    Handles patterns like:
+    - "Software Engineer at Palo Alto Networks" -> "Software Engineer"
+    - "PM at Acme Corp" -> "PM"
+
+    But preserves legitimate uses like:
+    - "Engineer at scale" (lowercase)
+    - "Look at our team" (generic phrase)
+
+    Args:
+        title: The title string to clean
+
+    Returns:
+        The cleaned title without the company suffix
+    """
+    if not title:
+        return title
+
+    match = _AT_COMPANY_SUFFIX_RE.search(title)
+    if match:
+        return title[:match.start()].strip()
+
+    return title
+
+
+def _strip_location_suffix(title: str) -> str:
+    """Strip location suffixes like " - San Francisco" when clearly a location."""
+    if not title or " - " not in title:
+        return title
+
+    prefix, suffix = title.rsplit(" - ", 1)
+    if _is_strippable_title_suffix(suffix):
+        return prefix.strip()
+
+    return title
+
+
+def _is_strippable_title_suffix(suffix: str) -> bool:
+    """Check if a title suffix should be stripped.
+
+    Only strip suffixes that are clearly locations or company name patterns.
+    Product/team names like "Flink SQL" or "Kora Storage" should be preserved.
+
+    Args:
+        suffix: The suffix part after " - " in a title
+
+    Returns:
+        True if the suffix should be stripped, False if it should be kept
+    """
+    suffix_lower = suffix.strip().lower()
+
+    # Check for exact location matches
+    if suffix_lower in _LOCATION_SUFFIX_PATTERNS:
+        return True
+
+    # Check for company name indicators (e.g., "Acme Inc", "Tech Corp")
+    suffix_words = suffix_lower.split()
+    if suffix_words and suffix_words[-1] in _COMPANY_SUFFIX_INDICATORS:
+        return True
+
+    # Default: keep the suffix (it's likely a product/team name)
+    return False
+
+
+def _normalize_whitespace(value: str) -> str:
+    """Normalize whitespace in a string: strip and collapse multiple spaces."""
+    # Strip leading/trailing whitespace and collapse internal whitespace
+    return " ".join(value.split())
+
+
+def _normalize_company_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _strip_job_id_company_suffix(title: str, company_hint: str | None) -> str:
+    """Strip trailing job ID + company suffix like " - 16762 - Bloomberg"."""
+    if not title:
+        return title
+    match = _JOB_ID_COMPANY_SUFFIX_RE.search(title)
+    if not match:
+        return title
+    if not company_hint:
+        return title
+    suffix_company = match.group("company").strip()
+    normalized_suffix = _normalize_company_key(suffix_company)
+    normalized_hint = _normalize_company_key(company_hint)
+    if not normalized_suffix or not normalized_hint:
+        return title
+    if normalized_suffix not in normalized_hint and normalized_hint not in normalized_suffix:
+        return title
+    return title[: match.start()].strip()
 
 
 def _is_valid_title(value: str | None) -> tuple[bool, str]:
@@ -53,7 +231,8 @@ def _is_valid_title(value: str | None) -> tuple[bool, str]:
     if not value:
         return False, "Empty title"
 
-    value = value.strip()
+    # Normalize whitespace: strip and collapse multiple spaces
+    value = _normalize_whitespace(value)
     if len(value) < 3:
         return False, f"Title too short: {len(value)} chars"
 
@@ -61,7 +240,8 @@ def _is_valid_title(value: str | None) -> tuple[bool, str]:
         return False, f"Title too long: {len(value)} chars"
 
     # Check for generic/invalid titles
-    lower = value.lower().strip()
+    # Strip trailing punctuation (colon, period, etc.) before comparison
+    lower = value.lower().strip().rstrip(":.")
     if lower in _INVALID_TITLES:
         return False, f"Generic title rejected: {value}"
 
@@ -70,10 +250,14 @@ def _is_valid_title(value: str | None) -> tuple[bool, str]:
         return False, "URL as title rejected"
 
     # Check for markdown artifacts
-    if value.startswith(("#", "[", "*")):
+    if value.startswith(("#", "[", "*", "`")):
         # These are likely leftover markdown
-        if re.match(r"^[#\[\]*]+\s*$", value):
+        if re.match(r"^[#\[\]*`]+\s*$", value):
             return False, "Markdown artifact rejected"
+
+    # Reject code fence markers (```) and similar
+    if value.strip() in ("```", "```json", "```html", "```xml", "---"):
+        return False, "Markdown code fence rejected"
 
     # Check word count (too many words suggests a sentence, not a title)
     word_count = len(value.split())
@@ -92,21 +276,35 @@ class StructuredDataTitleStrategy(ExtractionStrategy[str]):
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
         data = context.structured_data or context.json_payload
         if not isinstance(data, dict):
+            data = _extract_json_from_text(context.raw_markdown or context.raw_html)
+        if not isinstance(data, dict):
             return self._make_skip_result("No structured data available")
 
+        candidates = [data]
+        job_posting_info = data.get("jobPostingInfo")
+        if isinstance(job_posting_info, dict):
+            candidates.append(job_posting_info)
+
         # Try common title keys in priority order
-        for key in ("title", "name", "jobTitle", "job_title", "positionTitle", "position"):
-            value = data.get(key)
-            if isinstance(value, str) and value.strip():
-                cleaned = value.strip()
-                is_valid, reason = _is_valid_title(cleaned)
-                return self._make_result(
-                    cleaned if is_valid else None,
-                    reason,
-                    is_valid=is_valid,
-                    confidence=0.95,
-                    debug_info={"key": key, "raw_value": value},
-                )
+        for candidate in candidates:
+            for key in ("title", "name", "jobTitle", "job_title", "positionTitle", "position"):
+                value = candidate.get(key)
+                if isinstance(value, str) and value.strip():
+                    cleaned = _normalize_whitespace(html.unescape(value))
+                    # Clean up " | Location | Company" patterns (e.g., Netflix)
+                    if " | " in cleaned:
+                        cleaned = cleaned.split(" | ", 1)[0].strip()
+                    cleaned = _strip_location_suffix(cleaned)
+                    # Strip " at Company Name" suffix (e.g., "PM at Palo Alto Networks")
+                    cleaned = _strip_at_company_suffix(cleaned)
+                    is_valid, reason = _is_valid_title(cleaned)
+                    return self._make_result(
+                        cleaned if is_valid else None,
+                        reason,
+                        is_valid=is_valid,
+                        confidence=0.95,
+                        debug_info={"key": key, "raw_value": value},
+                    )
 
         return self._make_skip_result("No title key found in structured data")
 
@@ -125,6 +323,12 @@ class SiteHandlerTitleStrategy(ExtractionStrategy[str]):
         if not handler_title:
             handler_name = context.handler_name or "base"
             return self._make_skip_result(f"Handler '{handler_name}' did not extract title")
+
+        # Normalize whitespace in title
+        handler_title = _normalize_whitespace(handler_title)
+        handler_title = _strip_location_suffix(handler_title)
+        # Strip " at Company Name" suffix (e.g., "PM at Palo Alto Networks")
+        handler_title = _strip_at_company_suffix(handler_title)
 
         is_valid, reason = _is_valid_title(handler_title)
         return self._make_result(
@@ -157,9 +361,20 @@ class RawRowTitleStrategy(ExtractionStrategy[str]):
         # Normalize: remove " | Company" suffix patterns
         from ..helpers.company_normalization import normalize_title_from_bar
 
-        cleaned = normalize_title_from_bar(raw_title.strip())
+        cleaned = normalize_title_from_bar(_normalize_whitespace(raw_title))
         if not cleaned:
-            cleaned = raw_title.strip()
+            cleaned = _normalize_whitespace(raw_title)
+        cleaned = _strip_location_suffix(cleaned)
+        # Strip " at Company Name" suffix (e.g., "PM at Palo Alto Networks")
+        cleaned = _strip_at_company_suffix(cleaned)
+        company_hint = context.get_raw_field(
+            "company", "company_name", "employer", "organization"
+        )
+        if not company_hint:
+            hint_company = context.hints.get("company")
+            if isinstance(hint_company, str):
+                company_hint = hint_company
+        cleaned = _strip_job_id_company_suffix(cleaned, company_hint)
 
         is_valid, reason = _is_valid_title(cleaned)
         return self._make_result(
@@ -192,13 +407,13 @@ class MarkdownHeadingTitleStrategy(ExtractionStrategy[str]):
 
         raw_title = match.group("title").strip()
 
-        # Clean up: remove trailing " | Location" or " - Company"
+        # Clean up: remove trailing " | Location" pattern (always strip after pipe)
         if " | " in raw_title:
             raw_title = raw_title.split(" | ", 1)[0].strip()
-        elif " - " in raw_title and len(raw_title.split(" - ")) == 2:
-            parts = raw_title.split(" - ")
-            # Keep the longer part as title
-            raw_title = max(parts, key=len).strip()
+        else:
+            raw_title = _strip_location_suffix(raw_title)
+        # Strip " at Company Name" suffix (e.g., "PM at Palo Alto Networks")
+        raw_title = _strip_at_company_suffix(raw_title)
 
         is_valid, reason = _is_valid_title(raw_title)
         return self._make_result(

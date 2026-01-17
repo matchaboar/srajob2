@@ -188,7 +188,6 @@ def test_spidercloud_workflow_has_schedule():
     assert spidercloud.task_queue in (None, "scraper-task-queue")
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_workflow_leases_manual_trigger(monkeypatch):
     now = datetime.fromtimestamp(0)
     lease_payload: Site = {
@@ -205,7 +204,7 @@ async def test_spidercloud_workflow_leases_manual_trigger(monkeypatch):
     log_events: list[tuple[str, str]] = []
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append(activity.__name__ if hasattr(activity, "__name__") else str(activity))
         if activity is acts.lease_site:
             if state["leased"]:
@@ -248,12 +247,11 @@ async def test_spidercloud_workflow_leases_manual_trigger(monkeypatch):
     assert any("event=workflow.start" in msg for _level, msg in log_events)
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
     calls: List[Dict[str, Any]] = []
     state = {"leased_once": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append({"activity": activity, "kwargs": kwargs})
         if activity is acts.lease_site:
             if state["leased_once"]:
@@ -305,7 +303,6 @@ async def test_spidercloud_workflow_uses_provider_and_timeout(monkeypatch):
     assert scrape_call["kwargs"]["start_to_close_timeout"] == timedelta(minutes=25)
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_fanout(
     monkeypatch,
     queue_mocks: dict[str, list[Dict[str, Any]]],
@@ -325,15 +322,15 @@ async def test_spidercloud_greenhouse_listing_fanout(
     now_ms = 0
     stale_created = now_ms - (acts.SCRAPE_URL_QUEUE_TTL_MS + 1)
 
-    async def fake_listing(site_arg: Site):
+    def fake_listing(site_arg: Site):
         calls.append("listing")
         assert site_arg is site
         return {"job_urls": ["https://example.com/a", "https://example.com/b"]}
 
-    async def fake_select_scraper(site_arg: Site):
+    def fake_select_scraper(site_arg: Site):
         return scraper, None
 
-    async def fake_filter_existing(urls: list[str]):
+    def fake_filter_existing(urls: list[str]):
         return ["https://example.com/a"]
 
     monkeypatch.setattr(scraper, "fetch_greenhouse_listing", fake_listing)
@@ -369,7 +366,6 @@ async def test_spidercloud_greenhouse_listing_fanout(
     assert items.get("queued") is True
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
     site: Site = {
         "_id": "01hzconvexsiteid123456789abd",
@@ -381,12 +377,12 @@ async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
     scraper = _make_spidercloud_scraper()
     calls: list[str] = []
 
-    async def fake_listing(site_arg: Site):
+    def fake_listing(site_arg: Site):
         calls.append("listing")
         assert site_arg is site
         return {"job_urls": []}
 
-    async def fake_scrape_site(site_arg: Site, *, _skip_urls=None):
+    def fake_scrape_site(site_arg: Site, *, _skip_urls=None):
         calls.append("scrape_site")
         return {
             "items": {"normalized": [{"url": site_arg["url"], "title": "Jobs"}]},
@@ -404,7 +400,6 @@ async def test_spidercloud_greenhouse_listing_not_ingested(monkeypatch):
     assert items.get("normalized") == []
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_convex_calls_strip_none_fields(
     monkeypatch,
     convex_client: FakeConvexClient,
@@ -423,19 +418,19 @@ async def test_spidercloud_convex_calls_strip_none_fields(
     enqueue_calls = queue_mocks["enqueue_calls"]
     now_ms = int(time.time() * 1000)
 
-    async def fake_listing(site_arg: Site):
+    def fake_listing(site_arg: Site):
         return {"job_urls": ["https://example.com/new"]}
 
-    async def fake_scrape_jobs(payload: Dict[str, Any]):
+    def fake_scrape_jobs(payload: Dict[str, Any]):
         return {
             "scrape": {"items": {"normalized": [{"url": u} for u in payload.get("urls", [])]}},
             "jobsScraped": len(payload.get("urls", [])),
         }
 
-    async def fake_filter_existing(urls: list[str]):
+    def fake_filter_existing(urls: list[str]):
         return []
 
-    async def fake_convex_query(name, payload):
+    def fake_convex_query(name, payload):
         if name == "router:findExistingJobUrls":
             return {"existing": []}
         if name == "router:listSeenJobUrlsForSite":
@@ -471,7 +466,6 @@ async def test_spidercloud_convex_calls_strip_none_fields(
     assert all(value is not None for value in enqueue_payload.values())
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_skips_invalid_site_ids(
     monkeypatch,
     convex_client: FakeConvexClient,
@@ -488,13 +482,13 @@ async def test_spidercloud_skips_invalid_site_ids(
     queue_payloads: list[Dict[str, Any]] = []
     enqueue_calls = queue_mocks["enqueue_calls"]
 
-    async def fake_listing(site_arg: Site):
+    def fake_listing(site_arg: Site):
         return {"job_urls": ["https://example.com/new"]}
 
-    async def fake_filter_existing(urls: list[str]):
+    def fake_filter_existing(urls: list[str]):
         return []
 
-    async def fake_convex_query(name, payload):
+    def fake_convex_query(name, payload):
         return []
 
     def fake_list_scrape_urls(**kwargs):
@@ -525,8 +519,7 @@ def test_strip_none_values_keeps_falsey():
     assert cleaned == {"b": 0, "c": "", "d": False, "e": "ok"}
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_ingests_spidercloud_jobs(
+def test_store_scrape_ingests_spidercloud_jobs(
     convex_client: FakeConvexClient,
 ):
     """Regression: ensure jobs from spidercloud scrape are sent to Convex ingestion."""
@@ -566,26 +559,25 @@ async def test_store_scrape_ingests_spidercloud_jobs(
 
     ingest_calls: list[dict[str, Any]] = []
 
-    async def fake_convex_mutation(name, payload):
+    def fake_convex_mutation(name, payload):
         if name == "router:ingestJobsFromScrape":
             ingest_calls.append(payload)
         return "ok"
 
     convex_client.set_mutation_fallback(fake_convex_mutation)
 
-    await acts.store_scrape(scrape_payload)
+    acts.store_scrape(scrape_payload)
 
     assert ingest_calls, "Expected ingestJobsFromScrape to be called"
     jobs_payload = ingest_calls[0].get("jobs")
     assert isinstance(jobs_payload, list) and len(jobs_payload) == 2
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
     scraper = _make_spidercloud_scraper()
     requested: dict[str, str] = {}
 
-    async def fake_fetch(api_url: str, _handler):
+    def fake_fetch(api_url: str, _handler):
         requested["url"] = api_url
         payload = {
             "jobs": [
@@ -613,7 +605,6 @@ async def test_spidercloud_greenhouse_listing_uses_boards_slug(monkeypatch):
     assert listing["job_urls"] == ["https://example.com/job/123"]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
     scraper = _make_spidercloud_scraper()
     requested: dict[str, str] = {}
@@ -633,7 +624,7 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
         lambda *_args, **_kwargs: [],
     )
 
-    async def fake_fetch(api_url: str, _handler):
+    def fake_fetch(api_url: str, _handler):
         requested["url"] = api_url
         return content_str, []
 
@@ -652,13 +643,12 @@ async def test_spidercloud_greenhouse_listing_regex_fallback(monkeypatch):
     assert any(u.startswith("https://boards.greenhouse.io/robinhood/jobs/") for u in listing["job_urls"])
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_regex_uses_event_payload(monkeypatch):
     scraper = _make_spidercloud_scraper()
     raw_text = "https://boards.greenhouse.io/flex/jobs/4634056005"
     extra_html = "<html>https://boards.greenhouse.io/flex/jobs/4641646005</html>"
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, [{"content": {"raw": extra_html}}]
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -675,7 +665,6 @@ async def test_spidercloud_greenhouse_listing_regex_uses_event_payload(monkeypat
     assert "https://boards.greenhouse.io/flex/jobs/4641646005" in listing["job_urls"]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_avature_listing_extracts_job_detail_links(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -693,7 +682,7 @@ async def test_spidercloud_avature_listing_extracts_job_detail_links(monkeypatch
             if isinstance(first.get("url"), str):
                 url = first["url"]
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -715,7 +704,6 @@ async def test_spidercloud_avature_listing_extracts_job_detail_links(monkeypatch
     )
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_invalid_json_returns_empty(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -731,7 +719,7 @@ async def test_spidercloud_greenhouse_listing_invalid_json_returns_empty(monkeyp
             if isinstance(content, dict):
                 raw_text = content.get("raw", "")
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -748,13 +736,12 @@ async def test_spidercloud_greenhouse_listing_invalid_json_returns_empty(monkeyp
     assert "Access Denied" in listing["raw"]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_ignores_listing_url_fallback(monkeypatch):
     scraper = _make_spidercloud_scraper()
     requested: dict[str, str] = {}
     raw_text = "blocked https://api.greenhouse.io/v1/boards/flex/jobs"
 
-    async def fake_fetch(api_url: str, _handler):
+    def fake_fetch(api_url: str, _handler):
         requested["url"] = api_url
         return raw_text, []
 
@@ -772,7 +759,6 @@ async def test_spidercloud_greenhouse_listing_ignores_listing_url_fallback(monke
     assert listing["job_urls"] == []
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_parses_raw_html_fixture(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -788,7 +774,7 @@ async def test_spidercloud_greenhouse_listing_parses_raw_html_fixture(monkeypatc
             if isinstance(content, dict):
                 raw_text = content.get("raw", "")
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -808,7 +794,6 @@ async def test_spidercloud_greenhouse_listing_parses_raw_html_fixture(monkeypatc
     )
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_parses_raw_response_fixture(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -824,7 +809,7 @@ async def test_spidercloud_greenhouse_listing_parses_raw_response_fixture(monkey
                 raw_text = content
                 break
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -841,7 +826,6 @@ async def test_spidercloud_greenhouse_listing_parses_raw_response_fixture(monkey
     assert listing["raw"] and "jobs" in listing["raw"]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_prefers_listing_slug(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -857,7 +841,7 @@ async def test_spidercloud_greenhouse_listing_prefers_listing_slug(monkeypatch):
                 raw_text = content
                 break
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -877,7 +861,6 @@ async def test_spidercloud_greenhouse_listing_prefers_listing_slug(monkeypatch):
     )
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_parses_togetherai_fixture(monkeypatch):
     scraper = _make_spidercloud_scraper()
     fixture_path = Path(
@@ -893,7 +876,7 @@ async def test_spidercloud_greenhouse_listing_parses_togetherai_fixture(monkeypa
             if isinstance(content, dict):
                 raw_text = content.get("raw", "")
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return raw_text, raw_events
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -909,7 +892,6 @@ async def test_spidercloud_greenhouse_listing_parses_togetherai_fixture(monkeypa
     assert "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4967737007" in listing["job_urls"]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_empty(monkeypatch):
     scraper = _make_spidercloud_scraper()
     job_url = "https://boards.greenhouse.io/example/jobs/123"
@@ -924,7 +906,7 @@ async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_e
         ]
     }
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return "", [{"content": json.dumps(payload)}]
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -942,7 +924,6 @@ async def test_spidercloud_greenhouse_listing_uses_event_payload_when_raw_text_e
     assert raw_payload["jobs"][0]["absolute_url"] == job_url
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_listing_reconstructs_chunked_json(monkeypatch):
     scraper = _make_spidercloud_scraper()
     job_url = "https://boards.greenhouse.io/example/jobs/456"
@@ -961,7 +942,7 @@ async def test_spidercloud_greenhouse_listing_reconstructs_chunked_json(monkeypa
     chunk_one = html_payload[:40]
     chunk_two = html_payload[40:]
 
-    async def fake_fetch(_api_url: str, _handler):
+    def fake_fetch(_api_url: str, _handler):
         return chunk_one, [{"content": chunk_one}, {"content": chunk_two}]
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -1023,7 +1004,6 @@ def test_spidercloud_extracts_location_from_raw_html_json_ld():
     assert normalized["location"] == "Singapore, Singapore"
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_greenhouse_enqueues_listing_urls(
     monkeypatch,
     convex_client: FakeConvexClient,
@@ -1039,10 +1019,10 @@ async def test_spidercloud_greenhouse_enqueues_listing_urls(
     complete_calls = queue_mocks["complete_calls"]
     queue_calls: list[Dict[str, Any]] = []
 
-    async def fake_fetch_greenhouse_listing(site: Site):
+    def fake_fetch_greenhouse_listing(site: Site):
         return {"job_urls": job_urls}
 
-    async def fake_filter_existing(urls: list[str]):
+    def fake_filter_existing(urls: list[str]):
         return []
 
     def fake_list_scrape_urls(**kwargs):
@@ -1285,19 +1265,18 @@ def test_spidercloud_normalize_job_skips_avature_listing_url():
     assert scraper._last_ignored_job.get("reason") == "listing_page"  # noqa: SLF001
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
     scraper = _make_spidercloud_scraper()
 
     called: dict[str, Any] = {"batch": False}
 
-    async def fake_batch(*_args, **_kwargs):
+    def fake_batch(*_args, **_kwargs):
         called["batch"] = True
         return {"items": {"normalized": [], "provider": "spidercloud", "seedUrls": []}}
 
     monkeypatch.setattr(scraper, "_scrape_urls_batch", fake_batch)
 
-    async def fake_fetch_site_api(handler, url, *, pattern):
+    def fake_fetch_site_api(handler, url, *, pattern):
         return {"items": {"job_urls": [
             "https://jobs.ashbyhq.com/lambda/senior-software-engineer",
             "https://jobs.ashbyhq.com/lambda/security-engineer",
@@ -1315,7 +1294,6 @@ async def test_spidercloud_uses_ashby_api_when_available(monkeypatch):
     ]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_wraps_listing_api_payload(monkeypatch):
     scraper = _make_spidercloud_scraper()
 
@@ -1323,7 +1301,7 @@ async def test_spidercloud_wraps_listing_api_payload(monkeypatch):
         Path("tests/fixtures/ashby_lambda_listing_payload_small.json")
     )
 
-    async def fake_fetch_site_api(*_args, **_kwargs):
+    def fake_fetch_site_api(*_args, **_kwargs):
         return payload
 
     monkeypatch.setattr(scraper, "_fetch_site_api", fake_fetch_site_api)
@@ -1337,18 +1315,17 @@ async def test_spidercloud_wraps_listing_api_payload(monkeypatch):
     assert result["items"]["raw"] == payload
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
     scraper = _make_spidercloud_scraper()
 
-    async def fake_fetch_site_api(*_args, **_kwargs):
+    def fake_fetch_site_api(*_args, **_kwargs):
         return None
 
     monkeypatch.setattr(scraper, "_fetch_site_api", fake_fetch_site_api)
 
     called: dict[str, Any] = {"batch": False}
 
-    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+    def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
         called["batch"] = True
         return {
             "sourceUrl": source_url,
@@ -1370,8 +1347,7 @@ async def test_spidercloud_falls_back_when_ashby_api_fails(monkeypatch):
     assert result["items"]["seedUrls"] == ["https://jobs.ashbyhq.com/lambda"]
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
+def test_store_scrape_enqueues_urls_from_spidercloud_raw(
     convex_client: FakeConvexClient,
     queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
@@ -1392,7 +1368,7 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
     calls: list[Dict[str, Any]] = []
     enqueue_calls = queue_mocks["enqueue_calls"]
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -1402,14 +1378,13 @@ async def test_store_scrape_enqueues_urls_from_spidercloud_raw(
 
     convex_client.set_mutation_fallback(fake_mutation)
 
-    await acts.store_scrape(scrape_payload)
+    acts.store_scrape(scrape_payload)
 
     assert enqueue_calls, "store_scrape should enqueue job URLs from raw payload"
     assert len(enqueue_calls[0]["urls"]) >= 20
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
+def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     convex_client: FakeConvexClient,
     queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
@@ -1426,7 +1401,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     calls: list[Dict[str, Any]] = []
     enqueue_calls = queue_mocks["enqueue_calls"]
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -1436,7 +1411,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
 
     convex_client.set_mutation_fallback(fake_mutation)
 
-    await acts.store_scrape(scrape_payload)
+    acts.store_scrape(scrape_payload)
 
     assert enqueue_calls, "store_scrape should enqueue job URLs from GitHub fixture"
     enqueued_urls = enqueue_calls[0]["urls"]
@@ -1444,8 +1419,7 @@ async def test_store_scrape_enqueues_software_engineer_jobs_from_github_fixture(
     assert "https://www.github.careers/careers-home/jobs/4853?lang=en-us" in enqueued_urls
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
+def test_store_scrape_enqueues_jobs_from_confluent_fixture(
     convex_client: FakeConvexClient,
     queue_mocks: dict[str, list[Dict[str, Any]]],
 ):
@@ -1463,7 +1437,7 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
     calls: list[Dict[str, Any]] = []
     enqueue_calls = queue_mocks["enqueue_calls"]
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -1473,7 +1447,7 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
 
     convex_client.set_mutation_fallback(fake_mutation)
 
-    await acts.store_scrape(scrape_payload)
+    acts.store_scrape(scrape_payload)
 
     assert enqueue_calls, "store_scrape should enqueue job URLs from Confluent fixture"
     enqueued_urls = enqueue_calls[0]["urls"]
@@ -1490,7 +1464,6 @@ async def test_store_scrape_enqueues_jobs_from_confluent_fixture(
     assert set(enqueued_urls) == expected_urls
 
 
-@pytest.mark.asyncio
 async def test_select_scraper_defaults_greenhouse_to_spidercloud(monkeypatch):
     monkeypatch.setattr(acts.settings, "spider_api_key", "spider-key")
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", None)
@@ -1502,7 +1475,6 @@ async def test_select_scraper_defaults_greenhouse_to_spidercloud(monkeypatch):
     assert skip_urls is None
 
 
-@pytest.mark.asyncio
 async def test_select_scraper_defaults_to_spidercloud_when_key_present(monkeypatch):
     monkeypatch.setattr(acts.settings, "spider_api_key", "spider-key")
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", None)
@@ -1514,14 +1486,13 @@ async def test_select_scraper_defaults_to_spidercloud_when_key_present(monkeypat
     assert skip_urls is None
 
 
-@pytest.mark.asyncio
 async def test_select_scraper_falls_back_to_firecrawl(monkeypatch):
     monkeypatch.setattr(acts.settings, "spider_api_key", None)
     monkeypatch.setattr(acts.settings, "enable_firecrawl", True)
     monkeypatch.setattr(acts.settings, "firecrawl_api_key", "fc-key")
     monkeypatch.setattr(acts.settings, "fetchfox_api_key", None)
 
-    async def fake_seen(url: str, pattern: str | None):
+    def fake_seen(url: str, pattern: str | None):
         return ["https://example.com/seen"]
 
     monkeypatch.setattr(factories, "fetch_seen_urls_for_site", fake_seen)
@@ -1578,7 +1549,6 @@ def test_spidercloud_recovers_keyword_from_markdown():
     assert normalized["title"].lower().startswith("senior software engineer")
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_github_listing_preserves_query_params(monkeypatch):
     fixture_path = Path("tests/fixtures/github_careers_api_jobs_12.json")
     payload_full = _load_spidercloud_fixture(fixture_path)
@@ -1842,12 +1812,11 @@ def test_greenhouse_handler_normalizes_marketing_url_variants():
     assert handler.is_listing_url(normalized[0]) is False
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
     seen_url = "https://example.com/jobs/skip-me"
     captured: dict[str, Any] = {}
 
-    async def fake_seen(url: str, pattern: str | None):
+    def fake_seen(url: str, pattern: str | None):
         return [seen_url]
 
     deps = SpidercloudDependencies(
@@ -1862,7 +1831,7 @@ async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
     )
     scraper = SpiderCloudScraper(deps)
 
-    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+    def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
         captured["urls"] = urls
         return {
             "sourceUrl": source_url,
@@ -1880,12 +1849,11 @@ async def test_spidercloud_scrape_site_skips_seen_urls(monkeypatch):
     assert result["items"]["seedUrls"] == []
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_scrape_site_keeps_seed_when_pattern_present(monkeypatch):
     seen_url = "https://jobs.ashbyhq.com/lambda"
     captured: dict[str, Any] = {}
 
-    async def fake_seen(url: str, pattern: str | None):
+    def fake_seen(url: str, pattern: str | None):
         return [seen_url]
 
     deps = SpidercloudDependencies(
@@ -1905,7 +1873,7 @@ async def test_spidercloud_scrape_site_keeps_seed_when_pattern_present(monkeypat
 
     monkeypatch.setattr(scraper, "_fetch_site_api", _no_ashby_api)
 
-    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+    def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
         captured["urls"] = urls
         return {
             "sourceUrl": source_url,
@@ -1923,12 +1891,11 @@ async def test_spidercloud_scrape_site_keeps_seed_when_pattern_present(monkeypat
     assert result["items"]["seedUrls"] == [seen_url]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_scrape_site_keeps_listing_seed_when_seen(monkeypatch):
     seen_url = "https://bloomberg.avature.net/careers/SearchJobs/engineer?jobOffset=0"
     captured: dict[str, Any] = {}
 
-    async def fake_seen(url: str, pattern: str | None):
+    def fake_seen(url: str, pattern: str | None):
         return [seen_url]
 
     deps = SpidercloudDependencies(
@@ -1943,7 +1910,7 @@ async def test_spidercloud_scrape_site_keeps_listing_seed_when_seen(monkeypatch)
     )
     scraper = SpiderCloudScraper(deps)
 
-    async def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
+    def fake_batch(urls: List[str], *, source_url: str, pattern: str | None):
         captured["urls"] = urls
         return {
             "sourceUrl": source_url,
@@ -1961,7 +1928,6 @@ async def test_spidercloud_scrape_site_keeps_listing_seed_when_seen(monkeypatch)
     assert result["items"]["seedUrls"] == [seen_url]
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_records_costs_and_ingests(
     monkeypatch,
     convex_client: FakeConvexClient,
@@ -2000,7 +1966,7 @@ async def test_spidercloud_records_costs_and_ingests(
 
     calls: Dict[str, Any] = {}
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         if name == "router:insertScrapeRecord":
             calls["record"] = args
             return "scrape-id"
@@ -2018,8 +1984,7 @@ async def test_spidercloud_records_costs_and_ingests(
     assert {job["scrapedCostMilliCents"] for job in calls["jobs"]} == {expected_cost_mc}
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_job_details_splits_cost_per_url(monkeypatch):
+def test_spidercloud_job_details_splits_cost_per_url(monkeypatch):
     total_cost_mc = 900
     urls = [
         "https://example.com/jobs/1",
@@ -2049,7 +2014,7 @@ async def test_spidercloud_job_details_splits_cost_per_url(monkeypatch):
 
     batch = {"urls": [{"url": url, "sourceUrl": "https://example.com/boards/listing"} for url in urls]}
 
-    result = await acts.process_spidercloud_job_batch(batch, persist_scrapes=False)
+    result = acts.process_spidercloud_job_batch(batch, persist_scrapes=False)
     scrapes = result["scrapes"]
 
     assert len(scrapes) == len(urls)
@@ -2134,7 +2099,6 @@ def test_spidercloud_github_careers_scrape_fixture_matches_request():
     assert "https://www.github.careers/careers-home/jobs/4797?lang=en-us" not in urls
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_cisco_listing_extracts_job_urls(monkeypatch):
     fixture_path = Path(
         "tests/job_scrape_application/workflows/fixtures/spidercloud_cisco_search_page_1.json"
@@ -2468,14 +2432,13 @@ def test_extract_job_urls_from_scrape_filters_confluent_location_urls_in_workflo
         assert url not in detail_urls
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
     """Regression: leased URLs must be released on batch failure to avoid stuck processing."""
 
     calls: list[Dict[str, Any]] = []
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             if state["leased"]:
                 return {"urls": []}
@@ -2509,7 +2472,6 @@ async def test_spidercloud_job_details_marks_failed_on_batch_error(monkeypatch):
     assert any(item.get("url") == "https://example.com/job/123" for item in items if isinstance(item, dict))
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(monkeypatch):
     """Ensure partial successes remove completed URLs without failing the whole batch."""
 
@@ -2518,7 +2480,7 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
     ok_url = "https://example.com/job/ok"
     bad_url = "https://example.com/job/bad"
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             if state["leased"]:
                 return {"urls": []}
@@ -2560,7 +2522,6 @@ async def test_spidercloud_job_details_marks_completed_urls_when_others_fail(mon
     assert calls["runs"] and calls["runs"][0].get("status") == "completed"
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch):
     """Failed URLs can be retried in a subsequent run after being reset to pending."""
 
@@ -2574,7 +2535,7 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
     def _pending_rows():
         return [row for row in queue if row.get("status") == "pending"]
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             pending = _pending_rows()
             batch = pending[:batch_size]
@@ -2653,14 +2614,13 @@ async def test_spidercloud_job_details_retries_failed_urls_next_run(monkeypatch)
     assert set(second_batch) == set(urls[1:] + [new_url])
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_job_details_uses_runtime_timeouts(monkeypatch):
     """Ensure workflow applies runtime-configured timeout and passes processing expiry to lease."""
 
     calls: list[Dict[str, Any]] = []
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             calls.append({"activity": "lease", "kwargs": kwargs})
             if state["leased"]:
@@ -2706,7 +2666,6 @@ async def test_spidercloud_job_details_uses_runtime_timeouts(monkeypatch):
     assert timeout.total_seconds() == runtime_config.spidercloud_job_details_timeout_minutes * 60
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
     recorded: Dict[str, Any] = {}
 
@@ -2749,7 +2708,6 @@ async def test_spidercloud_http_timeout_uses_runtime_config(monkeypatch):
     assert recorded.get("timeout") == runtime_config.spidercloud_http_timeout_seconds
 
 
-@pytest.mark.asyncio
 async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeypatch):
     payload = {
         "jobs": [
@@ -2763,7 +2721,7 @@ async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeyp
 
     scraper = _make_spidercloud_scraper()
 
-    async def fake_fetch(api_url: str, _handler):
+    def fake_fetch(api_url: str, _handler):
         return json.dumps(payload), []
 
     monkeypatch.setattr(scraper, "_fetch_greenhouse_listing_payload", fake_fetch)
@@ -2776,21 +2734,20 @@ async def test_spidercloud_fetch_listing_prefers_greenhouse_api_job_urls(monkeyp
     ]
 
 
-@pytest.mark.asyncio
 async def test_process_pending_job_details_batch_runs_in_workflow(
     convex_client: FakeConvexClient,
 ):
     # Ensure the heuristic workflow activity can be invoked without errors.
     from job_scrape_application.workflows.activities import process_pending_job_details_batch
 
-    async def fake_query(name, args=None):
+    def fake_query(name, args=None):
         if name == "router:listPendingJobDetails":
             return []
         if name == "router:listJobDetailConfigs":
             return []
         return []
 
-    async def fake_mutation(name, args=None):
+    def fake_mutation(name, args=None):
         return {}
 
     convex_client.set_query_fallback(fake_query)

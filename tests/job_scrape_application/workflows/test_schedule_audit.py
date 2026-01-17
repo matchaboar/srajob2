@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import asyncio
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from job_scrape_application.workflows import schedule_audit
 
@@ -41,7 +43,7 @@ def test_schedule_audit_logger_noop_when_disabled(monkeypatch):
 
     called = {"count": 0}
 
-    async def fake_gather(*_args, **_kwargs):
+    def fake_gather(*_args, **_kwargs):
         called["count"] += 1
         return []
 
@@ -52,6 +54,30 @@ def test_schedule_audit_logger_noop_when_disabled(monkeypatch):
 
     asyncio.run(_run())
     assert called["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_schedule_audit_logger_runs_when_enabled(monkeypatch):
+    """Test that the logger runs iterations when enabled, mocking sleep to avoid delays."""
+    monkeypatch.setenv("SCRAPE_WORKER_ROLE", "audit")
+
+    gather_calls = {"count": 0}
+
+    def fake_gather(*_args, **_kwargs):
+        gather_calls["count"] += 1
+        if gather_calls["count"] >= 2:
+            raise asyncio.CancelledError()  # Stop the loop after 2 iterations
+        return []
+
+    async def fake_sleep(_seconds: float) -> None:
+        pass  # No-op to avoid delays
+
+    monkeypatch.setattr(schedule_audit, "_gather_schedule_audit", fake_gather)
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+
+    await schedule_audit.schedule_audit_logger("worker-audit")
+
+    assert gather_calls["count"] == 2
 
 
 def test_latest_eligible_time_matches_ts_logic():
@@ -165,7 +191,7 @@ def test_gather_schedule_audit_builds_summary(monkeypatch):
         }
     ]
 
-    async def fake_convex_query(name: str, args: dict | None = None):
+    def fake_convex_query(name: str, args: dict | None = None):
         if name.endswith("listSites"):
             return sites
         if name.endswith("listSchedules"):
@@ -174,10 +200,8 @@ def test_gather_schedule_audit_builds_summary(monkeypatch):
 
     monkeypatch.setattr(schedule_audit, "convex_query", fake_convex_query)
 
-    async def _run():
-        return await schedule_audit._gather_schedule_audit(worker_id="worker-x", now_ms=now)
-
-    entries = asyncio.run(_run())
+    # _gather_schedule_audit is now sync
+    entries = schedule_audit._gather_schedule_audit(worker_id="worker-x", now_ms=now)
 
     summary = entries[0]
     assert summary["event"] == "schedule.audit.summary"

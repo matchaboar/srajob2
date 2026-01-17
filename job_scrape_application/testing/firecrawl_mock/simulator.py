@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import threading
 import time
@@ -49,7 +48,6 @@ class MockWebhookQueue:
             with self._lock:
                 if len(self._events) >= count:
                     return True
-            await asyncio.sleep(0.01)
         return False
 
 
@@ -167,7 +165,7 @@ class MockFirecrawl:
             webhook_meta = webhook.get("metadata") or {}
         elif hasattr(webhook, "model_dump"):
             try:
-                webhook_meta = webhook.model_dump().get("metadata") or {}
+                webhook_meta = webhook.model_dump().get("metadata") or {}  # type: ignore[union-attr]
             except Exception:
                 webhook_meta = {}
         kind = webhook_meta.get("kind") or "site_crawl"

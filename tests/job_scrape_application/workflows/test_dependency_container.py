@@ -18,8 +18,7 @@ from job_scrape_application.workflows.core import (
 class TestMockConvexFunctions:
     """Tests for MockConvexFunctions."""
 
-    @pytest.mark.asyncio
-    async def test_query_returns_fixture_data(self) -> None:
+    def test_query_returns_fixture_data(self) -> None:
         """Query should return configured fixture data."""
         mock = MockConvexFunctions(
             query_fixtures={
@@ -27,26 +26,24 @@ class TestMockConvexFunctions:
             }
         )
 
-        result = await mock.query("router:listSites", {})
+        result = mock.query("router:listSites", {})
 
         assert result == [{"id": "abc", "name": "Test Site"}]
 
-    @pytest.mark.asyncio
-    async def test_query_captures_calls(self) -> None:
+    def test_query_captures_calls(self) -> None:
         """Query should capture all calls."""
         captured: list = []
         mock = MockConvexFunctions(captured_queries=captured)
 
-        await mock.query("router:listSites", {"enabledOnly": True})
-        await mock.query("jobs:getJobById", {"id": "xyz"})
+        mock.query("router:listSites", {"enabledOnly": True})
+        mock.query("jobs:getJobById", {"id": "xyz"})
 
         assert len(captured) == 2
         assert captured[0]["name"] == "router:listSites"
         assert captured[0]["args"] == {"enabledOnly": True}
         assert captured[1]["name"] == "jobs:getJobById"
 
-    @pytest.mark.asyncio
-    async def test_mutation_returns_fixture_data(self) -> None:
+    def test_mutation_returns_fixture_data(self) -> None:
         """Mutation should return configured fixture data."""
         mock = MockConvexFunctions(
             mutation_fixtures={
@@ -54,12 +51,11 @@ class TestMockConvexFunctions:
             }
         )
 
-        result = await mock.mutation("router:leaseSite", {"id": "site123"})
+        result = mock.mutation("router:leaseSite", {"id": "site123"})
 
         assert result == {"id": "site123", "leased": True}
 
-    @pytest.mark.asyncio
-    async def test_callable_fixture_for_dynamic_responses(self) -> None:
+    def test_callable_fixture_for_dynamic_responses(self) -> None:
         """Fixtures can be callable for dynamic responses."""
         def dynamic_fixture(args):
             site_id = (args or {}).get("siteId", "default")
@@ -71,8 +67,8 @@ class TestMockConvexFunctions:
             }
         )
 
-        result1 = await mock.query("jobs:getSeenUrls", {"siteId": "abc"})
-        result2 = await mock.query("jobs:getSeenUrls", {"siteId": "xyz"})
+        result1 = mock.query("jobs:getSeenUrls", {"siteId": "abc"})
+        result2 = mock.query("jobs:getSeenUrls", {"siteId": "xyz"})
 
         assert result1["id"] == "abc"
         assert result2["id"] == "xyz"
@@ -203,8 +199,7 @@ class TestMockSpiderClient:
 class TestDependencyContainer:
     """Tests for DependencyContainer."""
 
-    @pytest.mark.asyncio
-    async def test_testing_mode_uses_mock_convex(self) -> None:
+    def test_testing_mode_uses_mock_convex(self) -> None:
         """Testing mode should use mock Convex functions."""
         captured: list = []
         deps = DependencyContainer.testing(
@@ -212,13 +207,12 @@ class TestDependencyContainer:
             captured_queries=captured,
         )
 
-        result = await deps.query("router:listSites", {})
+        result = deps.query("router:listSites", {})
 
         assert result == [{"id": "test"}]
         assert len(captured) == 1
 
-    @pytest.mark.asyncio
-    async def test_testing_mode_captures_mutations(self) -> None:
+    def test_testing_mode_captures_mutations(self) -> None:
         """Testing mode should capture mutations."""
         captured: list = []
         deps = DependencyContainer.testing(
@@ -226,7 +220,7 @@ class TestDependencyContainer:
             captured_mutations=captured,
         )
 
-        await deps.mutation("router:leaseSite", {"id": "site123"})
+        deps.mutation("router:leaseSite", {"id": "site123"})
 
         assert len(captured) == 1
         assert captured[0]["name"] == "router:leaseSite"

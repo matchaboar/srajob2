@@ -143,15 +143,22 @@ def generate_listing_assertion_yaml(
         '  url_pattern: "TODO"  # Regex pattern for valid job URLs (e.g., "/jobs/\\d+")',
         "  no_listing_urls: true  # Ensure listing/search URLs are filtered out",
         f'  handler: "{handler_class}"',
-        "  # expected_urls: List of VALID job detail URLs (uncomment and fill in after validation)",
-        "  # If expected_urls is provided, any URL extracted that is NOT in this list will FAIL the test",
+        "  # scraped_urls: Raw URLs extracted from the listing scrape (pre-filter)",
+        "  # normalized_urls: Final detail URLs after filtering/normalization",
+        "  # apply_urls: Marketing/direct-apply URLs for each normalized URL",
+        "  # If normalized_urls is provided, any URL extracted that is NOT in this list will FAIL the test",
         "  # This prevents regressions - invalid URLs sneaking in will be caught immediately",
     ]
 
     if extracted_urls:
         lines.append("  # --- Extracted URLs (REVIEW EACH ONE - remove invalid URLs) ---")
-        lines.append("  # expected_urls:")
+        lines.append("  # normalized_urls:")
         # Limit to 100 URLs for readability
+        for url in extracted_urls[:100]:
+            lines.append(f'  #   - "{url}"')
+        if len(extracted_urls) > 100:
+            lines.append(f"  #   # ... and {len(extracted_urls) - 100} more")
+        lines.append("  # apply_urls:")
         for url in extracted_urls[:100]:
             lines.append(f'  #   - "{url}"')
         if len(extracted_urls) > 100:

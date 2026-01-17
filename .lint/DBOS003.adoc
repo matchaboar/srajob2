@@ -1,0 +1,59 @@
+= DBOS003: Awaiting synchronous function
+
+== Summary
+
+Synchronous functions must not be awaited.
+
+== Description
+
+Functions decorated with `@DBOS.step` that are defined as `def` (not `async def`) must not be called with `await`. Awaiting a synchronous function will result in a runtime error.
+
+This rule helps catch cases where a sync step function is mistakenly awaited, which typically indicates either:
+
+1. The step function should be converted to `async def`, or
+2. The `await` keyword should be removed from the call site.
+
+== Examples
+
+.Bad: Awaiting a sync step function
+[source,python]
+----
+@DBOS.step
+def get_user(user_id: str) -> User:
+    return convex_query("users:get", {"id": user_id})
+
+async def workflow():
+    # ERROR: awaiting a sync function
+    user = await get_user("123")
+----
+
+.Good: Calling sync function without await
+[source,python]
+----
+@DBOS.step
+def get_user(user_id: str) -> User:
+    return convex_query("users:get", {"id": user_id})
+
+async def workflow():
+    user = get_user("123")  # No await needed
+----
+
+.Alternative: Convert to async if needed
+[source,python]
+----
+@DBOS.step
+async def get_user(user_id: str) -> User:
+    return await async_convex_query("users:get", {"id": user_id})
+
+async def workflow():
+    user = await get_user("123")  # Now await is correct
+----
+
+== Suppression
+
+Add `# noqa: DBOS003` to the await line.
+
+== See Also
+
+* DBOS001 - Missing @DBOS.step decorator
+* DBOS002 - Sync/async signature mismatch

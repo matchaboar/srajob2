@@ -16,7 +16,7 @@ def _matches_url(site: Dict[str, Any], needle: str) -> bool:
         return False
     return needle.lower() in url.lower()
 async def _delete_sites(url_substring: str) -> List[Dict[str, Any]]:
-    sites = await convex_query("router:listSites", {"enabledOnly": False}) or []
+    sites = convex_query("router:listSites", {"enabledOnly": False}) or []
     deleted: List[Dict[str, Any]] = []
     for site in sites:
         if not isinstance(site, dict):
@@ -26,7 +26,7 @@ async def _delete_sites(url_substring: str) -> List[Dict[str, Any]]:
         site_id = site.get("_id")
         if not site_id:
             continue
-        result = await convex_mutation("router:deleteSite", {"id": site_id})
+        result = convex_mutation("router:deleteSite", {"id": site_id})
         deleted.append(
             {
                 "id": site_id,

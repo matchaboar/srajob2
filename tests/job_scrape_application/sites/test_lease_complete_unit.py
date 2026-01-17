@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-import pytest
-
 # Target module
 
-from job_scrape_application.workflows import activities as acts
+from job_scrape_application.workflows.activities.step.site_management import (
+    lease_site_step,
+    complete_site_step,
+)
 from job_scrape_application.services import convex_client
 
 
@@ -32,7 +33,7 @@ class FakeConvex:
         }
         return sid
 
-    async def query(self, name: str, args: Dict[str, Any] | None = None):
+    def query(self, name: str, args: Dict[str, Any] | None = None):
         if name == "router:listSites":
             enabled_only = (args or {}).get("enabledOnly", False)
             sites = list(self.sites.values())
@@ -41,7 +42,7 @@ class FakeConvex:
             return sites
         raise RuntimeError(f"Unexpected query {name}")
 
-    async def mutation(self, name: str, args: Dict[str, Any] | None = None):
+    def mutation(self, name: str, args: Dict[str, Any] | None = None):
         args = args or {}
         if name == "router:leaseSite":
             now = 0
@@ -65,34 +66,33 @@ class FakeConvex:
         raise RuntimeError(f"Unexpected mutation {name}")
 
 
-@pytest.mark.asyncio
-async def test_lease_complete_sequence(monkeypatch):
+def test_lease_complete_sequence(monkeypatch):
     fake = FakeConvex()
 
     # Pre-seed two sites
     sid1 = fake._insert_site("A")
     sid2 = fake._insert_site("B")
 
-    async def fake_query(name: str, args: Dict[str, Any] | None = None):
-        return await fake.query(name, args)
+    def fake_query(name: str, args: Dict[str, Any] | None = None):
+        return fake.query(name, args)
 
-    async def fake_mutation(name: str, args: Dict[str, Any] | None = None):
-        return await fake.mutation(name, args)
+    def fake_mutation(name: str, args: Dict[str, Any] | None = None):
+        return fake.mutation(name, args)
 
     monkeypatch.setattr(convex_client, "convex_query", fake_query)
     monkeypatch.setattr(convex_client, "convex_mutation", fake_mutation)
 
     # Lease one
-    leased1 = await acts.lease_site("worker-x", 60)
+    leased1 = lease_site_step("worker-x", 60)
     assert leased1 is not None
     first_id = leased1["_id"]
     assert first_id in (sid1, sid2)
 
     # Complete it
-    await acts.complete_site(first_id)
+    complete_site_step(first_id)
 
     # Lease again => different id
-    leased2 = await acts.lease_site("worker-x", 60)
+    leased2 = lease_site_step("worker-x", 60)
     assert leased2 is not None
     second_id = leased2["_id"]
     assert second_id != first_id

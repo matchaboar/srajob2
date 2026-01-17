@@ -66,7 +66,7 @@ async def test_fetchfox_parse_failure_emits_posthog_exception(monkeypatch):
         lambda *_a, **_k: None,
     )
 
-    async def fake_to_thread(_fn, *_a, **_k):
+    def fake_to_thread(_fn, *_a, **_k):
         return {"raw": "not-json"}
 
     monkeypatch.setattr(
@@ -94,7 +94,7 @@ async def test_fetchfox_parse_failure_emits_posthog_exception(monkeypatch):
         await scraper.fetch_greenhouse_listing(site)
 
     assert emitted
-    assert emitted[0]["properties"].get("event") == "scrape.greenhouse_listing.parse_failed"
+    assert emitted[0]["properties"].get("event") == "scrape.greenhouse_listing.fetch_failed"
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ async def test_firecrawl_parse_failure_emits_posthog_exception(monkeypatch):
         lambda *_a, **_k: None,
     )
 
-    async def fake_to_thread(_fn, *_a, **_k):
+    def fake_to_thread(_fn, *_a, **_k):
         return {"data": [{"text": "not-json"}]}
 
     monkeypatch.setattr(
@@ -143,7 +143,7 @@ async def test_firecrawl_parse_failure_emits_posthog_exception(monkeypatch):
         await scraper.fetch_greenhouse_listing(site)
 
     assert emitted
-    assert emitted[0]["properties"].get("event") == "scrape.greenhouse_listing.parse_failed"
+    assert emitted[0]["properties"].get("event") == "scrape.greenhouse_listing.fetch_failed"
 
 
 @pytest.mark.asyncio

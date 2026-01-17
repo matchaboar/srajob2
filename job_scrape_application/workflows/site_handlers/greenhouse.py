@@ -30,11 +30,15 @@ from ..helpers.regex_patterns import (
 class GreenhouseHandler(BaseSiteHandler):
     name = "greenhouse"
     site_type = "greenhouse"
+    supports_detail_api = True
 
     _BOARD_SLUG_OVERRIDES = {
         "datadoghq": "datadog",
         "hioscar": "oscar",
     }
+    _PRESERVE_COMPANY_URL_SUFFIXES = (
+        "pinterestcareers.com",
+    )
 
     def _normalize_slug(self, slug: Optional[str]) -> Optional[str]:
         if not isinstance(slug, str):
@@ -254,16 +258,19 @@ class GreenhouseHandler(BaseSiteHandler):
         # Filter to only URLs matching the source board
         site_filtered: List[str] = []
         for url in base_filtered:
+            # gh_jid URLs are always allowed - they're from external career sites
+            # (e.g., pinterestcareers.com/jobs/?gh_jid=123)
+            if "gh_jid" in url:
+                site_filtered.append(url)
+                continue
+
+            # For greenhouse API URLs, check slug matches
             url_slug = self._extract_slug_from_url(url)
             if url_slug:
                 # Normalize and compare
                 url_slug = self._normalize_slug(url_slug) or url_slug
                 if url_slug.lower() == source_slug.lower():
                     site_filtered.append(url)
-            elif "gh_jid" in url:
-                # gh_jid URLs without a clear slug are allowed (company career sites)
-                # These are typically on external domains with gh_jid parameter
-                site_filtered.append(url)
             # URLs without a slug or gh_jid are filtered out
 
         return site_filtered
@@ -366,6 +373,8 @@ class GreenhouseHandler(BaseSiteHandler):
     def get_api_uri(self, uri: str, source_url: Optional[str] = None) -> Optional[str]:
         if self.is_api_detail_url(uri):
             return uri
+        if self._should_preserve_company_url(uri):
+            return None
         job_id = self._extract_job_id_from_url(uri)
         if not job_id:
             return None
@@ -385,6 +394,18 @@ class GreenhouseHandler(BaseSiteHandler):
         if not slug:
             return None
         return f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs/{job_id}"
+
+    def _should_preserve_company_url(self, uri: str) -> bool:
+        try:
+            host = (urlparse(uri).hostname or "").lower()
+        except Exception:
+            return False
+        if not host:
+            return False
+        return any(
+            host == suffix or host.endswith(f".{suffix}")
+            for suffix in self._PRESERVE_COMPANY_URL_SUFFIXES
+        )
 
     def get_listing_api_uri(self, uri: str) -> Optional[str]:
         slug = self._extract_slug_from_url(uri)
@@ -592,6 +613,12 @@ class GreenhouseHandler(BaseSiteHandler):
         content = markdown.strip()
         if content.startswith("```") and content.endswith("```"):
             content = content.strip("`\n ")
+
+        # Handle raw HTML with <pre> tags containing JSON (API responses via SpiderCloud)
+        if "<pre>" in content and "</pre>" in content:
+            pre_match = re.search(r"<pre>({.+})</pre>", content, flags=re.DOTALL)
+            if pre_match:
+                content = html_lib.unescape(pre_match.group(1))
 
         def _html_to_text(html_body: str) -> str:
             # Handle literal \uXXXX escape sequences in the content

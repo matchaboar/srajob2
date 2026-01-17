@@ -1,0 +1,30 @@
+site_id: cisco_careers
+listing_url: https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1
+expected:
+  url_count: 10
+  no_listing_urls: true
+  handler: CiscoCareersHandler
+  scraped_urls: []
+  normalized_urls:
+  - https://careers.cisco.com/global/en/job/1433857/Account-Executive-Splunk-m-f-d
+  - https://careers.cisco.com/global/en/job/1447056/Account-Executive-Splunk-m-f-d
+  - https://careers.cisco.com/global/en/job/2000336/Working-Student-CX-EMEA-Renewals-Team-Germany-Non-Technical-Intern-I
+  - https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence
+  - https://careers.cisco.com/global/en/job/2000672/Account-Executive-Public-Sector-Healthcare-Germany
+  - https://careers.cisco.com/global/en/job/2000675/Systems-Architect-Higher-Education
+  - https://careers.cisco.com/global/en/job/2000681/Systems-Architect-Research
+  - https://careers.cisco.com/global/en/job/2000898/Account-Executive-Portfolio-Defence
+  - https://careers.cisco.com/global/en/job/2002346/Systems-Engineer
+  - https://careers.cisco.com/global/en/job/2003227/Regional-Sales-Manager-Mid-Market-m-f-d
+  apply_urls:
+  - https://careers.cisco.com/global/en/job/1433857/Account-Executive-Splunk-m-f-d
+  - https://careers.cisco.com/global/en/job/1447056/Account-Executive-Splunk-m-f-d
+  - https://careers.cisco.com/global/en/job/2000336/Working-Student-CX-EMEA-Renewals-Team-Germany-Non-Technical-Intern-I
+  - https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence
+  - https://careers.cisco.com/global/en/job/2000672/Account-Executive-Public-Sector-Healthcare-Germany
+  - https://careers.cisco.com/global/en/job/2000675/Systems-Architect-Higher-Education
+  - https://careers.cisco.com/global/en/job/2000681/Systems-Architect-Research
+  - https://careers.cisco.com/global/en/job/2000898/Account-Executive-Portfolio-Defence
+  - https://careers.cisco.com/global/en/job/2002346/Systems-Engineer
+  - https://careers.cisco.com/global/en/job/2003227/Regional-Sales-Manager-Mid-Market-m-f-d
+  blocked_urls: []

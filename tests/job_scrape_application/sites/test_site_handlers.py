@@ -20,6 +20,9 @@ from job_scrape_application.workflows.site_handlers import (  # noqa: E402
 )
 from tests.job_scrape_application.sites.helpers import load_spidercloud_fixture  # noqa: E402
 
+_PRE_TAG_RE = re.compile(r"<pre[^>]*>(?P<content>.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
+_UBER_JOB_LINK_RE = re.compile(r"/careers/list/\d+$")
+
 
 def test_get_site_handler_prefers_site_type():
     handler = get_site_handler("https://example.com", "greenhouse")
@@ -312,7 +315,7 @@ def _extract_first_html(payload: object) -> str:
 
 
 def _extract_json_from_pre(html_text: str) -> dict:
-    match = re.search(r"<pre[^>]*>(?P<content>.*?)</pre>", html_text, flags=re.IGNORECASE | re.DOTALL)
+    match = _PRE_TAG_RE.search(html_text)
     if not match:
         raise AssertionError("Unable to locate <pre> JSON block in fixture HTML")
     content = html_lib.unescape(match.group("content")).strip()
@@ -472,7 +475,7 @@ def test_uber_careers_handler_extracts_listing_and_pagination_links():
         assert html
 
         links = handler.get_links_from_raw_html(html)
-        job_links = [link for link in links if re.search(r"/careers/list/\d+$", link)]
+        job_links = [link for link in links if _UBER_JOB_LINK_RE.search(link)]
         assert job_links
         assert any("page=" in link for link in links if "careers/list" in link)
 
@@ -508,7 +511,7 @@ def test_uber_careers_handler_pagination_pages_have_jobs():
         html = _extract_first_html(payload)
         assert html
         links = handler.get_links_from_raw_html(html)
-        job_links = [link for link in links if re.search(r"/careers/list/\d+$", link)]
+        job_links = [link for link in links if _UBER_JOB_LINK_RE.search(link)]
         assert job_links
 
 

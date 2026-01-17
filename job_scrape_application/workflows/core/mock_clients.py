@@ -28,7 +28,7 @@ class MockConvexFunctions:
     captured_queries: List[Dict[str, Any]] = field(default_factory=list)
     captured_mutations: List[Dict[str, Any]] = field(default_factory=list)
 
-    async def query(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
+    def query(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
         """Mock query that returns fixture data."""
         self.captured_queries.append({
             "name": name,
@@ -42,7 +42,7 @@ class MockConvexFunctions:
             return fixture
         return None
 
-    async def mutation(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
+    def mutation(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
         """Mock mutation that returns fixture data."""
         self.captured_mutations.append({
             "name": name,
@@ -55,7 +55,7 @@ class MockConvexFunctions:
             return fixture
         return None
 
-    async def action(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
+    def action(self, name: str, args: Mapping[str, Any] | None = None) -> Any:
         """Mock action - currently just returns None."""
         return None
 

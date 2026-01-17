@@ -274,12 +274,21 @@ def _build_update_fields(
 
 def _should_override_title(value: str) -> bool:
     """Check if title value should be overridden."""
-    import re
+    from ..helpers.regex_patterns import (
+        _TITLE_NORMALIZE_RE,
+        _TITLE_YEARS_RE,
+        _TITLE_YEARS_EXP_RE,
+        _TITLE_YEARS_WORKING_RE,
+        _TITLE_EXP_VERB_RE,
+        _TITLE_ABILITY_RE,
+        _TITLE_KNOWLEDGE_RE,
+    )
+    from ...constants import title_matches_required_keywords
 
     if not value:
         return True
     lowered = value.strip().lower()
-    normalized = re.sub(r"[^a-z0-9]+", " ", lowered).strip()
+    normalized = _TITLE_NORMALIZE_RE.sub(" ", lowered).strip()
 
     # Generic/placeholder titles
     if normalized in {
@@ -291,20 +300,17 @@ def _should_override_title(value: str) -> bool:
         return True
 
     # Titles that look like requirements, not job titles
-    if re.search(r"\b\d+\+?\s+years?\b", lowered):
+    if _TITLE_YEARS_RE.search(lowered):
         return True
-    if re.search(r"\byears?\s+(?:of\s+)?experience\b", lowered):
+    if _TITLE_YEARS_EXP_RE.search(lowered):
         return True
-    if re.search(r"\byears?\s+working\b", lowered):
+    if _TITLE_YEARS_WORKING_RE.search(lowered):
         return True
-    if re.search(
-        r"\bexperience\s+(?:in|with|providing|working|leading|managing|developing|designing|supporting)\b",
-        lowered,
-    ):
+    if _TITLE_EXP_VERB_RE.search(lowered):
         return True
-    if re.search(r"\bability\s+to\b", lowered):
+    if _TITLE_ABILITY_RE.search(lowered):
         return True
-    if re.search(r"\bknowledge\s+of\b", lowered):
+    if _TITLE_KNOWLEDGE_RE.search(lowered):
         return True
 
     # Title looks like a sentence
@@ -313,6 +319,10 @@ def _should_override_title(value: str) -> bool:
 
     # Too long to be a title
     if len(lowered.split()) > 14:
+        return True
+
+    # Title doesn't contain required job keywords (e.g., "Preferred Qualifications:")
+    if not title_matches_required_keywords(value):
         return True
 
     return False

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-from job_scrape_application.workflows.activities import _build_job_detail_heuristic_patch  # noqa: E402
+from job_scrape_application.workflows.normalizers import build_job_update as _build_job_detail_heuristic_patch  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
     parse_markdown_hints,

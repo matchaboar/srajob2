@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/ramp_20260116T212045_detail.json
+# Generated: 2026-01-16T21:21:59.174331+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: ramp
+detail_url: https://jobs.ashbyhq.com/ramp/63df0ffc-bdc6-40ba-906f-fe03378536b0
+expected:
+  title_contains: "AI Operations Specialist"
+  company: "Ramp"
+  location_contains: "New York, NY"
+  is_remote: true
+  level: "mid"
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

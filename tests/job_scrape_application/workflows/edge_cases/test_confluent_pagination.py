@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 
-from job_scrape_application.workflows import activities as acts
+from job_scrape_application.workflows.helpers.job_url_extractor import (
+    extract_job_urls_from_scrape as _extract_job_urls_from_scrape,
+)
+from job_scrape_application.workflows.workflow import store_scrape
 
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
@@ -61,7 +63,7 @@ def test_confluent_jobs_listing_extracts_pagination_and_jobs():
     html = _load_html(PAGE_1)
     scrape = _build_scrape_payload(SOURCE_URL, html)
 
-    urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(scrape)
 
     assert any(url.startswith("https://careers.confluent.io/jobs/job/") for url in urls)
     assert "https://careers.confluent.io/jobs/?page=2" in urls
@@ -72,15 +74,14 @@ def test_confluent_jobs_page_two_extracts_jobs_and_next_page():
     html = _load_html(PAGE_2)
     scrape = _build_scrape_payload("https://careers.confluent.io/jobs?page=2", html)
 
-    urls = acts._extract_job_urls_from_scrape(scrape)  # noqa: SLF001
+    urls = _extract_job_urls_from_scrape(scrape)
 
     assert "https://careers.confluent.io/jobs/job/ca3f2007-6218-4d96-93a5-32230addfd31" in urls
     assert "https://careers.confluent.io/jobs/?page=3" in urls
     assert "https://careers.confluent.io/jobs/?page=2" not in urls
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_confluent_job_urls_only(monkeypatch):
+def test_store_scrape_enqueues_confluent_job_urls_only(monkeypatch):
     html = _load_html(PAGE_1)
     scrape_payload = {
         "sourceUrl": SOURCE_URL,
@@ -93,7 +94,7 @@ async def test_store_scrape_enqueues_confluent_job_urls_only(monkeypatch):
     calls: list[dict] = []
     queue_calls: list[dict] = []
 
-    async def fake_mutation(name: str, args: dict):
+    def fake_mutation(name: str, args: dict):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -105,17 +106,20 @@ async def test_store_scrape_enqueues_confluent_job_urls_only(monkeypatch):
         queue_calls.append(payload)
         return {"queued": len(payload.get("urls", []))}
 
-    async def fake_seen(*_args, **_kwargs):
+    def fake_seen(*_args, **_kwargs):
         return []
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.helpers.scrape_utils.fetch_seen_urls_for_site",
+        fake_seen,
+    )
 
-    await acts.store_scrape(scrape_payload)
+    store_scrape(scrape_payload)
 
     assert queue_calls, "store_scrape should enqueue Confluent job URLs"
 

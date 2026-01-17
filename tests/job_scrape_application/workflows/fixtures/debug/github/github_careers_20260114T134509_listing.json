@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://www.github.careers/api/jobs?keywords=engineer&sortBy=relevance&limit=100"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://www.github.careers/api/jobs?keywords=engineer&sortBy=relevance&limit=100",
     "params": {

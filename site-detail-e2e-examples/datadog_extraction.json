@@ -14,18 +14,38 @@
       "company": "Datadog",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
-      "cost_milli_cents": 4
+      "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "AI Research Engineer - Datadog AI Research (DAIR)",
+        "company": "Datadog",
+        "location": "Paris, France",
+        "description": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+        "apply_url": "https://boards.greenhouse.io/datadog/jobs/7194969",
+        "posted_at": 1767981341000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 965
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969",
+        "word_count": 965,
+        "description_preview": "AI Research Engineer - Datadog AI Research (DAIR) As a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Datadog",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "the pack",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Paris, France"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Paris, France' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +376,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:02.025492",
+          "value": "2026-01-17T13:05:58.911056",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (6735 chars)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (6735 chars)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "AI Research Engineer - Datadog AI Research (DAIR)\n\nAs a research engineer on our team, you will partner with research scientists to turn research ideas into working systems; building the data, tooling, and infrastructure that enable rapid iteration, trustworthy evaluation, and a smooth path from prototype to production.\nBuilding on our proven track record of AI-powered solutions (e.g., Bits AI , Watchdog , and Toto ), Datadog AI Research is tackling high-risk, high-reward projects grounded in real-world challenges in cloud observability and security.&nbsp;\nWe are currently focused on three key research areas:\n-\nObservability Foundation Models – Building state-of-the-art models for advanced forecasting, anomaly detection, and multi-modal telemetry analysis (logs, metrics, traces, etc.). These models will also provide the foundation for our agents (described below) to natively analyze telemetry data.\n-\nSite Reliability Engineering (SRE) Autonomous Agents – Creating AI agents to automatically detect, diagnose, and resolve incidents in production environments, pushing the boundaries of multi-step planning, reasoning, and domain-specific knowledge.\n-\nProduction Code Repair Agents – Developing agents and models that leverage code, logs, runtime data, and other signals to identify, fix, and even preempt performance issues and security vulnerabilities in production code.\n&nbsp;\nWhat You’ll Do:&nbsp;\n-\nBuild and operate datasets, training and evaluation pipelines, benchmarks, and internal tooling\n-\nImplement models, run experiments at scale, and profile for reliability, performance, and cost\n-\nOrchestrate distributed training and distributed RL with Ray, including scheduling, scaling, and failure recovery\n-\nMake the research stack observable, reproducible, and easier to use\n-\nEstablish rigorous automated benchmarks and regression tests for forecasting, anomaly detection, multi-modal analysis, agents, and code repair tasks\n-\nCollaborate with Research Scientists, Product, and Engineering to integrate advanced AI capabilities into Datadog’s product ecosystem and to harden prototypes into reliable services\n-\nContribute high-quality code, documentation, and open-source artifacts that enable the community and internal teams to reproduce, extend, and evaluate results\n&nbsp;\nWho You Are:&nbsp;\n-\nYou have strong software engineering skills with experience in domains such as observability, SRE, or security\n-\nYou have depth in distributed computing and ML systems for training and inference at scale; experience with Ray, Slurm, or similar frameworks is a plus\n-\nYou are proficient in Python, familiar with a systems language (e.g., Rust, C++, or Go), and you are comfortable with modern cloud and data infrastructure\n-\nYou have practical experience implementing and operating ML training and inference systems (e.g., PyTorch or JAX ), including containerization, orchestration, and GPU acceleration\n-\nYou are familiar with efficient training, fine-tuning, and inference techniques for large foundation models\n-\nYou can explain design and performance trade-offs clearly to both technical and non-technical audiences\n-\nYou have a strong interest in open-science and open-source contributions, including establishing rigorous benchmarks and sharing artifacts with the community\n&nbsp;\nBonus Points:\n-\nYou have a demonstrated ability to bridge cutting-edge research prototypes and real-world product applications, ideally with large foundation models, generative AI agents, or domain-specific LLM deployments\n-\nYou are passionate about pushing the boundaries of AI while maintaining a strong focus on customer impact, scalability, and responsible deployment of new technologies\n-\nYou have hands-on experience with GPU programming and optimization, including experience in CUDA\n-\nYou have experience writing production data pipelines and applications\n-\nYou have experience supporting or contributing to research publications\nDatadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That's okay. If you’re passionate about AI Research and want to grow your skills, we encourage you to apply.&nbsp;\n&nbsp;\nBenefits and Growth:&nbsp;\n-\nCompetitive global benefits&nbsp;\n-\nNew hire stock equity (RSUs) and employee stock purchase plan (ESPP)\n-\nOpportunity to collaborate closely with colleagues across the Datadog offices in New York City and Paris\n-\nOpportunity to attend and present at conferences and meetups\n-\nIntra-departmental mentor and buddy program for in-house networking\n-\nAn inclusive company culture, ability to join our Community Guilds (Datadog employee resource groups)\nBenefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.\nAbout Datadog:&nbsp;\nDatadog (NASDAQ: DDOG) is a global SaaS business, delivering a rare combination of growth and profitability. We are on a mission to break down silos and solve complexity in the cloud age by enabling digital transformation, cloud migration, and infrastructure monitoring of our customers’ entire technology stacks. Built by engineers, for engineers, Datadog is used by organizations of all sizes across a wide range of industries. Together, we champion professional development, diversity of thought, innovation, and work excellence to empower continuous growth. Join the pack and become part of a collaborative, pragmatic, and thoughtful people-first community where we solve tough problems, take smart risks, and celebrate one another. Learn more about #DatadogLife on Instagram , LinkedIn, and Datadog Learning Center.\nEqual Opportunity at Datadog:\nDatadog is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our Candidate Legal Notices for your reference.&nbsp;\nDatadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete this form . This form is for accommodation requests only and cannot be used to inquire about the status of applications.&nbsp;\nPrivacy and AI Guidelines:\nAny information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&nbsp; Applicant and Candidate Privacy Notice . For information on our AI policy, please visit Interviewing at Datadog AI Guidelines .",
           "is_valid": true,
-          "reason": "Valid description (6735 chars)"
+          "reason": "Valid description (6735 chars, 965 words)"
         },
         {
           "name": "empty_description_fallback",

@@ -38,6 +38,8 @@ _GENERIC_COMPANY_NAMES = frozenset(
 
 def _is_valid_company(value: str | None) -> tuple[bool, str]:
     """Validate a company name value."""
+    from ..helpers.company_normalization import is_generic_company_name
+
     if not value:
         return False, "Empty company name"
 
@@ -53,11 +55,30 @@ def _is_valid_company(value: str | None) -> tuple[bool, str]:
     if lower in _GENERIC_COMPANY_NAMES:
         return False, f"Generic company name: {value}"
 
+    # Check for job board platform names
+    if is_generic_company_name(value):
+        return False, f"Job board platform name: {value}"
+
     # Check for URL-as-company
     if lower.startswith(("http://", "https://", "www.")):
         return False, "URL as company name rejected"
 
     return True, "Valid company name"
+
+
+def _normalize_company_value(value: str) -> str:
+    from ..helpers.company_normalization import normalize_company_value
+
+    return normalize_company_value(value)
+
+
+def _normalize_company_hint_value(value: str) -> str | None:
+    from ..helpers.company_normalization import normalize_company_hint, _apply_company_mapping
+
+    cleaned = normalize_company_hint(value)
+    if not cleaned:
+        return None
+    return _apply_company_mapping(cleaned)
 
 
 class StructuredDataCompanyStrategy(ExtractionStrategy[str]):
@@ -89,7 +110,7 @@ class StructuredDataCompanyStrategy(ExtractionStrategy[str]):
                 value = value.get("name") or value.get("company")
 
             if isinstance(value, str) and value.strip():
-                cleaned = value.strip()
+                cleaned = _normalize_company_value(value)
                 is_valid, reason = _is_valid_company(cleaned)
                 return self._make_result(
                     cleaned if is_valid else None,
@@ -130,6 +151,10 @@ class SiteHandlerCompanyStrategy(ExtractionStrategy[str]):
                 f"Handler '{context.handler_name}' returned no company"
             )
 
+        normalized = _normalize_company_hint_value(company)
+        if not normalized:
+            return self._make_skip_result("Hint company invalid after normalization")
+        company = normalized
         is_valid, reason = _is_valid_company(company)
         return self._make_result(
             company if is_valid else None,
@@ -159,7 +184,7 @@ class RawRowCompanyStrategy(ExtractionStrategy[str]):
         if not isinstance(raw_company, str):
             raw_company = str(raw_company)
 
-        cleaned = raw_company.strip()
+        cleaned = _normalize_company_value(raw_company)
         is_valid, reason = _is_valid_company(cleaned)
         return self._make_result(
             cleaned if is_valid else None,
@@ -195,6 +220,7 @@ class URLCompanyStrategy(ExtractionStrategy[str]):
         if not company:
             return self._make_skip_result("Could not derive company from URL")
 
+        company = _normalize_company_value(company)
         is_valid, reason = _is_valid_company(company)
         return self._make_result(
             company if is_valid else None,
@@ -222,6 +248,7 @@ class HintedCompanyStrategy(ExtractionStrategy[str]):
         if not isinstance(company, str):
             return self._make_skip_result(f"Hint company is not a string: {type(company)}")
 
+        company = _normalize_company_value(company)
         is_valid, reason = _is_valid_company(company)
         return self._make_result(
             company if is_valid else None,
@@ -253,6 +280,20 @@ class ContentPatternCompanyStrategy(ExtractionStrategy[str]):
         r"^\s*\[(?P<company>[^\]]+)\]\([^)]+\)\s+is\s+(?:a|an|the)\b",
         re.IGNORECASE | re.MULTILINE,
     )
+    # Pattern: "Join [Company] today" or "Join [Company]!"
+    _JOIN_COMPANY_RE = re.compile(
+        r"\bjoin\s+(?P<company>[A-Z][A-Za-z0-9\s&.'-]{2,40}?)(?:\s+today|\s*[!.]|\s+and\b)",
+        re.IGNORECASE,
+    )
+    # Pattern: "Work at [Company]" or "Working at [Company]"
+    _WORK_AT_COMPANY_RE = re.compile(
+        r"\bwork(?:ing)?\s+at\s+(?P<company>[A-Z][A-Za-z0-9\s&.'-]{2,40}?)\b",
+        re.IGNORECASE,
+    )
+    # Pattern: "Engineer @ Figma" or "Title @ Company"
+    _AT_COMPANY_TITLE_RE = re.compile(
+        r"\b[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+@\s+(?P<company>[A-Z][A-Za-z0-9\s&.'-]{2,40}?)\b",
+    )
 
     def extract(self, context: ExtractionContext) -> StrategyResult[str]:
         content = context.description_body or context.normalized_markdown
@@ -262,7 +303,7 @@ class ContentPatternCompanyStrategy(ExtractionStrategy[str]):
         # Try company link pattern first
         match = self._COMPANY_LINK_RE.search(content)
         if match:
-            company = match.group("company").strip()
+            company = _normalize_company_value(match.group("company"))
             is_valid, reason = _is_valid_company(company)
             if is_valid:
                 return self._make_result(
@@ -273,10 +314,52 @@ class ContentPatternCompanyStrategy(ExtractionStrategy[str]):
                     debug_info={"pattern": "COMPANY_LINK"},
                 )
 
+        # Try "Join [Company]" pattern
+        match = self._JOIN_COMPANY_RE.search(content)
+        if match:
+            company = _normalize_company_value(match.group("company"))
+            is_valid, reason = _is_valid_company(company)
+            if is_valid:
+                return self._make_result(
+                    company,
+                    "Found 'Join Company' pattern",
+                    is_valid=True,
+                    confidence=0.60,
+                    debug_info={"pattern": "JOIN_COMPANY"},
+                )
+
+        # Try "Work at [Company]" pattern
+        match = self._WORK_AT_COMPANY_RE.search(content)
+        if match:
+            company = _normalize_company_value(match.group("company"))
+            is_valid, reason = _is_valid_company(company)
+            if is_valid:
+                return self._make_result(
+                    company,
+                    "Found 'Work at Company' pattern",
+                    is_valid=True,
+                    confidence=0.60,
+                    debug_info={"pattern": "WORK_AT_COMPANY"},
+                )
+
+        # Try "Title @ Company" pattern
+        match = self._AT_COMPANY_TITLE_RE.search(content)
+        if match:
+            company = _normalize_company_value(match.group("company"))
+            is_valid, reason = _is_valid_company(company)
+            if is_valid:
+                return self._make_result(
+                    company,
+                    "Found 'Title @ Company' pattern",
+                    is_valid=True,
+                    confidence=0.55,
+                    debug_info={"pattern": "AT_COMPANY_TITLE"},
+                )
+
         # Try "Company is a" pattern
         match = self._COMPANY_IS_RE.search(content)
         if match:
-            company = match.group("company").strip()
+            company = _normalize_company_value(match.group("company"))
             is_valid, reason = _is_valid_company(company)
             if is_valid:
                 return self._make_result(

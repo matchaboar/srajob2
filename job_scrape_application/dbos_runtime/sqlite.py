@@ -127,23 +127,17 @@ def transaction() -> Iterator[sqlite3.Connection]:
 
 @contextmanager
 def read_only() -> Iterator[sqlite3.Connection]:
-    """Read-only access without write lock. Use for SELECT queries."""
+    """Read-only access without write lock. Use for SELECT queries.
+
+    WAL mode allows concurrent reads during writes, so no Python lock needed.
+    SQLite's busy_timeout handles any transient lock contention.
+    """
     start = time.monotonic()
-    acquired = _DB_LOCK.acquire(timeout=SQLITE_TIMEOUT)
-    if not acquired:
-        logger.error("Failed to acquire DB lock for read after %.1fs", SQLITE_TIMEOUT)
-        raise sqlite3.OperationalError("Database lock timeout")
-    lock_wait = time.monotonic() - start
-    if lock_wait > 0.1:
-        logger.warning("Slow DB lock acquisition (read): %.3fs", lock_wait)
-    try:
-        conn = get_connection()
-        yield conn
-    finally:
-        _DB_LOCK.release()
-        elapsed = time.monotonic() - start
-        if elapsed > 1.0:
-            logger.warning("Slow read operation: %.3fs", elapsed)
+    conn = get_connection()
+    yield conn
+    elapsed = time.monotonic() - start
+    if elapsed > 1.0:
+        logger.warning("Slow read operation: %.3fs", elapsed)
 
 
 def now_ms() -> int:

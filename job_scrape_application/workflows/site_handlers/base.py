@@ -143,6 +143,7 @@ class BaseSiteHandler(ABC):
     name: str = "base"
     site_type: str | None = None
     supports_listing_api: bool = False
+    supports_detail_api: bool = False
     needs_page_links: bool = False
 
     @classmethod
@@ -207,6 +208,10 @@ class BaseSiteHandler(ABC):
                     _add(position.get(key))
 
         return urls
+
+    def is_unrendered_listing_html(self, html: str) -> bool:
+        """Return True when listing HTML looks unrendered."""
+        return False
 
     def extract_posted_at(self, payload: Any, url: str | None = None) -> Any | None:
         return self._extract_posted_at_from_payload(payload, url)

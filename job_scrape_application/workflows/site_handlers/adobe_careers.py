@@ -177,6 +177,18 @@ class AdobeCareersHandler(BaseSiteHandler):
 
         lines = markdown.splitlines()
         title: str | None = None
+        from ..helpers.company_normalization import normalize_title_from_bar
+
+        for line in lines[:8]:
+            stripped = line.strip()
+            if not stripped or stripped == "-":
+                continue
+            normalized_line = html_lib.unescape(" ".join(stripped.split()))
+            candidate = normalize_title_from_bar(normalized_line)
+            if candidate and candidate != normalized_line:
+                title = candidate
+                break
+
         for line in lines:
             stripped = line.strip()
             if not stripped:
@@ -189,8 +201,9 @@ class AdobeCareersHandler(BaseSiteHandler):
                 continue
             if _JOB_DESCRIPTION_HEADER_RE.match(stripped):
                 continue
-            title = candidate
-            break
+            if not title:
+                title = candidate
+                break
 
         start_idx: int | None = None
         for idx, line in enumerate(lines):

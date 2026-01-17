@@ -12,20 +12,40 @@
       "posted_at": 1767970118000,
       "posted_at_unknown": false,
       "company": "Twilio",
-      "level": "mid",
+      "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7178048",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Account Executive",
+        "company": "Twilio",
+        "location": "Remote - Brazil",
+        "description": "Account Executive\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7178048",
+        "apply_url": "https://boards.greenhouse.io/twilio/jobs/7178048",
+        "posted_at": 1767970118000,
+        "level": "mid",
+        "remote": true,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 912
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7178048",
+        "word_count": 912,
+        "description_preview": "Account Executive Who we are&nbsp; At Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp;..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Twilio",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "our strategic sales team",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": true,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -214,6 +234,20 @@
           "value": true,
           "is_valid": true,
           "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
         },
         {
           "name": "location_remote",
@@ -260,16 +294,16 @@
       ]
     },
     "level": {
-      "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "final_value": "senior",
+      "winning_strategy": "content_pattern_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -288,9 +322,9 @@
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
-          "value": null,
-          "is_valid": false,
-          "reason": "No level pattern in content"
+          "value": "senior",
+          "is_valid": true,
+          "reason": "Level from experience: 7+ years -> senior"
         },
         {
           "name": "hinted_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +376,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:05.552681",
+          "value": "2026-01-17T13:05:59.224784",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Account Executive\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Account Executive\nAbout the job\nTwilio is looking for a Senior Account Executive to join our strategic sales team. In this role, you will be responsible for developing and closing new business opportunities, building strategic relationships, and helping innovative companies unlock the full potential of Twilio’s communication platform.\nYou will work closely with internal teams (Solutions Engineering, Product, Marketing, etc) to understand client needs and deliver customized solutions that drive real business value. This is a high-impact role for a driven, strategic, and highly collaborative salesperson.\nResponsibilities\nIn this role, you’ll:\n- Drive new, upselling business revenue by identifying, qualifying, and closing high-impact opportunities with enterprise customers.\n- Own the entire sales cycle — from prospecting to negotiation and closing — with a focus on strategic and consultative selling.\n- Understand customer needs and business drivers to position Twilio’s platform and APIs as transformative solutions.\n- Build and maintain strong, long-term relationships with key stakeholders, including C-level executives, technical leaders, and business decision-makers.\n- Collaborate with Solutions Engineers, Product, Marketing, and technical teams to design and deliver value-added solutions.\n- Develop account plans, territory strategies, and accurate sales forecasts to achieve and exceed revenue targets.\n- Navigate complex sales cycles involving multiple stakeholders and buying centers.\n- Continuously learn and stay informed about Twilio’s evolving product suite and industry trends to better serve clients.\n- Represent Twilio at industry events, conferences, and meetings to build pipeline and elevate brand awareness.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 7+ years of experience in B2B sales, preferably in the SaaS, cloud communications, or enterprise software industries.\n- Proven track record of consistently exceeding sales quotas and driving multi-million dollar deals.\n- Experience selling complex solutions to technical and business stakeholders at the enterprise level.\n- Strong consultative selling skills and ability to develop tailored value propositions for strategic accounts.\n- Excellent communication, negotiation, and presentation skills, both written and verbal.\n- Comfortable navigating complex organizations and influencing cross-functional teams (e.g., product, marketing, engineering).\n- Deep understanding of the sales cycle, including prospecting, qualifying, forecasting, and closing.\n- Ability to thrive in a fast-paced, ambiguous, and high-growth environment.\n- Experience using Salesforce or similar CRM tools to manage pipelines and forecast revenue.\n- Strong business acumen and ability to understand customer pain points and industry trends.\n- Fluency in English&nbsp;\nDesired:\n- CPaaS experience\n- ISV and B2B2B or B2B2C experience\n- CX experience\n- B2B/SaaS Sales: Demonstrated success in selling cloud-based solutions, SaaS, or similar technologies\n- Proven Results: Track record of consistently meeting or exceeding sales targets.\nLocation\nThis role will be Remote, and based in Brazil.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, approximately 25% travel is anticipated to help you connect in-person in a meaningful way.&nbsp;\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
           "is_valid": true,
-          "reason": "Valid description (6341 chars)"
+          "reason": "Valid description (6341 chars, 912 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Account Executive\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Account Executive\nAbout the job\nTwilio is looking for a Senior Account Executive to join our strategic sales team. In this role, you will be responsible for developing and closing new business opportunities, building strategic relationships, and helping innovative companies unlock the full potential of Twilio’s communication platform.\nYou will work closely with internal teams (Solutions Engineering, Product, Marketing, etc) to understand client needs and deliver customized solutions that drive real business value. This is a high-impact role for a driven, strategic, and highly collaborative salesperson.\nResponsibilities\nIn this role, you’ll:\n- Drive new, upselling business revenue by identifying, qualifying, and closing high-impact opportunities with enterprise customers.\n- Own the entire sales cycle — from prospecting to negotiation and closing — with a focus on strategic and consultative selling.\n- Understand customer needs and business drivers to position Twilio’s platform and APIs as transformative solutions.\n- Build and maintain strong, long-term relationships with key stakeholders, including C-level executives, technical leaders, and business decision-makers.\n- Collaborate with Solutions Engineers, Product, Marketing, and technical teams to design and deliver value-added solutions.\n- Develop account plans, territory strategies, and accurate sales forecasts to achieve and exceed revenue targets.\n- Navigate complex sales cycles involving multiple stakeholders and buying centers.\n- Continuously learn and stay informed about Twilio’s evolving product suite and industry trends to better serve clients.\n- Represent Twilio at industry events, conferences, and meetings to build pipeline and elevate brand awareness.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 7+ years of experience in B2B sales, preferably in the SaaS, cloud communications, or enterprise software industries.\n- Proven track record of consistently exceeding sales quotas and driving multi-million dollar deals.\n- Experience selling complex solutions to technical and business stakeholders at the enterprise level.\n- Strong consultative selling skills and ability to develop tailored value propositions for strategic accounts.\n- Excellent communication, negotiation, and presentation skills, both written and verbal.\n- Comfortable navigating complex organizations and influencing cross-functional teams (e.g., product, marketing, engineering).\n- Deep understanding of the sales cycle, including prospecting, qualifying, forecasting, and closing.\n- Ability to thrive in a fast-paced, ambiguous, and high-growth environment.\n- Experience using Salesforce or similar CRM tools to manage pipelines and forecast revenue.\n- Strong business acumen and ability to understand customer pain points and industry trends.\n- Fluency in English&nbsp;\nDesired:\n- CPaaS experience\n- ISV and B2B2B or B2B2C experience\n- CX experience\n- B2B/SaaS Sales: Demonstrated success in selling cloud-based solutions, SaaS, or similar technologies\n- Proven Results: Track record of consistently meeting or exceeding sales targets.\nLocation\nThis role will be Remote, and based in Brazil.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, approximately 25% travel is anticipated to help you connect in-person in a meaningful way.&nbsp;\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
           "is_valid": true,
-          "reason": "Valid description (6341 chars)"
+          "reason": "Valid description (6341 chars, 912 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Account Executive\n\nWho we are&nbsp;\nAt Twilio, we’re shaping the future of communications, all from the comfort of our homes. We deliver innovative solutions to &nbsp;hundreds of thousands of businesses&nbsp; and empower millions of developers worldwide to craft personalized customer experiences.\nOur dedication to remote-first work , and strong culture of connection and global inclusion means that no matter your location, you’re part of a vibrant team with diverse experiences making a global impact each day. As we continue to revolutionize how the world interacts, we’re acquiring new skills and experiences that make work feel truly rewarding. Your career at Twilio is in your hands.\nWe use Artificial Intelligence (AI) technologies to maintain an efficient, fair and transparent hiring process. Our hiring process is never completely automated, and uses AI in conjunction with our recruiting professionals.\nSee yourself at Twilio\nJoin the team as Twilio’s next Account Executive\nAbout the job\nTwilio is looking for a Senior Account Executive to join our strategic sales team. In this role, you will be responsible for developing and closing new business opportunities, building strategic relationships, and helping innovative companies unlock the full potential of Twilio’s communication platform.\nYou will work closely with internal teams (Solutions Engineering, Product, Marketing, etc) to understand client needs and deliver customized solutions that drive real business value. This is a high-impact role for a driven, strategic, and highly collaborative salesperson.\nResponsibilities\nIn this role, you’ll:\n- Drive new, upselling business revenue by identifying, qualifying, and closing high-impact opportunities with enterprise customers.\n- Own the entire sales cycle — from prospecting to negotiation and closing — with a focus on strategic and consultative selling.\n- Understand customer needs and business drivers to position Twilio’s platform and APIs as transformative solutions.\n- Build and maintain strong, long-term relationships with key stakeholders, including C-level executives, technical leaders, and business decision-makers.\n- Collaborate with Solutions Engineers, Product, Marketing, and technical teams to design and deliver value-added solutions.\n- Develop account plans, territory strategies, and accurate sales forecasts to achieve and exceed revenue targets.\n- Navigate complex sales cycles involving multiple stakeholders and buying centers.\n- Continuously learn and stay informed about Twilio’s evolving product suite and industry trends to better serve clients.\n- Represent Twilio at industry events, conferences, and meetings to build pipeline and elevate brand awareness.\nQualifications&nbsp;\nTwilio values diverse experiences from all kinds of industries, and we encourage everyone who meets the required qualifications to apply. If your career is just starting or hasn't followed a traditional path, don't let that stop you from considering Twilio. We are always looking for people who will bring something new to the table!\n*Required:\n- 7+ years of experience in B2B sales, preferably in the SaaS, cloud communications, or enterprise software industries.\n- Proven track record of consistently exceeding sales quotas and driving multi-million dollar deals.\n- Experience selling complex solutions to technical and business stakeholders at the enterprise level.\n- Strong consultative selling skills and ability to develop tailored value propositions for strategic accounts.\n- Excellent communication, negotiation, and presentation skills, both written and verbal.\n- Comfortable navigating complex organizations and influencing cross-functional teams (e.g., product, marketing, engineering).\n- Deep understanding of the sales cycle, including prospecting, qualifying, forecasting, and closing.\n- Ability to thrive in a fast-paced, ambiguous, and high-growth environment.\n- Experience using Salesforce or similar CRM tools to manage pipelines and forecast revenue.\n- Strong business acumen and ability to understand customer pain points and industry trends.\n- Fluency in English&nbsp;\nDesired:\n- CPaaS experience\n- ISV and B2B2B or B2B2C experience\n- CX experience\n- B2B/SaaS Sales: Demonstrated success in selling cloud-based solutions, SaaS, or similar technologies\n- Proven Results: Track record of consistently meeting or exceeding sales targets.\nLocation\nThis role will be Remote, and based in Brazil.\nTravel&nbsp;\nWe prioritize connection and opportunities to build relationships with our customers and each other. For this role, approximately 25% travel is anticipated to help you connect in-person in a meaningful way.&nbsp;\nWhat We Offer\nWorking at Twilio offers many benefits, including competitive pay, generous time off, ample parental and wellness leave, healthcare, a retirement savings program, and much more. Offerings vary by location.\nTwilio thinks big. Do you?\nWe like to solve problems, take initiative, pitch in when needed, and are always up for trying new things. That's why we seek out colleagues who embody our values — something we call Twilio Magic . Additionally, we empower employees to build positive change in their communities by supporting their volunteering and donation efforts.\nSo, if you're ready to unleash your full potential, do your best work, and be the best version of yourself, apply now! If this role isn't what you're looking for, please consider other open positions.\nTwilio is proud to be an equal opportunity employer. We do not discriminate based upon race, religion, color, national origin, sex (including pregnancy, childbirth, reproductive health decisions, or related medical conditions), sexual orientation, gender identity, gender expression, age, status as a protected veteran, status as an individual with a disability, genetic information, political views or activity, or other applicable legally protected characteristics. We also consider qualified applicants with criminal histories, consistent with applicable federal, state and local law. Qualified applicants with arrest or conviction records will be considered for employment in accordance with the Los Angeles County Fair Chance Ordinance for Employers and the California Fair Chance Act. Additionally, Twilio participates in the E-Verify program in certain locations, as required by law.",
           "is_valid": true,
-          "reason": "Valid description (6341 chars)"
+          "reason": "Valid description (6341 chars, 912 words)"
         },
         {
           "name": "empty_description_fallback",

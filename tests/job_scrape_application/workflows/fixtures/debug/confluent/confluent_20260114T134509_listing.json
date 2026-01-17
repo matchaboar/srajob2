@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
     "params": {

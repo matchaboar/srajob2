@@ -51,7 +51,9 @@ from .location_extractor import LocationExtractor
 from .remote_extractor import RemoteExtractor
 from .level_extractor import LevelExtractor
 from .compensation_extractor import CompensationExtractor
+from .cost_milli_cents_extractor import CostMilliCentsExtractor
 from .posted_at_extractor import PostedAtExtractor
+from .first_published_on_extractor import FirstPublishedOnExtractor
 from .description_extractor import DescriptionExtractor
 from .integration import (
     extract_job_from_scrape,
@@ -68,7 +70,9 @@ _EXTRACTORS: dict[str, type[FieldExtractor]] = {
     "remote": RemoteExtractor,
     "level": LevelExtractor,
     "compensation": CompensationExtractor,
+    "cost_milli_cents": CostMilliCentsExtractor,
     "posted_at": PostedAtExtractor,
+    "first_published_on": FirstPublishedOnExtractor,
     "description": DescriptionExtractor,
 }
 
@@ -222,7 +226,9 @@ __all__ = [
     "RemoteExtractor",
     "LevelExtractor",
     "CompensationExtractor",
+    "CostMilliCentsExtractor",
     "PostedAtExtractor",
+    "FirstPublishedOnExtractor",
     "DescriptionExtractor",
     # Functions
     "extract_job_fields",

@@ -7,25 +7,45 @@
       "title": "Backend Software Engineer I/ II",
       "description_preview": "Backend Software Engineer I/ II Join Axon and be a Force for Good. At Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with...",
       "description_word_count": 981,
-      "location": "Ho Chi Minh City, Ho Chi Minh City, Vietnam",
+      "location": "Ho Chi Minh City, Vietnam",
       "is_remote": false,
       "posted_at": 1767909861000,
       "posted_at_unknown": false,
       "company": "Axon",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Backend Software Engineer I/ II",
+        "company": "Axon",
+        "location": "Ho Chi Minh City, Ho Chi Minh City, Vietnam",
+        "description": "Backend Software Engineer I/ II\n\nJoin Axon and be a Force for Good.\nAt Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with candor and care, seeking out diverse perspectives from our customers, communities and each other.\nLife at Axon is fast-paced, challenging and meaningful. Here, you’ll take ownership and drive real change. Constantly grow as you work hard for a mission that matters at a company where you matter.\nYour Impact\nAs...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003",
+        "apply_url": "https://boards.greenhouse.io/axon/jobs/4322399003",
+        "posted_at": 1767909861000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 981
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003",
+        "word_count": 981,
+        "description_preview": "Backend Software Engineer I/ II Join Axon and be a Force for Good. At Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Axon",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": null,
-          "is_valid": false,
-          "reason": "No company pattern matched"
+          "value": "Axon",
+          "is_valid": true,
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -134,8 +154,8 @@
       ]
     },
     "location": {
-      "final_value": "Ho Chi Minh City, Ho Chi Minh City, Vietnam",
-      "winning_strategy": "raw_row_location",
+      "final_value": "Ho Chi Minh City, Vietnam",
+      "winning_strategy": "hinted_location",
       "strategy_count": 9,
       "strategies": [
         {
@@ -155,9 +175,9 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Ho Chi Minh City, Ho Chi Minh City, Vietnam",
-          "is_valid": true,
-          "reason": "Valid location"
+          "value": null,
+          "is_valid": false,
+          "reason": "Too many words (9) - looks like a sentence, not a location"
         },
         {
           "name": "explicit_label_location",
@@ -176,16 +196,16 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Bachelor's Degree in Computer Science, Engineering",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "Ho Chi Minh City, Ho Chi Minh City, Vietnam",
-          "is_valid": true,
-          "reason": "Country-only fallback: Valid location"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location invalid even with country-only allowed: Too many words (9) - looks like a sentence, not a location"
         },
         {
           "name": "hinted_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Ho Chi Minh City, Ho Chi Minh City, Vietnam"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Ho Chi Minh City, Vietnam' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +376,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:03.963355",
+          "value": "2026-01-17T13:05:59.163930",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Backend Software Engineer I/ II\n\nJoin Axon and be a Force for Good.\nAt Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with candor and care, seeking out diverse perspectives from our customers, communities and each other.\nLife at Axon is fast-paced, challenging and meaningful. Here, you’ll take ownership and drive real change. Constantly grow as you work hard for a mission that matters at a company where you matter.\nYour Impact\nAs one of the software engineers on the team, you will make key design decisions that will shape this product. You’ll create and maintain the data integration, management, and analytics platform alongside Axon’s newest public safety technology products. This platform will offer law enforcement administrators and crime analysts flexible access to key crime data, decision support, state and federal crime reports, and criminal investigation insights.\nAxon has led the global effort to protect life and through electric weapons, body cameras, a number of real-time sensors, public safety software products and AI tools. Axon is uniquely positioned to tie together every aspect of an incident in order to help law enforcement agencies better prepare for what might happen, respond efficiently and effectively, deliver justice, ensure the well being of their officers, and increase the safety of their communities. Working together with our customers and product teams, you will build the foundation for Axon’s outcome-oriented data efforts.\nWhat You’ll Do\nWork Location: This role is based out of our Ho Chi Minh City office and follows a hybrid schedule. We rely on in-person collaboration and ask that team members work onsite Tuesdays through Fridays, with the flexibility to work remotely on Mondays, unless there is an approved workplace accommodation. We believe that connection fuels innovation, and our in-office culture is designed to foster meaningful teamwork, mentorship, and shared success.\nDirect Reports:\n- Participating in code reviews and architecture design meetings.\n- Owning and driving end-to-end features with Product and Design.\n- Ensuring that your code hits a high bar for quality and performance.\n- Partner with internal teams and agencies to make public safety data accessible and actionable.\n- Influence peers, advise senior leaders, coach and mentor junior team members.\n- Facilitate cross-team collaboration among engineers and contribute to the broader community of Axon engineers.\nWhat You Bring\n- Bachelor's Degree in Computer Science, Engineering, or related field.\n- Highly technical with experience developing and maintaining end-to-end, high availability, high throughput web-scale data systems.\n- Backend experience in managed languages such as Java, Scala, Go, C#, Python or similar.\n- Demonstrated ability to make tough technical decisions based on requirements, constraints, and trade-offs.\n- You follow the latest in software engineering and open source technologies, and can intuit the fine line between promising new practice and overhyped fad.\n- Industry experience working with SQL or NoSQL data stores.\n- Good Linux/Unix/Mac experience.\n- You love delighting end users and hunger for novel challenges.\nBenefits that Benefit You\n- Medical, Dental and Vision Insurance\n- Robust Paid Time Off policy\n- Bonuses\n- Lunch allowance\n- Cell phone stipend\n- Free LinkedIn Learning account or Udemy account\n- Access to 24/7 online emotional and mental support\n- Gym membership\n- Free parking\n- Stocked fridges and pantries - free coffee, cold beverages, snacks\n- Annual Company Outing Trip\n- Monthly team social activities\nDon’t meet every single requirement? That's ok. At Axon, we Aim Far. We think big with a long-term view because we want to reinvent the world to be a safer, better place. We are also committed to building diverse teams that reflect the communities we serve.\nStudies have shown that women and people of color are less likely to apply to jobs unless they check every box in the job description. If you’re excited about this role and our mission to Protect Life but your experience doesn’t align perfectly with every qualification listed here, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nImportant Notes\nThe above job description is not intended as, nor should it be construed as, exhaustive of all duties, responsibilities, skills, efforts, or working conditions associated with this job. The job description may change or be supplemented at any time in accordance with business needs and conditions.\nSome roles may also require legal eligibility to work in a firearms environment.\nWe collect personal information from applicants to evaluate candidates for employment. You may request access, deletion, or exercise other CCPA rights at&nbsp; axongreenhousesupport@axon.com &nbsp;or via our&nbsp; Axon Privacy Web Form . For more information, please see the Your California Privacy Rights section of our&nbsp; Applicant and Candidate Privacy Notice.\nAxon’s mission is to Protect Life and is committed to the well-being and safety of its employees as well as Axon’s impact on the environment. All Axon employees must be aware of and committed to the appropriate environmental, health, and safety regulations, policies, and procedures. Axon employees are empowered to report safety concerns as they arise and activities potentially impacting the environment.\nWe are an equal opportunity employer that promotes justice, advances equity, values diversity and fosters inclusion. We’re committed to hiring the best talent — regardless of race, creed, color, ancestry, religion, sex (including pregnancy), national origin, sexual orientation, age, citizenship status, marital status, disability, gender identity, genetic information, veteran status, or any other characteristic protected by applicable laws, regulations and ordinances — and empowering all of our employees so they can do their best work. If you have a disability or special need that requires assistance or accommodation during the application or the recruiting process, please email recruitingops@axon.com. &nbsp;Please note that this email address is for accommodation purposes only. Axon will not respond to inquiries for other purposes.",
           "is_valid": true,
-          "reason": "Valid description (6414 chars)"
+          "reason": "Valid description (6414 chars, 981 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Backend Software Engineer I/ II\n\nJoin Axon and be a Force for Good.\nAt Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with candor and care, seeking out diverse perspectives from our customers, communities and each other.\nLife at Axon is fast-paced, challenging and meaningful. Here, you’ll take ownership and drive real change. Constantly grow as you work hard for a mission that matters at a company where you matter.\nYour Impact\nAs one of the software engineers on the team, you will make key design decisions that will shape this product. You’ll create and maintain the data integration, management, and analytics platform alongside Axon’s newest public safety technology products. This platform will offer law enforcement administrators and crime analysts flexible access to key crime data, decision support, state and federal crime reports, and criminal investigation insights.\nAxon has led the global effort to protect life and through electric weapons, body cameras, a number of real-time sensors, public safety software products and AI tools. Axon is uniquely positioned to tie together every aspect of an incident in order to help law enforcement agencies better prepare for what might happen, respond efficiently and effectively, deliver justice, ensure the well being of their officers, and increase the safety of their communities. Working together with our customers and product teams, you will build the foundation for Axon’s outcome-oriented data efforts.\nWhat You’ll Do\nWork Location: This role is based out of our Ho Chi Minh City office and follows a hybrid schedule. We rely on in-person collaboration and ask that team members work onsite Tuesdays through Fridays, with the flexibility to work remotely on Mondays, unless there is an approved workplace accommodation. We believe that connection fuels innovation, and our in-office culture is designed to foster meaningful teamwork, mentorship, and shared success.\nDirect Reports:\n- Participating in code reviews and architecture design meetings.\n- Owning and driving end-to-end features with Product and Design.\n- Ensuring that your code hits a high bar for quality and performance.\n- Partner with internal teams and agencies to make public safety data accessible and actionable.\n- Influence peers, advise senior leaders, coach and mentor junior team members.\n- Facilitate cross-team collaboration among engineers and contribute to the broader community of Axon engineers.\nWhat You Bring\n- Bachelor's Degree in Computer Science, Engineering, or related field.\n- Highly technical with experience developing and maintaining end-to-end, high availability, high throughput web-scale data systems.\n- Backend experience in managed languages such as Java, Scala, Go, C#, Python or similar.\n- Demonstrated ability to make tough technical decisions based on requirements, constraints, and trade-offs.\n- You follow the latest in software engineering and open source technologies, and can intuit the fine line between promising new practice and overhyped fad.\n- Industry experience working with SQL or NoSQL data stores.\n- Good Linux/Unix/Mac experience.\n- You love delighting end users and hunger for novel challenges.\nBenefits that Benefit You\n- Medical, Dental and Vision Insurance\n- Robust Paid Time Off policy\n- Bonuses\n- Lunch allowance\n- Cell phone stipend\n- Free LinkedIn Learning account or Udemy account\n- Access to 24/7 online emotional and mental support\n- Gym membership\n- Free parking\n- Stocked fridges and pantries - free coffee, cold beverages, snacks\n- Annual Company Outing Trip\n- Monthly team social activities\nDon’t meet every single requirement? That's ok. At Axon, we Aim Far. We think big with a long-term view because we want to reinvent the world to be a safer, better place. We are also committed to building diverse teams that reflect the communities we serve.\nStudies have shown that women and people of color are less likely to apply to jobs unless they check every box in the job description. If you’re excited about this role and our mission to Protect Life but your experience doesn’t align perfectly with every qualification listed here, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nImportant Notes\nThe above job description is not intended as, nor should it be construed as, exhaustive of all duties, responsibilities, skills, efforts, or working conditions associated with this job. The job description may change or be supplemented at any time in accordance with business needs and conditions.\nSome roles may also require legal eligibility to work in a firearms environment.\nWe collect personal information from applicants to evaluate candidates for employment. You may request access, deletion, or exercise other CCPA rights at&nbsp; axongreenhousesupport@axon.com &nbsp;or via our&nbsp; Axon Privacy Web Form . For more information, please see the Your California Privacy Rights section of our&nbsp; Applicant and Candidate Privacy Notice.\nAxon’s mission is to Protect Life and is committed to the well-being and safety of its employees as well as Axon’s impact on the environment. All Axon employees must be aware of and committed to the appropriate environmental, health, and safety regulations, policies, and procedures. Axon employees are empowered to report safety concerns as they arise and activities potentially impacting the environment.\nWe are an equal opportunity employer that promotes justice, advances equity, values diversity and fosters inclusion. We’re committed to hiring the best talent — regardless of race, creed, color, ancestry, religion, sex (including pregnancy), national origin, sexual orientation, age, citizenship status, marital status, disability, gender identity, genetic information, veteran status, or any other characteristic protected by applicable laws, regulations and ordinances — and empowering all of our employees so they can do their best work. If you have a disability or special need that requires assistance or accommodation during the application or the recruiting process, please email recruitingops@axon.com. &nbsp;Please note that this email address is for accommodation purposes only. Axon will not respond to inquiries for other purposes.",
           "is_valid": true,
-          "reason": "Valid description (6414 chars)"
+          "reason": "Valid description (6414 chars, 981 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Backend Software Engineer I/ II\n\nJoin Axon and be a Force for Good.\nAt Axon, we’re on a mission to Protect Life. We’re explorers, pursuing society’s most critical safety and justice issues with our ecosystem of devices and cloud software. Like our products, we work better together. We connect with candor and care, seeking out diverse perspectives from our customers, communities and each other.\nLife at Axon is fast-paced, challenging and meaningful. Here, you’ll take ownership and drive real change. Constantly grow as you work hard for a mission that matters at a company where you matter.\nYour Impact\nAs one of the software engineers on the team, you will make key design decisions that will shape this product. You’ll create and maintain the data integration, management, and analytics platform alongside Axon’s newest public safety technology products. This platform will offer law enforcement administrators and crime analysts flexible access to key crime data, decision support, state and federal crime reports, and criminal investigation insights.\nAxon has led the global effort to protect life and through electric weapons, body cameras, a number of real-time sensors, public safety software products and AI tools. Axon is uniquely positioned to tie together every aspect of an incident in order to help law enforcement agencies better prepare for what might happen, respond efficiently and effectively, deliver justice, ensure the well being of their officers, and increase the safety of their communities. Working together with our customers and product teams, you will build the foundation for Axon’s outcome-oriented data efforts.\nWhat You’ll Do\nWork Location: This role is based out of our Ho Chi Minh City office and follows a hybrid schedule. We rely on in-person collaboration and ask that team members work onsite Tuesdays through Fridays, with the flexibility to work remotely on Mondays, unless there is an approved workplace accommodation. We believe that connection fuels innovation, and our in-office culture is designed to foster meaningful teamwork, mentorship, and shared success.\nDirect Reports:\n- Participating in code reviews and architecture design meetings.\n- Owning and driving end-to-end features with Product and Design.\n- Ensuring that your code hits a high bar for quality and performance.\n- Partner with internal teams and agencies to make public safety data accessible and actionable.\n- Influence peers, advise senior leaders, coach and mentor junior team members.\n- Facilitate cross-team collaboration among engineers and contribute to the broader community of Axon engineers.\nWhat You Bring\n- Bachelor's Degree in Computer Science, Engineering, or related field.\n- Highly technical with experience developing and maintaining end-to-end, high availability, high throughput web-scale data systems.\n- Backend experience in managed languages such as Java, Scala, Go, C#, Python or similar.\n- Demonstrated ability to make tough technical decisions based on requirements, constraints, and trade-offs.\n- You follow the latest in software engineering and open source technologies, and can intuit the fine line between promising new practice and overhyped fad.\n- Industry experience working with SQL or NoSQL data stores.\n- Good Linux/Unix/Mac experience.\n- You love delighting end users and hunger for novel challenges.\nBenefits that Benefit You\n- Medical, Dental and Vision Insurance\n- Robust Paid Time Off policy\n- Bonuses\n- Lunch allowance\n- Cell phone stipend\n- Free LinkedIn Learning account or Udemy account\n- Access to 24/7 online emotional and mental support\n- Gym membership\n- Free parking\n- Stocked fridges and pantries - free coffee, cold beverages, snacks\n- Annual Company Outing Trip\n- Monthly team social activities\nDon’t meet every single requirement? That's ok. At Axon, we Aim Far. We think big with a long-term view because we want to reinvent the world to be a safer, better place. We are also committed to building diverse teams that reflect the communities we serve.\nStudies have shown that women and people of color are less likely to apply to jobs unless they check every box in the job description. If you’re excited about this role and our mission to Protect Life but your experience doesn’t align perfectly with every qualification listed here, we encourage you to apply anyways. You may be just the right candidate for this or other roles.\nImportant Notes\nThe above job description is not intended as, nor should it be construed as, exhaustive of all duties, responsibilities, skills, efforts, or working conditions associated with this job. The job description may change or be supplemented at any time in accordance with business needs and conditions.\nSome roles may also require legal eligibility to work in a firearms environment.\nWe collect personal information from applicants to evaluate candidates for employment. You may request access, deletion, or exercise other CCPA rights at&nbsp; axongreenhousesupport@axon.com &nbsp;or via our&nbsp; Axon Privacy Web Form . For more information, please see the Your California Privacy Rights section of our&nbsp; Applicant and Candidate Privacy Notice.\nAxon’s mission is to Protect Life and is committed to the well-being and safety of its employees as well as Axon’s impact on the environment. All Axon employees must be aware of and committed to the appropriate environmental, health, and safety regulations, policies, and procedures. Axon employees are empowered to report safety concerns as they arise and activities potentially impacting the environment.\nWe are an equal opportunity employer that promotes justice, advances equity, values diversity and fosters inclusion. We’re committed to hiring the best talent — regardless of race, creed, color, ancestry, religion, sex (including pregnancy), national origin, sexual orientation, age, citizenship status, marital status, disability, gender identity, genetic information, veteran status, or any other characteristic protected by applicable laws, regulations and ordinances — and empowering all of our employees so they can do their best work. If you have a disability or special need that requires assistance or accommodation during the application or the recruiting process, please email recruitingops@axon.com. &nbsp;Please note that this email address is for accommodation purposes only. Axon will not respond to inquiries for other purposes.",
           "is_valid": true,
-          "reason": "Valid description (6414 chars)"
+          "reason": "Valid description (6414 chars, 981 words)"
         },
         {
           "name": "empty_description_fallback",

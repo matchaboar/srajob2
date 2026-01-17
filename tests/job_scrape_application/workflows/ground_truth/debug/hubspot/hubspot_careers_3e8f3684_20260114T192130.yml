@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/hubspot/hubspot_careers_3e8f3684_20260114T192130_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: hubspot_careers
+detail_url: https://www.hubspot.com/careers/jobs/7391386
+expected:
+  title: "Senior Software Engineer II, Backend"
+  company: "HubSpot"
+  location_contains: "United Kingdom"
+  is_remote: true
+  level: senior
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

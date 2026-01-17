@@ -1,35 +1,54 @@
 {
   "site_id": "ashbyhq",
-  "detail_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-  "source_url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
+  "detail_url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+  "source_url": "https://jobs.ashbyhq.com/factory",
   "extracted_jobs": [
     {
-      "title": "Account Manager, Growth",
-      "description_preview": "About Ramp At Ramp, we’re rethinking how modern finance teams function in the age of AI. We believe AI isn’t just the next big wave. It’s the new foundation for how business gets done. We’re investing in that future — and in the people bold enough to build it. Ramp...",
-      "description_word_count": 707,
-      "location": "New York, NY",
-      "is_remote": true,
-      "posted_at": 1768402800000,
+      "title": "AI Engineer",
+      "description_preview": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation. What you will do and achieve: Innovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities...",
+      "description_word_count": 257,
+      "location": "San Francisco, CA",
+      "is_remote": false,
+      "posted_at": 1742828400000,
       "posted_at_unknown": false,
-      "company": "Ramp",
-      "level": "senior",
+      "company": "Factory",
+      "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
-      "url": "https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd",
-      "cost_milli_cents": 15
+      "compensation_unknown": false,
+      "compensation_reason": null,
+      "url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+      "cost_milli_cents": 8
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "AI Engineer",
+        "company": "Factory",
+        "location": "San Francisco, CA, United States",
+        "description": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation.\n\nWhat you will do and achieve:\n\nInnovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities\n\nWork with product and engineering teams to integrate emerging AI research findings into practical, customer-centric solutions\n\nEngage in iterative development processes, rapidly prototyping and refining AI functionalities based on real-world feedback to meet the evolving needs of developers and enterprises\n\nTake the initiative in identifying and addressing product stability and...",
+        "url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+        "posted_at": 1742828400000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 8,
+        "_full_description_word_count": 257
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607",
+        "word_count": 257,
+        "description_preview": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation. What you will do and achieve:..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "Account Manager, Growth",
+      "final_value": "AI Engineer",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -50,7 +69,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "Account Manager, Growth",
+          "value": "AI Engineer",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -64,21 +83,21 @@
         {
           "name": "hinted_title",
           "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No title in hints"
+          "value": "What you will do and achieve:",
+          "is_valid": true,
+          "reason": "Valid title"
         },
         {
           "name": "first_line_title",
           "priority": "FALLBACK",
-          "value": "About Ramp",
+          "value": "What you will do and achieve:",
           "is_valid": true,
           "reason": "Valid title"
         }
       ]
     },
     "company": {
-      "final_value": "Ramp",
+      "final_value": "Factory",
       "winning_strategy": "raw_row_company",
       "strategy_count": 7,
       "strategies": [
@@ -99,30 +118,30 @@
         {
           "name": "raw_row_company",
           "priority": "EXPLICIT_FIELD",
-          "value": "Ramp",
+          "value": "Factory",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": "Ashbyhq",
+          "value": "Factory",
           "is_valid": true,
           "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "Ramp",
+          "value": "This",
           "is_valid": true,
           "reason": "Found 'Company is a' pattern"
         },
         {
           "name": "hinted_company",
           "priority": "HEURISTIC",
-          "value": "Ramp",
-          "is_valid": true,
-          "reason": "Valid company name"
+          "value": null,
+          "is_valid": false,
+          "reason": "No company in hints"
         },
         {
           "name": "fallback_company",
@@ -134,7 +153,7 @@
       ]
     },
     "location": {
-      "final_value": "New York City, NY, USA",
+      "final_value": "San Francisco, CA, United States",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +174,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "New York City, NY, USA",
+          "value": "San Francisco, CA, United States",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -176,14 +195,14 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Lightspeed Venture Partners, Thrive Capital",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "New York City, NY, USA",
+          "value": "San Francisco, CA, United States",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
@@ -204,23 +223,37 @@
       ]
     },
     "remote": {
-      "final_value": true,
+      "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
           "priority": "STRUCTURED_DATA",
-          "value": true,
+          "value": false,
           "is_valid": true,
-          "reason": "Explicit boolean remote=True"
+          "reason": "Explicit boolean remote=False"
+        },
+        {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
         },
         {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: New York City, NY, USA"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'San Francisco, CA, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,16 +272,16 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
           "priority": "CUSTOM_650",
           "value": null,
           "is_valid": false,
-          "reason": "Company 'Ramp' not in remote company list"
+          "reason": "Company 'Factory' not in remote company list"
         },
         {
           "name": "default_remote",
@@ -260,16 +293,16 @@
       ]
     },
     "level": {
-      "final_value": "senior",
-      "winning_strategy": "explicit_level_field",
+      "final_value": "mid",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "senior",
-          "is_valid": true,
-          "reason": "Explicit level field: senior -> senior"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -281,9 +314,9 @@
         {
           "name": "title_level",
           "priority": "CONTENT_PATTERN",
-          "value": "senior",
-          "is_valid": true,
-          "reason": "Level from title: 'manager' -> senior"
+          "value": null,
+          "is_valid": false,
+          "reason": "No level indicator in title"
         },
         {
           "name": "content_pattern_level",
@@ -318,7 +351,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +361,18 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
           "is_valid": false,
           "reason": "No compensation pattern in content"
-        },
-        {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +383,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 8,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 8,
+          "is_valid": true,
+          "reason": "Valid cost: 8"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-14T08:00:00",
+      "final_value": "2025-03-24T08:00:00",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-14T08:00:00",
+          "value": "2025-03-24T08:00:00",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-14T08:00:00"
+          "reason": "Valid date: 2025-03-24T08:00:00"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,14 +461,42 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:11.112089",
+          "value": "2026-01-17T13:05:59.589329",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
       ]
     },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'ashby' returned no first_published"
+        }
+      ]
+    },
     "description": {
-      "final_value": "About Ramp\n\nAt Ramp, we’re rethinking how modern finance teams function in the age of AI. We believe AI isn’t just the next big wave. It’s the new foundation for how business gets done. We’re investing in that future — and in the people bold enough to build it.\n\nRamp is a financial operations platform designed to save companies time and money. Our all-in-one solution combines payments, corporate cards, vendor management, procurement, travel booking, and automated bookkeeping with built-in intelligence to maximize the impact of every dollar and hour spent. More than 50,000 businesses, from family-owned farms to e-commerce giants to space startups, have saved $10B and 27.5M hours with Ramp. Founded in 2019, Ramp powers the fastest-growing corporate card and bill payment platform in America, and enables over $100 billion in purchases each year.\n\nRamp’s investors include Lightspeed Venture Partners, Thrive Capital, Sands Capital, General Catalyst, Founders Fund, Khosla Ventures, Sequoia Capital, Greylock, Redpoint, and ICONIQ, as well as over 100 angel investors who were founders or executives of leading companies. The Ramp team comprises talented leaders from leading financial services and fintech companies—Stripe, Affirm, Goldman Sachs, American Express, Mastercard, Visa, Capital One—as well as technology companies such as Meta, Uber, Netflix, Twitter, Dropbox, and Instacart.\n\nRamp has been named to Fast Company’s Most Innovative Companies list and LinkedIn’s Top U.S. Startups for more than 3 years, as well as the Forbes Cloud 100, CNBC Disruptor 50, and TIME Magazine’s 100 Most Influential Companies.\n\nAbout the Role\n\nAs a member of the Growth Account Management team, you will deliver value to our customers and revenue for our business by owning expansion and retention of a scaled portfolio of current Ramp customers. You will help identify growth opportunities within your portfolio and operate a set of scaled touch-points to engage with these customers. As an early member of the team, you will have the opportunity to help build and refine Ramp’s scaled account management motion.\n\nWhat You’ll Do\n\nIdentify expansion opportunities within a scaled portfolio of Ramp customers and own the entire sales process through close\n\nDevelop and execute upsell/cross-sell strategies and maintain a robust expansion pipeline\n\nDevelop a deep understanding of Ramp customer personas and act as a trusted advisor and consultant to help them achieve their goals with Ramp\n\nLeverage sales methodologies to uncover customer needs and pain points\n\nGather and provide customer feedback to directly inform Ramp’s product roadmap & customer communication strategy\n\nCollaborate with cross-functional partners to continuously improve operational efficiencies while also advocating for your customers\n\nWhat You Need\n\nMinimum 2 years of customer-facing or direct sales experience\n\nProven track record of achievement in a high velocity business environment\n\nPrior CRM experience (preferably Salesforce)\n\nExperience with outbound prospecting and conducting product demonstrations, with a high level of comfort with sales tools & processes\n\nConsultative sales approach and comfortable leveraging analytical & quantitative skills, with a deep interest in understanding business challenges\n\nAbility to discuss Ramp's value proposition with C-level executives, finance teams, and decision makers\n\nConsistent track record of hitting or exceeding sales targets in a fast-paced and metrics-driven environment\n\nDedication to tracking and improving performance and efficiency on a daily basis\n\nExcellent verbal and written communication skills, with the ability to deliver compelling sales pitches and presentations\n\nOrganizational, project management, and time management skills\n\nSense of entrepreneurship: a self-starter with a high sense of urgency and ability to work within undefined processes\n\nNice-to-Haves\n\nBachelor’s degree from an accredited university\n\nExperience with financial services sales\n\nExperience at a high-growth startup\n\nBenefits (for U.S.-based full-time employees)\n\n100% medical, dental & vision insurance coverage for you\n\nPartially covered for your dependents\n\nOne Medical annual membership\n\n401k (including employer match on contributions made while employed by Ramp)\n\nFlexible PTO\n\nFertility HRA (up to $10,000 per year)\n\nParental Leave\n\nPet insurance\n\nCentralized home-office equipment ordering for all employees\n\nHealth and Wellness stipend\n\nIn-office perks: lunch, snacks, drinks, and more\n\nBudget for intra-office travel\n\nRelocation support to NYC or SF (as needed)\n\nReferral Instructions\n\nIf you are being referred for the role, please contact that person to apply on your behalf.\n\nOther notices\n\nPursuant to the San Francisco Fair Chance Ordinance, we will consider for employment qualified applicants with arrest and conviction records.\n\nRamp Applicant Privacy Notice",
+      "final_value": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation.\n\nWhat you will do and achieve:\n\nInnovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities\n\nWork with product and engineering teams to integrate emerging AI research findings into practical, customer-centric solutions\n\nEngage in iterative development processes, rapidly prototyping and refining AI functionalities based on real-world feedback to meet the evolving needs of developers and enterprises\n\nTake the initiative in identifying and addressing product stability and scalability challenges, ensuring the Factory Platform reliably supports large-scale operational demands\n\nLead the exploration and integration of large-scale data processing techniques to improve the reliability and effectiveness of our AI systems\n\nQualifications\n\n2+ years of hands-on experience in AI/ML engineering roles post-acquisition of a Bachelor's or Master's degree in Computer Science, Engineering, AI, or a related technical field.\n\nDemonstrated proficiency with LLMs and a track record of applying AI/ML techniques to solve complex, unstructured problems, ideally within the domain of software engineering or related areas.\n\nSelf-motivated and autonomous, with a proven ability to navigate ambiguous research projects from conception to impactful deployment.\n\nStrong communication skills that enable you to articulate technical concepts and strategies clearly at all levels, coupled with a strategic mindset oriented towards innovation.\n\nExperience with data-intensive applications and familiarity with the software development lifecycle are highly desirable, though not mandatory.\n\nThis is an in-office position (5 days/week) in San Francisco (walking distance to Caltrain)",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -414,23 +510,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "About Ramp\n\nAt Ramp, we’re rethinking how modern finance teams function in the age of AI. We believe AI isn’t just the next big wave. It’s the new foundation for how business gets done. We’re investing in that future — and in the people bold enough to build it.\n\nRamp is a financial operations platform designed to save companies time and money. Our all-in-one solution combines payments, corporate cards, vendor management, procurement, travel booking, and automated bookkeeping with built-in intelligence to maximize the impact of every dollar and hour spent. More than 50,000 businesses, from family-owned farms to e-commerce giants to space startups, have saved $10B and 27.5M hours with Ramp. Founded in 2019, Ramp powers the fastest-growing corporate card and bill payment platform in America, and enables over $100 billion in purchases each year.\n\nRamp’s investors include Lightspeed Venture Partners, Thrive Capital, Sands Capital, General Catalyst, Founders Fund, Khosla Ventures, Sequoia Capital, Greylock, Redpoint, and ICONIQ, as well as over 100 angel investors who were founders or executives of leading companies. The Ramp team comprises talented leaders from leading financial services and fintech companies—Stripe, Affirm, Goldman Sachs, American Express, Mastercard, Visa, Capital One—as well as technology companies such as Meta, Uber, Netflix, Twitter, Dropbox, and Instacart.\n\nRamp has been named to Fast Company’s Most Innovative Companies list and LinkedIn’s Top U.S. Startups for more than 3 years, as well as the Forbes Cloud 100, CNBC Disruptor 50, and TIME Magazine’s 100 Most Influential Companies.\n\nAbout the Role\n\nAs a member of the Growth Account Management team, you will deliver value to our customers and revenue for our business by owning expansion and retention of a scaled portfolio of current Ramp customers. You will help identify growth opportunities within your portfolio and operate a set of scaled touch-points to engage with these customers. As an early member of the team, you will have the opportunity to help build and refine Ramp’s scaled account management motion.\n\nWhat You’ll Do\n\nIdentify expansion opportunities within a scaled portfolio of Ramp customers and own the entire sales process through close\n\nDevelop and execute upsell/cross-sell strategies and maintain a robust expansion pipeline\n\nDevelop a deep understanding of Ramp customer personas and act as a trusted advisor and consultant to help them achieve their goals with Ramp\n\nLeverage sales methodologies to uncover customer needs and pain points\n\nGather and provide customer feedback to directly inform Ramp’s product roadmap & customer communication strategy\n\nCollaborate with cross-functional partners to continuously improve operational efficiencies while also advocating for your customers\n\nWhat You Need\n\nMinimum 2 years of customer-facing or direct sales experience\n\nProven track record of achievement in a high velocity business environment\n\nPrior CRM experience (preferably Salesforce)\n\nExperience with outbound prospecting and conducting product demonstrations, with a high level of comfort with sales tools & processes\n\nConsultative sales approach and comfortable leveraging analytical & quantitative skills, with a deep interest in understanding business challenges\n\nAbility to discuss Ramp's value proposition with C-level executives, finance teams, and decision makers\n\nConsistent track record of hitting or exceeding sales targets in a fast-paced and metrics-driven environment\n\nDedication to tracking and improving performance and efficiency on a daily basis\n\nExcellent verbal and written communication skills, with the ability to deliver compelling sales pitches and presentations\n\nOrganizational, project management, and time management skills\n\nSense of entrepreneurship: a self-starter with a high sense of urgency and ability to work within undefined processes\n\nNice-to-Haves\n\nBachelor’s degree from an accredited university\n\nExperience with financial services sales\n\nExperience at a high-growth startup\n\nBenefits (for U.S.-based full-time employees)\n\n100% medical, dental & vision insurance coverage for you\n\nPartially covered for your dependents\n\nOne Medical annual membership\n\n401k (including employer match on contributions made while employed by Ramp)\n\nFlexible PTO\n\nFertility HRA (up to $10,000 per year)\n\nParental Leave\n\nPet insurance\n\nCentralized home-office equipment ordering for all employees\n\nHealth and Wellness stipend\n\nIn-office perks: lunch, snacks, drinks, and more\n\nBudget for intra-office travel\n\nRelocation support to NYC or SF (as needed)\n\nReferral Instructions\n\nIf you are being referred for the role, please contact that person to apply on your behalf.\n\nOther notices\n\nPursuant to the San Francisco Fair Chance Ordinance, we will consider for employment qualified applicants with arrest and conviction records.\n\nRamp Applicant Privacy Notice",
+          "value": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation.\n\nWhat you will do and achieve:\n\nInnovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities\n\nWork with product and engineering teams to integrate emerging AI research findings into practical, customer-centric solutions\n\nEngage in iterative development processes, rapidly prototyping and refining AI functionalities based on real-world feedback to meet the evolving needs of developers and enterprises\n\nTake the initiative in identifying and addressing product stability and scalability challenges, ensuring the Factory Platform reliably supports large-scale operational demands\n\nLead the exploration and integration of large-scale data processing techniques to improve the reliability and effectiveness of our AI systems\n\nQualifications\n\n2+ years of hands-on experience in AI/ML engineering roles post-acquisition of a Bachelor's or Master's degree in Computer Science, Engineering, AI, or a related technical field.\n\nDemonstrated proficiency with LLMs and a track record of applying AI/ML techniques to solve complex, unstructured problems, ideally within the domain of software engineering or related areas.\n\nSelf-motivated and autonomous, with a proven ability to navigate ambiguous research projects from conception to impactful deployment.\n\nStrong communication skills that enable you to articulate technical concepts and strategies clearly at all levels, coupled with a strategic mindset oriented towards innovation.\n\nExperience with data-intensive applications and familiarity with the software development lifecycle are highly desirable, though not mandatory.\n\nThis is an in-office position (5 days/week) in San Francisco (walking distance to Caltrain)",
           "is_valid": true,
-          "reason": "Valid description (4898 chars)"
+          "reason": "Valid description (1921 chars, 257 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "About Ramp\n\nAt Ramp, we’re rethinking how modern finance teams function in the age of AI. We believe AI isn’t just the next big wave. It’s the new foundation for how business gets done. We’re investing in that future — and in the people bold enough to build it.\n\nRamp is a financial operations platform designed to save companies time and money. Our all-in-one solution combines payments, corporate cards, vendor management, procurement, travel booking, and automated bookkeeping with built-in intelligence to maximize the impact of every dollar and hour spent. More than 50,000 businesses, from family-owned farms to e-commerce giants to space startups, have saved $10B and 27.5M hours with Ramp. Founded in 2019, Ramp powers the fastest-growing corporate card and bill payment platform in America, and enables over $100 billion in purchases each year.\n\nRamp’s investors include Lightspeed Venture Partners, Thrive Capital, Sands Capital, General Catalyst, Founders Fund, Khosla Ventures, Sequoia Capital, Greylock, Redpoint, and ICONIQ, as well as over 100 angel investors who were founders or executives of leading companies. The Ramp team comprises talented leaders from leading financial services and fintech companies—Stripe, Affirm, Goldman Sachs, American Express, Mastercard, Visa, Capital One—as well as technology companies such as Meta, Uber, Netflix, Twitter, Dropbox, and Instacart.\n\nRamp has been named to Fast Company’s Most Innovative Companies list and LinkedIn’s Top U.S. Startups for more than 3 years, as well as the Forbes Cloud 100, CNBC Disruptor 50, and TIME Magazine’s 100 Most Influential Companies.\n\nAbout the Role\n\nAs a member of the Growth Account Management team, you will deliver value to our customers and revenue for our business by owning expansion and retention of a scaled portfolio of current Ramp customers. You will help identify growth opportunities within your portfolio and operate a set of scaled touch-points to engage with these customers. As an early member of the team, you will have the opportunity to help build and refine Ramp’s scaled account management motion.\n\nWhat You’ll Do\n\nIdentify expansion opportunities within a scaled portfolio of Ramp customers and own the entire sales process through close\n\nDevelop and execute upsell/cross-sell strategies and maintain a robust expansion pipeline\n\nDevelop a deep understanding of Ramp customer personas and act as a trusted advisor and consultant to help them achieve their goals with Ramp\n\nLeverage sales methodologies to uncover customer needs and pain points\n\nGather and provide customer feedback to directly inform Ramp’s product roadmap & customer communication strategy\n\nCollaborate with cross-functional partners to continuously improve operational efficiencies while also advocating for your customers\n\nWhat You Need\n\nMinimum 2 years of customer-facing or direct sales experience\n\nProven track record of achievement in a high velocity business environment\n\nPrior CRM experience (preferably Salesforce)\n\nExperience with outbound prospecting and conducting product demonstrations, with a high level of comfort with sales tools & processes\n\nConsultative sales approach and comfortable leveraging analytical & quantitative skills, with a deep interest in understanding business challenges\n\nAbility to discuss Ramp's value proposition with C-level executives, finance teams, and decision makers\n\nConsistent track record of hitting or exceeding sales targets in a fast-paced and metrics-driven environment\n\nDedication to tracking and improving performance and efficiency on a daily basis\n\nExcellent verbal and written communication skills, with the ability to deliver compelling sales pitches and presentations\n\nOrganizational, project management, and time management skills\n\nSense of entrepreneurship: a self-starter with a high sense of urgency and ability to work within undefined processes\n\nNice-to-Haves\n\nBachelor’s degree from an accredited university\n\nExperience with financial services sales\n\nExperience at a high-growth startup\n\nBenefits (for U.S.-based full-time employees)\n\n100% medical, dental & vision insurance coverage for you\n\nPartially covered for your dependents\n\nOne Medical annual membership\n\n401k (including employer match on contributions made while employed by Ramp)\n\nFlexible PTO\n\nFertility HRA (up to $10,000 per year)\n\nParental Leave\n\nPet insurance\n\nCentralized home-office equipment ordering for all employees\n\nHealth and Wellness stipend\n\nIn-office perks: lunch, snacks, drinks, and more\n\nBudget for intra-office travel\n\nRelocation support to NYC or SF (as needed)\n\nReferral Instructions\n\nIf you are being referred for the role, please contact that person to apply on your behalf.\n\nOther notices\n\nPursuant to the San Francisco Fair Chance Ordinance, we will consider for employment qualified applicants with arrest and conviction records.\n\nRamp Applicant Privacy Notice",
+          "value": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation.\n\nWhat you will do and achieve:\n\nInnovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities\n\nWork with product and engineering teams to integrate emerging AI research findings into practical, customer-centric solutions\n\nEngage in iterative development processes, rapidly prototyping and refining AI functionalities based on real-world feedback to meet the evolving needs of developers and enterprises\n\nTake the initiative in identifying and addressing product stability and scalability challenges, ensuring the Factory Platform reliably supports large-scale operational demands\n\nLead the exploration and integration of large-scale data processing techniques to improve the reliability and effectiveness of our AI systems\n\nQualifications\n\n2+ years of hands-on experience in AI/ML engineering roles post-acquisition of a Bachelor's or Master's degree in Computer Science, Engineering, AI, or a related technical field.\n\nDemonstrated proficiency with LLMs and a track record of applying AI/ML techniques to solve complex, unstructured problems, ideally within the domain of software engineering or related areas.\n\nSelf-motivated and autonomous, with a proven ability to navigate ambiguous research projects from conception to impactful deployment.\n\nStrong communication skills that enable you to articulate technical concepts and strategies clearly at all levels, coupled with a strategic mindset oriented towards innovation.\n\nExperience with data-intensive applications and familiarity with the software development lifecycle are highly desirable, though not mandatory.\n\nThis is an in-office position (5 days/week) in San Francisco (walking distance to Caltrain)",
           "is_valid": true,
-          "reason": "Valid description (4898 chars)"
+          "reason": "Valid description (1921 chars, 257 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "About Ramp\n\nAt Ramp, we’re rethinking how modern finance teams function in the age of AI. We believe AI isn’t just the next big wave. It’s the new foundation for how business gets done. We’re investing in that future — and in the people bold enough to build it.\n\nRamp is a financial operations platform designed to save companies time and money. Our all-in-one solution combines payments, corporate cards, vendor management, procurement, travel booking, and automated bookkeeping with built-in intelligence to maximize the impact of every dollar and hour spent. More than 50,000 businesses, from family-owned farms to e-commerce giants to space startups, have saved $10B and 27.5M hours with Ramp. Founded in 2019, Ramp powers the fastest-growing corporate card and bill payment platform in America, and enables over $100 billion in purchases each year.\n\nRamp’s investors include Lightspeed Venture Partners, Thrive Capital, Sands Capital, General Catalyst, Founders Fund, Khosla Ventures, Sequoia Capital, Greylock, Redpoint, and ICONIQ, as well as over 100 angel investors who were founders or executives of leading companies. The Ramp team comprises talented leaders from leading financial services and fintech companies—Stripe, Affirm, Goldman Sachs, American Express, Mastercard, Visa, Capital One—as well as technology companies such as Meta, Uber, Netflix, Twitter, Dropbox, and Instacart.\n\nRamp has been named to Fast Company’s Most Innovative Companies list and LinkedIn’s Top U.S. Startups for more than 3 years, as well as the Forbes Cloud 100, CNBC Disruptor 50, and TIME Magazine’s 100 Most Influential Companies.\n\nAbout the Role\n\nAs a member of the Growth Account Management team, you will deliver value to our customers and revenue for our business by owning expansion and retention of a scaled portfolio of current Ramp customers. You will help identify growth opportunities within your portfolio and operate a set of scaled touch-points to engage with these customers. As an early member of the team, you will have the opportunity to help build and refine Ramp’s scaled account management motion.\n\nWhat You’ll Do\n\nIdentify expansion opportunities within a scaled portfolio of Ramp customers and own the entire sales process through close\n\nDevelop and execute upsell/cross-sell strategies and maintain a robust expansion pipeline\n\nDevelop a deep understanding of Ramp customer personas and act as a trusted advisor and consultant to help them achieve their goals with Ramp\n\nLeverage sales methodologies to uncover customer needs and pain points\n\nGather and provide customer feedback to directly inform Ramp’s product roadmap & customer communication strategy\n\nCollaborate with cross-functional partners to continuously improve operational efficiencies while also advocating for your customers\n\nWhat You Need\n\nMinimum 2 years of customer-facing or direct sales experience\n\nProven track record of achievement in a high velocity business environment\n\nPrior CRM experience (preferably Salesforce)\n\nExperience with outbound prospecting and conducting product demonstrations, with a high level of comfort with sales tools & processes\n\nConsultative sales approach and comfortable leveraging analytical & quantitative skills, with a deep interest in understanding business challenges\n\nAbility to discuss Ramp's value proposition with C-level executives, finance teams, and decision makers\n\nConsistent track record of hitting or exceeding sales targets in a fast-paced and metrics-driven environment\n\nDedication to tracking and improving performance and efficiency on a daily basis\n\nExcellent verbal and written communication skills, with the ability to deliver compelling sales pitches and presentations\n\nOrganizational, project management, and time management skills\n\nSense of entrepreneurship: a self-starter with a high sense of urgency and ability to work within undefined processes\n\nNice-to-Haves\n\nBachelor’s degree from an accredited university\n\nExperience with financial services sales\n\nExperience at a high-growth startup\n\nBenefits (for U.S.-based full-time employees)\n\n100% medical, dental & vision insurance coverage for you\n\nPartially covered for your dependents\n\nOne Medical annual membership\n\n401k (including employer match on contributions made while employed by Ramp)\n\nFlexible PTO\n\nFertility HRA (up to $10,000 per year)\n\nParental Leave\n\nPet insurance\n\nCentralized home-office equipment ordering for all employees\n\nHealth and Wellness stipend\n\nIn-office perks: lunch, snacks, drinks, and more\n\nBudget for intra-office travel\n\nRelocation support to NYC or SF (as needed)\n\nReferral Instructions\n\nIf you are being referred for the role, please contact that person to apply on your behalf.\n\nOther notices\n\nPursuant to the San Francisco Fair Chance Ordinance, we will consider for employment qualified applicants with arrest and conviction records.\n\nRamp Applicant Privacy Notice",
+          "value": "Factory is looking for innovative AI Engineers to build and evolve cutting-edge AI systems that transform how software organizations accelerate their productivity and innovation.\n\nWhat you will do and achieve:\n\nInnovate at the forefront of AI by designing, developing, and deploying AI-driven agentic systems that enhance Factory's core AI capabilities\n\nWork with product and engineering teams to integrate emerging AI research findings into practical, customer-centric solutions\n\nEngage in iterative development processes, rapidly prototyping and refining AI functionalities based on real-world feedback to meet the evolving needs of developers and enterprises\n\nTake the initiative in identifying and addressing product stability and scalability challenges, ensuring the Factory Platform reliably supports large-scale operational demands\n\nLead the exploration and integration of large-scale data processing techniques to improve the reliability and effectiveness of our AI systems\n\nQualifications\n\n2+ years of hands-on experience in AI/ML engineering roles post-acquisition of a Bachelor's or Master's degree in Computer Science, Engineering, AI, or a related technical field.\n\nDemonstrated proficiency with LLMs and a track record of applying AI/ML techniques to solve complex, unstructured problems, ideally within the domain of software engineering or related areas.\n\nSelf-motivated and autonomous, with a proven ability to navigate ambiguous research projects from conception to impactful deployment.\n\nStrong communication skills that enable you to articulate technical concepts and strategies clearly at all levels, coupled with a strategic mindset oriented towards innovation.\n\nExperience with data-intensive applications and familiarity with the software development lifecycle are highly desirable, though not mandatory.\n\nThis is an in-office position (5 days/week) in San Francisco (walking distance to Caltrain)",
           "is_valid": true,
-          "reason": "Valid description (4898 chars)"
+          "reason": "Valid description (1921 chars, 257 words)"
         },
         {
           "name": "empty_description_fallback",

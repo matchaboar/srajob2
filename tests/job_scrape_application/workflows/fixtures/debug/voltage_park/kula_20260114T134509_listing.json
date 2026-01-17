@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://careers.kula.ai/api/internal/ats_job_posts?accountName=voltagepark&scope=public&page=1&type=ats_job_post.index&items=99",
     "params": {

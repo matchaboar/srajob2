@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/netflix_20260116T181701_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+# Raw location in fixture: "California - Remote,United States of America"
+site_id: netflix
+detail_url: https://explore.jobs.netflix.net/careers/job/790312429476
+expected:
+  title_contains: Systems Development Engineer
+  company: Netflix
+  location_contains: Remote
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1

@@ -12,7 +12,7 @@ import pytest
 
 
 from job_scrape_application.workflows.site_handlers import get_site_handler  # noqa: E402
-from job_scrape_application.workflows.activities import _filter_job_urls  # noqa: E402
+from job_scrape_application.workflows.activities.url_processing import _filter_job_urls  # noqa: E402
 
 
 def test_greenhouse_job_boards_url_conversion():
@@ -131,7 +131,7 @@ def test_classify_filtered_urls_greenhouse():
     """
     Test that _classify_filtered_urls correctly identifies converted URLs.
     """
-    from job_scrape_application.workflows.activities import _classify_filtered_urls
+    from job_scrape_application.workflows.activities.url_processing import _classify_filtered_urls
 
     test_urls = [
         "https://job-boards.greenhouse.io/thetradedesk/jobs/4828142007",
@@ -171,7 +171,7 @@ def test_classify_filtered_urls_truly_invalid():
     """
     Test that _classify_filtered_urls correctly identifies truly invalid URLs.
     """
-    from job_scrape_application.workflows.activities import _classify_filtered_urls
+    from job_scrape_application.workflows.activities.url_processing import _classify_filtered_urls
 
     # Mix of valid and invalid URLs
     extracted_urls = [

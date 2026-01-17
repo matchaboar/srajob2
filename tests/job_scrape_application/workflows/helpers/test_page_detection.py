@@ -11,7 +11,6 @@ from job_scrape_application.workflows.helpers.page_detection import (
     _LISTING_FILTER_TERMS,
     _LISTING_URL_TOKENS,
     _description_mentions_listing_url,
-    _looks_like_listing_card_snippet,
     _url_is_listing_root,
     _url_suggests_listing,
     is_invalid_job_title,

@@ -3,8 +3,8 @@
   "listing_url": "https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing",
   "source_url": "https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing",
   "handler_name": "LifeAtSpotifyHandler",
-  "content_type": null,
-  "extraction_method": "production_workflow",
+  "content_type": "commonmark",
+  "extraction_method": null,
   "url_pipeline": {
     "input_url": "https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing",
     "scrape_url": "https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing"
@@ -14,24 +14,34 @@
     "handler_filtered_count": 5,
     "api_transformed_count": 5
   },
+  "scraped_url_count": 0,
   "extracted_url_count": 5,
   "filtered_url_count": 5,
   "normalized_url_count": 5,
+  "apply_url_count": 5,
   "pagination_url_count": 0,
   "rejected_url_count": 0,
   "sample_urls": [
     "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
     "https://www.lifeatspotify.com/jobs/gm-surfaces-personalization",
     "https://www.lifeatspotify.com/jobs/senior-machine-learning-engineer-ads-rd",
-    "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home",
-    "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering"
+    "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering",
+    "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home"
   ],
+  "scraped_urls": [],
   "normalized_urls": [
     "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
     "https://www.lifeatspotify.com/jobs/gm-surfaces-personalization",
     "https://www.lifeatspotify.com/jobs/senior-machine-learning-engineer-ads-rd",
-    "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home",
-    "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering"
+    "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering",
+    "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home"
+  ],
+  "apply_urls": [
+    "https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing",
+    "https://www.lifeatspotify.com/jobs/gm-surfaces-personalization",
+    "https://www.lifeatspotify.com/jobs/senior-machine-learning-engineer-ads-rd",
+    "https://www.lifeatspotify.com/jobs/data-engineer-financial-engineering",
+    "https://www.lifeatspotify.com/jobs/senior-staff-machine-learning-engineer-home"
   ],
   "sample_transformations": [],
   "url_transformations": [],

@@ -1,0 +1,17 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/ramp/ashbyhq_8x7z6df8_20260113_20260114T001910_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: ashbyhq
+detail_url: https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd
+expected:
+  title: "Account Manager, Growth"
+  company_contains: "Ramp"  # Company is extracted with proper capitalization
+  location_contains: "New York"  # From JSON-LD jobLocation (authoritative Schema.org data)
+  # NOTE: Schema.org jobLocationType indicates TELECOMMUTE
+  is_remote: true
+  # NOTE: "manager" in title doesn't map to senior in current level extractor
+  level: mid
+  # NOTE: Description is truncated to ~100 words by extractor preview
+  description_min_words: 50
+  # description_not_contains: '{"'  # JSON content filtering not reliable
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

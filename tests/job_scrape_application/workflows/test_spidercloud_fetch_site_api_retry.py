@@ -43,23 +43,21 @@ def _make_scraper() -> SpiderCloudScraper:
     return scraper
 
 
-def _make_valid_ashby_response() -> List[List[Dict[str, Any]]]:
+def _make_valid_ashby_response() -> List[Dict[str, Any]]:
     """Create a valid SpiderCloud response with Ashby API data."""
     return [
-        [
-            {
-                "content": {
-                    "raw": '<html><pre>{"jobs":[{"id":"abc","title":"Test","jobUrl":"https://jobs.ashbyhq.com/test/abc"}]}</pre></html>'
-                },
-                "url": "https://api.ashbyhq.com/posting-api/job-board/test",
-            }
-        ]
+        {
+            "content": {
+                "raw": '<html><pre>{"jobs":[{"id":"abc","title":"Test","jobUrl":"https://jobs.ashbyhq.com/test/abc"}]}</pre></html>'
+            },
+            "url": "https://api.ashbyhq.com/posting-api/job-board/test",
+        }
     ]
 
 
-def _make_empty_response() -> List[List[Any]]:
+def _make_empty_response() -> List[Any]:
     """Create an empty SpiderCloud response."""
-    return [[]]
+    return []
 
 
 @pytest.mark.asyncio
@@ -69,7 +67,7 @@ async def test_fetch_site_api_succeeds_on_first_attempt():
     handler = AshbyHqHandler()
 
     async def mock_iterate(*args: Any, **kwargs: Any):
-        for item in _make_valid_ashby_response()[0]:
+        for item in _make_valid_ashby_response():
             yield item
 
     with patch.object(scraper, "_iterate_scrape_response", mock_iterate):
@@ -98,10 +96,10 @@ async def test_fetch_site_api_retries_on_empty_response():
         call_count += 1
         # First two calls return empty, third returns valid
         if call_count < 3:
-            for item in _make_empty_response()[0]:
+            for item in _make_empty_response():
                 yield item
         else:
-            for item in _make_valid_ashby_response()[0]:
+            for item in _make_valid_ashby_response():
                 yield item
 
     with patch.object(scraper, "_iterate_scrape_response", mock_iterate_with_retry):
@@ -128,7 +126,7 @@ async def test_fetch_site_api_returns_none_after_all_retries_exhausted():
     async def mock_iterate_always_empty(*args: Any, **kwargs: Any):
         nonlocal call_count
         call_count += 1
-        for item in _make_empty_response()[0]:
+        for item in _make_empty_response():
             yield item
 
     with patch.object(scraper, "_iterate_scrape_response", mock_iterate_always_empty):
@@ -155,7 +153,7 @@ async def test_fetch_site_api_retries_on_exception():
         call_count += 1
         if call_count < 2:
             raise ConnectionError("SpiderCloud connection failed")
-        for item in _make_valid_ashby_response()[0]:
+        for item in _make_valid_ashby_response():
             yield item
 
     with patch.object(scraper, "_iterate_scrape_response", mock_iterate_with_exception):

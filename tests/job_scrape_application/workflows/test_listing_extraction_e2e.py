@@ -25,17 +25,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 import yaml
 
-from job_scrape_application.dbos_runtime import queue as dbos_queue
-from job_scrape_application.dbos_runtime import sqlite as dbos_sqlite
-from job_scrape_application.workflows import activities as acts
-from job_scrape_application.workflows.core import SpiderFixture, WorkflowTestHelper
+from job_scrape_application.workflows.workflow.test_utils import SpiderFixture, WorkflowTest
 from job_scrape_application.workflows.helpers.link_extractors import normalize_url
 from job_scrape_application.workflows.site_handlers import get_site_handler
 
 SCHEDULE_PATH = Path("job_scrape_application/config/prod/site_schedules.yml")
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/dbos_schedule")
 DEBUG_FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
-DEBUG_ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions/debug")
+DEBUG_GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth/debug")
 OUTPUT_DIR = Path("./site-detail-e2e-examples")
 
 logger = logging.getLogger(__name__)
@@ -228,6 +225,8 @@ class ExtractedListingResult:
     extracted_urls: List[str] = field(default_factory=list)
     filtered_urls: List[str] = field(default_factory=list)
     normalized_urls: List[str] = field(default_factory=list)  # Final URLs after normalization
+    scraped_urls: List[str] = field(default_factory=list)  # Raw extracted URLs from scrape payload
+    apply_urls: List[str] = field(default_factory=list)  # Marketing/apply URLs for each normalized URL
     rejected_urls: List[Tuple[str, str]] = field(default_factory=list)  # (url, reason)
     pagination_urls: List[str] = field(default_factory=list)
     posted_at_by_url: Dict[str, int] = field(default_factory=dict)  # URL -> posted_at timestamp
@@ -283,12 +282,41 @@ class ListingAssertions:
     expected_handler: Optional[str] = None
 
 
+def _derive_apply_urls(
+    urls: List[str],
+    *,
+    handler: Optional[Any],
+) -> List[str]:
+    apply_urls: List[str] = []
+    seen: set[str] = set()
+    for url in urls:
+        if not isinstance(url, str) or not url.strip():
+            continue
+        candidate = None
+        if handler and hasattr(handler, "get_company_uri"):
+            try:
+                candidate = handler.get_company_uri(url)
+            except Exception:
+                candidate = None
+        if candidate and handler and hasattr(handler, "is_listing_url"):
+            try:
+                if handler.is_listing_url(candidate):
+                    candidate = None
+            except Exception:
+                candidate = None
+        final_url = candidate or url
+        if final_url not in seen:
+            seen.add(final_url)
+            apply_urls.append(final_url)
+    return apply_urls
+
+
 def _load_listing_assertions(site_id: str, debug_folder: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Load listing assertion YAML file if it exists."""
     if debug_folder:
-        assertion_path = DEBUG_ASSERTIONS_DIR / debug_folder / f"{site_id}_listing.yml"
+        assertion_path = DEBUG_GROUND_TRUTH_DIR / debug_folder / f"{site_id}_listing.yml"
     else:
-        assertion_path = Path(f"tests/job_scrape_application/workflows/assertions/{site_id}_listing.yml")
+        assertion_path = Path(f"tests/job_scrape_application/workflows/ground_truth/{site_id}_listing.yml")
 
     if not assertion_path.exists():
         return None
@@ -311,7 +339,7 @@ class ListingExtractionCapture:
 class ListingTestModule:
     """Test module for listing page extraction.
 
-    Uses WorkflowTestHelper to run the production workflow and capture
+    Uses WorkflowTest to run the production workflow and capture
     extracted URLs via mocked queue operations.
     """
 
@@ -324,14 +352,20 @@ class ListingTestModule:
         self.listing_fixture = listing_fixture
         self.tmp_path = tmp_path
         self.monkeypatch = monkeypatch
-        self.helper: Optional[WorkflowTestHelper] = None
+        self.workflow_test: Optional[WorkflowTest] = None
         self._raw_events: List[Any] = []
         self.capture = ListingExtractionCapture()
-        self._use_production_workflow = tmp_path is not None and monkeypatch is not None
+        self._use_production_workflow = bool(tmp_path and monkeypatch)
 
     async def setup(self) -> None:
         """Initialize the test helper with mocked dependencies."""
         self._initialized = True
+        if self._use_production_workflow:
+            if not self.tmp_path or not self.monkeypatch:
+                self._use_production_workflow = False
+                return
+            self.workflow_test = WorkflowTest(tmp_path=self.tmp_path, monkeypatch=self.monkeypatch)
+            self.workflow_test.with_spider_fixture(self.listing_fixture)
 
     async def run_listing_extraction(
         self,
@@ -374,222 +408,129 @@ class ListingTestModule:
         verbose: bool,
     ) -> ExtractedListingResult:
         """Run extraction using the production workflow.
-
-        This uses WorkflowTestHelper to mock SpiderCloud and captures
-        the URLs that would be enqueued via process_spidercloud_listing_batch.
         """
-        listing_url = self.listing_fixture.request_url
+        if not self.workflow_test:
+            raise AssertionError("WorkflowTest not initialized for production workflow run")
 
-        # Step 1: Detect handler
+        listing_url = self.listing_fixture.request_url
         handler = get_site_handler(listing_url) or get_site_handler(source_url)
         result.handler_name = type(handler).__name__ if handler else None
-
-        # NEW: Track input_url and scrape_url
         result.input_url = source_url
         result.scrape_url = listing_url
 
-        if verbose:
-            result.extraction_steps.append(ListingExtractionStepLog(
-                step="Handler Detection (Production)",
-                description=f"Detected handler: {result.handler_name}",
-                data={"url": listing_url, "source_url": source_url, "handler": result.handler_name}
-            ))
+        # Capture raw content for verbose output when available.
+        scrape_payload = self._build_scrape_payload()
+        if isinstance(scrape_payload, dict):
+            content = scrape_payload.get("content", {})
+            if isinstance(content, dict):
+                commonmark = content.get("commonmark") or ""
+                raw_html = content.get("raw") or ""
+                if isinstance(commonmark, str) and commonmark.strip():
+                    result.raw_content = commonmark
+                    result.content_type = "commonmark"
+                elif isinstance(raw_html, str) and raw_html.strip():
+                    result.raw_content = raw_html
+                    result.content_type = "raw_html"
 
-        # Step 2: Set up WorkflowTestHelper with fixture
+        from job_scrape_application.workflows.workflow.scrape_listing_batch import scrape_listing_batch
+
         try:
-            # Set up DBOS environment
-            db_path = self.tmp_path / "dbos.sqlite"
-            self.monkeypatch.setenv("DBOS_SQLITE_PATH", str(db_path))
-            self.monkeypatch.setenv("SPIDER_API_KEY", "test_key")
-            self.monkeypatch.setenv("CONVEX_HTTP_URL", "http://test.convex.site")
-
-            # Reset DBOS connection
-            dbos_sqlite._CONNECTIONS.connection = None
-
-            # Determine sync mode from fixture
-            is_sync = self.listing_fixture.is_sync
-
-            # Set runtime config to match fixture format
-            from job_scrape_application.config import runtime_config
-            object.__setattr__(runtime_config, "spidercloud_single_request_mode", is_sync)
-
-            # Create mock spider client
-            fixtures = {listing_url: self.listing_fixture}
-            spider_calls: List[Dict[str, Any]] = []
-
-            if is_sync:
-                def spider_class(api_key):
-                    return _MockSyncSpider(fixtures, spider_calls)
-            else:
-                def spider_class(api_key):
-                    return _MockAsyncSpider(fixtures, spider_calls)
-
-            self.monkeypatch.setattr(
-                "job_scrape_application.workflows.scrapers.spidercloud_scraper.AsyncSpider",
-                spider_class,
+            await self.workflow_test.run(
+                scrape_listing_batch,
+                batch={
+                    "urls": [
+                        {
+                            "url": listing_url,
+                            "sourceUrl": source_url,
+                            "siteId": site_id,
+                            "provider": "spidercloud",
+                        }
+                    ]
+                },
             )
-
-            # Mock Convex client
-            async def fake_convex_query(name: str, payload: Dict[str, Any]) -> Any:
-                if name == "router:getSiteById":
-                    return {"paginationLimit": 3}
-                return None
-
-            async def fake_convex_mutation(name: str, payload: Dict[str, Any]) -> Any:
-                return None
-
-            self.monkeypatch.setattr(
-                "job_scrape_application.services.convex_client.convex_query",
-                fake_convex_query,
-            )
-            self.monkeypatch.setattr(
-                "job_scrape_application.services.convex_client.convex_mutation",
-                fake_convex_mutation,
-            )
-
-            # Mock queue operations to capture enqueued URLs
-            enqueued_items: List[Dict[str, Any]] = []
-            completed_items: List[Dict[str, Any]] = []
-            captured_posted_ats: Dict[str, int] = {}
-
-            def fake_enqueue_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
-                urls = payload.get("urls", [])
-                posted_ats = payload.get("postedAts", [])
-                # Build items from urls (the payload uses 'urls' not 'items')
-                for idx, url in enumerate(urls):
-                    if isinstance(url, str):
-                        enqueued_items.append({"url": url})
-                        # Capture posted_at if available
-                        if posted_ats and idx < len(posted_ats) and posted_ats[idx] is not None:
-                            captured_posted_ats[url] = posted_ats[idx]
-                    elif isinstance(url, dict):
-                        enqueued_items.append(url)
-                return {"queued": len(urls)}
-
-            def fake_complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
-                items = payload.get("items", [])
-                completed_items.extend(items)
-                return {"completed": len(items)}
-
-            # Patch queue operations at the source module level
-            self.monkeypatch.setattr(
-                "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
-                fake_enqueue_scrape_urls,
-            )
-            self.monkeypatch.setattr(
-                "job_scrape_application.dbos_runtime.queue.complete_scrape_urls",
-                fake_complete_scrape_urls,
-            )
-            # Also patch the local dbos_queue reference in this test file
-            self.monkeypatch.setattr(dbos_queue, "enqueue_scrape_urls", fake_enqueue_scrape_urls)
-            self.monkeypatch.setattr(dbos_queue, "complete_scrape_urls", fake_complete_scrape_urls)
-
-            # Mock activity functions
-            async def fake_fetch_seen_urls(*args, **kwargs) -> List[str]:
-                return []
-
-            async def fake_filter_existing(*args, **kwargs) -> List[str]:
-                urls = args[0] if args else []
-                return urls
-
-            async def fake_filter_new(*args, **kwargs) -> List[str]:
-                urls = args[0] if args else []
-                return urls
-
-            async def fake_record_scrape_attempts(*args, **kwargs) -> None:
-                return None
-
-            self.monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen_urls)
-            self.monkeypatch.setattr(acts, "filter_existing_job_urls", fake_filter_existing)
-            self.monkeypatch.setattr(acts, "filter_new_job_urls", fake_filter_new)
-            self.monkeypatch.setattr(acts, "_record_scrape_url_attempts", fake_record_scrape_attempts)
-
-            if verbose:
-                result.extraction_steps.append(ListingExtractionStepLog(
-                    step="Workflow Setup",
-                    description="Set up WorkflowTestHelper with mocked dependencies",
-                    data={"sync_mode": is_sync, "listing_url": listing_url}
-                ))
-
-            # Step 3: Run the production workflow
-            batch = {
-                "urls": [
-                    {
-                        "url": listing_url,
-                        "sourceUrl": source_url,
-                        "provider": "spidercloud",
-                        "siteId": site_id,
-                        "urlType": "listing",
-                    }
-                ]
-            }
-
-            if verbose:
-                result.extraction_steps.append(ListingExtractionStepLog(
-                    step="Workflow Execution",
-                    description="Calling process_spidercloud_listing_batch()",
-                    data=batch,
-                ))
-
-            response = await acts.process_spidercloud_listing_batch(batch)
-
-            if verbose:
-                result.extraction_steps.append(ListingExtractionStepLog(
-                    step="Workflow Complete",
-                    description=f"Workflow returned, enqueued {len(enqueued_items)} URLs",
-                    data={
-                        "response": response,
-                        "enqueued_count": len(enqueued_items),
-                        "completed_count": len(completed_items),
-                    },
-                ))
-
-            # Step 4: Extract URLs from captured queue operations
-            extracted_urls: List[str] = []
-            for item in enqueued_items:
-                url = item.get("url")
-                if isinstance(url, str) and url.strip():
-                    extracted_urls.append(url)
-
-            result.extracted_urls = extracted_urls
-            result.filtered_urls = extracted_urls
-            result.normalized_urls = extracted_urls
-            result.posted_at_by_url = captured_posted_ats
-            result.extraction_method = "production_workflow"
-
-            # NEW: Populate pipeline tracking fields for production workflow
-            # Note: In production workflow, we capture post-transformation URLs
-            result.raw_extracted_urls = extracted_urls  # Best we can do without deeper hooks
-            result.handler_filtered_urls = extracted_urls
-            result.api_transformed_urls = extracted_urls  # These are the final transformed URLs
-
-            self.capture.enqueued_urls = enqueued_items
-            self.capture.completed_items = completed_items
-
-            if verbose:
-                result.extraction_steps.append(ListingExtractionStepLog(
-                    step="Extraction Complete (Production)",
-                    description=f"Extracted {len(extracted_urls)} URLs via production workflow",
-                    data={
-                        "extracted_count": len(extracted_urls),
-                        "sample_urls": extracted_urls[:5],
-                    }
-                ))
-
         except Exception as exc:
             result.error = str(exc)
             if verbose:
-                result.extraction_steps.append(ListingExtractionStepLog(
-                    step="Workflow Error",
-                    description=f"Error during production workflow: {exc}",
-                    data={"error": str(exc), "error_type": type(exc).__name__}
-                ))
+                _write_verbose_listing_steps(result)
+            _write_listing_extraction_result(result)
+            return result
 
-        # Write verbose output if enabled
+        enqueue_calls = self.workflow_test.captured.calls.get("enqueue_scrape_urls", [])
+        enqueued_urls: List[str] = []
+        for call in enqueue_calls:
+            urls = call.get("urls")
+            if isinstance(urls, list):
+                enqueued_urls.extend([u for u in urls if isinstance(u, str)])
+
+            posted_ats = call.get("postedAts")
+            if isinstance(urls, list) and isinstance(posted_ats, list):
+                for url, posted_at in zip(urls, posted_ats):
+                    if isinstance(url, str) and isinstance(posted_at, (int, float)):
+                        result.posted_at_by_url[url] = int(posted_at)
+
+        if not enqueued_urls:
+            db_path = os.environ.get("DBOS_SQLITE_PATH")
+            if db_path and Path(db_path).exists():
+                try:
+                    import sqlite3
+
+                    conn = sqlite3.connect(db_path)
+                    cur = conn.cursor()
+                    cur.execute(
+                        "SELECT url FROM queue_items WHERE queue_name=? ORDER BY created_at ASC",
+                        ("detail",),
+                    )
+                    enqueued_urls = [row[0] for row in cur.fetchall() if row and row[0]]
+                    conn.close()
+                except Exception:
+                    pass
+
+        result.enqueue_payload = enqueue_calls[0] if enqueue_calls else None
+        result.extracted_urls = enqueued_urls
+        result.filtered_urls = enqueued_urls
+        result.normalized_urls = enqueued_urls
+        result.raw_extracted_urls = enqueued_urls
+        result.handler_filtered_urls = enqueued_urls
+        result.api_transformed_urls = enqueued_urls
+        result.apply_urls = _derive_apply_urls(result.normalized_urls, handler=handler)
+
+        scrape_calls = self.workflow_test.captured.calls.get("scrape_listing_urls", [])
+        scraped_urls: List[str] = []
+        if scrape_calls:
+            scrape_result = scrape_calls[0].get("result")
+            scrape_payload = scrape_result.get("scrape") if isinstance(scrape_result, dict) else None
+            if not isinstance(scrape_payload, dict):
+                scrape_payload = scrape_result if isinstance(scrape_result, dict) else {}
+            if scrape_payload:
+                from job_scrape_application.workflows.workflow.scrape_listing_batch import (
+                    _extract_job_urls_from_scrape,
+                )
+
+                scraped_urls = _extract_job_urls_from_scrape(scrape_payload)
+                if not scraped_urls:
+                    items = scrape_payload.get("items")
+                    if isinstance(items, dict):
+                        seed_urls = items.get("seedUrls")
+                        if isinstance(seed_urls, list):
+                            scraped_urls = [
+                                url.strip()
+                                for url in seed_urls
+                                if isinstance(url, str) and url.strip()
+                            ]
+        result.scraped_urls = scraped_urls
+
+        if verbose:
+            result.extraction_steps.append(ListingExtractionStepLog(
+                step="Production Workflow",
+                description=f"scrape_listing_batch enqueued {len(enqueued_urls)} URLs",
+                data={
+                    "enqueue_calls": len(enqueue_calls),
+                    "enqueued_count": len(enqueued_urls),
+                },
+            ))
+
         if verbose:
             _write_verbose_listing_steps(result)
-
-        # Write JSON summary
         _write_listing_extraction_result(result)
 
         return result
@@ -621,7 +562,9 @@ class ListingTestModule:
             ))
 
         # Step 2: Capture raw content from fixture
+        # Store both commonmark and raw_html for different extraction methods
         raw_content = ""
+        raw_html_content = ""  # For get_links_from_raw_html
         content_type = "unknown"
 
         fixture_data = self.listing_fixture.raw
@@ -633,32 +576,38 @@ class ListingTestModule:
                     # JSONL format - parse the JSON string
                     try:
                         parsed = json.loads(first_item)
-                        raw_content = parsed.get("content", {}).get("commonmark", "")
+                        content_dict = parsed.get("content", {})
+                        raw_content = content_dict.get("commonmark", "")
+                        raw_html_content = content_dict.get("raw", "")
                         if raw_content:
                             content_type = "commonmark"
-                        else:
-                            raw_content = parsed.get("content", {}).get("raw", "")
-                            content_type = "raw_html" if raw_content else "unknown"
+                        elif raw_html_content:
+                            raw_content = raw_html_content
+                            content_type = "raw_html"
                     except json.JSONDecodeError:
                         raw_content = first_item
                         content_type = "raw_string"
                 elif isinstance(first_item, dict):
-                    raw_content = first_item.get("content", {}).get("commonmark", "")
+                    content_dict = first_item.get("content", {})
+                    raw_content = content_dict.get("commonmark", "")
+                    raw_html_content = content_dict.get("raw", "")
                     if raw_content:
                         content_type = "commonmark"
-                    else:
-                        raw_content = first_item.get("content", {}).get("raw", "")
-                        content_type = "raw_html" if raw_content else "unknown"
+                    elif raw_html_content:
+                        raw_content = raw_html_content
+                        content_type = "raw_html"
                 elif isinstance(first_item, list) and first_item:
                     # Nested list format
                     nested = first_item[0] if first_item else {}
                     if isinstance(nested, dict):
-                        raw_content = nested.get("content", {}).get("commonmark", "")
+                        content_dict = nested.get("content", {})
+                        raw_content = content_dict.get("commonmark", "")
+                        raw_html_content = content_dict.get("raw", "")
                         if raw_content:
                             content_type = "commonmark"
-                        else:
-                            raw_content = nested.get("content", {}).get("raw", "")
-                            content_type = "raw_html" if raw_content else "unknown"
+                        elif raw_html_content:
+                            raw_content = raw_html_content
+                            content_type = "raw_html"
 
         result.raw_content = raw_content
         result.content_type = content_type
@@ -674,22 +623,56 @@ class ListingTestModule:
         try:
             extracted_urls: List[str] = []
 
-            # First try parsing as raw JSON (for API responses like Greenhouse)
-            if raw_content.strip().startswith(("{", "[")):
+            # Check if content is wrapped in markdown code blocks and extract JSON
+            content_to_parse = raw_content.strip()
+            if content_to_parse.startswith("```"):
+                # Extract JSON from markdown code block
+                lines = content_to_parse.split("\n")
+                # Skip opening ``` and closing ```
+                json_lines = []
+                in_block = False
+                for line in lines:
+                    if line.strip() in ("```", "```json"):
+                        in_block = not in_block
+                        continue
+                    if in_block:
+                        json_lines.append(line)
+                content_to_parse = "\n".join(json_lines).strip()
+
+            # First try parsing as raw JSON (for API responses like Greenhouse, Netflix)
+            json_payload: Optional[Any] = None
+            if content_to_parse and content_to_parse.startswith(("{", "[")):
                 try:
-                    payload = json.loads(raw_content)
-                    if handler and hasattr(handler, "get_links_from_json"):
-                        extracted_urls = handler.get_links_from_json(payload)
-                        if extracted_urls:
-                            result.extraction_method = "handler.get_links_from_json"
-                            if verbose:
-                                result.extraction_steps.append(ListingExtractionStepLog(
-                                    step="Parsed raw JSON",
-                                    description=f"Parsed raw JSON content, extracted {len(extracted_urls)} URLs",
-                                    data={"url_count": len(extracted_urls)}
-                                ))
+                    json_payload = json.loads(content_to_parse)
                 except json.JSONDecodeError:
-                    pass
+                    # Commonmark may have HTML entities - try raw content instead
+                    # Raw content wraps JSON in <pre> tags for API responses
+                    raw_html = ""
+                    if isinstance(fixture_data, dict):
+                        response = fixture_data.get("response", [])
+                        if isinstance(response, list) and response:
+                            first_item = response[0]
+                            if isinstance(first_item, dict):
+                                raw_html = first_item.get("content", {}).get("raw", "")
+                    if raw_html:
+                        # Extract JSON from <pre> tags
+                        pre_match = re.search(r"<pre>(.+?)</pre>", raw_html, re.DOTALL)
+                        if pre_match:
+                            try:
+                                json_payload = json.loads(pre_match.group(1))
+                            except json.JSONDecodeError:
+                                pass
+
+            if json_payload and handler and hasattr(handler, "get_links_from_json"):
+                extracted_urls = handler.get_links_from_json(json_payload)
+                if extracted_urls:
+                    result.extraction_method = "handler.get_links_from_json"
+                    if verbose:
+                        result.extraction_steps.append(ListingExtractionStepLog(
+                            step="Parsed raw JSON",
+                            description=f"Parsed raw JSON content, extracted {len(extracted_urls)} URLs",
+                            data={"url_count": len(extracted_urls)}
+                        ))
 
             if verbose and not extracted_urls:
                 result.extraction_steps.append(ListingExtractionStepLog(
@@ -699,8 +682,10 @@ class ListingTestModule:
                 ))
 
             # Fall back to HTML parsing if JSON didn't work
+            # Use raw_html_content if available, otherwise fall back to raw_content
             if not extracted_urls and handler and hasattr(handler, "get_links_from_raw_html"):
-                extracted_urls = handler.get_links_from_raw_html(raw_content)
+                html_content_for_parsing = raw_html_content if raw_html_content else raw_content
+                extracted_urls = handler.get_links_from_raw_html(html_content_for_parsing)
                 if extracted_urls:
                     result.extraction_method = "handler.get_links_from_raw_html"
 
@@ -747,10 +732,20 @@ class ListingTestModule:
             handler_transformations: List[Tuple[str, str, str]] = []  # (original, transformed, reason)
             handler_rejections: List[Tuple[str, str]] = []  # (url, reason)
 
+            # First, apply filter_job_urls_for_site if available (converts job IDs to full URLs)
+            # This is needed for handlers like Kula that return job IDs from JSON
+            urls_to_filter = extracted_urls
+            if handler and hasattr(handler, "filter_job_urls_for_site"):
+                urls_to_filter = handler.filter_job_urls_for_site(extracted_urls, source_url)
+                # Track transformations from ID → URL
+                for orig, filtered in zip(extracted_urls, urls_to_filter):
+                    if orig != filtered:
+                        handler_transformations.append((orig, filtered, "filter_job_urls_for_site"))
+
             if handler and hasattr(handler, "filter_job_urls"):
                 # Track what filter_job_urls does to each URL
                 filtered_urls = []
-                for url in extracted_urls:
+                for url in urls_to_filter:
                     # Get the filtered result for this single URL
                     single_result = handler.filter_job_urls([url])
                     if not single_result:
@@ -762,7 +757,7 @@ class ListingTestModule:
                     else:
                         filtered_urls.append(url)
             else:
-                filtered_urls = extracted_urls
+                filtered_urls = urls_to_filter
 
             # Separate detail URLs from pagination URLs
             detail_urls = []
@@ -777,6 +772,7 @@ class ListingTestModule:
             result.filtered_urls = detail_urls
             result.pagination_urls = pagination_urls
             result.rejected_urls = handler_rejections
+            result.scraped_urls = extracted_urls
 
             # NEW: Populate pipeline tracking fields
             result.raw_extracted_urls = extracted_urls  # Before any filtering
@@ -804,13 +800,24 @@ class ListingTestModule:
 
             # Step: Transform URLs to API format (for handlers like Greenhouse)
             # This mirrors production behavior where marketing URLs are converted to API URLs
+            # NOTE: Only apply this for handlers that have a specific detail URL transformer
+            # (e.g., Greenhouse). For handlers like Kula, get_api_uri is for listing pages.
             api_transformed_urls: List[str] = []
             api_transformations: List[Tuple[str, str]] = []
             transformations_detailed: List[DetailURLTransformation] = []
 
+            # Only apply API transformation for handlers that support job detail API URLs
+            # Currently only Greenhouse needs this (marketing URL -> API URL)
+            should_transform_to_api = (
+                handler is not None
+                and hasattr(handler, "get_api_uri")
+                and hasattr(handler, "supports_detail_api")
+                and getattr(handler, "supports_detail_api", False)
+            )
+
             for url in detail_urls:
                 transformation = DetailURLTransformation(raw_url=url, filtered_url=url)
-                if handler and hasattr(handler, "get_api_uri"):
+                if should_transform_to_api:
                     try:
                         # Try with source_url (Greenhouse handler)
                         api_url = handler.get_api_uri(url, source_url=source_url)
@@ -870,6 +877,7 @@ class ListingTestModule:
 
             result.normalized_urls = normalized_urls
             result.url_transformations = url_transformations
+            result.apply_urls = _derive_apply_urls(result.normalized_urls, handler=handler)
 
             if verbose:
                 # Add normalization step to trace
@@ -973,13 +981,17 @@ def _write_listing_extraction_result(result: ExtractedListingResult) -> None:
             "handler_filtered_count": len(result.handler_filtered_urls),
             "api_transformed_count": len(result.api_transformed_urls),
         },
+        "scraped_url_count": len(result.scraped_urls),
         "extracted_url_count": len(result.extracted_urls),
         "filtered_url_count": len(result.filtered_urls),
         "normalized_url_count": len(result.normalized_urls),
+        "apply_url_count": len(result.apply_urls),
         "pagination_url_count": len(result.pagination_urls),
         "rejected_url_count": len(result.rejected_urls),
         "sample_urls": result.normalized_urls[:10],  # Show first 10 for quick reference
+        "scraped_urls": result.scraped_urls,
         "normalized_urls": result.normalized_urls,  # ALL normalized URLs (for assertion updates)
+        "apply_urls": result.apply_urls,
         # Sample detailed transformations (first 10)
         "sample_transformations": [
             {
@@ -1124,6 +1136,7 @@ def _write_verbose_listing_steps(result: ExtractedListingResult) -> None:
         f"**Total URLs Found:** {len(result.extracted_urls)}",
         f"**URLs After Filtering:** {len(result.filtered_urls)}",
         f"**URLs After Normalization:** {len(result.normalized_urls)}",
+        f"**Apply URLs:** {len(result.apply_urls)}",
         f"**Pagination URLs:** {len(result.pagination_urls)}",
         "",
     ])
@@ -1272,7 +1285,7 @@ def trace_urls_through_pipeline(
     fixture_data = json.loads(fixture_path.read_text(encoding="utf-8"))
     request = fixture_data.get("request", {})
     listing_url = request.get("url", "")
-    source_url = source_url or request.get("source_url", listing_url)
+    source_url = source_url or request.get("source_url") or listing_url
 
     # Get handler
     handler = get_site_handler(listing_url) or get_site_handler(source_url)
@@ -1511,7 +1524,7 @@ def _discover_debug_listing_fixtures() -> List[Tuple[str, Path, Optional[Path]]]
             identifier = f"{company_dir.name}/{stem}"
 
             # Look for matching assertion file
-            assertion_path = DEBUG_ASSERTIONS_DIR / company_dir.name / f"{stem}_listing.yml"
+            assertion_path = DEBUG_GROUND_TRUTH_DIR / company_dir.name / f"{stem}_listing.yml"
             if not assertion_path.exists():
                 assertion_path = None
 
@@ -1547,6 +1560,7 @@ async def test_debug_listing_extraction(
     assertion_path: Optional[Path],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """Test listing extraction for debug fixtures.
 
@@ -1562,7 +1576,7 @@ async def test_debug_listing_extraction(
     fixture_data = _load_debug_listing_fixture(fixture_path)
     request = fixture_data.get("request", {})
     listing_url = request.get("url", "")
-    source_url = request.get("source_url", listing_url)
+    source_url = request.get("source_url") or listing_url
 
     # Create site ID from identifier
     site_id = identifier.split("/")[-1] if "/" in identifier else identifier
@@ -1638,8 +1652,9 @@ async def test_debug_listing_extraction(
                 f"Expected handler {expected['handler']}, got {result.handler_name}"
 
         # Check expected_urls - exact list of valid URLs (prevents regressions)
-        if "expected_urls" in expected:
-            expected_urls = set(expected["expected_urls"])
+        expected_normalized = expected.get("normalized_urls") or expected.get("expected_urls")
+        if isinstance(expected_normalized, list):
+            expected_urls = set(expected_normalized)
             actual_urls = set(result.normalized_urls)
 
             # Find URLs that are extracted but not expected (potential invalid URLs)
@@ -1667,6 +1682,38 @@ async def test_debug_listing_extraction(
                     + "\n\n".join(error_parts)
                     + f"\n\nExtracted {len(actual_urls)} URLs, expected {len(expected_urls)} URLs"
                 )
+
+        expected_scraped = expected.get("scraped_urls")
+        if isinstance(expected_scraped, list):
+            expected_urls = set(expected_scraped)
+            actual_urls = set(result.scraped_urls)
+            if actual_urls != expected_urls:
+                unexpected = sorted(actual_urls - expected_urls)
+                missing = sorted(expected_urls - actual_urls)
+                message = []
+                if unexpected:
+                    message.append("Unexpected scraped URLs:")
+                    message.extend(f"  - {url}" for url in unexpected[:20])
+                if missing:
+                    message.append("Missing scraped URLs:")
+                    message.extend(f"  - {url}" for url in missing[:20])
+                raise AssertionError("\n".join(message))
+
+        expected_apply = expected.get("apply_urls")
+        if isinstance(expected_apply, list):
+            expected_urls = set(expected_apply)
+            actual_urls = set(result.apply_urls)
+            if actual_urls != expected_urls:
+                unexpected = sorted(actual_urls - expected_urls)
+                missing = sorted(expected_urls - actual_urls)
+                message = []
+                if unexpected:
+                    message.append("Unexpected apply URLs:")
+                    message.extend(f"  - {url}" for url in unexpected[:20])
+                if missing:
+                    message.append("Missing apply URLs:")
+                    message.extend(f"  - {url}" for url in missing[:20])
+                raise AssertionError("\n".join(message))
 
         # Check blocked_urls - URLs that should NEVER appear in extraction (invalid URLs)
         # This is the ground truth for invalid URLs - if any of these appear, it's a bug

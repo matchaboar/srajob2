@@ -1,0 +1,22 @@
+# Ruff configuration
+# https://docs.astral.sh/ruff/configuration/
+
+line-length = 100
+target-version = "py313"
+exclude = ["**/_archive/**"]
+
+[lint]
+ignore = []
+
+# External rules handled by scripts/lint_dbos_step.py
+# Auto-synced from .lint/*.py files - run: uv run scripts/lint_dbos_step.py --sync-ruff
+external = ["DBOS001", "DBOS002", "DBOS003", "DBOS004", "DBOS005", "DBOS006", "DBOS007"]
+
+[lint.per-file-ignores]
+# Allow unused imports in __init__.py files (used for re-exporting)
+"__init__.py" = ["F401", "F811"]
+"*/__init__.py" = ["F401", "F811"]
+"**/__init__.py" = ["F401", "F811"]
+"job_scrape_application/**/__init__.py" = ["F401", "F811"]
+# Allow Convex imports in test infrastructure (lazy imports for fixtures)
+"job_scrape_application/workflows/core/*.py" = ["TID251"]

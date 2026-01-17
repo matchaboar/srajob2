@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/paloaltonetworks/paloaltonetworks_q97z5pxt_20260113_20260113T230826_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128
+expected:
+  title: "Service Delivery Leader"
+  company: "Palo Alto Networks"
+  location_contains: "Paris"
+  is_remote: false
+  level: staff
+  # Note: Fixture has truncated description (100 words)
+  description_min_words: 50
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1

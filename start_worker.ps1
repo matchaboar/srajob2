@@ -661,6 +661,65 @@ function Stop-ExistingWorkers {
     }
 }
 
+function Stop-ZombieSqliteProcesses {
+    <#
+    .SYNOPSIS
+    Kills processes holding deleted SQLite database files (zombie handles).
+    This prevents "attempt to write a readonly database" errors when database
+    files are deleted while a process still has them open.
+    #>
+    param(
+        [string]$DbosRuntimePath
+    )
+
+    if ($IsWindows) {
+        # Windows doesn't have the same deleted-file-handle issue
+        return
+    }
+
+    $lsofPath = "/usr/bin/lsof"
+    if (-not (Test-Path $lsofPath)) {
+        $lsofPath = "/bin/lsof"
+    }
+    if (-not (Test-Path $lsofPath)) {
+        return
+    }
+
+    try {
+        # Look for processes with deleted SQLite files in the dbos_runtime directory
+        $lsofOutput = & $lsofPath +D $DbosRuntimePath 2>$null
+        $zombiePids = @()
+
+        foreach ($line in $lsofOutput) {
+            # lsof shows "(deleted)" for files that have been deleted but still have open handles
+            if ($line -match "\.sqlite.*\(deleted\)" -or $line -match "dbos.*\.sqlite") {
+                if ($line -match "^(\S+)\s+(\d+)") {
+                    $procName = $matches[1]
+                    $pid = [int]$matches[2]
+                    if ($pid -notin $zombiePids -and $pid -ne $PID) {
+                        $zombiePids += $pid
+                    }
+                }
+            }
+        }
+
+        foreach ($zombiePid in $zombiePids) {
+            try {
+                Write-Host "[preflight] Killing process $zombiePid holding deleted SQLite files" -ForegroundColor Yellow
+                Stop-Process -Id $zombiePid -Force -ErrorAction SilentlyContinue
+            } catch {
+                Write-Warning "Failed to kill zombie SQLite process $zombiePid : $($_.Exception.Message)"
+            }
+        }
+
+        if ($zombiePids.Count -gt 0) {
+            Start-Sleep -Milliseconds 500
+        }
+    } catch {
+        Write-Warning "Unable to check for zombie SQLite processes: $($_.Exception.Message)"
+    }
+}
+
 function Get-LocalWorkerCount {
     try {
         if ($IsWindows) {
@@ -963,10 +1022,19 @@ function Start-WorkerMain {
         Write-Host "=== DBOS Mode ===" -ForegroundColor Cyan
         Run-PreflightChecks -UseProd:$UseProd
 
+        # Kill any processes holding deleted SQLite files (zombie handles cause "readonly database" errors)
+        $dbosRuntimePath = Join-Path $PSScriptRoot "job_scrape_application/dbos_runtime"
+        Stop-ZombieSqliteProcesses -DbosRuntimePath $dbosRuntimePath
+
         # Clear SQLite database files if requested (includes WAL and SHM to prevent corruption issues)
+        # Includes both the app's dbos.sqlite and the DBOS SDK's dbos_system.sqlite
         if ($ClearSqlite) {
-            $sqliteBasePath = Join-Path $PSScriptRoot "job_scrape_application/dbos_runtime/dbos.sqlite"
-            $sqliteFiles = @($sqliteBasePath, "${sqliteBasePath}-wal", "${sqliteBasePath}-shm")
+            $sqliteBasePath = Join-Path $dbosRuntimePath "dbos.sqlite"
+            $sqliteSystemPath = Join-Path $dbosRuntimePath "dbos_system.sqlite"
+            $sqliteFiles = @(
+                $sqliteBasePath, "${sqliteBasePath}-wal", "${sqliteBasePath}-shm",
+                $sqliteSystemPath, "${sqliteSystemPath}-wal", "${sqliteSystemPath}-shm"
+            )
             $deletedFiles = @()
             foreach ($sqliteFile in $sqliteFiles) {
                 if (Test-Path $sqliteFile) {
@@ -978,6 +1046,22 @@ function Start-WorkerMain {
                 Write-Host "Cleared SQLite files: $($deletedFiles -join ', ')" -ForegroundColor Yellow
             } else {
                 Write-Host "No SQLite files to clear." -ForegroundColor DarkGray
+            }
+        }
+
+        # Verify no SQLite files exist without being accessible (indicates zombie handle issue)
+        $sqliteBasePath = Join-Path $dbosRuntimePath "dbos.sqlite"
+        $sqliteSystemPath = Join-Path $dbosRuntimePath "dbos_system.sqlite"
+        $allDbFiles = @($sqliteBasePath, $sqliteSystemPath)
+        foreach ($dbFile in $allDbFiles) {
+            if (Test-Path $dbFile) {
+                # Try to open the file to verify it's accessible
+                try {
+                    $stream = [System.IO.File]::Open($dbFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+                    $stream.Close()
+                } catch {
+                    Write-Warning "SQLite file $dbFile exists but may be locked. Consider running with -ClearSqlite flag."
+                }
             }
         }
 

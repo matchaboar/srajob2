@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1",
     "params": {

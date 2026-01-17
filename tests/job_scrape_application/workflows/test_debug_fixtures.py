@@ -25,17 +25,17 @@ _format_assertion_failures = main_test._format_assertion_failures
 _write_extraction_result = main_test._write_extraction_result
 
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/debug")
-ASSERTIONS_DIR = Path("tests/job_scrape_application/workflows/assertions/debug")
+GROUND_TRUTH_DIR = Path("tests/job_scrape_application/workflows/ground_truth/debug")
 
 logger = logging.getLogger(__name__)
 
 
 def _get_debug_fixtures() -> list[tuple[str, Path, Path]]:
-    """Get all debug fixture files and their assertion files.
+    """Get all debug fixture files and their ground truth files.
 
     Supports both flat and per-company folder organization:
-    - Flat: fixtures/debug/{id}_detail.json + assertions/debug/{id}.yml
-    - Nested: fixtures/debug/{company}/{id}_detail.json + assertions/debug/{company}/{id}.yml
+    - Flat: fixtures/debug/{id}_detail.json + ground_truth/debug/{id}.yml
+    - Nested: fixtures/debug/{company}/{id}_detail.json + ground_truth/debug/{company}/{id}.yml
     """
     if not FIXTURE_DIR.exists():
         return []
@@ -47,14 +47,14 @@ def _get_debug_fixtures() -> list[tuple[str, Path, Path]]:
         # Extract identifier from filename (e.g., "greenhouse_abc12345_20250113" from "greenhouse_abc12345_20250113_detail.json")
         identifier = fixture_file.stem.replace("_detail", "")
 
-        # Find matching assertion file in the same relative folder structure
-        # e.g., fixtures/debug/airbnb/foo.json -> assertions/debug/airbnb/foo.yml
+        # Find matching ground truth file in the same relative folder structure
+        # e.g., fixtures/debug/airbnb/foo.json -> ground_truth/debug/airbnb/foo.yml
         relative_path = fixture_file.relative_to(FIXTURE_DIR)
-        assertion_file = ASSERTIONS_DIR / relative_path.parent / f"{identifier}.yml"
+        assertion_file = GROUND_TRUTH_DIR / relative_path.parent / f"{identifier}.yml"
 
         # Also check flat structure (for backwards compatibility)
         if not assertion_file.exists():
-            assertion_file = ASSERTIONS_DIR / f"{identifier}.yml"
+            assertion_file = GROUND_TRUTH_DIR / f"{identifier}.yml"
 
         if assertion_file.exists():
             fixtures.append((identifier, fixture_file, assertion_file))
@@ -77,6 +77,7 @@ async def test_debug_job_extraction(
     assertion_path: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    reset_dbos: None,
 ) -> None:
     """
     Test extraction for a specific debug job.
@@ -112,16 +113,20 @@ async def test_debug_job_extraction(
     if isinstance(fixture_data, list):
         # Already in the format [[{...}]] - need to wrap it properly
         # Debug fixtures from dump_spidercloud_response.py come as [[response]]
-        # We need to convert to {request: {...}, response: [...]}
+        # We need to convert to {request: {...}, response: {...}}
+        # For sync mode (stream: False), response is a dict, not a list of JSON strings
         detail_fixture = {
             "request": {
                 "url": detail_url,
                 "params": {},
+                "stream": False,  # Use sync mode (streaming is deprecated)
             },
-            "response": [json.dumps(fixture_data[0][0])],
+            "response": fixture_data[0][0],  # Direct dict for sync mode
         }
     else:
-        # Already in standard format
+        # Already in standard format - uses streaming mode if stream is not explicitly False
+        # NOTE: Streaming mode is DEPRECATED. Fixtures without stream: False will trigger
+        # a DeprecationWarning. New fixtures should always set stream: False in the request.
         detail_fixture = fixture_data
 
     # Run the extraction

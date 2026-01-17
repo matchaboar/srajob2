@@ -138,6 +138,15 @@ class WorkdayHandler(BaseSiteHandler):
         if not self.matches_url(uri):
             return {}
         if self.is_listing_url(uri):
+            wait_secs = 90
+            idle_secs = 5
+            try:
+                host = (urlparse(uri).hostname or "").lower()
+            except Exception:
+                host = ""
+            if host.startswith("broadcom."):
+                wait_secs = 120
+                idle_secs = 10
             return self._apply_page_links_config(
                 {
                     "request": "chrome",
@@ -149,10 +158,10 @@ class WorkdayHandler(BaseSiteHandler):
                     "wait_for": {
                         "selector": {
                             "selector": "a[data-automation-id='jobTitle']",
-                            # 90s timeout - Workday pages are JS-heavy and may load slowly
-                            "timeout": {"secs": 90, "nanos": 0},
+                            # Workday pages are JS-heavy and may load slowly
+                            "timeout": {"secs": wait_secs, "nanos": 0},
                         },
-                        "idle_network0": {"timeout": {"secs": 5, "nanos": 0}},
+                        "idle_network0": {"timeout": {"secs": idle_secs, "nanos": 0}},
                     },
                 }
             )
@@ -210,6 +219,18 @@ class WorkdayHandler(BaseSiteHandler):
             urls.extend(self._augment_pagination_urls(base_url, html, urls))
 
         return self.filter_job_urls(urls)
+
+    def is_unrendered_listing_html(self, html: str) -> bool:
+        if not html:
+            return False
+        lower = html.lower()
+        if "myworkdayjobs" not in lower:
+            return False
+        if WORKDAY_JOB_TITLE_ANCHOR_RE.search(html):
+            return False
+        if WORKDAY_JOB_DETAIL_PATH_RE.search(html):
+            return False
+        return True
 
     def _augment_pagination_urls(self, base_url: str, html: str, urls: List[str]) -> List[str]:
         def _with_offset(url_value: str, offset: int, limit: Optional[int]) -> str:

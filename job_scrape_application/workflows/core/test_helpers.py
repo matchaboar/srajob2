@@ -1,10 +1,41 @@
 """Test helpers for workflow testing.
 
-This module provides helper classes that simplify setting up tests
-for workflow activities. It uses the DependencyContainer pattern
-internally while still working with the existing activity code.
+.. deprecated:: 2026-01-16
+    This module is deprecated. Use the following instead:
 
-Usage:
+    - For new tests, use ``WorkflowTest`` from ``workflow.test_utils``
+    - For SpiderFixture loading, use ``SpiderFixture.from_file()`` from ``workflow.test_utils``
+    - For company-specific tests, see ``tests/job_scrape_application/workflows/companies/``
+
+Migration Guide:
+    Old pattern (this module):
+        helper = WorkflowTestHelper(
+            fixtures={url: SpiderFixture.from_file(path)},
+            monkeypatch=monkeypatch,
+            tmp_path=tmp_path,
+        )
+        await helper.setup()
+        result = await some_activity(...)
+
+    New pattern (workflow/test_utils.py):
+        from job_scrape_application.workflows.workflow.test_utils import (
+            WorkflowTest,
+            SpiderFixture,
+        )
+
+        # WorkflowTest is provided as a pytest fixture
+        async def test_my_workflow(workflow_test):
+            fixture = SpiderFixture.from_file(path)
+            workflow_test.with_spider_fixture(fixture)
+
+            result = await workflow_test.run(my_workflow, **kwargs)
+
+            assert len(workflow_test.captured.stored_scrapes) > 0
+
+This module will be removed in a future version. Migrate tests to use
+the consolidated test infrastructure in ``workflow/test_utils.py``.
+
+Legacy Usage (for reference):
     from job_scrape_application.workflows.core.test_helpers import WorkflowTestHelper
 
     async def test_my_workflow(tmp_path, monkeypatch):
@@ -25,9 +56,88 @@ Usage:
 from __future__ import annotations
 
 import json
+import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
+
+# Emit deprecation warning when this module is imported
+warnings.warn(
+    "job_scrape_application.workflows.core.test_helpers is deprecated. "
+    "Use job_scrape_application.workflows.workflow.test_utils instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Description truncation limits - must match scrape_utils.py
+DESCRIPTION_PREVIEW_MAX_WORDS = 100
+DESCRIPTION_PREVIEW_MAX_BYTES = 4_000
+DESCRIPTION_TRUNCATION_SUFFIX = "..."
+
+_WORD_SPLIT_RE = re.compile(r"(\S+)")
+_MARKDOWN_TITLE_RE = re.compile(r"^#\s+(.+?)$", re.MULTILINE)
+_MARKDOWN_LOCATION_RE = re.compile(
+    r"(?:^|\n)(?:Engineering|Product|Design|Sales|Marketing|HR|Finance|Operations|Legal)?\n?"
+    r"(Remote(?:[ ,]+[\w\s]+)?|(?:[\w\s]+,\s+)?(?:United States|US|USA|Canada|UK|Germany|India|Singapore|Australia|Japan|France|Netherlands|Ireland))",
+    flags=re.MULTILINE | re.IGNORECASE,
+)
+_MARKDOWN_CAREERS_URL_RE = re.compile(r"careers\.(\w+)\.(?:io|com|co)")
+_MARKDOWN_DESCRIPTION_RE = re.compile(
+    r"(?:#{1,5}\s*)?Description\s*\n(.+?)(?=\n#{1,5}\s|$)",
+    flags=re.DOTALL | re.IGNORECASE,
+)
+
+
+def _truncate_description_for_ingest(description: str) -> str:
+    """Truncate description for Convex jobs table (mirrors scrape_utils.build_description_preview).
+
+    IMPORTANT: This truncation happens AFTER extraction. Extractors ALWAYS operate
+    on the FULL description. This function only truncates for the ingested job record.
+
+    The full description is separately posted to Convex file storage.
+    """
+    if not description:
+        return ""
+
+    trimmed = description.strip()
+    if not trimmed:
+        return ""
+
+    # Step 1: Truncate to word limit
+    tokens = _WORD_SPLIT_RE.split(trimmed)
+    words_seen = 0
+    truncate_at = len(trimmed)
+    pos = 0
+
+    for i, token in enumerate(tokens):
+        if i % 2 == 1:  # This is a word
+            words_seen += 1
+            if words_seen > DESCRIPTION_PREVIEW_MAX_WORDS:
+                truncate_at = pos
+                break
+        pos += len(token)
+
+    if words_seen > DESCRIPTION_PREVIEW_MAX_WORDS:
+        trimmed = trimmed[:truncate_at].rstrip() + DESCRIPTION_TRUNCATION_SUFFIX
+
+    # Step 2: Clamp to byte limit
+    encoded = trimmed.encode("utf-8")
+    if len(encoded) > DESCRIPTION_PREVIEW_MAX_BYTES:
+        suffix_bytes = len(DESCRIPTION_TRUNCATION_SUFFIX.encode("utf-8"))
+        target_bytes = max(0, DESCRIPTION_PREVIEW_MAX_BYTES - suffix_bytes)
+        low, high = 0, len(trimmed)
+        while low < high:
+            mid = (low + high + 1) // 2
+            chunk = trimmed[:mid]
+            size = len(chunk.encode("utf-8"))
+            if size <= target_bytes:
+                low = mid
+            else:
+                high = mid - 1
+        trimmed = trimmed[:low] + DESCRIPTION_TRUNCATION_SUFFIX
+
+    return trimmed
 
 
 
@@ -56,7 +166,7 @@ class SpiderFixture:
     url: str
     response: Any
     params: Dict[str, Any] = field(default_factory=dict)
-    is_sync: bool = False
+    is_sync: bool = True
     _raw_dict: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -90,7 +200,7 @@ class SpiderFixture:
             url=request.get("url", ""),
             response=data.get("response", []),
             params=request.get("params", {}),
-            is_sync=request.get("stream") is False or isinstance(data.get("response"), dict),
+            is_sync=request.get("stream") is not True,  # Default to sync mode (streaming is deprecated)
             _raw_dict=data,
         )
 
@@ -248,8 +358,8 @@ class WorkflowTestHelper:
         self.captured = CapturedConvexData()
         self.spider_calls: List[Dict[str, Any]] = []
 
-        # Determine if using sync mode based on first fixture
-        self._is_sync_mode = False
+        # Determine if using sync mode based on first fixture (default to sync, streaming is deprecated)
+        self._is_sync_mode = True
         if fixtures:
             first_fixture = next(iter(fixtures.values()))
             self._is_sync_mode = first_fixture.is_sync
@@ -296,17 +406,41 @@ class WorkflowTestHelper:
             self._fake_convex_mutation,
         )
 
-        # Patch activity functions
-        from job_scrape_application.workflows import activities as acts
+        # Patch step functions (used by DBOS workflows)
+        from job_scrape_application.workflows.activities import step as step_module
+        from job_scrape_application.workflows.helpers import scrape_utils
+        from job_scrape_application.workflows.helpers import step as helpers_step
 
-        self.monkeypatch.setattr(acts, "store_scrape", self._fake_store_scrape)
-        self.monkeypatch.setattr(acts, "fetch_seen_urls_for_site", self._fake_fetch_seen_urls)
-        self.monkeypatch.setattr(acts, "filter_existing_job_urls", self._fake_filter_existing)
-        self.monkeypatch.setattr(acts, "filter_new_job_urls", self._fake_filter_new)
-        self.monkeypatch.setattr(acts, "_store_job_descriptions_via_http", self._fake_store_descriptions)
-        self.monkeypatch.setattr(acts, "_lookup_job_id_for_url", self._fake_lookup_job_id)
+        self.monkeypatch.setattr(scrape_utils, "fetch_seen_urls_for_site", self._fake_fetch_seen_urls)
+        self.monkeypatch.setattr(helpers_step, "fetch_seen_urls_for_site", self._fake_fetch_seen_urls)
+        self.monkeypatch.setattr(step_module, "filter_new_job_urls", self._fake_filter_new)
+        self.monkeypatch.setattr(step_module, "lookup_job_id_for_url", self._fake_lookup_job_id)
 
-    async def _fake_convex_query(self, name: str, payload: Dict[str, Any]) -> Any:
+        # Also patch step functions in the DBOS workflow module where they're imported
+        # This is needed because Python imports create local bindings
+        import importlib
+        detail_workflow_module = importlib.import_module(
+            "job_scrape_application.workflows.workflow.scrape_job_detail_batch"
+        )
+
+        self.monkeypatch.setattr(
+            detail_workflow_module, "record_scrape_url_attempts", self._fake_record_scrape_url_attempts
+        )
+        self.monkeypatch.setattr(
+            detail_workflow_module, "filter_new_job_urls", self._fake_filter_new
+        )
+        self.monkeypatch.setattr(
+            detail_workflow_module, "complete_scrape_urls_step", self._fake_complete_scrape_urls
+        )
+        self.monkeypatch.setattr(
+            detail_workflow_module, "ingest_jobs_from_scrape_step", self._fake_ingest_jobs
+        )
+        self.monkeypatch.setattr(
+            detail_workflow_module, "emit_scrape_telemetry_step", self._fake_emit_telemetry
+        )
+
+
+    def _fake_convex_query(self, name: str, payload: Dict[str, Any]) -> Any:
         """Mock Convex query function."""
         self.captured.queries.append({"name": name, "args": payload})
 
@@ -322,7 +456,7 @@ class WorkflowTestHelper:
             return []
         return None
 
-    async def _fake_convex_mutation(self, name: str, payload: Dict[str, Any]) -> Any:
+    def _fake_convex_mutation(self, name: str, payload: Dict[str, Any]) -> Any:
         """Mock Convex mutation function."""
         self.captured.mutations.append({"name": name, "args": payload})
 
@@ -339,24 +473,24 @@ class WorkflowTestHelper:
 
         return None
 
-    async def _fake_store_scrape(self, scrape: Dict[str, Any]) -> str:
+    def _fake_store_scrape(self, scrape: Dict[str, Any]) -> str:
         """Mock store_scrape activity."""
         self.captured.stored_scrapes.append(scrape)
         return f"scrape-{len(self.captured.stored_scrapes)}"
 
-    async def _fake_fetch_seen_urls(self, *args: Any, **kwargs: Any) -> List[str]:
+    def _fake_fetch_seen_urls(self, *args: Any, **kwargs: Any) -> List[str]:
         """Mock fetch_seen_urls_for_site activity."""
         return []
 
-    async def _fake_filter_existing(self, urls: List[str]) -> List[str]:
+    def _fake_filter_existing(self, urls: List[str]) -> List[str]:
         """Mock filter_existing_job_urls activity."""
         return []
 
-    async def _fake_filter_new(self, urls: List[str]) -> List[str]:
+    def _fake_filter_new(self, urls: List[str]) -> List[str]:
         """Mock filter_new_job_urls activity - return all as new."""
         return urls
 
-    async def _fake_store_descriptions(
+    def _fake_store_descriptions(
         self,
         jobs: List[Dict[str, Any]],
         source_url: str | None,
@@ -375,9 +509,279 @@ class WorkflowTestHelper:
                     "word_count": len(description.split()),
                 })
 
-    async def _fake_lookup_job_id(self, url: str) -> str | None:
+    def _fake_lookup_job_id(self, url: str) -> str | None:
         """Mock _lookup_job_id_for_url activity."""
         return f"job-{hash(url) % 10000}"
+
+    def _fake_record_scrape_url_attempts(self, entries: List[Dict[str, Any]]) -> None:
+        """Mock record_scrape_url_attempts step."""
+        pass
+
+    def _fake_complete_scrape_urls(
+        self,
+        items: List[Dict[str, Any]],
+        status: str,
+        error: str | None = None,
+    ) -> None:
+        """Mock complete_scrape_urls_step."""
+        pass
+
+    async def _fake_scrape_job_details(
+        self,
+        urls: List[str],
+        source_url: str,
+        pattern: str | None = None,
+        posted_at_by_url: Dict[str, int] | None = None,
+        site_id: str | None = None,
+    ) -> Dict[str, Any]:
+        """Mock scrape_job_details step - return normalized job data.
+
+        This mock processes fixture data the same way the real scraper would,
+        extracting normalized job data from the SpiderCloud response.
+        """
+        import json
+
+        def extract_json_from_content(raw_html: str) -> Dict[str, Any] | None:
+            """Extract JSON object from HTML or markdown content."""
+            if not raw_html or not isinstance(raw_html, str):
+                return None
+
+            # Try to find JSON by locating first { and last }
+            # This handles both markdown code blocks and HTML <pre> tags
+            start = raw_html.find("{")
+            end = raw_html.rfind("}")
+            if start != -1 and end > start:
+                try:
+                    return json.loads(raw_html[start : end + 1])
+                except json.JSONDecodeError:
+                    pass
+
+            return None
+
+        def extract_level_from_title(title: str) -> str:
+            """Extract level from job title, default to 'mid' if not found."""
+            if not title:
+                return "mid"
+            title_lower = title.lower()
+            if any(
+                kw in title_lower
+                for kw in ["junior", "jr.", "jr ", "entry", "associate", "graduate", "intern"]
+            ):
+                return "junior"
+            # Staff-level titles (highest seniority) - check these first
+            if any(
+                kw in title_lower
+                for kw in ["staff", "principal", "director", "vp", "chief", "head", "lead", "distinguished"]
+            ):
+                return "staff"
+            if any(
+                kw in title_lower
+                for kw in ["senior", "sr ", "sr.", "sr-", "sr/"]
+            ):
+                return "senior"
+            # Manager is ambiguous - map to senior as middle ground
+            if "manager" in title_lower:
+                return "senior"
+            # Default to mid for unspecified levels
+            return "mid"
+
+        def parse_posted_at(date_str: str | None) -> int | None:
+            """Parse ISO date string to milliseconds timestamp."""
+            if not date_str:
+                return None
+            try:
+                from datetime import datetime
+                # Handle ISO format with timezone
+                if "T" in date_str:
+                    # Replace timezone offset format for parsing
+                    clean = date_str.replace("Z", "+00:00")
+                    dt = datetime.fromisoformat(clean)
+                    return int(dt.timestamp() * 1000)
+                else:
+                    # Handle date-only format (e.g., "2024-01-09")
+                    dt = datetime.fromisoformat(date_str)
+                    return int(dt.timestamp() * 1000)
+            except (ValueError, AttributeError):
+                pass
+            return None
+
+        def extract_from_markdown(markdown: str) -> Dict[str, Any]:
+            """Extract job info from markdown content (for non-Greenhouse sites)."""
+            result: Dict[str, Any] = {}
+
+            # Extract title from # heading (first h1)
+            title_match = _MARKDOWN_TITLE_RE.search(markdown)
+            if title_match:
+                result["title"] = title_match.group(1).strip()
+
+            # Extract location from common patterns
+            # Pattern: "Engineering\nRemote, United States" or just "Remote, United States"
+            location_match = _MARKDOWN_LOCATION_RE.search(markdown)
+            if location_match:
+                result["location"] = location_match.group(1).strip()
+
+            # Don't aggressively set remote=True from text matching
+            # Let the heuristics extractor handle remote detection properly
+
+            # Extract company from URL domain
+            url_match = _MARKDOWN_CAREERS_URL_RE.search(markdown)
+            if url_match:
+                result["company"] = url_match.group(1).title()
+
+            # Extract description - content after "Description" header
+            desc_match = _MARKDOWN_DESCRIPTION_RE.search(markdown)
+            if desc_match:
+                result["description"] = desc_match.group(1).strip()
+
+            return result
+
+        def process_response_item(item: Dict[str, Any], url: str) -> Dict[str, Any] | None:
+            """Process a single response item using extract_job_from_scrape.
+
+            This ensures the test mock uses the same extraction logic as production,
+            including proper handler-based company, location, and other field extraction.
+            """
+            from ..extractors.integration import extract_job_from_scrape
+            from ..site_handlers import get_site_handler
+
+            content = item.get("content", {})
+            raw_html = content.get("raw") or content.get("commonmark") or ""
+
+            # Get handler for proper field extraction
+            handler = get_site_handler(url)
+
+            # Try to extract structured data from content (Greenhouse JSON, etc.)
+            structured_data = extract_json_from_content(raw_html)
+
+            # Use extract_job_from_scrape for consistent extraction
+            job_result = extract_job_from_scrape(
+                url=url,
+                markdown=raw_html,
+                handler=handler,
+                structured_data=structured_data,
+                raw_row=item,
+                debug=False,
+            )
+
+            if not job_result:
+                return None
+
+            return job_result
+
+        normalized_jobs: List[Dict[str, Any]] = []
+
+        # Find matching fixture for the URLs
+        for url in urls:
+            if url not in self.fixtures:
+                continue
+
+            fixture = self.fixtures[url]
+            response = fixture.response if hasattr(fixture, "response") else None
+
+            if response is None:
+                continue
+
+            # Handle list format (streaming or single-request)
+            if isinstance(response, list):
+                for item in response:
+                    # Handle JSONL string format (streaming)
+                    if isinstance(item, str):
+                        try:
+                            parsed_item = json.loads(item.strip())
+                            job = process_response_item(parsed_item, url)
+                            if job:
+                                normalized_jobs.append(job)
+                        except (json.JSONDecodeError, TypeError):
+                            continue
+                    # Handle nested list format (single-request: [[{...}]])
+                    elif isinstance(item, list):
+                        for sub_item in item:
+                            if isinstance(sub_item, dict):
+                                job = process_response_item(sub_item, url)
+                                if job:
+                                    normalized_jobs.append(job)
+                    # Handle dict format in list
+                    elif isinstance(item, dict):
+                        job = process_response_item(item, url)
+                        if job:
+                            normalized_jobs.append(job)
+
+            # Handle sync format (dict)
+            elif isinstance(response, dict):
+                job = process_response_item(response, url)
+                if job:
+                    normalized_jobs.append(job)
+
+        # Return in format expected by _normalize_job_fields
+        return {
+            "scrape": {
+                "items": {
+                    "normalized": normalized_jobs,
+                    "raw": [],
+                }
+            }
+        }
+
+    def _fake_ingest_jobs(self, jobs: List[Dict[str, Any]], site_id: str | None = None) -> None:
+        """Mock ingest_jobs_from_scrape_step.
+
+        IMPORTANT: This mock properly simulates the real workflow behavior:
+        1. stored_scrapes contains FULL descriptions (for extractor testing)
+        2. ingested_jobs contains TRUNCATED descriptions (for Convex jobs table testing)
+
+        The truncation mirrors what happens in the real workflow before calling
+        ingestJobsFromScrape - extractors operate on full descriptions, then
+        truncation happens for the DB row.
+        """
+        if isinstance(jobs, list):
+            # Calculate total cost from jobs
+            total_cost = sum(
+                job.get("cost_milli_cents", 0) or 0
+                for job in jobs
+                if isinstance(job, dict)
+            )
+
+            # Store FULL descriptions in stored_scrapes (pre-truncation)
+            # This is what extractors see and operate on
+            self.captured.stored_scrapes.append({
+                "items": {"normalized": jobs},  # Full descriptions here
+                "siteId": site_id,
+                "costMilliCents": total_cost,
+            })
+
+            # Store TRUNCATED descriptions in ingested_jobs (post-truncation)
+            # This mirrors what would be sent to Convex jobs table
+            for job in jobs:
+                if isinstance(job, dict):
+                    # Create copy with truncated description
+                    truncated_job = dict(job)
+                    if "description" in truncated_job:
+                        full_desc = truncated_job["description"]
+                        truncated_desc = _truncate_description_for_ingest(full_desc)
+                        truncated_job["description"] = truncated_desc
+                        # Store full description word count for assertions
+                        truncated_job["_full_description_word_count"] = len(full_desc.split()) if full_desc else 0
+                    self.captured.ingested_jobs.append(truncated_job)
+
+                    # If description was long, also record full description upload
+                    if "description" in job:
+                        full_desc = job.get("description", "")
+                        if full_desc and len(full_desc.split()) > DESCRIPTION_PREVIEW_MAX_WORDS:
+                            self.captured.description_uploads.append({
+                                "url": job.get("url"),
+                                "description": full_desc,
+                                "word_count": len(full_desc.split()),
+                            })
+
+    def _fake_emit_telemetry(
+        self,
+        event: str,
+        level: str = "info",
+        site_url: str | None = None,
+        data: Dict[str, Any] | None = None,
+    ) -> None:
+        """Mock emit_scrape_telemetry_step."""
+        pass
 
     def get_first_stored_scrape(self) -> Dict[str, Any] | None:
         """Get the first stored scrape, if any."""

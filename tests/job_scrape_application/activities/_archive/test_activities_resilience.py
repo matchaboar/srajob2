@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from job_scrape_application.workflows import activities as acts  # noqa: E402
+
+
+def test_record_workflow_run_handles_cancelled(monkeypatch):
+    def fake_record_run(**_kwargs):
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(
+        "job_scrape_application.dbos_runtime.runs.record_run",
+        fake_record_run,
+    )
+
+    # Should not raise on cancellation (best-effort logging only)
+    acts.record_workflow_run({"workflowId": "abc", "status": "cancelled"})
+
+
+def test_record_workflow_run_raises_on_other_errors(monkeypatch):
+    def fake_record_run(**_kwargs):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(
+        "job_scrape_application.dbos_runtime.runs.record_run",
+        fake_record_run,
+    )
+
+    with pytest.raises(RuntimeError):
+        acts.record_workflow_run({"workflowId": "abc", "status": "failed"})
+
+
+def test_trim_scrape_for_convex_preserves_descriptions_and_strips_raw():
+    long_description = "x" * 2000
+    long_title = "t" * 1000
+    scrape = {
+        "sourceUrl": "https://example.com",
+        "items": {
+            "normalized": [
+                {
+                    "url": "https://example.com/1",
+                    "description": long_description,
+                    "job_description": long_description,
+                    "title": long_title,
+                    "job_title": long_title,
+                },
+                {"url": "https://example.com/2", "description": "short"},
+            ],
+            "raw": {"huge": "y" * 10_000},
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(
+        scrape, max_items=1, max_description=100, max_title_chars=50, raw_preview_chars=50
+    )
+
+    items = trimmed["items"]
+    assert len(items["normalized"]) == 2
+    assert items["normalized"][0] == {"url": "https://example.com/1"}
+    assert items["normalized"][1] == {"url": "https://example.com/2"}
+    assert items["normalizedCount"] == 2
+    sample = items.get("normalizedSample", [])
+    assert sample
+    assert sample[0]["description"] == long_description
+    assert sample[0]["job_description"] == long_description
+    assert len(sample[0]["title"]) == 50
+    assert len(sample[0]["job_title"]) == 50
+    assert "raw" not in items
+    assert "rawPreview" in items  # preview retained instead of raw blob
+
+
+def test_trim_scrape_for_convex_scans_strings_for_links():
+    scrape = {
+        "sourceUrl": "https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering",
+        "items": {
+            "normalized": [],
+            "raw": {
+                "text": "Open roles: https://careers.confluent.io/jobs/job/12345678",
+            },
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape, raw_preview_chars=0)
+
+    items = trimmed["items"]
+    assert items["page_links"] == ["https://careers.confluent.io/jobs/job/12345678"]
+    assert items["job_urls"] == ["https://careers.confluent.io/jobs/job/12345678"]
+
+
+def test_trim_scrape_for_convex_preserves_job_urls_over_page_links():
+    scrape = {
+        "sourceUrl": "https://example.com/careers",
+        "items": {
+            "normalized": [],
+            "job_urls": ["https://example.com/jobs/1", "https://example.com/jobs/1"],
+            "raw": {
+                "text": "See https://example.com/jobs/2 for more roles.",
+            },
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape, raw_preview_chars=0)
+
+    items = trimmed["items"]
+    assert items["job_urls"] == ["https://example.com/jobs/1"]
+    assert "https://example.com/jobs/2" in items["page_links"]
+
+
+def test_trim_scrape_for_convex_preserves_ignored_and_failed():
+    scrape = {
+        "sourceUrl": "https://example.com/careers",
+        "items": {
+            "normalized": [],
+            "ignored": [
+                {"url": "https://example.com/jobs/ignored", "reason": "listing_page"},
+            ],
+            "failed": [
+                {"url": "https://example.com/jobs/failed", "reason": "timeout"},
+            ],
+        },
+    }
+
+    trimmed = acts.trim_scrape_for_convex(scrape)
+
+    items = trimmed["items"]
+    assert items["ignored"][0]["url"] == "https://example.com/jobs/ignored"
+    assert items["ignoredCount"] == 1
+    assert items["failed"][0]["url"] == "https://example.com/jobs/failed"
+    assert items["failedCount"] == 1
+
+
+def test_jobs_from_scrape_items_filters_and_defaults():
+    items = {
+        "normalized": [
+            {"url": "https://example.com/1", "title": "Engineer", "company": None, "remote": None},
+            {"title": "Missing URL"},
+        ]
+    }
+
+    jobs = acts._jobs_from_scrape_items(items, default_posted_at=1234)
+
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job["title"] == "Engineer"
+    assert job["company"] == "Unknown"  # default fallback
+    assert job["remote"] is False
+    assert job["level"] == "mid"
+    assert job["totalCompensation"] == 0
+    assert job.get("compensationUnknown") is True
+    assert "compensationReason" in job
+    assert job["postedAt"] == 1234
+
+
+def test_jobs_from_scrape_items_uses_normalized_sample_for_descriptions():
+    items = {
+        "normalized": [{"url": "https://example.com/1"}],
+        "normalizedSample": [
+            {
+                "url": "https://example.com/1",
+                "title": "Engineer",
+                "company": "Example",
+                "description": "Full description content",
+                "location": "Remote",
+                "remote": True,
+                "level": "mid",
+            }
+        ],
+    }
+
+    jobs = acts._jobs_from_scrape_items(items, default_posted_at=1234)
+
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job["description"] == "Full description content"
+    assert job["title"] == "Engineer"

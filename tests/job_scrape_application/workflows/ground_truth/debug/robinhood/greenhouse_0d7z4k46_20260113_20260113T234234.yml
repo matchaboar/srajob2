@@ -1,0 +1,15 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/robinhood/greenhouse_0d7z4k46_20260113_20260113T234234_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7473701
+expected:
+  title: "Senior Software Engineer"
+  company: "Robinhood"
+  location_contains: "Ljubljana"
+  is_remote: false
+  level: senior
+  # NOTE: Description is truncated to ~100 words by extractor preview
+  description_min_words: 50
+  # description_not_contains: '{"'  # JSON content filtering not reliable for API responses
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

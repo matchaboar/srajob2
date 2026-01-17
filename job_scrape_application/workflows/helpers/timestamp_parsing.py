@@ -27,7 +27,8 @@ _MST_OFFSET = timezone(timedelta(hours=-7))
 _DEFAULT_HOUR_MST = 8
 
 # Minimum days threshold for relative posted times (helps filter noise)
-_RELATIVE_POSTED_MIN_DAYS = 30
+# Reduced from 30 to 7 to accept common patterns like "3 days ago"
+_RELATIVE_POSTED_MIN_DAYS = 7
 
 
 def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
@@ -62,10 +63,6 @@ def _parse_relative_posted_at(value: str, now_ms: int) -> Optional[int]:
         return now_ms
 
     unit = match.group("unit")
-    if unit.startswith("day") and amount < _RELATIVE_POSTED_MIN_DAYS:
-        # Allow smaller ranges when the value explicitly looks like a posted/updated label.
-        if "posted" not in lowered and "updated" not in lowered:
-            return None
     if unit.startswith(("second", "sec")):
         multiplier = 1
     elif unit.startswith(("minute", "min")):

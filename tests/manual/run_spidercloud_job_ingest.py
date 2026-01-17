@@ -10,7 +10,7 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 
 from job_scrape_application.services import convex_query
-from job_scrape_application.workflows.activities import process_spidercloud_job_batch
+from job_scrape_application.workflows.workflow import process_spidercloud_job_batch
 from job_scrape_application.workflows.helpers.link_extractors import normalize_url
 
 DEV_ENV_FILES: tuple[str, ...] = (
@@ -33,7 +33,7 @@ def _normalize(candidate: str | None) -> str | None:
 
 
 async def _find_job_log(url: str) -> Dict[str, Any] | None:
-    logs = await convex_query("router:listUrlScrapeLogs", {"limit": 100, "includeJobLookup": True})
+    logs = convex_query("router:listUrlScrapeLogs", {"limit": 100, "includeJobLookup": True})
     normalized_target = _normalize(url)
     for entry in logs or []:
         if not isinstance(entry, dict):
@@ -65,7 +65,7 @@ async def main() -> None:
     if not job_id:
         raise SystemExit("Scrape log entry missing jobId")
 
-    details = await convex_query("jobs:getJobDetails", {"jobId": job_id})
+    details = convex_query("jobs:getJobDetails", {"jobId": job_id})
     if not isinstance(details, dict):
         raise SystemExit("Unexpected job details response")
 

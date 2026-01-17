@@ -14,18 +14,38 @@
       "company": "Coupang",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7457275",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Android Engineer",
+        "company": "Coupang",
+        "location": "Bengaluru",
+        "description": "Android Engineer\n\nCompany Introduction\nWe exist to wow our customers. We know we’re doing the right thing when we hear our customers say, “How did we ever live without Coupang?” Born out of an obsession to make shopping, eating, and living easier than ever, we’re collectively disrupting the multi-billion-dollar e-commerce industry from the ground up. We are one of the fastest-growing e-commerce companies that established an unparalleled reputation for being a dominant and reliable force in South Korean commerce.\nFrom the moment a customer opens the Coupang app to the moment a product is delivered to their doorstep, Coupang is...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7457275",
+        "apply_url": "https://boards.greenhouse.io/coupang/jobs/7457275",
+        "posted_at": 1766473164000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 410
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7457275",
+        "word_count": 410,
+        "description_preview": "Android Engineer Company Introduction We exist to wow our customers. We know we’re doing the right thing when we hear our customers say, “How did we ever live without Coupang?”..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Coupang",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -134,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "Bengaluru",
+      "final_value": "Bangalore",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Bengaluru",
+          "value": "Bangalore",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Bengaluru"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Bangalore' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": null,
@@ -335,18 +376,46 @@
           "reason": "No compensation pattern in content"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:05.476294",
+          "value": "2026-01-17T13:05:58.954465",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Android Engineer\n\nCompany Introduction\nWe exist to wow our customers. We know we’re doing the right thing when we hear our customers say, “How did we ever live without Coupang?” Born out of an obsession to make shopping, eating, and living easier than ever, we’re collectively disrupting the multi-billion-dollar e-commerce industry from the ground up. We are one of the fastest-growing e-commerce companies that established an unparalleled reputation for being a dominant and reliable force in South Korean commerce.\nFrom the moment a customer opens the Coupang app to the moment a product is delivered to their doorstep, Coupang is reinventing the shopping experience to delight each and every customer.\nWith a world-class end-to-end e-commerce and logistics network, and a customer-obsessed culture, Coupang has refused to compromise on speed, selection, or price.&nbsp;Today, Coupang has achieved a groundbreaking innovation: delivering millions of products, including fresh groceries, nationwide within just a few hours, 365 days a year.&nbsp;All of this is part of Coupang’s commitment to millions of customers in Korea—one of the largest and fastest-growing e-commerce markets in the world.\nRole Overview\nSince its launch in 2019, Coupang Eats has achieved remarkable growth in the highly competitive delivery market. As a multi-sided platform serving consumers, merchants, and delivery partners, Coupang Eats provides innovative experiences and services. Leveraging Coupang’s advanced technology and operational expertise, Coupang Eats has built a fast-paced, proactive startup culture. Team members—including product owners, operations, and engineers—collaborate to solve problems with the goal of continuous customer satisfaction.\nWhat You Will Do\n- Develop new features for the Coupang Eats app\n- Improve app performance for faster and more reliable user experiences\n- Build reusable and scalable common modules\n- Collaborate closely with Product, UX, and Backend teams to deliver high-quality projects\nBasic Qualifications\n- BTech or Masters as the minimum qualification\n- 2+ years of Android app development experience\n- Solid understanding of the Android platform and Kotlin\n- Strong problem-solving skills\n- Clear communication skills and a sense of ownership\nPreferred Qualifications\n- Experience in O2O or e-commerce domains\n- Experience with Compose, Coroutines, and unit test development\nType of work model\n- Hybrid&nbsp;\nDetails to consider &nbsp;\n- Those eligible for employment protection (recipients of veteran’s benefits, the disabled, etc.) may receive preferential treatment for employment in accordance with applicable laws.&nbsp;\n&nbsp;\nPrivacy Notice &nbsp; &nbsp;\n- Your personal information will be collected and managed by Coupang as stated in the Application Privacy Notice located below. https://privacy.coupang.com/en/land/jobs/ &nbsp;",
           "is_valid": true,
-          "reason": "Valid description (2870 chars)"
+          "reason": "Valid description (2870 chars, 410 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Android Engineer\n\nCompany Introduction\nWe exist to wow our customers. We know we’re doing the right thing when we hear our customers say, “How did we ever live without Coupang?” Born out of an obsession to make shopping, eating, and living easier than ever, we’re collectively disrupting the multi-billion-dollar e-commerce industry from the ground up. We are one of the fastest-growing e-commerce companies that established an unparalleled reputation for being a dominant and reliable force in South Korean commerce.\nFrom the moment a customer opens the Coupang app to the moment a product is delivered to their doorstep, Coupang is reinventing the shopping experience to delight each and every customer.\nWith a world-class end-to-end e-commerce and logistics network, and a customer-obsessed culture, Coupang has refused to compromise on speed, selection, or price.&nbsp;Today, Coupang has achieved a groundbreaking innovation: delivering millions of products, including fresh groceries, nationwide within just a few hours, 365 days a year.&nbsp;All of this is part of Coupang’s commitment to millions of customers in Korea—one of the largest and fastest-growing e-commerce markets in the world.\nRole Overview\nSince its launch in 2019, Coupang Eats has achieved remarkable growth in the highly competitive delivery market. As a multi-sided platform serving consumers, merchants, and delivery partners, Coupang Eats provides innovative experiences and services. Leveraging Coupang’s advanced technology and operational expertise, Coupang Eats has built a fast-paced, proactive startup culture. Team members—including product owners, operations, and engineers—collaborate to solve problems with the goal of continuous customer satisfaction.\nWhat You Will Do\n- Develop new features for the Coupang Eats app\n- Improve app performance for faster and more reliable user experiences\n- Build reusable and scalable common modules\n- Collaborate closely with Product, UX, and Backend teams to deliver high-quality projects\nBasic Qualifications\n- BTech or Masters as the minimum qualification\n- 2+ years of Android app development experience\n- Solid understanding of the Android platform and Kotlin\n- Strong problem-solving skills\n- Clear communication skills and a sense of ownership\nPreferred Qualifications\n- Experience in O2O or e-commerce domains\n- Experience with Compose, Coroutines, and unit test development\nType of work model\n- Hybrid&nbsp;\nDetails to consider &nbsp;\n- Those eligible for employment protection (recipients of veteran’s benefits, the disabled, etc.) may receive preferential treatment for employment in accordance with applicable laws.&nbsp;\n&nbsp;\nPrivacy Notice &nbsp; &nbsp;\n- Your personal information will be collected and managed by Coupang as stated in the Application Privacy Notice located below. https://privacy.coupang.com/en/land/jobs/ &nbsp;",
           "is_valid": true,
-          "reason": "Valid description (2870 chars)"
+          "reason": "Valid description (2870 chars, 410 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Android Engineer\n\nCompany Introduction\nWe exist to wow our customers. We know we’re doing the right thing when we hear our customers say, “How did we ever live without Coupang?” Born out of an obsession to make shopping, eating, and living easier than ever, we’re collectively disrupting the multi-billion-dollar e-commerce industry from the ground up. We are one of the fastest-growing e-commerce companies that established an unparalleled reputation for being a dominant and reliable force in South Korean commerce.\nFrom the moment a customer opens the Coupang app to the moment a product is delivered to their doorstep, Coupang is reinventing the shopping experience to delight each and every customer.\nWith a world-class end-to-end e-commerce and logistics network, and a customer-obsessed culture, Coupang has refused to compromise on speed, selection, or price.&nbsp;Today, Coupang has achieved a groundbreaking innovation: delivering millions of products, including fresh groceries, nationwide within just a few hours, 365 days a year.&nbsp;All of this is part of Coupang’s commitment to millions of customers in Korea—one of the largest and fastest-growing e-commerce markets in the world.\nRole Overview\nSince its launch in 2019, Coupang Eats has achieved remarkable growth in the highly competitive delivery market. As a multi-sided platform serving consumers, merchants, and delivery partners, Coupang Eats provides innovative experiences and services. Leveraging Coupang’s advanced technology and operational expertise, Coupang Eats has built a fast-paced, proactive startup culture. Team members—including product owners, operations, and engineers—collaborate to solve problems with the goal of continuous customer satisfaction.\nWhat You Will Do\n- Develop new features for the Coupang Eats app\n- Improve app performance for faster and more reliable user experiences\n- Build reusable and scalable common modules\n- Collaborate closely with Product, UX, and Backend teams to deliver high-quality projects\nBasic Qualifications\n- BTech or Masters as the minimum qualification\n- 2+ years of Android app development experience\n- Solid understanding of the Android platform and Kotlin\n- Strong problem-solving skills\n- Clear communication skills and a sense of ownership\nPreferred Qualifications\n- Experience in O2O or e-commerce domains\n- Experience with Compose, Coroutines, and unit test development\nType of work model\n- Hybrid&nbsp;\nDetails to consider &nbsp;\n- Those eligible for employment protection (recipients of veteran’s benefits, the disabled, etc.) may receive preferential treatment for employment in accordance with applicable laws.&nbsp;\n&nbsp;\nPrivacy Notice &nbsp; &nbsp;\n- Your personal information will be collected and managed by Coupang as stated in the Application Privacy Notice located below. https://privacy.coupang.com/en/land/jobs/ &nbsp;",
           "is_valid": true,
-          "reason": "Valid description (2870 chars)"
+          "reason": "Valid description (2870 chars, 410 words)"
         },
         {
           "name": "empty_description_fallback",

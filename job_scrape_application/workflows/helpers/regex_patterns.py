@@ -108,6 +108,32 @@ NON_NUMERIC_DOT_PATTERN = r"[^0-9.]"
 NON_NUMERIC_PATTERN = r"[^0-9]"
 APPLY_WORD_PATTERN = r"\bapply\b"
 
+# Title override detection patterns (for _should_override_title)
+TITLE_NORMALIZE_PATTERN = r"[^a-z0-9]+"
+TITLE_YEARS_PATTERN = r"\b\d+\+?\s+years?\b"
+TITLE_YEARS_EXP_PATTERN = r"\byears?\s+(?:of\s+)?experience\b"
+TITLE_YEARS_WORKING_PATTERN = r"\byears?\s+working\b"
+TITLE_EXP_VERB_PATTERN = (
+    r"\bexperience\s+(?:in|with|providing|working|leading|managing|developing|designing|supporting)\b"
+)
+TITLE_ABILITY_PATTERN = r"\bability\s+to\b"
+TITLE_KNOWLEDGE_PATTERN = r"\bknowledge\s+of\b"
+_TITLE_NORMALIZE_RE = re.compile(TITLE_NORMALIZE_PATTERN)
+_TITLE_YEARS_RE = re.compile(TITLE_YEARS_PATTERN)
+_TITLE_YEARS_EXP_RE = re.compile(TITLE_YEARS_EXP_PATTERN)
+_TITLE_YEARS_WORKING_RE = re.compile(TITLE_YEARS_WORKING_PATTERN)
+_TITLE_EXP_VERB_RE = re.compile(TITLE_EXP_VERB_PATTERN)
+_TITLE_ABILITY_RE = re.compile(TITLE_ABILITY_PATTERN)
+_TITLE_KNOWLEDGE_RE = re.compile(TITLE_KNOWLEDGE_PATTERN)
+
+# Metadata block detection patterns (for scrape_utils)
+BULLET_PREFIX_PATTERN = r"^[#*\-\u2022]+\s*"
+BULLET_PREFIX_NO_WS_PATTERN = r"^[#*\-\u2022]+"
+NUMERIC_ID_PATTERN = r"[A-Za-z]{0,3}\d{3,}"
+_BULLET_PREFIX_RE = re.compile(BULLET_PREFIX_PATTERN)
+_BULLET_PREFIX_NO_WS_RE = re.compile(BULLET_PREFIX_NO_WS_PATTERN)
+_NUMERIC_ID_RE = re.compile(NUMERIC_ID_PATTERN)
+
 INR_CURRENCY_PATTERNS = [
     r"₹",
     r"\brupees?\b",

@@ -3,29 +3,54 @@
   "listing_url": "https://support.greenhouse.io/hc/en-us",
   "source_url": "https://support.greenhouse.io/hc/en-us",
   "handler_name": "GreenhouseHandler",
-  "content_type": null,
-  "extraction_method": "production_workflow",
+  "content_type": "commonmark",
+  "extraction_method": "response.links",
   "url_pipeline": {
     "input_url": "https://support.greenhouse.io/hc/en-us",
     "scrape_url": "https://support.greenhouse.io/hc/en-us"
   },
   "detail_url_pipeline": {
-    "raw_extracted_count": 1,
-    "handler_filtered_count": 1,
-    "api_transformed_count": 1
+    "raw_extracted_count": 17,
+    "handler_filtered_count": 4,
+    "api_transformed_count": 4
   },
-  "extracted_url_count": 1,
-  "filtered_url_count": 1,
-  "normalized_url_count": 1,
+  "extracted_url_count": 17,
+  "filtered_url_count": 4,
+  "normalized_url_count": 3,
   "pagination_url_count": 0,
   "rejected_url_count": 0,
   "sample_urls": [
-    "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
+    "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/1234567",
+    "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321",
+    "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/9876543"
   ],
   "normalized_urls": [
-    "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
+    "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/1234567",
+    "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321",
+    "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/9876543"
   ],
-  "sample_transformations": [],
+  "sample_transformations": [
+    {
+      "raw": "https://boards.greenhouse.io/lyft/jobs/1234567",
+      "filtered": "https://boards.greenhouse.io/lyft/jobs/1234567",
+      "transformed": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/1234567"
+    },
+    {
+      "raw": "https://job-boards.greenhouse.io/stripe/jobs/7654321",
+      "filtered": "https://job-boards.greenhouse.io/stripe/jobs/7654321",
+      "transformed": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
+    },
+    {
+      "raw": "https://careers.airbnb.com/positions?gh_jid=9876543",
+      "filtered": "https://careers.airbnb.com/positions?gh_jid=9876543",
+      "transformed": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/9876543"
+    },
+    {
+      "raw": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321",
+      "filtered": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321",
+      "transformed": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7654321"
+    }
+  ],
   "url_transformations": [],
   "rejected_urls": [],
   "error": null

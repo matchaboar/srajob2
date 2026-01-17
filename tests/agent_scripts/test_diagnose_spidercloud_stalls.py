@@ -5,8 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import pytest
-
 
 def _load_module():
     module_path = Path(__file__).resolve().parents[2] / "agent_scripts" / "diagnostics" / "diagnose_spidercloud_stalls.py"
@@ -80,8 +78,7 @@ def test_latest_eligible_time_respects_start_and_interval():
     assert ds._latest_eligible_time(schedule, after_start) == expected
 
 
-@pytest.mark.asyncio
-async def test_gather_site_schedule_summary_classifies_due_and_not_due(monkeypatch):
+def test_gather_site_schedule_summary_classifies_due_and_not_due(monkeypatch):
     ds = _load_module()
     now_ms = _to_ms(2025, 12, 22, 12, 45, "America/Denver")
     eligible_at = _to_ms(2025, 12, 22, 11, 30, "America/Denver")
@@ -117,7 +114,7 @@ async def test_gather_site_schedule_summary_classifies_due_and_not_due(monkeypat
         {"_id": "site-unscheduled", "url": "https://example.com/unscheduled"},
     ]
 
-    async def fake_query(name: str, args: dict | None = None):
+    def fake_query(name: str, args: dict | None = None):
         if name == "router:listSites":
             return sites
         if name == "router:listSchedules":
@@ -126,7 +123,7 @@ async def test_gather_site_schedule_summary_classifies_due_and_not_due(monkeypat
 
     monkeypatch.setattr(ds, "convex_query", fake_query)
 
-    summary = await ds._gather_site_schedule_summary(now_ms)
+    summary = ds._gather_site_schedule_summary(now_ms)
 
     assert summary["summary"]["total"] == 5
     assert summary["summary"]["due"] == 1
@@ -137,11 +134,10 @@ async def test_gather_site_schedule_summary_classifies_due_and_not_due(monkeypat
     assert summary["dueSamples"][0]["url"] == "https://explore.jobs.netflix.net/careers?query=engineer"
 
 
-@pytest.mark.asyncio
-async def test_gather_scrape_errors_includes_payment_required(monkeypatch):
+def test_gather_scrape_errors_includes_payment_required(monkeypatch):
     ds = _load_module()
 
-    async def fake_query(name: str, args: dict | None = None):
+    def fake_query(name: str, args: dict | None = None):
         if name == "router:listScrapeErrors":
             return [
                 {"event": "batch_scrape", "status": "error", "error": "Payment Required: insufficient credits"},
@@ -152,7 +148,7 @@ async def test_gather_scrape_errors_includes_payment_required(monkeypatch):
 
     monkeypatch.setattr(ds, "convex_query", fake_query)
 
-    errors = await ds._gather_scrape_errors()
+    errors = ds._gather_scrape_errors()
 
     assert errors["count"] == 3
     assert errors["byEvent"]["batch_scrape"] == 2

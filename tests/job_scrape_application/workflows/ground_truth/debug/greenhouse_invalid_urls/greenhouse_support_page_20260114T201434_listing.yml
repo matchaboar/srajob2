@@ -1,0 +1,12 @@
+site_id: greenhouse_support_page
+listing_url: https://support.greenhouse.io/hc/en-us
+expected:
+  url_count: 0
+  no_listing_urls: true
+  handler: GreenhouseHandler
+  expected_urls: []
+  url_pattern: https://boards-api\.greenhouse\.io/v1/boards/[^/]+/jobs/\d+
+  cost_milli_cents_min: 1
+  scraped_urls: []
+  normalized_urls: []
+  apply_urls: []

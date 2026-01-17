@@ -14,18 +14,38 @@
       "company": "Flex",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4646623005",
       "cost_milli_cents": 3
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Account Executive, SMB",
+        "company": "Flex",
+        "location": "New York, New York, United States",
+        "description": "Account Executive, SMB\n\nFlex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It’s hard to believe that it’s 2026 and paying rent on time is expensive, inflexible, and difficult. We’re here to change that! Flex enables our users to pay rent throughout the month on a schedule that better fits their finances and budget. Our mission is to empower as many renters as possible with flexibility over their most significant recurring expense. After deliberately keeping a stealth profile as we built up unprecedented investor support and an enthusiastic user base, we are looking...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4646623005",
+        "apply_url": "https://boards.greenhouse.io/flex/jobs/4646623005",
+        "posted_at": 1767741026000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 3,
+        "_full_description_word_count": 558
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/flex/jobs/4646623005",
+        "word_count": 558,
+        "description_preview": "Account Executive, SMB Flex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It’s hard to believe that it’s 2026 and paying rent on..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Flex",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: New York, New York, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'New York, New York, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -310,7 +344,7 @@
     },
     "compensation": {
       "final_value": 117500,
-      "winning_strategy": "content_pattern_compensation",
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 117500,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $85,000-$150,000 -> $117,500 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 117500,
@@ -335,18 +376,46 @@
           "reason": "Compensation range pattern: $85,000-$150,000 -> $117,500"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 117500,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $85,000-$150,000 -> $117,500 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 3,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 3,
+          "is_valid": true,
+          "reason": "Valid cost: 3"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:03.089107",
+          "value": "2026-01-17T13:05:58.908927",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Account Executive, SMB\n\nFlex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It’s hard to believe that it’s 2026 and paying rent on time is expensive, inflexible, and difficult. We’re here to change that! Flex enables our users to pay rent throughout the month on a schedule that better fits their finances and budget. Our mission is to empower as many renters as possible with flexibility over their most significant recurring expense. After deliberately keeping a stealth profile as we built up unprecedented investor support and an enthusiastic user base, we are looking for motivated individuals to help us keep our mission growing. Will you be a part of the team?\nFlex is on a mission to revolutionize the way bills are paid and we are looking for an exceptional sales rockstar to join our team as we rapidly expand into new markets. The successful candidate will be a team player, have an entrepreneurial mindset, see ambiguity as an opportunity and possess relentless grit, humility and curiosity. This role is based out of one of our hubs in NYC, SF, or SLC working hybrid 2-3x a week. If you are an established sales professional, ready to be a part of building a once in a generation company, let's chat!&nbsp;\nWhat you’ll do&nbsp;\n- New client acquisition - drive revenue and market share within rental real estate market\n- Build and manage a robust pipeline in CRM&nbsp;\n- Establish relationships with senior executives and decision-makers through outbound efforts&nbsp;\n- Own the full sales cycle from lead to close&nbsp;\n- Educate prospective customers on the value of Flex&nbsp;\n- Navigate key decision makers to build awareness within organizations&nbsp;\n- Initiate, negotiate and close new and expansion contracts with customers&nbsp;\n- Collaborate and work with different members of the Accounts team to build strategic adoption plans for new customers&nbsp;\nKey qualifications&nbsp;\n- 3+ years of sales experience&nbsp;\n- Consistent track record of quota attainment&nbsp;\n- Develops relationships with middle management and ownership quickly and effectively\n- Excellent written and verbal communication skills&nbsp;\n- Ability to be flexible and adaptive&nbsp;\n- Skilled at phone, email, and social media prospecting&nbsp;\nThe national pay range for this role is $85,000-$150,000 OTE (On Target Earnings). Individual compensation will be commensurate with the candidate's experience aligned with Flex's internal leveling guidelines and benchmarks.\nLife at Flex:\nWe understand that it takes a diverse team of highly intelligent, curious, determined, empathetic, and self aware people to grow a successful company. Our HQ is located in New York City, but we have employees located throughout the US, Australia, Canada and South America. We are growing quickly, but deliberately, with a focus on building an inclusive culture. Our dynamic team has incredible perspectives to share, just as we know you do, and we take great pride in being an equal opportunity workplace.\nWe offer many employee benefits &amp; perks. For full-time U.S based positions we offer:\n- Competitive medical, dental, and vision available from Day 1\n- Company equity\n- 401(k) plan with company match (our company match kicks off at the beginning of 2026)\n- Unlimited paid time off + 13 company paid holidays\n- Parental leave&nbsp;\n- Flex Cares Program\n- Free Flex subscription\n&nbsp;For full time non-US employees, we offer\n- Competitive compensation + company equity\n- Unlimited PTO",
           "is_valid": true,
-          "reason": "Valid description (3527 chars)"
+          "reason": "Valid description (3527 chars, 558 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Account Executive, SMB\n\nFlex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It’s hard to believe that it’s 2026 and paying rent on time is expensive, inflexible, and difficult. We’re here to change that! Flex enables our users to pay rent throughout the month on a schedule that better fits their finances and budget. Our mission is to empower as many renters as possible with flexibility over their most significant recurring expense. After deliberately keeping a stealth profile as we built up unprecedented investor support and an enthusiastic user base, we are looking for motivated individuals to help us keep our mission growing. Will you be a part of the team?\nFlex is on a mission to revolutionize the way bills are paid and we are looking for an exceptional sales rockstar to join our team as we rapidly expand into new markets. The successful candidate will be a team player, have an entrepreneurial mindset, see ambiguity as an opportunity and possess relentless grit, humility and curiosity. This role is based out of one of our hubs in NYC, SF, or SLC working hybrid 2-3x a week. If you are an established sales professional, ready to be a part of building a once in a generation company, let's chat!&nbsp;\nWhat you’ll do&nbsp;\n- New client acquisition - drive revenue and market share within rental real estate market\n- Build and manage a robust pipeline in CRM&nbsp;\n- Establish relationships with senior executives and decision-makers through outbound efforts&nbsp;\n- Own the full sales cycle from lead to close&nbsp;\n- Educate prospective customers on the value of Flex&nbsp;\n- Navigate key decision makers to build awareness within organizations&nbsp;\n- Initiate, negotiate and close new and expansion contracts with customers&nbsp;\n- Collaborate and work with different members of the Accounts team to build strategic adoption plans for new customers&nbsp;\nKey qualifications&nbsp;\n- 3+ years of sales experience&nbsp;\n- Consistent track record of quota attainment&nbsp;\n- Develops relationships with middle management and ownership quickly and effectively\n- Excellent written and verbal communication skills&nbsp;\n- Ability to be flexible and adaptive&nbsp;\n- Skilled at phone, email, and social media prospecting&nbsp;\nThe national pay range for this role is $85,000-$150,000 OTE (On Target Earnings). Individual compensation will be commensurate with the candidate's experience aligned with Flex's internal leveling guidelines and benchmarks.\nLife at Flex:\nWe understand that it takes a diverse team of highly intelligent, curious, determined, empathetic, and self aware people to grow a successful company. Our HQ is located in New York City, but we have employees located throughout the US, Australia, Canada and South America. We are growing quickly, but deliberately, with a focus on building an inclusive culture. Our dynamic team has incredible perspectives to share, just as we know you do, and we take great pride in being an equal opportunity workplace.\nWe offer many employee benefits &amp; perks. For full-time U.S based positions we offer:\n- Competitive medical, dental, and vision available from Day 1\n- Company equity\n- 401(k) plan with company match (our company match kicks off at the beginning of 2026)\n- Unlimited paid time off + 13 company paid holidays\n- Parental leave&nbsp;\n- Flex Cares Program\n- Free Flex subscription\n&nbsp;For full time non-US employees, we offer\n- Competitive compensation + company equity\n- Unlimited PTO",
           "is_valid": true,
-          "reason": "Valid description (3527 chars)"
+          "reason": "Valid description (3527 chars, 558 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Account Executive, SMB\n\nFlex is a growth-stage, NYC headquartered FinTech company that is creating the best rent payment experience. It’s hard to believe that it’s 2026 and paying rent on time is expensive, inflexible, and difficult. We’re here to change that! Flex enables our users to pay rent throughout the month on a schedule that better fits their finances and budget. Our mission is to empower as many renters as possible with flexibility over their most significant recurring expense. After deliberately keeping a stealth profile as we built up unprecedented investor support and an enthusiastic user base, we are looking for motivated individuals to help us keep our mission growing. Will you be a part of the team?\nFlex is on a mission to revolutionize the way bills are paid and we are looking for an exceptional sales rockstar to join our team as we rapidly expand into new markets. The successful candidate will be a team player, have an entrepreneurial mindset, see ambiguity as an opportunity and possess relentless grit, humility and curiosity. This role is based out of one of our hubs in NYC, SF, or SLC working hybrid 2-3x a week. If you are an established sales professional, ready to be a part of building a once in a generation company, let's chat!&nbsp;\nWhat you’ll do&nbsp;\n- New client acquisition - drive revenue and market share within rental real estate market\n- Build and manage a robust pipeline in CRM&nbsp;\n- Establish relationships with senior executives and decision-makers through outbound efforts&nbsp;\n- Own the full sales cycle from lead to close&nbsp;\n- Educate prospective customers on the value of Flex&nbsp;\n- Navigate key decision makers to build awareness within organizations&nbsp;\n- Initiate, negotiate and close new and expansion contracts with customers&nbsp;\n- Collaborate and work with different members of the Accounts team to build strategic adoption plans for new customers&nbsp;\nKey qualifications&nbsp;\n- 3+ years of sales experience&nbsp;\n- Consistent track record of quota attainment&nbsp;\n- Develops relationships with middle management and ownership quickly and effectively\n- Excellent written and verbal communication skills&nbsp;\n- Ability to be flexible and adaptive&nbsp;\n- Skilled at phone, email, and social media prospecting&nbsp;\nThe national pay range for this role is $85,000-$150,000 OTE (On Target Earnings). Individual compensation will be commensurate with the candidate's experience aligned with Flex's internal leveling guidelines and benchmarks.\nLife at Flex:\nWe understand that it takes a diverse team of highly intelligent, curious, determined, empathetic, and self aware people to grow a successful company. Our HQ is located in New York City, but we have employees located throughout the US, Australia, Canada and South America. We are growing quickly, but deliberately, with a focus on building an inclusive culture. Our dynamic team has incredible perspectives to share, just as we know you do, and we take great pride in being an equal opportunity workplace.\nWe offer many employee benefits &amp; perks. For full-time U.S based positions we offer:\n- Competitive medical, dental, and vision available from Day 1\n- Company equity\n- 401(k) plan with company match (our company match kicks off at the beginning of 2026)\n- Unlimited paid time off + 13 company paid holidays\n- Parental leave&nbsp;\n- Flex Cares Program\n- Free Flex subscription\n&nbsp;For full time non-US employees, we offer\n- Competitive compensation + company equity\n- Unlimited PTO",
           "is_valid": true,
-          "reason": "Valid description (3527 chars)"
+          "reason": "Valid description (3527 chars, 558 words)"
         },
         {
           "name": "empty_description_fallback",

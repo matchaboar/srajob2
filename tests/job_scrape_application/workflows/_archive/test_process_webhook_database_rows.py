@@ -37,7 +37,7 @@ async def test_process_webhook_marks_invalid_job_id_processed(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"mark": [], "complete": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -116,7 +116,7 @@ async def test_process_webhook_handles_batch_scrape_completed_greenhouse(monkeyp
     fetch_calls = {"count": 0}
     calls: Dict[str, List[Any]] = {"collect": [], "mark": [], "store": [], "complete": []}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -193,7 +193,7 @@ async def test_greenhouse_listing_with_no_jobs_still_stores_raw(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, List[Any]] = {"collect": [], "mark": [], "store": [], "complete": []}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []
@@ -261,7 +261,7 @@ async def test_pending_webhook_retries_on_429(monkeypatch):
     fetch_calls = {"count": 0}
     calls: Dict[str, Any] = {"mark": [], "fail": [], "record": None}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.fetch_pending_firecrawl_webhooks:
             fetch_calls["count"] += 1
             return events if fetch_calls["count"] == 1 else []

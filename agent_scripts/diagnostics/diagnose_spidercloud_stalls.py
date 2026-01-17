@@ -131,7 +131,7 @@ def _latest_eligible_time(schedule: Dict[str, Any] | None, now_ms: int) -> Optio
         tzinfo=ZoneInfo(time_zone),
     ).replace(hour=0, minute=0, second=0, microsecond=0)
     return int(day_start.timestamp() * 1000) + minutes_at_slot * 60 * 1000
-async def _list_queue(status: Optional[str], provider: Optional[str], limit: int) -> List[Dict[str, Any]]:
+def _list_queue(status: Optional[str], provider: Optional[str], limit: int) -> List[Dict[str, Any]]:
     return dbos_queue.list_scrape_urls(provider=provider, status=status, limit=limit) or []
 def _summarize_queue(rows: List[Dict[str, Any]], now_ms: int, expire_minutes: int) -> Dict[str, Any]:
     if not rows:
@@ -162,9 +162,9 @@ def _summarize_queue(rows: List[Dict[str, Any]], now_ms: int, expire_minutes: in
             for r in rows[:5]
         ],
     }
-async def _gather_site_schedule_summary(now_ms: int) -> Dict[str, Any]:
-    sites = await convex_query("router:listSites", {"enabledOnly": True}) or []
-    schedules = await convex_query("router:listSchedules", {}) or []
+def _gather_site_schedule_summary(now_ms: int) -> Dict[str, Any]:
+    sites = convex_query("router:listSites", {"enabledOnly": True}) or []
+    schedules = convex_query("router:listSchedules", {}) or []
     schedule_map = {str(s.get("_id")): s for s in schedules if isinstance(s, dict)}
 
     summary = Counter()
@@ -209,8 +209,8 @@ async def _gather_site_schedule_summary(now_ms: int) -> Dict[str, Any]:
             for row in due_sites[:5]
         ],
     }
-async def _gather_scrape_errors() -> Dict[str, Any]:
-    rows = await convex_query("router:listScrapeErrors", {"limit": 50}) or []
+def _gather_scrape_errors() -> Dict[str, Any]:
+    rows = convex_query("router:listScrapeErrors", {"limit": 50}) or []
     by_event = Counter([str(r.get("event") or "") for r in rows])
     return {
         "count": len(rows),
@@ -293,10 +293,10 @@ async def main() -> None:
     runtime = _load_runtime_config(args.env)
     expire_minutes = runtime.spidercloud_job_details_processing_expire_minutes
 
-    pending = await _list_queue("pending", args.provider, args.limit)
-    processing = await _list_queue("processing", args.provider, args.limit)
-    failed = await _list_queue("failed", args.provider, args.limit)
-    completed = await _list_queue("completed", args.provider, min(args.limit, 200))
+    pending = _list_queue("pending", args.provider, args.limit)
+    processing = _list_queue("processing", args.provider, args.limit)
+    failed = _list_queue("failed", args.provider, args.limit)
+    completed = _list_queue("completed", args.provider, min(args.limit, 200))
 
     report: Dict[str, Any] = {
         "now": _fmt_dt(now_ms),
@@ -311,8 +311,8 @@ async def main() -> None:
             "failed": _summarize_queue(failed, now_ms, expire_minutes),
             "completed": _summarize_queue(completed, now_ms, expire_minutes),
         },
-        "sites": await _gather_site_schedule_summary(now_ms),
-        "scrapeErrors": await _gather_scrape_errors(),
+        "sites": _gather_site_schedule_summary(now_ms),
+        "scrapeErrors": _gather_scrape_errors(),
     }
 
     if pending:

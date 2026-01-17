@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/twilio/greenhouse_cx7z5e6a_20260113_20260113T234317_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7484699
+expected:
+  title: "Cloud Software Engineer"
+  company: "Twilio"
+  location_contains: "Ireland"
+  is_remote: true
+  level: mid
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

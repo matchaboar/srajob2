@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-import pytest
-
 
 from job_scrape_application.dbos_runtime.queue import LeaseResult
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.dbos_runtime.step import lease_scrape_url_batch_step
+from job_scrape_application.workflows.helpers.scrape_utils import _jobs_from_scrape_items  # noqa: E402
 
 
-@pytest.mark.asyncio
-async def test_lease_scrape_url_batch_payload_types(monkeypatch):
+def test_lease_scrape_url_batch_payload_types(monkeypatch):
     """Ensure Convex payload contains only supported types/keys."""
 
     captured: Dict[str, Any] = {}
@@ -20,11 +18,11 @@ async def test_lease_scrape_url_batch_payload_types(monkeypatch):
         return LeaseResult(urls=[{"url": "https://example.com/job/1"}], skipped_urls=[])
 
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.lease_scrape_url_batch",
+        "job_scrape_application.dbos_runtime.step.lease_scrape_url_batch._lease_from_queue",
         fake_lease_scrape_url_batch,
     )
 
-    res = await acts.lease_scrape_url_batch(provider=None, limit=5)
+    res = lease_scrape_url_batch_step(provider=None, limit=5)
 
     assert captured["provider"] is None
     assert captured["limit"] == 5
@@ -53,7 +51,7 @@ def test_jobs_from_scrape_items_produces_convex_safe_payload():
         ]
     }
 
-    jobs = acts._jobs_from_scrape_items(  # noqa: SLF001
+    jobs = _jobs_from_scrape_items(
         items,
         default_posted_at=default_ts,
         scraped_at=default_ts,

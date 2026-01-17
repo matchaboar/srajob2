@@ -1,0 +1,32 @@
+{
+  "site_id": "greenhouse_support_page_20260114T201434",
+  "listing_url": "https://support.greenhouse.io/hc/en-us",
+  "source_url": "https://support.greenhouse.io/hc/en-us",
+  "handler_name": "GreenhouseHandler",
+  "content_type": "commonmark",
+  "extraction_method": null,
+  "url_pipeline": {
+    "input_url": "https://support.greenhouse.io/hc/en-us",
+    "scrape_url": "https://support.greenhouse.io/hc/en-us"
+  },
+  "detail_url_pipeline": {
+    "raw_extracted_count": 0,
+    "handler_filtered_count": 0,
+    "api_transformed_count": 0
+  },
+  "scraped_url_count": 0,
+  "extracted_url_count": 0,
+  "filtered_url_count": 0,
+  "normalized_url_count": 0,
+  "apply_url_count": 0,
+  "pagination_url_count": 0,
+  "rejected_url_count": 0,
+  "sample_urls": [],
+  "scraped_urls": [],
+  "normalized_urls": [],
+  "apply_urls": [],
+  "sample_transformations": [],
+  "url_transformations": [],
+  "rejected_urls": [],
+  "error": null
+}

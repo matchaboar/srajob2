@@ -1,35 +1,55 @@
 {
   "site_id": "coinbase",
-  "detail_url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7404504",
+  "detail_url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144",
   "source_url": "https://api.greenhouse.io/v1/boards/coinbase/jobs",
   "extracted_jobs": [
     {
-      "title": "Accounting Intern",
-      "description_preview": "Accounting Intern Ready to be pushed beyond what you think you’re capable of? At Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the...",
-      "description_word_count": 1051,
-      "location": "Hybrid - New York, NY",
-      "is_remote": false,
-      "posted_at": 1767303972000,
+      "title": "Accounting Manager, Canada CIRO",
+      "description_preview": "Accounting Manager, Canada CIRO Ready to be pushed beyond what you think you’re capable of? At Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with...",
+      "description_word_count": 1425,
+      "location": "Remote - Canada",
+      "is_remote": true,
+      "posted_at": 1768596585000,
       "posted_at_unknown": false,
       "company": "Coinbase Careers Page",
-      "level": "junior",
+      "level": "senior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
-      "url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7404504",
-      "cost_milli_cents": 3
+      "compensation_unknown": false,
+      "compensation_reason": null,
+      "url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144",
+      "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Accounting Manager, Canada CIRO",
+        "company": "Coinbase Careers Page",
+        "location": "Remote - Canada",
+        "description": "Accounting Manager, Canada CIRO\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144",
+        "apply_url": "https://boards.greenhouse.io/coinbase/jobs/7528144",
+        "posted_at": 1768596585000,
+        "level": "senior",
+        "remote": true,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 1425
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144",
+        "word_count": 1425,
+        "description_preview": "Accounting Manager, Canada CIRO Ready to be pushed beyond what you think you’re capable of? At Coinbase, our mission is to increase economic freedom in the world. It’s a massive,..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
-      "final_value": "Accounting Intern",
+      "final_value": "Accounting Manager, Canada CIRO",
       "winning_strategy": "raw_row_title",
       "strategy_count": 6,
       "strategies": [
@@ -50,7 +70,7 @@
         {
           "name": "raw_row_title",
           "priority": "EXPLICIT_FIELD",
-          "value": "Accounting Intern",
+          "value": "Accounting Manager, Canada CIRO",
           "is_valid": true,
           "reason": "Valid title"
         },
@@ -64,14 +84,14 @@
         {
           "name": "hinted_title",
           "priority": "HEURISTIC",
-          "value": "Accounting Intern",
+          "value": "Accounting Manager, Canada CIRO",
           "is_valid": true,
           "reason": "Valid title"
         },
         {
           "name": "first_line_title",
           "priority": "FALLBACK",
-          "value": "Accounting Intern",
+          "value": "Accounting Manager, Canada CIRO",
           "is_valid": true,
           "reason": "Valid title"
         }
@@ -106,16 +126,16 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Coinbase",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "This",
+          "value": "our Global Controllership team",
           "is_valid": true,
-          "reason": "Found 'Company is a' pattern"
+          "reason": "Found 'Join Company' pattern"
         },
         {
           "name": "hinted_company",
@@ -134,7 +154,7 @@
       ]
     },
     "location": {
-      "final_value": "Hybrid - New York, NY",
+      "final_value": "Remote - Canada",
       "winning_strategy": "raw_row_location",
       "strategy_count": 9,
       "strategies": [
@@ -155,7 +175,7 @@
         {
           "name": "raw_row_location",
           "priority": "EXPLICIT_FIELD",
-          "value": "Hybrid - New York, NY",
+          "value": "Remote - Canada",
           "is_valid": true,
           "reason": "Valid location"
         },
@@ -176,14 +196,14 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Tax, Treasury",
-          "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "value": null,
+          "is_valid": false,
+          "reason": "No location pattern matched"
         },
         {
           "name": "country_only_fallback_location",
           "priority": "CUSTOM_550",
-          "value": "Hybrid - New York, NY",
+          "value": "Remote - Canada",
           "is_valid": true,
           "reason": "Country-only fallback: Valid location"
         },
@@ -204,23 +224,37 @@
       ]
     },
     "remote": {
-      "final_value": false,
+      "final_value": true,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
           "priority": "STRUCTURED_DATA",
-          "value": false,
+          "value": true,
           "is_valid": true,
-          "reason": "Explicit boolean remote=False"
+          "reason": "Explicit boolean remote=True"
+        },
+        {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
         },
         {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
+          "value": true,
           "is_valid": true,
-          "reason": "Location is specific place: Hybrid - New York, NY"
+          "reason": "Location contains 'remote': Remote - Canada"
         },
         {
           "name": "title_remote",
@@ -260,16 +294,16 @@
       ]
     },
     "level": {
-      "final_value": "junior",
+      "final_value": "senior",
       "winning_strategy": "explicit_level_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "junior",
+          "value": "senior",
           "is_valid": true,
-          "reason": "Explicit level field: junior -> junior"
+          "reason": "Explicit level field: senior -> senior"
         },
         {
           "name": "structured_data_level",
@@ -281,16 +315,16 @@
         {
           "name": "title_level",
           "priority": "CONTENT_PATTERN",
-          "value": "junior",
+          "value": "senior",
           "is_valid": true,
-          "reason": "Level from title: 'intern' -> junior"
+          "reason": "Level from title: 'manager' -> senior"
         },
         {
           "name": "content_pattern_level",
           "priority": "CUSTOM_550",
-          "value": "junior",
-          "is_valid": true,
-          "reason": "Level from content: 'Intern' -> junior"
+          "value": null,
+          "is_valid": false,
+          "reason": "No level pattern in content"
         },
         {
           "name": "hinted_level",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 40000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 170000,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,18 +362,18 @@
           "reason": "No structured data available"
         },
         {
-          "name": "content_pattern_compensation",
-          "priority": "CONTENT_PATTERN",
-          "value": 40000,
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 170000,
           "is_valid": true,
-          "reason": "Single compensation pattern: $40,000"
+          "reason": "Compensation from hint range: $170,000-$170,000 -> $170,000 (avg)"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
+          "name": "content_pattern_compensation",
+          "priority": "CONTENT_PATTERN",
+          "value": 170000,
+          "is_valid": true,
+          "reason": "Single compensation pattern: $170,000"
         },
         {
           "name": "unknown_compensation",
@@ -350,17 +384,52 @@
         }
       ]
     },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
+        }
+      ]
+    },
     "posted_at": {
-      "final_value": "2026-01-01T14:46:12",
+      "final_value": "2026-01-16T13:49:45",
       "winning_strategy": "explicit_posted_at_field",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_posted_at_field",
           "priority": "STRUCTURED_DATA",
-          "value": "2026-01-01T14:46:12",
+          "value": "2026-01-16T13:49:45",
           "is_valid": true,
-          "reason": "Valid date: 2026-01-01T14:46:12"
+          "reason": "Valid date: 2026-01-16T13:49:45"
         },
         {
           "name": "structured_data_posted_at",
@@ -393,14 +462,42 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:02.709371",
+          "value": "2026-01-17T13:05:59.172886",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }
       ]
     },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
+        }
+      ]
+    },
     "description": {
-      "final_value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+      "final_value": "Accounting Manager, Canada CIRO\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nCoinbase Canada is looking for a highly motivated accounting and finance professional to join our Global Controllership team and play a key role in our continued growth and achievement of operational excellence. The Accounting Manager, Canada CIRO must possess strong accounting, finance, operational and managerial expertise, an ability to communicate and work with various teams inside of Finance (such as Tax, FP&amp;A, Financial Reporting, Treasury, Payroll and Accounts Payable), and a desire to make a meaningful impact on a dynamic, high-growth technology company.\nReporting to the Head of Global Reporting, Accounting Manager, Canada CIRO will play a pivotal role in overseeing and managing portions of Coinbase Global’s operational finance and accounting tasks as well as ensuring adherence to the regulatory framework outlined by the Canadian Securities Administration (CSA) for Crypto Trading Platforms (CTPs) and National Instrument 31-103 and the Canadian Investment Regulatory Organization (CIRO). The position is designed for a highly-technical individual and will involve collaborating with a multi-national finance organization. This position will directly own the maintenance of the books of account under IFRS and will also include involvement in the close process including preparing and/or reviewing internal and external financial reporting and analyses. The role will require collaboration with various teams across the organization to ensure the complete and accurate delivery of reporting to&nbsp; senior management and the board of directors. This role will also play a crucial role in process design to include assisting with the implementation of controls and process improvements. This role requires someone with impeccable attention to detail, a financial and analytic mindset, and a strong desire to develop their career at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties): &nbsp;\n- Overseeing the accounting, financial and regulatory reporting and finance functions in Canada and ensuring finance processes operate effectively and accurately, following the Coinbase centralized model,&nbsp; delivering accurate financial insights into the business.\n- Partnering with the Global accounting team to prepare and/or review assigned month end and quarter end close book close processes, own the Company’s parallel books of accounts maintained in line with IFRS and maintain appropriate reconciliations and valid support for all adjustments.&nbsp;&nbsp;\n- Responsible for preparation and coordination of financial statements, regulatory reporting,&nbsp; business forecasts (partnering with FP&amp;A) and other related information for external use (audit, submission to regulators, etc.), and play a leading role in external communication as the representative of the Finance department.\n- Preparation of Coinbase Canada monthly management reporting and analytical review thereof, including reporting and communication to the Board.\n- Acting as a contact point within the company for financial and accounting queries and queries from regulatory authorities relating to the finance function of the firm.\n- Preparing and updating various finance policies and procedures.\n- Monitoring and overseeing the performance of outsourced services by outsourced service providers relating to the finance function and assessing KPIs and SLAs.\n- Active in Coinbase Canada liquidity management and&nbsp; coordinating closely with the treasury team.\n- Participating&nbsp; in critical projects, including the transitioning to new external vendors, integration, automation or enhancements.\n- Supporting ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements): &nbsp;\n- 6+ years’ experience as a finance professional at a bank, fin-tech, financial regulatory agency and/or professional service firm serving financial institution clients.\n- 3+ experience working in a regulated entity/environment.\n- Previous Board/senior management level experience, or demonstrated the ability to communicate directly to the Board/senior management.\n- CPA or equivalent required.\n- Ability to work collaboratively with a broad range of business functions, with an emphasis on senior management and a track record of performing in a management role. Project management experience is essential.\n- Excellent oral and written communication – fluency in English is a key requirement.\n- Capacity to meet deadlines while maintaining quality standards and effective time management.\n- Ability to thrive in a fast-paced environment within a high growth business.\n- Expert knowledge and experience with IFRS and US GAAP.\n- Knowledge of accounting month-end book close process.\n- Strong communication skills, both written and verbal\nNice to haves:\n- Experience working in Netsuite, FloQast and Google Suite.Experience working in a SOX control environment.\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn.\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools.\nPosition ID: &nbsp;P75564\n#LI-Remote\nPay Transparency Notice: The target annual base salary for this position can range as detailed below. Full time offers from Coinbase also include bonus eligibility + equity eligibility + benefits (including medical, dental, and vision)\nBase salary range shown. Total compensation also includes equity and bonus eligibility and benefits: $170,000 &mdash; $170,000 CAD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
       "winning_strategy": "normalized_markdown_description",
       "strategy_count": 5,
       "strategies": [
@@ -414,23 +511,23 @@
         {
           "name": "normalized_markdown_description",
           "priority": "SITE_HANDLER",
-          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "value": "Accounting Manager, Canada CIRO\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nCoinbase Canada is looking for a highly motivated accounting and finance professional to join our Global Controllership team and play a key role in our continued growth and achievement of operational excellence. The Accounting Manager, Canada CIRO must possess strong accounting, finance, operational and managerial expertise, an ability to communicate and work with various teams inside of Finance (such as Tax, FP&amp;A, Financial Reporting, Treasury, Payroll and Accounts Payable), and a desire to make a meaningful impact on a dynamic, high-growth technology company.\nReporting to the Head of Global Reporting, Accounting Manager, Canada CIRO will play a pivotal role in overseeing and managing portions of Coinbase Global’s operational finance and accounting tasks as well as ensuring adherence to the regulatory framework outlined by the Canadian Securities Administration (CSA) for Crypto Trading Platforms (CTPs) and National Instrument 31-103 and the Canadian Investment Regulatory Organization (CIRO). The position is designed for a highly-technical individual and will involve collaborating with a multi-national finance organization. This position will directly own the maintenance of the books of account under IFRS and will also include involvement in the close process including preparing and/or reviewing internal and external financial reporting and analyses. The role will require collaboration with various teams across the organization to ensure the complete and accurate delivery of reporting to&nbsp; senior management and the board of directors. This role will also play a crucial role in process design to include assisting with the implementation of controls and process improvements. This role requires someone with impeccable attention to detail, a financial and analytic mindset, and a strong desire to develop their career at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties): &nbsp;\n- Overseeing the accounting, financial and regulatory reporting and finance functions in Canada and ensuring finance processes operate effectively and accurately, following the Coinbase centralized model,&nbsp; delivering accurate financial insights into the business.\n- Partnering with the Global accounting team to prepare and/or review assigned month end and quarter end close book close processes, own the Company’s parallel books of accounts maintained in line with IFRS and maintain appropriate reconciliations and valid support for all adjustments.&nbsp;&nbsp;\n- Responsible for preparation and coordination of financial statements, regulatory reporting,&nbsp; business forecasts (partnering with FP&amp;A) and other related information for external use (audit, submission to regulators, etc.), and play a leading role in external communication as the representative of the Finance department.\n- Preparation of Coinbase Canada monthly management reporting and analytical review thereof, including reporting and communication to the Board.\n- Acting as a contact point within the company for financial and accounting queries and queries from regulatory authorities relating to the finance function of the firm.\n- Preparing and updating various finance policies and procedures.\n- Monitoring and overseeing the performance of outsourced services by outsourced service providers relating to the finance function and assessing KPIs and SLAs.\n- Active in Coinbase Canada liquidity management and&nbsp; coordinating closely with the treasury team.\n- Participating&nbsp; in critical projects, including the transitioning to new external vendors, integration, automation or enhancements.\n- Supporting ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements): &nbsp;\n- 6+ years’ experience as a finance professional at a bank, fin-tech, financial regulatory agency and/or professional service firm serving financial institution clients.\n- 3+ experience working in a regulated entity/environment.\n- Previous Board/senior management level experience, or demonstrated the ability to communicate directly to the Board/senior management.\n- CPA or equivalent required.\n- Ability to work collaboratively with a broad range of business functions, with an emphasis on senior management and a track record of performing in a management role. Project management experience is essential.\n- Excellent oral and written communication – fluency in English is a key requirement.\n- Capacity to meet deadlines while maintaining quality standards and effective time management.\n- Ability to thrive in a fast-paced environment within a high growth business.\n- Expert knowledge and experience with IFRS and US GAAP.\n- Knowledge of accounting month-end book close process.\n- Strong communication skills, both written and verbal\nNice to haves:\n- Experience working in Netsuite, FloQast and Google Suite.Experience working in a SOX control environment.\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn.\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools.\nPosition ID: &nbsp;P75564\n#LI-Remote\nPay Transparency Notice: The target annual base salary for this position can range as detailed below. Full time offers from Coinbase also include bonus eligibility + equity eligibility + benefits (including medical, dental, and vision)\nBase salary range shown. Total compensation also includes equity and bonus eligibility and benefits: $170,000 &mdash; $170,000 CAD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (7064 chars)"
+          "reason": "Valid description (9723 chars, 1425 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
-          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "value": "Accounting Manager, Canada CIRO\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nCoinbase Canada is looking for a highly motivated accounting and finance professional to join our Global Controllership team and play a key role in our continued growth and achievement of operational excellence. The Accounting Manager, Canada CIRO must possess strong accounting, finance, operational and managerial expertise, an ability to communicate and work with various teams inside of Finance (such as Tax, FP&amp;A, Financial Reporting, Treasury, Payroll and Accounts Payable), and a desire to make a meaningful impact on a dynamic, high-growth technology company.\nReporting to the Head of Global Reporting, Accounting Manager, Canada CIRO will play a pivotal role in overseeing and managing portions of Coinbase Global’s operational finance and accounting tasks as well as ensuring adherence to the regulatory framework outlined by the Canadian Securities Administration (CSA) for Crypto Trading Platforms (CTPs) and National Instrument 31-103 and the Canadian Investment Regulatory Organization (CIRO). The position is designed for a highly-technical individual and will involve collaborating with a multi-national finance organization. This position will directly own the maintenance of the books of account under IFRS and will also include involvement in the close process including preparing and/or reviewing internal and external financial reporting and analyses. The role will require collaboration with various teams across the organization to ensure the complete and accurate delivery of reporting to&nbsp; senior management and the board of directors. This role will also play a crucial role in process design to include assisting with the implementation of controls and process improvements. This role requires someone with impeccable attention to detail, a financial and analytic mindset, and a strong desire to develop their career at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties): &nbsp;\n- Overseeing the accounting, financial and regulatory reporting and finance functions in Canada and ensuring finance processes operate effectively and accurately, following the Coinbase centralized model,&nbsp; delivering accurate financial insights into the business.\n- Partnering with the Global accounting team to prepare and/or review assigned month end and quarter end close book close processes, own the Company’s parallel books of accounts maintained in line with IFRS and maintain appropriate reconciliations and valid support for all adjustments.&nbsp;&nbsp;\n- Responsible for preparation and coordination of financial statements, regulatory reporting,&nbsp; business forecasts (partnering with FP&amp;A) and other related information for external use (audit, submission to regulators, etc.), and play a leading role in external communication as the representative of the Finance department.\n- Preparation of Coinbase Canada monthly management reporting and analytical review thereof, including reporting and communication to the Board.\n- Acting as a contact point within the company for financial and accounting queries and queries from regulatory authorities relating to the finance function of the firm.\n- Preparing and updating various finance policies and procedures.\n- Monitoring and overseeing the performance of outsourced services by outsourced service providers relating to the finance function and assessing KPIs and SLAs.\n- Active in Coinbase Canada liquidity management and&nbsp; coordinating closely with the treasury team.\n- Participating&nbsp; in critical projects, including the transitioning to new external vendors, integration, automation or enhancements.\n- Supporting ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements): &nbsp;\n- 6+ years’ experience as a finance professional at a bank, fin-tech, financial regulatory agency and/or professional service firm serving financial institution clients.\n- 3+ experience working in a regulated entity/environment.\n- Previous Board/senior management level experience, or demonstrated the ability to communicate directly to the Board/senior management.\n- CPA or equivalent required.\n- Ability to work collaboratively with a broad range of business functions, with an emphasis on senior management and a track record of performing in a management role. Project management experience is essential.\n- Excellent oral and written communication – fluency in English is a key requirement.\n- Capacity to meet deadlines while maintaining quality standards and effective time management.\n- Ability to thrive in a fast-paced environment within a high growth business.\n- Expert knowledge and experience with IFRS and US GAAP.\n- Knowledge of accounting month-end book close process.\n- Strong communication skills, both written and verbal\nNice to haves:\n- Experience working in Netsuite, FloQast and Google Suite.Experience working in a SOX control environment.\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn.\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools.\nPosition ID: &nbsp;P75564\n#LI-Remote\nPay Transparency Notice: The target annual base salary for this position can range as detailed below. Full time offers from Coinbase also include bonus eligibility + equity eligibility + benefits (including medical, dental, and vision)\nBase salary range shown. Total compensation also includes equity and bonus eligibility and benefits: $170,000 &mdash; $170,000 CAD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (7064 chars)"
+          "reason": "Valid description (9723 chars, 1425 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
-          "value": "Accounting Intern\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nThis is a 12-week internship during summer 2026.\nCoinbase is looking for a highly motivated Accounting Intern to work with our Accounting team and play a meaningful role in our continued growth and achievement of operational excellence during the internship. The Accounting Intern must possess some accounting knowledge, an ability to communicate clearly and work with various teams inside of Finance (such as Tax, FP&amp;A, and Accounts Payable), and a desire to have a beneficial experience in a dynamic, high-growth technology company.\nReporting to the Assistant Controller, the Accounting Intern will have a chance to assist in the company’s accounting operations across a wide range of areas. This position will have the opportunity to collaborate with various teams across the organization, and assist with the company’s day-to-day and month/quarter-end accounting processes and support accounting transformation projects. This role requires someone with high-positive energy, impeccable attention to detail, a financial and analytic mindset, and a strong desire to get hands-on accounting experience at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties):\n- Assist with various areas of the company’s accounting processes, recording daily journals and creating supporting schedules.\n- Assist with preparation of balance sheet reconciliations&nbsp; and supporting schedules\n- Cross-functional collaboration with FP&amp;A, Tax, Treasury, and Source-To-Pay teams, among others, to ensure proper accounting and financial reporting.\n- Prepare supporting documentation for external audits, including non-US subsidiary statutory financial statements.\n- Participate in critical accounting projects, including the implementation of new system logics or enhancements.\n- Provide support for internal and external audits related to specific areas of responsibility.\n- Maintain compliance with internal controls, policies and procedures.\n- Maintain up-to-date process documentation and procedures for all tasks.\n- Support ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements):\n- Possess excellent analytical skills, business partnering, problem solving and prioritization skills\n- Able to work well in a dynamic environment&nbsp;\n- Excellent communication skills, both written and verbal\n- Strong work ethic and team player\n- Currently pursuing a BA/BS degree in Accounting or related field\n- Knowledge of US GAAP\nNice to haves:\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn\nPay Transparency Notice: &nbsp;Depending on your work location, the target hourly rate for this position can range as detailed below.\n&nbsp;\nHourly Rate: $40 &mdash; $40 USD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
+          "value": "Accounting Manager, Canada CIRO\n\nReady to be pushed beyond what you think you’re capable of?\nAt Coinbase, our mission is to increase economic freedom in the world. It’s a massive, ambitious opportunity that demands the best of us, every day, as we build the emerging onchain platform — and with it, the future global financial system.\nTo achieve our mission, we’re seeking a very specific candidate. We want someone who is passionate about our mission and who believes in the power of crypto and blockchain technology to update the financial system. We want someone who is eager to leave their mark on the world, who relishes the pressure and privilege of working with high caliber colleagues, and who actively seeks feedback to keep leveling up. We want someone who will run towards, not away from, solving the company’s hardest problems.\nOur work culture is intense and isn’t for everyone. But if you want to build the future alongside others who excel in their disciplines and expect the same from you, there’s no better place to be.\nWhile many roles at Coinbase are remote-first, we are not remote-only. In-person participation is required throughout the year. Team and company-wide offsites are held multiple times annually to foster collaboration, connection, and alignment. Attendance is expected and fully supported.\nCoinbase Canada is looking for a highly motivated accounting and finance professional to join our Global Controllership team and play a key role in our continued growth and achievement of operational excellence. The Accounting Manager, Canada CIRO must possess strong accounting, finance, operational and managerial expertise, an ability to communicate and work with various teams inside of Finance (such as Tax, FP&amp;A, Financial Reporting, Treasury, Payroll and Accounts Payable), and a desire to make a meaningful impact on a dynamic, high-growth technology company.\nReporting to the Head of Global Reporting, Accounting Manager, Canada CIRO will play a pivotal role in overseeing and managing portions of Coinbase Global’s operational finance and accounting tasks as well as ensuring adherence to the regulatory framework outlined by the Canadian Securities Administration (CSA) for Crypto Trading Platforms (CTPs) and National Instrument 31-103 and the Canadian Investment Regulatory Organization (CIRO). The position is designed for a highly-technical individual and will involve collaborating with a multi-national finance organization. This position will directly own the maintenance of the books of account under IFRS and will also include involvement in the close process including preparing and/or reviewing internal and external financial reporting and analyses. The role will require collaboration with various teams across the organization to ensure the complete and accurate delivery of reporting to&nbsp; senior management and the board of directors. This role will also play a crucial role in process design to include assisting with the implementation of controls and process improvements. This role requires someone with impeccable attention to detail, a financial and analytic mindset, and a strong desire to develop their career at a rapidly growing organization.\nWhat you’ll be doing (ie. job duties): &nbsp;\n- Overseeing the accounting, financial and regulatory reporting and finance functions in Canada and ensuring finance processes operate effectively and accurately, following the Coinbase centralized model,&nbsp; delivering accurate financial insights into the business.\n- Partnering with the Global accounting team to prepare and/or review assigned month end and quarter end close book close processes, own the Company’s parallel books of accounts maintained in line with IFRS and maintain appropriate reconciliations and valid support for all adjustments.&nbsp;&nbsp;\n- Responsible for preparation and coordination of financial statements, regulatory reporting,&nbsp; business forecasts (partnering with FP&amp;A) and other related information for external use (audit, submission to regulators, etc.), and play a leading role in external communication as the representative of the Finance department.\n- Preparation of Coinbase Canada monthly management reporting and analytical review thereof, including reporting and communication to the Board.\n- Acting as a contact point within the company for financial and accounting queries and queries from regulatory authorities relating to the finance function of the firm.\n- Preparing and updating various finance policies and procedures.\n- Monitoring and overseeing the performance of outsourced services by outsourced service providers relating to the finance function and assessing KPIs and SLAs.\n- Active in Coinbase Canada liquidity management and&nbsp; coordinating closely with the treasury team.\n- Participating&nbsp; in critical projects, including the transitioning to new external vendors, integration, automation or enhancements.\n- Supporting ad hoc financial information requests and analyses and other special projects as assigned.\nWhat we look for in you (ie. job requirements): &nbsp;\n- 6+ years’ experience as a finance professional at a bank, fin-tech, financial regulatory agency and/or professional service firm serving financial institution clients.\n- 3+ experience working in a regulated entity/environment.\n- Previous Board/senior management level experience, or demonstrated the ability to communicate directly to the Board/senior management.\n- CPA or equivalent required.\n- Ability to work collaboratively with a broad range of business functions, with an emphasis on senior management and a track record of performing in a management role. Project management experience is essential.\n- Excellent oral and written communication – fluency in English is a key requirement.\n- Capacity to meet deadlines while maintaining quality standards and effective time management.\n- Ability to thrive in a fast-paced environment within a high growth business.\n- Expert knowledge and experience with IFRS and US GAAP.\n- Knowledge of accounting month-end book close process.\n- Strong communication skills, both written and verbal\nNice to haves:\n- Experience working in Netsuite, FloQast and Google Suite.Experience working in a SOX control environment.\n- Basic knowledge of digital assets and the crypto economy, or a desire to learn.\n- Basic knowledge of SQL and experience working with Snowflake, Looker or similar analytics tools.\nPosition ID: &nbsp;P75564\n#LI-Remote\nPay Transparency Notice: The target annual base salary for this position can range as detailed below. Full time offers from Coinbase also include bonus eligibility + equity eligibility + benefits (including medical, dental, and vision)\nBase salary range shown. Total compensation also includes equity and bonus eligibility and benefits: $170,000 &mdash; $170,000 CAD Please be advised that each candidate may submit a maximum of four applications within any 30-day period. We encourage you to carefully evaluate how your skills and interests align with Coinbase's roles before applying.\nCommitment to Equal Opportunity\nCoinbase is proud to be an Equal Opportunity Employer.&nbsp; All qualified applicants will receive consideration for employment without regard to race, color, religion, creed, gender, national origin, age, disability, veteran status, sex, gender expression or identity, sexual orientation or any other basis protected by applicable law. Coinbase will also consider for employment qualified applicants with criminal histories in a manner consistent with applicable federal, state and local law.&nbsp; For US applicants, you may view the Employee Rights and the Know Your Rights notices by clicking on their corresponding links. Additionally, Coinbase participates in the E-Verify program in certain locations, as required by law.&nbsp;\nCoinbase is also committed to providing reasonable accommodations to individuals with disabilities. If you need a reasonable accommodation because of a disability for any part of the employment process, please contact us at accommodations[at]coinbase.com to let us know the nature of your request and your contact information. &nbsp; For quick access to screen reading technology compatible with this site click here to download a free compatible screen reader (free step by step tutorial can be found here) .\nGlobal Data Privacy Notice for Job Candidates and Applicants\nDepending on your location, the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) may regulate the way we manage the data of job applicants. Our full notice outlining how data will be processed as part of the application procedure for applicable locations is available here . By submitting your application, you are agreeing to our use and processing of your data as required.\nAI Disclosure\nFor select roles, Coinbase is piloting an AI tool based on machine learning technologies to conduct initial screening interviews to qualified applicants. The tool simulates realistic interview scenarios and engages in dynamic conversation. A human recruiter will review your interview responses, provided in the form of a voice recording and/or transcript, to assess them against the qualifications and characteristics outlined in the job description.&nbsp;&nbsp;\nFor select roles, Coinbase is also piloting an AI interview intelligence platform to transcribe and summarize interview notes, allowing our interviewers to fully focus on you as the candidate.&nbsp;\nThe above pilots are for testing purposes and Coinbase will not use AI to make decisions impacting employment . To request a reasonable accommodation due to disability, please contact accommodations[at]coinbase.com\n&nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (7064 chars)"
+          "reason": "Valid description (9723 chars, 1425 words)"
         },
         {
           "name": "empty_description_fallback",

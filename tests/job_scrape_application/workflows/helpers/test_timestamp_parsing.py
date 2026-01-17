@@ -33,8 +33,8 @@ class TestConstants:
         assert match.group("value") == "2"
         assert match.group("unit") == "weeks"
 
-    def test_relative_posted_min_days_is_30(self):
-        assert _RELATIVE_POSTED_MIN_DAYS == 30
+    def test_relative_posted_min_days_is_7(self):
+        assert _RELATIVE_POSTED_MIN_DAYS == 7
 
 
 class TestParseRelativePostedAt:
@@ -58,11 +58,14 @@ class TestParseRelativePostedAt:
         expected = now_ms - (5 * 86_400_000)
         assert result == expected
 
-    def test_days_ago_without_posted_keyword_under_min(self):
-        # Without "posted" keyword, days under _RELATIVE_POSTED_MIN_DAYS should return None
+    def test_days_ago_without_posted_keyword_parses_successfully(self):
+        # Relative time expressions parse without requiring "Posted" keyword
         now_ms = 1700000000000
         result = _parse_relative_posted_at("5 days ago", now_ms)
-        assert result is None
+        assert result is not None
+        # 5 days = 5 * 86400 * 1000 ms
+        expected = now_ms - (5 * 86_400_000)
+        assert result == expected
 
     def test_hours_ago(self):
         now_ms = 1700000000000

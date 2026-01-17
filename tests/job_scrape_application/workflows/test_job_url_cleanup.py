@@ -2,10 +2,13 @@ from __future__ import annotations
 
 
 
-from job_scrape_application.workflows.activities import (  # noqa: E402
-    _extract_job_urls_from_scrape,
+from job_scrape_application.workflows.activities.url_processing import (  # noqa: E402
     _filter_job_urls,
     _is_probable_listing_url,
+)
+# Import URL extraction helper function
+from job_scrape_application.workflows.helpers.job_url_extractor import (  # noqa: E402
+    extract_job_urls_from_scrape as _extract_job_urls_from_scrape,
 )
 from job_scrape_application.workflows.site_handlers import get_site_handler  # noqa: E402
 

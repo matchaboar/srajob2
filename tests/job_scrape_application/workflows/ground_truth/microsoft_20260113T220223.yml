@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/microsoft_20260113T220223_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: microsoft
+detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556629309&domain=microsoft.com&hl=en
+expected:
+  title_contains: Software Engineer
+  company: Microsoft
+  location_contains: Redmond
+  is_remote: false
+  level: staff
+  description_min_words: 100
+  cost_milli_cents_min: 1

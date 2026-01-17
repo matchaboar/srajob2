@@ -44,8 +44,16 @@ def _ensure_firecrawl_stub() -> None:
     class _FakePaginationConfig:  # noqa: D401
         """Stub class for firecrawl.v2.types.PaginationConfig."""
 
+        def __init__(self, *args, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
     class _FakeScrapeOptions:  # noqa: D401
         """Stub class for firecrawl.v2.types.ScrapeOptions."""
+
+        def __init__(self, *args, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
 
     firecrawl_v2_types.PaginationConfig = _FakePaginationConfig
     firecrawl_v2_types.ScrapeOptions = _FakeScrapeOptions
@@ -54,10 +62,14 @@ def _ensure_firecrawl_stub() -> None:
     firecrawl_v2_utils_error = types.ModuleType("firecrawl.v2.utils.error_handler")
 
     class _PaymentRequiredError(Exception):
-        pass
+        def __init__(self, message: str = "", status_code: int = 402, *args, **kwargs):
+            super().__init__(message)
+            self.status_code = status_code
 
     class _RequestTimeoutError(Exception):
-        pass
+        def __init__(self, message: str = "", status_code: int = 408, *args, **kwargs):
+            super().__init__(message)
+            self.status_code = status_code
 
     firecrawl_v2_utils_error.PaymentRequiredError = _PaymentRequiredError
     firecrawl_v2_utils_error.RequestTimeoutError = _RequestTimeoutError
@@ -143,13 +155,27 @@ _sync_settings_flags()
 
 
 def pytest_collection_modifyitems(config, items) -> None:  # noqa: ARG001
+    # Allow running firecrawl/fetchfox tests when explicitly requested via env var
+    firecrawl_enabled = os.environ.get("ENABLE_FIRECRAWL_TESTS", "").lower() in ("true", "1")
+    fetchfox_enabled = os.environ.get("ENABLE_FETCHFOX_TESTS", "").lower() in ("true", "1")
+
     skip_marker = pytest.mark.skip(reason="firecrawl/fetchfox workers are disabled")
-    skip_tokens = ("firecrawl", "fetchfox")
 
     for item in items:
+        # Skip if test is marked with mock_firecrawl or mock_fetchfox
+        # These tests fully mock the clients and don't require real workers
+        if item.get_closest_marker("mock_firecrawl") or item.get_closest_marker("mock_fetchfox"):
+            continue
+
         path = Path(str(item.fspath))
         if path.suffix != ".py":
             continue
         lowered_parts = [part.lower() for part in path.parts]
-        if any(token in part for part in lowered_parts for token in skip_tokens):
+        has_firecrawl = any("firecrawl" in part for part in lowered_parts)
+        has_fetchfox = any("fetchfox" in part for part in lowered_parts)
+
+        # Skip unless explicitly enabled
+        if has_firecrawl and not firecrawl_enabled:
+            item.add_marker(skip_marker)
+        elif has_fetchfox and not fetchfox_enabled:
             item.add_marker(skip_marker)

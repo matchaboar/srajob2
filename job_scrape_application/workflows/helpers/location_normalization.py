@@ -257,6 +257,13 @@ _LOCATION_DICTIONARY_KEYS: List[tuple[str, Dict[str, Any]]] = sorted(
 )
 _CITY_KEYWORD_KEYS: List[str] = sorted(_CITY_KEYWORDS.keys(), key=len, reverse=True)
 
+# Pre-compile boundary patterns for all location keys to avoid 2000+ regex compilations per call
+_LOCATION_KEY_COMPILED_PATTERNS: Dict[str, re.Pattern[str]] = {
+    key: re.compile(LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE.format(key=re.escape(key)))
+    for key, _ in _LOCATION_DICTIONARY_KEYS
+    if key and len(key) >= 3
+}
+
 
 def _normalize_country_label(value: str) -> Optional[str]:
     """Get the canonical country label for a location value.
@@ -298,6 +305,23 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
     # This ensures "Redmond, Washington, United States" matches "Redmond, Washington"
     # instead of matching "Washington" (DC) via boundary pattern
     parts = [p.strip() for p in value.split(",") if p.strip()]
+    if len(parts) >= 3:
+        country_label = _normalize_country_label(parts[0])
+        if country_label:
+            second_part_key = _normalize_location_key(parts[1])
+            state_abbr = _STATE_ABBR_BY_KEY.get(second_part_key)
+            if state_abbr:
+                city_part = parts[-1]
+                city_state = f"{city_part}, {parts[1]}"
+                city_state_key = _normalize_location_key(city_state)
+                city_state_match = _LOCATION_DICTIONARY.get(city_state_key)
+                if city_state_match and (allow_remote or not city_state_match.get("remoteOnly")):
+                    return city_state_match
+                city_key = _normalize_location_key(city_part)
+                city_match = _LOCATION_DICTIONARY.get(city_key)
+                if city_match and (allow_remote or not city_match.get("remoteOnly")):
+                    return city_match
+
     if len(parts) >= 2:
         # Try "City, State" first (most specific)
         city_state = f"{parts[0]}, {parts[1]}"
@@ -330,10 +354,8 @@ def _resolve_location_from_dictionary(value: str, allow_remote: bool = True) -> 
             if normalized == key:
                 return entry
             continue
-        if key and len(key) >= 3 and re.search(
-            LOCATION_KEY_BOUNDARY_PATTERN_TEMPLATE.format(key=re.escape(key)),
-            normalized,
-        ):
+        compiled_pattern = _LOCATION_KEY_COMPILED_PATTERNS.get(key)
+        if compiled_pattern and compiled_pattern.search(normalized):
             return entry
     return None
 

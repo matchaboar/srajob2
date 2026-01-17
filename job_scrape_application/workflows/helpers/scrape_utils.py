@@ -9,8 +9,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from ...constants import is_remote_company, title_matches_required_keywords
 from pydantic import BaseModel, ConfigDict, Field
+
+from ...constants import is_remote_company, title_matches_required_keywords
+from .step import fetch_seen_urls_for_site
 
 from .link_extractors import dedupe_str_list, extract_links_from_payload
 from .compensation_parsing import (
@@ -32,6 +34,11 @@ from .company_normalization import (
     is_generic_company_name,
     normalize_company_hint,
     normalize_title_from_bar,
+)
+from .regex_patterns import (
+    _BULLET_PREFIX_RE,
+    _BULLET_PREFIX_NO_WS_RE,
+    _NUMERIC_ID_RE,
 )
 from .location_normalization import (
     _find_city_in_text,
@@ -96,14 +103,38 @@ DESCRIPTION_TRUNCATION_SUFFIX = "..."
 
 
 def _truncate_to_word_limit(value: str, max_words: int) -> str:
-    """Truncate string to max_words, adding '...' suffix if truncated."""
+    """Truncate string to max_words, adding '...' suffix if truncated.
+
+    Preserves original whitespace (including newlines) between words.
+    """
     trimmed = value.strip()
     if not trimmed:
         return ""
-    words = trimmed.split()
-    if len(words) <= max_words:
+
+    # Use regex to find word boundaries while preserving whitespace
+    import re
+    # Split into words and whitespace, keeping both
+    tokens = re.split(r"(\S+)", trimmed)
+    # tokens = ['', word1, whitespace1, word2, whitespace2, ...]
+    # Odd indices are words, even indices are whitespace
+
+    words_seen = 0
+    truncate_at = len(trimmed)
+    pos = 0
+
+    for i, token in enumerate(tokens):
+        if i % 2 == 1:  # This is a word (non-whitespace)
+            words_seen += 1
+            if words_seen > max_words:
+                # Stop before this word
+                truncate_at = pos
+                break
+        pos += len(token)
+
+    if words_seen <= max_words:
         return trimmed
-    return " ".join(words[:max_words]) + DESCRIPTION_TRUNCATION_SUFFIX
+
+    return trimmed[:truncate_at].rstrip() + DESCRIPTION_TRUNCATION_SUFFIX
 
 
 def _clamp_string_to_bytes(value: str, max_bytes: int) -> str:
@@ -384,32 +415,6 @@ class FirecrawlJobSchema(BaseModel):
 
 def build_firecrawl_schema() -> Dict[str, Any]:
     return FirecrawlJobSchema.model_json_schema() if hasattr(FirecrawlJobSchema, "model_json_schema") else {}
-
-
-async def fetch_seen_urls_for_site(
-    source_url: str,
-    pattern: Optional[str],
-    candidate_urls: Optional[List[str]] = None,
-) -> List[str]:
-    from ...services.convex_client import convex_query
-
-    payload: Dict[str, Any] = {"sourceUrl": source_url}
-    if pattern is not None:
-        payload["pattern"] = pattern
-    if candidate_urls is not None:
-        cleaned_candidates = [
-            url.strip() for url in candidate_urls if isinstance(url, str) and url.strip()
-        ]
-        if cleaned_candidates:
-            payload["urls"] = cleaned_candidates
-
-    try:
-        res = await convex_query("router:listSeenJobUrlsForSite", payload)
-    except Exception:
-        return []
-
-    urls = res.get("urls", []) if isinstance(res, dict) else []
-    return [u for u in urls if isinstance(u, str)]
 
 
 def extract_raw_body_from_fetchfox_result(result: Any) -> str:
@@ -794,7 +799,7 @@ def _normalize_section_heading(line: str) -> str:
     if not text:
         return ""
     text = html_lib.unescape(text)
-    text = re.sub(r"^[#*\-\u2022]+\s*", "", text)
+    text = _BULLET_PREFIX_RE.sub("", text)
     text = text.strip().rstrip(":").strip()
     if not text:
         return ""
@@ -818,10 +823,10 @@ def _line_is_metadata_label(line: str) -> bool:
 
 
 def _line_is_numeric(line: str) -> bool:
-    stripped = re.sub(r"^[#*\-\u2022]+\s*", "", line).strip()
+    stripped = _BULLET_PREFIX_RE.sub("", line).strip()
     if not stripped:
         return False
-    return re.fullmatch(r"[A-Za-z]{0,3}\d{3,}", stripped) is not None
+    return _NUMERIC_ID_RE.fullmatch(stripped) is not None
 
 
 def _looks_like_metadata_block(lines: List[str]) -> bool:
@@ -832,7 +837,7 @@ def _looks_like_metadata_block(lines: List[str]) -> bool:
     numeric_hits = 0
     short_hits = 0
     for line in cleaned:
-        stripped = re.sub(r"^[#*\-\u2022]+\s*", "", line).strip()
+        stripped = _BULLET_PREFIX_RE.sub("", line).strip()
         if not stripped:
             continue
         if _line_is_metadata_label(stripped):
@@ -1409,7 +1414,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             stripped = re.sub(MARKDOWN_HEADING_PREFIX_PATTERN, "", raw_line).strip()
             if not stripped:
                 continue
-            cleaned = re.sub(r"^[#*\-\u2022]+", "", stripped).strip()
+            cleaned = _BULLET_PREFIX_NO_WS_RE.sub("", stripped).strip()
             if not cleaned:
                 continue
             if _line_is_metadata_label(cleaned):
@@ -1563,7 +1568,7 @@ def parse_markdown_hints(markdown: str) -> Dict[str, Any]:
             t = line.strip()
             if not t:
                 continue
-            cleaned = re.sub(r"^[#*\-\u2022]+", "", t).strip()
+            cleaned = _BULLET_PREFIX_NO_WS_RE.sub("", t).strip()
             lower = cleaned.lower()
             link_match = company_link_re.match(cleaned)
             if link_match:
@@ -2102,8 +2107,10 @@ def coerce_remote(value: Any, location: str, title: str) -> bool:
         return value
     if isinstance(value, str):
         lowered = value.lower()
-        if lowered in {"true", "yes", "remote", "hybrid", "fully remote"}:
+        if "remote" in lowered or lowered in {"true", "yes"}:
             return True
+        if lowered in {"false", "no", "hybrid", "onsite", "on-site", "office", "in-office"}:
+            return False
     if loc_lower and loc_lower not in {"unknown"}:
         return False
     return "remote" in title_lower
@@ -2380,12 +2387,6 @@ class _JobRowNormalizer:
 
         remote_result = results.get("remote")
         remote = bool(remote_result.final_value) if remote_result else False
-
-        # Apply remote company override
-        if is_remote_company(company):
-            remote = True
-            if not location or location == "Unknown":
-                location = "Remote"
 
         if not location:
             location = "Remote" if remote else "Unknown"

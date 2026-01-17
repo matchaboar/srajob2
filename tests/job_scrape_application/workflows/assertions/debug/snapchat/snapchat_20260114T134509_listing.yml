@@ -1,9 +1,0 @@
-# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
-# Updated: Handler extracts 145 URLs from this fixture
-site_id: snapchat
-listing_url: https://careers.snap.com/jobs
-expected:
-  url_count: 224
-  url_pattern: "^https://careers\\.snap\\.com/job\\?id=[A-Za-z0-9]+$"  # Regex for valid job URLs
-  no_listing_urls: true
-  handler: "SnapchatCareersHandler"

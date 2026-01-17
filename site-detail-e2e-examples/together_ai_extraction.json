@@ -14,18 +14,38 @@
       "company": "Together AI",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187681007",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "AI Researcher, Core ML",
+        "company": "Together AI",
+        "location": "San Francisco",
+        "description": "AI Researcher, Core ML\n\nAbout the Role\nAs an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will be working on developing novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that go beyond state-of-the-arts. As a team, we have been pushing on all these fronts (e.g., Hyena, FlashAttention, FlexGen, and RedPajama). You will also work closely together with the machine learning systems, NLP/CV, and engineering teams for inspiration of research problems and to jointly work on solutions to practical challenges. You will also interact with customers to...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187681007",
+        "apply_url": "https://boards.greenhouse.io/togetherai/jobs/4187681007",
+        "posted_at": 1766189351000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 500
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4187681007",
+        "word_count": 500,
+        "description_preview": "AI Researcher, Core ML About the Role As an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,14 +126,14 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Together AI",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
           "priority": "CONTENT_PATTERN",
-          "value": "About Together AI\nTogether AI",
+          "value": "About Together AI Together AI",
           "is_valid": true,
           "reason": "Found 'Company is a' pattern"
         },
@@ -176,9 +196,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "You will also work closely together with the machine learning systems, NL",
+          "value": "AI Researcher, Core ML",
           "is_valid": true,
-          "reason": "Matched pattern LOCATION_CITY_STATE"
+          "reason": "Matched pattern LOCATION_FULL"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: San Francisco"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'San Francisco' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -310,7 +344,7 @@
     },
     "compensation": {
       "final_value": 195000,
-      "winning_strategy": "content_pattern_compensation",
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 195000,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $160,000-$230,000 -> $195,000 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 195000,
@@ -335,18 +376,46 @@
           "reason": "Compensation range pattern: $160,000-$230,000 -> $195,000"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 195000,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $160,000-$230,000 -> $195,000 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:06.949389",
+          "value": "2026-01-17T13:05:59.045549",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "AI Researcher, Core ML\n\nAbout the Role\nAs an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will be working on developing novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that go beyond state-of-the-arts. As a team, we have been pushing on all these fronts (e.g., Hyena, FlashAttention, FlexGen, and RedPajama). You will also work closely together with the machine learning systems, NLP/CV, and engineering teams for inspiration of research problems and to jointly work on solutions to practical challenges. You will also interact with customers to help them in their journey of training, using, and improving their AI applications using open models. Your research skills will be vital in staying up-to-date with the latest advancements in machine learning, ensuring that we stay at the cutting edge of open model innovations.\nRequirements\n- Strong background in Machine Learning\n- Experience in building state-of-the-art models at large scale\n- Experience in developing algorithms in areas such as optimization, model architecture, and data-centric optimizations\n- Passion in contributing to the open model ecosystem and pushing the frontier of open models\n- Excellent problem-solving and analytical skills\n- Bachelor's, Master's, or Ph.D. degree in Computer Science, Electrical Engineering, or a related field\nResponsibilities\n- Develop novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that significantly improve over state-of-the-art\n- Take advantage of the computational infrastructure of Together to create the best open models in their class\n- Understand and improve the full lifecycle of building open models; release and publish your insights (blogs, academic papers etc.)\n- Collaborate with cross-functional teams to deploy your models and make them available to a wider community and customer base\n- Stay up-to-date with the latest advancements in machine learning\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.\nCompensation\nWe offer competitive compensation, startup equity, health insurance and other competitive benefits. The US base salary range for this full-time position is: $160,000 - $230,000 + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.\nPlease see our privacy policy at https://www.together.ai/privacy &nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (3470 chars)"
+          "reason": "Valid description (3470 chars, 500 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "AI Researcher, Core ML\n\nAbout the Role\nAs an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will be working on developing novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that go beyond state-of-the-arts. As a team, we have been pushing on all these fronts (e.g., Hyena, FlashAttention, FlexGen, and RedPajama). You will also work closely together with the machine learning systems, NLP/CV, and engineering teams for inspiration of research problems and to jointly work on solutions to practical challenges. You will also interact with customers to help them in their journey of training, using, and improving their AI applications using open models. Your research skills will be vital in staying up-to-date with the latest advancements in machine learning, ensuring that we stay at the cutting edge of open model innovations.\nRequirements\n- Strong background in Machine Learning\n- Experience in building state-of-the-art models at large scale\n- Experience in developing algorithms in areas such as optimization, model architecture, and data-centric optimizations\n- Passion in contributing to the open model ecosystem and pushing the frontier of open models\n- Excellent problem-solving and analytical skills\n- Bachelor's, Master's, or Ph.D. degree in Computer Science, Electrical Engineering, or a related field\nResponsibilities\n- Develop novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that significantly improve over state-of-the-art\n- Take advantage of the computational infrastructure of Together to create the best open models in their class\n- Understand and improve the full lifecycle of building open models; release and publish your insights (blogs, academic papers etc.)\n- Collaborate with cross-functional teams to deploy your models and make them available to a wider community and customer base\n- Stay up-to-date with the latest advancements in machine learning\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.\nCompensation\nWe offer competitive compensation, startup equity, health insurance and other competitive benefits. The US base salary range for this full-time position is: $160,000 - $230,000 + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.\nPlease see our privacy policy at https://www.together.ai/privacy &nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (3470 chars)"
+          "reason": "Valid description (3470 chars, 500 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "AI Researcher, Core ML\n\nAbout the Role\nAs an AI Researcher, you will be pushing the frontier of foundation model research and make them a reality in products. You will be working on developing novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that go beyond state-of-the-arts. As a team, we have been pushing on all these fronts (e.g., Hyena, FlashAttention, FlexGen, and RedPajama). You will also work closely together with the machine learning systems, NLP/CV, and engineering teams for inspiration of research problems and to jointly work on solutions to practical challenges. You will also interact with customers to help them in their journey of training, using, and improving their AI applications using open models. Your research skills will be vital in staying up-to-date with the latest advancements in machine learning, ensuring that we stay at the cutting edge of open model innovations.\nRequirements\n- Strong background in Machine Learning\n- Experience in building state-of-the-art models at large scale\n- Experience in developing algorithms in areas such as optimization, model architecture, and data-centric optimizations\n- Passion in contributing to the open model ecosystem and pushing the frontier of open models\n- Excellent problem-solving and analytical skills\n- Bachelor's, Master's, or Ph.D. degree in Computer Science, Electrical Engineering, or a related field\nResponsibilities\n- Develop novel architectures, system optimizations, optimization algorithms, and data-centric optimizations, that significantly improve over state-of-the-art\n- Take advantage of the computational infrastructure of Together to create the best open models in their class\n- Understand and improve the full lifecycle of building open models; release and publish your insights (blogs, academic papers etc.)\n- Collaborate with cross-functional teams to deploy your models and make them available to a wider community and customer base\n- Stay up-to-date with the latest advancements in machine learning\nAbout Together AI\nTogether AI is a research-driven artificial intelligence company. We believe open and transparent AI systems will drive innovation and create the best outcomes for society, and together we are on a mission to significantly lower the cost of modern AI systems by co-designing software, hardware, algorithms, and models. We have contributed to leading open-source research, models, and datasets to advance the frontier of AI, and our team has been behind technological advancement such as FlashAttention, Hyena, FlexGen, and RedPajama. We invite you to join a passionate group of researchers in our journey in building the next generation AI infrastructure.\nCompensation\nWe offer competitive compensation, startup equity, health insurance and other competitive benefits. The US base salary range for this full-time position is: $160,000 - $230,000 + equity + benefits. Our salary ranges are determined by location, level and role. Individual compensation will be determined by experience, skills, and job-related knowledge.\nEqual Opportunity\nTogether AI is an Equal Opportunity Employer and is proud to offer equal employment opportunity to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and more.\nPlease see our privacy policy at https://www.together.ai/privacy &nbsp;\n&nbsp;",
           "is_valid": true,
-          "reason": "Valid description (3470 chars)"
+          "reason": "Valid description (3470 chars, 500 words)"
         },
         {
           "name": "empty_description_fallback",

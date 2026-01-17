@@ -31,6 +31,13 @@ from ..helpers.regex_patterns import (
     NON_NUMERIC_PATTERN,
     REQUEST_ID_PATTERN,
     RETIREMENT_PLAN_PATTERN,
+    _TITLE_NORMALIZE_RE,
+    _TITLE_YEARS_RE,
+    _TITLE_YEARS_EXP_RE,
+    _TITLE_YEARS_WORKING_RE,
+    _TITLE_EXP_VERB_RE,
+    _TITLE_ABILITY_RE,
+    _TITLE_KNOWLEDGE_RE,
 )
 from ..helpers.scrape_utils import (
     _extract_job_detail_seed_from_json,
@@ -728,7 +735,7 @@ def _build_job_detail_heuristic_patch(
         if not value:
             return True
         lowered = value.strip().lower()
-        normalized = re.sub(r"[^a-z0-9]+", " ", lowered).strip()
+        normalized = _TITLE_NORMALIZE_RE.sub(" ", lowered).strip()
         if normalized in {
             "the role", "our team", "the team", "role", "job description",
             "description", "description and requirements", "description requirements",
@@ -736,20 +743,17 @@ def _build_job_detail_heuristic_patch(
             return True
         if lowered in {"unknown", "n/a", "na", "untitled"}:
             return True
-        if re.search(r"\b\d+\+?\s+years?\b", lowered):
+        if _TITLE_YEARS_RE.search(lowered):
             return True
-        if re.search(r"\byears?\s+(?:of\s+)?experience\b", lowered):
+        if _TITLE_YEARS_EXP_RE.search(lowered):
             return True
-        if re.search(r"\byears?\s+working\b", lowered):
+        if _TITLE_YEARS_WORKING_RE.search(lowered):
             return True
-        if re.search(
-            r"\bexperience\s+(?:in|with|providing|working|leading|managing|developing|designing|supporting)\b",
-            lowered,
-        ):
+        if _TITLE_EXP_VERB_RE.search(lowered):
             return True
-        if re.search(r"\bability\s+to\b", lowered):
+        if _TITLE_ABILITY_RE.search(lowered):
             return True
-        if re.search(r"\bknowledge\s+of\b", lowered):
+        if _TITLE_KNOWLEDGE_RE.search(lowered):
             return True
         if lowered.endswith((".", "!", "?")):
             return True

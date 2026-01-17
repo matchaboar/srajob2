@@ -29,9 +29,17 @@ class _FakeClient:
         self.payload = payload
         self.calls: list[dict[str, Any]] = []
 
-    async def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
+    def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
         self.calls.append({"url": url, "params": params, "stream": stream, "content_type": content_type})
+        if stream:
+            return self._stream_response()
+        return self._sync_response()
+
+    async def _stream_response(self):
         yield self.payload
+
+    async def _sync_response(self):
+        return self.payload
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -103,7 +111,7 @@ async def test_verkada_greenhouse_job_detail_fixture_normalizes_job():
     assert html
     job_payload = _extract_job_payload(html)
 
-    result = await scraper._scrape_single_url(  # noqa: SLF001
+    result = await scraper._scrape_single_url_sync(  # noqa: SLF001
         _FakeClient(payload),
         JOB_URL,
         {"return_format": ["raw_html"]},

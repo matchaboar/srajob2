@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/adobe_20260116T214330_detail.json
+# Generated: 2026-01-16T21:43:52.335494+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: adobe
+detail_url: https://careers.adobe.com/us/en/job/R161269/Software-Engineer
+expected:
+  title_contains: "Software Engineer"
+  company: "Adobe"
+  location_contains: "Austin"
+  is_remote: false
+  level: mid  # Options: junior, mid, senior, staff
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

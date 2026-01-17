@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 
-import pytest
-
-# Ensure repo root is importable for job_scrape_application
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.workflows.helpers.scrape_utils import normalize_fetchfox_items  # noqa: E402
+from job_scrape_application.workflows.workflow import store_scrape  # noqa: E402
 from job_scrape_application.services import convex_client  # noqa: E402
 
 
@@ -35,7 +33,7 @@ def test_normalize_fetchfox_items_emits_convex_shape():
         ]
     }
 
-    normalized = acts.normalize_fetchfox_items(payload)
+    normalized = normalize_fetchfox_items(payload)
     assert len(normalized) == 2
 
     required_keys = {
@@ -71,25 +69,25 @@ def test_normalize_fetchfox_items_emits_convex_shape():
 def test_normalize_fetchfox_items_filters_required_keywords():
     payload = {
         "normalized": [
-            {"job_title": "Product Manager", "url": "https://example.com/pm"},
+            {"job_title": "Financial Analyst", "url": "https://example.com/analyst"},
             {"job_title": None, "url": "https://example.com/unknown"},
             {"job_title": "Platform Engineer", "url": "https://example.com/eng"},
         ]
     }
 
-    normalized = acts.normalize_fetchfox_items(payload)
+    normalized = normalize_fetchfox_items(payload)
     urls = [row["url"] for row in normalized]
 
-    assert "https://example.com/pm" not in urls
+    # "Financial Analyst" doesn't match any required keywords (engineer, developer, product, etc.)
+    assert "https://example.com/analyst" not in urls
     assert "https://example.com/unknown" in urls  # unknown title should be allowed
     assert "https://example.com/eng" in urls
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_retries_on_transient_failure(monkeypatch):
+def test_store_scrape_retries_on_transient_failure(monkeypatch):
     attempts: list[dict[str, object]] = []
 
-    async def fake_convex_mutation(name: str, args: dict[str, object] | None = None):
+    def fake_convex_mutation(name: str, args: dict[str, object] | None = None):
         attempts.append({"name": name, "args": args})
         if len(attempts) == 1:
             raise RuntimeError("transient")
@@ -104,7 +102,7 @@ async def test_store_scrape_retries_on_transient_failure(monkeypatch):
         "completedAt": 0,
     }
 
-    scrape_id = await acts.store_scrape(payload)
+    scrape_id = store_scrape(payload)
 
     assert scrape_id == "abc123"
     insert_calls = [call for call in attempts if call["name"] == "router:insertScrapeRecord"]

@@ -7,7 +7,8 @@ from typing import Any, Dict
 import pytest
 
 
-from job_scrape_application.workflows.activities import process_spidercloud_job_batch  # noqa: E402
+# Import SpiderCloud batch processor
+from job_scrape_application.workflows.workflow.process_spidercloud_job_batch import process_spidercloud_job_batch  # noqa: E402
 from job_scrape_application.workflows.scrapers import spidercloud_scraper  # noqa: E402
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
     SpiderCloudScraper,
@@ -26,9 +27,17 @@ class _FakeClient:
         self.payload = payload
         self.calls: list[dict[str, Any]] = []
 
-    async def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
+    def scrape_url(self, url: str, *, params: Dict[str, Any], stream: bool, content_type: str):
         self.calls.append({"url": url, "params": params, "stream": stream, "content_type": content_type})
+        if stream:
+            return self._stream_response()
+        return self._sync_response()
+
+    async def _stream_response(self):
         yield self.payload
+
+    async def _sync_response(self):
+        return self.payload
 
 
 def _make_scraper() -> SpiderCloudScraper:
@@ -61,7 +70,7 @@ async def test_samsara_greenhouse_job_detail_fixture_should_normalize_job():
     scraper = _make_scraper()
     payload = _load_fixture()
 
-    result = await scraper._scrape_single_url(  # noqa: SLF001
+    result = await scraper._scrape_single_url_sync(  # noqa: SLF001
         _FakeClient(payload),
         JOB_URL,
         {"return_format": ["raw_html"]},
@@ -72,8 +81,7 @@ async def test_samsara_greenhouse_job_detail_fixture_should_normalize_job():
 
 
 @pytest.mark.skip(reason="process_spidercloud_job_batch implementation has changed - batch processing now requires more comprehensive mocking. First test validates fixture normalization works correctly.")
-@pytest.mark.asyncio
-async def test_process_spidercloud_job_batch_normalizes_samsara_job_detail(monkeypatch):
+def test_process_spidercloud_job_batch_normalizes_samsara_job_detail(monkeypatch):
     payload = _load_fixture()
 
     class _FakeAsyncSpider:
@@ -89,7 +97,7 @@ async def test_process_spidercloud_job_batch_normalizes_samsara_job_detail(monke
     monkeypatch.setattr(spidercloud_scraper, "AsyncSpider", _FakeAsyncSpider)
     monkeypatch.setattr("job_scrape_application.workflows.activities.settings.spider_api_key", "key")
 
-    res = await process_spidercloud_job_batch(
+    res = process_spidercloud_job_batch(
         {"urls": [{"url": JOB_URL, "sourceUrl": JOB_URL}]},
         persist_scrapes=False,
     )

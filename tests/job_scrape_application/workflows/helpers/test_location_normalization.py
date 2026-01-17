@@ -5,22 +5,15 @@
 import pytest
 
 from job_scrape_application.workflows.helpers.location_normalization import (
-    _CITY_KEYWORD_KEYS,
-    _CITY_KEYWORDS,
-    _COUNTRY_KEY_TO_LABEL,
     _LOCATION_DICTIONARY,
-    _LOCATION_DICTIONARY_KEYS,
     _STATE_ABBR_BY_KEY,
     _STATE_ABBR_BY_NAME,
     _STATE_NAME_BY_ABBR,
-    _find_city_in_text,
     _format_location_label,
     _is_plausible_location,
-    _normalize_country_label,
     _normalize_location_key,
     _normalize_locations,
     _normalize_us_city_state,
-    _reorder_by_us_preference,
     _resolve_location_from_dictionary,
 )
 

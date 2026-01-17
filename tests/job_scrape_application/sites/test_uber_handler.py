@@ -22,10 +22,20 @@ from job_scrape_application.workflows.site_handlers import UberCareersHandler  #
 FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures/single_request")
 
 
+def _latest_detail_fixture_path() -> Path | None:
+    candidates = sorted(FIXTURE_DIR.glob("uber_*_detail.json"), reverse=True)
+    if candidates:
+        return candidates[0]
+    legacy = FIXTURE_DIR / "uber_detail.json"
+    if legacy.exists():
+        return legacy
+    return None
+
+
 def _load_detail_fixture_links() -> list[str]:
     """Load the links array from the Uber detail fixture."""
-    fixture_path = FIXTURE_DIR / "uber_detail.json"
-    if not fixture_path.exists():
+    fixture_path = _latest_detail_fixture_path()
+    if fixture_path is None or not fixture_path.exists():
         return []
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     response = payload.get("response", [])

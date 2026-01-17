@@ -1,0 +1,30 @@
+site_id: microsoft_careers
+listing_url: https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1
+expected:
+  url_count: 10
+  no_listing_urls: true
+  handler: MicrosoftCareersHandler
+  scraped_urls: []
+  normalized_urls:
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en
+  apply_urls:
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556619864&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556623099&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556637123&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556638554&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642321&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556642656&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556650911&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556654997&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556658313&domain=microsoft.com&hl=en
+  - https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556659188&domain=microsoft.com&hl=en
+  blocked_urls: []

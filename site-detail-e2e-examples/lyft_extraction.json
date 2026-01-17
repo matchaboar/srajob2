@@ -14,18 +14,38 @@
       "company": "Lyft",
       "level": "junior",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "Account Coordinator Intern (Summer 2026)",
+        "company": "Lyft",
+        "location": "New York, NY",
+        "description": "Account Coordinator Intern (Summer 2026)\n\nAt Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and have the opportunity to thrive.\nLyft Ads wants to build the largest transportation media network. We turn Lyft's in-app platform and the country's largest bikeshare network into powerful advertising opportunities that enhance the rider experience. Our team culture is dynamic and rewarding, and we're looking for customer-focused problem-solvers excited to create impactful campaigns.\nAs an Account Coordinator Intern in Lyft Ads, you will partner closely with our sales team to...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002",
+        "apply_url": "https://boards.greenhouse.io/lyft/jobs/8332698002",
+        "posted_at": 1765491151000,
+        "level": "junior",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 631
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8332698002",
+        "word_count": 631,
+        "description_preview": "Account Coordinator Intern (Summer 2026) At Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Lyft",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -176,9 +196,9 @@
         {
           "name": "content_pattern_location",
           "priority": "CONTENT_PATTERN",
-          "value": "Collaborate with cross-functional partners such as Legal, Finance",
+          "value": "environment",
           "is_valid": true,
-          "reason": "Matched pattern LOCATION_FULL"
+          "reason": "Matched pattern OFFICE_IN"
         },
         {
           "name": "country_only_fallback_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: New York, NY"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'New York, NY' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -239,9 +273,9 @@
         {
           "name": "hinted_remote",
           "priority": "HEURISTIC",
-          "value": false,
-          "is_valid": true,
-          "reason": "Remote from hints: False"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping hints remote=False (unreliable inference from location)"
         },
         {
           "name": "remote_company",
@@ -309,8 +343,8 @@
       ]
     },
     "compensation": {
-      "final_value": 40000,
-      "winning_strategy": "content_pattern_compensation",
+      "final_value": 83200,
+      "winning_strategy": "hinted_compensation",
       "strategy_count": 5,
       "strategies": [
         {
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": 83200,
+          "is_valid": true,
+          "reason": "Compensation from hint range: $81,120-$85,280 -> $83,200 (avg)"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 40000,
@@ -335,18 +376,46 @@
           "reason": "Compensation range pattern: $39,000-$41,000 -> $40,000"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": 83200,
-          "is_valid": true,
-          "reason": "Compensation from hint range: $81,120-$85,280 -> $83,200 (avg)"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:02.969583",
+          "value": "2026-01-17T13:05:59.171846",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "Account Coordinator Intern (Summer 2026)\n\nAt Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and have the opportunity to thrive.\nLyft Ads wants to build the largest transportation media network. We turn Lyft's in-app platform and the country's largest bikeshare network into powerful advertising opportunities that enhance the rider experience. Our team culture is dynamic and rewarding, and we're looking for customer-focused problem-solvers excited to create impactful campaigns.\nAs an Account Coordinator Intern in Lyft Ads, you will partner closely with our sales team to support day-to-day operations and help drive revenue. You’ll gain exposure to the media landscape and play an integral role in pre and post sale workflows, campaign management, and cross-functional collaboration. Ideal candidates are curious, highly organized, strong communicators, and excited to learn in a fast-moving environment.\nResponsibilities:\n- Build foundational knowledge of digital media, advertising technology, and the ad sales landscape\n- Gain an understanding of the ad sales lifecycle, including pre-sales planning, RFP fulfillment, inventory management, confirming specs, populating templates, and post-campaign reporting\n- Support Account Managers and Account Coordinators with campaign management tasks such as trafficking, generating screenshots, tracking pacing, building client-facing decks, analyzing data, and identifying insights to improve performance\n- Learn Ad Operations workflows through hands-on experience with ad servers (e.g., tag implementation, QA, third-party measurement, optimizations)\n- Collaborate with cross-functional partners such as Legal, Finance, Product, and Engineering to support process improvements and meet client deadlines\nExperience:\n- Currently pursuing a Bachelor's degree in Business Administration, Marketing, Communications, Advertising, or a related field with a graduation date between December 2026 and Summer 2027 (required)\n- Demonstrated interest in client services, media, or advertising\n- Leadership experience or involvement in extracurricular activities\n- Strong written and verbal communication skills, able to collaborate in person in an office environment\n- Proficiency in Excel, Microsoft Office Suite, and Google Workspace\n- Ability to thrive in a dynamic, fast-paced environment and manage multiple projects simultaneously\n- Strong analytical mindset with excellent attention to detail and problem-solving skills\n- Comfortable working across highly collaborative, cross-functional teams\n- Experience with project-management or ticketing tools (e.g., Airtable, Jira) is a plus\nBenefits:\n- Great medical, dental, and vision insurance options\n- Mental health benefits\n- In addition to holidays, interns receive 2 days paid time off and 3 days sick time off\n- 401(k) plan to help save for your future\n- Subsidized commuter benefits\n- Lyft Pink - Lyft team members get an exclusive opportunity to test new benefits of our Ridership Program\nLyft is an equal opportunity employer committed to an inclusive workplace that fosters belonging. All qualified applicants will receive consideration for employment without regards to race, color, religion, sex, sexual orientation, gender identity, national origin, disability status, protected veteran status, age, genetic information, or any other basis prohibited by law. We also consider qualified applicants with criminal histories consistent with applicable federal, state and local law.\nLyft highly values having employees working in-office to foster a collaborative work environment and company culture. This role will be in-office on a hybrid schedule — Team Members will be expected to work in the office 3 days per week on Mondays, Wednesdays, and Thursdays. Lyft considers working in the office at least 3 days per week to be an essential function of this hybrid role. Your recruiter can share more information about the various in-office perks Lyft offers. #Hybrid\nThe expected base pay range for this position in the New York City area is $39-$41/hour. Salary ranges are dependent on a variety of factors, including qualifications, experience and geographic location. Your recruiter can share more information about the salary range specific to your working location and other factors during the hiring process.",
           "is_valid": true,
-          "reason": "Valid description (4395 chars)"
+          "reason": "Valid description (4395 chars, 631 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "Account Coordinator Intern (Summer 2026)\n\nAt Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and have the opportunity to thrive.\nLyft Ads wants to build the largest transportation media network. We turn Lyft's in-app platform and the country's largest bikeshare network into powerful advertising opportunities that enhance the rider experience. Our team culture is dynamic and rewarding, and we're looking for customer-focused problem-solvers excited to create impactful campaigns.\nAs an Account Coordinator Intern in Lyft Ads, you will partner closely with our sales team to support day-to-day operations and help drive revenue. You’ll gain exposure to the media landscape and play an integral role in pre and post sale workflows, campaign management, and cross-functional collaboration. Ideal candidates are curious, highly organized, strong communicators, and excited to learn in a fast-moving environment.\nResponsibilities:\n- Build foundational knowledge of digital media, advertising technology, and the ad sales landscape\n- Gain an understanding of the ad sales lifecycle, including pre-sales planning, RFP fulfillment, inventory management, confirming specs, populating templates, and post-campaign reporting\n- Support Account Managers and Account Coordinators with campaign management tasks such as trafficking, generating screenshots, tracking pacing, building client-facing decks, analyzing data, and identifying insights to improve performance\n- Learn Ad Operations workflows through hands-on experience with ad servers (e.g., tag implementation, QA, third-party measurement, optimizations)\n- Collaborate with cross-functional partners such as Legal, Finance, Product, and Engineering to support process improvements and meet client deadlines\nExperience:\n- Currently pursuing a Bachelor's degree in Business Administration, Marketing, Communications, Advertising, or a related field with a graduation date between December 2026 and Summer 2027 (required)\n- Demonstrated interest in client services, media, or advertising\n- Leadership experience or involvement in extracurricular activities\n- Strong written and verbal communication skills, able to collaborate in person in an office environment\n- Proficiency in Excel, Microsoft Office Suite, and Google Workspace\n- Ability to thrive in a dynamic, fast-paced environment and manage multiple projects simultaneously\n- Strong analytical mindset with excellent attention to detail and problem-solving skills\n- Comfortable working across highly collaborative, cross-functional teams\n- Experience with project-management or ticketing tools (e.g., Airtable, Jira) is a plus\nBenefits:\n- Great medical, dental, and vision insurance options\n- Mental health benefits\n- In addition to holidays, interns receive 2 days paid time off and 3 days sick time off\n- 401(k) plan to help save for your future\n- Subsidized commuter benefits\n- Lyft Pink - Lyft team members get an exclusive opportunity to test new benefits of our Ridership Program\nLyft is an equal opportunity employer committed to an inclusive workplace that fosters belonging. All qualified applicants will receive consideration for employment without regards to race, color, religion, sex, sexual orientation, gender identity, national origin, disability status, protected veteran status, age, genetic information, or any other basis prohibited by law. We also consider qualified applicants with criminal histories consistent with applicable federal, state and local law.\nLyft highly values having employees working in-office to foster a collaborative work environment and company culture. This role will be in-office on a hybrid schedule — Team Members will be expected to work in the office 3 days per week on Mondays, Wednesdays, and Thursdays. Lyft considers working in the office at least 3 days per week to be an essential function of this hybrid role. Your recruiter can share more information about the various in-office perks Lyft offers. #Hybrid\nThe expected base pay range for this position in the New York City area is $39-$41/hour. Salary ranges are dependent on a variety of factors, including qualifications, experience and geographic location. Your recruiter can share more information about the salary range specific to your working location and other factors during the hiring process.",
           "is_valid": true,
-          "reason": "Valid description (4395 chars)"
+          "reason": "Valid description (4395 chars, 631 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "Account Coordinator Intern (Summer 2026)\n\nAt Lyft, our purpose is to serve and connect. We aim to achieve this by cultivating a work environment where all team members belong and have the opportunity to thrive.\nLyft Ads wants to build the largest transportation media network. We turn Lyft's in-app platform and the country's largest bikeshare network into powerful advertising opportunities that enhance the rider experience. Our team culture is dynamic and rewarding, and we're looking for customer-focused problem-solvers excited to create impactful campaigns.\nAs an Account Coordinator Intern in Lyft Ads, you will partner closely with our sales team to support day-to-day operations and help drive revenue. You’ll gain exposure to the media landscape and play an integral role in pre and post sale workflows, campaign management, and cross-functional collaboration. Ideal candidates are curious, highly organized, strong communicators, and excited to learn in a fast-moving environment.\nResponsibilities:\n- Build foundational knowledge of digital media, advertising technology, and the ad sales landscape\n- Gain an understanding of the ad sales lifecycle, including pre-sales planning, RFP fulfillment, inventory management, confirming specs, populating templates, and post-campaign reporting\n- Support Account Managers and Account Coordinators with campaign management tasks such as trafficking, generating screenshots, tracking pacing, building client-facing decks, analyzing data, and identifying insights to improve performance\n- Learn Ad Operations workflows through hands-on experience with ad servers (e.g., tag implementation, QA, third-party measurement, optimizations)\n- Collaborate with cross-functional partners such as Legal, Finance, Product, and Engineering to support process improvements and meet client deadlines\nExperience:\n- Currently pursuing a Bachelor's degree in Business Administration, Marketing, Communications, Advertising, or a related field with a graduation date between December 2026 and Summer 2027 (required)\n- Demonstrated interest in client services, media, or advertising\n- Leadership experience or involvement in extracurricular activities\n- Strong written and verbal communication skills, able to collaborate in person in an office environment\n- Proficiency in Excel, Microsoft Office Suite, and Google Workspace\n- Ability to thrive in a dynamic, fast-paced environment and manage multiple projects simultaneously\n- Strong analytical mindset with excellent attention to detail and problem-solving skills\n- Comfortable working across highly collaborative, cross-functional teams\n- Experience with project-management or ticketing tools (e.g., Airtable, Jira) is a plus\nBenefits:\n- Great medical, dental, and vision insurance options\n- Mental health benefits\n- In addition to holidays, interns receive 2 days paid time off and 3 days sick time off\n- 401(k) plan to help save for your future\n- Subsidized commuter benefits\n- Lyft Pink - Lyft team members get an exclusive opportunity to test new benefits of our Ridership Program\nLyft is an equal opportunity employer committed to an inclusive workplace that fosters belonging. All qualified applicants will receive consideration for employment without regards to race, color, religion, sex, sexual orientation, gender identity, national origin, disability status, protected veteran status, age, genetic information, or any other basis prohibited by law. We also consider qualified applicants with criminal histories consistent with applicable federal, state and local law.\nLyft highly values having employees working in-office to foster a collaborative work environment and company culture. This role will be in-office on a hybrid schedule — Team Members will be expected to work in the office 3 days per week on Mondays, Wednesdays, and Thursdays. Lyft considers working in the office at least 3 days per week to be an essential function of this hybrid role. Your recruiter can share more information about the various in-office perks Lyft offers. #Hybrid\nThe expected base pay range for this position in the New York City area is $39-$41/hour. Salary ranges are dependent on a variety of factors, including qualifications, experience and geographic location. Your recruiter can share more information about the salary range specific to your working location and other factors during the hiring process.",
           "is_valid": true,
-          "reason": "Valid description (4395 chars)"
+          "reason": "Valid description (4395 chars, 631 words)"
         },
         {
           "name": "empty_description_fallback",

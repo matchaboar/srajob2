@@ -198,10 +198,15 @@ class StructuredDataCompensationStrategy(ExtractionStrategy[int]):
 
 
 class HintedCompensationStrategy(ExtractionStrategy[int]):
-    """Extract compensation from parse_markdown_hints() result."""
+    """Extract compensation from parse_markdown_hints() result.
+
+    This has higher priority than content pattern matching because
+    parse_markdown_hints() applies location-aware logic to select
+    the appropriate compensation range for the job's location.
+    """
 
     name = "hinted_compensation"
-    priority = StrategyPriority.HEURISTIC
+    priority = StrategyPriority.CONTENT_PATTERN - 50  # Higher priority than content patterns
 
     def extract(self, context: ExtractionContext) -> StrategyResult[int]:
         # Try compensation range first
@@ -357,9 +362,13 @@ class CompensationExtractor(FieldExtractor[int]):
     Strategies (in order of priority):
     1. explicit_compensation_field (100) - From explicit field
     2. structured_data_compensation (150) - From structured data
-    3. content_pattern_compensation (500) - From content patterns
-    4. hinted_compensation (600) - From parse_markdown_hints()
+    3. hinted_compensation (450) - From parse_markdown_hints()
+    4. content_pattern_compensation (500) - From content patterns
     5. unknown_compensation (900) - Default to 0 (unknown)
+
+    Note: hinted_compensation has higher priority than content patterns
+    because parse_markdown_hints() applies location-aware logic to select
+    the appropriate compensation range for the job's location.
 
     Returns compensation in annual dollars, or 0 if unknown.
     """

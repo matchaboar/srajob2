@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html as html_lib
 import json
 import re
@@ -12,7 +13,8 @@ from typing import Any, Dict
 import pytest
 
 
-from job_scrape_application.workflows.activities import process_spidercloud_job_batch, store_scrape  # noqa: E402
+# Import SpiderCloud batch processor and store_scrape
+from job_scrape_application.workflows.workflow.process_spidercloud_job_batch import process_spidercloud_job_batch, store_scrape  # noqa: E402
 from job_scrape_application.workflows.helpers.scrape_utils import (  # noqa: E402
     _resolve_location_from_dictionary,
     parse_posted_at_with_unknown,
@@ -265,7 +267,7 @@ def store_scrape_mocks(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Dict[s
     calls: list[Dict[str, Any]] = []
     queue_calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -279,7 +281,7 @@ def store_scrape_mocks(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Dict[s
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
 
@@ -295,7 +297,7 @@ def _extract_normalized_from_commonmark(payload: Any) -> Dict[str, Any]:
     return normalized
 
 
-async def _run_store_scrape(
+def _run_store_scrape(
     raw_payload: Any,
     source_url: str,
     store_scrape_mocks: dict[str, list[Dict[str, Any]]],
@@ -303,7 +305,7 @@ async def _run_store_scrape(
     calls = store_scrape_mocks["calls"]
     queue_calls = store_scrape_mocks["queue_calls"]
 
-    await store_scrape(
+    store_scrape(
         {
             "sourceUrl": source_url,
             "provider": "spidercloud",
@@ -317,8 +319,7 @@ async def _run_store_scrape(
     return queue_calls[0]["urls"], calls
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_godaddy_listing_extracts_job_links(
+def test_spidercloud_godaddy_listing_extracts_job_links(
     store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(LISTING_FIXTURE)
@@ -327,7 +328,7 @@ async def test_spidercloud_godaddy_listing_extracts_job_links(
     assert request is not None
     assert request.get("params", {}).get("return_format") == ["raw_html"]
 
-    urls, calls = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
+    urls, calls = _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
     insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == source_url
@@ -396,21 +397,19 @@ def test_spidercloud_cisco_listing_is_ignored():
     assert normalized is None
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_netflix_listing_extracts_job_links(
+def test_spidercloud_netflix_listing_extracts_job_links(
     store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(NETFLIX_LISTING_FIXTURE)
     source_url = _extract_source_url(raw_payload)
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
+    urls, _ = _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
+def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
     store_scrape_mocks: dict[str, list[Dict[str, Any]]],
 ):
     raw_payload = _load_fixture(NETFLIX_LISTING_COMMONMARK_FIXTURE)
@@ -418,15 +417,14 @@ async def test_spidercloud_netflix_listing_commonmark_extracts_job_links(
 
     assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
+    urls, _ = _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted from commonmark"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_LISTING_FIXTURES)
-async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
+def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
     store_scrape_mocks: dict[str, list[Dict[str, Any]]],
     fixture_path: Path,
 ):
@@ -435,7 +433,7 @@ async def test_spidercloud_netflix_commonmark_listing_enqueues_jobs(
 
     assert _extract_commonmark(raw_payload), "expected commonmark content in fixture"
 
-    urls, _ = await _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
+    urls, _ = _run_store_scrape(raw_payload, source_url, store_scrape_mocks)
 
     assert urls, "expected Netflix listing URLs to be extracted from commonmark payload"
     assert any("explore.jobs.netflix.net/careers/job/" in url for url in urls)
@@ -938,7 +936,6 @@ def test_spidercloud_github_careers_staff_job_detail_extracts_salary_range():
 
 
 @pytest.mark.skip(reason="Skipped during normalizers migration")
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "fixture_path, expected_title, expected_description_snippet",
     [
@@ -947,7 +944,7 @@ def test_spidercloud_github_careers_staff_job_detail_extracts_salary_range():
         (TOGETHERAI_DETAIL_FIXTURE, "Sales Development Engineer", "Together AI"),
     ],
 )
-async def test_spidercloud_detail_raw_payload_ingests_job(
+def test_spidercloud_detail_raw_payload_ingests_job(
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: Path,
     expected_title: str,
@@ -966,7 +963,7 @@ async def test_spidercloud_detail_raw_payload_ingests_job(
 
     calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -976,7 +973,7 @@ async def test_spidercloud_detail_raw_payload_ingests_job(
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
 
-    await store_scrape(
+    store_scrape(
         {
             "sourceUrl": url,
             "provider": "spidercloud",
@@ -1277,9 +1274,8 @@ def test_spidercloud_workday_job_detail_api_prefers_start_date_for_posted_at():
     assert normalized["posted_at_unknown"] is False
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("fixture_path", NETFLIX_COMMONMARK_DETAIL_FIXTURES)
-async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
+def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: Path,
 ):
@@ -1289,7 +1285,7 @@ async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
 
     calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -1299,7 +1295,7 @@ async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
 
-    await store_scrape(
+    store_scrape(
         {
             "sourceUrl": source_url,
             "provider": "spidercloud",
@@ -1321,8 +1317,7 @@ async def test_spidercloud_netflix_commonmark_job_detail_ingests_job(
     assert "display_banner" not in description
 
 
-@pytest.mark.asyncio
-async def test_spidercloud_ashby_commonmark_job_detail_ingests_job(
+def test_spidercloud_ashby_commonmark_job_detail_ingests_job(
     monkeypatch: pytest.MonkeyPatch,
 ):
     payload = _load_fixture(ASHBY_DETAIL_FIXTURE)
@@ -1331,7 +1326,7 @@ async def test_spidercloud_ashby_commonmark_job_detail_ingests_job(
 
     calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -1341,7 +1336,7 @@ async def test_spidercloud_ashby_commonmark_job_detail_ingests_job(
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
 
-    await store_scrape(
+    store_scrape(
         {
             "sourceUrl": source_url,
             "provider": "spidercloud",
@@ -1732,8 +1727,7 @@ def test_spidercloud_title_from_url_skips_id_like_slugs():
 
 
 @pytest.mark.skip(reason="Skipped during normalizers migration")
-@pytest.mark.asyncio
-async def test_process_spidercloud_job_batch_persists_full_description(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_process_spidercloud_job_batch_persists_full_description(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _load_fixture(ASHBY_RAMP_DETAIL_FIXTURE)
     if isinstance(payload, list):
         if payload and isinstance(payload[0], list) and payload[0]:
@@ -1766,7 +1760,7 @@ async def test_process_spidercloud_job_batch_persists_full_description(monkeypat
 
     ingest_calls: list[Dict[str, Any]] = []
 
-    async def fake_convex_mutation(name: str, args: Dict[str, Any] | None = None):
+    def fake_convex_mutation(name: str, args: Dict[str, Any] | None = None):
         if name == "router:insertScrapeRecord":
             return "scrape-id"
         if name == "router:ingestJobsFromScrape":
@@ -1776,10 +1770,10 @@ async def test_process_spidercloud_job_batch_persists_full_description(monkeypat
             return None
         return None
 
-    async def fake_convex_query(name: str, args: Dict[str, Any] | None = None):  # noqa: ARG001
+    def fake_convex_query(name: str, args: Dict[str, Any] | None = None):  # noqa: ARG001
         return []
 
-    async def fake_complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:  # noqa: ARG001
+    def fake_complete_scrape_urls(payload: Dict[str, Any]) -> Dict[str, Any]:  # noqa: ARG001
         return {"updated": 1}
 
     monkeypatch.setattr(spidercloud_scraper, "AsyncSpider", _FakeAsyncSpider)
@@ -1788,10 +1782,10 @@ async def test_process_spidercloud_job_batch_persists_full_description(monkeypat
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_query", fake_convex_query)
     monkeypatch.setattr("job_scrape_application.workflows.activities.complete_scrape_urls", fake_complete_scrape_urls)
 
-    result = await process_spidercloud_job_batch(
+    result = asyncio.run(process_spidercloud_job_batch(
         {"urls": [{"url": ASHBY_RAMP_JOB_URL, "sourceUrl": ASHBY_RAMP_JOB_URL}]},
         persist_scrapes=True,
-    )
+    ))
 
     assert result.get("stored") == 1
     assert ingest_calls, "expected ingestJobsFromScrape to be called"

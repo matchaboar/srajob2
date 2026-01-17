@@ -20,15 +20,17 @@ from .location_extractor import LocationExtractor
 from .remote_extractor import RemoteExtractor
 from .level_extractor import LevelExtractor
 from .compensation_extractor import CompensationExtractor
+from .cost_milli_cents_extractor import CostMilliCentsExtractor
 from .posted_at_extractor import PostedAtExtractor
+from .first_published_on_extractor import FirstPublishedOnExtractor
 from .description_extractor import DescriptionExtractor
 from ..helpers.location_normalization import (
     _normalize_locations,
 )
 from ..helpers.compensation_parsing import normalize_compensation_value
 from ..helpers.scrape_utils import strip_known_nav_blocks
-from ..normalizers.types import NORMALIZATION_VERSION as HEURISTIC_VERSION
 from ...constants import is_remote_company
+from ..normalizers.types import NORMALIZATION_VERSION as HEURISTIC_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,9 @@ _EXTRACTORS: dict[str, type[FieldExtractor]] = {
     "remote": RemoteExtractor,
     "level": LevelExtractor,
     "compensation": CompensationExtractor,
+    "cost_milli_cents": CostMilliCentsExtractor,
     "posted_at": PostedAtExtractor,
+    "first_published_on": FirstPublishedOnExtractor,
     "description": DescriptionExtractor,
 }
 
@@ -249,15 +253,16 @@ def extract_job_from_scrape(
     compensation = results.get("compensation")
     compensation_value = compensation.final_value if compensation else 0
 
+    cost_milli_cents = results.get("cost_milli_cents")
+    cost_value = cost_milli_cents.final_value if cost_milli_cents else None
+
     posted_at = results.get("posted_at")
     posted_at_value = posted_at.final_value if posted_at else None
+    first_published_on = results.get("first_published_on")
+    first_published_value = first_published_on.final_value if first_published_on else None
 
     description = results.get("description")
     description_value = description.final_value if description and description.final_value else markdown
-
-    # Apply remote company override
-    if is_remote_company(company_value):
-        remote_value = True
 
     # Process compensation
     total_comp = normalize_compensation_value(compensation_value) or 0
@@ -274,6 +279,14 @@ def extract_job_from_scrape(
             posted_at_ms = int(posted_at_value)
             posted_at_unknown = False
 
+    # Process first_published_on
+    first_published_ms: int | None = None
+    if first_published_value:
+        if hasattr(first_published_value, "timestamp"):
+            first_published_ms = int(first_published_value.timestamp() * 1000)
+        elif isinstance(first_published_value, (int, float)):
+            first_published_ms = int(first_published_value)
+
     # Build normalized row
     normalized_row: dict[str, Any] = {
         "job_title": title_value,
@@ -289,6 +302,10 @@ def extract_job_from_scrape(
         "posted_at": posted_at_ms,
         "posted_at_unknown": posted_at_unknown,
     }
+    if first_published_ms is not None:
+        normalized_row["first_published"] = first_published_ms
+    if cost_value is not None:
+        normalized_row["cost_milli_cents"] = int(cost_value)
 
     # Log debug trace if enabled
     if debug:
@@ -351,13 +368,23 @@ def build_heuristic_patch_from_extractors(
     # Domain for records
     domain = ctx.domain or "default"
 
-    # Title patch (only if current title is bad)
+    # Title patch - apply if:
+    # 1. Current title is bad (generic/invalid), OR
+    # 2. Extracted title is different and shorter (indicating cleanup like " at Company" removal)
     title_result = results.get("title")
     if title_result and title_result.final_value:
         current_title = row.get("title") or row.get("jobTitle") or ""
-        if _should_override_title(current_title) and title_result.final_value != current_title:
-            patch["title"] = title_result.final_value
-            patch["jobTitle"] = title_result.final_value
+        extracted_title = title_result.final_value
+        should_patch = False
+        if _should_override_title(current_title):
+            # Current title is bad, override with extracted
+            should_patch = True
+        elif extracted_title != current_title and len(extracted_title) < len(current_title):
+            # Extracted title is shorter (cleanup happened, e.g., " at Company" removed)
+            should_patch = True
+        if should_patch:
+            patch["title"] = extracted_title
+            patch["jobTitle"] = extracted_title
 
     # Location patch
     location_result = results.get("location")
@@ -408,6 +435,45 @@ def build_heuristic_patch_from_extractors(
             elif not remote_result.final_value and scraper_remote is not False:
                 patch["remote"] = False
 
+    # Posted at patch
+    posted_at_result = results.get("posted_at")
+    current_posted_at = row.get("posted_at") or row.get("postedAt")
+    posted_at_unknown = row.get("posted_at_unknown")
+    if posted_at_unknown is None:
+        posted_at_unknown = row.get("postedAtUnknown")
+    has_posted_at = isinstance(current_posted_at, (int, float)) and current_posted_at > 0
+    should_patch_posted_at = not has_posted_at or posted_at_unknown is True
+
+    if posted_at_result and posted_at_result.final_value and should_patch_posted_at:
+        posted_value = posted_at_result.final_value
+        posted_at_ms: int | None = None
+        if hasattr(posted_value, "timestamp"):
+            posted_at_ms = int(posted_value.timestamp() * 1000)
+        elif isinstance(posted_value, (int, float)):
+            posted_at_ms = int(posted_value)
+
+        if posted_at_ms is not None:
+            patch["posted_at"] = posted_at_ms
+            patch["posted_at_unknown"] = (
+                posted_at_result.winning_strategy == "now_fallback_posted_at"
+            )
+
+    # First published patch
+    first_published_result = results.get("first_published_on")
+    current_first_published = row.get("first_published") or row.get("postingFirstPublishedAt")
+    has_first_published = (
+        isinstance(current_first_published, (int, float)) and current_first_published > 0
+    )
+    if first_published_result and first_published_result.final_value and not has_first_published:
+        first_value = first_published_result.final_value
+        first_published_ms: int | None = None
+        if hasattr(first_value, "timestamp"):
+            first_published_ms = int(first_value.timestamp() * 1000)
+        elif isinstance(first_value, (int, float)):
+            first_published_ms = int(first_value)
+        if first_published_ms is not None:
+            patch["first_published"] = first_published_ms
+
     # Compensation patch
     comp_result = results.get("compensation")
     current_comp = normalize_compensation_value(row.get("totalCompensation")) or 0
@@ -422,6 +488,33 @@ def build_heuristic_patch_from_extractors(
                 "field": "compensation",
                 "regex": f"extractor:{comp_result.winning_strategy or 'unknown'}",
             })
+
+    # Company patch - normalize whitespace
+    company_result = results.get("company")
+    if company_result and company_result.final_value:
+        extracted_company = company_result.final_value
+        from ..helpers.company_normalization import _apply_company_mapping
+        normalized_company = _apply_company_mapping(extracted_company)
+        # Only update if different (e.g., whitespace normalization applied)
+        if normalized_company != company:
+            patch["company"] = normalized_company
+
+    # Level patch - extract from title/content if available
+    level_result = results.get("level")
+    current_level = row.get("level") or ""
+    title_for_level = row.get("title") or row.get("jobTitle") or ""
+
+    if level_result and level_result.final_value:
+        # Apply extracted level when it comes from a real signal.
+        if level_result.winning_strategy != "default_level" and level_result.final_value != current_level:
+            patch["level"] = level_result.final_value
+        # If current is "mid" (default), check if title suggests a better level
+        # This handles cases like "Director" title with existing "mid" level
+        elif current_level == "mid" and title_for_level:
+            from .level_extractor import _normalize_level
+            title_level = _normalize_level(title_for_level)
+            if title_level and title_level != "mid":
+                patch["level"] = title_level
 
     # Description normalization
     desc_result = results.get("description")

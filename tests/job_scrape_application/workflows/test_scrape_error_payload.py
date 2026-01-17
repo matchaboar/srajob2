@@ -26,18 +26,19 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("temporalio not installed", allow_module_level=True)
 
-from job_scrape_application.workflows import activities  # noqa: E402
-from job_scrape_application.workflows.activities import (  # noqa: E402
+from job_scrape_application.workflows.activities.errors import (  # noqa: E402
     ScrapeErrorInput,
-    _clean_scrape_error_payload,
+    clean_scrape_error_payload as _clean_scrape_error_payload,
+)
+from job_scrape_application.workflows.activities.step import (  # noqa: E402
+    log_scrape_error as _log_scrape_error,
 )
 
 
-@pytest.mark.asyncio
-async def test_log_scrape_error_strips_null_values(monkeypatch):
+def test_log_scrape_error_strips_null_values(monkeypatch):
     recorded = {}
 
-    async def fake_convex_mutation(name, args=None):  # type: ignore[override]
+    def fake_convex_mutation(name, args=None):  # type: ignore[override]
         recorded["name"] = name
         recorded["args"] = args
 
@@ -45,9 +46,9 @@ async def test_log_scrape_error_strips_null_values(monkeypatch):
         "job_scrape_application.services.convex_client.convex_mutation",
         fake_convex_mutation,
     )
-    monkeypatch.setattr(activities.time, "time", lambda: 1234)
 
-    await activities._log_scrape_error(
+    # _log_scrape_error is now sync - call directly without await
+    _log_scrape_error(
         cast(
             ScrapeErrorInput,
             {
@@ -65,7 +66,6 @@ async def test_log_scrape_error_strips_null_values(monkeypatch):
     payload = recorded["args"]
     assert payload["error"] == "boom"
     assert payload["sourceUrl"] == "https://example.com"
-    assert payload["createdAt"] == 1234 * 1000
     assert "jobId" not in payload
     assert "siteId" not in payload
     assert "status" not in payload

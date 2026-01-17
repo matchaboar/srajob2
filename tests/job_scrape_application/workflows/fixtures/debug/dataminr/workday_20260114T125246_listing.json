@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer",
     "source_url": "https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer",

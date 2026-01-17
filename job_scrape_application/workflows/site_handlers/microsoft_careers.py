@@ -21,6 +21,7 @@ class MicrosoftCareersHandler(BaseSiteHandler):
     name = "microsoft_careers"
     site_type = "microsoft"
     supports_listing_api = True
+    supports_detail_api = True
 
     @classmethod
     def matches_url(cls, url: str) -> bool:

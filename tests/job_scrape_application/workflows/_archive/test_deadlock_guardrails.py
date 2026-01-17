@@ -171,7 +171,7 @@ async def test_greenhouse_workflow_avoids_store_scrape_when_activity_persists(mo
     state = {"leased": False}
     job_urls = ["https://example.com/jobs/1"]
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_site:
             if state["leased"]:
                 return None
@@ -211,7 +211,7 @@ async def test_greenhouse_workflow_avoids_store_scrape_when_activity_persists(mo
 async def test_listing_workflow_avoids_store_scrape_and_detail_batch(monkeypatch):
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             if state["leased"]:
                 return {"urls": []}
@@ -243,7 +243,7 @@ async def test_listing_workflow_avoids_store_scrape_and_detail_batch(monkeypatch
 async def test_listing_workflow_returns_immediately_on_empty_lease(monkeypatch):
     calls: list[str] = []
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append(getattr(activity, "__name__", str(activity)))
         if activity is acts.lease_scrape_url_batch:
             return {"urls": []}
@@ -267,7 +267,7 @@ async def test_listing_workflow_only_runs_listing_activity(monkeypatch):
     state = {"leased": False}
     calls: list[str] = []
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         calls.append(getattr(activity, "__name__", str(activity)))
         if activity is acts.lease_scrape_url_batch:
             if state["leased"]:
@@ -298,7 +298,7 @@ async def test_listing_workflow_only_runs_listing_activity(monkeypatch):
 async def test_job_details_workflow_avoids_store_scrape_when_activity_persists(monkeypatch):
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_scrape_url_batch:
             if state["leased"]:
                 return {"urls": []}
@@ -330,7 +330,7 @@ async def test_job_details_workflow_avoids_store_scrape_when_activity_persists(m
 async def test_scrape_workflow_avoids_store_scrape_when_activity_persists(monkeypatch):
     state = {"leased": False}
 
-    async def fake_execute_activity(activity, *args, **kwargs):
+    def fake_execute_activity(activity, *args, **kwargs):
         if activity is acts.lease_site:
             if state["leased"]:
                 return None

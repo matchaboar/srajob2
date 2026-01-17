@@ -26,6 +26,7 @@ from .base import BaseScraper
 
 if TYPE_CHECKING:
     from ..activities import Site
+    from ..activities.errors import ScrapeErrorInput
 
 
 @dataclass
@@ -39,7 +40,7 @@ class FirecrawlDependencies:
     log_sync_response: Callable[..., None]
     trim_scrape_for_convex: Callable[[Dict[str, Any]], Dict[str, Any]]
     normalize_firecrawl_items: Callable[[Any], List[Dict[str, Any]]]
-    log_scrape_error: Callable[[Dict[str, Any]], Awaitable[None]]
+    log_scrape_error: Callable[[ScrapeErrorInput], None]
     load_greenhouse_board: Callable[[Any], GreenhouseBoardResponse]
     extract_greenhouse_job_urls: Callable[[GreenhouseBoardResponse], List[str]]
     firecrawl_cache_max_age_ms: int
@@ -436,7 +437,7 @@ class FirecrawlScraper(BaseScraper):
             }
             if idempotency_key is not None:
                 error_payload["jobId"] = idempotency_key
-            await self.deps.log_scrape_error(error_payload)
+            self.deps.log_scrape_error(error_payload)
             msg = str(exc).lower()
             if isinstance(exc, PaymentRequiredError) or "payment required" in msg or "insufficient credits" in msg:
                 raise PaymentRequiredWorkflowError(f"Firecrawl batch scrape failed: {exc}") from exc

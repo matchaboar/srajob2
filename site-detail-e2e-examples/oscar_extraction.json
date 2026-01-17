@@ -14,18 +14,38 @@
       "company": "Oscar Health",
       "level": "mid",
       "total_compensation": 0,
-      "compensation_unknown": true,
-      "compensation_reason": "pending markdown structured extraction",
+      "compensation_unknown": false,
+      "compensation_reason": null,
       "url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
       "cost_milli_cents": 2
     }
   ],
   "convex_capture": {
-    "ingested_jobs_count": 0,
+    "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 0,
-    "ingested_jobs_sample": [],
-    "description_uploads_sample": []
+    "description_uploads_count": 1,
+    "ingested_jobs_sample": [
+      {
+        "title": "1099 Physician - APP Supervision",
+        "company": "Oscar Health",
+        "location": "Georgia, United States",
+        "description": "1099 Physician - APP Supervision\n\nHi, we're Oscar Medical Group. We're hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, &amp; Oscar Primary Care.\nAt Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\nAbout the role:\nYou will be a supervising physician to Advanced Practice Providers providing care services to...",
+        "url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
+        "apply_url": "https://boards.greenhouse.io/oscar/jobs/7452951",
+        "posted_at": 1767134523000,
+        "level": "mid",
+        "remote": false,
+        "cost_milli_cents": 2,
+        "_full_description_word_count": 549
+      }
+    ],
+    "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7452951",
+        "word_count": 549,
+        "description_preview": "1099 Physician - APP Supervision Hi, we're Oscar Medical Group. We're hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, &amp;..."
+      }
+    ]
   },
   "extractor_trace": {
     "title": {
@@ -106,9 +126,9 @@
         {
           "name": "url_company",
           "priority": "URL_DERIVED",
-          "value": null,
-          "is_valid": false,
-          "reason": "Could not derive company from URL"
+          "value": "Oscar Health",
+          "is_valid": true,
+          "reason": "Valid company name"
         },
         {
           "name": "content_pattern_company",
@@ -162,9 +182,9 @@
         {
           "name": "explicit_label_location",
           "priority": "CUSTOM_350",
-          "value": "Oscar Medical Group is a blended work culture where everyone, re",
-          "is_valid": true,
-          "reason": "Found location label pattern"
+          "value": null,
+          "is_valid": false,
+          "reason": "No explicit location label found"
         },
         {
           "name": "url_location",
@@ -206,7 +226,7 @@
     "remote": {
       "final_value": false,
       "winning_strategy": "explicit_remote_flag",
-      "strategy_count": 7,
+      "strategy_count": 9,
       "strategies": [
         {
           "name": "explicit_remote_flag",
@@ -216,11 +236,25 @@
           "reason": "Explicit boolean remote=False"
         },
         {
+          "name": "schema_org_remote",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No jobLocationType found in Schema.org data"
+        },
+        {
+          "name": "greenhouse_metadata_remote",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No Workplace Type found in Greenhouse metadata"
+        },
+        {
           "name": "location_remote",
           "priority": "EXPLICIT_FIELD",
-          "value": false,
-          "is_valid": true,
-          "reason": "Location is specific place: Georgia, United States"
+          "value": null,
+          "is_valid": false,
+          "reason": "Location 'Georgia, United States' present but not inferring remote status"
         },
         {
           "name": "title_remote",
@@ -261,15 +295,15 @@
     },
     "level": {
       "final_value": "mid",
-      "winning_strategy": "explicit_level_field",
+      "winning_strategy": "default_level",
       "strategy_count": 6,
       "strategies": [
         {
           "name": "explicit_level_field",
           "priority": "STRUCTURED_DATA",
-          "value": "mid",
-          "is_valid": true,
-          "reason": "Explicit level field: mid -> mid"
+          "value": null,
+          "is_valid": false,
+          "reason": "Skipping mid-level default: mid"
         },
         {
           "name": "structured_data_level",
@@ -318,7 +352,7 @@
           "priority": "STRUCTURED_DATA",
           "value": null,
           "is_valid": false,
-          "reason": "Could not parse compensation: 0"
+          "reason": "No compensation field in raw row"
         },
         {
           "name": "structured_data_compensation",
@@ -328,6 +362,13 @@
           "reason": "No structured data available"
         },
         {
+          "name": "hinted_compensation",
+          "priority": "CUSTOM_450",
+          "value": null,
+          "is_valid": false,
+          "reason": "No compensation in hints"
+        },
+        {
           "name": "content_pattern_compensation",
           "priority": "CONTENT_PATTERN",
           "value": 300000,
@@ -335,18 +376,46 @@
           "reason": "Single compensation pattern: $300,000"
         },
         {
-          "name": "hinted_compensation",
-          "priority": "HEURISTIC",
-          "value": null,
-          "is_valid": false,
-          "reason": "No compensation in hints"
-        },
-        {
           "name": "unknown_compensation",
           "priority": "FALLBACK",
           "value": 0,
           "is_valid": true,
           "reason": "No compensation found, using 0 (unknown)"
+        }
+      ]
+    },
+    "cost_milli_cents": {
+      "final_value": 2,
+      "winning_strategy": "raw_row_cost_milli_cents",
+      "strategy_count": 4,
+      "strategies": [
+        {
+          "name": "raw_row_cost_milli_cents",
+          "priority": "STRUCTURED_DATA",
+          "value": 2,
+          "is_valid": true,
+          "reason": "Valid cost: 2"
+        },
+        {
+          "name": "raw_row_cost_cents",
+          "priority": "CUSTOM_110",
+          "value": null,
+          "is_valid": false,
+          "reason": "No cost cents field"
+        },
+        {
+          "name": "costs_block",
+          "priority": "CUSTOM_120",
+          "value": null,
+          "is_valid": false,
+          "reason": "No costs block"
+        },
+        {
+          "name": "raw_row_credits_used",
+          "priority": "CUSTOM_130",
+          "value": null,
+          "is_valid": false,
+          "reason": "No creditsUsed field"
         }
       ]
     },
@@ -393,9 +462,37 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-15T16:03:03.632427",
+          "value": "2026-01-17T13:05:59.269928",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
+        }
+      ]
+    },
+    "first_published_on": {
+      "final_value": null,
+      "winning_strategy": null,
+      "strategy_count": 3,
+      "strategies": [
+        {
+          "name": "explicit_first_published_field",
+          "priority": "STRUCTURED_DATA",
+          "value": null,
+          "is_valid": false,
+          "reason": "No first_published field in raw row"
+        },
+        {
+          "name": "structured_data_first_published",
+          "priority": "CUSTOM_150",
+          "value": null,
+          "is_valid": false,
+          "reason": "No structured data available"
+        },
+        {
+          "name": "site_handler_first_published",
+          "priority": "SITE_HANDLER",
+          "value": null,
+          "is_valid": false,
+          "reason": "Handler 'greenhouse' returned no first_published"
         }
       ]
     },
@@ -416,21 +513,21 @@
           "priority": "SITE_HANDLER",
           "value": "1099 Physician - APP Supervision\n\nHi, we're Oscar Medical Group. We're hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, &amp; Oscar Primary Care.\nAt Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\nAbout the role:\nYou will be a supervising physician to Advanced Practice Providers providing care services to Oscar Health members via telemedicine. You are not expected to provide patient care.\nWork Location:\nOscar Medical Group is a blended work culture where everyone, regardless of work type or location, feels connected to their teammates, our culture and our mission.\nThis is a remote / work-from-home role. You must reside in: Georgia. #LI-Remote\nPay Transparency:\n$300 per APP per month for APP Supervision duties. Oscar Medical Group will cover your malpractice insurance.\nResponsibilities:\n- Provide direct oversight and supervision of nurse practitioners and physician assistants within state by state regulations\n- Collaborate with MAs, RNs, and other providers across service lines\n- Compliance with all applicable laws and regulations\n- Other duties as assigned\nRequirements:\n- Board-certification in Internal Medicine, Family Medicine or Emergency Medicine\n- MD or DO from an accredited medical school\n- Supervision experience of Nurse Practitioners (NP) and Physician Assistants (PA)\n- Must live in Georgia\n- Must have an active state license in Georgia\n- 3+ years clinical experience in urgent care, ER or outpatient family medicine practice\nBonus points:\n- 2+ years of Telemedicine experience\n- Fluent in Spanish\n- Must have a compact license or be eligible for IMLCC (Interstate Medical Licensure Compact)\n- Licensed in OMG states: MI, IL, CT, PA, NC, OK, VA, TX, FL, OH\nThis is an authentic Oscar Health job opportunity. Learn more about how you can safeguard yourself from recruitment fraud here .&nbsp;\nAt Oscar, being an Equal Opportunity Employer means more than upholding discrimination-free hiring practices. It means that we cultivate an environment where people can be their most authentic selves and find both belonging and support. We're on a mission to change health care -- an experience made whole by our unique backgrounds and perspectives.\nPay Transparency:&nbsp; Final offer amounts, within the base pay set forth above, are determined by factors including your relevant skills, education, and experience. Full-time employees are eligible for benefits including: medical, dental, and vision benefits, 11 paid holidays, paid sick time, paid parental leave, 401(k) plan participation, life and disability insurance, and paid wellness time and reimbursements.\nArtificial Intelligence (AI): Our AI Guidelines outline the acceptable use of artificial intelligence for candidates and detail how we use AI to support our recruiting efforts.\nReasonable Accommodation: Oscar applicants are considered solely based on their qualifications, without regard to applicant’s disability or need for accommodation. Any Oscar applicant who requires reasonable accommodations during the application process should contact the Oscar Benefits Team (accommodations@hioscar.com) to make the need for an accommodation known.\nCalifornia Residents: For information about our collection, use, and disclosure of applicants’ personal information as well as applicants’ rights over their personal information, please see our Privacy Policy .",
           "is_valid": true,
-          "reason": "Valid description (3680 chars)"
+          "reason": "Valid description (3680 chars, 549 words)"
         },
         {
           "name": "raw_row_description",
           "priority": "EXPLICIT_FIELD",
           "value": "1099 Physician - APP Supervision\n\nHi, we're Oscar Medical Group. We're hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, &amp; Oscar Primary Care.\nAt Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\nAbout the role:\nYou will be a supervising physician to Advanced Practice Providers providing care services to Oscar Health members via telemedicine. You are not expected to provide patient care.\nWork Location:\nOscar Medical Group is a blended work culture where everyone, regardless of work type or location, feels connected to their teammates, our culture and our mission.\nThis is a remote / work-from-home role. You must reside in: Georgia. #LI-Remote\nPay Transparency:\n$300 per APP per month for APP Supervision duties. Oscar Medical Group will cover your malpractice insurance.\nResponsibilities:\n- Provide direct oversight and supervision of nurse practitioners and physician assistants within state by state regulations\n- Collaborate with MAs, RNs, and other providers across service lines\n- Compliance with all applicable laws and regulations\n- Other duties as assigned\nRequirements:\n- Board-certification in Internal Medicine, Family Medicine or Emergency Medicine\n- MD or DO from an accredited medical school\n- Supervision experience of Nurse Practitioners (NP) and Physician Assistants (PA)\n- Must live in Georgia\n- Must have an active state license in Georgia\n- 3+ years clinical experience in urgent care, ER or outpatient family medicine practice\nBonus points:\n- 2+ years of Telemedicine experience\n- Fluent in Spanish\n- Must have a compact license or be eligible for IMLCC (Interstate Medical Licensure Compact)\n- Licensed in OMG states: MI, IL, CT, PA, NC, OK, VA, TX, FL, OH\nThis is an authentic Oscar Health job opportunity. Learn more about how you can safeguard yourself from recruitment fraud here .&nbsp;\nAt Oscar, being an Equal Opportunity Employer means more than upholding discrimination-free hiring practices. It means that we cultivate an environment where people can be their most authentic selves and find both belonging and support. We're on a mission to change health care -- an experience made whole by our unique backgrounds and perspectives.\nPay Transparency:&nbsp; Final offer amounts, within the base pay set forth above, are determined by factors including your relevant skills, education, and experience. Full-time employees are eligible for benefits including: medical, dental, and vision benefits, 11 paid holidays, paid sick time, paid parental leave, 401(k) plan participation, life and disability insurance, and paid wellness time and reimbursements.\nArtificial Intelligence (AI): Our AI Guidelines outline the acceptable use of artificial intelligence for candidates and detail how we use AI to support our recruiting efforts.\nReasonable Accommodation: Oscar applicants are considered solely based on their qualifications, without regard to applicant’s disability or need for accommodation. Any Oscar applicant who requires reasonable accommodations during the application process should contact the Oscar Benefits Team (accommodations@hioscar.com) to make the need for an accommodation known.\nCalifornia Residents: For information about our collection, use, and disclosure of applicants’ personal information as well as applicants’ rights over their personal information, please see our Privacy Policy .",
           "is_valid": true,
-          "reason": "Valid description (3680 chars)"
+          "reason": "Valid description (3680 chars, 549 words)"
         },
         {
           "name": "raw_markdown_description",
           "priority": "CUSTOM_800",
           "value": "1099 Physician - APP Supervision\n\nHi, we're Oscar Medical Group. We're hiring a Physician to provide regulatory APP supervision across all service lines: Virtual Urgent Care, Virtual Health Assessment, &amp; Oscar Primary Care.\nAt Oscar Medical Group, we are refactoring healthcare. We want to help each of our members achieve their healthcare goals in a personalized way. To help us achieve that goal we are looking for innovative leaders who think big and push boundaries to refactor healthcare and the healthcare delivery system.\nAbout the role:\nYou will be a supervising physician to Advanced Practice Providers providing care services to Oscar Health members via telemedicine. You are not expected to provide patient care.\nWork Location:\nOscar Medical Group is a blended work culture where everyone, regardless of work type or location, feels connected to their teammates, our culture and our mission.\nThis is a remote / work-from-home role. You must reside in: Georgia. #LI-Remote\nPay Transparency:\n$300 per APP per month for APP Supervision duties. Oscar Medical Group will cover your malpractice insurance.\nResponsibilities:\n- Provide direct oversight and supervision of nurse practitioners and physician assistants within state by state regulations\n- Collaborate with MAs, RNs, and other providers across service lines\n- Compliance with all applicable laws and regulations\n- Other duties as assigned\nRequirements:\n- Board-certification in Internal Medicine, Family Medicine or Emergency Medicine\n- MD or DO from an accredited medical school\n- Supervision experience of Nurse Practitioners (NP) and Physician Assistants (PA)\n- Must live in Georgia\n- Must have an active state license in Georgia\n- 3+ years clinical experience in urgent care, ER or outpatient family medicine practice\nBonus points:\n- 2+ years of Telemedicine experience\n- Fluent in Spanish\n- Must have a compact license or be eligible for IMLCC (Interstate Medical Licensure Compact)\n- Licensed in OMG states: MI, IL, CT, PA, NC, OK, VA, TX, FL, OH\nThis is an authentic Oscar Health job opportunity. Learn more about how you can safeguard yourself from recruitment fraud here .&nbsp;\nAt Oscar, being an Equal Opportunity Employer means more than upholding discrimination-free hiring practices. It means that we cultivate an environment where people can be their most authentic selves and find both belonging and support. We're on a mission to change health care -- an experience made whole by our unique backgrounds and perspectives.\nPay Transparency:&nbsp; Final offer amounts, within the base pay set forth above, are determined by factors including your relevant skills, education, and experience. Full-time employees are eligible for benefits including: medical, dental, and vision benefits, 11 paid holidays, paid sick time, paid parental leave, 401(k) plan participation, life and disability insurance, and paid wellness time and reimbursements.\nArtificial Intelligence (AI): Our AI Guidelines outline the acceptable use of artificial intelligence for candidates and detail how we use AI to support our recruiting efforts.\nReasonable Accommodation: Oscar applicants are considered solely based on their qualifications, without regard to applicant’s disability or need for accommodation. Any Oscar applicant who requires reasonable accommodations during the application process should contact the Oscar Benefits Team (accommodations@hioscar.com) to make the need for an accommodation known.\nCalifornia Residents: For information about our collection, use, and disclosure of applicants’ personal information as well as applicants’ rights over their personal information, please see our Privacy Policy .",
           "is_valid": true,
-          "reason": "Valid description (3680 chars)"
+          "reason": "Valid description (3680 chars, 549 words)"
         },
         {
           "name": "empty_description_fallback",

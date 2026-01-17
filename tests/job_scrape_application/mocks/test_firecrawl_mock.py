@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -65,8 +64,7 @@ def test_mock_firecrawl_callable_returns_500_on_failure():
     assert "error" in resp.json()
 
 
-@pytest.mark.asyncio
-async def test_mock_firecrawl_webhook_failure_recorded():
+def test_mock_firecrawl_webhook_failure_recorded():
     queue = MockWebhookQueue()
     client = MockFirecrawl(
         scenario=MockFirecrawlScenario.WEBHOOK_POST_FAILS,
@@ -80,13 +78,11 @@ async def test_mock_firecrawl_webhook_failure_recorded():
     }
     client.start_crawl("https://example.com", webhook=webhook)
 
-    await asyncio.sleep(0.05)
     assert queue.drain() == []
     assert client.webhook_failures
 
 
-@pytest.mark.asyncio
-async def test_mock_firecrawl_callable_webhook_failure_still_returns_200():
+def test_mock_firecrawl_callable_webhook_failure_still_returns_200():
     queue = MockWebhookQueue()
     client = MockFirecrawl(
         scenario=MockFirecrawlScenario.WEBHOOK_POST_FAILS,
@@ -100,6 +96,5 @@ async def test_mock_firecrawl_callable_webhook_failure_still_returns_200():
     )
 
     assert resp.status_code == 200
-    await asyncio.sleep(0.05)
     assert queue.drain() == []
     assert client.webhook_failures

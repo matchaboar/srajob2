@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://careers.adobe.com/us/en/search-results?keywords=engineer"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://careers.adobe.com/us/en/search-results?keywords=engineer",
     "params": {

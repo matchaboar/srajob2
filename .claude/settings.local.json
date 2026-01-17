@@ -69,7 +69,15 @@
       "Skill(refresh-fixtures)",
       "Bash(sqlite3:*)",
       "Bash(pnpm vitest run:*)",
-      "WebFetch(domain:docs.convex.dev)"
+      "WebFetch(domain:docs.convex.dev)",
+      "Bash(uvx pyright:*)",
+      "Bash(uv run:*)",
+      "Bash(rg:*)",
+      "Bash(for id in af6a908 aae2661 ac34b2c ab3f641 a6d294b ad774c0 a61166c a14d748 aebfd32 a7193d0)",
+      "Bash(do:*)",
+      "Bash(if rg -q '\"\"type\"\":\"\"result\"\"' /tmp/claude/-home-boarcoder-documents-github-srajob2/tasks/$id.output)",
+      "Bash(then)",
+      "Bash(else)"
     ]
   },
   "outputStyle": "default"

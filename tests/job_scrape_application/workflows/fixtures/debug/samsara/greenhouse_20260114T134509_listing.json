@@ -1,4 +1,9 @@
 {
+  "scraped_urls": [
+    "https://api.greenhouse.io/v1/boards/samsara/jobs"
+  ],
+  "normalized_urls": [],
+  "apply_urls": [],
   "request": {
     "url": "https://api.greenhouse.io/v1/boards/samsara/jobs",
     "params": {

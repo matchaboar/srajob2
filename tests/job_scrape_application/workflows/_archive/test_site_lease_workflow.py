@@ -16,7 +16,7 @@ async def test_site_lease_workflow_handles_activity_failure(monkeypatch):
 
     calls: Dict[str, Any] = {"fail_site": [], "record": None, "jobs_started": []}
 
-    async def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
+    def fake_execute_activity(fn, args=None, **_kwargs):  # type: ignore[override]
         if fn is wf.lease_site:
             return next(lease_iter)
         if fn is wf.start_firecrawl_webhook_scrape:

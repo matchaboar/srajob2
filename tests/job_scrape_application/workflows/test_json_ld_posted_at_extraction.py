@@ -23,6 +23,8 @@ from job_scrape_application.workflows.site_handlers.base import (  # noqa: E402
     BaseSiteHandler,
 )
 
+JSON_LD_SCRIPT_RE = re.compile(JSON_LD_SCRIPT_PATTERN, re.IGNORECASE | re.DOTALL)
+
 JSON_LD_FIXTURES = [
     Path("tests/job_scrape_application/workflows/fixtures/broadcom_workday_r024197_raw.json"),
     Path("tests/fixtures/ashby_lambda_job_detail_raw.html"),
@@ -127,7 +129,7 @@ def _find_date(node: Any) -> str | None:
 
 
 def _extract_expected_date(raw_html: str) -> str | None:
-    for match in re.finditer(JSON_LD_SCRIPT_PATTERN, raw_html, flags=re.IGNORECASE | re.DOTALL):
+    for match in JSON_LD_SCRIPT_RE.finditer(raw_html):
         payload_raw = match.group("payload").strip()
         if not payload_raw:
             continue

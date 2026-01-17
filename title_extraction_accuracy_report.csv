@@ -1,0 +1,104 @@
+id,url,match_type,expected_key,expected,actual,passed
+rubrik,https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/6109450,exact,title,Backend Engineer,Backend Engineer,True
+meta_careers_20260116T210610,https://www.metacareers.com/profile/job_details/855124070677992,contains,title_contains,,Site Selection Strategy Manager,True
+spotify,https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing,contains,title_contains,Data Scientist,Data Scientist,True
+verkada,https://boards-api.greenhouse.io/v1/boards/verkada/jobs/4970809007,exact,title,Analytics Engineer,Analytics Engineer,True
+purestorage,https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7472241,exact,title,AI/HPC Pre-Sales Systems Engineer,AI/HPC Pre-Sales Systems Engineer,True
+nexhealth,https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447434004,exact,title,Demand Generation Lead,Director of Software Engineering,False
+broadcom,https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/IC-Design-Engineer_R023525,exact,title,IC Design Engineer,IC Design Engineer,True
+openai,https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco,exact,title,AI Support Engineer,AI Support Engineer,True
+mongodb,https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945,exact,title,"2026 - Analytics Engineering Intern, NYC","2026 - Analytics Engineering Intern, NYC",True
+oscar,https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7297858,exact,title,"Senior Security Engineer I, Platform Security","Senior Security Engineer I, Platform Security",True
+docusign,https://careers.docusign.com/jobs/27215?lang=en-us,exact,title,Software Engineer,Software Engineer,True
+coreweave,https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4555589006,contains,title_contains,Application Security Engineer,Application Security Engineer,True
+okta,https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092,exact,title,AI/ML Engineer II- Intelligence Accelerator,AI/ML Engineer II- Intelligence Accelerator,True
+microsoft,https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556653497&domain=microsoft.com&hl=en,contains,title_contains,Software Engineer,Principal Software Engineer,True
+netflix,https://explore.jobs.netflix.net/careers/job/790312429476,contains,title_contains,Systems Development Engineer,Systems Development Engineer L5,True
+hubspot,https://www.hubspot.com/careers/jobs/5986323,contains,title_contains,Account Executive,"Account Executive, Corporate - Benelux",True
+flex,https://boards-api.greenhouse.io/v1/boards/flex/jobs/4602394005,exact,title,"Director, Analytics Engineer","Director, Analytics Engineer",True
+github_20260116T210537,https://www.github.careers/careers-home/jobs/4867?lang=en-us,contains,title_contains,,"Senior Software Engineer, Copilot Agents",True
+airbnb,https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518,exact,title,Android Software Engineer,Android Software Engineer,True
+voltage_park_20260116T210935,https://careers.kula.ai/voltagepark/19780,contains,title_contains,Data Center Site Operations Manager,Data Center Site Operations Manager - Voltage Park,True
+stubhub,https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4704159101,exact,title,Analytics Engineer II,Analytics Engineer II,True
+confluent,https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1,exact,title,Staff Software Engineer - Flink SQL,Staff Software Engineer - Flink SQL,True
+pinterest,https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7354745,exact,title,"Business Development Lead, Data Partnerships","Director, Machine Learning Engineering, Programmatic Ads",False
+lyft,https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8299363002,exact,title,Anaplan Engineer,Anaplan Engineer,True
+bloomberg,https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494,contains,title_contains,Senior Software Engineer,Senior Software Engineer - Employee Engagement & Discovery,True
+airtable,https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8112284002,exact,title,"Analytics Engineer, Product Analytics","Analytics Engineer, Product Analytics",True
+twilio,https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7312780,exact,title,Application Integration Engineer,Application Integration Engineer,True
+together_ai,https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007,exact,title,Customer Support Engineer,Customer Support Engineer,True
+stripe,https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7311137,exact,title,"Android Engineer, Link","Android Engineer, Link",True
+dataminr,https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945,exact,title,Customer Success Associate,Customer Success Associate,True
+robinhood,https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7350823,exact,title,Android Developer,Android Engineer,False
+cisco_20260116T210452,https://careers.cisco.com/global/en/job/1448611/Software-Engineer-Go-Isovalent-Europe-Remote,contains,title_contains,,Software Engineer Go - Isovalent (Europe Remote),True
+axon,https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003,exact,title,Backend Software Engineer I/ II,Backend Software Engineer I/ II,True
+xai,https://boards-api.greenhouse.io/v1/boards/xai/jobs/4834320007,exact,title,AI/HPC Network Development Engineer - Networking,AI/HPC Network Development Engineer - Networking,True
+zscaler,https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4969685007,exact,title,"Backend Engineer, Data Pipelines (Avalor)","Backend Engineer, Data Pipelines (Avalor)",True
+coupang,https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7457275,exact,title,Android Engineer,Android Engineer,True
+kula_k17emevf0pnx9fx30bb6zgdj657z536b,https://careers.kula.ai/voltagepark/20818,exact,title,Manager of Infrastructure Engineering (Observability) - Voltage Park,Manager of Infrastructure Engineering (Observability) - Voltage Park,True
+netflix_790313551266,https://explore.jobs.netflix.net/careers/job/790313551266,exact,title,"Software Engineer L5, Ads Campaign Management","Software Engineer L5, Ads Campaign Management",True
+greenhouse_k178kkn3dhtkqw7sh1yvd90jx97xgsxb,https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7362663,exact,title,"Staff Software Engineer, Search Infrastructure","Staff Software Engineer, Search Infrastructure",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/airtable/jobs/8112284002,exact,title,"Analytics Engineer, Product Analytics","Analytics Engineer, Product Analytics",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/okta/jobs/7435092,exact,title,AI/ML Engineer II- Intelligence Accelerator,AI/ML Engineer II- Intelligence Accelerator,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/stubhubinc/jobs/4671355101,contains,title_contains,Analytics Engineer II,Analytics Engineer II,True
+kula_20260114T134509,https://careers.kula.ai/voltagepark/19780,exact,title,Data Center Site Operations Manager - Voltage Park,Data Center Site Operations Manager - Voltage Park,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/samsara/jobs/7292482,exact,title,Director of Engineering and Routing,Director of Engineering and Routing,True
+greenhouse_ad7z5ykz_20260113,https://boards-api.greenhouse.io/v1/boards/samsara/jobs/7534517,exact,title,Senior Software Engineer - Enterprise Management,Senior Software Engineer - Enterprise Management,True
+greenhouse_20260114T134315,https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518,exact,title,Android Software Engineer,Android Software Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518,exact,title,Android Software Engineer,Android Software Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/figma/jobs/5220003004,exact,title,Data Engineer,Data Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6669758,exact,title,Android Engineer,Android Engineer,True
+greenhouse_0d7z4k46_20260113,https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/7473701,exact,title,Senior Software Engineer,Senior Software Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/verkada/jobs/4970809007,exact,title,Analytics Engineer,Analytics Engineer,True
+ashby_20260114T134509,https://jobs.ashbyhq.com/ramp/63df0ffc-bdc6-40ba-906f-fe03378536b0,contains,title_contains,AI Operations Specialist,AI Operations Specialist,True
+ramp_6ac50530,https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd,exact,title,"Account Manager, Growth","Account Manager, Growth",True
+ashbyhq_8x7z6df8_20260113,https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd,exact,title,"Account Manager, Growth","Account Manager, Growth",True
+ashbyhq_en7z7wgw_20260114,https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd,exact,title,"Account Manager, Growth","Account Manager, Growth",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/mithril/jobs/4604609007,exact,title,"Senior Product Engineer, Marketplace","Senior Product Engineer, Marketplace",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/oscar/jobs/7297858,exact,title,"Senior Security Engineer I, Platform Security","Senior Security Engineer I, Platform Security",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7178394,exact,title,AI Growth Lead (Staff Software Engineer),AI Growth Lead (Staff Software Engineer),True
+openai_careers_20260114T134509,https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco,exact,title,AI Support Engineer,AI Support Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/6109450,exact,title,Backend Engineer,Backend Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7374078,exact,title,"Account Executive, AI Sales","Account Executive, AI Sales",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/xai/jobs/4834317007,exact,title,AI/HPC Network Development Engineer - Networking,AI/HPC Network Development Engineer - Networking,True
+paloalto_networks_20260114T134509,https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520,exact,title,Software Engineering Manager (NetSec),Software Engineering Manager (NetSec),True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7355561,exact,title,[쿠팡 페이]사내변호사,[쿠팡 페이]사내변호사,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414,exact,title,"Business Development Lead, Data Partnerships","Business Development Lead, Data Partnerships",True
+microsoft_careers_20260114T134509,https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en,contains,title_contains,Senior Software Engineer,Senior Software Engineer,True
+workday_r57z7gve_20260113,https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/R-D-Engineer-Hardware_R023773,exact,title,R&D Engineer Hardware,R&D Engineer Hardware,True
+workday_20260114T134509,https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-Allentown-1110-American-Parkway-NE/Sr-Firmware-Engineer_R024707,exact,title,Sr. Firmware Engineer,Sr. Firmware Engineer,True
+paloaltonetworks_5s7z63cq_20260113,https://jobs.paloaltonetworks.com/en/job/chicago/named-account-manager-sled/47263/89098145424,exact,title,Named Account Manager - SLED,Named Account Manager - SLED,True
+paloaltonetworks_90528756896,https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896,exact,title,"Principal Program Manager, PMO","Principal Program Manager, PMO",True
+paloaltonetworks_q97z5pxt_20260113,https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128,exact,title,Service Delivery Leader,Service Delivery Leader,True
+paloaltonetworks_rx7z7pe2_20260114,https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944,exact,title,Named Account Manager - SLED,Named Account Manager - SLED,True
+lifeatspotify_20260114T134509,https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing,exact,title,Data Scientist,Data Scientist,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4555589006,exact,title,Application Security Engineer,Application Security Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/lyft/jobs/8299363002,exact,title,Anaplan Engineer,Anaplan Engineer,True
+avature_20260114T134509,https://bloomberg.avature.net/careers/JobDetail/Senior-Data-Management-Professional-Data-Engineer-BNEF-Data/16762,exact,title,Senior Data Management Professional - Data Engineer - BNEF Data,Senior Data Management Professional - Data Engineer - BNEF Data,True
+snapchat_20260114T134509,https://careers.snap.com/job?id=R0043117,exact,title,"Manager, Client Partner","Manager, Client Partner",True
+meta_careers_20260114T134509,https://www.metacareers.com/profile/job_details/727671609895617,exact,title,"Software Engineer, Product","Software Engineer, Product",True
+docusign_20260114T134509,https://careers.docusign.com/jobs/27215?lang=en-us,exact,title,Software Engineer,Software Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828142007,contains,title_contains,2026 China Software Engineering Internship,2026 China Software Engineering Internship (Based in Shanghai),True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969,exact,title,AI Research Engineer - Datadog AI Research (DAIR),AI Research Engineer - Datadog AI Research (DAIR),True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5447434004,exact,title,Director of Software Engineering,Director of Software Engineering,True
+confluent_20260114T134509,https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1,exact,title,Staff Software Engineer - Flink SQL,Staff Software Engineer - Flink SQL,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/flex/jobs/4602394005,exact,title,"Director, Analytics Engineer","Director, Analytics Engineer",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/5011946007,contains,title_contains,Commercial Sales Engineer,Commercial Sales Engineer - Florida/North Carolina,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7472241,exact,title,AI/HPC Pre-Sales Systems Engineer,AI/HPC Pre-Sales Systems Engineer,True
+adobe_careers_20260114T134509,https://careers.adobe.com/us/en/job/R161269/Software-Engineer,contains,title_contains,Software Engineer,Software Engineer,True
+greenhouse_6h7y7awj_20260113,https://boards-api.greenhouse.io/v1/boards/axon/jobs/7529431003,exact,title,Strategic Project Manager,Strategic Project Manager,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/axon/jobs/4322399003,exact,title,Backend Software Engineer I/ II,Backend Software Engineer I/ II,True
+github_careers_20260114T134509,https://www.github.careers/careers-home/jobs/4764?lang=en-us,exact,title,Software Engineer III,Software Engineer III,True
+workday_20260114T134509,https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/San-Antonio-TX/Field-Services-Engineer--USAF--Onsite-in-San-Antonio--TX-_JR1954,exact,title,"Field Services Engineer, USAF (Onsite in San Antonio, TX)","Field Services Engineer, USAF (Onsite in San Antonio, TX)",True
+uber_careers_20260114T134509,https://www.uber.com/careers/list/149889,exact,title,"Business Development Lead, US Regional Grocery","Business Development Lead, US Regional Grocery",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945,exact,title,"2026 - Analytics Engineering Intern, NYC","2026 - Analytics Engineering Intern, NYC",True
+ashby_20260114T134509,https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607,exact,title,AI Engineer,AI Engineer,True
+hubspot_careers_3e8f3684_20260114T192130,https://www.hubspot.com/careers/jobs/7391386,exact,title,"Senior Software Engineer II, Backend","Senior Software Engineer II, Backend",True
+hubspot_careers_20260114T134509,https://www.hubspot.com/careers/jobs/5986323,exact,title,"Account Executive, Corporate - Benelux","Account Executive, Corporate - Benelux",True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/togetherai/jobs/4745173007,contains,title_contains,Customer Support Engineer,Customer Support Engineer,True
+ashby_20260114T134509,https://jobs.ashbyhq.com/Serval/77514f30-6a54-4bb3-b9aa-28b86f6ce7c6,exact,title,Mid-Market Account Executive,Mid-Market Account Executive,True
+ashby_20260114T134509,https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938,exact,title,Senior Software Engineer - AI Cloud,Senior Software Engineer - AI Cloud,True
+greenhouse_cx7z5e6a_20260113,https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7484699,exact,title,Cloud Software Engineer,Cloud Software Engineer,True
+greenhouse_20260114T134509,https://boards-api.greenhouse.io/v1/boards/twilio/jobs/7312780,exact,title,Application Integration Engineer,Application Integration Engineer,True
+netflix_20260114T134509,https://explore.jobs.netflix.net/careers/job/790312429476,exact,title,Systems Development Engineer L5,Systems Development Engineer L5,True
+ashby_20260114T134509,https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297,exact,title,"Account Executive, Mid-Market","Account Executive, Mid-Market",True

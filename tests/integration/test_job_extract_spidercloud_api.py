@@ -27,6 +27,9 @@ SPIDER_PARAMS: Dict[str, Any] = {
     "limit": 1,
 }
 
+_PRE_TAG_RE = re.compile(r"<pre>(?P<content>.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
+_BRACE_RE = re.compile(r"{.*}", flags=re.DOTALL)
+
 
 async def _collect_response(response: Any) -> List[Any]:
     if hasattr(response, "__aiter__"):
@@ -92,7 +95,7 @@ def _extract_payload(events: List[Any]) -> Optional[Dict[str, Any]]:
 def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
     if not text:
         return None
-    match = re.search(r"<pre>(?P<content>.*?)</pre>", text, flags=re.IGNORECASE | re.DOTALL)
+    match = _PRE_TAG_RE.search(text)
     content = match.group("content") if match else text
     content = html_lib.unescape(content).strip()
     if not content:
@@ -101,7 +104,7 @@ def _extract_json_from_html(text: str) -> Optional[Dict[str, Any]]:
     if content.startswith("{") and content.endswith("}"):
         raw_candidate = content
     else:
-        brace_match = re.search(r"{.*}", content, flags=re.DOTALL)
+        brace_match = _BRACE_RE.search(content)
         if brace_match:
             raw_candidate = brace_match.group(0)
     if not raw_candidate:

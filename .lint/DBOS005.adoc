@@ -1,0 +1,60 @@
+= DBOS005: Async workflow uses sync launch methods
+
+== Summary
+
+Async workflows must use async workflow launch methods.
+
+== Description
+
+Coroutine (async) workflows must use the async versions of workflow launch methods:
+
+* Use `DBOS.start_workflow_async` instead of `DBOS.start_workflow`
+* Use `enqueue_async` instead of `enqueue`
+
+Using synchronous launch methods in an async workflow can cause event loop issues and unexpected behavior. The async versions are designed to work correctly within an async context.
+
+== Examples
+
+.Bad: Using sync start_workflow in async workflow
+[source,python]
+----
+@DBOS.workflow
+async def parent_workflow():
+    # ERROR: use start_workflow_async in async workflows
+    handle = DBOS.start_workflow(child_workflow, args)
+    return await handle.get_result()
+----
+
+.Good: Using async start_workflow_async
+[source,python]
+----
+@DBOS.workflow
+async def parent_workflow():
+    handle = await DBOS.start_workflow_async(child_workflow, args)
+    return await handle.get_result()
+----
+
+.Bad: Using sync enqueue in async workflow
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    # ERROR: use enqueue_async in async workflows
+    queue.enqueue(task, args)
+----
+
+.Good: Using async enqueue_async
+[source,python]
+----
+@DBOS.workflow
+async def workflow():
+    await queue.enqueue_async(task, args)
+----
+
+== Suppression
+
+Add `# noqa: DBOS005` to the offending line.
+
+== See Also
+
+* DBOS006 - Async workflows must use async DBOS context methods

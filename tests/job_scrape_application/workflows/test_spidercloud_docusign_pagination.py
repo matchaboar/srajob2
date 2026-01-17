@@ -7,7 +7,7 @@ from typing import Any, Dict
 import pytest
 
 
-from job_scrape_application.workflows import activities as acts  # noqa: E402
+from job_scrape_application.workflows.workflow import store_scrape  # noqa: E402
 from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
     SpiderCloudScraper,
     SpidercloudDependencies,
@@ -80,7 +80,7 @@ def _extract_first_job_url(payload: Dict[str, Any]) -> str:
     raise AssertionError("no job url found in payload")
 
 
-async def _run_store_scrape(
+def _run_store_scrape(
     raw_payload: Any,
     source_url: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -88,7 +88,7 @@ async def _run_store_scrape(
     calls: list[Dict[str, Any]] = []
     queue_calls: list[Dict[str, Any]] = []
 
-    async def fake_mutation(name: str, args: Dict[str, Any]):
+    def fake_mutation(name: str, args: Dict[str, Any]):
         calls.append({"name": name, "args": args})
         if name == "router:insertScrapeRecord":
             return "scrape-id"
@@ -96,7 +96,7 @@ async def _run_store_scrape(
             return {"inserted": 0}
         return None
 
-    async def fake_fetch_seen(_source: str, _pattern: str | None):
+    def fake_fetch_seen(_source: str, _pattern: str | None):
         return []
 
     def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
@@ -105,10 +105,13 @@ async def _run_store_scrape(
 
     monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
     monkeypatch.setattr(
-        "job_scrape_application.workflows.activities.dbos_queue.enqueue_scrape_urls",
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
         fake_enqueue_scrape_urls,
     )
-    monkeypatch.setattr(acts, "fetch_seen_urls_for_site", fake_fetch_seen)
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.helpers.scrape_utils.fetch_seen_urls_for_site",
+        fake_fetch_seen,
+    )
 
     scrape_payload: Dict[str, Any] = {
         "sourceUrl": source_url,
@@ -118,14 +121,13 @@ async def _run_store_scrape(
         "items": {"provider": "spidercloud", "raw": raw_payload},
     }
 
-    await acts.store_scrape(scrape_payload)
+    store_scrape(scrape_payload)
 
     assert queue_calls, "store_scrape should enqueue URLs from Docusign listing payload"
     return queue_calls[0]["urls"], calls
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_docusign_page_1_jobs_only(
+def test_store_scrape_enqueues_docusign_page_1_jobs_only(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE_1)
@@ -133,7 +135,7 @@ async def test_store_scrape_enqueues_docusign_page_1_jobs_only(
 
     pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_1)
 
-    urls, calls = await _run_store_scrape(raw_payload, LISTING_URL_PAGE_1, monkeypatch)
+    urls, calls = _run_store_scrape(raw_payload, LISTING_URL_PAGE_1, monkeypatch)
     insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_1
@@ -146,8 +148,7 @@ async def test_store_scrape_enqueues_docusign_page_1_jobs_only(
         assert url not in urls, f"unexpected pagination URL queued: {url}"
 
 
-@pytest.mark.asyncio
-async def test_store_scrape_enqueues_docusign_page_2_jobs_only(
+def test_store_scrape_enqueues_docusign_page_2_jobs_only(
     monkeypatch: pytest.MonkeyPatch,
 ):
     raw_payload = _load_fixture(PAGE_2)
@@ -155,7 +156,7 @@ async def test_store_scrape_enqueues_docusign_page_2_jobs_only(
 
     pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_2)
 
-    urls, calls = await _run_store_scrape(raw_payload, LISTING_URL_PAGE_2, monkeypatch)
+    urls, calls = _run_store_scrape(raw_payload, LISTING_URL_PAGE_2, monkeypatch)
     insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
     assert insert_calls, "store_scrape should insert the scrape record in Convex"
     assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_2

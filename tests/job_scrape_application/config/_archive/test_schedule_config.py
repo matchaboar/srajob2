@@ -252,7 +252,7 @@ async def test_main_awaits_list_schedules_and_syncs(monkeypatch):
     monkeypatch.setattr(cs, "load_schedule_configs", lambda: cfgs)
     monkeypatch.setattr(cs, "build_schedule", lambda cfg: {"built": cfg.id})
 
-    async def fake_connect(*args, **kwargs):
+    def fake_connect(*args, **kwargs):
         return fake_client
 
     monkeypatch.setattr(cs.Client, "connect", staticmethod(fake_connect))

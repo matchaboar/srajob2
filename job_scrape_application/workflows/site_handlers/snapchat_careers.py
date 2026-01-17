@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
-from urllib.parse import urlparse
+from typing import List, Optional
+from urllib.parse import parse_qs, urlparse
 
 from .base import BaseSiteHandler
 
 _HOST_SUFFIX = "careers.snap.com"
+_JOB_DETAIL_PATH_RE = re.compile(r"^/job/?$")
 _STOP_SECTION_MARKERS = {"ready to join team snap", "life at snap", "life at"}
 _IMAGE_LINE_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)$")
 _EMPTY_LINK_RE = re.compile(r"^\[\s*\]\([^)]+\)$")
@@ -31,6 +32,60 @@ class SnapchatCareersHandler(BaseSiteHandler):
         except Exception:
             return False
         return host.endswith(_HOST_SUFFIX)
+
+    def is_listing_url(self, url: str) -> bool:
+        """Check if URL is a listing page (not a job detail page)."""
+        if not self.matches_url(url):
+            return False
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        path = (parsed.path or "").rstrip("/")
+        # Job detail pages have /job?id=... format
+        if _JOB_DETAIL_PATH_RE.match(path + "/"):
+            query = parse_qs(parsed.query)
+            if "id" in query:
+                return False  # This is a job detail page
+        # Everything else is a listing page
+        return True
+
+    def filter_job_urls(self, urls: List[str]) -> List[str]:
+        """Filter URLs to only include valid job detail pages.
+
+        Valid job URLs: https://careers.snap.com/job?id=R0043117
+        Invalid URLs:
+        - https://careers.snap.com/university
+        - https://careers.snap.com/belonging
+        - https://www.snap.com/...
+        """
+        filtered: List[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            if not isinstance(url, str):
+                continue
+            cleaned = url.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            try:
+                parsed = urlparse(cleaned)
+            except Exception:
+                continue
+            host = (parsed.hostname or "").lower()
+            # Must be on careers.snap.com
+            if host != _HOST_SUFFIX:
+                continue
+            path = (parsed.path or "").rstrip("/")
+            # Must be /job path
+            if not _JOB_DETAIL_PATH_RE.match(path + "/"):
+                continue
+            # Must have ?id=... query param
+            query = parse_qs(parsed.query)
+            if "id" not in query or not query["id"]:
+                continue
+            seen.add(cleaned)
+            filtered.append(cleaned)
+        return filtered
 
     def normalize_markdown(self, markdown: str) -> tuple[str, Optional[str]]:
         if not markdown:

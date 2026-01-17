@@ -96,6 +96,7 @@ class ExtractionContext:
             split_description_metadata,
             strip_known_nav_blocks,
             _extract_job_detail_seed_from_json,
+            _strip_embedded_theme_json,
         )
 
         # Extract domain from URL
@@ -137,6 +138,7 @@ class ExtractionContext:
 
         # Clean and split description
         cleaned = strip_known_nav_blocks(normalized)
+        cleaned = _strip_embedded_theme_json(cleaned)
         description_body = cleaned
         metadata_block = ""
         try:

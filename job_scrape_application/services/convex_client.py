@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-import os
-import random
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping
 
 from convex import ConvexClient
@@ -12,12 +8,6 @@ from ..config import settings
 from . import telemetry
 
 _client: ConvexClient | None = None
-_REQUEST_TIMEOUT_SECONDS = float(os.getenv("CONVEX_REQUEST_TIMEOUT_SECONDS", "5.0"))
-_TOTAL_BUDGET_SECONDS = float(os.getenv("CONVEX_TOTAL_TIMEOUT_SECONDS", "12.0"))
-_MAX_RETRIES = int(os.getenv("CONVEX_MAX_RETRIES", "2"))
-_BACKOFF_BASE_SECONDS = 0.5
-_BACKOFF_MAX_SECONDS = 4.0
-_RETRY_ON_TIMEOUT = os.getenv("CONVEX_RETRY_ON_TIMEOUT", "1") == "1"
 _DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR = "description_preview_word_limit_exceeded"
 
 # =============================================================================
@@ -59,7 +49,7 @@ class ConvexArgumentValidationError(Exception):
 class ConvexWriteConflictError(Exception):
     """Raised when a mutation fails due to optimistic concurrency control (OCC).
 
-    Fail-fast: Yes - indicates concurrent mutations modifying the same documents.
+    Fail-fast: No - indicates concurrent mutations modifying the same documents.
     Docs: https://docs.convex.dev/error (Write Conflict section)
     Pattern: "Documents read from or written to" or "write conflict" in error message.
     """
@@ -169,55 +159,27 @@ def _is_application_error(exc: Exception) -> bool:
     return "ConvexError" in exc_str and "ArgumentValidationError" not in exc_str
 
 
-def _is_timeout_or_warning(exc: Exception) -> bool:
-    """Check if exception is a timeout or warning (not fail-fast)."""
-    exc_str = str(exc).lower()
-    return isinstance(exc, asyncio.TimeoutError) or "timeout" in exc_str or "slow" in exc_str
 
 
-def _is_retryable_network_error(exc: Exception) -> bool:
-    """Check if exception is a transient network error that should be retried."""
-    exc_str = str(exc).lower()
-    network_patterns = [
-        "connection refused",
-        "connection reset",
-        "connection aborted",
-        "network unreachable",
-        "network is unreachable",
-        "network error",
-        "temporary failure",
-        "name resolution",
-        "dns",
-        "socket",
-        "eof",
-        "broken pipe",
-        "ssl",
-        "certificate",
-    ]
-    return any(pattern in exc_str for pattern in network_patterns)
+def classify_error(exc: Exception) -> str:
+    """Classify a Convex error for Result pattern.
 
-
-def _is_retryable_error(exc: Exception) -> bool:
-    """Check if exception should be retried (timeout, slow, network issues)."""
-    return _is_timeout_or_warning(exc) or _is_retryable_network_error(exc)
-
-# Dedicated executor for Convex calls to prevent timeout threads from blocking
-# the default executor used by asyncio.to_thread() elsewhere in the application.
-# When asyncio.wait_for() times out, the underlying thread continues running -
-# using a dedicated pool isolates this behavior from other async operations.
-_CONVEX_EXECUTOR_MAX_WORKERS = int(os.getenv("CONVEX_EXECUTOR_MAX_WORKERS", "8"))
-_convex_executor: ThreadPoolExecutor | None = None
-
-
-def _get_convex_executor() -> ThreadPoolExecutor:
-    """Get or create the dedicated thread pool executor for Convex calls."""
-    global _convex_executor
-    if _convex_executor is None:
-        _convex_executor = ThreadPoolExecutor(
-            max_workers=_CONVEX_EXECUTOR_MAX_WORKERS,
-            thread_name_prefix="convex-client-",
-        )
-    return _convex_executor
+    Returns:
+        error_type: Category string for the error
+    """
+    if _is_function_not_found_error(exc):
+        return "function_not_found"
+    if _is_argument_validation_error(exc):
+        return "validation_error"
+    if _is_write_conflict_error(exc):
+        return "write_conflict"
+    if _is_read_write_limit_error(exc):
+        return "read_write_limit"
+    if _is_internal_server_error(exc):
+        return "internal_server_error"
+    if _is_application_error(exc):
+        return "application_error"
+    return "unknown_error"
 
 
 def _max_description_word_count(args: Mapping[str, Any] | None) -> int | None:
@@ -243,160 +205,23 @@ def _max_description_word_count(args: Mapping[str, Any] | None) -> int | None:
     return None
 
 
-async def _call_with_retry(fn, name: str, args: Mapping[str, Any] | None) -> Any:
-    last_error: Exception | None = None
-    loop = asyncio.get_running_loop()
-    executor = _get_convex_executor()
-    start = loop.time()
-    for attempt in range(1, _MAX_RETRIES + 1):
-        elapsed = loop.time() - start
-        remaining_budget = _TOTAL_BUDGET_SECONDS - elapsed
-        if remaining_budget <= 0:
-            break
-        per_attempt_timeout = min(_REQUEST_TIMEOUT_SECONDS, max(0.0, remaining_budget))
-        try:
-            # Use dedicated executor to isolate timeout threads from blocking
-            # other async operations that use the default executor.
-            return await asyncio.wait_for(
-                loop.run_in_executor(executor, fn, name, args),
-                timeout=per_attempt_timeout,
-            )
-        except Exception as exc:  # noqa: BLE001
-            last_error = exc
-            exc_str = str(exc)
+def _wrap_convex_error(exc: Exception, name: str) -> Exception:
+    """Wrap a Convex exception in the appropriate typed exception class."""
+    exc_str = str(exc)
 
-            # =================================================================
-            # Fail-fast error detection - check specific Convex error types
-            # =================================================================
-
-            # Function not found - fail fast
-            if _is_function_not_found_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.function_not_found",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexFunctionNotFoundError(name, exc_str) from exc
-
-            # Argument validation error - fail fast
-            if _is_argument_validation_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.argument_validation_error",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexArgumentValidationError(name, exc_str) from exc
-
-            # Write conflict (OCC) error - fail fast
-            if _is_write_conflict_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.write_conflict",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexWriteConflictError(name, exc_str) from exc
-
-            # Read/write limit exceeded - fail fast
-            if _is_read_write_limit_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.read_write_limit",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexReadWriteLimitError(name, exc_str) from exc
-
-            # Internal server error - fail fast
-            if _is_internal_server_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.internal_server_error",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexInternalServerError(name, exc_str) from exc
-
-            # Application error (ConvexError from user code) - fail fast
-            if _is_application_error(exc):
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.application_error",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                    })
-                except Exception:
-                    pass
-                raise ConvexApplicationError(name, exc_str) from exc
-
-            # =================================================================
-            # Retryable errors - log at warning level and continue
-            # =================================================================
-
-            if _is_retryable_error(exc):
-                # Log retryable errors at warning level
-                try:
-                    event_type = "convex.timeout_or_warning" if _is_timeout_or_warning(exc) else "convex.network_error"
-                    telemetry.emit_posthog_log({
-                        "event": event_type,
-                        "level": "warning",
-                        "functionName": name,
-                        "error": exc_str,
-                        "attempt": attempt,
-                    })
-                except Exception:
-                    pass
-                # For timeouts, respect the RETRY_ON_TIMEOUT setting
-                if isinstance(exc, asyncio.TimeoutError) and not _RETRY_ON_TIMEOUT:
-                    break
-                # Continue to retry logic for retryable cases
-            else:
-                # =============================================================
-                # Unknown Convex error - fail fast
-                # Any error that isn't recognized should surface immediately
-                # =============================================================
-                try:
-                    telemetry.emit_posthog_log({
-                        "event": "convex.unknown_error",
-                        "level": "fatal",
-                        "functionName": name,
-                        "error": exc_str,
-                        "errorType": type(exc).__name__,
-                    })
-                except Exception:
-                    pass
-                raise ConvexUnknownError(name, exc_str) from exc
-            
-            if attempt >= _MAX_RETRIES:
-                break
-            elapsed = loop.time() - start
-            remaining_budget = _TOTAL_BUDGET_SECONDS - elapsed
-            if remaining_budget <= 0:
-                break
-            backoff = min(_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)), _BACKOFF_MAX_SECONDS)
-            jitter = random.uniform(0, 0.25)
-            sleep_for = min(backoff + jitter, max(0.0, remaining_budget))
-            if sleep_for > 0:
-                await asyncio.sleep(sleep_for)
-    raise last_error if last_error else RuntimeError("Convex call failed")
+    if _is_function_not_found_error(exc):
+        return ConvexFunctionNotFoundError(name, exc_str)
+    if _is_argument_validation_error(exc):
+        return ConvexArgumentValidationError(name, exc_str)
+    if _is_write_conflict_error(exc):
+        return ConvexWriteConflictError(name, exc_str)
+    if _is_read_write_limit_error(exc):
+        return ConvexReadWriteLimitError(name, exc_str)
+    if _is_internal_server_error(exc):
+        return ConvexInternalServerError(name, exc_str)
+    if _is_application_error(exc):
+        return ConvexApplicationError(name, exc_str)
+    return ConvexUnknownError(name, exc_str)
 
 
 def _normalize_deployment_url() -> str:
@@ -424,18 +249,23 @@ def get_client() -> ConvexClient:
     return _client
 
 
-async def convex_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
-    client = get_client()
-    return await _call_with_retry(client.query, name, args)
-
-
-async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
+def convex_query(name: str, args: Mapping[str, Any] | None = None) -> Any:
+    """Call a Convex query synchronously."""
     client = get_client()
     try:
-        return await _call_with_retry(client.mutation, name, args)
+        return client.query(name, args)
+    except Exception as exc:
+        raise _wrap_convex_error(exc, name) from exc
+
+
+def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> Any:
+    """Call a Convex mutation synchronously."""
+    client = get_client()
+    try:
+        return client.mutation(name, args)
     except Exception as exc:
         try:
-            payload = {
+            payload: dict[str, Any] = {
                 "event": "convex.mutation_failed",
                 "name": name,
             }
@@ -443,7 +273,7 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
                 payload["argKeys"] = list(args.keys())
             telemetry.emit_posthog_log(payload)
             if _DESCRIPTION_PREVIEW_WORD_LIMIT_ERROR in str(exc):
-                violation_payload = {
+                violation_payload: dict[str, Any] = {
                     "event": "convex.description_preview_violation",
                     "name": name,
                 }
@@ -453,17 +283,17 @@ async def convex_mutation(name: str, args: Mapping[str, Any] | None = None) -> A
                 telemetry.emit_posthog_log(violation_payload)
         except Exception:
             pass
-        raise
+        raise _wrap_convex_error(exc, name) from exc
 
 
-async def convex_action(name: str, args: Mapping[str, Any] | None = None) -> Any:
-    """Call a Convex action (as opposed to mutation or query)."""
+def convex_action(name: str, args: Mapping[str, Any] | None = None) -> Any:
+    """Call a Convex action synchronously."""
     client = get_client()
     try:
-        return await _call_with_retry(client.action, name, args)
-    except Exception:
+        return client.action(name, args)
+    except Exception as exc:
         try:
-            payload = {
+            payload: dict[str, Any] = {
                 "event": "convex.action_failed",
                 "name": name,
             }
@@ -472,7 +302,7 @@ async def convex_action(name: str, args: Mapping[str, Any] | None = None) -> Any
             telemetry.emit_posthog_log(payload)
         except Exception:
             pass
-        raise
+        raise _wrap_convex_error(exc, name) from exc
 
 
 # Test helper to inject a mock client
