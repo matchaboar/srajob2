@@ -415,6 +415,9 @@ class WorkflowTestHelper:
         self.monkeypatch.setattr(helpers_step, "fetch_seen_urls_for_site", self._fake_fetch_seen_urls)
         self.monkeypatch.setattr(step_module, "filter_new_job_urls", self._fake_filter_new)
         self.monkeypatch.setattr(step_module, "lookup_job_id_for_url", self._fake_lookup_job_id)
+        self.monkeypatch.setattr(
+            step_module, "store_job_descriptions_step", self._fake_store_descriptions
+        )
 
         # Also patch step functions in the DBOS workflow module where they're imported
         # This is needed because Python imports create local bindings
@@ -437,6 +440,9 @@ class WorkflowTestHelper:
         )
         self.monkeypatch.setattr(
             detail_workflow_module, "emit_scrape_telemetry_step", self._fake_emit_telemetry
+        )
+        self.monkeypatch.setattr(
+            detail_workflow_module, "store_job_descriptions_step", self._fake_store_descriptions
         )
 
 
@@ -493,10 +499,10 @@ class WorkflowTestHelper:
     def _fake_store_descriptions(
         self,
         jobs: List[Dict[str, Any]],
-        source_url: str | None,
-        provider: str | None,
-        workflow_name: str | None,
-        log_workflow_event: Any = None,
+        source_url: str | None = None,
+        provider: str | None = None,
+        workflow_name: str | None = None,
+        convex_http_base_url: str | None = None,
     ) -> None:
         """Mock _store_job_descriptions_via_http activity."""
         for job in jobs:

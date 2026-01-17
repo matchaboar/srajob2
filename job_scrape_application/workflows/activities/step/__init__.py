@@ -24,7 +24,11 @@ from .record_scrape_url_attempts import record_scrape_url_attempts
 from .resolve_pagination_limit import resolve_pagination_limit_step
 from .scrape_job_details import scrape_job_details
 from .scrape_listing_urls import scrape_listing_urls
-from .store_job_description import store_job_description_step, store_job_descriptions_via_http
+from .store_job_description import (
+    store_job_description_step,
+    store_job_descriptions_step,
+    store_job_descriptions_via_http,
+)
 from .store_scrape import (
     ingest_jobs_from_scrape_step,
     insert_ignored_job_step,
@@ -66,6 +70,7 @@ __all__ = [
     "scrape_listing_urls",
     "start_firecrawl_batch_step",
     "store_job_description_step",
+    "store_job_descriptions_step",
     "store_job_descriptions_via_http",
     "update_job_with_heuristic_step",
     "WebhookModel",

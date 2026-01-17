@@ -36,6 +36,21 @@ def _resolve_db_target() -> tuple[str, bool]:
     return default_path, False
 
 
+def _resolve_db_path() -> Path:
+    db_target, is_uri = _resolve_db_target()
+    if not is_uri:
+        return Path(db_target)
+    if db_target == ":memory:":
+        return Path(__file__).resolve().parent / _DEFAULT_DB_NAME
+    if db_target.startswith("file:"):
+        from urllib.parse import urlparse
+
+        parsed = urlparse(db_target)
+        if parsed.path:
+            return Path(parsed.path)
+    return Path(__file__).resolve().parent / _DEFAULT_DB_NAME
+
+
 def get_connection() -> sqlite3.Connection:
     conn = getattr(_CONNECTIONS, "connection", None)
     if conn is not None:

@@ -14,6 +14,7 @@ from ..activities.step import (
     ingest_jobs_from_scrape_step,
     insert_ignored_job_step,
     insert_scrape_record_step,
+    store_job_descriptions_step,
 )
 from ..activities.url_processing import _is_probable_listing_url
 from ..helpers.job_url_extractor import extract_job_urls_from_scrape
@@ -118,6 +119,9 @@ def store_scrape(scrape: Dict[str, Any]) -> str:  # noqa: DBOS001
     """
     now = int(time.time() * 1000)
     payload = _build_base_payload(scrape, now)
+    source_url = payload.get("sourceUrl") or scrape.get("pattern") or ""
+    provider = payload.get("provider")
+    workflow_name = payload.get("workflowName")
 
     # Try to insert the scrape record
     scrape_id: str | None = None
@@ -136,17 +140,17 @@ def store_scrape(scrape: Dict[str, Any]) -> str:  # noqa: DBOS001
         if isinstance(normalized, list) and normalized:
             site_id = scrape.get("siteId")
             ingest_jobs_from_scrape_step(normalized, site_id)
+            store_job_descriptions_step(
+                normalized,
+                source_url=source_url or None,
+                provider=provider if isinstance(provider, str) else None,
+                workflow_name=workflow_name if isinstance(workflow_name, str) else None,
+            )
 
     # Record ignored jobs (skipping http_404)
     if isinstance(items_block, dict):
         ignored_entries = items_block.get("ignored") or []
         if isinstance(ignored_entries, list):
-            source_url = scrape.get("sourceUrl") or scrape.get("pattern") or ""
-            provider = scrape.get("provider")
-            if provider is None and isinstance(items_block, dict):
-                provider = items_block.get("provider")
-            workflow_name = scrape.get("workflowName")
-
             for entry in ignored_entries:
                 if not isinstance(entry, dict):
                     continue

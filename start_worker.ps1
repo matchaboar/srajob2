@@ -532,8 +532,8 @@ function Stop-WorkerAndContainer {
                 } catch {}
             }
         }
-        Stop-ExistingWorkers
     }
+    Stop-ExistingWorkers
 
     if (-not $SkipContainer -and $script:TemporalContainerStartedByScript) {
         Write-Host "[shutdown] Stopping temporal container $($script:TemporalContainerName) via $($script:TemporalCmd)" -ForegroundColor Yellow
@@ -685,9 +685,24 @@ function Stop-ZombieSqliteProcesses {
         return
     }
 
+    $priorNative = $PSNativeCommandUseErrorActionPreference
+    $priorError = $ErrorActionPreference
+    $exitCode = 0
+    $lsofOutput = @()
     try {
+        $PSNativeCommandUseErrorActionPreference = $false
+        $ErrorActionPreference = "Continue"
         # Look for processes with deleted SQLite files in the dbos_runtime directory
         $lsofOutput = & $lsofPath +D $DbosRuntimePath 2>$null
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $PSNativeCommandUseErrorActionPreference = $priorNative
+        $ErrorActionPreference = $priorError
+    }
+    try {
+        if ($exitCode -ne 0) {
+            return
+        }
         $zombiePids = @()
 
         foreach ($line in $lsofOutput) {
@@ -1076,6 +1091,7 @@ function Start-WorkerMain {
         $detailConcurrency = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultDetailConcurrency
         if ($listingConcurrency -lt 1) { $listingConcurrency = $defaultListingConcurrency }
         if ($detailConcurrency -lt 1) { $detailConcurrency = $defaultDetailConcurrency }
+        Write-Host ("Queues: listing (concurrency {0}), detail (concurrency {1})" -f $listingConcurrency, $detailConcurrency) -ForegroundColor DarkGray
         $script:WorkerProcesses = @()
         $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -WithApi -ListingConcurrency $listingConcurrency -DetailConcurrency $detailConcurrency
         $script:WorkerProcess = $script:WorkerProcesses[0].Process
@@ -1096,6 +1112,9 @@ function Start-WorkerMain {
                 Write-Host ("[signal] Ctrl+C shutdown finished in {0}s" -f [math]::Round($timer.Elapsed.TotalSeconds, 2)) -ForegroundColor Yellow
             }
             Write-Host "[signal] Shutdown requested; exiting loop." -ForegroundColor Red
+        }
+        $exitSub = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+            try { Stop-ExistingWorkers } catch {}
         }
         Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
         try {
@@ -1137,6 +1156,9 @@ function Start-WorkerMain {
         } finally {
             if ($cancelSub) {
                 Unregister-Event -SubscriptionId $cancelSub.Id -ErrorAction SilentlyContinue
+            }
+            if ($exitSub) {
+                Unregister-Event -SubscriptionId $exitSub.Id -ErrorAction SilentlyContinue
             }
             Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses -SkipContainer
         }
@@ -1366,6 +1388,9 @@ function Start-WorkerMain {
         }
         Write-Host "[signal] Shutdown requested; exiting loop." -ForegroundColor Red
     }
+    $exitSub = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+        try { Stop-ExistingWorkers } catch {}
+    }
     Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
     try {
         $exitCode = $null
@@ -1414,6 +1439,9 @@ function Start-WorkerMain {
     } finally {
         if ($cancelSub) {
             Unregister-Event -SubscriptionId $cancelSub.Id -ErrorAction SilentlyContinue
+        }
+        if ($exitSub) {
+            Unregister-Event -SubscriptionId $exitSub.Id -ErrorAction SilentlyContinue
         }
         Stop-WorkerAndContainer -WorkerProcesses $script:WorkerProcesses
     }

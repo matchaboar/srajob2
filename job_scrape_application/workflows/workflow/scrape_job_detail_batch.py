@@ -14,6 +14,7 @@ from ..activities.step import (
     log_scrape_error,
     record_scrape_url_attempts,
     scrape_job_details,
+    store_job_descriptions_step,
 )
 from ..helpers.link_extractors import normalize_url
 from ...dbos_runtime.step import (
@@ -43,6 +44,8 @@ class DetailBatchInput:
     site_id: str | None
     pattern: str | None
     posted_at_by_url: dict[str, int]
+    provider: str | None
+    workflow_name: str | None
 
 
 def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
@@ -54,6 +57,8 @@ def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
     source_url_hint = ""
     site_id: str | None = None
     pattern: str | None = None
+    provider: str | None = None
+    workflow_name: str | None = None
 
     for row in batch.get("urls", []):
         if not isinstance(row, dict):
@@ -86,6 +91,15 @@ def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
             if isinstance(pattern_val, str):
                 pattern = pattern_val
 
+        if provider is None:
+            provider_val = row.get("provider")
+            if isinstance(provider_val, str) and provider_val.strip():
+                provider = provider_val.strip()
+        if workflow_name is None:
+            workflow_val = row.get("workflowName") or row.get("workflow_name")
+            if isinstance(workflow_val, str) and workflow_val.strip():
+                workflow_name = workflow_val.strip()
+
         posted_at_val = row.get("postedAt")
         if isinstance(posted_at_val, (int, float)):
             posted_at_by_url[normalize_url(cleaned_url) or cleaned_url] = int(posted_at_val)
@@ -98,6 +112,8 @@ def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
         site_id=site_id,
         pattern=pattern,
         posted_at_by_url=posted_at_by_url,
+        provider=provider,
+        workflow_name=workflow_name,
     )
 
 
@@ -359,6 +375,12 @@ async def scrape_job_detail_batch(
             # Store jobs using ingest step (handles description preview truncation)
             ingest_jobs_from_scrape_step(jobs, site_id=parsed.site_id)
             stored_count = len(jobs)
+            store_job_descriptions_step(
+                jobs,
+                source_url=parsed.source_url,
+                provider=parsed.provider,
+                workflow_name=parsed.workflow_name,
+            )
             # All remaining URLs processed
             completed_urls = remaining_urls
         except Exception as exc:
