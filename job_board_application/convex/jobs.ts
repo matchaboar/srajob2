@@ -1628,6 +1628,7 @@ export const refreshCompanySummaries = internalMutation({
   args: {},
   handler: async (ctx) => {
     const jobs = await ctx.db.query("jobs").collect();
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const summaries = new Map<
       string,
       {
@@ -1637,6 +1638,8 @@ export const refreshCompanySummaries = internalMutation({
         sampleUrl: string | null;
         lastPostedAt: number;
         lastScrapedAt: number;
+        engineerCount30d: number;
+        engineerLastPostedAt: number;
         levels: Record<"junior" | "mid" | "senior", CompanyLevelStats>;
       }
     >();
@@ -1662,6 +1665,8 @@ export const refreshCompanySummaries = internalMutation({
           sampleUrl: null,
           lastPostedAt: 0,
           lastScrapedAt: 0,
+          engineerCount30d: 0,
+          engineerLastPostedAt: 0,
           levels: {
             junior: emptyCompanyLevelStats(),
             mid: emptyCompanyLevelStats(),
@@ -1719,6 +1724,16 @@ export const refreshCompanySummaries = internalMutation({
           stats.count += 1;
         }
       }
+
+      // Track engineer job activity
+      if (job.engineer === true && typeof job.postedAt === "number") {
+        if (job.postedAt > entry.engineerLastPostedAt) {
+          entry.engineerLastPostedAt = job.postedAt;
+        }
+        if (job.postedAt >= thirtyDaysAgo) {
+          entry.engineerCount30d += 1;
+        }
+      }
     }
 
     const now = Date.now();
@@ -1747,6 +1762,8 @@ export const refreshCompanySummaries = internalMutation({
         avgCompensationSenior: avgSenior ?? undefined,
         lastPostedAt: entry.lastPostedAt || undefined,
         lastScrapedAt: entry.lastScrapedAt || undefined,
+        engineerCount30d: entry.engineerCount30d || undefined,
+        engineerLastPostedAt: entry.engineerLastPostedAt || undefined,
         updatedAt: now,
       };
       const existingRow = existingByKey.get(key);
@@ -1817,6 +1834,62 @@ export const listCompanySummaries = query({
         return a.name.localeCompare(b.name);
       })
       .slice(0, limit) as CompanySummary[];
+  },
+});
+
+export const listEngineeringCompanyStats = query({
+  args: {
+    sortBy: v.union(v.literal("recent"), v.literal("count")),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const limit = Math.max(1, Math.min(args.limit ?? 100, 500));
+    const summaries = (await ctx.db
+      .query("company_summaries")
+      .collect()) as Doc<"company_summaries">[];
+
+    // Filter to companies with engineer data
+    const filtered = summaries.filter(
+      (row) =>
+        (typeof row.engineerCount30d === "number" && row.engineerCount30d > 0) ||
+        (typeof row.engineerLastPostedAt === "number" && row.engineerLastPostedAt > 0)
+    );
+
+    // Sort by the requested criteria
+    filtered.sort((a, b) => {
+      if (args.sortBy === "count") {
+        const countA = a.engineerCount30d ?? 0;
+        const countB = b.engineerCount30d ?? 0;
+        if (countB !== countA) return countB - countA;
+        // Secondary sort by recent if counts are equal
+        const recentA = a.engineerLastPostedAt ?? 0;
+        const recentB = b.engineerLastPostedAt ?? 0;
+        return recentB - recentA;
+      } else {
+        // sortBy === "recent"
+        const recentA = a.engineerLastPostedAt ?? 0;
+        const recentB = b.engineerLastPostedAt ?? 0;
+        if (recentB !== recentA) return recentB - recentA;
+        // Secondary sort by count if times are equal
+        const countA = a.engineerCount30d ?? 0;
+        const countB = b.engineerCount30d ?? 0;
+        return countB - countA;
+      }
+    });
+
+    return filtered.slice(0, limit).map((row) => ({
+      name: row.name,
+      sampleUrl: typeof row.sampleUrl === "string" ? row.sampleUrl : null,
+      engineerCount30d:
+        typeof row.engineerCount30d === "number" ? row.engineerCount30d : 0,
+      engineerLastPostedAt:
+        typeof row.engineerLastPostedAt === "number" ? row.engineerLastPostedAt : 0,
+    }));
   },
 });
 

@@ -78,7 +78,8 @@
       "Bash(if rg -q '\"\"type\"\":\"\"result\"\"' /tmp/claude/-home-boarcoder-documents-github-srajob2/tasks/$id.output)",
       "Bash(then)",
       "Bash(else)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "Bash(pnpm run lint:*)"
     ]
   },
   "outputStyle": "default"

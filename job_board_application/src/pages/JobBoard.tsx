@@ -13,6 +13,7 @@ import { CompanyIcon } from "../components/CompanyIcon";
 import { StatusTracker } from "../components/StatusTracker";
 import { JobDescriptionPanel, FilterSidebar } from "../components/jobBoard";
 import { LiveTimer } from "../components/LiveTimer";
+import { EngineeringJobMarket } from "../components/companies";
 import { Keycap } from "../components/Keycap";
 import { DiagonalFraction } from "../components/DiagonalFraction";
 import { QueuedUrlRow } from "../components/QueuedUrlRow";
@@ -262,6 +263,7 @@ export function JobBoard() {
     max_attempts: "Job detail failed too many times and was retired.",
     filtered: "Filtered out by scraping rules.",
   };
+  const [companiesView, setCompaniesView] = useState<"all" | "engineering">("all");
   const companyFilterFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("company");
@@ -2017,66 +2019,104 @@ export function JobBoard() {
           )
         )}
         {activeTab === "companies" && (
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Companies</h2>
-                <p className="text-xs text-slate-500">Browse companies and jump straight into their open roles.</p>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* View switcher */}
+            <div className="flex items-center gap-2 px-6 py-3 border-b border-slate-800 bg-slate-900/40">
+              <div className="flex rounded-lg border border-slate-700 bg-slate-800/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setCompaniesView("all")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    companiesView === "all"
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  All Companies
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCompaniesView("engineering")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    companiesView === "engineering"
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Engineering Job Market
+                </button>
               </div>
-              <span className="text-xs text-slate-400">
-                {(companySummaries?.length ?? 0).toLocaleString()} companies
-              </span>
             </div>
 
-            {!companySummaries && (
-              <div className="text-sm text-slate-500">Loading companies...</div>
-            )}
+            {/* All Companies view */}
+            {companiesView === "all" && (
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Companies</h2>
+                    <p className="text-xs text-slate-500">Browse companies and jump straight into their open roles.</p>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    {(companySummaries?.length ?? 0).toLocaleString()} companies
+                  </span>
+                </div>
 
-            {companySummaries && companySummaries.length === 0 && (
-              <div className="text-sm text-slate-500">No companies available yet.</div>
-            )}
+                {!companySummaries && (
+                  <div className="text-sm text-slate-500">Loading companies...</div>
+                )}
 
-            {companySummaries && companySummaries.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {companySummaries.map((company) => (
-                  <button
-                    key={company.name}
-                    type="button"
-                    onClick={() => handleCompanyCardClick(company.name)}
-                    className="group text-left rounded-xl border border-slate-800 bg-slate-900/60 p-4 hover:border-blue-500/60 hover:bg-slate-900/80 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CompanyIcon
-                        company={company.name}
-                        size={34}
-                        url={company.sampleUrl ?? undefined}
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-100 truncate">{company.name}</div>
-                        <div className="text-xs text-slate-400">
-                          {company.count.toLocaleString()} jobs
+                {companySummaries && companySummaries.length === 0 && (
+                  <div className="text-sm text-slate-500">No companies available yet.</div>
+                )}
+
+                {companySummaries && companySummaries.length > 0 && (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {companySummaries.map((company) => (
+                      <button
+                        key={company.name}
+                        type="button"
+                        onClick={() => handleCompanyCardClick(company.name)}
+                        className="group text-left rounded-xl border border-slate-800 bg-slate-900/60 p-4 hover:border-blue-500/60 hover:bg-slate-900/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <CompanyIcon
+                            company={company.name}
+                            size={34}
+                            url={company.sampleUrl ?? undefined}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-100 truncate">{company.name}</div>
+                            <div className="text-xs text-slate-400">
+                              {company.count.toLocaleString()} jobs
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
-                      <span className="text-xs font-mono text-blue-200">{formatCompanySalary(company)}</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
-                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-950/60 text-slate-200">
-                        <LiveTimer
-                          startTime={company.lastPostedAt || company.lastScrapedAt}
-                          showAgo
-                          showSeconds={false}
-                          className="text-[10px] font-mono text-slate-200"
-                          suffixClassName="text-slate-400"
-                        />
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
+                          <span className="text-xs font-mono text-blue-200">{formatCompanySalary(company)}</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-950/60 text-slate-200">
+                            <LiveTimer
+                              startTime={company.lastPostedAt || company.lastScrapedAt}
+                              showAgo
+                              showSeconds={false}
+                              className="text-[10px] font-mono text-slate-200"
+                              suffixClassName="text-slate-400"
+                            />
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Engineering Job Market view */}
+            {companiesView === "engineering" && (
+              <EngineeringJobMarket onCompanyClick={handleCompanyCardClick} />
             )}
           </div>
         )}

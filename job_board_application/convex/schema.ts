@@ -121,8 +121,14 @@ const applicationTables = {
     avgCompensationSenior: v.optional(v.number()),
     lastPostedAt: v.optional(v.number()),
     lastScrapedAt: v.optional(v.number()),
+    // Engineering job market tracking
+    engineerCount30d: v.optional(v.number()),
+    engineerLastPostedAt: v.optional(v.number()),
     updatedAt: v.number(),
-  }).index("by_key", ["key"]),
+  })
+    .index("by_key", ["key"])
+    .index("by_engineer_last_posted", ["engineerLastPostedAt"])
+    .index("by_engineer_count_30d", ["engineerCount30d"]),
 
   saved_filters: defineTable({
     userId: v.id("users"),
