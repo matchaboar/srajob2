@@ -16,6 +16,7 @@ from ..activities.step import (
     scrape_job_details,
     store_job_descriptions_step,
 )
+from ..site_handlers import get_site_handler
 from ..helpers.link_extractors import normalize_url
 from ...dbos_runtime.step import (
     complete_scrape_urls_step,
@@ -48,61 +49,80 @@ class DetailBatchInput:
     workflow_name: str | None
 
 
+@DBOS.pure_func
 def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
     """Parse and validate detail batch input (deterministic)."""
-    entries: list[dict[str, Any]] = []
-    urls: list[str] = []
-    url_to_entry: dict[str, dict[str, Any]] = {}
-    posted_at_by_url: dict[str, int] = {}
-    source_url_hint = ""
-    site_id: str | None = None
-    pattern: str | None = None
-    provider: str | None = None
-    workflow_name: str | None = None
-
-    for row in batch.get("urls", []):
+    def _extract_row(row: Any) -> tuple[dict[str, Any], str] | None:
         if not isinstance(row, dict):
-            continue
+            return None
         url_val = row.get("url")
         if not isinstance(url_val, str) or not url_val.strip():
-            continue
-
-        # Skip listing URLs
+            return None
         url_type = row.get("urlType")
         if isinstance(url_type, str) and url_type.lower() == "listing":
-            continue
+            return None
+        return row, url_val.strip()
 
-        cleaned_url = url_val.strip()
-        entries.append(row)
-        urls.append(cleaned_url)
-        url_to_entry[cleaned_url] = row
-
-        source_val = row.get("sourceUrl")
-        if isinstance(source_val, str) and source_val and not source_url_hint:
-            source_url_hint = source_val
-
-        if not site_id:
-            site_id_val = row.get("siteId")
-            if isinstance(site_id_val, str) and site_id_val.strip():
-                site_id = site_id_val.strip()
-
-        if not pattern:
-            pattern_val = row.get("pattern")
-            if isinstance(pattern_val, str):
-                pattern = pattern_val
-
-        if provider is None:
-            provider_val = row.get("provider")
-            if isinstance(provider_val, str) and provider_val.strip():
-                provider = provider_val.strip()
-        if workflow_name is None:
-            workflow_val = row.get("workflowName") or row.get("workflow_name")
-            if isinstance(workflow_val, str) and workflow_val.strip():
-                workflow_name = workflow_val.strip()
-
-        posted_at_val = row.get("postedAt")
-        if isinstance(posted_at_val, (int, float)):
-            posted_at_by_url[normalize_url(cleaned_url) or cleaned_url] = int(posted_at_val)
+    detail_rows: list[tuple[dict[str, Any], str]] = [
+        pair
+        for row in batch.get("urls", [])
+        for pair in [_extract_row(row)]
+        if pair is not None
+    ]
+    entries = [row for row, _ in detail_rows]
+    urls = [cleaned_url for _, cleaned_url in detail_rows]
+    url_to_entry = {cleaned_url: row for row, cleaned_url in detail_rows}
+    source_url_hint = next(
+        (
+            source_val
+            for row, _ in detail_rows
+            for source_val in [row.get("sourceUrl")]
+            if isinstance(source_val, str) and source_val
+        ),
+        "",
+    )
+    site_id = next(
+        (
+            site_id_val.strip()
+            for row, _ in detail_rows
+            for site_id_val in [row.get("siteId")]
+            if isinstance(site_id_val, str) and site_id_val.strip()
+        ),
+        None,
+    )
+    pattern = next(
+        (
+            pattern_val
+            for row, _ in detail_rows
+            for pattern_val in [row.get("pattern")]
+            if isinstance(pattern_val, str)
+        ),
+        None,
+    )
+    provider = next(
+        (
+            provider_val.strip()
+            for row, _ in detail_rows
+            for provider_val in [row.get("provider")]
+            if isinstance(provider_val, str) and provider_val.strip()
+        ),
+        None,
+    )
+    workflow_name = next(
+        (
+            workflow_val.strip()
+            for row, _ in detail_rows
+            for workflow_val in [row.get("workflowName") or row.get("workflow_name")]
+            if isinstance(workflow_val, str) and workflow_val.strip()
+        ),
+        None,
+    )
+    posted_at_by_url = {
+        (normalize_url(cleaned_url) or cleaned_url): int(posted_at_val)
+        for row, cleaned_url in detail_rows
+        for posted_at_val in [row.get("postedAt")]
+        if isinstance(posted_at_val, (int, float))
+    }
 
     return DetailBatchInput(
         entries=entries,
@@ -117,21 +137,20 @@ def _parse_detail_batch(batch: dict[str, Any]) -> DetailBatchInput:
     )
 
 
+@DBOS.pure_func
 def _normalize_job_fields(scrape_result: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract and normalize job data from scrape response (deterministic)."""
-    jobs: list[dict[str, Any]] = []
-
     scrape = scrape_result.get("scrape") or scrape_result
     if not isinstance(scrape, dict):
-        return jobs
+        return []
 
     items = scrape.get("items")
     if not isinstance(items, dict):
-        return jobs
+        return []
 
     normalized = items.get("normalized") or items.get("normalizedSample")
     if not isinstance(normalized, list):
-        return jobs
+        return []
 
     cost_milli_cents_total: int | None = None
     cost_val = scrape.get("costMilliCents")
@@ -152,55 +171,89 @@ def _normalize_job_fields(scrape_result: dict[str, Any]) -> list[dict[str, Any]]
     if cost_milli_cents_total is not None and url_count > 0:
         per_job_cost = int(cost_milli_cents_total / max(url_count, 1))
 
-    for item in normalized:
-        if not isinstance(item, dict):
-            continue
-        # Extract key fields
-        job: dict[str, Any] = {}
-        for key in ["title", "company", "location", "description", "url", "apply_url",
-                    "posted_at", "compensation", "level", "remote", "cost_milli_cents"]:
-            val = item.get(key)
-            if val is not None:
-                job[key] = val
+    keys = [
+        "title",
+        "company",
+        "location",
+        "description",
+        "url",
+        "apply_url",
+        "posted_at",
+        "compensation",
+        "level",
+        "remote",
+        "cost_milli_cents",
+    ]
+
+    def _build_job(item: dict[str, Any]) -> dict[str, Any] | None:
+        job = {key: item.get(key) for key in keys if item.get(key) is not None}
         if "cost_milli_cents" not in job and per_job_cost is not None:
-            job["cost_milli_cents"] = per_job_cost
+            job = {**job, "cost_milli_cents": per_job_cost}
         if job.get("title") or job.get("url"):
-            jobs.append(job)
+            return job
+        return None
 
-    return jobs
+    return [
+        job
+        for item in normalized
+        if isinstance(item, dict)
+        for job in [_build_job(item)]
+        if job is not None
+    ]
 
 
+@DBOS.pure_func
 def _identify_404_urls(scrape_result: dict[str, Any]) -> set[str]:
     """Identify URLs that returned 404 (deterministic)."""
-    http_404_urls: set[str] = set()
-
     scrape = scrape_result.get("scrape") or scrape_result
     if not isinstance(scrape, dict):
-        return http_404_urls
+        return set()
 
     items = scrape.get("items")
     if not isinstance(items, dict):
-        return http_404_urls
+        return set()
 
     failed = items.get("failed")
     if not isinstance(failed, list):
-        return http_404_urls
+        return set()
 
-    for entry in failed:
-        if not isinstance(entry, dict):
-            continue
-        url_val = entry.get("url")
-        reason = entry.get("reason")
+    def _is_404(entry: dict[str, Any]) -> bool:
         status = entry.get("status") or entry.get("httpStatus")
-
+        reason = entry.get("reason")
         if isinstance(status, (int, float)) and int(status) == 404:
-            if isinstance(url_val, str) and url_val.strip():
-                http_404_urls.add(url_val.strip())
-        elif isinstance(reason, str) and "404" in reason.lower():
-            if isinstance(url_val, str) and url_val.strip():
-                http_404_urls.add(url_val.strip())
+            return True
+        return isinstance(reason, str) and "404" in reason.lower()
 
-    return http_404_urls
+    return {
+        url_val.strip()
+        for entry in failed
+        if isinstance(entry, dict)
+        for url_val in [entry.get("url")]
+        if isinstance(url_val, str) and url_val.strip() and _is_404(entry)
+    }
+
+
+@DBOS.pure_func
+def _build_queue_item(url: str, parsed: DetailBatchInput) -> dict[str, Any]:
+    entry = parsed.url_to_entry.get(url, {})
+    row_id = entry.get("_id") or entry.get("id")
+    extras = [
+        ("id", row_id) if isinstance(row_id, str) else None,
+        ("siteId", parsed.site_id) if parsed.site_id else None,
+        ("provider", parsed.provider) if parsed.provider else None,
+        ("sourceUrl", parsed.source_url) if parsed.source_url else None,
+    ]
+    extra_fields = {
+        key: value
+        for pair in extras
+        if pair is not None
+        for key, value in [pair]
+    }
+    return {
+        "url": url,
+        "urlType": "detail",
+        **extra_fields,
+    }
 
 
 @DBOS.workflow()
@@ -278,10 +331,7 @@ async def scrape_job_detail_batch(
 
     # Step: Mark skipped URLs as completed
     if skipped_existing:
-        skipped_items = [
-            {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-            for url in skipped_existing
-        ]
+        skipped_items = [_build_queue_item(url, parsed) for url in skipped_existing]
         complete_scrape_urls_step(
             items=skipped_items,
             status="completed",
@@ -320,10 +370,7 @@ async def scrape_job_detail_batch(
         )
     except Exception as exc:
         # Scrape failed completely - mark all as failed
-        failed_items = [
-            {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-            for url in urls_to_scrape
-        ]
+        failed_items = [_build_queue_item(url, parsed) for url in urls_to_scrape]
         complete_scrape_urls_step(
             items=failed_items,
             status="failed",
@@ -339,10 +386,7 @@ async def scrape_job_detail_batch(
 
     # Step: Mark 404 URLs as failed
     if http_404_urls:
-        failed_items = [
-            {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-            for url in http_404_urls
-        ]
+        failed_items = [_build_queue_item(url, parsed) for url in http_404_urls]
         complete_scrape_urls_step(
             items=failed_items,
             status="failed",
@@ -363,6 +407,22 @@ async def scrape_job_detail_batch(
 
     # Normalize job fields (deterministic)
     jobs = _normalize_job_fields(scrape_result)
+    if jobs:
+        handler = get_site_handler(parsed.source_url) if parsed.source_url else None
+        for job in jobs:
+            if parsed.source_url:
+                job["sourceUrl"] = parsed.source_url
+            if handler and not job.get("apply_url"):
+                url_val = job.get("url")
+                if isinstance(url_val, str) and url_val.strip():
+                    try:
+                        candidate = handler.get_company_uri(url_val)
+                    except Exception:
+                        candidate = None
+                    if candidate and handler.is_listing_url(candidate):
+                        candidate = None
+                    if candidate:
+                        job["apply_url"] = candidate
 
     stored_count = 0
     invalid_count = 0
@@ -396,10 +456,7 @@ async def scrape_job_detail_batch(
                 pass
 
             # Mark as failed
-            failed_items = [
-                {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-                for url in remaining_urls
-            ]
+            failed_items = [_build_queue_item(url, parsed) for url in remaining_urls]
             complete_scrape_urls_step(
                 items=failed_items,
                 status="failed",
@@ -412,10 +469,7 @@ async def scrape_job_detail_batch(
 
     # Step: Mark completed URLs
     if completed_urls:
-        completed_items = [
-            {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-            for url in completed_urls
-        ]
+        completed_items = [_build_queue_item(url, parsed) for url in completed_urls]
         complete_scrape_urls_step(
             items=completed_items,
             status="completed",
@@ -423,10 +477,7 @@ async def scrape_job_detail_batch(
 
     # Step: Mark invalid URLs
     if invalid_urls:
-        invalid_items = [
-            {"url": url, "id": parsed.url_to_entry.get(url, {}).get("_id")}
-            for url in invalid_urls
-        ]
+        invalid_items = [_build_queue_item(url, parsed) for url in invalid_urls]
         complete_scrape_urls_step(
             items=invalid_items,
             status="invalid",

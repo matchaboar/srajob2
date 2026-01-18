@@ -13,6 +13,7 @@ from ...helpers.compensation_parsing import (
 )
 from ...helpers.scrape_utils import build_description_preview, coerce_level, coerce_remote
 from ...helpers.timestamp_parsing import parse_posted_at_with_unknown
+from ...helpers.url_handling import prefer_apply_url
 
 
 # Fields allowed by the Convex ingestJobsFromScrape validator
@@ -67,14 +68,21 @@ def _normalize_job_payload(job: Dict[str, Any], *, now_ms: int) -> Dict[str, Any
     if not location:
         location = "Unknown"
 
-    url_val = job.get("url")
-    url = url_val.strip() if isinstance(url_val, str) and url_val.strip() else ""
+    preferred_url = prefer_apply_url(job)
+    url = preferred_url.strip() if isinstance(preferred_url, str) and preferred_url.strip() else ""
+    raw_url = job.get("url")
+    if isinstance(raw_url, str):
+        raw_url = raw_url.strip()
+    else:
+        raw_url = ""
     if not url:
         for key in ("apply_url", "applyUrl", "job_url", "jobUrl", "link", "href"):
             candidate = job.get(key)
             if isinstance(candidate, str) and candidate.strip():
                 url = candidate.strip()
                 break
+    if not raw_url:
+        raw_url = url
     if not url:
         return None
 
@@ -144,6 +152,11 @@ def _normalize_job_payload(job: Dict[str, Any], *, now_ms: int) -> Dict[str, Any
         output["compensationUnknown"] = comp_unknown
         if comp_unknown and not isinstance(job.get("compensationReason"), str):
             output["compensationReason"] = UNKNOWN_COMPENSATION_REASON
+    if isinstance(raw_url, str) and raw_url.strip():
+        output["scrapeUrl"] = raw_url.strip()
+    source_url = job.get("sourceUrl") or job.get("source_url")
+    if isinstance(source_url, str) and source_url.strip():
+        output["sourceUrl"] = source_url.strip()
 
     # Map cost_milli_cents to scrapedCostMilliCents
     cost_milli_cents = job.get("cost_milli_cents")

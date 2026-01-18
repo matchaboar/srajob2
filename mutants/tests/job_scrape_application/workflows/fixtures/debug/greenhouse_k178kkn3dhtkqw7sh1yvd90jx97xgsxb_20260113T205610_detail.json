@@ -1,0 +1,75 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://careers.airbnb.com/positions/7362663?gh_jid=7362663\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":3283451,\"location\":{\"name\":\"Brazil\"},\"metadata\":[{\"id\":9245691,\"name\":\"Is this job part of ACC?\",\"value\":false,\"value_type\":\"yes_no\"},{\"id\":10216612,\"name\":\"Workplace Type\",\"value\":\"Remote\",\"value_type\":\"single_select\"}],\"id\":7362663,\"updated_at\":\"2026-01-13T15:28:38-05:00\",\"requisition_id\":\"TBD-FTE\",\"title\":\"Staff Software Engineer, Search Infrastructure\",\"company_name\":\"Airbnb\",\"first_published\":\"2025-10-29T16:25:47-04:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;\\u0026quot;\\u0026gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;The Community You Will Join:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Airbnb is a mission-driven company dedicated to helping create a world where anyone can belong anywhere. It takes a unified team committed to our core values to achieve this goal. Airbnb\\u0026#39;s various functions embody the company\\u0026#39;s innovative spirit, and our fast-moving team is committed to leading as a 21st-century company.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Search is at the core of the Airbnb marketplace that connects our guests and hosts. It helps guests find the best homes and experiences to fit their needs and wants. We collaborate with cross-functional partners to revolutionize Airbnb search experience and advance Airbnb\\u0026#39;s mission to help anyone feel like they can belong anywhere.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;The Difference You Will Make:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Tech-lead a high-performing team of software engineers to elevate the OpenSearch ecosystem at Airbnb, driving innovation and setting technical direction.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Architect and build robust systems to enhance the reliability, performance, and cost-effectiveness of OpenSearch platform.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Develop and maintain advanced tooling that streamlines the developer experience for all OpenSearch users across Airbnb.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Actively contribute to the OpenSearch open source community, sharing insights and improvements.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Mentor and guide team members, fostering their professional growth and technical excellence.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;A Typical Day:\\u0026amp;nbsp;\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Participate in design workshops focused on the vision and architecture of Airbnb’s next-generation OpenSearch platform.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Dedicate substantial focus time to designing and implementing core OpenSearch components, leveraging cutting-edge large language models as collaborative tools.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Hold regular 1:1 sessions with team members to provide coaching, direction, and support.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Engage in in-person gatherings with fellow engineers and cross-functional partners to drive alignment and collaboration.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Your Expertise:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proficiency with Java for building scalable, maintainable systems\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;BS, MS, PhD in Computer Science, a related field, or equivalent work experience.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;9+ years of industry experience with a bachelor’s or master’s degree, and 6+ years with a PhD degree.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proven expertise with ElasticSearch or OpenSearch in production environments.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Demonstrated history of technical leadership, successfully guiding engineering teams to deliver impactful, high-quality solutions.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Exceptional communication skills with a strong ability to collaborate with cross-functional teams and stakeholders.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Professional proficiency in English (reading, writing, and speaking).\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Our Commitment To Inclusion \\u0026amp;amp; Belonging:\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400; font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;Airbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;We strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: \\u0026lt;/span\\u0026gt;\\u0026lt;a style=\\u0026quot;color: #000000;\\u0026quot; href=\\u0026quot;mailto:reasonableaccommodations@airbnb.com\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;reasonableaccommodations@airbnb.com\\u0026lt;/span\\u0026gt;\\u0026lt;/a\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.\\u0026amp;nbsp;\\u0026lt;/span\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400; font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;We ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-pay-transparency\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-input\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;description\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-size: 16px;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: rgb(0, 0, 0);\\u0026quot;\\u0026gt;How We\\u0026#39;ll Take Care of You:\\u0026lt;/span\\u0026gt;\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p class=\\u0026quot;p1\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-size: 16px;\\u0026quot;\\u0026gt;Our job titles may span more than one career level. The actual base pay is dependent upon many factors, such as: training, transferable skills, work experience, business needs and market demands. The base pay range shown below is monthly, is subject to change and may be modified in the future. This role may also be eligible for bonus, equity, benefits, and Employee Travel Credits.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;title\\u0026quot;\\u0026gt;Brazil Monthly Pay Range\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-range\\u0026quot;\\u0026gt;\\u0026lt;span\\u0026gt;R$37.333\\u0026lt;/span\\u0026gt;\\u0026lt;span class=\\u0026quot;divider\\u0026quot;\\u0026gt;\\u0026amp;mdash;\\u0026lt;/span\\u0026gt;\\u0026lt;span\\u0026gt;R$46.666 BRL\\u0026lt;/span\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":77,\"name\":\"Software Engineering\",\"child_ids\":[],\"parent_id\":73703}],\"offices\":[{\"id\":63869,\"name\":\"Brazil\",\"location\":null,\"child_ids\":[176],\"parent_id\":63606}]}</pre><div class=\"json-formatter-container\"></div></html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 4.555200000000001e-06,
+        "compute_cost_formatted": "0.0000045552000000000001720846",
+        "file_cost": 1.3656e-05,
+        "file_cost_formatted": "0.0000136559999999999993891553",
+        "total_cost": 1.8211200000000003e-05,
+        "total_cost_formatted": "0.0000182111999999999995612399",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 2461,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "boards-api.greenhouse.io",
+          "extracted_data": null,
+          "file_size": 9078,
+          "final_url": null,
+          "keywords": [
+            "2 billion guest arrivals",
+            "Brazil Monthly Pay Range",
+            "Dedicate substantial focus time",
+            "Employee Travel Credits",
+            "Exceptional communication skills",
+            "OpenSearch open source community",
+            "San Francisco home",
+            "Staff Software Engineer",
+            "actual base pay",
+            "attract creatively-led people",
+            "base pay range shown",
+            "broadest talent pool",
+            "build robust systems",
+            "design workshops focused",
+            "diverse ideas foster innovation",
+            "equivalent work experience",
+            "guide team members",
+            "helps guests find",
+            "hosts offer unique stays",
+            "implementing core OpenSearch components",
+            "leveraging cutting-edge large language models",
+            "maintain advanced tooling",
+            "mission-driven company dedicated",
+            "next-generation OpenSearch platform",
+            "require reasonable accommodation",
+            "revolutionize Airbnb search experience",
+            "setting technical direction",
+            "successfully guiding engineering teams",
+            "unified team committed"
+          ],
+          "og_image": null,
+          "original_url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7362663",
+          "pathname": "/v1/boards/airbnb/jobs/7362663",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7362663"
+    }
+  ]
+]

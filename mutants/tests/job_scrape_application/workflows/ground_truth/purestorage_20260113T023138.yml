@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/purestorage_20260113T023138_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: purestorage
+detail_url: https://boards-api.greenhouse.io/v1/boards/purestorage/jobs/7472241
+expected:
+  title: AI/HPC Pre-Sales Systems Engineer
+  company: Pure Storage
+  # Multiple US locations in fixture
+  location_contains: Atlanta
+  is_remote: false
+  level: senior  # 8+ years experience required
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

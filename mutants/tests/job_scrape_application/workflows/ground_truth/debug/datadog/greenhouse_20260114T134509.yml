@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/datadog/greenhouse_20260114T134509_detail.json
+site_id: greenhouse
+detail_url: https://boards-api.greenhouse.io/v1/boards/datadog/jobs/7194969
+expected:
+  title: "AI Research Engineer - Datadog AI Research (DAIR)"
+  company: "Datadog"
+  location: "Paris, France"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

@@ -1,0 +1,11 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/docusign/docusign_20260114T134509_detail.json
+site_id: docusign
+detail_url: https://careers.docusign.com/jobs/27215?lang=en-us
+expected:
+  title: "Software Engineer"
+  company: "Docusign"
+  # Note: Location not reliably extractable from fixture
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1

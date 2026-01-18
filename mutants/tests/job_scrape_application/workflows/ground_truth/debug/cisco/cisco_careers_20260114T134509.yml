@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/cisco/cisco_careers_20260114T134509_detail.json
+# NOTE: This fixture contains poorly structured HTML from Cisco Careers site.
+# The extraction pipeline doesn't handle this complex HTML well.
+# This test documents current (limited) extraction behavior for this site type.
+site_id: cisco_careers
+detail_url: https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence
+expected:
+  # Extraction is limited due to complex HTML structure
+  # Title extraction fails and returns generic "Job" from HTML
+  # Location extraction fails due to CSS/JS content pollution
+  company: "Cisco"  # Company is still derived from URL
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1

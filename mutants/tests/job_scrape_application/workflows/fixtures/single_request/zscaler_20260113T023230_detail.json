@@ -1,0 +1,150 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+    "params": {
+      "return_format": [
+        "commonmark",
+        "raw_html"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": "```\n{\"absolute\\_url\":\"https://job-boards.greenhouse.io/zscaler/jobs/4771753007\",\"data\\_compliance\":[{\"type\":\"gdpr\",\"requires\\_consent\":false,\"requires\\_processing\\_consent\":false,\"requires\\_retention\\_consent\":false,\"retention\\_period\":null,\"demographic\\_data\\_consent\\_applies\":true}],\"internal\\_job\\_id\":4445676007,\"location\":{\"name\":\"Tokyo, JPN\"},\"metadata\":[{\"id\":4203262007,\"name\":\"Employment Type\",\"value\":\"Fulltime Employee\",\"value\\_type\":\"single\\_select\"},{\"id\":4363861007,\"name\":\"Additional Job Post Location\",\"value\":[],\"value\\_type\":\"multi\\_select\"},{\"id\":4363809007,\"name\":\"Division\",\"value\":\"GTM Sales\",\"value\\_type\":\"single\\_select\"},{\"id\":4391305007,\"name\":\"Geo/Region\",\"value\":\"APJ\",\"value\\_type\":\"single\\_select\"}],\"id\":4771753007,\"updated\\_at\":\"2026-01-07T13:29:36-05:00\",\"requisition\\_id\":\"17016\",\"title\":\"Account Executive\",\"company\\_name\":\"Zscaler\",\"first\\_published\":\"2025-07-01T05:37:00-04:00\",\"language\":\"en\",\"content\":\"\\\\u0026lt;div class=\\\\u0026quot;content-intro\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;About \\\\u0026lt;strong\\\\u0026gt;Zscaler\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Zscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Here, \\\\u0026lt;strong\\\\u0026gt;impact in your role matters more than title\\\\u0026lt;/strong\\\\u0026gt; and trust is built on results. We believe in transparency and value \\\\u0026lt;strong\\\\u0026gt;constructive, honest debate\\\\u0026lt;/strong\\\\u0026gt;—we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture of execution centered on \\\\u0026lt;strong\\\\u0026gt;customer obsession,\\\\u0026lt;/strong\\\\u0026gt; collaboration, ownership and accountability.\\\\u0026amp;nbsp;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;We value high-impact, high-accountability with a sense of urgency where you’re enabled to do your best work and embrace your potential. If you’re driven by purpose, thrive on solving complex challenges and want to make a positive difference on a global scale, we invite you to bring your talents to Zscaler and help shape the future of cybersecurity.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;The Zscaler Sales and Go-to-Market team is a global group of professionals who are passionate about delighting our customers, nurturing trusted partnerships, and sharing their expertise to drive a secure, cloud-enabled digital future and further cement our position as the world leader in cloud security. Sales, Customer Success, Sales Enablement, Solution Architects, Business Development, Transformation, and Technology Partnerships all work together to demonstrate the power and agility of Zscaler cloud transformation to the world.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;We\\\\u0026#39;re looking for an experienced Account Executive to join our Sales and Go-to-Market team. Reporting to the Regional Director, you\\\\u0026#39;ll be responsible for:\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Building relationships with key stakeholders, including c-suite decision-makers\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Creating a long-term account strategy aligned with customer goals\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Collaborating with our teams to meet customer needs and contribute to account planning\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Being a trusted advisor, understanding client businesses and aligning Zscaler solutions with their goals\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;What We\\\\u0026#39;re Looking for (Minimum Qualifications)\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;10+ years of full-cycle sales experience within software or security industry\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Bachelor\\\\u0026#39;s degree or equivalent experience\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Progressive selling experience engaging with accounts and selling at C-Level\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;High level of written and spoken Japanese fluency\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;\\\\u0026lt;strong\\\\u0026gt;What Will Make You Stand Out (Preferred Qualifications)\\\\u0026lt;/strong\\\\u0026gt;\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;You have established relationships with current and prospective customers\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;You understand the bigger picture, customer goals and how technology can facilitate them\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Proficiency in strategic sales planning with experience closing net new logos\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;#LI-TY2\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;#LI-Hybrid\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;content-conclusion\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p data-pm-slice=\\\\u0026quot;1 3 []\\\\u0026quot;\\\\u0026gt;At Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Our Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;div class=\\\\u0026quot;has-nudge\\\\u0026quot; data-nudge-id=\\\\u0026quot;5eb9419b-6a4d-4451-bfa6-e2eb96084be0\\\\u0026quot;\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Various health plans\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Time off plans for vacation and sick time\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Parental leave options\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Retirement options\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Education reimbursement\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;In-office perks, and more!\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Learn more about Zscaler’s Future of Work strategy, hybrid working model, and benefits \\\\u0026lt;a href=\\\\u0026quot;https://www.zscaler.com/careers\\\\u0026quot;\\\\u0026gt;here\\\\u0026lt;/a\\\\u0026gt;.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;/div\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;By applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p class=\\\\u0026quot;p1\\\\u0026quot;\\\\u0026gt;Zscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. \\\\u0026lt;em\\\\u0026gt;See more information by clicking on the \\\\u0026lt;/em\\\\u0026gt;\\\\u0026lt;a href=\\\\u0026quot;https://www.eeoc.gov/sites/default/files/2023-06/22-088\\_EEOC\\_KnowYourRights6.12ScreenRdr.pdf\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;em\\\\u0026gt;Know Your Rights: Workplace Discrimination is Illegal \\\\u0026lt;/em\\\\u0026gt;\\\\u0026lt;/a\\\\u0026gt;\\\\u0026lt;em\\\\u0026gt;link.\\\\u0026lt;/em\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Pay Transparency\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Zscaler complies with all applicable federal, state, and local pay transparency rules.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Zscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\",\"departments\":[{\"id\":4044282007,\"name\":\"APJ Field Sales\",\"child\\_ids\":[4046233007,4015709007,4015440007,4018463007,4018464007,4018465007,4061523007,4018457007,4061524007,4018491007,4018458007,4018469007,4018470007,4018456007,4018481007,4018482007,4018492007,4018484007,4018461007,4018466007,4018471007,4018493007,4018459007,4049212007,4049213007,4018468007,4044040007,4018489007,4018474007,4018476007,4018478007,4042810007,4040297007,4018477007,4018336007,4018479007,4018475007],\"parent\\_id\":4017788007}],\"offices\":[{\"id\":4009712007,\"name\":\"Office - Tokyo, Japan\",\"location\":\"Tokyo, JPN\",\"child\\_ids\":[],\"parent\\_id\":4009669007}]}\n```",
+          "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://job-boards.greenhouse.io/zscaler/jobs/4771753007\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":true}],\"internal_job_id\":4445676007,\"location\":{\"name\":\"Tokyo, JPN\"},\"metadata\":[{\"id\":4203262007,\"name\":\"Employment Type\",\"value\":\"Fulltime Employee\",\"value_type\":\"single_select\"},{\"id\":4363861007,\"name\":\"Additional Job Post Location\",\"value\":[],\"value_type\":\"multi_select\"},{\"id\":4363809007,\"name\":\"Division\",\"value\":\"GTM Sales\",\"value_type\":\"single_select\"},{\"id\":4391305007,\"name\":\"Geo/Region\",\"value\":\"APJ\",\"value_type\":\"single_select\"}],\"id\":4771753007,\"updated_at\":\"2026-01-07T13:29:36-05:00\",\"requisition_id\":\"17016\",\"title\":\"Account Executive\",\"company_name\":\"Zscaler\",\"first_published\":\"2025-07-01T05:37:00-04:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;About \\u0026lt;strong\\u0026gt;Zscaler\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Zscaler accelerates digital transformation so our customers can be more agile, efficient, resilient, and secure. Our cloud native Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Here, \\u0026lt;strong\\u0026gt;impact in your role matters more than title\\u0026lt;/strong\\u0026gt; and trust is built on results. We believe in transparency and value \\u0026lt;strong\\u0026gt;constructive, honest debate\\u0026lt;/strong\\u0026gt;—we’re focused on getting to the best ideas, faster. We build high-performing teams that can make an impact quickly and with high quality. To do this, we are building a culture of execution centered on \\u0026lt;strong\\u0026gt;customer obsession,\\u0026lt;/strong\\u0026gt; collaboration, ownership and accountability.\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;We value high-impact, high-accountability with a sense of urgency where you’re enabled to do your best work and embrace your potential. If you’re driven by purpose, thrive on solving complex challenges and want to make a positive difference on a global scale, we invite you to bring your talents to Zscaler and help shape the future of cybersecurity.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;p\\u0026gt;The Zscaler Sales and Go-to-Market team is a global group of professionals who are passionate about delighting our customers, nurturing trusted partnerships, and sharing their expertise to drive a secure, cloud-enabled digital future and further cement our position as the world leader in cloud security. Sales, Customer Success, Sales Enablement, Solution Architects, Business Development, Transformation, and Technology Partnerships all work together to demonstrate the power and agility of Zscaler cloud transformation to the world.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;We\\u0026#39;re looking for an experienced Account Executive to join our Sales and Go-to-Market team. Reporting to the Regional Director, you\\u0026#39;ll be responsible for:\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Building relationships with key stakeholders, including c-suite decision-makers\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Creating a long-term account strategy aligned with customer goals\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Collaborating with our teams to meet customer needs and contribute to account planning\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Being a trusted advisor, understanding client businesses and aligning Zscaler solutions with their goals\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;\\u0026lt;strong\\u0026gt;What We\\u0026#39;re Looking for (Minimum Qualifications)\\u0026lt;/strong\\u0026gt;\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;10+ years of full-cycle sales experience within software or security industry\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Bachelor\\u0026#39;s degree or equivalent experience\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Progressive selling experience engaging with accounts and selling at C-Level\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;High level of written and spoken Japanese fluency\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;\\u0026lt;strong\\u0026gt;What Will Make You Stand Out (Preferred Qualifications)\\u0026lt;/strong\\u0026gt;\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;You have established relationships with current and prospective customers\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You understand the bigger picture, customer goals and how technology can facilitate them\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proficiency in strategic sales planning with experience closing net new logos\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;#LI-TY2\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;#LI-Hybrid\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p data-pm-slice=\\u0026quot;1 3 []\\u0026quot;\\u0026gt;At Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Our Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:\\u0026lt;/p\\u0026gt;\\n\\u0026lt;div class=\\u0026quot;has-nudge\\u0026quot; data-nudge-id=\\u0026quot;5eb9419b-6a4d-4451-bfa6-e2eb96084be0\\u0026quot;\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Various health plans\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Time off plans for vacation and sick time\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Parental leave options\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Retirement options\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Education reimbursement\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;In-office perks, and more!\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;Learn more about Zscaler’s Future of Work strategy, hybrid working model, and benefits \\u0026lt;a href=\\u0026quot;https://www.zscaler.com/careers\\u0026quot;\\u0026gt;here\\u0026lt;/a\\u0026gt;.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;/div\\u0026gt;\\n\\u0026lt;p\\u0026gt;By applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p class=\\u0026quot;p1\\u0026quot;\\u0026gt;Zscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. \\u0026lt;em\\u0026gt;See more information by clicking on the \\u0026lt;/em\\u0026gt;\\u0026lt;a href=\\u0026quot;https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf\\u0026quot;\\u0026gt;\\u0026lt;em\\u0026gt;Know Your Rights: Workplace Discrimination is Illegal \\u0026lt;/em\\u0026gt;\\u0026lt;/a\\u0026gt;\\u0026lt;em\\u0026gt;link.\\u0026lt;/em\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Pay Transparency\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Zscaler complies with all applicable federal, state, and local pay transparency rules.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Zscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":4044282007,\"name\":\"APJ Field Sales\",\"child_ids\":[4046233007,4015709007,4015440007,4018463007,4018464007,4018465007,4061523007,4018457007,4061524007,4018491007,4018458007,4018469007,4018470007,4018456007,4018481007,4018482007,4018492007,4018484007,4018461007,4018466007,4018471007,4018493007,4018459007,4049212007,4049213007,4018468007,4044040007,4018489007,4018474007,4018476007,4018478007,4042810007,4040297007,4018477007,4018336007,4018479007,4018475007],\"parent_id\":4017788007}],\"offices\":[{\"id\":4009712007,\"name\":\"Office - Tokyo, Japan\",\"location\":\"Tokyo, JPN\",\"child_ids\":[],\"parent_id\":4009669007}]}</pre><div class=\"json-formatter-container\"></div></html>"
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 4.544283333333333e-06,
+          "compute_cost_formatted": "0.0000045442833333333332593185",
+          "file_cost": 1.38285e-05,
+          "file_cost_formatted": "0.0000138284999999999991260324",
+          "total_cost": 2.8372783333333334e-05,
+          "total_cost_formatted": "0.0000283727833333333329404624",
+          "transform_cost": 1e-05,
+          "transform_cost_formatted": "0.0000100000000000000005551115"
+        },
+        "duration_elasped_ms": 2452,
+        "error": null,
+        "links": [],
+        "metadata": {
+          "commonmark": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 9370,
+            "final_url": null,
+            "keywords": [
+              "Additional Job Post Location",
+              "Parental leave options",
+              "Progressive selling experience engaging",
+              "Trust Exchange platform protects thousands",
+              "Zscaler accelerates digital transformation",
+              "Zscaler cloud transformation",
+              "Zscaler proudly offers comprehensive",
+              "aligning Zscaler solutions",
+              "build high-performing teams",
+              "cloud-enabled digital future",
+              "experience closing net",
+              "experienced Account Executive",
+              "full-cycle sales experience",
+              "hybrid working model",
+              "including c-suite decision-makers",
+              "local pay transparency rules",
+              "long term conditions",
+              "long-term account strategy aligned",
+              "mental health conditions",
+              "nurturing trusted partnerships",
+              "protected veteran status",
+              "providing equal employment opportunities",
+              "providing reasonable support",
+              "related medical conditions",
+              "require pregnancy-related support",
+              "securely connecting users",
+              "sincerely held religious beliefs",
+              "solving complex challenges",
+              "spoken Japanese fluency",
+              "strategic sales planning",
+              "understanding client businesses"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+            "pathname": "/v1/boards/zscaler/jobs/4771753007",
+            "resource_type": ".md",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          },
+          "raw": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 9193,
+            "final_url": null,
+            "keywords": [
+              "Additional Job Post Location",
+              "Parental leave options",
+              "Progressive selling experience engaging",
+              "Trust Exchange platform protects thousands",
+              "Zscaler accelerates digital transformation",
+              "Zscaler cloud transformation",
+              "Zscaler proudly offers comprehensive",
+              "aligning Zscaler solutions",
+              "build high-performing teams",
+              "cloud-enabled digital future",
+              "experience closing net",
+              "experienced Account Executive",
+              "full-cycle sales experience",
+              "hybrid working model",
+              "including c-suite decision-makers",
+              "local pay transparency rules",
+              "long term conditions",
+              "long-term account strategy aligned",
+              "mental health conditions",
+              "nurturing trusted partnerships",
+              "protected veteran status",
+              "providing equal employment opportunities",
+              "providing reasonable support",
+              "related medical conditions",
+              "require pregnancy-related support",
+              "securely connecting users",
+              "sincerely held religious beliefs",
+              "solving complex challenges",
+              "spoken Japanese fluency",
+              "strategic sales planning",
+              "understanding client businesses"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007",
+            "pathname": "/v1/boards/zscaler/jobs/4771753007",
+            "resource_type": ".html",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          }
+        },
+        "status": 200,
+        "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4771753007"
+      }
+    ]
+  ]
+}

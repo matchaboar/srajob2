@@ -1,0 +1,47 @@
+= DBOS008: Workflow calls must be DBOS-decorated
+
+== Summary
+
+Workflows must only call functions annotated with `@DBOS.step`, `@DBOS.transaction`, or `@DBOS.pure_func`.
+
+== Description
+
+DBOS workflows should be orchestration-only. Any substantial work must be
+performed in steps, transactions, or explicitly marked pure helper functions.
+This rule prevents workflows from calling unannotated helpers that may
+perform side effects or non-durable operations.
+
+== Examples
+
+.Bad: Calling an unannotated helper from a workflow
+[source,python]
+----
+def compute_batch(urls: list[str]) -> list[str]:
+    return [url.strip() for url in urls]
+
+@DBOS.workflow()
+def scrape_workflow(urls: list[str]) -> None:
+    cleaned = compute_batch(urls)  # ERROR: helper not annotated
+    enqueue_scrape_urls_step(urls=cleaned)
+----
+
+.Good: Mark the helper as pure
+[source,python]
+----
+@DBOS.pure_func
+def compute_batch(urls: list[str]) -> list[str]:
+    return [url.strip() for url in urls]
+
+@DBOS.workflow()
+def scrape_workflow(urls: list[str]) -> None:
+    cleaned = compute_batch(urls)
+    enqueue_scrape_urls_step(urls=cleaned)
+----
+
+== Suppression
+
+Add `# noqa: DBOS008` to the offending call line.
+
+== See Also
+
+* DBOS009 - Pure functions must not perform side effects

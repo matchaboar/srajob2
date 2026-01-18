@@ -1,0 +1,63 @@
+= DBOS010: queue.enqueue() requires workflow context
+
+== Summary
+
+`queue.enqueue()` can only be called from a `@DBOS.workflow()` decorated function, not from a `@DBOS.step()` or undecorated function.
+
+== Description
+
+The DBOS framework requires that `queue.enqueue()` be called from a workflow context.
+Internally, `enqueue()` calls `start_workflow()` which asserts that the current context
+is a workflow (`cur_ctx.is_workflow()`). Calling `enqueue()` from a step or undecorated
+function will cause an `AssertionError` at runtime.
+
+This is because DBOS needs workflow-level transactional guarantees to properly track
+and manage the enqueued workflow.
+
+== Examples
+
+.Bad: Calling enqueue from a step
+[source,python]
+----
+@DBOS.step()
+def enqueue_urls_step(urls: list[str]) -> int:
+    for url in urls:
+        LISTING_QUEUE.enqueue(scrape_listing, url=url)  # ERROR: in step context
+    return len(urls)
+----
+
+.Good: Calling enqueue from a workflow
+[source,python]
+----
+@DBOS.workflow()
+def enqueue_urls_workflow(urls: list[str]) -> int:
+    for url in urls:
+        LISTING_QUEUE.enqueue(scrape_listing, url=url)  # OK: in workflow context
+    return len(urls)
+----
+
+.Good: Refactor step to be a workflow
+[source,python]
+----
+# If the function needs to enqueue, make it a workflow instead of a step
+@DBOS.workflow()
+def enqueue_urls(urls: list[str]) -> int:
+    for url in urls:
+        LISTING_QUEUE.enqueue(scrape_listing, url=url)
+    return len(urls)
+
+@DBOS.workflow()
+def parent_workflow(urls: list[str]) -> None:
+    # Workflows can call other workflows
+    count = enqueue_urls(urls)
+    log_step(f"Enqueued {count} URLs")
+----
+
+== Suppression
+
+Add `# noqa: DBOS010` to the offending call line.
+
+== See Also
+
+* DBOS005 - Async workflows must use enqueue_async instead of enqueue
+* DBOS008 - Workflow calls must be DBOS-decorated

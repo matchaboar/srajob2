@@ -81,6 +81,7 @@ const applicationTables = {
     description: v.optional(v.string()),
     descriptionStorageId: v.optional(v.id("_storage")),
     metadata: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
     scrapeUrl: v.optional(v.string()),
     scrapedWith: v.optional(v.string()),
     workflowName: v.optional(v.string()),

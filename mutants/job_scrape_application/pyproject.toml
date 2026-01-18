@@ -1,0 +1,23 @@
+[project]
+name = "job-scrape-application"
+version = "0.1.0"
+description = "Job scraping workflows and site handlers"
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.11.7",
+    "pyyaml>=6.0.2",
+    "spider-client>=0.1.82",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
+
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["job_scrape_application*"]
+namespaces = false

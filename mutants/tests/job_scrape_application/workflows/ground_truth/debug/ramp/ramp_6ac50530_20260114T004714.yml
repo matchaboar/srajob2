@@ -1,0 +1,16 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/ramp/ramp_6ac50530_20260114T004714_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: ashbyhq
+detail_url: https://jobs.ashbyhq.com/ramp/6ac50530-ce1c-4375-9cc1-c56f8b5925fd
+expected:
+  title: "Account Manager, Growth"
+  company_contains: "Ramp"
+  location_contains: "New York"
+  # Note: Schema.org jobLocationType indicates TELECOMMUTE
+  is_remote: true
+  # Note: Level extracted as mid (default) - no senior indicators in title
+  level: mid
+  # Note: Fixture has truncated description (100 words)
+  description_min_words: 50
+  description_not_contains: '{"'
+  cost_milli_cents_min: 1

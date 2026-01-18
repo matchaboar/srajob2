@@ -1,0 +1,12 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><head><title>Access Denied</title></head><body>Request blocked</body></html>"
+      },
+      "meta": {
+        "url": "https://api.greenhouse.io/v1/boards/lyft/jobs"
+      }
+    }
+  ]
+]

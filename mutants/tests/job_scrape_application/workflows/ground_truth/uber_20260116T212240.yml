@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/uber_20260116T212240_detail.json
+# Generated: 2026-01-16T21:23:11.849652+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: uber
+detail_url: https://www.uber.com/careers/list/149889
+expected:
+  title_contains: "Business Development Lead, US Regional Grocery"
+  company: "Uber"
+  location_contains: "San Francisco, CA"
+  is_remote: false
+  level: "staff"
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

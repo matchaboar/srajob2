@@ -174,18 +174,50 @@ export function JobDetailsPage({ jobId, onBack }: { jobId: Id<"jobs">; onBack?: 
               {job?.remote === true ? "Remote" : job?.remote === false ? "On-site" : "Remote: Unknown"}
             </span>
           </div>
-          {job?.url && (
-            <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-              <span className="uppercase tracking-wide">Source</span>
-              <a
-                href={job.url}
-                target="_blank"
-                rel="noreferrer"
-                title={job.url}
-                className="inline-block text-blue-300 hover:text-blue-200 underline-offset-2 truncate max-w-[60vw] sm:max-w-[420px] lg:max-w-[560px]"
-              >
-                {job.url}
-              </a>
+          {(job?.url || job?.sourceUrl || job?.scrapeUrl) && (
+            <div className="mt-1 flex flex-col gap-1 text-xs text-slate-500">
+              {job?.url && (
+                <div className="flex items-center gap-2">
+                  <span className="uppercase tracking-wide">Direct apply</span>
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={job.url}
+                    className="inline-block text-blue-300 hover:text-blue-200 underline-offset-2 truncate max-w-[60vw] sm:max-w-[420px] lg:max-w-[560px]"
+                  >
+                    {job.url}
+                  </a>
+                </div>
+              )}
+              {job?.sourceUrl && (
+                <div className="flex items-center gap-2">
+                  <span className="uppercase tracking-wide">source_url</span>
+                  <a
+                    href={job.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={job.sourceUrl}
+                    className="inline-block text-blue-300 hover:text-blue-200 underline-offset-2 truncate max-w-[60vw] sm:max-w-[420px] lg:max-w-[560px]"
+                  >
+                    {job.sourceUrl}
+                  </a>
+                </div>
+              )}
+              {job?.scrapeUrl && (
+                <div className="flex items-center gap-2">
+                  <span className="uppercase tracking-wide">scrape_url</span>
+                  <a
+                    href={job.scrapeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={job.scrapeUrl}
+                    className="inline-block text-blue-300 hover:text-blue-200 underline-offset-2 truncate max-w-[60vw] sm:max-w-[420px] lg:max-w-[560px]"
+                  >
+                    {job.scrapeUrl}
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>

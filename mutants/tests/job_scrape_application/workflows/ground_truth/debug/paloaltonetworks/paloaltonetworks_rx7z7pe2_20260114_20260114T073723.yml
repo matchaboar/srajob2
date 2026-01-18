@@ -1,0 +1,18 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/paloaltonetworks/paloaltonetworks_rx7z7pe2_20260114_20260114T073723_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/los-angeles/named-account-manager-sled/47263/90533764944
+expected:
+  # Title fix verified - "Your Career" and "Our Mission" are now filtered as generic headings
+  title: "Named Account Manager - SLED"
+  company: "Palo Alto Networks"
+  # URL location extraction now prioritized: "los-angeles" in URL path -> "Los Angeles"
+  location_contains: "Los Angeles"
+  # Note: Remote status not reliably detectable from fixture
+  is_remote: false
+  # Note: Level extracted as mid (default) - no senior/staff indicators
+  level: mid
+  # Note: Fixture has truncated description (100 words)
+  description_min_words: 50
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1

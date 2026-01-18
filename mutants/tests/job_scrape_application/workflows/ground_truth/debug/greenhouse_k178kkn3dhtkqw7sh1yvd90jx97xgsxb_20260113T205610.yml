@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/greenhouse_k178kkn3dhtkqw7sh1yvd90jx97xgsxb_20260113T205610_detail.json
+site_id: greenhouse
+detail_url: https://boards.greenhouse.io/airbnb/jobs/7362663
+expected:
+  title: "Staff Software Engineer, Search Infrastructure"
+  company: "Airbnb"
+  location_contains: "Brazil"
+  # Greenhouse metadata explicitly says "Workplace Type": "Remote"
+  is_remote: true
+  level: staff
+  description_min_words: 50
+  description_not_contains: '{"'
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

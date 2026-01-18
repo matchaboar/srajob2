@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/bloomberg_20260113T023246_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: bloomberg
+detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Employee-Engagement-Discovery/16494
+expected:
+  title_contains: Senior Software Engineer
+  company: Bloomberg
+  location_contains: New York
+  is_remote: false
+  level: senior
+  description_min_words: 100
+  cost_milli_cents_min: 1

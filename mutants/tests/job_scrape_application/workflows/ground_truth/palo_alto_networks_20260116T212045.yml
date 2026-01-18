@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/palo_alto_networks_20260116T212045_detail.json
+# Generated: 2026-01-16T21:22:16.634039+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: palo_alto_networks
+detail_url: https://jobs.paloaltonetworks.com/en/job/santa-clara/software-engineering-manager-netsec/47263/89086617520
+expected:
+  title_contains: "Software Engineering Manager (NetSec)"
+  company: "Palo Alto Networks"
+  location_contains: "Santa Clara"
+  is_remote: false
+  level: "senior"
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

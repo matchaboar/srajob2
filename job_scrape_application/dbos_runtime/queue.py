@@ -2,13 +2,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+import hashlib
+import logging
+import os
+import sqlite3
 import uuid
 
-from .sqlite import initialize_schema, now_ms, read_only, transaction
+from dbos import SetEnqueueOptions, error as dbos_error
+from .sqlite import _resolve_db_path, initialize_schema, now_ms, read_only, transaction
+from .workflow_queues import (
+    DETAIL_QUEUE,
+    DETAIL_QUEUE_NAME,
+    LISTING_QUEUE,
+    LISTING_QUEUE_NAME,
+)
 from ..workflows.helpers.link_extractors import normalize_url
 
-QUEUE_LISTING = "listing"
-QUEUE_DETAIL = "detail"
+logger = logging.getLogger("dbos.queue")
+
+QUEUE_LISTING = LISTING_QUEUE_NAME
+QUEUE_DETAIL = DETAIL_QUEUE_NAME
 STATUS_PENDING = "pending"
 STATUS_PROCESSING = "processing"
 STATUS_COMPLETED = "completed"
@@ -55,6 +68,99 @@ def _normalize_url_type(value: str | None) -> str | None:
     return None
 
 
+def _hash_dedupe_id(prefix: str, value: str) -> str:
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return f"{prefix}:{digest}"
+
+
+def _listing_dedupe_id(url: str) -> str:
+    normalized = normalize_url(url) or url.strip()
+    return _hash_dedupe_id("listing", normalized)
+
+
+def _detail_dedupe_id(url: str, site_id: str | None, provider: str | None) -> str:
+    return _hash_dedupe_id("detail", _dedupe_key(url, site_id, provider))
+
+
+def _build_queue_entry(
+    *,
+    url: str,
+    source_url: str | None,
+    provider: str | None,
+    site_id: str | None,
+    pattern: str | None,
+    url_type: str | None,
+    posted_at: int | None,
+) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "_id": str(uuid.uuid4()),
+        "url": url,
+        "sourceUrl": source_url,
+        "provider": provider,
+        "siteId": site_id,
+        "pattern": pattern,
+        "urlType": url_type,
+        "attempts": 1,
+    }
+    if posted_at is not None:
+        entry["postedAt"] = posted_at
+    return entry
+
+
+def _enqueue_listing_batches(entries: list[dict[str, Any]], *, force_refresh: bool) -> int:
+    """Enqueue listing batches. Only called from workflow context via enqueue_scrape_urls_step."""
+    from ..workflows.workflow.scrape_listing_batch import scrape_listing_batch
+
+    queued = 0
+    for entry in entries:
+        url_val = entry.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        dedupe_id = None if force_refresh else _listing_dedupe_id(url_val)
+        try:
+            if dedupe_id:
+                with SetEnqueueOptions(deduplication_id=dedupe_id):
+                    LISTING_QUEUE.enqueue(scrape_listing_batch, batch={"urls": [entry]})  # noqa: DBOS010
+            else:
+                LISTING_QUEUE.enqueue(scrape_listing_batch, batch={"urls": [entry]})  # noqa: DBOS010
+            queued += 1
+        except dbos_error.DBOSQueueDeduplicatedError:
+            continue
+    return queued
+
+
+def _enqueue_detail_batches(entries: list[dict[str, Any]], *, force_refresh: bool) -> int:
+    """Enqueue detail batches. Only called from workflow context via enqueue_scrape_urls_step."""
+    from ..workflows.workflow.scrape_job_detail_batch import scrape_job_detail_batch
+
+    queued = 0
+    for entry in entries:
+        url_val = entry.get("url")
+        if not isinstance(url_val, str) or not url_val.strip():
+            continue
+        site_id = entry.get("siteId") if isinstance(entry.get("siteId"), str) else None
+        provider = entry.get("provider") if isinstance(entry.get("provider"), str) else None
+        dedupe_id = None if force_refresh else _detail_dedupe_id(url_val, site_id, provider)
+        try:
+            if dedupe_id:
+                with SetEnqueueOptions(deduplication_id=dedupe_id):
+                    DETAIL_QUEUE.enqueue(  # noqa: DBOS010
+                        scrape_job_detail_batch,
+                        batch={"urls": [entry]},
+                        persist_scrapes=True,
+                    )
+            else:
+                DETAIL_QUEUE.enqueue(  # noqa: DBOS010
+                    scrape_job_detail_batch,
+                    batch={"urls": [entry]},
+                    persist_scrapes=True,
+                )
+            queued += 1
+        except dbos_error.DBOSQueueDeduplicatedError:
+            continue
+    return queued
+
+
 def enqueue_scrape_urls(payload: dict[str, Any], *, force_refresh: bool = False) -> dict[str, Any]:
     initialize_schema()
     urls_raw = payload.get("urls")
@@ -69,7 +175,14 @@ def enqueue_scrape_urls(payload: dict[str, Any], *, force_refresh: bool = False)
     url_types = payload.get("urlTypes") if isinstance(payload.get("urlTypes"), list) else None
     posted_ats = payload.get("postedAts") if isinstance(payload.get("postedAts"), list) else None
 
-    queued = 0
+    if delays_ms and any(isinstance(val, (int, float)) and val > 0 for val in delays_ms):
+        logger.info("delaysMs provided but DBOS queues do not support per-URL delays; ignoring.")
+
+    listing_entries: list[dict[str, Any]] = []
+    detail_entries: list[dict[str, Any]] = []
+    seen_listing: set[str] = set()
+    seen_detail: set[str] = set()
+
     for idx, raw_url in enumerate(urls_raw):
         if not isinstance(raw_url, str):
             continue
@@ -79,32 +192,49 @@ def enqueue_scrape_urls(payload: dict[str, Any], *, force_refresh: bool = False)
         url_type_val = None
         if url_types and idx < len(url_types) and isinstance(url_types[idx], str):
             url_type_val = _normalize_url_type(url_types[idx])
-        queue_name = QUEUE_DETAIL if url_type_val == "detail" else QUEUE_LISTING
-        delay_ms = 0
-        if delays_ms and idx < len(delays_ms):
-            try:
-                delay_ms = int(delays_ms[idx])
-            except Exception:
-                delay_ms = 0
         posted_at = None
         if posted_ats and idx < len(posted_ats):
             val = posted_ats[idx]
             if isinstance(val, (int, float)):
                 posted_at = int(val)
-        if _enqueue_url(
-            url=url,
-            queue_name=queue_name,
-            url_type=url_type_val,
-            posted_at=posted_at,
-            source_url=source_url,
 
-            provider=provider,
-            site_id=site_id,
-            pattern=pattern,
-            run_after_ms=delay_ms,
-            force_refresh=force_refresh,
-        ):
-            queued += 1
+        if url_type_val == "detail":
+            dedupe = _dedupe_key(url, site_id, provider)
+            if dedupe in seen_detail:
+                continue
+            seen_detail.add(dedupe)
+            if not force_refresh and _detail_already_completed(dedupe):
+                continue
+            detail_entries.append(_build_queue_entry(
+                url=url,
+                source_url=source_url,
+                provider=provider,
+                site_id=site_id,
+                pattern=pattern,
+                url_type=url_type_val,
+                posted_at=posted_at,
+            ))
+        else:
+            normalized = normalize_url(url) or url
+            if normalized in seen_listing:
+                continue
+            seen_listing.add(normalized)
+            listing_entries.append(_build_queue_entry(
+                url=url,
+                source_url=source_url,
+                provider=provider,
+                site_id=site_id,
+                pattern=pattern,
+                url_type=url_type_val,
+                posted_at=posted_at,
+            ))
+
+    queued = 0
+    if listing_entries:
+        queued += _enqueue_listing_batches(listing_entries, force_refresh=force_refresh)
+    if detail_entries:
+        queued += _enqueue_detail_batches(detail_entries, force_refresh=force_refresh)
+
     return {"queued": queued}
 
 
@@ -247,72 +377,89 @@ def complete_scrape_urls(payload: dict[str, Any]) -> dict[str, Any]:
             if not row_id and not url:
                 continue
             row = _find_row(conn, row_id=row_id, url=url)
-            if row is None:
-                continue
-            if status == STATUS_PENDING:
-                _requeue_item(conn, row["id"], run_after_ms=run_after_ms, error=error)
-            else:
-                _update_status(conn, row["id"], status, error=error)
-            updated += 1
-            if status == STATUS_COMPLETED and row.get("dedupe_key"):
-                conn.execute(
-                    "INSERT OR REPLACE INTO job_detail_dedupe (dedupe_key, url, completed_at) VALUES (?, ?, ?)",
-                    (row["dedupe_key"], row["url"], now_ms()),
-                )
+            if row is not None:
+                if status == STATUS_PENDING:
+                    _requeue_item(conn, row["id"], run_after_ms=run_after_ms, error=error)
+                else:
+                    _update_status(conn, row["id"], status, error=error)
+                updated += 1
+
+            if status == STATUS_COMPLETED:
+                entry_url_type = entry.get("urlType")
+                is_detail = isinstance(entry_url_type, str) and entry_url_type.lower() == "detail"
+                if row is not None and row.get("url_type") == "detail":
+                    is_detail = True
+                if is_detail:
+                    url_val = url or (row.get("url") if row else None)
+                    provider = entry.get("provider") if isinstance(entry.get("provider"), str) else None
+                    site_id = entry.get("siteId") if isinstance(entry.get("siteId"), str) else None
+                    if row is not None:
+                        provider = provider or row.get("provider")
+                        site_id = site_id or row.get("site_id")
+                    if isinstance(url_val, str) and url_val.strip():
+                        dedupe = _dedupe_key(url_val, site_id, provider)
+                        conn.execute(
+                            "INSERT OR REPLACE INTO job_detail_dedupe (dedupe_key, url, completed_at) VALUES (?, ?, ?)",
+                            (dedupe, url_val, now_ms()),
+                        )
 
     return {"updated": updated}
 
 
-def queue_status() -> dict[str, Any]:
-    initialize_schema()
-    with read_only() as conn:
-        def _count(queue_name: str, status: str) -> int:
-            row = conn.execute(
-                "SELECT COUNT(1) AS total FROM queue_items WHERE queue_name=? AND status=?",
-                (queue_name, status),
-            ).fetchone()
-            return int(row["total"]) if row else 0
+def _dbos_system_db_path() -> str:
+    return str(_resolve_db_path().parent / "dbos_system.sqlite")
 
-        listing = {
-            "pending": _count(QUEUE_LISTING, STATUS_PENDING),
-            "processing": _count(QUEUE_LISTING, STATUS_PROCESSING),
-            "completed": _count(QUEUE_LISTING, STATUS_COMPLETED),
-            "failed": _count(QUEUE_LISTING, STATUS_FAILED),
+
+def _dbos_queue_counts(queue_name: str) -> dict[str, int]:
+    path = _dbos_system_db_path()
+    if not os.path.exists(path):
+        return {}
+    try:
+        conn = sqlite3.connect(path)
+    except sqlite3.Error:
+        return {}
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT status, COUNT(1) AS total
+            FROM workflow_status
+            WHERE queue_name = ?
+            GROUP BY status
+            """,
+            (queue_name,),
+        ).fetchall()
+        return {row["status"]: int(row["total"]) for row in rows}
+    except sqlite3.Error:
+        return {}
+    finally:
+        conn.close()
+
+
+def queue_status() -> dict[str, Any]:
+    def _normalize(counts: dict[str, int]) -> dict[str, int]:
+        failed_total = (
+            counts.get("ERROR", 0)
+            + counts.get("CANCELLED", 0)
+            + counts.get("MAX_RECOVERY_ATTEMPTS_EXCEEDED", 0)
+        )
+        return {
+            "pending": counts.get("ENQUEUED", 0),
+            "processing": counts.get("PENDING", 0),
+            "completed": counts.get("SUCCESS", 0),
+            "failed": failed_total,
         }
-        detail = {
-            "pending": _count(QUEUE_DETAIL, STATUS_PENDING),
-            "processing": _count(QUEUE_DETAIL, STATUS_PROCESSING),
-            "completed": _count(QUEUE_DETAIL, STATUS_COMPLETED),
-            "failed": _count(QUEUE_DETAIL, STATUS_FAILED),
-        }
-    return {"listing": listing, "detail": detail}
+
+    listing_counts = _dbos_queue_counts(QUEUE_LISTING)
+    detail_counts = _dbos_queue_counts(QUEUE_DETAIL)
+    return {"listing": _normalize(listing_counts), "detail": _normalize(detail_counts)}
 
 
 def detail_queue_has_pending(*, include_processing: bool = False) -> bool:
-    initialize_schema()
-    with read_only() as conn:
-        if include_processing:
-            row = conn.execute(
-                """
-                SELECT COUNT(1) AS total
-                FROM queue_items
-                WHERE queue_name = ?
-                  AND status IN (?, ?)
-                """,
-                (QUEUE_DETAIL, STATUS_PENDING, STATUS_PROCESSING),
-            ).fetchone()
-        else:
-            row = conn.execute(
-                """
-                SELECT COUNT(1) AS total
-                FROM queue_items
-                WHERE queue_name = ?
-                  AND status = ?
-                """,
-                (QUEUE_DETAIL, STATUS_PENDING),
-            ).fetchone()
-    total = row["total"] if row else 0
-    return int(total or 0) > 0
+    counts = _dbos_queue_counts(QUEUE_DETAIL)
+    if include_processing:
+        return (counts.get("ENQUEUED", 0) + counts.get("PENDING", 0)) > 0
+    return counts.get("ENQUEUED", 0) > 0
 
 
 def list_scrape_urls(

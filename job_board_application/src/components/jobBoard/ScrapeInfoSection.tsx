@@ -10,6 +10,7 @@ interface ScrapeInfoSectionProps {
   scrapedWith?: string | null;
   workflowName?: string | null;
   scrapedCostMilliCents?: number | null;
+  sourceUrl?: string | null;
   scrapeUrl?: string | null;
   queueDurationInfos?: QueueDurationInfo[];
 }
@@ -27,6 +28,7 @@ export function ScrapeInfoSection({
   scrapedWith,
   workflowName,
   scrapedCostMilliCents,
+  sourceUrl,
   scrapeUrl,
   queueDurationInfos = [],
 }: ScrapeInfoSectionProps) {
@@ -56,6 +58,21 @@ export function ScrapeInfoSection({
         <span className="font-semibold text-slate-100 break-words">
           {typeof scrapedCostMilliCents === "number" ? renderScrapeCost(scrapedCostMilliCents) : "None"}
         </span>
+      </div>
+      <div className="flex items-start gap-2 text-sm text-slate-200">
+        <span className="w-28 text-slate-500">source_url</span>
+        {sourceUrl ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-xs text-blue-300 hover:text-blue-200 break-all"
+          >
+            {sourceUrl}
+          </a>
+        ) : (
+          <span className="font-semibold text-slate-100 break-words">None</span>
+        )}
       </div>
       <div className="flex items-start gap-2 text-sm text-slate-200">
         <span className="w-28 text-slate-500">scrape_url</span>

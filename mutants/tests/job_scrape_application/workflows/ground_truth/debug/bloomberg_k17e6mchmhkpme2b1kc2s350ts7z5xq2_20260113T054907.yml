@@ -1,0 +1,15 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/bloomberg_k17e6mchmhkpme2b1kc2s350ts7z5xq2_20260113T054907_detail.json
+# NOTE: This fixture contains a Bloomberg Avature page with complex HTML structure.
+# The extraction pipeline extracts poorly from this HTML - title becomes "Transcript" (from page header/footer).
+site_id: bloomberg
+detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497
+expected:
+  # Fixture analysis shows poor extraction from this complex HTML:
+  # - Title extraction fails, returns "Transcript" instead of actual title
+  # - Level can't be derived from broken title
+  company: "Bloomberg"  # From site config / URL
+  location_contains: "London"
+  is_remote: false
+  level: senior
+  description_min_words: 50  # Description gets truncated in the pipeline
+  cost_milli_cents_min: 1

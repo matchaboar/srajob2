@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Custom lint rules for @DBOS.step decorator usage.
+"""Custom lint rules for @DBOS decorators.
 
-This script uses AST analysis to enforce seven rules. Each rule is defined in
+This script uses AST analysis to enforce nine rules. Each rule is defined in
 .lint/DBOSxxx.py with documentation in .lint/DBOSxxx.adoc.
 
 Usage:
@@ -32,6 +32,7 @@ from typing import NamedTuple
 
 # Directory containing rule files
 LINT_DIR = Path(__file__).parent.parent / ".lint"
+PURE_FUNC_BLACKLIST_PATH = LINT_DIR / "dbos_pure_func_blacklist.py"
 
 
 class FunctionInfo(NamedTuple):
@@ -98,6 +99,129 @@ FORBIDDEN_SLEEP_CALLS: dict[tuple[str, str], str] = {
     ("asyncio", "sleep"): "DBOS.sleep_async",
 }
 
+# Known mutating methods that indicate state mutation (DBOS009)
+MUTATING_METHODS = frozenset({
+    "append",
+    "extend",
+    "insert",
+    "pop",
+    "remove",
+    "clear",
+    "update",
+    "setdefault",
+    "add",
+    "discard",
+    "sort",
+    "reverse",
+    "put",
+    "set",
+    "write",
+    "save",
+    "commit",
+    "rollback",
+})
+
+# Common logging methods to treat as impure in @DBOS.pure_func (DBOS009)
+LOGGING_METHODS = frozenset({
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "critical",
+    "exception",
+    "log",
+})
+
+# Types that are NOT serializable (DBOS011)
+NON_SERIALIZABLE_TYPES = frozenset({
+    "Callable",
+    "Coroutine",
+    "AsyncGenerator",
+    "Generator",
+    "Iterator",
+    "AsyncIterator",
+    "Type",
+    "type",
+    "set",
+    "Set",
+    "frozenset",
+    "FrozenSet",
+    "bytes",
+    "bytearray",
+    "memoryview",
+    "object",
+    "IO",
+    "TextIO",
+    "BinaryIO",
+    "Pattern",
+    "Match",
+    "Path",
+    "PurePath",
+    "Connection",
+    "Cursor",
+    "Socket",
+    "Lock",
+    "RLock",
+    "Semaphore",
+    "Event",
+    "Condition",
+    "Thread",
+    "Process",
+})
+
+# Types that are always serializable (DBOS011)
+SERIALIZABLE_BUILTINS = frozenset({
+    "str",
+    "int",
+    "float",
+    "bool",
+    "None",
+    "NoneType",
+})
+
+# Container types that are serializable if their contents are serializable (DBOS011)
+SERIALIZABLE_CONTAINERS = frozenset({
+    "list",
+    "List",
+    "dict",
+    "Dict",
+    "tuple",
+    "Tuple",
+    "Sequence",
+    "Mapping",
+    "MutableMapping",
+    "Iterable",
+})
+
+# Typing constructs that need recursive checking (DBOS011)
+TYPING_WRAPPERS = frozenset({
+    "Optional",
+    "Union",
+    "Annotated",
+    "Final",
+})
+
+# Types that indicate serializability through structure (DBOS011)
+SERIALIZABLE_SPECIAL = frozenset({
+    "Any",
+    "TypedDict",
+    "Literal",
+    "LiteralString",
+})
+
+# Common custom types that are known to be serializable (DBOS011)
+KNOWN_SERIALIZABLE_CUSTOM = frozenset({
+    "datetime",
+    "date",
+    "time",
+    "timedelta",
+    "Decimal",
+    "UUID",
+    "Enum",
+    "IntEnum",
+    "StrEnum",
+})
+
 # Paths to skip (relative to repo root)
 SKIP_PATHS = frozenset({
     "services/convex_client.py",  # The client itself doesn't need @DBOS.step
@@ -121,7 +245,7 @@ class Violation(NamedTuple):
     function_name: str
     call_type: str  # "convex", "httpx", or "await_sync"
     call_name: str
-    rule: str = "DBOS001"  # DBOS001, DBOS002, or DBOS003
+    rule: str = "DBOS001"  # DBOS001-DBOS009
 
 
 # Global registry of @DBOS.step decorated functions
@@ -268,6 +392,20 @@ def sync_ruff_external_rules() -> bool:
     return True
 
 
+def load_pure_func_blacklist() -> set[str]:
+    """Load the impure call blacklist for @DBOS.pure_func."""
+    if not PURE_FUNC_BLACKLIST_PATH.exists():
+        return set()
+
+    import runpy
+
+    data = runpy.run_path(str(PURE_FUNC_BLACKLIST_PATH))
+    raw = data.get("BLACKLIST", set())
+    if isinstance(raw, (set, list, tuple)):
+        return set(raw)
+    return set()
+
+
 # =============================================================================
 # AST Visitors and Checkers
 # =============================================================================
@@ -342,6 +480,14 @@ class ExtendedFunctionCollector(ast.NodeVisitor):
             self._imports[asname] = name
         self.generic_visit(node)
 
+    def visit_Import(self, node: ast.Import) -> None:
+        """Track module imports for resolving call names."""
+        for alias in node.names:
+            name = alias.name
+            asname = alias.asname if alias.asname else name
+            self._imports[asname] = name
+        self.generic_visit(node)
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._check_function(node, is_async=False)
 
@@ -410,6 +556,47 @@ class ExtendedFunctionCollector(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+class FunctionDecoratorCollector(ast.NodeVisitor):
+    """Collect function names and DBOS-decorated function names."""
+
+    def __init__(self, file_path: Path) -> None:
+        self.file_path = file_path
+        self.function_names: set[str] = set()
+        self.decorated_names: set[str] = set()
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._check_function(node)
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._check_function(node)
+        self.generic_visit(node)
+
+    def _check_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        self.function_names.add(node.name)
+        if (
+            self._has_dbos_decorator(node, "step")
+            or self._has_dbos_decorator(node, "transaction")
+            or self._has_dbos_decorator(node, "pure_func")
+            or self._has_dbos_decorator(node, "workflow")
+        ):
+            self.decorated_names.add(node.name)
+
+    def _has_dbos_decorator(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        decorator_name: str,
+    ) -> bool:
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Call):
+                decorator = decorator.func
+            if isinstance(decorator, ast.Attribute):
+                if decorator.attr == decorator_name:
+                    if isinstance(decorator.value, ast.Name) and decorator.value.id == "DBOS":
+                        return True
+        return False
+
+
 def compute_transitive_convex_callers(
     registry: dict[str, ExtendedFunctionInfo],
 ) -> set[str]:
@@ -448,6 +635,9 @@ class DBOSStepChecker(ast.NodeVisitor):
         source_lines: list[str],
         function_registry: dict[str, FunctionInfo],
         transitive_convex_callers: set[str] | None = None,
+        all_function_names: set[str] | None = None,
+        decorated_function_names: set[str] | None = None,
+        pure_func_blacklist: set[str] | None = None,
     ) -> None:
         self.file_path = file_path
         self.source_lines = source_lines
@@ -463,7 +653,12 @@ class DBOSStepChecker(ast.NodeVisitor):
         self._has_noqa_dbos005: bool = False
         self._has_noqa_dbos006: bool = False
         self._has_noqa_dbos007: bool = False
+        self._has_noqa_dbos008: bool = False
+        self._has_noqa_dbos009: bool = False
+        self._has_noqa_dbos010: bool = False
+        self._has_noqa_dbos011: bool = False
         self._is_async_function: bool = False
+        self._has_dbos_pure_func: bool = False
         # (call_type, call_name, is_async_call)
         self._external_calls: list[tuple[str, str, bool]] = []
         # Import tracking: alias -> original_name
@@ -472,6 +667,22 @@ class DBOSStepChecker(ast.NodeVisitor):
         self._function_registry = function_registry
         # Set of functions that call convex (directly or transitively) for DBOS004 checks
         self._transitive_convex_callers = transitive_convex_callers or set()
+        # All function names in scope for DBOS008 checks
+        self._all_function_names = all_function_names or set()
+        # Decorated function names for DBOS008 checks
+        self._decorated_function_names = decorated_function_names or set()
+        # Impure blacklist for DBOS009 checks
+        self._pure_func_blacklist = pure_func_blacklist or set()
+        self._pure_func_blacklist_roots = {
+            entry.split(".")[0]
+            for entry in self._pure_func_blacklist
+            if isinstance(entry, str) and entry
+        }
+        self._pure_func_blacklist_builtins = {
+            entry.split(".", 1)[1]
+            for entry in self._pure_func_blacklist
+            if isinstance(entry, str) and entry.startswith("builtins.")
+        }
 
     def _has_noqa_comment(self, lineno: int, rule: str = "DBOS001") -> bool:
         """Check if a line has a noqa comment for the specified rule.
@@ -553,6 +764,50 @@ class DBOSStepChecker(ast.NodeVisitor):
             return node.func.id
         return None
 
+    def _get_dotted_name(self, node: ast.AST) -> str | None:
+        """Extract dotted name from attribute chains like module.func."""
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            base = self._get_dotted_name(node.value)
+            if base:
+                return f"{base}.{node.attr}"
+        return None
+
+    def _resolve_dotted_name(self, dotted_name: str) -> str:
+        """Resolve import aliases for the leftmost name in a dotted path."""
+        parts = dotted_name.split(".")
+        if not parts:
+            return dotted_name
+        root = parts[0]
+        resolved_root = self._imports.get(root, root)
+        if len(parts) == 1:
+            return resolved_root
+        return ".".join([resolved_root, *parts[1:]])
+
+    def _resolve_call_name(self, node: ast.Call) -> str | None:
+        dotted = self._get_dotted_name(node.func)
+        if not dotted:
+            return None
+        return self._resolve_dotted_name(dotted)
+
+    def _is_logger_call(self, resolved_name: str | None, node: ast.Call) -> bool:
+        if not resolved_name:
+            return False
+        if resolved_name.startswith("logging.") and resolved_name.split(".")[-1] in LOGGING_METHODS:
+            return True
+        dotted = self._get_dotted_name(node.func)
+        if not dotted:
+            return False
+        parts = dotted.split(".")
+        if len(parts) < 2:
+            return False
+        root = parts[0].lower()
+        method = parts[-1]
+        if method in LOGGING_METHODS and ("logger" in root):
+            return True
+        return False
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._check_function(node, is_async=False)
 
@@ -568,12 +823,17 @@ class DBOSStepChecker(ast.NodeVisitor):
         prev_line = self._current_function_line
         prev_has_step = self._has_dbos_step
         prev_has_workflow = self._has_dbos_workflow
+        prev_has_pure_func = self._has_dbos_pure_func
         prev_has_noqa = self._has_noqa
         prev_has_noqa_dbos002 = self._has_noqa_dbos002
         prev_has_noqa_dbos004 = self._has_noqa_dbos004
         prev_has_noqa_dbos005 = self._has_noqa_dbos005
         prev_has_noqa_dbos006 = self._has_noqa_dbos006
         prev_has_noqa_dbos007 = self._has_noqa_dbos007
+        prev_has_noqa_dbos008 = self._has_noqa_dbos008
+        prev_has_noqa_dbos009 = self._has_noqa_dbos009
+        prev_has_noqa_dbos010 = self._has_noqa_dbos010
+        prev_has_noqa_dbos011 = self._has_noqa_dbos011
         prev_is_async = self._is_async_function
         prev_calls = self._external_calls
 
@@ -582,12 +842,17 @@ class DBOSStepChecker(ast.NodeVisitor):
         self._current_function_line = node.lineno
         self._has_dbos_step = self._has_dbos_step_decorator(node)
         self._has_dbos_workflow = self._has_dbos_workflow_decorator(node)
+        self._has_dbos_pure_func = self._has_dbos_pure_func_decorator(node)
         self._has_noqa = self._has_noqa_comment(node.lineno, "DBOS001")
         self._has_noqa_dbos002 = self._has_noqa_comment(node.lineno, "DBOS002")
         self._has_noqa_dbos004 = self._has_noqa_comment(node.lineno, "DBOS004")
         self._has_noqa_dbos005 = self._has_noqa_comment(node.lineno, "DBOS005")
         self._has_noqa_dbos006 = self._has_noqa_comment(node.lineno, "DBOS006")
         self._has_noqa_dbos007 = self._has_noqa_comment(node.lineno, "DBOS007")
+        self._has_noqa_dbos008 = self._has_noqa_comment(node.lineno, "DBOS008")
+        self._has_noqa_dbos009 = self._has_noqa_comment(node.lineno, "DBOS009")
+        self._has_noqa_dbos010 = self._has_noqa_comment(node.lineno, "DBOS010")
+        self._has_noqa_dbos011 = self._has_noqa_comment(node.lineno, "DBOS011")
         self._is_async_function = is_async
         self._external_calls = []
 
@@ -662,6 +927,10 @@ class DBOSStepChecker(ast.NodeVisitor):
                         )
                         break
 
+        # DBOS011: Check @DBOS.step functions for serializable types
+        if self._has_dbos_step and not self._has_noqa_dbos011:
+            self._check_step_type_annotations(node)
+
         # Restore parent context
         self._has_noqa = prev_has_noqa
         self._has_noqa_dbos002 = prev_has_noqa_dbos002
@@ -669,10 +938,15 @@ class DBOSStepChecker(ast.NodeVisitor):
         self._has_noqa_dbos005 = prev_has_noqa_dbos005
         self._has_noqa_dbos006 = prev_has_noqa_dbos006
         self._has_noqa_dbos007 = prev_has_noqa_dbos007
+        self._has_noqa_dbos008 = prev_has_noqa_dbos008
+        self._has_noqa_dbos009 = prev_has_noqa_dbos009
+        self._has_noqa_dbos010 = prev_has_noqa_dbos010
+        self._has_noqa_dbos011 = prev_has_noqa_dbos011
         self._current_function = prev_function
         self._current_function_line = prev_line
         self._has_dbos_step = prev_has_step
         self._has_dbos_workflow = prev_has_workflow
+        self._has_dbos_pure_func = prev_has_pure_func
         self._is_async_function = prev_is_async
         self._external_calls = prev_calls
 
@@ -706,12 +980,442 @@ class DBOSStepChecker(ast.NodeVisitor):
                         return True
         return False
 
+    def _has_dbos_pure_func_decorator(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Check if function has @DBOS.pure_func decorator."""
+        for decorator in node.decorator_list:
+            # Handle @DBOS.pure_func or @DBOS.pure_func(...)
+            if isinstance(decorator, ast.Call):
+                decorator = decorator.func
+
+            if isinstance(decorator, ast.Attribute):
+                if decorator.attr == "pure_func":
+                    if isinstance(decorator.value, ast.Name) and decorator.value.id == "DBOS":
+                        return True
+        return False
+
+    def _is_mutation_target(self, target: ast.AST) -> bool:
+        if isinstance(target, (ast.Attribute, ast.Subscript)):
+            return True
+        if isinstance(target, ast.Starred):
+            return self._is_mutation_target(target.value)
+        return False
+
+    def _check_type_serializable(self, node: ast.AST) -> tuple[bool, str]:
+        """Check if a type annotation is serializable (DBOS011).
+
+        Returns (is_serializable, reason) where reason explains why it's not serializable.
+        """
+        if node is None:
+            return True, ""
+
+        # Handle Constant (None)
+        if isinstance(node, ast.Constant):
+            return True, ""
+
+        # Handle simple names like 'str', 'int', etc.
+        if isinstance(node, ast.Name):
+            name = node.id
+            if name in SERIALIZABLE_BUILTINS:
+                return True, ""
+            if name in SERIALIZABLE_CONTAINERS:
+                return True, ""
+            if name in SERIALIZABLE_SPECIAL:
+                return True, ""
+            if name in TYPING_WRAPPERS:
+                return True, ""
+            if name in NON_SERIALIZABLE_TYPES:
+                return False, f"`{name}` is not JSON-serializable"
+            if name in KNOWN_SERIALIZABLE_CUSTOM:
+                return True, ""
+            # Unknown type - allow it (could be a dataclass, TypedDict, etc.)
+            return True, ""
+
+        # Handle Attribute access like typing.List, datetime.datetime
+        if isinstance(node, ast.Attribute):
+            attr_name = node.attr
+            if attr_name in SERIALIZABLE_BUILTINS:
+                return True, ""
+            if attr_name in SERIALIZABLE_CONTAINERS:
+                return True, ""
+            if attr_name in SERIALIZABLE_SPECIAL:
+                return True, ""
+            if attr_name in NON_SERIALIZABLE_TYPES:
+                full_name = self._get_dotted_name(node) or attr_name
+                return False, f"`{full_name}` is not JSON-serializable"
+            if attr_name in KNOWN_SERIALIZABLE_CUSTOM:
+                return True, ""
+            return True, ""
+
+        # Handle subscripted generics like list[str], dict[str, int], Optional[str]
+        if isinstance(node, ast.Subscript):
+            base_type = node.value
+            base_name = self._get_type_name(base_type)
+
+            # Check if base is non-serializable
+            if base_name in NON_SERIALIZABLE_TYPES:
+                return False, f"`{base_name}` is not JSON-serializable"
+
+            # For containers and wrappers, check the contents
+            if base_name in SERIALIZABLE_CONTAINERS or base_name in TYPING_WRAPPERS:
+                slice_node = node.slice
+                if isinstance(slice_node, ast.Tuple):
+                    for elt in slice_node.elts:
+                        is_ok, reason = self._check_type_serializable(elt)
+                        if not is_ok:
+                            return False, reason
+                else:
+                    is_ok, reason = self._check_type_serializable(slice_node)
+                    if not is_ok:
+                        return False, reason
+                return True, ""
+
+            # Literal types
+            if base_name == "Literal":
+                return True, ""
+
+            # Annotated types - check first arg
+            if base_name == "Annotated":
+                slice_node = node.slice
+                if isinstance(slice_node, ast.Tuple) and slice_node.elts:
+                    return self._check_type_serializable(slice_node.elts[0])
+                return True, ""
+
+            return True, ""
+
+        # Handle BinOp for Union types (X | Y syntax)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            left_ok, left_reason = self._check_type_serializable(node.left)
+            if not left_ok:
+                return False, left_reason
+            right_ok, right_reason = self._check_type_serializable(node.right)
+            if not right_ok:
+                return False, right_reason
+            return True, ""
+
+        # Handle string annotations (forward references)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            try:
+                parsed = ast.parse(node.value, mode="eval")
+                return self._check_type_serializable(parsed.body)
+            except SyntaxError:
+                return True, ""
+
+        return True, ""
+
+    def _get_type_name(self, node: ast.AST) -> str | None:
+        """Extract the type name from a node."""
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            return node.attr
+        return None
+
+    def _check_step_type_annotations(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
+    ) -> None:
+        """Check @DBOS.step function parameters and return type for serializability."""
+        # Check parameter types
+        for arg in node.args.args:
+            if arg.arg == "self":
+                continue
+            if arg.annotation:
+                is_ok, reason = self._check_type_serializable(arg.annotation)
+                if not is_ok:
+                    type_str = ast.unparse(arg.annotation) if hasattr(ast, "unparse") else "<type>"
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=node.name,
+                            call_type=f"param:{arg.arg}",
+                            call_name=type_str,
+                            rule="DBOS011",
+                        )
+                    )
+
+        # Check *args
+        if node.args.vararg and node.args.vararg.annotation:
+            is_ok, reason = self._check_type_serializable(node.args.vararg.annotation)
+            if not is_ok:
+                type_str = (
+                    ast.unparse(node.args.vararg.annotation)
+                    if hasattr(ast, "unparse")
+                    else "<type>"
+                )
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=node.name,
+                        call_type=f"param:*{node.args.vararg.arg}",
+                        call_name=type_str,
+                        rule="DBOS011",
+                    )
+                )
+
+        # Check **kwargs
+        if node.args.kwarg and node.args.kwarg.annotation:
+            is_ok, reason = self._check_type_serializable(node.args.kwarg.annotation)
+            if not is_ok:
+                type_str = (
+                    ast.unparse(node.args.kwarg.annotation)
+                    if hasattr(ast, "unparse")
+                    else "<type>"
+                )
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=node.name,
+                        call_type=f"param:**{node.args.kwarg.arg}",
+                        call_name=type_str,
+                        rule="DBOS011",
+                    )
+                )
+
+        # Check keyword-only args
+        for arg in node.args.kwonlyargs:
+            if arg.annotation:
+                is_ok, reason = self._check_type_serializable(arg.annotation)
+                if not is_ok:
+                    type_str = ast.unparse(arg.annotation) if hasattr(ast, "unparse") else "<type>"
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=node.name,
+                            call_type=f"param:{arg.arg}",
+                            call_name=type_str,
+                            rule="DBOS011",
+                        )
+                    )
+
+        # Check return type
+        if node.returns:
+            is_ok, reason = self._check_type_serializable(node.returns)
+            if not is_ok:
+                type_str = ast.unparse(node.returns) if hasattr(ast, "unparse") else "<type>"
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=node.name,
+                        call_type="return",
+                        call_name=type_str,
+                        rule="DBOS011",
+                    )
+                )
+
+    def visit_Global(self, node: ast.Global) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            self.violations.append(
+                Violation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    function_name=self._current_function or "<module>",
+                    call_type="state_mutation",
+                    call_name="global declaration",
+                    rule="DBOS009",
+                )
+            )
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            self.violations.append(
+                Violation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    function_name=self._current_function or "<module>",
+                    call_type="state_mutation",
+                    call_name="nonlocal declaration",
+                    rule="DBOS009",
+                )
+            )
+        self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            if any(self._is_mutation_target(target) for target in node.targets):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function or "<module>",
+                        call_type="state_mutation",
+                        call_name="attribute/subscript assignment",
+                        rule="DBOS009",
+                    )
+                )
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            if node.target and self._is_mutation_target(node.target):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function or "<module>",
+                        call_type="state_mutation",
+                        call_name="attribute/subscript annotation assignment",
+                        rule="DBOS009",
+                    )
+                )
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            if self._is_mutation_target(node.target):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function or "<module>",
+                        call_type="state_mutation",
+                        call_name="attribute/subscript augmented assignment",
+                        rule="DBOS009",
+                    )
+                )
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            if any(self._is_mutation_target(target) for target in node.targets):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function or "<module>",
+                        call_type="state_mutation",
+                        call_name="attribute/subscript delete",
+                        rule="DBOS009",
+                    )
+                )
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
         """Check if a call is to convex or httpx functions."""
         if self._current_function is None:
             # Not inside a function
             self.generic_visit(node)
             return
+
+        # DBOS008: Workflow functions may only call DBOS-decorated functions
+        if self._has_dbos_workflow and isinstance(node.func, ast.Name):
+            call_name = node.func.id
+            if (
+                call_name in self._all_function_names
+                and call_name not in self._decorated_function_names
+                and not self._has_noqa_comment(node.lineno, "DBOS008")
+            ):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function,
+                        call_type="workflow_call",
+                        call_name=call_name,
+                        rule="DBOS008",
+                    )
+                )
+
+        # DBOS009: @DBOS.pure_func must not perform impure calls or mutations
+        if self._has_dbos_pure_func and not self._has_noqa_comment(node.lineno, "DBOS009"):
+            if isinstance(node.func, ast.Attribute) and node.func.attr in MUTATING_METHODS:
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function,
+                        call_type="state_mutation",
+                        call_name=f"method `{node.func.attr}`",
+                        rule="DBOS009",
+                    )
+                )
+
+            resolved_name = self._resolve_call_name(node)
+            dotted_name = self._get_dotted_name(node.func)
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+                if func_name in self._pure_func_blacklist_builtins:
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=self._current_function,
+                            call_type="impure_call",
+                            call_name=f"builtins.{func_name}",
+                            rule="DBOS009",
+                        )
+                    )
+                original_name = self._imports.get(func_name, func_name)
+                if original_name in CONVEX_FUNCTIONS:
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=self._current_function,
+                            call_type="impure_call",
+                            call_name=original_name,
+                            rule="DBOS009",
+                        )
+                    )
+
+            if resolved_name:
+                root = resolved_name.split(".")[0]
+                if resolved_name in self._pure_func_blacklist or root in self._pure_func_blacklist_roots:
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=self._current_function,
+                            call_type="impure_call",
+                            call_name=resolved_name,
+                            rule="DBOS009",
+                        )
+                    )
+
+            if self._is_logger_call(resolved_name, node):
+                self.violations.append(
+                    Violation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        function_name=self._current_function,
+                        call_type="impure_call",
+                        call_name=dotted_name or "logger call",
+                        rule="DBOS009",
+                    )
+                )
+
+            # httpx usage (module or client patterns) is impure
+            if isinstance(node.func, ast.Attribute):
+                method_name = node.func.attr
+                if isinstance(node.func.value, ast.Name):
+                    var_name = node.func.value.id
+                    if var_name == "httpx" and method_name in HTTPX_METHODS:
+                        self.violations.append(
+                            Violation(
+                                file=self.file_path,
+                                line=node.lineno,
+                                function_name=self._current_function,
+                                call_type="impure_call",
+                                call_name=f"httpx.{method_name}",
+                                rule="DBOS009",
+                            )
+                        )
+                    if var_name in ("client", "http_client", "async_client", "httpx_client"):
+                        if method_name in HTTPX_METHODS:
+                            self.violations.append(
+                                Violation(
+                                    file=self.file_path,
+                                    line=node.lineno,
+                                    function_name=self._current_function,
+                                    call_type="impure_call",
+                                    call_name=f"{var_name}.{method_name}",
+                                    rule="DBOS009",
+                                )
+                            )
 
         # Check for httpx.get, httpx.post, etc. or client.get, client.post on httpx.Client
         if isinstance(node.func, ast.Attribute):
@@ -780,6 +1484,23 @@ class DBOSStepChecker(ast.NodeVisitor):
                                 )
                             )
 
+            # DBOS010: Check for queue.enqueue() calls outside workflow context
+            if method_name == "enqueue" and not self._has_dbos_workflow:
+                if not self._has_noqa_comment(node.lineno, "DBOS010"):
+                    # Get the name of the queue being called
+                    call_target = self._get_dotted_name(node.func.value)
+                    call_name = f"{call_target}.enqueue" if call_target else "enqueue"
+                    self.violations.append(
+                        Violation(
+                            file=self.file_path,
+                            line=node.lineno,
+                            function_name=self._current_function,
+                            call_type="enqueue_outside_workflow",
+                            call_name=call_name,
+                            rule="DBOS010",
+                        )
+                    )
+
         self.generic_visit(node)
 
 
@@ -841,10 +1562,41 @@ def collect_extended_functions_from_directory(directory: Path) -> dict[str, Exte
     return registry
 
 
+def collect_function_decorators_from_file(file_path: Path) -> tuple[set[str], set[str]]:
+    """Collect all function names and DBOS-decorated function names from a file."""
+    if should_skip_path(file_path):
+        return set(), set()
+
+    try:
+        source = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(file_path))
+    except (SyntaxError, UnicodeDecodeError) as e:
+        print(f"Warning: Could not parse {file_path}: {e}", file=sys.stderr)
+        return set(), set()
+
+    collector = FunctionDecoratorCollector(file_path)
+    collector.visit(tree)
+    return collector.function_names, collector.decorated_names
+
+
+def collect_function_decorators_from_directory(directory: Path) -> tuple[set[str], set[str]]:
+    """Collect function names and DBOS-decorated function names from a directory."""
+    all_functions: set[str] = set()
+    decorated_functions: set[str] = set()
+    for file_path in directory.rglob("*.py"):
+        function_names, decorated_names = collect_function_decorators_from_file(file_path)
+        all_functions.update(function_names)
+        decorated_functions.update(decorated_names)
+    return all_functions, decorated_functions
+
+
 def check_file(
     file_path: Path,
     function_registry: dict[str, FunctionInfo],
     transitive_convex_callers: set[str] | None = None,
+    all_function_names: set[str] | None = None,
+    decorated_function_names: set[str] | None = None,
+    pure_func_blacklist: set[str] | None = None,
 ) -> list[Violation]:
     """Second pass: check a single Python file for violations."""
     if should_skip_path(file_path):
@@ -858,7 +1610,15 @@ def check_file(
         print(f"Warning: Could not parse {file_path}: {e}", file=sys.stderr)
         return []
 
-    checker = DBOSStepChecker(file_path, source_lines, function_registry, transitive_convex_callers)
+    checker = DBOSStepChecker(
+        file_path,
+        source_lines,
+        function_registry,
+        transitive_convex_callers,
+        all_function_names,
+        decorated_function_names,
+        pure_func_blacklist,
+    )
     checker.visit(tree)
     return checker.violations
 
@@ -867,11 +1627,23 @@ def check_directory(
     directory: Path,
     function_registry: dict[str, FunctionInfo],
     transitive_convex_callers: set[str] | None = None,
+    all_function_names: set[str] | None = None,
+    decorated_function_names: set[str] | None = None,
+    pure_func_blacklist: set[str] | None = None,
 ) -> list[Violation]:
     """Second pass: recursively check all Python files in a directory for violations."""
     violations: list[Violation] = []
     for file_path in directory.rglob("*.py"):
-        violations.extend(check_file(file_path, function_registry, transitive_convex_callers))
+        violations.extend(
+            check_file(
+                file_path,
+                function_registry,
+                transitive_convex_callers,
+                all_function_names,
+                decorated_function_names,
+                pure_func_blacklist,
+            )
+        )
     return violations
 
 
@@ -940,6 +1712,45 @@ def format_violation(v: Violation) -> str:
             f"DBOS function `{v.function_name}` uses `{call_name}`. "
             f"Use {recommendation} instead for durable sleep."
         )
+    elif v.rule == "DBOS008":
+        return (
+            f"{v.file}:{v.line}: [{v.rule}] "
+            f"Workflow `{v.function_name}` calls `{v.call_name}` "
+            "which is not annotated with @DBOS.step/@DBOS.transaction/@DBOS.pure_func/@DBOS.workflow."
+        )
+    elif v.rule == "DBOS009":
+        if v.call_type == "state_mutation":
+            return (
+                f"{v.file}:{v.line}: [{v.rule}] "
+                f"Function `{v.function_name}` has @DBOS.pure_func but mutates state via "
+                f"{v.call_name}."
+            )
+        return (
+            f"{v.file}:{v.line}: [{v.rule}] "
+            f"Function `{v.function_name}` has @DBOS.pure_func but calls impure function "
+            f"`{v.call_name}`."
+        )
+    elif v.rule == "DBOS010":
+        return (
+            f"{v.file}:{v.line}: [{v.rule}] "
+            f"Function `{v.function_name}` calls `{v.call_name}` "
+            "but is not a @DBOS.workflow. queue.enqueue() can only be called from workflows."
+        )
+    elif v.rule == "DBOS011":
+        if v.call_type == "return":
+            return (
+                f"{v.file}:{v.line}: [{v.rule}] "
+                f"@DBOS.step function `{v.function_name}` has non-serializable return type "
+                f"`{v.call_name}`"
+            )
+        else:
+            # call_type is "param:name"
+            param_name = v.call_type.replace("param:", "")
+            return (
+                f"{v.file}:{v.line}: [{v.rule}] "
+                f"@DBOS.step function `{v.function_name}` has non-serializable parameter "
+                f"`{param_name}: {v.call_name}`"
+            )
     else:
         return (
             f"{v.file}:{v.line}: [{v.rule}] "
@@ -953,6 +1764,9 @@ def run_lint(paths: list[str]) -> int:
     function_registry: dict[str, FunctionInfo] = {}
     # Also collect extended function info for call graph analysis (DBOS004)
     extended_registry: dict[str, ExtendedFunctionInfo] = {}
+    # Collect all function names and DBOS-decorated names for DBOS008
+    all_function_names: set[str] = set()
+    decorated_function_names: set[str] = set()
     all_paths: list[Path] = []
 
     for path_str in paths:
@@ -963,24 +1777,49 @@ def run_lint(paths: list[str]) -> int:
                 function_registry[func_info.name] = func_info
             for func_info in collect_extended_functions_from_file(path):
                 extended_registry[func_info.name] = func_info
+            function_names, decorated_names = collect_function_decorators_from_file(path)
+            all_function_names.update(function_names)
+            decorated_function_names.update(decorated_names)
         elif path.is_dir():
             all_paths.append(path)
             function_registry.update(collect_functions_from_directory(path))
             extended_registry.update(collect_extended_functions_from_directory(path))
+            function_names, decorated_names = collect_function_decorators_from_directory(path)
+            all_function_names.update(function_names)
+            decorated_function_names.update(decorated_names)
         else:
             print(f"Warning: Path not found: {path}", file=sys.stderr)
 
     # Compute transitive convex callers for DBOS004
     transitive_convex_callers = compute_transitive_convex_callers(extended_registry)
+    pure_func_blacklist = load_pure_func_blacklist()
 
     # Second pass: check for violations
     all_violations: list[Violation] = []
 
     for path in all_paths:
         if path.is_file():
-            all_violations.extend(check_file(path, function_registry, transitive_convex_callers))
+            all_violations.extend(
+                check_file(
+                    path,
+                    function_registry,
+                    transitive_convex_callers,
+                    all_function_names,
+                    decorated_function_names,
+                    pure_func_blacklist,
+                )
+            )
         elif path.is_dir():
-            all_violations.extend(check_directory(path, function_registry, transitive_convex_callers))
+            all_violations.extend(
+                check_directory(
+                    path,
+                    function_registry,
+                    transitive_convex_callers,
+                    all_function_names,
+                    decorated_function_names,
+                    pure_func_blacklist,
+                )
+            )
 
     if all_violations:
         print(f"Found {len(all_violations)} DBOS lint violation(s):\n")
@@ -1005,7 +1844,7 @@ def run_lint(paths: list[str]) -> int:
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="DBOS lint rules for @DBOS.step decorator usage",
+        description="DBOS lint rules for @DBOS decorators",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

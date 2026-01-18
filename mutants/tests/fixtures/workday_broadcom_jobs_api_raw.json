@@ -1,0 +1,59 @@
+[
+  [
+    {
+      "content": {
+        "raw": "{\"errorCode\":\"HTTP_400\",\"errorCaseId\":\"D43A26MJGNKG3S\",\"httpStatus\":400,\"message\":\"\",\"messageParams\":{}}"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 1.2353333333333334e-07,
+        "compute_cost_formatted": "0.0000001235333333333333329054",
+        "file_cost": 4.1600000000000007e-07,
+        "file_cost_formatted": "0.0000004160000000000000502931",
+        "total_cost": 5.395333333333334e-07,
+        "total_cost_formatted": "0.0000005395333333333333831985",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 71,
+      "error": null,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "9b1cdac24b152420-IAD",
+        "content-type": "application/json;charset=ISO-8859-1",
+        "date": "Mon, 22 Dec 2025 04:25:18 GMT",
+        "nel": "{\"success_fraction\":0.01,\"report_to\":\"cf-nel\",\"max_age\":604800}",
+        "report-to": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v4?s=N76DCwq8ChF7034l02OxDl6lh0XmUyIDgLO9P%2BcBedYJRkpngzZJF5%2FiFOQywkdY87HCcT%2BrcZsTBsNbY3MKkMxKGqeeF%2B1llE%2FSLW42Xfv5kVj89xzeBfU54zt47Tvn%2FWXwIRqRbK4gHwtntN2VeQ%3D%3D\"}],\"group\":\"cf-nel\",\"max_age\":604800}",
+        "server": "cloudflare",
+        "set-cookie": "wday_vps_cookie=3732437002.53810.0000; path=/; Httponly; Secure; SameSite=none",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Accept-Encoding",
+        "x-wd-request-id": "VPS|e067ebd1-224e-4c37-9fdf-d619471ff2c2"
+      },
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "broadcom.wd1.myworkdayjobs.com",
+          "extracted_data": null,
+          "file_size": 104,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/jobs",
+          "pathname": "/wday/cxs/broadcom/External_Career/jobs",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 400,
+      "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/jobs"
+    }
+  ]
+]

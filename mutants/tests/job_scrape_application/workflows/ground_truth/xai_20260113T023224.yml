@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/xai_20260113T023224_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: xai
+detail_url: https://boards-api.greenhouse.io/v1/boards/xai/jobs/4834320007
+expected:
+  title: AI/HPC Network Development Engineer - Networking
+  company: xAI
+  location_contains: Dublin
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

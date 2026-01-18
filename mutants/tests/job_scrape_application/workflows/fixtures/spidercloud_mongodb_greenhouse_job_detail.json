@@ -1,0 +1,89 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://www.mongodb.com/careers/job/?gh_jid=7335945\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":true}],\"internal_job_id\":3273697,\"location\":{\"name\":\"New York City\"},\"metadata\":[{\"id\":22194060,\"name\":\"Position ID\",\"value\":\"10008910\",\"value_type\":\"short_text\"},{\"id\":24918,\"name\":\"Department ID\",\"value\":\"D88400-Biz Ops, Analytics \\u0026 Data Science\",\"value_type\":\"single_select\"},{\"id\":22194061,\"name\":\"Team\",\"value\":\"224-Data Analytics\",\"value_type\":\"single_select\"},{\"id\":4914027,\"name\":\"Region\",\"value\":\"North America\",\"value_type\":\"single_select\"},{\"id\":4137836,\"name\":\"Working Model Eligibility\",\"value\":[\"1-In Office\"],\"value_type\":\"multi_select\"},{\"id\":4914029,\"name\":\"Job Level\",\"value\":\"Intern\",\"value_type\":\"single_select\"},{\"id\":24109,\"name\":\"Employment Type\",\"value\":\"Intern\",\"value_type\":\"single_select\"},{\"id\":1073551,\"name\":\"Job Type\",\"value\":\"Campus Intern\",\"value_type\":\"single_select\"},{\"id\":988684,\"name\":\"JD Link\",\"value\":\"tbd.com\",\"value_type\":\"url\"},{\"id\":5525802,\"name\":\"Baseline Budgeted Salary\",\"value\":{\"unit\":\"USD\",\"max_value\":\"74880.0\",\"min_value\":\"70720.0\"},\"value_type\":\"currency_range\"},{\"id\":5525816,\"name\":\"Other Large Market Budgeted Salary\",\"value\":null,\"value_type\":\"currency_range\"},{\"id\":13324394,\"name\":\"Job Post Range (United States)\",\"value\":{\"unit\":\"USD\",\"max_value\":\"82368.0\",\"min_value\":\"56576.0\"},\"value_type\":\"currency_range\"},{\"id\":40497768,\"name\":\"Job Post Range (Canada)\",\"value\":{\"unit\":\"USD\",\"max_value\":\"0.0\",\"min_value\":\"0.0\"},\"value_type\":\"currency_range\"}],\"id\":7335945,\"updated_at\":\"2025-12-22T11:08:06-05:00\",\"requisition_id\":\"3263273697\",\"title\":\"2026 - Analytics Engineering Intern, NYC\",\"company_name\":\"MongoDB\",\"first_published\":\"2025-11-11T13:15:41-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;p\\u0026gt;We\\u0026#39;re seeking an eager and innovative intern to join our dynamic\\u0026lt;strong\\u0026gt; \\u0026lt;/strong\\u0026gt;Analytics Engineering team. This is an exciting opportunity to work on real-world problems, gain hands-on experience and make impactful contributions to our operations through the curation of cross functional analytics data pipelines.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;What we are looking for in you\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;In the process of receiving a Bachelor’s or Master\\u0026#39;s degree in Computer Science, Data Science, Engineering or a related field.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proficiency in one or more programming languages (Python, R, Java etc).\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Solid understanding of data modeling principles and ETL processes.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong technical foundation with experience in SQL for complex data querying and manipulation.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Familiarity with workflow orchestration tools and building end-to-end data pipelines is a significant plus.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Ability to work effectively in a team and communicate complex ideas clearly.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proactive, self-driven, and comfortable with a fast-paced, collaborative environment.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Interest in the broader domain of analytics and data-driven decision making.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Have a minimum of one quarter/semester remaining in university studies after the internship concludes. Graduation date in Fall 2026 or Spring 2027\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Must be authorized to work in the United States. Company sponsorship may be available for eligible candidates applying for certain roles.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;What you\\u0026#39;ll find at MongoDB\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Authentic Culture: A workplace where you are encouraged to bring your whole self to work, we believe that Embracing the Power of Differences is the best way to broaden our own perspectives and foster innovation.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Personalized Mentorship: Pair up with a Mentor, a Program Advisor from the Early Talent Recruitment Team, and an \\u0026lt;a href=\\u0026quot;https://www.mongodb.com/careers/diversity-and-inclusion\\u0026quot;\\u0026gt;Employee Resource Group\\u0026lt;/a\\u0026gt; (ERG) Guide to foster your growth.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Career Coaching Sessions: Access to a tailored training program designed uniquely for interns’ personal and professional development.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Work-Life Harmony: Embrace \\u0026quot;Bloom for Interns\\u0026quot; with access to mental and physical health benefits, paid time off, free lunch, and more!\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Impactful Projects: Contribute to projects where you can Make it Matter - your meaningful work will see the light of day.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Exclusive Networking: Attend \\u0026quot;Speaker Series\\u0026quot; and \\u0026quot;Roundtables\\u0026quot; to connect with our executives and departmental leaders.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Vibrant Community: Build connections with fellow interns and join after-work social events, virtual gatherings, and local city activities to create connections and friendships.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Relocation Support: Financial assistance, housing, and a commuting stipend to allow you to comfortably settle into your new location.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Path to Full-Time: A chance to see if MongoDB is where you see yourself long term with the possibility of receiving a full time offer at the end of the summer!\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;MongoDB internships are full-time (40 hours/week) for 10 consecutive weeks lasting from dates in June until August. All interns are considered hybrid employees, designated the \\u0026quot;in office\\u0026quot; working model and are expected to be in their office location 3-5 days a week. \\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;Due to the high volume of applications our Early Talent Recruitment Team receives, it may take up to six weeks to hear back regarding an update on your application status. Our goal is to get back sooner, but we appreciate your patience as our team carefully reviews each application.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;About Us\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;MongoDB is built for change, empowering our customers and our people to innovate at the speed of the market. We have redefined the database for the AI era, enabling innovators to create, transform, and disrupt industries with software. MongoDB’s unified database platform—the most widely available, globally distributed database on the market—helps organizations modernize legacy workloads, embrace innovation, and unleash AI. Our cloud-native platform, MongoDB Atlas, is the only globally distributed, multi-cloud database and is available across AWS, Google Cloud, and Microsoft Azure.\\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;With offices worldwide and nearly 60,000 customers—including 75% of the Fortune 100 and AI-native startups—relying on MongoDB for their most important applications, we’re powering the next era of software.\\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;Our compass at MongoDB is our \\u0026lt;a href=\\u0026quot;https://www.mongodb.com/company\\u0026quot;\\u0026gt;Leadership Commitment,\\u0026lt;/a\\u0026gt; guiding how and why we make decisions, show up for each other, and win. It’s what makes us MongoDB. \\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;To drive the personal growth and business impact of our employees, we’re committed to developing a supportive and enriching culture for everyone. \\u0026lt;a href=\\u0026quot;https://www.mongodb.com/company/blog/culture/employee-benefits-that-make-a-difference-at-mongodb\\u0026quot;\\u0026gt;From employee affinity groups, to fertility assistance and a generous parental leave policy\\u0026lt;/a\\u0026gt;, we value our employees’ wellbeing and want to support them along every step of their professional and personal journeys. \\u0026lt;a href=\\u0026quot;https://www.mongodb.com/blog/channel/culture\\u0026quot;\\u0026gt;Learn more about what it’s like to work at MongoDB\\u0026lt;/a\\u0026gt;, and help us make an impact on the world!\\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;MongoDB is committed to providing any necessary accommodations for individuals with disabilities within our application and interview process. To request an accommodation due to a disability, please inform your Early Talent Recruiter.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;MongoDB, Inc. provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type and makes all hiring decisions without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state or local laws.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;em\\u0026gt;Req ID: 3263273697\\u0026lt;/em\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-pay-transparency\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-input\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;description\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;MongoDB’s base salary range for this role is posted below. Compensation at the time of offer is unique to each candidate and based on a variety of factors such as skill set, experience, qualifications, and work location. Salary is one part of MongoDB’s total compensation and benefits package. Other benefits for eligible employees may include: equity, participation in the employee stock purchase program, flexible paid time off, 20 weeks fully-paid gender-neutral parental leave, fertility and adoption assistance, 401(k) plan, mental health counseling, access to transgender-inclusive health insurance coverage, and health benefits offerings. Please note, the base salary range listed below and the benefits in this paragraph are only applicable to U.S.-based candidates.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;title\\u0026quot;\\u0026gt;MongoDB’s base salary range for this role in the U.S. is:\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-range\\u0026quot;\\u0026gt;\\u0026lt;span\\u0026gt;$56,576\\u0026lt;/span\\u0026gt;\\u0026lt;span class=\\u0026quot;divider\\u0026quot;\\u0026gt;\\u0026amp;mdash;\\u0026lt;/span\\u0026gt;\\u0026lt;span\\u0026gt;$82,368 USD\\u0026lt;/span\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":85954,\"name\":\"Biz Ops, Analytics \\u0026 Data Science\",\"child_ids\":[],\"parent_id\":38842}],\"offices\":[{\"id\":3960,\"name\":\"New York City\",\"location\":\"New York, NY, United States\",\"child_ids\":[],\"parent_id\":23657}]}</pre><div class=\"json-formatter-container\"></div></html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 3.471148148148148e-06,
+        "compute_cost_formatted": "0.0000034711481481481480352755",
+        "file_cost": 1.7238e-05,
+        "file_cost_formatted": "0.0000172379999999999991566746",
+        "total_cost": 2.0709148148148145e-05,
+        "total_cost_formatted": "0.0000207091481481481471919501",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 1956,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "boards-api.greenhouse.io",
+          "extracted_data": null,
+          "file_size": 11466,
+          "final_url": null,
+          "keywords": [
+            "10 consecutive weeks lasting",
+            "20 weeks fully-paid gender-neutral parental leave",
+            "Baseline Budgeted Salary",
+            "Career Coaching Sessions",
+            "Early Talent Recruiter",
+            "Early Talent Recruitment Team",
+            "Early Talent Recruitment Team receives",
+            "Employee Resource Group",
+            "Job Post Range",
+            "Large Market Budgeted Salary",
+            "Strong technical foundation",
+            "Working Model Eligibility",
+            "base salary range",
+            "base salary range listed",
+            "building end-to-end data pipelines",
+            "communicate complex ideas",
+            "complex data querying",
+            "considered hybrid employees",
+            "cross functional analytics data pipelines",
+            "data modeling principles",
+            "data-driven decision making",
+            "eligible candidates applying",
+            "employee affinity groups",
+            "employee stock purchase program",
+            "equal employment opportunities",
+            "flexible paid time",
+            "full time offer",
+            "gain hands-on experience",
+            "generous parental leave policy",
+            "globally distributed database",
+            "health benefits offerings",
+            "helps organizations modernize legacy workloads",
+            "join after-work social events",
+            "local city activities",
+            "make impactful contributions",
+            "mental health counseling",
+            "physical health benefits",
+            "protected veteran status",
+            "tailored training program designed uniquely",
+            "team carefully reviews",
+            "transgender-inclusive health insurance coverage",
+            "unified database platform",
+            "workflow orchestration tools"
+          ],
+          "og_image": null,
+          "original_url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945",
+          "pathname": "/v1/boards/mongodb/jobs/7335945",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs/7335945"
+    }
+  ]
+]

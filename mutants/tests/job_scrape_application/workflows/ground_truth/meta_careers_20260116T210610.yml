@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/dbos_schedule/meta_careers_20260116T210610_detail.json
+# Generated: 2026-01-16T21:07:01.302868+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: meta_careers
+detail_url: https://www.metacareers.com/profile/job_details/855124070677992
+expected:
+  title_contains: ""  # TODO: Add expected title substring
+  company: "Meta"
+  location_contains: ""  # TODO: Add expected location substring
+  is_remote: false  # TODO: Set expected remote status
+  level: senior  # Options: junior, mid, senior, staff
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

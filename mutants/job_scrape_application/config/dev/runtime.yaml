@@ -1,0 +1,30 @@
+# Minutes the Spidercloud job-detail activity is allowed to run before the lease is considered failed.
+spidercloud_job_details_timeout_minutes: 4
+
+# Number of Spidercloud job-detail URLs to lease and process per batch; larger batches increase throughput but also per-activity time.
+spidercloud_job_details_batch_size: 10
+
+# Number of Spidercloud listing URLs to lease per workflow run.
+spidercloud_listing_batch_size: 1
+
+# Max concurrent Spidercloud requests per job-detail batch. Set to 1 for sequential processing.
+spidercloud_job_details_concurrency: 4
+
+# Minutes after which a leased Spidercloud job-detail URL is considered stale and automatically released from "processing"
+# back to "pending" so the workflow can re-lease it. This prevents stuck rows from blocking future batches.
+spidercloud_job_details_processing_expire_minutes: 5
+
+# Timeout (seconds) for per-URL job detail scrapes.
+spidercloud_http_timeout_seconds: 60
+
+# Timeout (seconds) for listing page fetches (longer than per-URL to allow full page loads).
+spidercloud_listing_timeout_seconds: 300
+
+# Number of Temporal worker processes for general scraping tasks.
+temporal_general_worker_count: 6
+
+# Number of Temporal worker processes dedicated to Spidercloud job-details.
+temporal_job_details_worker_count: 6
+
+# Number of Temporal worker processes dedicated to Spidercloud listing URLs.
+temporal_listing_worker_count: 4

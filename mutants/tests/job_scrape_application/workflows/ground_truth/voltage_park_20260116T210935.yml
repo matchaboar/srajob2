@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/dbos_schedule/voltage_park_20260116T210935_detail.json
+# Generated: 2026-01-16T21:09:46.554911+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: voltage_park
+detail_url: https://careers.kula.ai/voltagepark/19780
+expected:
+  title_contains: "Data Center Site Operations Manager"
+  company: "Voltage Park"
+  location_contains: "Lisle"
+  is_remote: false
+  level: senior  # Options: junior, mid, senior, staff
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

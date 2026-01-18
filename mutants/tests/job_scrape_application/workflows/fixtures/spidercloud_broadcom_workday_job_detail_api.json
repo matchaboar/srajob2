@@ -1,0 +1,88 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><meta content=\"light dark\" name=\"color-scheme\"><meta charset=\"utf-8\"><pre>{\"jobPostingInfo\":{\"id\":\"ee285d6b190810010eaacabc0a5e0000\",\"title\":\"Senior Software Engineer\",\"jobDescription\":\"&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;&lt;span&gt;&lt;span&gt;&lt;span class=\\\"emphasis\\\"&gt;&lt;b&gt;Please Note:&lt;/b&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;&lt;span&gt;&lt;span&gt;&lt;span class=\\\"emphasis\\\"&gt;&lt;b&gt;1. If you are a first time user, please create your candidate&nbsp;login account before you apply for a job. (Click Sign In &amp;gt; Create Account)&lt;/b&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;&lt;span&gt;&lt;span&gt;&lt;span class=\\\"emphasis\\\"&gt;&lt;b&gt;2. If you already have a Candidate Account, please Sign-In before you apply.&lt;/b&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;h2&gt;&lt;span&gt;&lt;span&gt;&lt;span&gt;&lt;b&gt;Job Description:&lt;/b&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/h2&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Description:&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;The Tanzu division in Broadcom is seeking a Senior Software Engineer to join the Tanzu Platform Runtime group. The Tanzu Platform is a pre-engineered and AI-ready private cloud platform-as-a-service solution that enables organizations to develop, operate and optimize mission-critical applications easily and securely. It helps organizations accelerate the delivery of applications by providing powerful abstractions, standardized automation and simple commands for application teams, platform engineers and IT operations. In this role, you will contribute to the Tanzu Platform by developing components that enable Platform Engineering teams to achieve operational efficiency at scale and supercharge the delivery of applications and AI implementations.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Key Responsibilities:&lt;/b&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Partner with the product managers and engineers in design and implementation of product enhancements and bug fixes&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Analyze platform architecture and understand customer deployments to identify potential functional or performance issues and solutions to address those&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Build and integrate with CI/CD pipelines&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Troubleshoot complex issues in clusters, applications, and services&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Improve the engineering tools and processes in the team&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Requirements:&lt;/b&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Bachelor of Science degree in Computer Science or related field and a minimum of 5&amp;#43; years of experience OR Master&amp;#39;s Degree with 4&amp;#43; years of relevant experience&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Experience working on and contributing to distributed systems or application platforms&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Proficiency in Go, Ruby, Java or C&amp;#43;&amp;#43;. Ability to quickly ramp up and contribute to a large polyglot codebase&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Excellent analytical and problem-solving skills, with a keen eye for detail and a methodical approach to solving complex challenges&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Strong verbal and written communication skills, applying them effectively during collaboration with technical and non-technical stakeholders&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Must have legal authorization to work in the US&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Preferred Qualifications:&lt;/b&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Expertise in the internals of Cloud Foundry BOSH, containerization technologies, container networking, or MySQL DB engine &amp;amp; clustering&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Proficiency in Cloud Foundry functionality and operations&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;span&gt;Experience with Test Driven Development&lt;/span&gt;&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;Additional Job Description:&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;&lt;span&gt;Compensation and Benefits&lt;/span&gt;&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The annual base salary range for this position is&nbsp;&lt;span&gt;$91,000 - $162,000&lt;/span&gt;&nbsp;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;This position is also eligible for a discretionary annual bonus in accordance with relevant plan documents, and equity in accordance with equity plan documents and equity award agreements.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Broadcom offers a competitive and comprehensive benefits package: Medical, dental and vision plans, 401(K) participation including company matching, Employee Stock Purchase Program (ESPP), Employee Assistance Program (EAP), company paid holidays, paid sick leave and vacation time. The company follows all applicable laws for Paid Family Leave and other leaves of absence.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Broadcom is proud to be an equal opportunity employer. &nbsp;We will consider qualified applicants without regard to race, color, creed, religion, sex, sexual orientation, national origin, citizenship, disability status, medical condition, pregnancy, protected veteran status or any other characteristic protected by federal, state, or local law. &nbsp;We will also consider qualified applicants with arrest and conviction records consistent with local law.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;span&gt;&lt;span&gt;&lt;span class=\\\"emphasis\\\"&gt;&lt;b&gt;If you are located outside USA, please be sure to fill out a home address as this will be used for future correspondence.&lt;/b&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;\",\"location\":\"USA-WA-Bellevue - 108th Ave\",\"additionalLocations\":[\"USA-CA - Promontory A\"],\"postedOn\":\"Posted Today\",\"startDate\":\"2025-12-24\",\"timeType\":\"Full time\",\"jobReqId\":\"R024215\",\"jobPostingId\":\"Senior-Software-Engineer_R024215\",\"jobPostingSiteId\":\"External_Career\",\"country\":{\"descriptor\":\"United States of America\",\"id\":\"bc33aa3152ec42d4995f4791a106ed09\"},\"canApply\":true,\"posted\":true,\"includeResumeParsing\":true,\"jobRequisitionLocation\":{\"descriptor\":\"USA-WA-Bellevue - 108th Ave\",\"country\":{\"descriptor\":\"United States of America\",\"id\":\"bc33aa3152ec42d4995f4791a106ed09\",\"alpha2Code\":\"US\"}},\"externalUrl\":\"https://broadcom.wd1.myworkdayjobs.com/External_Career/job/USA-WA-Bellevue---108th-Ave/Senior-Software-Engineer_R024215\",\"questionnaireId\":\"6cbe6dd07a94100201ca2d77fb280000\",\"endDate\":\"2026-05-15\"},\"hiringOrganization\":{\"name\":\"8893 VMware LLC\",\"url\":\"\"},\"similarJobs\":[{\"title\":\"Staff Software Engineer\",\"externalPath\":\"/job/USA-WA-Bellevue---108th-Ave/Staff-Software-Engineer_R024175-1\",\"timeType\":\"Full time\",\"locationsText\":\"2 Locations\",\"postedOn\":\"Posted 21 Days Ago\",\"startDate\":\"2025-12-03\"},{\"title\":\"Senior Kubernetes Software Engineer\",\"externalPath\":\"/job/USA-CA---Promontory-B/Senior-Kubernetes-Software-Engineer_R024240\",\"timeType\":\"Full time\",\"locationsText\":\"5 Locations\",\"postedOn\":\"Posted 30+ Days Ago\",\"startDate\":\"2025-11-19\"},{\"title\":\"Senior Software Engineer, Tanzu Intelligent Assist\",\"externalPath\":\"/job/USA-CA---Promontory-A/Senior-Software-Engineer--Tanzu-Intelligent-Assist_R024249\",\"timeType\":\"Full time\",\"locationsText\":\"3 Locations\",\"postedOn\":\"Posted 22 Days Ago\",\"startDate\":\"2025-12-02\"},{\"title\":\"Senior Software Engineer for Tanzu Greenplum\",\"externalPath\":\"/job/USA-CA---Promontory-A/Senior-Software-Engineer-for-Tanzu-Greenplum_R024352\",\"timeType\":\"Full time\",\"locationsText\":\"4 Locations\",\"postedOn\":\"Posted 13 Days Ago\",\"startDate\":\"2025-12-11\"},{\"title\":\"Senior Software Engineer for Tanzu Greenplum\",\"externalPath\":\"/job/USA-CA---Promontory-A/Senior-Software-Engineer-for-Tanzu-Greenplum_R024354\",\"timeType\":\"Full time\",\"locationsText\":\"4 Locations\",\"postedOn\":\"Posted 13 Days Ago\",\"startDate\":\"2025-12-11\"}],\"userAuthenticated\":false}</pre><div class=\"json-formatter-container\"></div></html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 4.50225e-06,
+        "compute_cost_formatted": "0.0000045022499999999998634426",
+        "file_cost": 1.31175e-05,
+        "file_cost_formatted": "0.0000131174999999999999933387",
+        "total_cost": 1.761975e-05,
+        "total_cost_formatted": "0.0000176197499999999998567812",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 2441,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "broadcom.wd1.myworkdayjobs.com",
+          "extracted_data": null,
+          "file_size": 8719,
+          "final_url": null,
+          "keywords": [
+            "AI-ready private cloud platform-as-a-service solution",
+            "Additional Job Description",
+            "Analyze platform architecture",
+            "Cloud Foundry BOSH",
+            "Cloud Foundry functionality",
+            "Employee Assistance Program",
+            "Employee Stock Purchase Program",
+            "MySQL DB engine",
+            "Paid Family Leave",
+            "Posted 13 Days Ago",
+            "Posted 21 Days Ago",
+            "Posted 22 Days Ago",
+            "Posted 30+ Days Ago",
+            "Senior Kubernetes Software Engineer",
+            "Senior Software Engineer",
+            "Staff Software Engineer",
+            "Tanzu Intelligent Assist",
+            "Tanzu Platform Runtime group",
+            "Test Driven Development",
+            "Troubleshoot complex issues",
+            "achieve operational efficiency",
+            "annual base salary range",
+            "company paid holidays",
+            "comprehensive benefits package",
+            "conviction records consistent",
+            "discretionary annual bonus",
+            "enable Platform Engineering teams",
+            "equal opportunity employer",
+            "equity award agreements",
+            "equity plan documents",
+            "helps organizations accelerate",
+            "identify potential functional",
+            "large polyglot codebase",
+            "optimize mission-critical applications easily",
+            "paid sick leave",
+            "participation including company matching",
+            "protected veteran status",
+            "providing powerful abstractions",
+            "relevant plan documents",
+            "solving complex challenges",
+            "understand customer deployments",
+            "written communication skills"
+          ],
+          "og_image": null,
+          "original_url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-WA-Bellevue---108th-Ave/Senior-Software-Engineer_R024215",
+          "pathname": "/wday/cxs/broadcom/External_Career/job/USA-WA-Bellevue---108th-Ave/Senior-Software-Engineer_R024215",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-WA-Bellevue---108th-Ave/Senior-Software-Engineer_R024215"
+    }
+  ]
+]

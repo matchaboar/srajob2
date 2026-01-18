@@ -493,6 +493,51 @@ function Stop-TemporalContainer {
     }
 }
 
+function Write-ProcessStatus {
+    param(
+        $WorkerProcesses,
+        [string]$Phase = "stopping"
+    )
+
+    Write-Host ""
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    Write-Host "[shutdown] Worker Process Status ($Phase)" -ForegroundColor Cyan
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    Write-Host ("{0,-8} {1,-15} {2,-20} {3}" -f "PID", "ROLE", "QUEUE", "STATUS") -ForegroundColor White
+    Write-Host ("-" * 60) -ForegroundColor DarkGray
+
+    if (-not $WorkerProcesses -or $WorkerProcesses.Count -eq 0) {
+        Write-Host "  (no tracked worker processes)" -ForegroundColor DarkGray
+    } else {
+        foreach ($worker in $WorkerProcesses) {
+            $proc = $worker.Process
+            $pid = if ($proc) { $proc.Id } else { "N/A" }
+            $role = if ($worker.Role) { $worker.Role } else { "unknown" }
+            $queue = if ($worker.TaskQueue) { $worker.TaskQueue } else { "-" }
+
+            $status = "unknown"
+            $statusColor = "Gray"
+            if ($proc) {
+                if ($proc.HasExited) {
+                    $status = "exited (code=$($proc.ExitCode))"
+                    $statusColor = if ($proc.ExitCode -eq 0) { "Green" } else { "Red" }
+                } else {
+                    $status = "running"
+                    $statusColor = "Yellow"
+                }
+            } else {
+                $status = "no process"
+                $statusColor = "DarkGray"
+            }
+
+            Write-Host ("{0,-8} {1,-15} {2,-20} " -f $pid, $role, $queue) -NoNewline
+            Write-Host $status -ForegroundColor $statusColor
+        }
+    }
+    Write-Host ("=" * 60) -ForegroundColor Cyan
+    Write-Host ""
+}
+
 function Stop-WorkerAndContainer {
     param(
         $WorkerProcesses,
@@ -514,6 +559,7 @@ function Stop-WorkerAndContainer {
     }
 
     $reasonText = if ($Reason) { " (reason=$Reason)" } else { "" }
+    Write-Host ""
     Write-Host "[shutdown] Stopping worker and related resources...$reasonText" -ForegroundColor Yellow
 
     if ($script:ErrorWatcher) {
@@ -521,18 +567,43 @@ function Stop-WorkerAndContainer {
         Stop-ErrorWatcher
     }
 
+    # Display initial process status
     if ($WorkerProcesses -and $WorkerProcesses.Count -gt 0) {
+        Write-ProcessStatus -WorkerProcesses $WorkerProcesses -Phase "before stop"
+
+        $totalProcesses = $WorkerProcesses.Count
+        $stoppedCount = 0
+
         foreach ($worker in $WorkerProcesses) {
             $proc = $worker.Process
             if ($proc -and -not $proc.HasExited) {
-                Write-Host "[shutdown] Killing worker process pid=$($proc.Id) role=$($worker.Role)" -ForegroundColor Yellow
-                try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+                $stoppedCount++
+                Write-Host "[shutdown] [$stoppedCount/$totalProcesses] Stopping pid=$($proc.Id) role=$($worker.Role)..." -ForegroundColor Yellow -NoNewline
                 try {
-                    Wait-Process -Id $proc.Id -Timeout 5 -ErrorAction SilentlyContinue
+                    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
                 } catch {}
+                try {
+                    $waited = Wait-Process -Id $proc.Id -Timeout 5 -ErrorAction SilentlyContinue
+                } catch {}
+
+                # Check if actually exited
+                $proc.Refresh()
+                if ($proc.HasExited) {
+                    Write-Host " stopped" -ForegroundColor Green
+                } else {
+                    Write-Host " timeout (may still be running)" -ForegroundColor Red
+                }
+            } elseif ($proc -and $proc.HasExited) {
+                Write-Host "[shutdown] pid=$($proc.Id) role=$($worker.Role) already exited" -ForegroundColor DarkGray
             }
         }
+
+        # Display final process status
+        Write-ProcessStatus -WorkerProcesses $WorkerProcesses -Phase "after stop"
     }
+
+    # Clean up any orphaned workers not in our tracked list
+    Write-Host "[shutdown] Checking for orphaned worker processes..." -ForegroundColor Yellow
     Stop-ExistingWorkers
 
     if (-not $SkipContainer -and $script:TemporalContainerStartedByScript) {
@@ -541,6 +612,14 @@ function Stop-WorkerAndContainer {
         $script:TemporalContainerStartedByScript = $false
     } elseif (-not $SkipContainer -and $script:TemporalCmd -and $script:TemporalContainerName) {
         Write-Host "[shutdown] Temporal container stop skipped (not started by this script)." -ForegroundColor Yellow
+    }
+
+    # Final verification
+    $remainingCount = Get-LocalWorkerCount
+    if ($remainingCount -gt 0) {
+        Write-Host "[shutdown] WARNING: $remainingCount worker process(es) may still be running" -ForegroundColor Red
+    } else {
+        Write-Host "[shutdown] All worker processes terminated successfully" -ForegroundColor Green
     }
 
     if ($Timer) {
@@ -595,9 +674,10 @@ function Start-WorkerProcess {
 function Start-DbosWorkerProcess {
     param(
         [string]$ErrorLogPath,
-        [switch]$WithApi = $true,
-        [int]$ListingConcurrency = 2,
-        [int]$DetailConcurrency = 6
+        [string]$Queue = "all",
+        [string]$ExecutorId = "",
+        [switch]$WithApi = $false,
+        [switch]$WithSchedule = $false
     )
 
     $envBlock = @{}
@@ -605,37 +685,64 @@ function Start-DbosWorkerProcess {
         $envBlock[$entry.Name] = $entry.Value
     }
 
-    $workerArgs = @("run", "-m", "job_scrape_application.dbos_runtime.runner")
+    $workerArgs = @("run", "-m", "job_scrape_application.dbos_runtime.runner", "--queue", $Queue)
+    if ($ExecutorId) {
+        $workerArgs += @("--executor-id", $ExecutorId)
+    }
     if ($WithApi) {
         $workerArgs += "--with-api"
     }
-    $workerArgs += @("--listing-concurrency", $ListingConcurrency)
-    $workerArgs += @("--detail-concurrency", $DetailConcurrency)
+    if ($WithSchedule) {
+        $workerArgs += "--with-schedule"
+    }
     $proc = Start-Process -FilePath "uv" -ArgumentList $workerArgs -NoNewWindow -PassThru -Environment $envBlock
     if (-not $proc) {
         throw "Failed to start DBOS worker process."
     }
     return @{
         Process = $proc
-        Role = "dbos"
-        TaskQueue = "dbos"
+        Role = $Queue
+        TaskQueue = $Queue
         JobDetailsQueue = ""
     }
 }
 
 function Stop-ExistingWorkers {
+    param(
+        [switch]$Silent = $false,
+        [string]$Prefix = "shutdown"
+    )
+
+    $orphanedCount = 0
+    $stoppedCount = 0
+
     try {
         if ($IsWindows) {
-            $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+            $procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
                 $_.CommandLine -match "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)"
+            })
+            $orphanedCount = $procs.Count
+            if ($orphanedCount -gt 0 -and -not $Silent) {
+                Write-Host "[$Prefix] Found $orphanedCount orphaned worker process(es)" -ForegroundColor Yellow
             }
             foreach ($p in $procs) {
                 try {
-                    Write-Host "[preflight] Stopping stale worker pid=$($p.ProcessId)" -ForegroundColor Yellow
+                    if (-not $Silent) {
+                        Write-Host "[$Prefix]   Stopping orphaned worker pid=$($p.ProcessId)..." -ForegroundColor Yellow -NoNewline
+                    }
                     Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+                    $stoppedCount++
+                    if (-not $Silent) {
+                        Write-Host " stopped" -ForegroundColor Green
+                    }
                 } catch {
-                    Write-Warning "Failed to stop stale worker pid=$($p.ProcessId): $($_.Exception.Message)"
+                    if (-not $Silent) {
+                        Write-Host " failed: $($_.Exception.Message)" -ForegroundColor Red
+                    }
                 }
+            }
+            if ($orphanedCount -eq 0 -and -not $Silent) {
+                Write-Host "[$Prefix] No orphaned worker processes found" -ForegroundColor DarkGray
             }
             return
         }
@@ -645,19 +752,42 @@ function Stop-ExistingWorkers {
         if (-not (Test-Path $psPath)) { return }
 
         $psOutput = & $psPath -eo pid,args 2>$null
+        $orphanedPids = @()
         foreach ($line in $psOutput) {
             if ($line -match "^\s*(\d+)\s+.*job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)") {
-                $pid = [int]$matches[1]
-                try {
-                    Write-Host "[preflight] Stopping stale worker pid=$pid" -ForegroundColor Yellow
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-                } catch {
-                    Write-Warning "Failed to stop stale worker pid=$($pid): $($_.Exception.Message)"
+                $orphanedPids += [int]$matches[1]
+            }
+        }
+
+        $orphanedCount = $orphanedPids.Count
+        if ($orphanedCount -gt 0 -and -not $Silent) {
+            Write-Host "[$Prefix] Found $orphanedCount orphaned worker process(es)" -ForegroundColor Yellow
+        }
+
+        foreach ($pid in $orphanedPids) {
+            try {
+                if (-not $Silent) {
+                    Write-Host "[$Prefix]   Stopping orphaned worker pid=$pid..." -ForegroundColor Yellow -NoNewline
+                }
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                $stoppedCount++
+                if (-not $Silent) {
+                    Write-Host " stopped" -ForegroundColor Green
+                }
+            } catch {
+                if (-not $Silent) {
+                    Write-Host " failed: $($_.Exception.Message)" -ForegroundColor Red
                 }
             }
         }
+
+        if ($orphanedCount -eq 0 -and -not $Silent) {
+            Write-Host "[$Prefix] No orphaned worker processes found" -ForegroundColor DarkGray
+        }
     } catch {
-        Write-Warning "Unable to enumerate existing workers: $($_.Exception.Message)"
+        if (-not $Silent) {
+            Write-Warning "Unable to enumerate existing workers: $($_.Exception.Message)"
+        }
     }
 }
 
@@ -988,7 +1118,7 @@ function Start-WorkerMain {
     }
 
     # Ensure any old worker processes from previous runs are terminated
-    Stop-ExistingWorkers
+    Stop-ExistingWorkers -Prefix "preflight"
 
     if ($ForceScrapeAll -or $ResetWithinSchedule) {
         $resetConvexUrl = $env:CONVEX_HTTP_URL
@@ -1084,16 +1214,30 @@ function Start-WorkerMain {
         Write-Host "Starting DBOS workflow runner..." -ForegroundColor Cyan
         Write-Host "  Errors logged to: logs/worker-errors.log" -ForegroundColor DarkGray
         Write-Host "  For Temporal UI, run with -UseTemporal flag" -ForegroundColor DarkGray
+
+        # Pre-initialize SQLite schema before spawning workers to avoid race conditions
+        Write-Host "Initializing SQLite schema..." -ForegroundColor DarkGray
+        uv run python -m job_scrape_application.dbos_runtime.sqlite
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Schema initialization returned non-zero exit code: $LASTEXITCODE"
+        }
+
         $runtimeConfigPath = & $resolveEnvPath "job_scrape_application/config/runtime.yaml"
-        $defaultListingConcurrency = 4
-        $defaultDetailConcurrency = 6
-        $listingConcurrency = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_listing_worker_count" -DefaultValue $defaultListingConcurrency
-        $detailConcurrency = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultDetailConcurrency
-        if ($listingConcurrency -lt 1) { $listingConcurrency = $defaultListingConcurrency }
-        if ($detailConcurrency -lt 1) { $detailConcurrency = $defaultDetailConcurrency }
-        Write-Host ("Queues: listing (concurrency {0}), detail (concurrency {1})" -f $listingConcurrency, $detailConcurrency) -ForegroundColor DarkGray
+        $defaultListingWorkers = 4
+        $defaultDetailWorkers = 6
+        $listingWorkers = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_listing_worker_count" -DefaultValue $defaultListingWorkers
+        $detailWorkers = Get-RuntimeConfigInt -Path $runtimeConfigPath -Key "temporal_job_details_worker_count" -DefaultValue $defaultDetailWorkers
+        if ($listingWorkers -lt 1) { $listingWorkers = $defaultListingWorkers }
+        if ($detailWorkers -lt 1) { $detailWorkers = $defaultDetailWorkers }
+        Write-Host ("Workers: listing ({0}), detail ({1})" -f $listingWorkers, $detailWorkers) -ForegroundColor DarkGray
         $script:WorkerProcesses = @()
-        $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -WithApi -ListingConcurrency $listingConcurrency -DetailConcurrency $detailConcurrency
+        $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -Queue "schedule" -ExecutorId "schedule-1" -WithApi -WithSchedule
+        for ($i = 1; $i -le $listingWorkers; $i++) {
+            $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -Queue "listing" -ExecutorId ("listing-{0}" -f $i)
+        }
+        for ($i = 1; $i -le $detailWorkers; $i++) {
+            $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -Queue "detail" -ExecutorId ("detail-{0}" -f $i)
+        }
         $script:WorkerProcess = $script:WorkerProcesses[0].Process
         $cancelSub = Register-EngineEvent -SourceIdentifier ConsoleCancelEvent -Action {
             Write-Host "[signal] Ctrl+C received; beginning shutdown..." -ForegroundColor Red
@@ -1114,7 +1258,7 @@ function Start-WorkerMain {
             Write-Host "[signal] Shutdown requested; exiting loop." -ForegroundColor Red
         }
         $exitSub = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-            try { Stop-ExistingWorkers } catch {}
+            try { Stop-ExistingWorkers -Silent } catch {}
         }
         Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
         try {
@@ -1389,7 +1533,7 @@ function Start-WorkerMain {
         Write-Host "[signal] Shutdown requested; exiting loop." -ForegroundColor Red
     }
     $exitSub = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-        try { Stop-ExistingWorkers } catch {}
+        try { Stop-ExistingWorkers -Silent } catch {}
     }
     Write-Host "Press Ctrl+R to restart the worker instantly." -ForegroundColor Yellow
     try {

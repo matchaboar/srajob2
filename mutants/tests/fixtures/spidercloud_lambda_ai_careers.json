@@ -1,0 +1,100 @@
+{
+  "request": {
+    "endpoint": "/scrape",
+    "url": "https://lambda.ai/careers",
+    "params": {
+      "return_format": [
+        "commonmark"
+      ],
+      "request": "chrome",
+      "metadata": true,
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": true,
+      "limit": 1
+    }
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": "Careers at Lambda | Build the Future of AI Infrastructure\n# Careers at Lambda\nLambda, The Superintelligence Cloud, builds supercomputers for training and inference.\nFrom prototyping to serving billions of users in production, we build the underlying infrastructure that powers AI. Lambda was founded in 2012 by published AI engineers.\nLambda’s mission is to make compute as ubiquitous as electricity and give every person access to artificial intelligence. One person, one GPU.\n[View open roles](https://lambda.ai/careers/open-roles)\n![GTC_92 1 (1)](https://lambda.ai/hubfs/GTC_92%201%20(1).jpg)\n![SJ_Office_06 1-3](https://lambda.ai/hubfs/SJ_Office_06%201-3.jpg)\n![GTC_06 1-2](https://lambda.ai/hubfs/GTC_06%201-2.jpg)\n![45611CCA-48B5-4B9D-B995-95F4CCDF5FE9-78794-0000521429B01BB6 1-2](https://lambda.ai/hubfs/45611CCA-48B5-4B9D-B995-95F4CCDF5FE9-78794-0000521429B01BB6%201-2.jpg)\n![IMG_6026 3-2](https://lambda.ai/hubfs/IMG_6026%203-2.jpg)\n![LA_DC_78 (1)-1](https://lambda.ai/hubfs/LA_DC_78%20(1)-1.jpg)\n![DAL03_25 2-2](https://lambda.ai/hubfs/DAL03_25%202-2.jpg)\n![GTC_31 1-2](https://lambda.ai/hubfs/GTC_31%201-2.jpg)\n![LA_DC_103 (1)](https://lambda.ai/hubfs/LA_DC_103%20(1).jpg)\nvalues.txt\nThe goal of this document at Lambda is to answer the questions:\n* Who gets hired? Rewarded? Promoted? Let go?\n* What are the values and principles that have led to the success of Lambda and will continue to provide for its future success and prolonged existence?\n* What company values will help Lambda succeed?\nIt's important to have a set of long-lived and timeless values. We will start this value document with the most important thing we need to do:\nObsess over the customer.\nAlways ask:\n* \"Does the customer care about this work?\"\n* \"Will this delight the customer?\"\n* \"How does the customer define success? Does this help them achieve that?\"\nPut yourself in the customer's shoes: How would they perceive this work? What would their experience be?\n## Start with the customer\nRelated to the goal of building a timeless document, it's nice to look back at some timeless principles. An excerpt from one of my favorite business books, My Life and Work by Henry Ford (1922):\n> But what business ever started with the manufacturer and ended with the consumer? Where does the money to make the wheels go round come from? From the consumer, of course. And success in manufacture is based solely upon an ability to serve that consumer to his liking. He may be served by quality or he may be served by price. He is best served by the highest quality at the lowest price, and any man who can give to the consumer the highest quality at the lowest price is bound to be a leader in business, whatever the kind of an article he makes. There is no getting away from this.\n> - Henry Ford, My Life and Work (1922)\nObsess over our customers' success. Work backward from the customer experience. Build products that delight our customers and help them achieve success.\nLambda's success starts and ends there.\n## Try to operate from timeless first principles\nIt's important to understand what you hold to be true in this world. There are many 'business first principles' that have been true for hundreds of years and will continue to be true in the future.\nSome of those first principles:\n* Customers want to buy high-quality products at a low price.\n* The output of the company is the output of the people working at the company. Thus, the qualities of the people working at the company determine the quality of its product, its culture, and its success.\n* The road to success is simple: write down your goal, write down everything you need to accomplish it, and then execute against that goal every day and never give up.## Build a team of brilliant people with an unstoppable culture\nYou can't just have sheer brilliance. You need brilliance paired with an ability to work together as part of a team. Our job is to build a team of smart, unstoppable people working hard together towards the same ambitious goal.\n> \"We're not just collecting talent; we're building a team.\"\n> - Bill Belichick\n## Write your thoughts down so that you can share them\nIf you can't write your idea down into a one- or two-page document, you haven't thought about it enough. Writing a one-pager is the first step to accomplishing any great task.\nAs the company grows, written documents become the central source of truth for activity at the company.\nThe power of writing is the ability to inspire others, the ability to communicate through time and space, and the ability to plan and execute complex projects that can't sit inside one person's head.\n## Care deeply\nCare about the company, care about the customer, care about the work you do, and care about your co-workers. Take pride in doing a great job. Care is taking pride in your work and doing a great job. Care is going the extra mile for the customer. Care is wanting to become GREAT at what you do.\nThe opposite of care is \"just calling it in\", \"doing the bare minimum\", \"shrugging it off\", \"not caring.\"\n## Hacker culture\n> Hack the planet!\n> - Zero Cool in Hackers (1992)\nLambda was founded in San Francisco in 2012. Our first 'office' was Noisebridge, an anarchist hackerspace in the Mission District. Noisebridge values included Do-ocracy and Be Excellent to Each Other.\nDo-ocracy: If you want something done, do it! But remember to be excellent to each other while doing so.\nAt Lambda, you'll find many passionate and intellectually curious individuals. Many of us are 'computer people' and many of us share an interest in open source, \\*nix operating systems, and a general love of building things.\n## Be excellent to each other\n> Be excellent to each other!\n> - Bill in Bill &amp; Ted's Excellent Adventure (1989)\nKindness, consideration, and respect are how we work together as a team at Lambda.\nThankfully, we have a 'no yelling' culture.\n## Low ego\nWe're focused on outcomes, not on titles. We value anonymous feedback. Own your mistakes. Be humble.\nRun an experiment and get immediate feedback from the market.\nTreating people at the company with respect, whoever they are.\n## Move fast\nUsually, the only advantage that a small company has over a large company is speed.\nMake decisions quickly, execute quickly.\nRecognize when the decision can be reversed and when it cannot. If it's a reversible decision, then you can confidently make a decision quickly.\n## No politics, no crypto\n'No politics, no crypto' means that we don't discuss cryptocurrencies or politics at work. We think it's best to avoid holy wars, and there are plenty of other places where you can vigorously debate those topics online and in person.\n## Common quotes and idioms overheard at Lambda and what they mean:\n* \"Every problem is a people problem. Every solution is a people solution.\"\nThere is no such thing as a 'finance problem' or an 'engineering problem,' or a 'sales problem,' or a 'customer demand problem,' or a 'communication problem.' Every problem is the result of human action, decision-making, and behaviors by individual people at the company.\nThus, the root cause of any problem at Lambda and the origin of any solution at Lambda start and end with the individual people involved.\n* \"Start with the customer experience, work backward to the technology.\"\nAsk how you are going to make the customers' lives better. Then, we will work backward to determine what technology needs to be invented on their behalf. Never build technology in search of a problem.\n* \"Real recognize real\"\nGreat people want to work with other great people.\nFor example, a really capable interviewee will be assessing the talents and the capabilities of the people on the interview panel. If they feel like they can learn a lot from the people they're interviewing with, they will be eager to join the team.\nThe same goes for customers during the purchasing process.## Simple methods for goal setting\nOur goal-setting template document:\n[https://docs.google.com/document/d/1bvjooXcIaXGxfgr4-5fZ1SiC-0uJJh33DmNe5ZaNN30/edit?tab=t.0](https://docs.google.com/document/d/1bvjooXcIaXGxfgr4-5fZ1SiC-0uJJh33DmNe5ZaNN30/edit?tab=t.0)\n## Step 1:\nGet a clean sheet of paper and write down ten goals that you would like to accomplish in the next twelve months.\n## Step 2:\nAsk yourself this great question: \"If you could only accomplish one goal on this list, but you could accomplish it within 24 hours, which one goal would have the greatest positive impact on your life and on Lambda?\" This is a great question because it will jump out at you, you'll say \"That's the one.\" Whatever it is, put a circle around that goal.\n## Step 3:\nWrite the circled goal at the top of this page and set a deadline for the goal. Then write a list of everything you can think of to achieve that goal and begin working on that list.\nHere's the kicker: do something every day. Keep this paper with you, and just start making progress every day towards the things you need to do to achieve this goal.\nMy promise to you is that this exercise — selecting your most important goal, making a plan, and working on it every day — will change your life in ways that you cannot imagine. A week, a month, and a year from now, you'll be absolutely staggered at the difference it makes.\nA simple method of goal setting and execution from Brian Tracy.\nlambda \\~ % [Join the Lambda team](https://lambda.ai/careers#join)\n↓\n## How we hire\nat Lambda\nWe don’t just hire great people — we hire the right people.\n01\n###### Pedigree isn’t everything\nYour school or past company matters less than what you’ve actually built, contributed, and impacted.\n02\n###### Your story &gt; your timestamps\nCommitment is good, but smart moves matter too. We care about the why behind each step.\n03\n###### You can handle the chaos\nFast-moving. High-change. Sometimes messy. You can create structure when there isn’t any.\n04\n###### You’re great at what you do\nWe test for deep expertise, we’re looking for field experts, and we don’t compromise.\n05\n###### You fit our culture\nSkills alone won’t cut it, you need to live our values. Care deeply about (y)our work, think like a hacker, be kind, obsess over our customers.\n06\n###### We’re building a team built to win together. If you’re nodding along, we should talk.\n## Interview process at Lambda\nHere’s what you can expect when you interview with us. Clear steps, no surprises.\nSTEP 01\n##### Recruiter chat (30 minutes)\nYou’ll start by meeting with your recruiter to discuss your background, goals, and how they might fit at Lambda. Your recruiter will support you throughout the process, answer questions, and provide updates. If you need any accommodations, just let them know.\nSTEP 02\n##### Hiring manager interview (30–60 minutes)\nYou’ll meet your potential manager, dive into more specifics about the role, and discuss your professional experience. This is a chance to ask questions and learn more about the team and what they’re working on. Be prepared to talk about: projects you’re proud of, how your skills fit the role, your work style, and your day-to-day team dynamics experience.\nSTEP 03\n##### Technical skills assessment (1-2 hours)\nDepending on the role, you may complete a skills-based assessment designed to give us a sense of how you work in practice. For engineering positions, this often includes live coding, take-home assignments, debugging, or system design tasks. For other roles, the assessment may look different and focus on the core skills needed to succeed in that area.\nSTEP 04\n##### Panel interviews (3–4+ hours)\nThis stage brings you together with team members and cross-functional partners. You can expect a mix of technical discussions, problem-solving challenges, and behavioral or culture-fit questions. We want to understand how you collaborate, how you approach challenges, and how your values align with ours. We’re looking for low-ego, resourceful hackers (in the most positive sense of the word).\nSTEP 05\n##### Debrief\nAfter the interviews, our team will evaluate your performance, and your recruiter will update you within 24–48 hours. We’ll give you feedback, regardless of whether we move forward or not.\nSTEP 06\n##### Reference checks and offer\nIf selected, your recruiter will review the offer and guide you through the next steps. All offers are contingent on background and reference checks.\n## Featured roles\nWe’re always seeking talented individuals to join our team.\n[VIEW ALL OPEN ROLES](https://lambda.ai/careers/open-roles)\n###### Senior Software Engineer - AI Cloud\nSan Francisco, CA / Seattle, WA\n[Apply now](https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938)\n###### 2026 Machine Learning Research Intern\nSan Francisco, CA\n[Apply now](https://jobs.ashbyhq.com/lambda/264f889c-38f4-42a5-9534-064a9512a3fe)\n###### Senior Business Systems Architect\nSan Francisco, CA / San Jose, CA\n[Apply now](https://jobs.ashbyhq.com/lambda/6bac1127-b34b-4b04-a4c9-aa7bbd71516a)\n###### Senior Brand Designer\nSan Jose, CA\n[Apply now](https://jobs.ashbyhq.com/lambda/447160b5-a586-4b75-a75a-5029a95d28ee)\n## Frequently asked questions\n###### Where is Lambda located?\n+\n###### What’s Lambda’s stance on hybrid and remote work?\n+\n###### What’s Lambda’s culture like?\n+\n###### What’s the work/life balance like?\n+\n###### Are there any company events and in-person meet ups?\n+\n###### Do you hire outside the US?\n+\n###### What benefits, time off, and other perks do you offer?\n+\n###### What’s the interview process like?\n+"
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 5.377055555555555e-06,
+          "compute_cost_formatted": "0.0000053770555555555552150872",
+          "file_cost": 0.00012909150000000002,
+          "file_cost_formatted": "0.0001290914999999999979163334",
+          "total_cost": 0.00014446855555555558,
+          "total_cost_formatted": "0.0001444685555555555536865321",
+          "transform_cost": 1e-05,
+          "transform_cost_formatted": "0.0000100000000000000005551115"
+        },
+        "duration_elasped_ms": 2281,
+        "error": null,
+        "metadata": {
+          "commonmark": {
+            "automation_data": null,
+            "description": "Join Lambda, the Superintelligence Cloud. Help build large-scale AI infrastructure powering the world’s leading models. Grow and shape the future of AI.",
+            "domain": "lambda.ai",
+            "extracted_data": null,
+            "file_size": 13513,
+            "final_url": null,
+            "keywords": [
+              "2026 Machine Learning Research Intern San Francisco",
+              "AI Cloud San Francisco",
+              "Frequently asked questions",
+              "Hacker culture > Hack",
+              "Hiring manager interview",
+              "Make decisions quickly",
+              "Noisebridge values included Do-ocracy",
+              "Real recognize real",
+              "San Francisco",
+              "San Jose",
+              "Senior Brand Designer San Jose",
+              "Senior Business Systems Architect San Francisco",
+              "Senior Software Engineer",
+              "Technical skills assessment",
+              "View open roles",
+              "avoid holy wars",
+              "buy high-quality products",
+              "core skills needed",
+              "day-to-day team dynamics experience",
+              "favorite business books",
+              "goal-setting template document",
+              "greatest positive impact",
+              "in-person meet ups",
+              "includes live coding",
+              "individual people involved",
+              "intellectually curious individuals",
+              "nix operating systems",
+              "past company matters",
+              "published AI engineers",
+              "seeking talented individuals",
+              "skills-based assessment designed",
+              "smart moves matter",
+              "system design tasks",
+              "unstoppable people working hard"
+            ],
+            "og_image": "https://lambda.ai/hubfs/OPENGRAPH%20-%20Careers-1.png",
+            "original_url": "https://lambda.ai/careers",
+            "pathname": "/careers",
+            "resource_type": ".md",
+            "title": "Careers at Lambda | Build the Future of AI Infrastructure",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          }
+        },
+        "status": 200,
+        "url": "https://lambda.ai/careers"
+      }
+    ]
+  ]
+}

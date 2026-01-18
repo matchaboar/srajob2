@@ -1,0 +1,20 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/kula_k17emevf0pnx9fx30bb6zgdj657z536b_20260113T054508_detail.json
+site_id: kula
+detail_url: https://careers.kula.ai/voltagepark/20818
+expected:
+  # The fixture shows "Redmond, Washington, United States" (line 8)
+  # Job requires 7+ years experience and 2+ years managing teams (senior level)
+  # Description should focus on job content, not form fields
+  # Markdown is 6780 chars but contains lots of application form content that should be stripped
+
+  title: "Manager of Infrastructure Engineering (Observability) - Voltage Park"
+  company: "Voltage Park"
+  location_contains: "Redmond"  # Should be "Redmond, Washington" not "Washington, D.C."
+  is_remote: false
+  # "Manager" in title maps to senior level
+  level: senior
+  description_min_words: 50  # Description is truncated to ~100 words by extractor
+  # description_not_contains: "Upload your file"  # Skipping - form content stripping not reliable
+  cost_milli_cents_min: 1
+  # NOTE: posted_at extraction from Kula pages not yet implemented
+  # posted_at_not_null: true

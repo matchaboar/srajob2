@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/spotify/lifeatspotify_20260114T134509_detail.json
+site_id: lifeatspotify
+detail_url: https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing
+expected:
+  title: "Data Scientist"
+  company: "Spotify"
+  location_contains: "New York"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

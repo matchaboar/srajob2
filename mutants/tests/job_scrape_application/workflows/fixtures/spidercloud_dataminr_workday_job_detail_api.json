@@ -1,0 +1,85 @@
+[
+  [
+    {
+      "content": {
+        "raw": "<html><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"><pre>{\"jobPostingInfo\":{\"id\":\"a3979e2f67ce1000dbf9e09e16850000\",\"title\":\"Software Engineer, Backend\",\"jobDescription\":\"&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;See yourself at Dataminr&lt;/b&gt;&lt;/p&gt;We are seeking a motivated engineer with a solid foundation in programming and a passion for learning. As a Software Engineer, Backend you will be joining our fast-moving product engineering team working on the future of our customer platform. In your day to day you will be working on delivering core features and functionality in both api- and stream-based platforms. This US-based role can be remote or based out of our New York City office.&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;&lt;b&gt;AI Innovation at Dataminr&nbsp;&lt;/b&gt;&lt;/b&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;Working at Dataminr you’ll have the opportunity to tackle the most exciting trends in AI on a daily basis to power a revolutionary product that uncovers critical events around the world as they unfold.&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;&lt;a href=\\\"https://www.dataminr.com/press/dataminr-unveils-regenai-the-first-generative-ai-that-automatically-regenerates-in-real-time/\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;Regenerative AI&lt;/u&gt;&lt;/a&gt;:&lt;/b&gt;&lt;span&gt; our AI technology, ReGenAI, is a new form of generative AI that automatically regenerates real-time Live Event Briefs as events unfold. Learn more &lt;/span&gt;&lt;a href=\\\"https://www.dataminr.com/press/dataminr-ceo-discusses-future-of-real-time-information-at-imagination-in-action\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;here&lt;/u&gt;&lt;/a&gt;&lt;span&gt;.&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;&lt;a href=\\\"https://www.dataminr.com/press/announcement/dataminr-unveils-agentic-ai-roadmap/\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;Agentic AI&lt;/u&gt;&lt;/a&gt;: &lt;/b&gt;&lt;span&gt;we recently launched our Agentic AI capability, what we’re calling our Intel Agents, that autonomously generates critical context for our clients on real-time events, threats, and risks allowing them to see the clearest, most accurate view of what’s happening on the ground. Learn more &lt;/span&gt;&lt;a href=\\\"https://www.linkedin.com/video/live/urn:li:ugcPost:7322753117979115520/?utm_source&amp;#61;linkedin&amp;amp;utm_medium&amp;#61;organic_social&amp;amp;utm_campaign&amp;#61;social-team-led_parent_2025&amp;amp;utm_content&amp;#61;event&amp;amp;utm_asset&amp;#61;&amp;amp;utm_sector&amp;#61;all&amp;amp;utm_segment&amp;#61;cyber&amp;amp;utm_region&amp;#61;global\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;here&lt;/u&gt;&lt;/a&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;Multimodal AI:&lt;/b&gt;&lt;span&gt;&lt;b&gt; &lt;/b&gt;our platform detects events from many different types of data (images, video, sensor data, audio, and text in over 150 languages). Learn more &lt;/span&gt;&lt;a href=\\\"https://www.dataminr.com/resources/blog/multi-modal-fusion-ai-for-real-time-event-detection/\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;here&lt;/u&gt;&lt;/a&gt;&lt;span&gt;. &lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;The opportunity&nbsp;&lt;/b&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;Contribute code to production systems from the get-go.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Work across a diverse tech-stack and gain robust experience with widely-used technologies like Elasticsearch, Kafka, SNS/SQS, and Aerospike.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Design significant features that impact core customer functionality and influence the next iterations of our architecture as we strive to deliver high caliber alerts to our clients faster and with near-perfect reliability.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Implement industry best practices along with novel patterns and technologies that will help improve the codebase and the product.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Partner with other members of the team to plan and deliver the next iteration of our customer applications to support emerging use cases for our product.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;What you bring&nbsp;&lt;/b&gt;&lt;/p&gt;&lt;p&gt;At Dataminr, we value you for who you are. We encourage you to apply for this role, even if you don’t meet every qualification. Our candidates are reviewed on the basis of their skill and potential to succeed.&nbsp;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;4&amp;#43; years of experience building back end services and applications&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Experience with Java, Scala, Python and/or other object oriented programming languages&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Experience working with microservices, distributed systems, real time streaming technologies (Kafka, Kinesis, etc) and databases (Postgres, Redis, Aerospike, etc)&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Strong object-oriented design, API design, data modeling, and coding skills&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Solid understanding of data structures and algorithms&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Proven track record of implementing and following strong engineering practices through hands-on coding&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Excellent problem-solving, communication and teamwork skills&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;#LI-BM&lt;/p&gt;#LI-REMOTE&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;About Dataminr&lt;/b&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;At Dataminr, we are a mission driven team of talented builders, creators and visionaries who have real-world impact on how organizations are able to respond to events. Dataminr’s groundbreaking, AI-powered, intelligence platform provides organizations with the earliest signals of emerging risks, events, and threats before they unfold. Trusted by two-thirds of the Fortune 50 and half of the Fortune 100, Dataminr’s platform analyzes billions of public data inputs spanning text, image, video, audio and sensor data across 150&amp;#43; languages, empowering our clients to stay one step ahead in an increasingly complex world where every second counts.&nbsp;&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;Founded in 2009, we have pioneered the world’s first real-time event detection platform, long before the recent Gen AI ‘boom.’ Dataminr operates all around the world united by our passion to use AI for the greater good, be agents of positive change and put our technology into the hands of clients charged with the responsibility to keep organizations running and keep people safe.&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;As our employees focus on developing our revolutionary technology, we focus on our employees. Dataminr is proud to offer a variety of flexible work arrangements, offices all over the world to foster collaboration, generous PTO and sick leave, and more, as part of our competitive benefits package aimed at keeping all our employees happy and healthy. Explore all our benefits &lt;/span&gt;&lt;b&gt;&lt;a href=\\\"https://www.dataminr.com/resources/blog/dataminr-provides-competitive-benefits-to-support-employee-wellness-and-well-being/\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;here&lt;/u&gt;&lt;/a&gt;&lt;/b&gt;&lt;span&gt;.&nbsp;&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;We believe our differences give us strength. Our employees are empowered to be their best, authentic selves through various opportunities, such as our robust employee resource group (ERG) network, manager development programming, professional development funds, and more.&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;span&gt;We serve a global community made up of many cultures and strive to reflect the world and clients we serve, with a workforce built on merit and equity. We actively condemn racism and discrimination in any form. We stand for social good, fostering a culture of allyship, and standing up for those who face systemic barriers to equality. We lead with empathy and strive to be agents of positive change in our company and in our communities.&lt;/span&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;The base salary range for this position is $120,000-195,000. Actual salary will be based on a number of factors including, but not limited to, geographic location, applicant skills, and prior relevant experience.&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;&lt;i&gt;Dataminr is an equal opportunity and affirmative action employer. Individuals seeking employment at Dataminr are considered without regards to race, sex, color, creed, religion, national origin, age, disability, genetics, marital status, pregnancy, unemployment status, sexual orientation, citizenship status or veteran status.&lt;/i&gt;&lt;/b&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;&lt;p style=\\\"text-align:left\\\"&gt;&lt;b&gt;&lt;i&gt;Dataminr will collect and process your personal data. All personal data will be processed in accordance with applicable data protection laws. Please see Dataminr&amp;#39;s candidate privacy notice available &lt;a href=\\\"https://www.dataminr.com/careers/candidate-privacy-policy/\\\" target=\\\"_blank\\\"&gt;here&lt;/a&gt;. By providing your details and applying via our careers website, you acknowledge that you have read our candidate privacy notice. If you have any queries, please contact the People Team at hr&amp;#64;dataminr.com or &lt;/i&gt;&lt;a href=\\\"mailto:legal&amp;#64;dataminr.com\\\" target=\\\"_blank\\\"&gt;&lt;u&gt;privacy&amp;#64;dataminr.com&lt;/u&gt;&lt;/a&gt;&lt;i&gt;.&lt;/i&gt;&lt;/b&gt;&lt;/p&gt;&lt;p style=\\\"text-align:inherit\\\"&gt;&lt;/p&gt;\",\"location\":\"US Remote\",\"additionalLocations\":[\"New York, NY\"],\"postedOn\":\"Posted 30+ Days Ago\",\"startDate\":\"2025-09-03\",\"timeType\":\"Full time\",\"jobReqId\":\"JR1652\",\"jobPostingId\":\"Software-Engineer--Backend_JR1652\",\"jobPostingSiteId\":\"Dataminr\",\"country\":{\"descriptor\":\"United States of America\",\"id\":\"bc33aa3152ec42d4995f4791a106ed09\"},\"logoImage\":{\"src\":\"/wday/cxs/dataminr/Dataminr/sidebarimage/5127260808f8100311ab6623eea00000\",\"alt\":\"Dataminr Logo\"},\"canApply\":true,\"posted\":true,\"includeResumeParsing\":true,\"jobRequisitionLocation\":{\"descriptor\":\"NY - Remote\",\"country\":{\"descriptor\":\"United States of America\",\"id\":\"bc33aa3152ec42d4995f4791a106ed09\",\"alpha2Code\":\"US\"}},\"externalUrl\":\"https://dataminr.wd12.myworkdayjobs.com/Dataminr/job/US-Remote/Software-Engineer--Backend_JR1652\",\"questionnaireId\":\"8390d35846dd10011c54ea3875390000\"},\"hiringOrganization\":{\"name\":\"Dataminr, Inc.\",\"url\":\"\"},\"similarJobs\":[],\"userAuthenticated\":false}</pre><div class=\"json-formatter-container\"></div></html>"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 2.9896851851851854e-06,
+        "compute_cost_formatted": "0.0000029896851851851851809293",
+        "file_cost": 1.6849500000000002e-05,
+        "file_cost_formatted": "0.0000168495000000000019757529",
+        "total_cost": 1.9839185185185187e-05,
+        "total_cost_formatted": "0.0000198391851851851871566822",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 1671,
+      "error": null,
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "dataminr.wd12.myworkdayjobs.com",
+          "extracted_data": null,
+          "file_size": 11207,
+          "final_url": null,
+          "keywords": [
+            "Agentic AI capability",
+            "Design significant features",
+            "Individuals seeking employment",
+            "Posted 30+ Days Ago",
+            "Proven track record",
+            "Strong object-oriented design",
+            "York City office",
+            "actively condemn racism",
+            "affirmative action employer",
+            "applicable data protection laws",
+            "automatically regenerates real-time Live Event Briefs",
+            "autonomously generates critical context",
+            "base salary range",
+            "candidate privacy notice",
+            "competitive benefits package aimed",
+            "deliver high caliber alerts",
+            "delivering core features",
+            "experience building back end services",
+            "face systemic barriers",
+            "fast-moving product engineering team working",
+            "flexible work arrangements",
+            "gain robust experience",
+            "global community made",
+            "impact core customer functionality",
+            "increasingly complex world",
+            "manager development programming",
+            "mission driven team",
+            "object oriented programming languages",
+            "platform analyzes billions",
+            "platform detects events",
+            "prior relevant experience",
+            "professional development funds",
+            "public data inputs spanning text",
+            "real time streaming technologies",
+            "real-time event detection platform",
+            "recent Gen AI",
+            "robust employee resource group",
+            "strong engineering practices",
+            "uncovers critical events"
+          ],
+          "og_image": null,
+          "original_url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Software-Engineer--Backend_JR1652",
+          "pathname": "/wday/cxs/dataminr/Dataminr/job/US-Remote/Software-Engineer--Backend_JR1652",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/US-Remote/Software-Engineer--Backend_JR1652"
+    }
+  ]
+]

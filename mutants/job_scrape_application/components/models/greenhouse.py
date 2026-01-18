@@ -1,0 +1,220 @@
+from __future__ import annotations
+
+import html
+import orjson
+import re
+from typing import Any, Iterable, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from ...constants import title_matches_required_keywords
+
+
+class GreenhouseJobLocation(BaseModel):
+    name: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class GreenhouseJob(BaseModel):
+    absolute_url: str = Field(alias="absolute_url")
+    id: int
+    title: Optional[str] = None
+    requisition_id: Optional[str] = Field(default=None, alias="requisition_id")
+    company_name: Optional[str] = Field(default=None, alias="company_name")
+    updated_at: Optional[str] = Field(default=None, alias="updated_at")
+    first_published: Optional[str] = Field(default=None, alias="first_published")
+    language: Optional[str] = None
+    location: Optional[GreenhouseJobLocation] = None
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+
+class GreenhouseBoardResponse(BaseModel):
+    jobs: List[GreenhouseJob] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+
+_PRE_TAG_PATTERN = re.compile(r"<pre[^>]*>(.*?)</pre>", flags=re.IGNORECASE | re.DOTALL)
+_INVALID_JSON_ESCAPE_PATTERN = re.compile(r"\\(?![\"\\/bfnrtu])")
+
+
+def _find_jobs_payload(node: Any) -> Optional[dict[str, Any]]:
+    if isinstance(node, dict):
+        jobs = node.get("jobs")
+        if isinstance(jobs, list):
+            return node
+        positions = node.get("positions")
+        if isinstance(positions, list):
+            return node
+        for child in node.values():
+            found = _find_jobs_payload(child)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for child in node:
+            found = _find_jobs_payload(child)
+            if found is not None:
+                return found
+    return None
+
+
+def _find_json_end(text: str, start: int) -> int | None:
+    stack: list[str] = []
+    in_string = False
+    escape = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if not stack:
+                return None
+            open_ch = stack.pop()
+            if (open_ch == "{" and ch != "}") or (open_ch == "[" and ch != "]"):
+                return None
+            if not stack:
+                return idx + 1
+    return None
+
+
+def _scan_json_candidates(text: str) -> Iterable[Any]:
+    for match in re.finditer(r"[{[]", text):
+        idx = match.start()
+        end = _find_json_end(text, idx)
+        if end is None:
+            continue
+        try:
+            parsed = orjson.loads(text[idx:end])
+        except orjson.JSONDecodeError:
+            continue
+        if isinstance(parsed, str):
+            try:
+                parsed = orjson.loads(parsed)
+            except orjson.JSONDecodeError:
+                pass
+        yield parsed
+
+
+def _extract_jobs_payload_from_text(text: str) -> Optional[dict[str, Any]]:
+    candidates: list[str] = []
+    for match in _PRE_TAG_PATTERN.finditer(text):
+        candidate = match.group(1)
+        if candidate:
+            candidates.append(candidate)
+    candidates.append(text)
+
+    for candidate in candidates:
+        cleaned = html.unescape(candidate).strip()
+        if not cleaned:
+            continue
+        for parsed in _scan_json_candidates(cleaned):
+            found = _find_jobs_payload(parsed)
+            if found is not None:
+                return found
+    return None
+
+
+def _strip_invalid_json_escapes(text: str) -> str:
+    return _INVALID_JSON_ESCAPE_PATTERN.sub("", text)
+
+
+def load_greenhouse_board(raw_payload: Any) -> GreenhouseBoardResponse:
+    """Normalize raw FetchFox/http payload into a typed board response.
+
+    Accepts raw JSON string, bytes, or already-parsed mapping/list structures.
+    """
+
+    if raw_payload is None:
+        return GreenhouseBoardResponse()
+
+    if isinstance(raw_payload, (bytes, bytearray)):
+        raw_payload = raw_payload.decode("utf-8", errors="replace")
+
+    if isinstance(raw_payload, str):
+        text_payload = raw_payload.lstrip("\ufeff")
+        if not text_payload.strip():
+            return GreenhouseBoardResponse()
+        try:
+            data = orjson.loads(text_payload)
+        except orjson.JSONDecodeError:
+            cleaned = _strip_invalid_json_escapes(text_payload)
+            if not cleaned.strip():
+                return GreenhouseBoardResponse()
+            try:
+                data = orjson.loads(cleaned)
+            except orjson.JSONDecodeError:
+                extracted = _extract_jobs_payload_from_text(text_payload)
+                if extracted is None and cleaned != text_payload:
+                    extracted = _extract_jobs_payload_from_text(cleaned)
+                if extracted is None:
+                    raise ValueError("Greenhouse board payload was not valid JSON")
+                data = extracted
+    else:
+        data = raw_payload
+
+    if isinstance(data, str):
+        try:
+            data = orjson.loads(data)
+        except Exception:
+            extracted = _extract_jobs_payload_from_text(data)
+            if extracted is not None:
+                data = extracted
+
+    if data is None:
+        return GreenhouseBoardResponse()
+
+    if isinstance(data, list):
+        if not data:
+            return GreenhouseBoardResponse()
+        if all(isinstance(item, dict) for item in data):
+            if any(
+                key in item
+                for item in data
+                for key in ("absolute_url", "id", "requisition_id", "company_name")
+            ):
+                data = {"jobs": data}
+
+    if isinstance(data, dict):
+        found = _find_jobs_payload(data)
+        if found is not None:
+            data = found
+
+    return GreenhouseBoardResponse.model_validate(data)
+
+
+def extract_greenhouse_job_urls(
+    board: GreenhouseBoardResponse, required_keywords: Iterable[str] | None = None
+) -> list[str]:
+    """Return unique, non-empty job URLs from a board response that match title filters."""
+
+    urls: list[str] = []
+    for job in board.jobs:
+        if not job.absolute_url:
+            continue
+        if not title_matches_required_keywords(job.title, keywords=required_keywords):
+            continue
+        urls.append(job.absolute_url)
+    # Preserve order while deduping
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for url in urls:
+        if url in seen:
+            continue
+        seen.add(url)
+        deduped.append(url)
+    return deduped

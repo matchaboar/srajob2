@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/openai/openai_careers_20260114T134509_detail.json
+site_id: openai_careers
+detail_url: https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco
+expected:
+  title: "AI Support Engineer"
+  company: "Openai"
+  location_contains: "San Francisco"
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  # NOTE: posted_at extraction from OpenAI careers pages not yet implemented
+  # posted_at_not_null: true

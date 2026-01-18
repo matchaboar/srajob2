@@ -4535,6 +4535,7 @@ export const ingestJobsFromScrape = mutation({
         heuristicAttempts: v.optional(v.number()),
         heuristicLastTried: v.optional(v.number()),
         heuristicVersion: v.optional(v.number()),
+        sourceUrl: v.optional(v.string()),
         scrapeUrl: v.optional(v.string()),
       }),
     ),
@@ -4610,6 +4611,7 @@ export const ingestJobsFromScrape = mutation({
         heuristicAttempts,
         heuristicLastTried,
         heuristicVersion,
+        sourceUrl,
         scrapeUrl,
         engineer: jobEngineer,
         jobTitle: _ignoredJobTitle,
@@ -4673,6 +4675,7 @@ export const ingestJobsFromScrape = mutation({
         detailRow.description = descriptionFields.description;
       }
       if (metadata !== undefined) detailRow.metadata = metadata;
+      if (sourceUrl !== undefined) detailRow.sourceUrl = sourceUrl;
       if (scrapeUrl !== undefined) detailRow.scrapeUrl = scrapeUrl;
       if (scrapedWith !== undefined) detailRow.scrapedWith = scrapedWith;
       if (workflowName !== undefined) detailRow.workflowName = workflowName;

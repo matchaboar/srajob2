@@ -1,0 +1,66 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414",
+    "params": {
+      "return_format": [
+        "raw"
+      ],
+      "metadata": true,
+      "request": "basic",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    {
+      "content": {
+        "raw": "{\"absolute_url\":\"https://www.pinterestcareers.com/jobs/?gh_jid=7444414\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":3310646,\"location\":{\"name\":\"San Francisco, CA, US; Remote, US\"},\"metadata\":[{\"id\":5955,\"name\":\"Employment Type\",\"value\":\"Regular\",\"value_type\":\"single_select\"},{\"id\":16373425,\"name\":\"Career Track\",\"value\":\"Individual Contributor\",\"value_type\":\"single_select\"},{\"id\":2110283,\"name\":\"Careers Page Department\",\"value\":\"Corporate Strategy\",\"value_type\":\"single_select\"}],\"id\":7444414,\"updated_at\":\"2025-12-11T19:05:42-05:00\",\"requisition_id\":\"R0006130\",\"title\":\"Business Development Lead, Data Partnerships\",\"company_name\":\"Pinterest\",\"first_published\":\"2025-12-10T16:58:36-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;About Pinterest:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime. At Pinterest, we’re on a mission to bring everyone the inspiration to create a life they love, and that starts with the people behind the product.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;Discover a career where you ignite innovation for millions, transform passion into growth opportunities, celebrate each other’s unique experiences and embrace the\\u0026amp;nbsp;\\u0026lt;a href=\\u0026quot;https://www.pinterestcareers.com/our-life/pinflex/\\u0026quot;\\u0026gt;flexibility\\u0026lt;/a\\u0026gt; to do your best work. Creating a career you love? It’s Possible.\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;p\\u0026gt;The Business Development team at Pinterest is responsible for developing partner strategy, as well as sourcing, evaluating, executing and managing partnerships that are a critical lever for growth and progress of the company against key strategic initiatives. The team works closely with senior leadership, product, marketing, legal and revenue teams to deliver these partnerships.\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;The Business Development Lead for Data Partnerships will own and grow a portfolio of privacy-centric data partnerships (e.g., clean rooms, identity, and targeting partners) that enable Pinterest and its advertisers to activate, measure, and optimize performance in a privacy first world.\\u0026amp;nbsp; This position will report to the Director of BD for Measurement and Data.\\u0026amp;nbsp; The role will be hybrid with some time in the office and remote.\\u0026amp;nbsp;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;What you’ll do:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Develop the partner strategy for privacy centric data partnerships at Pinterest, including helping the company understand the industry landscape to identify opportunities, trends and risks that are relevant to Pinterest.\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Lead the process of identifying partnerships to pursue, including building the business case through strategic/financial analysis and due diligence across relevant teams including product, engineering, legal, marketing and sales\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Negotiate deals and develop partnerships by working across relevant teams including product, engineering, legal, marketing and sales\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Manage the portfolio of partnerships and drive growth from initial launch through scaled adoption, ensuring partners are integrated effectively, supported by strong joint value propositions, and embedded into how advertisers measure and optimize on Pinterest.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;What we’re looking for:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;You have a Bachelor’s Degree or equivalent practical experience and 6+ years of work experience in business development, ideally with demonstrated experience in online advertising partnerships focused on privacy enhancing technology, identity, and targeting.\\u0026amp;nbsp;\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You are strategic, driven, and analytical with a passion for the online advertising industry and technology\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You are an expert in partner and program management and know how to manage and optimize complex partnerships\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You are experienced in performing broad quantitative analysis and negotiating complex deals\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You have experience and knowledge of the online advertising industry and partner ecosystem\\u0026amp;nbsp;\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You have the ability to work with, and effectively influence, cross-functional senior executives in a rapidly changing environment\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Relocation Statement:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;\\u0026amp;nbsp;This position is not eligible for relocation assistance. Visit our \\u0026lt;a href=\\u0026quot;https://www.pinterestcareers.com/pinflex/\\u0026quot;\\u0026gt;PinFlex\\u0026lt;/a\\u0026gt; page to learn more about our working model.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;In-Office Requirement Statement:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;We let the type of work you do guide the collaboration style. That means we\\u0026#39;re not always working in an office, but we continue to gather for key moments of collaboration and connection.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;This role will need to be in the office for in-person collaboration 1-2 times/quarter and therefore can be situated anywhere in the country. \\u0026lt;br\\u0026gt;\\u0026lt;br\\u0026gt;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;#LI-REMOTE\\u0026amp;nbsp;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;#LI-EP4\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-pay-transparency\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-input\\u0026quot;\\u0026gt;\\u0026lt;div class=\\u0026quot;description\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;At Pinterest we believe the workplace should be equitable, inclusive, and inspiring for every employee. In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary is based on a number of factors including location, travel, relevant prior experience, or particular skills and expertise.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;em\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;Information regarding the culture at Pinterest and benefits available for this position can be found \\u0026lt;a href=\\u0026quot;https://www.pinterestcareers.com/pinterest-life/\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;here\\u0026lt;/a\\u0026gt;.\\u0026lt;/span\\u0026gt;\\u0026lt;/em\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;title\\u0026quot;\\u0026gt;US based applicants only\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;pay-range\\u0026quot;\\u0026gt;\\u0026lt;span\\u0026gt;$132,298\\u0026lt;/span\\u0026gt;\\u0026lt;span class=\\u0026quot;divider\\u0026quot;\\u0026gt;\\u0026amp;mdash;\\u0026lt;/span\\u0026gt;\\u0026lt;span\\u0026gt;$272,377 USD\\u0026lt;/span\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;strong\\u0026gt;Our Commitment to Inclusion:\\u0026lt;/strong\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;div\\u0026gt;Pinterest is an equal opportunity employer and makes employment decisions on the basis of merit. We want to have the best qualified people in every job. All qualified applicants will receive consideration for employment without regard to race, color, ancestry, national origin, religion or religious creed, sex (including pregnancy, childbirth, or related medical conditions), sexual orientation, gender, gender identity, gender expression, age, marital status, status as a protected veteran, physical or mental disability, medical condition, genetic information or characteristics (or those of a family member) or any other consideration made unlawful by applicable federal, state or local laws. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you require a medical or religious accommodation during the job application process, please complete\\u0026amp;nbsp;\\u0026lt;a href=\\u0026quot;https://forms.gle/sS24D4WboEKUZMQK6\\u0026quot;\\u0026gt;this form\\u0026lt;/a\\u0026gt;\\u0026amp;nbsp;for support.\\n\\u0026lt;div\\u0026gt;\\u0026amp;nbsp;\\u0026lt;/div\\u0026gt;\\n\\u0026lt;/div\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":515,\"name\":\"Corporate Development\",\"child_ids\":[],\"parent_id\":84512}],\"offices\":[{\"id\":83,\"name\":\"San Francisco\",\"location\":\"San Francisco, CA, US\",\"child_ids\":[],\"parent_id\":78376}]}"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 2.1559333333333334e-06,
+        "compute_cost_formatted": "0.0000021559333333333333303727",
+        "file_cost": 1.4778e-05,
+        "file_cost_formatted": "0.0000147779999999999994697575",
+        "total_cost": 1.6933933333333334e-05,
+        "total_cost_formatted": "0.0000169339333333333328001302",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 999,
+      "error": null,
+      "links": [],
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "boards-api.greenhouse.io",
+          "extracted_data": null,
+          "file_size": 9852,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414",
+          "pathname": "/v1/boards/pinterest/jobs/7444414",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414"
+    }
+  ]
+}

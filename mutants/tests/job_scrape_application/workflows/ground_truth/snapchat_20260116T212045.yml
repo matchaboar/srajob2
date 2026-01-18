@@ -1,0 +1,17 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/snapchat_20260116T212045_detail.json
+# Generated: 2026-01-16T21:21:17.507605+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: snapchat
+detail_url: https://careers.snap.com/job?id=R0043496
+expected:
+  title_contains: "Technical Program Manager"
+  company: "Snap"
+  location_contains: "Vienna, Austria"
+  is_remote: false
+  level: "senior"
+  description_min_words: 50
+  # Full description assertions - proves workflow posts to file storage
+  full_description_word_count_min: 0  # Full description for file storage
+  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  cost_milli_cents_min: 1

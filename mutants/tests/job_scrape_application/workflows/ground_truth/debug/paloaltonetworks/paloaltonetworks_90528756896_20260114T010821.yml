@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/paloaltonetworks/paloaltonetworks_90528756896_20260114T010821_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/santa-clara/principal-program-manager-pmo/47263/90528756896
+expected:
+  title: Principal Program Manager, PMO
+  company: Palo Alto Networks
+  location_contains: Santa Clara
+  is_remote: false
+  level: staff
+  description_min_words: 50
+  cost_milli_cents_min: 1

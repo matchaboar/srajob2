@@ -1,0 +1,32 @@
+[
+  [
+    {
+      "content": {
+        "commonmark": ""
+      },
+      "costs": null,
+      "duration_elasped_ms": 30149,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "",
+          "domain": "explore.jobs.netflix.net",
+          "extracted_data": null,
+          "file_size": 39,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://explore.jobs.netflix.net/careers/job/790313241540",
+          "pathname": "/careers/job/790313241540",
+          "resource_type": ".md",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://explore.jobs.netflix.net/careers/job/790313241540"
+    }
+  ]
+]

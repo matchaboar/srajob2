@@ -1,0 +1,66 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518",
+    "params": {
+      "return_format": [
+        "raw"
+      ],
+      "metadata": true,
+      "request": "basic",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    {
+      "content": {
+        "raw": "{\"absolute_url\":\"https://careers.airbnb.com/positions/7469518?gh_jid=7469518\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"internal_job_id\":3317245,\"location\":{\"name\":\"São Paulo, Brazil\"},\"metadata\":[{\"id\":9245691,\"name\":\"Is this job part of ACC?\",\"value\":false,\"value_type\":\"yes_no\"},{\"id\":10216612,\"name\":\"Workplace Type\",\"value\":\"Hybrid\",\"value_type\":\"single_select\"}],\"id\":7469518,\"updated_at\":\"2025-12-15T19:55:26-05:00\",\"requisition_id\":\"ONE\",\"title\":\"Android Software Engineer\",\"company_name\":\"Airbnb\",\"first_published\":\"2025-12-15T19:55:26-05:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;\\u0026quot;\\u0026gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;The Community You Will Join: \\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;color: #000000; font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;The Quality Engineering team helps Airbnb build high-quality software efficiently. We enable Airbnb engineers to build highly testable systems by building and using tools leveraging AI. We own and continuously improve product test cases, automation coverage, test automation tools, environments, frameworks. We navigate Airbnb’s massive codebase identifying weak spots, and help design and implement testable fault-tolerant systems.\\u0026amp;nbsp;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;The Difference You Will Make:\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Be a leader in Airbnb leveraging AI to redefine and accelerate Quality Engineering.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;As a Senior Android Engineer, you will help us meet this challenge by building and maintaining our test tools/frameworks, writing and testing product/system code, and guiding designs and code to improve its modularity and testability.\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;You are eager to understand complex systems top to bottom and thrive working across technologies and codebases. In addition, you excel at working through ambiguity, concept validation, and implementing best-in-class solutions.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;As a global company and product, the tests, tools and frameworks that we build have to scale to the needs of both our external customers but also to the expectations of our internal stakeholders. Therefore, our mission is to ensure that Airbnb has the test coverage, tooling and frameworks necessary to assure that our product workflows deliver a seamless high quality experience for our customers.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;A Typical Day:\\u0026amp;nbsp;\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Leverage AI and build, maintain and support our platforms - testing infrastructure, applications, environments and tools using your expertise Android development and testing\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Help build out the team, cultivate innovation and growth by driving cross-collaboration and execution of projects across multiple teams\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Be a player of our high-performance team to ensure code quality, commitment to craft and operational excellence\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Scale distributed applications in a highly-available 24x7 environment, make architectural trade-offs applying design patterns and disciplined execution\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Work closely with cross-functional teams spanning design, product, data science, and research partners to drive engineering decisions and influence outcomes\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Your Expertise:\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Bachelor’s degree in computer science/engineering or equivalent\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;2+ years of mobile development experience\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Demonstrable knowledge in Kotlin, Java and Espresso\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Demonstrated expertise in developing testability and test automation frameworks and infrastructure for testing Android mobile applications at a large scale\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Excellent communication skills towards facilitating interactions with cross-functional teams\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Expertise developing solutions to ambiguous problems, and integrations across multiple teams with significant impact\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Fluency in English (reading, writing, and speaking) is essential\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;strong\\u0026gt;Our Commitment To Inclusion \\u0026amp;amp; Belonging:\\u0026lt;/strong\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400; font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;Airbnb is committed to working with the broadest talent pool possible. We believe diverse ideas foster innovation and engagement, and allow us to attract creatively-led people, and to develop the best products, services and solutions. All qualified individuals are encouraged to apply.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;We strive to also provide a disability inclusive application and interview process. If you are a candidate with a disability and require reasonable accommodation in order to submit an application, please contact us at: \\u0026lt;/span\\u0026gt;\\u0026lt;a style=\\u0026quot;color: #000000;\\u0026quot; href=\\u0026quot;mailto:reasonableaccommodations@airbnb.com\\u0026quot;\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;reasonableaccommodations@airbnb.com\\u0026lt;/span\\u0026gt;\\u0026lt;/a\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400;\\u0026quot;\\u0026gt;. Please include your full name, the role you’re applying for and the accommodation necessary to assist you with the recruiting process.\\u0026amp;nbsp;\\u0026lt;/span\\u0026gt;\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-weight: 400; font-family: arial, helvetica, sans-serif; color: #000000;\\u0026quot;\\u0026gt;We ask that you only reach out to us if you are a candidate whose disability prevents you from being able to complete our online application.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\",\"departments\":[{\"id\":77,\"name\":\"Software Engineering\",\"child_ids\":[],\"parent_id\":73703}],\"offices\":[{\"id\":176,\"name\":\"São Paulo, Brazil\",\"location\":\"São Paulo, Brazil\",\"child_ids\":[],\"parent_id\":63869}]}"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0,
+        "bytes_transferred_cost_formatted": "0",
+        "compute_cost": 2.250783333333334e-06,
+        "compute_cost_formatted": "0.0000022507833333333333425852",
+        "file_cost": 1.25235e-05,
+        "file_cost_formatted": "0.0000125234999999999992159605",
+        "total_cost": 1.4774283333333333e-05,
+        "total_cost_formatted": "0.0000147742833333333325585457",
+        "transform_cost": 0.0,
+        "transform_cost_formatted": "0"
+      },
+      "duration_elasped_ms": 1101,
+      "error": null,
+      "links": [],
+      "metadata": {
+        "raw": {
+          "automation_data": null,
+          "description": "",
+          "domain": "boards-api.greenhouse.io",
+          "extracted_data": null,
+          "file_size": 8349,
+          "final_url": null,
+          "keywords": null,
+          "og_image": null,
+          "original_url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518",
+          "pathname": "/v1/boards/airbnb/jobs/7469518",
+          "resource_type": ".html",
+          "title": "",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7469518"
+    }
+  ]
+}

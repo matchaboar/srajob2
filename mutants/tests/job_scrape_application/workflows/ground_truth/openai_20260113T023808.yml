@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/openai_20260113T023808_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+# Note: Title extractor correctly strips " - San Francisco" suffix as it's a location
+site_id: openai
+detail_url: https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco
+expected:
+  title: AI Support Engineer
+  company: Openai
+  location_contains: San Francisco
+  is_remote: false
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1

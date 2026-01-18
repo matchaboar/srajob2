@@ -1,0 +1,14 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/coreweave_20260113T023046_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: coreweave
+detail_url: https://boards-api.greenhouse.io/v1/boards/coreweave/jobs/4555589006
+expected:
+  title_contains: Application Security Engineer
+  company: CoreWeave
+  # Multi-location job - first location in original data is used (Livingston, NJ)
+  location_contains: Livingston
+  is_remote: false
+  level: mid  # 3+ years experience required
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

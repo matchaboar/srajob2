@@ -36,6 +36,7 @@ interface JobDescriptionPanelProps {
   scrapedWith?: string | null;
   workflowName?: string | null;
   scrapedCostMilliCents?: number | null;
+  sourceUrl?: string | null;
   scrapeUrl?: string | null;
   queueDurationInfos?: QueueDurationInfo[];
   applicationCount?: number | null;
@@ -76,6 +77,7 @@ export function JobDescriptionPanel({
   scrapedWith,
   workflowName,
   scrapedCostMilliCents,
+  sourceUrl,
   scrapeUrl,
   queueDurationInfos,
   applicationCount,
@@ -188,14 +190,15 @@ export function JobDescriptionPanel({
 
           {/* Scrape Info - Jobs tab only */}
           {variant === "jobs" && (
-            <ScrapeInfoSection
-              scrapedAt={scrapedAt}
-              scrapedWith={scrapedWith}
-              workflowName={workflowName}
-              scrapedCostMilliCents={scrapedCostMilliCents}
-              scrapeUrl={scrapeUrl}
-              queueDurationInfos={queueDurationInfos}
-            />
+          <ScrapeInfoSection
+            scrapedAt={scrapedAt}
+            scrapedWith={scrapedWith}
+            workflowName={workflowName}
+            scrapedCostMilliCents={scrapedCostMilliCents}
+            sourceUrl={sourceUrl}
+            scrapeUrl={scrapeUrl}
+            queueDurationInfos={queueDurationInfos}
+          />
           )}
 
           {/* Applications count - Jobs tab only */}

@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/notion/ashby_20260114T134509_detail.json
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297
+expected:
+  title: "Account Executive, Mid-Market"
+  company: "Notion"
+  location_contains: "New York"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

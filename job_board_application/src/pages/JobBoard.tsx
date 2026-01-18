@@ -1000,6 +1000,7 @@ export function JobBoard() {
     return normalizeMarkdown(trimmed);
   }, [selectedJobFull]);
   const scrapeUrl = (selectedJobFull as { scrapeUrl?: string } | null)?.scrapeUrl;
+  const sourceUrl = (selectedJobFull as { sourceUrl?: string } | null)?.sourceUrl;
   const appliedCompMeta = useMemo(() => buildCompensationMeta(selectedAppliedJobFull), [selectedAppliedJobFull]);
   const appliedCompColorClass = appliedCompMeta.isEstimated ? "text-slate-300" : "text-emerald-200";
   const appliedDescriptionText = useMemo(() => {
@@ -1993,6 +1994,7 @@ export function JobBoard() {
                     scrapedWith={selectedJobFull.scrapedWith}
                     workflowName={selectedJobFull.workflowName}
                     scrapedCostMilliCents={selectedJobFull.scrapedCostMilliCents}
+                    sourceUrl={sourceUrl}
                     scrapeUrl={scrapeUrl}
                     queueDurationInfos={queueDurationInfos}
                     applicationCount={selectedJobFull.applicationCount}

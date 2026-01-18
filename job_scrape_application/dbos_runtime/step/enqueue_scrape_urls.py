@@ -1,4 +1,4 @@
-"""DBOS step function for enqueuing scrape URLs."""
+"""DBOS workflow function for enqueuing scrape URLs."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from dbos import DBOS
 from ..queue import enqueue_scrape_urls as _enqueue_scrape_urls
 
 
-@DBOS.step(retries_allowed=True, max_attempts=3, interval_seconds=0.5, backoff_rate=2.0)
+@DBOS.workflow()
 def enqueue_scrape_urls_step(
     urls: list[str],
     source_url: str,
@@ -22,8 +22,12 @@ def enqueue_scrape_urls_step(
 ) -> dict[str, Any]:
     """Enqueue URLs for scraping.
 
-    This step adds URLs to the SQLite scrape queue with proper deduplication
-    and metadata. Used by listing workflows to enqueue discovered job URLs.
+    This workflow enqueues DBOS workflows via DBOS queues with basic deduplication
+    for completed detail URLs. Used by listing workflows to enqueue discovered
+    job URLs.
+
+    Note: This must be a workflow (not a step) because queue.enqueue() can only
+    be called from a workflow context.
 
     Args:
         urls: List of URLs to enqueue

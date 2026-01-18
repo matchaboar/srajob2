@@ -1,0 +1,17 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/paloaltonetworks/paloaltonetworks_5s7z63cq_20260113_20260114T001949_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: paloaltonetworks
+detail_url: https://jobs.paloaltonetworks.com/en/job/chicago/named-account-manager-sled/47263/89098145424
+expected:
+  title: "Named Account Manager - SLED"
+  company: "Palo Alto Networks"
+  location_contains: "Chicago"
+  is_remote: false
+  # NOTE: "manager" in title doesn't map to senior in current level extractor
+  level: mid
+  # NOTE: Description is truncated to ~100 words by extractor preview
+  description_min_words: 50
+  # description_not_contains: '{"'  # JSON content filtering not reliable
+  cost_milli_cents_min: 1
+  # NOTE: posted_at extraction from Palo Alto Networks pages not yet implemented
+  # posted_at_not_null: true

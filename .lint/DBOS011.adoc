@@ -1,0 +1,147 @@
+= DBOS011: Step function serialization
+
+== Summary
+
+`@DBOS.step` function inputs and outputs must be serializable.
+
+== Description
+
+DBOS step functions are checkpointed and their inputs/outputs are persisted for durability and recovery. This means all parameter types and return types must be JSON-serializable.
+
+The following types are serializable:
+
+* **Primitives**: `str`, `int`, `float`, `bool`, `None`
+* **Containers**: `list`, `dict`, `tuple` (with serializable contents)
+* **Typing constructs**: `Optional`, `Union`, `Literal`, `Any`
+* **Custom types**: `dataclass`, `TypedDict`, `NamedTuple` (with serializable fields)
+* **Common types**: `datetime`, `date`, `UUID`, `Decimal`, `Enum`
+
+The following types are NOT serializable and will trigger this lint rule:
+
+* **Callables**: `Callable`, functions, lambdas
+* **Generators**: `Generator`, `Iterator`, `AsyncGenerator`
+* **Sets**: `set`, `frozenset` (not JSON-serializable)
+* **Bytes**: `bytes`, `bytearray`
+* **IO types**: `IO`, `TextIO`, `BinaryIO`, `Path`
+* **Type references**: `Type[X]`, `type`
+* **Concurrency**: `Lock`, `Semaphore`, `Thread`, `Process`
+* **Connections**: `Connection`, `Cursor`, `Socket`
+
+== Examples
+
+.Bad: Callable parameter is not serializable
+[source,python]
+----
+@DBOS.step
+def process_with_callback(data: str, callback: Callable[[str], None]) -> str:
+    result = transform(data)
+    callback(result)  # ERROR: callback cannot be serialized
+    return result
+----
+
+.Bad: Set return type is not serializable
+[source,python]
+----
+@DBOS.step
+def get_unique_values(items: list[str]) -> set[str]:  # ERROR: set not JSON-serializable
+    return set(items)
+----
+
+.Bad: Generator parameter is not serializable
+[source,python]
+----
+@DBOS.step
+def process_stream(items: Iterator[str]) -> list[str]:  # ERROR: Iterator cannot be serialized
+    return list(items)
+----
+
+.Good: Use serializable types
+[source,python]
+----
+@DBOS.step
+def process_data(data: str) -> str:
+    return transform(data)
+----
+
+.Good: Use list instead of set
+[source,python]
+----
+@DBOS.step
+def get_unique_values(items: list[str]) -> list[str]:
+    return list(set(items))  # Convert to list for return
+----
+
+.Good: Materialize iterators before passing
+[source,python]
+----
+@DBOS.step
+def process_items(items: list[str]) -> list[str]:  # Pass materialized list
+    return [transform(item) for item in items]
+----
+
+.Good: Use dataclass for structured data
+[source,python]
+----
+@dataclass
+class ProcessingResult:
+    status: str
+    count: int
+    items: list[str]
+
+@DBOS.step
+def process_batch(batch_id: str) -> ProcessingResult:
+    # dataclass with serializable fields is OK
+    return ProcessingResult(status="done", count=10, items=["a", "b"])
+----
+
+== Why Serializability Matters
+
+DBOS provides durability guarantees by checkpointing step execution. When a workflow crashes and restarts:
+
+1. DBOS looks up the step's recorded inputs and outputs
+2. If the step already completed, it returns the saved output (replay)
+3. If the step was in progress, it re-executes with the saved inputs
+
+This requires all inputs and outputs to be serializable to JSON. Non-serializable types like functions, generators, or file handles cannot be persisted and would break recovery.
+
+== Workarounds
+
+If you need to use non-serializable types:
+
+1. **Move the non-serializable logic outside the step**: Keep steps focused on serializable data transformations.
+
+2. **Use identifiers instead of objects**: Pass a `connection_id: str` instead of `connection: Connection`, and look up the connection inside the step.
+
+3. **Serialize manually**: Convert to/from serializable formats at step boundaries.
+
+.Example: Using identifiers instead of objects
+[source,python]
+----
+# Bad: passing connection object
+@DBOS.step
+def query_db(conn: Connection, query: str) -> list[dict]:  # ERROR
+    return conn.execute(query).fetchall()
+
+# Good: pass identifier, get connection inside
+@DBOS.step
+def query_db(connection_name: str, query: str) -> list[dict]:
+    conn = get_connection(connection_name)  # Look up connection
+    return conn.execute(query).fetchall()
+----
+
+== Suppression
+
+Add `# noqa: DBOS011` to the function definition line.
+
+[source,python]
+----
+@DBOS.step  # noqa: DBOS011
+def special_step(callback: Callable) -> None:
+    # Intentionally using non-serializable type
+    pass
+----
+
+== See Also
+
+* DBOS001 - Functions calling convex or httpx must have @DBOS.step decorator
+* DBOS008 - Workflow calls must be DBOS-decorated

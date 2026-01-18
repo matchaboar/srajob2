@@ -1,0 +1,83 @@
+[
+  [
+    {
+      "content": {
+        "commonmark": "Chat now\nwith sales\n[\n](javascript:void(0);)\n![]()\n![]()\n8 sales reps available\nWe're here to discuss your business needs.\nBackend Engineer, Data\n#\n[Stripe logo](https://stripe.com/)\n[Jobs](https://stripe.com/jobs)\n# Jobs\n* [\nOur opportunity\n](https://stripe.com/jobs)\n* [\nLife at Stripe\n](https://stripe.com/jobs/life-at-stripe)\n* [\nBenefits\n](https://stripe.com/jobs/benefits)\n* [\nUniversity\n](https://stripe.com/jobs/university)\nClose mobile navigation\n## Who we are\n### About Stripe\nStripe is a financial infrastructure platform for businesses. Millions of companies—from the world’s largest enterprises to the most ambitious startups—use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase the GDP of the internet, and we have a staggering amount of work ahead. That means you have an unprecedented opportunity to put the global economy within everyone’s reach while doing the most important work of your career.\n### About the team\nThe Data Foundations team drives Data Engineering and Data Apps &amp; Tooling work across Stripe, enabling Stripes to leverage data to make informed decisions and build user-centric products. We provide tools and infrastructure to move, store, process, and analyze data, both at rest and in motion. We are looking for talented data-minded software engineers to help us manage business-critical data leveraged across the entire organization. If you are passionate about data, excited about designing data pipelines and data-driven user experiences, and motivated by having an outsized impact on the business, we want to hear from you.\nTeam Matching: exact team matching for one of the subteams will begin during final stages. Please note we may also consider you for different orgs based on your experience, location, etc. More information on our team matching process can be found [here](https://docs.google.com/document/d/1zvJkO2c7GzukHG-_oqc5wbOLajpuh5FjbmZPcZPU1o0/edit?tab=t.0#heading=h.ahb3b6nrktv1).\n## What you’ll do\nEvery record in our data warehouse is vitally important for the businesses that use Stripe, so we’re looking for people with a strong background in software engineering and data to help us scale while maintaining correct and complete data. You’ll be working with a variety of internal teams across Product, Data Science, and GTM to help them solve their data needs. Your work will provide visibility into how these stakeholders and the Data Foundations organization are performing and how we can deliver a better experience to Stripe's customers.\n### Responsibilities\n* Design, develop, and own data pipelines, models, and products that power the Product, Data Science, and GTM functions\n* Develop strong subject matter expertise and manage the SLAs for both data pipelines and full stack web applications that support these critical stakeholders\n* Build and refine Stripe's data foundations - infrastructure, pipelines, and tools to enable various teams at Stripe - working with Scala, Spark, and Airflow\n* Leverage LLM and Agents at scale to produce high-quality data on ambiguous problems\n* Refine our existing data marts that help the GTM organization forecast the future potential performance of the business and reliably measure ongoing attainment toward targets\n* Build data services that track key product metrics and measure the impact of different strategies employed by teams in the field\n* Our tech stack is Spark, Scala, Java, SQL, and Python - and while we don’t expect everyone on the team to be an expert in all of these, you will work across all of these technologies throughout your tenure on the team\n## Who you are\nWe’re looking for someone who meets the minimum requirements to be considered for the role. If you meet these requirements, you are encouraged to apply. The preferred qualifications are a bonus, not a requirement.\n### Minimum requirements\n* 2 - 5 years of experience in a Software Engineering role, with a focus on building and maintaining data services, or data-intensive applications.\n* A strong engineering background and are interested in data\n* Prior experience with writing and debugging data pipelines using a distributed data framework (Spark / Hadoop / Pig etc)\n* An inquisitive nature in diving into data inconsistencies to pinpoint issues, and resolve deep rooted data quality issues\n* Knowledge of a backend development language (such as Scala, Java, or Go) and strong SQL experience\n* The ability to communicate cross-functionally, derive requirements and architect shared datasets\n* A strong engineering background and an interest in data\n### Preferred requirements\n* Experience creating and maintaining Data Marts to power business reporting needs\n* Experience working with Product or GTM (Sales/Marketing) teams\nThis role is available either in an office or a remote location (35+ miles or 56+ km from a Stripe office).\nOffice-assigned Stripes spend at least 50% of the time in a given month in their local office or with users. This hits a balance between bringing people together for in-person collaboration and learning from each other, while supporting flexibility about how to do this in a way that makes sense for individuals and their teams.\nA remote location is defined as being 35 miles (56 kilometers) or more from one of our offices. While you would be welcome to come into the office for team/business meetings, on-sites, meet-ups, and events, our expectation is you would regularly work from home rather than a Stripe office. Stripe does not cover the cost of relocating to a remote location. We encourage you to apply for roles that match the location where you currently live or plan to live.\nThe annual salary range for this role in the primary location is CA$135,200 - CA$258,000. This range may change if you are hired in another location. For sales roles, the range provided is the role’s On Target Earnings (“OTE”) range, meaning that the range includes both the sales commissions/sales bonuses target and annual base salary for the role. This salary range may be inclusive of several career levels at Stripe and will be narrowed during the interview process based on a number of factors, including the candidate’s experience, qualifications, and specific location. Applicants interested in this role and who are not located in the primary location may request the annual salary range for their location during the interview process.\nSpecific benefits and details about what compensation is included in the salary range listed above will vary depending on the applicant’s location and can be discussed in more detail during the interview process. Benefits/additional compensation for this role may include: equity, company bonus or sales commissions/bonuses; retirement plans; health benefits; and wellness stipends.\nOffice locations\nToronto\nRemote locations\nRemote in Canada\nTeam\nData Platform\nJob type\nFull time\n[Apply for this role\n](https://stripe.com/jobs/listing/backend-engineer-data/6865161/apply)\nAt Stripe, we're looking for people with passion, grit, and integrity. You're encouraged to apply even if your experience doesn't precisely match the job description. Your skills and passion will stand out—and set you apart—especially if your career has taken some extraordinary twists and turns. At Stripe, we welcome diverse perspectives and people who think rigorously and aren't afraid to challenge assumptions. Join us."
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0001426215,
+        "bytes_transferred_cost_formatted": "0.0001426215000000000066027184",
+        "compute_cost": 2.5858944444444446e-05,
+        "compute_cost_formatted": "0.0000258589444444444436806110",
+        "file_cost": 0.0002404845,
+        "file_cost_formatted": "0.0002404844999999999899387149",
+        "total_cost": 0.00041896494444444444,
+        "total_cost_formatted": "0.0004189649444444444407771557",
+        "transform_cost": 1e-05,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 13759,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "Help increase the GDP of the internet as part of our Data Platform team.",
+          "domain": "stripe.com",
+          "extracted_data": null,
+          "file_size": 7459,
+          "final_url": "https://stripe.com/jobs/listing/backend-engineer-data/6865161",
+          "keywords": [
+            "Build data services",
+            "Canada Team Data Platform Job type Full time",
+            "Close mobile navigation",
+            "Data Foundations organization",
+            "Data Foundations team drives Data Engineering",
+            "Develop strong subject matter expertise",
+            "GTM organization forecast",
+            "Office locations Toronto Remote locations Remote",
+            "Office-assigned Stripes spend",
+            "Software Engineering role",
+            "annual base salary",
+            "annual salary range",
+            "architect shared datasets",
+            "backend development language",
+            "build user-centric products",
+            "data-driven user experiences",
+            "debugging data pipelines",
+            "designing data pipelines",
+            "distributed data framework",
+            "exact team matching",
+            "existing data marts",
+            "financial infrastructure platform",
+            "full stack web applications",
+            "future potential performance",
+            "interview process based",
+            "maintaining Data Marts",
+            "maintaining data services",
+            "make informed decisions",
+            "manage business-critical data leveraged",
+            "produce high-quality data",
+            "reliably measure ongoing attainment",
+            "resolve deep rooted data quality issues",
+            "salary range listed",
+            "strong engineering background",
+            "talented data-minded software engineers",
+            "team matching process",
+            "track key product metrics"
+          ],
+          "og_image": "https://images.stripeassets.com/fzn2n1nzq965/4WQZdQm7sintngjLSCgyJn/33868b126a8b59021fe7db006c5a015e/Stripe_jobs_share.jpg?q=80",
+          "original_url": "https://stripe.com/jobs/search?gh_jid=6865161",
+          "pathname": "/jobs/search?gh_jid=6865161",
+          "resource_type": ".md",
+          "title": "Backend Engineer, Data",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://stripe.com/jobs/listing/backend-engineer-data/6865161"
+    }
+  ]
+]

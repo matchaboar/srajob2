@@ -1,0 +1,13 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/single_request/coupang_20260113T024652_detail.json
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: coupang
+detail_url: https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7457275
+expected:
+  title: Android Engineer
+  company: Coupang
+  # Bengaluru and Bangalore are the same city
+  location_contains: Bangalore
+  is_remote: false
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

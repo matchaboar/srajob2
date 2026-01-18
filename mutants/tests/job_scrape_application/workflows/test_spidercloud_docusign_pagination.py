@@ -1,0 +1,169 @@
+from __future__ import annotations
+
+import orjson
+from pathlib import Path
+from typing import Any, Dict
+
+import pytest
+
+
+from job_scrape_application.workflows.workflow import store_scrape  # noqa: E402
+from job_scrape_application.workflows.scrapers.spidercloud_scraper import (  # noqa: E402
+    SpiderCloudScraper,
+    SpidercloudDependencies,
+)
+from job_scrape_application.workflows.site_handlers.docusign import (  # noqa: E402
+    DocusignHandler,
+)
+
+FIXTURE_DIR = Path("tests/job_scrape_application/workflows/fixtures")
+PAGE_1 = FIXTURE_DIR / "spidercloud_docusign_api_page_1.json"
+PAGE_2 = FIXTURE_DIR / "spidercloud_docusign_api_page_2.json"
+
+LISTING_URL_PAGE_1 = (
+    "https://careers.docusign.com/api/jobs"
+    "?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations"
+    "&page=1"
+    "&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States"
+    "&sortBy=relevance&descending=false&internal=false"
+)
+LISTING_URL_PAGE_2 = LISTING_URL_PAGE_1.replace("page=1", "page=2")
+
+
+def _make_scraper() -> SpiderCloudScraper:
+    deps = SpidercloudDependencies(
+        mask_secret=lambda v: v,
+        sanitize_headers=lambda h: h,
+        build_request_snapshot=lambda *args, **kwargs: {},
+        log_dispatch=lambda *args, **kwargs: None,
+        log_sync_response=lambda *args, **kwargs: None,
+        trim_scrape_for_convex=lambda payload: payload,
+        settings=type("cfg", (), {"spider_api_key": "key"}),
+        fetch_seen_urls_for_site=lambda *_args, **_kwargs: [],
+    )
+    return SpiderCloudScraper(deps)
+
+
+def _load_fixture(path: Path) -> Any:
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
+def _parse_payload(raw_payload: Any) -> Dict[str, Any]:
+    scraper = _make_scraper()
+    parsed = scraper._extract_json_payload(raw_payload)
+    assert isinstance(parsed, dict)
+    return parsed
+
+
+def _extract_first_job_url(payload: Dict[str, Any]) -> str:
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list):
+        raise AssertionError("expected jobs list in payload")
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+        job_data = job.get("data") if isinstance(job.get("data"), dict) else job
+        if not isinstance(job_data, dict):
+            continue
+        meta = job_data.get("meta_data")
+        if isinstance(meta, dict):
+            canonical = meta.get("canonical_url")
+            if isinstance(canonical, str) and canonical.strip():
+                return canonical.strip()
+        for key in ("canonical_url", "jobUrl", "postingUrl", "url"):
+            value = job_data.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    raise AssertionError("no job url found in payload")
+
+
+def _run_store_scrape(
+    raw_payload: Any,
+    source_url: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[list[str], list[Dict[str, Any]]]:
+    calls: list[Dict[str, Any]] = []
+    queue_calls: list[Dict[str, Any]] = []
+
+    def fake_mutation(name: str, args: Dict[str, Any]):
+        calls.append({"name": name, "args": args})
+        if name == "router:insertScrapeRecord":
+            return "scrape-id"
+        if name == "router:ingestJobsFromScrape":
+            return {"inserted": 0}
+        return None
+
+    def fake_fetch_seen(_source: str, _pattern: str | None):
+        return []
+
+    def fake_enqueue_scrape_urls(payload: Dict[str, Any], *, force_refresh: bool = False) -> Dict[str, Any]:
+        queue_calls.append(payload)
+        return {"queued": len(payload.get("urls", []))}
+
+    monkeypatch.setattr("job_scrape_application.services.convex_client.convex_mutation", fake_mutation)
+    monkeypatch.setattr(
+        "job_scrape_application.dbos_runtime.queue.enqueue_scrape_urls",
+        fake_enqueue_scrape_urls,
+    )
+    monkeypatch.setattr(
+        "job_scrape_application.workflows.helpers.scrape_utils.fetch_seen_urls_for_site",
+        fake_fetch_seen,
+    )
+
+    scrape_payload: Dict[str, Any] = {
+        "sourceUrl": source_url,
+        "provider": "spidercloud",
+        "startedAt": 0,
+        "completedAt": 1,
+        "items": {"provider": "spidercloud", "raw": raw_payload},
+    }
+
+    store_scrape(scrape_payload)
+
+    assert queue_calls, "store_scrape should enqueue URLs from Docusign listing payload"
+    return queue_calls[0]["urls"], calls
+
+
+def test_store_scrape_enqueues_docusign_page_1_jobs_only(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    raw_payload = _load_fixture(PAGE_1)
+    parsed = _parse_payload(raw_payload)
+
+    pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_1)
+
+    urls, calls = _run_store_scrape(raw_payload, LISTING_URL_PAGE_1, monkeypatch)
+    insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
+    assert insert_calls, "store_scrape should insert the scrape record in Convex"
+    assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_1
+
+    assert any(url.startswith("https://careers.docusign.com/jobs/") for url in urls), (
+        "expected job detail URLs from Docusign listing payload"
+    )
+    assert pagination_urls, "expected pagination URLs for Docusign page 1"
+    for url in pagination_urls:
+        assert url not in urls, f"unexpected pagination URL queued: {url}"
+
+
+def test_store_scrape_enqueues_docusign_page_2_jobs_only(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    raw_payload = _load_fixture(PAGE_2)
+    parsed = _parse_payload(raw_payload)
+
+    pagination_urls = DocusignHandler().get_pagination_urls_from_json(parsed, LISTING_URL_PAGE_2)
+
+    urls, calls = _run_store_scrape(raw_payload, LISTING_URL_PAGE_2, monkeypatch)
+    insert_calls = [c for c in calls if c["name"] == "router:insertScrapeRecord"]
+    assert insert_calls, "store_scrape should insert the scrape record in Convex"
+    assert insert_calls[0]["args"].get("sourceUrl") == LISTING_URL_PAGE_2
+
+    assert any(url.startswith("https://careers.docusign.com/jobs/") for url in urls), (
+        "expected job detail URLs from Docusign page 2 payload"
+    )
+    assert pagination_urls, "expected pagination URLs for Docusign page 2"
+    for url in pagination_urls:
+        assert url not in urls, f"unexpected pagination URL queued: {url}"

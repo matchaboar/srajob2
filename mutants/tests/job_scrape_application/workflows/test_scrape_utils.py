@@ -1,0 +1,522 @@
+from __future__ import annotations
+
+import textwrap
+from pathlib import Path
+
+
+import orjson
+import pytest
+
+from job_scrape_application.workflows.helpers.scrape_utils import (
+    _jobs_from_scrape_items,
+    looks_like_job_listing_page,
+    normalize_firecrawl_items,
+    normalize_fetchfox_items,
+    normalize_single_row,
+    parse_compensation,
+    parse_markdown_hints,
+    parse_posted_at_with_unknown,
+    prefer_apply_url,
+    split_description_metadata,
+    strip_known_nav_blocks,
+)
+
+
+def _load_spidercloud_fixture(path: Path) -> object:
+    payload = orjson.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and "response" in payload:
+        return payload.get("response")
+    return payload
+
+
+def test_parse_markdown_hints_extracts_fields():
+    markdown = textwrap.dedent(
+        """
+        # Senior Software Engineer, Tokenization
+        Toronto, Canada
+        Base Pay Range: $145,000-$170,000 CAD
+        Location: Toronto, Canada
+        """
+    )
+
+    hints = parse_markdown_hints(markdown)
+
+    assert hints["title"].startswith("Senior Software Engineer")
+    assert hints["location"] == "Toronto, Canada"
+    # level is extracted separately by LevelExtractor, not parse_markdown_hints
+    assert hints["compensation"] == 157500  # average of range
+
+
+def test_parse_posted_at_with_unknown_allows_zero_days():
+    now_ms = 1_760_000_000_000
+    posted_at, unknown = parse_posted_at_with_unknown("Posted 0 days ago", now_ms=now_ms)
+
+    assert posted_at == now_ms
+    assert unknown is False
+
+
+def test_parse_markdown_hints_adobe_bucharest_commonmark_fixture():
+    fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_adobe_job_detail_bucharest_commonmark.json"
+    payload = _load_spidercloud_fixture(fixture_path)
+    commonmark = ""
+    if isinstance(payload, list):
+        for entry in payload:
+            if isinstance(entry, list):
+                for item in entry:
+                    if isinstance(item, dict):
+                        content = item.get("content")
+                        if isinstance(content, dict) and isinstance(content.get("commonmark"), str):
+                            commonmark = content["commonmark"]
+                            break
+            if commonmark:
+                break
+
+    assert commonmark, "expected commonmark content in Adobe Bucharest fixture"
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("location") == "Bucharest, Romania"
+
+
+def test_parse_markdown_hints_adobe_yerevan_commonmark_fixture():
+    fixture_path = Path(__file__).parent / "fixtures" / "spidercloud_adobe_job_detail_r162922_commonmark.json"
+    payload = _load_spidercloud_fixture(fixture_path)
+    commonmark = ""
+    if isinstance(payload, list):
+        for entry in payload:
+            if isinstance(entry, list):
+                for item in entry:
+                    if isinstance(item, dict):
+                        content = item.get("content")
+                        if isinstance(content, dict) and isinstance(content.get("commonmark"), str):
+                            commonmark = content["commonmark"]
+                            break
+            if commonmark:
+                break
+
+    assert commonmark, "expected commonmark content in Adobe Yerevan fixture"
+    hints = parse_markdown_hints(commonmark)
+
+    assert hints.get("location") == "Yerevan, Armenia"
+
+
+def test_split_description_metadata_moves_list_header():
+    markdown = textwrap.dedent(
+        """
+        Senior Software Engineer - Securitized Products Cashflow Engine
+
+        15441
+
+        Bloomberg
+        Senior Software Engineer - Securitized Products Cashflow Engine
+        Location
+        New York
+        Business Area
+        Engineering and CTO
+        Ref #
+        10047267
+
+        Description & Requirements
+        Bloomberg's Securitized Products (SP) Analytics group develops the mission-critical systems.
+        """
+    ).strip()
+
+    description, metadata = split_description_metadata(markdown)
+
+    assert metadata is not None
+    assert "Business Area" in metadata
+    assert "Ref #" in metadata
+    assert "Description & Requirements" not in description
+    assert "Bloomberg's Securitized Products" in description
+    assert "Business Area" not in description
+
+
+def test_split_description_metadata_keeps_intro_when_not_metadata():
+    markdown = textwrap.dedent(
+        """
+        About the team
+        We build resilient systems.
+
+        Job Description
+        This role focuses on platform reliability.
+        """
+    ).strip()
+
+    description, metadata = split_description_metadata(markdown)
+
+    assert metadata is None
+    assert "Job Description" not in description
+    assert description.startswith("About the team")
+
+
+def test_parse_compensation_ignores_401k_only():
+    comp, used_default = parse_compensation("401k match", with_meta=True)
+
+    assert comp == 0
+    assert used_default is True
+
+
+def test_parse_compensation_uses_salary_even_with_401k():
+    comp, used_default = parse_compensation("Salary $120,000 plus 401k", with_meta=True)
+
+    assert comp == 120000
+    assert used_default is False
+
+
+def test_normalize_single_row_uses_markdown_hints():
+    markdown = textwrap.dedent(
+        """
+        # Principal Engineer
+        New York, NY
+        Base salary: $200,000 - $240,000 per year
+        Hybrid work environment.
+        """
+    )
+    row = {
+        "title": "Job Application for Principal Engineer at Example",
+        "url": "https://boards.greenhouse.io/example/jobs/123",
+        "description": markdown,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is not None
+    # Title extractors strip " at Company" suffix (e.g., " at Example" stripped)
+    assert normalized["title"] == "Job Application for Principal Engineer"
+    assert normalized["location"] == "New York, NY"
+    # level extraction moved to LevelExtractor
+    assert normalized["total_compensation"] == 220000
+
+
+def test_normalize_single_row_strips_job_application_prefix():
+    markdown_path = Path(__file__).parent.parent / "fixtures" / "markdown_robinhood_offsec.md"
+    markdown = markdown_path.read_text(encoding="utf-8")
+    row = {
+        "title": "Job Application for Senior Offensive Security Engineer at Robinhood",
+        "job_title": "Job Application for Senior Offensive Security Engineer at Robinhood",
+        "url": "https://boards.greenhouse.io/robinhood/jobs/123",
+        "description": markdown,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is not None
+    # Title extractors strip " at Company" suffix (e.g., " at Robinhood" stripped)
+    assert normalized["title"] == "Job Application for Senior Offensive Security Engineer"
+    assert normalized["location"] == "Menlo Park, CA"
+    # level extraction moved to LevelExtractor
+    assert normalized["total_compensation"] >= 187000
+
+
+def test_normalize_single_row_skips_error_landing_page():
+    row = {
+        "title": "Engineering",
+        "url": "https://careers.datadoghq.com/detail/7319730/?gh_jid=7319730",
+        "description": """
+        404 - Page not found | Datadog Careers
+        Careers
+        Welcome
+        Culture
+        Workplace Benefits
+        Candidate Experience
+        Arf. It seems we can't find what you're looking for.
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
+def test_normalize_single_row_skips_requested_page_not_found():
+    row = {
+        "title": "Senior Software Engineer",
+        "url": "https://bloomberg.avature.net/careers/JobDetail/Senior-Engineer/12949",
+        "description": """
+        The requested page was not found.
+        Sorry, the page you’re looking for might have been removed.
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://careers.confluent.io/jobs/united_states-united_arab_emirates",
+        "https://careers.confluent.io/jobs/united_states-thailand",
+        "https://careers.confluent.io/jobs/united_states-finance_&_operations",
+    ],
+)
+def test_normalize_single_row_skips_listing_pages(url: str):
+    row = {
+        "title": "Senior Solutions Engineer",
+        "url": url,
+        "description": """
+        Open Positions
+        Search for Opportunities
+        Select Department
+        Select Country
+        United States
+        Available in Multiple Locations
+        Senior Solutions Engineer
+        """,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is None
+
+
+def test_normalize_single_row_strips_embedded_theme_json():
+    fixture_path = Path(__file__).parent.parent / "fixtures" / "netflix_theme_blob.md"
+    description = fixture_path.read_text(encoding="utf-8")
+    row = {
+        "title": "Software Engineer 5 - Partner Payments",
+        "url": "https://explore.jobs.netflix.net/careers/job/790312242079",
+        "description": description,
+    }
+
+    normalized = normalize_single_row(row)
+
+    assert normalized is not None
+    assert "themeOptions" not in normalized["description"]
+    assert "customTheme" not in normalized["description"]
+    assert "NetflixSans" not in normalized["description"]
+    assert "Netflix is one of the world's leading entertainment services" in normalized["description"]
+
+
+def test_strip_known_nav_blocks_removes_embedded_json_blobs_from_netflix_job_details():
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "netflix_job_detail_convex_prod.json"
+    )
+    payload = _load_spidercloud_fixture(fixture_path)
+    description = payload["description"]
+
+    cleaned = strip_known_nav_blocks(description)
+
+    assert "Netflix is one of the world's leading entertainment services" in cleaned
+    assert "themeOptions" not in cleaned
+    assert '"domain": "netflix.com"' not in cleaned
+    assert "display_banner" not in cleaned
+
+
+def test_looks_like_job_listing_page_detects_snapchat_table():
+    fixture_path = Path("tests/fixtures/spidercloud_snapchat_jobs_scrape.json")
+    response = _load_spidercloud_fixture(fixture_path)
+    content = response[0][0]["content"]["commonmark"]
+    title = content.splitlines()[0] if content else "Jobs"
+
+    assert looks_like_job_listing_page(title, content, "https://careers.snap.com/jobs")
+
+
+def test_looks_like_job_listing_page_detects_listing_card_snippet():
+    content = textwrap.dedent(
+        """
+        Jobs
+        snapchat
+        United States
+        Mid
+        $286,000
+        Posted Dec 27 • 0d ago
+
+        Direct Apply
+        Apply with AI
+        https://careers.snap.com/jobs
+        """
+    ).strip()
+
+    assert looks_like_job_listing_page("Jobs", content, "https://careers.snap.com/jobs")
+
+
+def test_looks_like_job_listing_page_allows_detail_with_apply_markers():
+    content = textwrap.dedent(
+        """
+        Senior Software Engineer
+        Posted Dec 27, 2025
+        Direct Apply
+        Apply with AI
+
+        Responsibilities
+        Build services that scale.
+
+        Qualifications
+        5+ years of experience.
+        """
+    ).strip()
+
+    assert not looks_like_job_listing_page(
+        "Senior Software Engineer",
+        content,
+        "https://careers.snap.com/jobs/12345",
+    )
+
+
+def test_normalize_firecrawl_items_handles_greenhouse_job_json():
+    raw_json = """
+    {"absolute_url":"https://www.pinterestcareers.com/jobs/?gh_jid=5572858","data_compliance":[{"type":"gdpr","requires_consent":false,"requires_processing_consent":false,"requires_retention_consent":false,"retention_period":null,"demographic_data_consent_applies":false}],"internal_job_id":2745516,"location":{"name":"Toronto, ON, CA"},"metadata":[{"id":5955,"name":"Employment Type","value":"Regular","value_type":"single_select"},{"id":16373425,"name":"Career Track","value":null,"value_type":"single_select"},{"id":2110283,"name":"Careers Page Department","value":"Engineering","value_type":"single_select"}],"id":5572858,"updated_at":"2025-11-19T19:53:17-05:00","requisition_id":"Evergreen - Backend Engineer, IC15, Monetization, CAN","title":"Sr. Software Engineer, Backend","company_name":"Pinterest","first_published":"2023-12-15T14:26:24-05:00","language":"en","content":"<div class=\\"content-intro\\"><p><strong>About Pinterest:</strong></p><p>Millions of people around the world come to our platform to find creative ideas, dream about new possibilities and plan for memories that will last a lifetime.</p></div>","departments":[{"id":7789,"name":"Engineering and Product (L2)","child_ids":[71474,77118,84986,71470,71472,71473,77096,84413,71468,523,91068,285130,285128,285129],"parent_id":null}],"offices":[{"id":58564,"name":"Toronto","location":"Toronto, ON, CA","child_ids":[],"parent_id":78375}]}
+    """
+
+    payload = orjson.loads(raw_json)
+    normalized = normalize_firecrawl_items({"json": payload})
+
+    assert len(normalized) == 1
+    row = normalized[0]
+    assert row["title"] == payload["title"]
+    assert row["url"] == payload["absolute_url"]
+    assert row["company"] == "Pinterest"
+    assert row["location"] == "Toronto, ON, CA"
+    assert "Pinterest" in row["description"]
+
+
+def test_normalize_firecrawl_items_accepts_json_string_payload():
+    payload = orjson.dumps(
+        {
+            "title": "Software Engineer",
+            "absolute_url": "https://careers.example.com/jobs/1",
+            "content": "<p>Example role</p>",
+        }
+    ).decode("utf-8")
+
+    normalized = normalize_firecrawl_items(payload)
+
+    assert len(normalized) == 1
+    assert normalized[0]["url"] == "https://careers.example.com/jobs/1"
+
+
+def test_normalize_fetchfox_items_handles_nested_data_payload():
+    payload = {
+        "data": {
+            "normalized": [
+                {
+                    "title": "Data Engineer",
+                    "url": "https://jobs.example.com/data/123",
+                    "description": "Build data pipelines.",
+                }
+            ]
+        }
+    }
+
+    normalized = normalize_fetchfox_items(payload)
+
+    assert len(normalized) == 1
+    assert normalized[0]["title"] == "Data Engineer"
+
+
+def test_jobs_from_scrape_items_uses_normalized_row():
+    payload = {
+        "absolute_url": "https://www.pinterestcareers.com/jobs/?gh_jid=5572858",
+        "title": "Sr. Software Engineer, Backend",
+        "company_name": "Pinterest",
+        "location": {"name": "Toronto, ON, CA"},
+        "content": "<p>About Pinterest</p>",
+    }
+
+    normalized = normalize_firecrawl_items({"json": payload})
+    items = {"normalized": normalized}
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0, scraped_at=123, scraped_with="firecrawl")
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job["title"] == "Sr. Software Engineer, Backend"
+    assert job["url"] == payload["absolute_url"]
+    assert job["scrapedAt"] == 123
+    assert "{" not in job["title"]
+
+
+def test_jobs_from_scrape_items_coerces_level_values():
+    items = {
+        "normalized": [
+            {
+                "title": "Lead Platform Engineer",
+                "level": "lead",
+                "url": "https://example.com/jobs/lead",
+            },
+            {
+                "title": "Engineering Manager",
+                "level": "manager",
+                "url": "https://example.com/jobs/manager",
+            },
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+
+    # lead maps to staff, manager maps to senior
+    assert jobs[0]["level"] == "staff"
+    assert jobs[1]["level"] == "senior"
+
+
+def test_prefer_apply_url_prefers_company_over_greenhouse_api():
+    row = {
+        "apply_url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+        "absolute_url": "https://boards.greenhouse.io/acme/jobs/123",
+        "company_url": "https://careers.acme.com/jobs/123",
+    }
+
+    # Ordering alone should not force us onto the API URL
+    chosen = prefer_apply_url(row)
+
+    assert chosen == "https://careers.acme.com/jobs/123"
+
+
+def test_prefer_apply_url_strips_ashby_application_path():
+    row = {
+        "applyUrl": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938/application",
+        "jobUrl": "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938",
+    }
+
+    chosen = prefer_apply_url(row)
+
+    assert chosen == "https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938"
+
+
+def test_jobs_from_scrape_items_prefers_marketing_apply_url():
+    items = {
+        "normalized": [
+            {
+                "apply_url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+                "absolute_url": "https://boards.greenhouse.io/acme/jobs/123",
+                "url": "https://boards-api.greenhouse.io/v1/boards/acme/jobs/123",
+                "title": "Engineer",
+                "company": "Acme",
+                "description": "desc",
+                "location": "Remote",
+                "remote": True,
+                "level": "senior",
+                "total_compensation": 0,
+                "posted_at": 0,
+            }
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+    assert len(jobs) == 1
+    assert jobs[0]["url"] == "https://boards.greenhouse.io/acme/jobs/123"
+
+
+def test_jobs_from_scrape_items_prefers_ashby_overview_url():
+    items = {
+        "normalized": [
+            {
+                "applyUrl": "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f/application",
+                "jobUrl": "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f",
+                "title": "Product Manager",
+                "company": "Lambda",
+                "description": "desc",
+                "location": "Remote",
+                "remote": True,
+                "level": "mid",
+                "total_compensation": 0,
+                "posted_at": 0,
+            }
+        ]
+    }
+
+    jobs = _jobs_from_scrape_items(items, default_posted_at=0)
+    assert len(jobs) == 1
+    assert jobs[0]["url"] == "https://jobs.ashbyhq.com/lambda/bed21e20-1ef2-40d9-b5ab-a7e0172cf85f"

@@ -1,0 +1,134 @@
+{
+  "_meta": {
+    "generated_at": "2026-01-16T21:09:46.554611+00:00",
+    "site_id": "voltage_park",
+    "ground_truth_file": "tests/job_scrape_application/workflows/ground_truth/voltage_park_20260116T210935.yml",
+    "listing_fixture": "tests/job_scrape_application/workflows/fixtures/dbos_schedule/voltage_park_20260116T210935_listing.json",
+    "description_info": {
+      "full_word_count": 0,
+      "truncated_word_count": 0,
+      "is_truncated": false,
+      "truncated_preview_sample": null
+    }
+  },
+  "request": {
+    "url": "https://careers.kula.ai/voltagepark/19780",
+    "params": {
+      "return_format": [
+        "commonmark"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": true,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    {
+      "content": {
+        "commonmark": "Data Center Site Operations Manager - Voltage Park\n[\nReturn to jobs list\n](https://careers.kula.ai/voltagepark)\n![Job Details Logo](https://assets.kula.ai/images/career/6kirob1z7khxgvfsuezvaeyzn3ub)\nData Center Site Operations Manager\nJob type: Full Time · Department: Operations · Work type: On-Site · USD 110000 -\n130000 / year\nLisle, Illinois, United States\nApply for this position\nVoltage Park is your enterprise AI factory. We offer scalable compute power, on-demand and reserved bare metal AI infrastructure using NVIDIA GPUs, with world-class service, performance, and value. Founded with the mission of making accessible AI computing for all, our flexible, affordable GPU solutions power everyone from builders to enterprises.\nAs part of this effort, we’re hiring a **Data Center Site Operations Manager** to lead operations at our new Chicago facility. You’ll oversee the tenant fit-out of our space, stand up our operational environment, and build a high-performance team responsible for day-to-day data center operations. This is a hands-on leadership role, where you’ll both guide a team and roll up your sleeves to ensure a smooth deployment and sustained operational excellence.\nThis is an on-site role in Lisle, Illinois. Travel to our other data center sites across the US will be required.We are not able to provide visa sponsorship for this position at this time.\n### **What You Will Do**\n#### **Launch and Operate the Chicago Facility**\n* Oversee the setup of data center systems specific to our deployment within an existing colocation facility\n* Coordinate equipment installation, including rack and roll delivery, cabling, network installation, and power-up procedures\n* Manage vendor relationships, scheduling, and performance to ensure successful deployment\n* Track and manage all inventory and incoming hardware\n#### **Onsite Operational Leadership**\n* Lead a team of data center technicians handling maintenance, break fix, diagnostics, and routine inspections\n* Develop and implement procedures for uptime, preventive maintenance, and incident response\n* Act as the primary on-site point of contact for operational issues and escalation\n#### **Cross-Functional and Team Collaboration**\n* Partner with NetOps, Engineering, and Supply Chain teams to support deployments and ongoing operations\n* Participate in hiring, training, and mentoring on-site technicians\n* Travel to other Voltage Park data centers to learn processes and align operational standards\n### **Who You Are**\n#### **Required Qualifications**\n* 4+ years of experience in data center operations\n* 2+ years of leadership experience\n* Strong understanding of data center infrastructure (racking, cabling, cooling basics, power distribution, network hardware installations)\n* Ability to lead technicians through break/fix, installation, troubleshooting, and maintenance workflows\n* Troubleshooting skills and ability to respond quickly to operational issues\n* Strong vendor management experience (scheduling, accountability, performance tracking)\n* Detail-oriented, organized, and thrives working in fast-moving environments\n* Ability to manage a team responsible for supporting a 24/7 data center environment\n* Ability to meet physical requirements, including lifting up to 50 lbs\n#### **Ideal Experience**\n* Experience with data center tenant fit-outs\n* Experience in high-density or hyperscale environments\n* Relevant certifications such as CompTIA, Cisco, Juniper, or similar\n### **Our Culture**\n* You enjoy working with a small group of friendly, highly motivated, high execution colleagues\n* You’re comfortable with a high degree of autonomy. We expect you to independently prioritize your work and understand how it maps to the overall needs and goals of the company\n* You’re knowledgeable in your domain but also enjoy wearing multiple hats and venturing outside of your comfort zone when the need arises\n*Voltage Park is an equal opportunity employer and makes employment decisions on the basis of merit. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, disability, protected veteran status, or any other characteristic under federal, state, or local law. If you require an accommodation during the job application process, please notify your recruiter.*\nApply for this position\nAutofill application\nSave time by importing your resume in one of the following formats: .pdf or .docx.\nUpload file\nPersonal Information\nFirst name\\*\nLast name\\*\nEmail\\*\nPhone\\*\nProfile\nEducation\nAdd\nExperience\nAdd\nResume\\*\n**Upload your file** or drag and drop here\nSupported formats: .pdf, .docx\nUpload file\nCover Letter\n**Upload your file** or drag and drop here\nSupported formats: .pdf, .docx\nUpload file\nADDITIONAL INFORMATION\nAre you able to work on-site in our Lisle, Illinois data center? \\*\nYesNo\nEqual Opportunity Employer\nHelp us be an equal opportunity employer\nYou are requested (but not required) to fill in the personal data below. This information is used solely for government reporting and will not influence our hiring decisions.\nRace or ethnicity\nSelect...\nGender\nSelect...\nPUBLIC BURDEN STATEMENT: According to the Paperwork Reduction Act of 1995 no persons are required to respond to a collection of information unless such collection displays a valid OMB control number. This survey should take about 5 minutes to complete.\nVoltage Park does not discriminate on the basis of race, sex, color, religion, age, national origin, marital status, disability, veteran status, genetic information, sexual orientation, gender identity or any other reason prohibited by law in provision of employment opportunities and benefits.\nApply for this position\nMade with\n[](https://kula.ai)"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 0.0012693555,
+        "bytes_transferred_cost_formatted": "0.0012693554999999999921556082",
+        "compute_cost": 1.4240685185185185e-05,
+        "compute_cost_formatted": "0.0000142406851851851854590402",
+        "file_cost": 0.00020039550000000003,
+        "file_cost_formatted": "0.0002003955000000000152837742",
+        "total_cost": 0.0014939916851851854,
+        "total_cost_formatted": "0.0014939916851851851934535342",
+        "transform_cost": 1e-05,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 7071,
+      "error": null,
+      "links": [
+        "https://kula.ai",
+        "/voltagepark/19780",
+        "/voltagepark/19780/apply",
+        "/voltagepark"
+      ],
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "Voltage Park is your enterprise AI factory. We offer scalable compute power,\non-demand and reserved bare metal AI",
+          "domain": "careers.kula.ai",
+          "extracted_data": null,
+          "file_size": 5802,
+          "final_url": null,
+          "keywords": [
+            "7 data center environment",
+            "Coordinate equipment installation",
+            "Data Center Site Operations Manager",
+            "Data Center Site Operations Manager Job type",
+            "Illinois data center",
+            "Job Details Logo",
+            "Manage vendor relationships",
+            "Onsite Operational Leadership",
+            "PUBLIC BURDEN STATEMENT",
+            "Paperwork Reduction Act",
+            "Profile Education Add Experience Add Resume",
+            "Strong vendor management experience",
+            "Supply Chain teams",
+            "United States Apply",
+            "Upload file Personal Information",
+            "Voltage Park data centers",
+            "YesNo Equal Opportunity Employer",
+            "affordable GPU solutions power",
+            "align operational standards",
+            "data center infrastructure",
+            "data center operations",
+            "data center sites",
+            "data center systems specific",
+            "data center technicians handling maintenance",
+            "data center tenant fit-outs",
+            "day-to-day data center operations",
+            "docx Upload file ADDITIONAL INFORMATION",
+            "docx Upload file Cover Letter",
+            "enjoy wearing multiple hats",
+            "enterprise AI factory",
+            "equal opportunity employer",
+            "existing colocation facility",
+            "hands-on leadership role",
+            "high execution colleagues",
+            "high-performance team responsible",
+            "job application process",
+            "makes employment decisions",
+            "making accessible AI computing",
+            "meet physical requirements",
+            "mentoring on-site technicians",
+            "network hardware installations",
+            "offer scalable compute power",
+            "position Autofill application Save time",
+            "position Voltage Park",
+            "primary on-site point",
+            "protected veteran status",
+            "provide visa sponsorship",
+            "reserved bare metal AI infrastructure",
+            "sustained operational excellence",
+            "valid OMB control number"
+          ],
+          "og_image": "https://assets.kula.ai/images/career/t986bempdgpaslld965khdlihtoi",
+          "original_url": "https://careers.kula.ai/voltagepark/19780",
+          "pathname": "/voltagepark/19780",
+          "resource_type": ".md",
+          "title": "Data Center Site Operations Manager - Voltage Park",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://careers.kula.ai/voltagepark/19780"
+    }
+  ]
+}

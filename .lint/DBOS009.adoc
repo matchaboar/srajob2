@@ -1,0 +1,48 @@
+= DBOS009: Pure functions must not have side effects
+
+== Summary
+
+Functions annotated with `@DBOS.pure_func` must not perform side effects.
+
+== Description
+
+`@DBOS.pure_func` marks helpers as deterministic and side-effect-free.
+These functions must not:
+
+* mutate state (e.g., attribute/subscript assignments)
+* use `print` or logging
+* perform network calls
+* perform database calls
+* call any library or function listed in the impure blacklist config
+
+This rule is enforced via AST analysis and a configurable blacklist in
+`.lint/dbos_pure_func_blacklist.py`.
+
+== Examples
+
+.Bad: Logging and network calls in a pure function
+[source,python]
+----
+@DBOS.pure_func
+def enrich_payload(payload: dict) -> dict:
+    logging.info("building payload")  # ERROR: logging is impure
+    data = httpx.get("https://example.com").json()  # ERROR: network call
+    payload["data"] = data  # ERROR: state mutation
+    return payload
+----
+
+.Good: Pure transformation
+[source,python]
+----
+@DBOS.pure_func
+def normalize_url(url: str) -> str:
+    return url.strip().lower()
+----
+
+== Suppression
+
+Add `# noqa: DBOS009` to the offending line.
+
+== See Also
+
+* DBOS008 - Workflow calls must be DBOS-decorated

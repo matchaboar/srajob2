@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/snapchat/snapchat_20260114T134509_detail.json
+site_id: snapchat
+detail_url: https://careers.snap.com/job?id=R0043117
+expected:
+  title: "Manager, Client Partner"
+  company: "Snap"
+  location_contains: "Austin"
+  is_remote: false
+  # Note: "Manager" in title maps to senior level
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1

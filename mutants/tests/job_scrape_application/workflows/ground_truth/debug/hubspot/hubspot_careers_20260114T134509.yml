@@ -1,0 +1,12 @@
+# These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/hubspot/hubspot_careers_20260114T134509_detail.json
+site_id: hubspot_careers
+detail_url: https://www.hubspot.com/careers/jobs/5986323
+expected:
+  title: "Account Executive, Corporate - Benelux"
+  company: "HubSpot"
+  location_contains: "Netherlands"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

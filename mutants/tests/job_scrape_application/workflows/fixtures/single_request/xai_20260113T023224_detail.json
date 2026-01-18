@@ -1,0 +1,154 @@
+{
+  "request": {
+    "url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007",
+    "params": {
+      "return_format": [
+        "commonmark",
+        "raw_html"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": false,
+      "limit": 1,
+      "return_page_links": true
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    [
+      {
+        "content": {
+          "commonmark": "```\n{\"absolute\\_url\":\"https://job-boards.greenhouse.io/xai/jobs/4922802007\",\"data\\_compliance\":[{\"type\":\"gdpr\",\"requires\\_consent\":false,\"requires\\_processing\\_consent\":false,\"requires\\_retention\\_consent\":false,\"retention\\_period\":null,\"demographic\\_data\\_consent\\_applies\":false}],\"education\":\"education\\_required\",\"internal\\_job\\_id\":4524008007,\"location\":{\"name\":\"Palo Alto, CA; Remote\"},\"metadata\":[{\"id\":16340689007,\"name\":\"Featured Role\",\"value\":null,\"value\\_type\":\"yes\\_no\"}],\"id\":4922802007,\"updated\\_at\":\"2025-12-29T17:17:14-05:00\",\"requisition\\_id\":\"471\",\"title\":\"AI Economics Tutor\",\"company\\_name\":\"xAI\",\"first\\_published\":\"2025-09-27T14:01:13-04:00\",\"language\":\"en\",\"content\":\"\\\\u0026lt;div class=\\\\u0026quot;content-intro\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;h3\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-family: arial, helvetica, sans-serif;\\\\u0026quot;\\\\u0026gt;About xAI\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-family: arial, helvetica, sans-serif;\\\\u0026quot;\\\\u0026gt;xAI’s mission is to create AI systems that can accurately understand the universe and aid humanity in its pursuit of knowledge. \\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-family: arial, helvetica, sans-serif;\\\\u0026quot;\\\\u0026gt;Our team is small, highly motivated, and focused on engineering excellence. This organization is for individuals who appreciate challenging themselves and thrive on curiosity. \\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-family: arial, helvetica, sans-serif;\\\\u0026quot;\\\\u0026gt;We operate with a flat organizational structure. All employees are expected to be hands-on and to contribute directly to the company’s mission. Leadership is given to those who show initiative and consistently deliver excellence. Work ethic and strong prioritization skills are important. \\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;span style=\\\\u0026quot;font-family: arial, helvetica, sans-serif;\\\\u0026quot;\\\\u0026gt;All engineers are expected to have strong communication skills. They should be able to concisely and accurately share knowledge with their teammates.\\\\u0026lt;/span\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\\\\u0026lt;h3\\\\u0026gt;About the Role\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;As an AI Tutor - Economics, you will be instrumental in enhancing the capabilities of our cutting-edge technologies by providing high-quality input and labels using specialized software. Your role involves collaborating closely with our technical team to support the training of new AI tasks, ensuring the implementation of innovative initiatives. You\\\\u0026#39;ll contribute to refining annotation tools and selecting complex problems from advanced economics domains, with a focus on macroeconomic forecasting, microeconomic incentives, and behavioral experiments. This position demands a dynamic approach to learning and adapting in a fast-paced environment, where your ability to interpret and execute tasks based on evolving instructions is crucial.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;AI Tutor’s Role in Advancing xAI’s Mission\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;As an AI Tutor, you will play an essential role in advancing xAI\\\\u0026#39;s mission by supporting the training and refinement of xAI’s AI models. AI Tutors teach our AI models about how people interact and react, as well as how people approach issues and discussions in economics. To accomplish this, AI Tutors will actively participate in gathering or providing data, such as text, voice, and video data, sometimes providing annotations, recording audio, or participating in video sessions. We seek individuals who are comfortable and eager to engage in these activities as a fundamental part of the role, ensuring a strong alignment with xAI’s goals and objectives to innovate.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Scope\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;An AI Tutor will provide services that include labeling and annotating data in text, voice, and video formats to support AI model training. At times, this may involve recording audio or video sessions, and tutors are expected to be comfortable with these tasks as they are fundamental to the role. Such data is a job requirement to advance xAI’s mission, and AI Tutors acknowledge that all work is done for hire and owned by xAI.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Responsibilities\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Use proprietary software applications to provide input/labels on defined projects.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Support and ensure the delivery of high-quality curated data.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Play a pivotal role in supporting and contributing to the training of new tasks, working closely with the technical staff to ensure the successful development and implementation of cutting-edge initiatives/technologies.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Interact with the technical staff to help improve the design of efficient annotation tools.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Choose problems from economics fields that align with your expertise, focusing on areas like macroeconomics, microeconomics, and behavioral economics.\\\\u0026amp;nbsp;\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Regularly interpret, analyze, and execute tasks based on given instructions.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Key Qualifications\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Must possess a PhD in Economics or related field\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Proficiency in reading and writing, both in informal and professional English.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Outstanding communication, interpersonal, analytical, and organizational capabilities.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Solid reading comprehension skills combined with the capacity to exercise autonomous judgment even when presented with limited data/material.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Strong passion for and commitment to technological advancements and innovation in economics.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Preferred Qualifications\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Possesses experience with at least one publication in a reputable economics journal or outlet.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Teaching experience as a professor.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Location \\\\u0026amp;amp; Other Expectations\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;ul\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;This position is based in Palo Alto, CA, or fully remote.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;The Palo Alto option is an in-office role requiring 5 days per week; remote positions require strong self-motivation.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;If you are based in the US, please note we are unable to hire in the states of Wyoming and Illinois at this time.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;We are unable to provide visa sponsorship.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;Team members are expected to work from 9:00am - 5:30pm PST for the first two weeks of training and 9:00am - 5:30pm in their own timezone thereafter.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;li\\\\u0026gt;For those who will be working from a personal device, please note your computer must be a Chromebook, Mac with MacOS 11.0 or later, or Windows 10 or later.\\\\u0026lt;/li\\\\u0026gt;\\\\n\\\\u0026lt;/ul\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Compensation\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;$45/hour - $100/hour\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;The posted pay range is intended for U.S.-based candidates and depends on factors including relevant experience, skills, education, geographic location, and qualifications. For international candidates, our recruiting team can provide an estimated pay range for your location.\\\\u0026lt;/p\\\\u0026gt;\\\\n\\\\u0026lt;h3\\\\u0026gt;Benefits:\\\\u0026lt;/h3\\\\u0026gt;\\\\n\\\\u0026lt;p\\\\u0026gt;Hourly pay is just one part of our total rewards package at xAI. Specific benefits vary by country, depending on your country of residence you may have access to medical benefits. We do not offer benefits for part-time roles.\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;div class=\\\\u0026quot;content-conclusion\\\\u0026quot;\\\\u0026gt;\\\\u0026lt;p\\\\u0026gt;\\\\u0026lt;em\\\\u0026gt;xAI is an equal opportunity employer. For details on data processing, view our\\\\u0026amp;nbsp;\\\\u0026lt;/em\\\\u0026gt;\\\\u0026lt;em\\\\u0026gt;\\\\u0026lt;a href=\\\\u0026quot;https://x.ai/legal/recruitment-privacy-notice\\\\u0026quot; target=\\\\u0026quot;\\_blank\\\\u0026quot;\\\\u0026gt;Recruitment Privacy Notice\\\\u0026lt;/a\\\\u0026gt;.\\\\u0026lt;/em\\\\u0026gt;\\\\u0026lt;/p\\\\u0026gt;\\\\u0026lt;/div\\\\u0026gt;\",\"departments\":[{\"id\":4025087007,\"name\":\"Human Data\",\"child\\_ids\":[],\"parent\\_id\":null}],\"offices\":[{\"id\":4035106007,\"name\":\"Palo Alto, CA\",\"location\":\"Palo Alto, California, United States\",\"child\\_ids\":[],\"parent\\_id\":4022826007},{\"id\":4023161007,\"name\":\"Remote\",\"location\":\"Remote\",\"child\\_ids\":[],\"parent\\_id\":null}]}\n```",
+          "raw": "<html><meta content=\"light dark\" name=\"color-scheme\"><meta charset=\"utf-8\"><pre>{\"absolute_url\":\"https://job-boards.greenhouse.io/xai/jobs/4922802007\",\"data_compliance\":[{\"type\":\"gdpr\",\"requires_consent\":false,\"requires_processing_consent\":false,\"requires_retention_consent\":false,\"retention_period\":null,\"demographic_data_consent_applies\":false}],\"education\":\"education_required\",\"internal_job_id\":4524008007,\"location\":{\"name\":\"Palo Alto, CA; Remote\"},\"metadata\":[{\"id\":16340689007,\"name\":\"Featured Role\",\"value\":null,\"value_type\":\"yes_no\"}],\"id\":4922802007,\"updated_at\":\"2025-12-29T17:17:14-05:00\",\"requisition_id\":\"471\",\"title\":\"AI Economics Tutor\",\"company_name\":\"xAI\",\"first_published\":\"2025-09-27T14:01:13-04:00\",\"language\":\"en\",\"content\":\"\\u0026lt;div class=\\u0026quot;content-intro\\u0026quot;\\u0026gt;\\u0026lt;h3\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;About xAI\\u0026lt;/span\\u0026gt;\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;xAI’s mission is to create AI systems that can accurately understand the universe and aid humanity in its pursuit of knowledge. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;Our team is small, highly motivated, and focused on engineering excellence. This organization is for individuals who appreciate challenging themselves and thrive on curiosity. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;We operate with a flat organizational structure. All employees are expected to be hands-on and to contribute directly to the company’s mission. Leadership is given to those who show initiative and consistently deliver excellence. Work ethic and strong prioritization skills are important. \\u0026lt;/span\\u0026gt;\\u0026lt;span style=\\u0026quot;font-family: arial, helvetica, sans-serif;\\u0026quot;\\u0026gt;All engineers are expected to have strong communication skills. They should be able to concisely and accurately share knowledge with their teammates.\\u0026lt;/span\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\\u0026lt;h3\\u0026gt;About the Role\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;As an AI Tutor - Economics, you will be instrumental in enhancing the capabilities of our cutting-edge technologies by providing high-quality input and labels using specialized software. Your role involves collaborating closely with our technical team to support the training of new AI tasks, ensuring the implementation of innovative initiatives. You\\u0026#39;ll contribute to refining annotation tools and selecting complex problems from advanced economics domains, with a focus on macroeconomic forecasting, microeconomic incentives, and behavioral experiments. This position demands a dynamic approach to learning and adapting in a fast-paced environment, where your ability to interpret and execute tasks based on evolving instructions is crucial.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h3\\u0026gt;AI Tutor’s Role in Advancing xAI’s Mission\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;As an AI Tutor, you will play an essential role in advancing xAI\\u0026#39;s mission by supporting the training and refinement of xAI’s AI models. AI Tutors teach our AI models about how people interact and react, as well as how people approach issues and discussions in economics. To accomplish this, AI Tutors will actively participate in gathering or providing data, such as text, voice, and video data, sometimes providing annotations, recording audio, or participating in video sessions. We seek individuals who are comfortable and eager to engage in these activities as a fundamental part of the role, ensuring a strong alignment with xAI’s goals and objectives to innovate.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Scope\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;An AI Tutor will provide services that include labeling and annotating data in text, voice, and video formats to support AI model training. At times, this may involve recording audio or video sessions, and tutors are expected to be comfortable with these tasks as they are fundamental to the role. Such data is a job requirement to advance xAI’s mission, and AI Tutors acknowledge that all work is done for hire and owned by xAI.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Responsibilities\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Use proprietary software applications to provide input/labels on defined projects.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Support and ensure the delivery of high-quality curated data.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Play a pivotal role in supporting and contributing to the training of new tasks, working closely with the technical staff to ensure the successful development and implementation of cutting-edge initiatives/technologies.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Interact with the technical staff to help improve the design of efficient annotation tools.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Choose problems from economics fields that align with your expertise, focusing on areas like macroeconomics, microeconomics, and behavioral economics.\\u0026amp;nbsp;\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Regularly interpret, analyze, and execute tasks based on given instructions.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Key Qualifications\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Must possess a PhD in Economics or related field\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Proficiency in reading and writing, both in informal and professional English.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Outstanding communication, interpersonal, analytical, and organizational capabilities.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Solid reading comprehension skills combined with the capacity to exercise autonomous judgment even when presented with limited data/material.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Strong passion for and commitment to technological advancements and innovation in economics.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Preferred Qualifications\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;Possesses experience with at least one publication in a reputable economics journal or outlet.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Teaching experience as a professor.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Location \\u0026amp;amp; Other Expectations\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;ul\\u0026gt;\\n\\u0026lt;li\\u0026gt;This position is based in Palo Alto, CA, or fully remote.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;The Palo Alto option is an in-office role requiring 5 days per week; remote positions require strong self-motivation.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;If you are based in the US, please note we are unable to hire in the states of Wyoming and Illinois at this time.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;We are unable to provide visa sponsorship.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;Team members are expected to work from 9:00am - 5:30pm PST for the first two weeks of training and 9:00am - 5:30pm in their own timezone thereafter.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;li\\u0026gt;For those who will be working from a personal device, please note your computer must be a Chromebook, Mac with MacOS 11.0 or later, or Windows 10 or later.\\u0026lt;/li\\u0026gt;\\n\\u0026lt;/ul\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Compensation\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;$45/hour - $100/hour\\u0026lt;/p\\u0026gt;\\n\\u0026lt;p\\u0026gt;The posted pay range is intended for U.S.-based candidates and depends on factors including relevant experience, skills, education, geographic location, and qualifications. For international candidates, our recruiting team can provide an estimated pay range for your location.\\u0026lt;/p\\u0026gt;\\n\\u0026lt;h3\\u0026gt;Benefits:\\u0026lt;/h3\\u0026gt;\\n\\u0026lt;p\\u0026gt;Hourly pay is just one part of our total rewards package at xAI. Specific benefits vary by country, depending on your country of residence you may have access to medical benefits. We do not offer benefits for part-time roles.\\u0026lt;/p\\u0026gt;\\u0026lt;div class=\\u0026quot;content-conclusion\\u0026quot;\\u0026gt;\\u0026lt;p\\u0026gt;\\u0026lt;em\\u0026gt;xAI is an equal opportunity employer. For details on data processing, view our\\u0026amp;nbsp;\\u0026lt;/em\\u0026gt;\\u0026lt;em\\u0026gt;\\u0026lt;a href=\\u0026quot;https://x.ai/legal/recruitment-privacy-notice\\u0026quot; target=\\u0026quot;_blank\\u0026quot;\\u0026gt;Recruitment Privacy Notice\\u0026lt;/a\\u0026gt;.\\u0026lt;/em\\u0026gt;\\u0026lt;/p\\u0026gt;\\u0026lt;/div\\u0026gt;\",\"departments\":[{\"id\":4025087007,\"name\":\"Human Data\",\"child_ids\":[],\"parent_id\":null}],\"offices\":[{\"id\":4035106007,\"name\":\"Palo Alto, CA\",\"location\":\"Palo Alto, California, United States\",\"child_ids\":[],\"parent_id\":4022826007},{\"id\":4023161007,\"name\":\"Remote\",\"location\":\"Remote\",\"child_ids\":[],\"parent_id\":null}]}</pre><div class=\"json-formatter-container\"></div></html>"
+        },
+        "costs": {
+          "ai_cost": 0.0,
+          "ai_cost_formatted": "0",
+          "bytes_transferred_cost": 0.0,
+          "bytes_transferred_cost_formatted": "0",
+          "compute_cost": 4.044683333333334e-06,
+          "compute_cost_formatted": "0.0000040446833333333335091186",
+          "file_cost": 1.38405e-05,
+          "file_cost_formatted": "0.0000138405000000000007187584",
+          "total_cost": 2.7885183333333335e-05,
+          "total_cost_formatted": "0.0000278851833333333347829885",
+          "transform_cost": 1e-05,
+          "transform_cost_formatted": "0.0000100000000000000005551115"
+        },
+        "duration_elasped_ms": 2152,
+        "error": null,
+        "links": [],
+        "metadata": {
+          "commonmark": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 9368,
+            "final_url": null,
+            "keywords": [
+              "AI Tutors acknowledge",
+              "AI Tutors teach",
+              "Palo Alto option",
+              "Recruitment Privacy Notice",
+              "Solid reading comprehension skills combined",
+              "Specific benefits vary",
+              "accurately share knowledge",
+              "advanced economics domains",
+              "consistently deliver excellence",
+              "create AI systems",
+              "efficient annotation tools",
+              "equal opportunity employer",
+              "estimated pay range",
+              "exercise autonomous judgment",
+              "factors including relevant experience",
+              "flat organizational structure",
+              "high-quality curated data",
+              "in-office role requiring 5 days",
+              "involve recording audio",
+              "people approach issues",
+              "posted pay range",
+              "proprietary software applications",
+              "provide visa sponsorship",
+              "providing high-quality input",
+              "refining annotation tools",
+              "remote positions require strong self-motivation",
+              "reputable economics journal",
+              "role involves collaborating closely",
+              "selecting complex problems",
+              "strong communication skills",
+              "strong prioritization skills",
+              "support AI model training",
+              "total rewards package"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007",
+            "pathname": "/v1/boards/xai/jobs/4922802007",
+            "resource_type": ".md",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          },
+          "raw": {
+            "automation_data": null,
+            "description": "",
+            "domain": "boards-api.greenhouse.io",
+            "extracted_data": null,
+            "file_size": 9201,
+            "final_url": null,
+            "keywords": [
+              "AI Tutors acknowledge",
+              "AI Tutors teach",
+              "Palo Alto option",
+              "Recruitment Privacy Notice",
+              "Solid reading comprehension skills combined",
+              "Specific benefits vary",
+              "accurately share knowledge",
+              "advanced economics domains",
+              "consistently deliver excellence",
+              "create AI systems",
+              "efficient annotation tools",
+              "equal opportunity employer",
+              "estimated pay range",
+              "exercise autonomous judgment",
+              "factors including relevant experience",
+              "flat organizational structure",
+              "high-quality curated data",
+              "in-office role requiring 5 days",
+              "involve recording audio",
+              "people approach issues",
+              "posted pay range",
+              "proprietary software applications",
+              "provide visa sponsorship",
+              "providing high-quality input",
+              "refining annotation tools",
+              "remote positions require strong self-motivation",
+              "reputable economics journal",
+              "role involves collaborating closely",
+              "selecting complex problems",
+              "strong communication skills",
+              "strong prioritization skills",
+              "support AI model training",
+              "total rewards package"
+            ],
+            "og_image": null,
+            "original_url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007",
+            "pathname": "/v1/boards/xai/jobs/4922802007",
+            "resource_type": ".html",
+            "title": "",
+            "url": null,
+            "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+          }
+        },
+        "status": 200,
+        "url": "https://boards-api.greenhouse.io/v1/boards/xai/jobs/4922802007"
+      }
+    ]
+  ]
+}
