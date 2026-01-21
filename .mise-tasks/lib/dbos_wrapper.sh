@@ -330,12 +330,12 @@ fi
 dbos_runtime_dir="$repo_root/job_scrape_application/dbos_runtime"
 kill_zombie_sqlite_processes "$dbos_runtime_dir"
 
-# Reset database if requested (includes WAL and SHM files to prevent corruption issues)
+# Reset database if requested (includes WAL, SHM, and journal files to prevent corruption issues)
 if [[ "$RESET_DB" == "true" ]]; then
     removed_files=()
     # Remove both the queue database and DBOS system database
-    for f in "$db_file" "${db_file}-wal" "${db_file}-shm" \
-             "$dbos_system_file" "${dbos_system_file}-wal" "${dbos_system_file}-shm"; do
+    for f in "$db_file" "${db_file}-wal" "${db_file}-shm" "${db_file}-journal" \
+             "$dbos_system_file" "${dbos_system_file}-wal" "${dbos_system_file}-shm" "${dbos_system_file}-journal"; do
         if [[ -f "$f" ]]; then
             rm -f "$f"
             removed_files+=("$(basename "$f")")

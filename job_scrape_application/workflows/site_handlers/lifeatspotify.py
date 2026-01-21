@@ -10,7 +10,7 @@ from .base import BaseSiteHandler
 SPOTIFY_HOST_SUFFIX = "lifeatspotify.com"
 SPOTIFY_BASE_URL = "https://www.lifeatspotify.com"
 JOBS_PATH = "/jobs"
-LEVER_API_URL = "https://api.lever.co/v0/postings/spotify?mode=json"
+SPOTIFY_JOBS_API_URL = "https://api.lifeatspotify.com/wp-json/animal/v1/job/search"
 
 _DATA_INFO_RE = re.compile(r"data-info=\"(?P<slug>[^\"]+)\"")
 
@@ -39,6 +39,12 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
         path = (parsed.path or "").rstrip("/")
         return path == JOBS_PATH
 
+    def get_listing_api_uri(self, uri: str) -> Optional[str]:
+        """Return the Spotify Jobs API URL for listing pages."""
+        if not self.matches_url(uri) or not self.is_listing_url(uri):
+            return None
+        return SPOTIFY_JOBS_API_URL
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
@@ -66,7 +72,7 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
         return self._apply_page_links_config(base_config)
 
     def get_links_from_raw_html(self, html: str) -> List[str]:
-        payload = self._extract_json_payload_from_html(html)
+        payload = self._extract_spotify_json_payload(html)
         if payload:
             urls = self.get_links_from_json(payload)
             if urls:
@@ -86,6 +92,37 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
             urls.append(url)
         return self.filter_job_urls(urls)
 
+    def _extract_spotify_json_payload(self, html: str) -> Optional[Dict[str, Any]]:
+        """Extract JSON payload from Spotify API response.
+
+        The Spotify API returns JSON with 'result' key containing jobs,
+        which differs from the standard 'jobs' or 'positions' keys.
+        """
+        import orjson
+        from ..helpers.regex_patterns import PRE_PATTERN
+
+        if not isinstance(html, str) or not html:
+            return None
+        match = PRE_PATTERN.search(html)
+        if not match:
+            return None
+        content = html_lib.unescape(match.group("content")).strip()
+        if not content:
+            return None
+        try:
+            parsed = orjson.loads(content)
+        except Exception:
+            return None
+        if not isinstance(parsed, dict):
+            return None
+        # Handle Spotify API format with 'result' key
+        if "result" in parsed:
+            return {"jobs": parsed.get("result", []), "__source_url": None}
+        # Fallback to standard format
+        if "jobs" in parsed or "positions" in parsed:
+            return parsed
+        return None
+
     def get_links_from_json(self, payload: Any) -> List[str]:
         if not isinstance(payload, dict):
             return []
@@ -100,10 +137,14 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
                 continue
             if not self._matches_filters(job, location_filters, category_filters):
                 continue
-            title = job.get("text")
-            if not isinstance(title, str) or not title.strip():
-                continue
-            slug = self._slugify(title)
+            # New API format: job has 'id' field which is the slug
+            slug = job.get("id")
+            if not isinstance(slug, str) or not slug.strip():
+                # Fallback to old format: slugify the 'text' field
+                title = job.get("text")
+                if not isinstance(title, str) or not title.strip():
+                    continue
+                slug = self._slugify(title)
             if not slug:
                 continue
             url = urljoin(SPOTIFY_BASE_URL, f"{JOBS_PATH}/{slug}")
@@ -222,7 +263,7 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
     def _build_execution_script(self) -> str:
         return f"""
 (function() {{
-  const apiUrl = "{LEVER_API_URL}";
+  const apiUrl = "{SPOTIFY_JOBS_API_URL}";
   const render = (payload) => {{
     const pre = document.createElement("pre");
     pre.id = "spotify-jobs";
@@ -233,7 +274,7 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
   fetch(apiUrl)
     .then((res) => res.json())
     .then((data) => {{
-      render({{ jobs: data, __source_url: window.location.href }});
+      render({{ jobs: data.result || [], __source_url: window.location.href }});
     }})
     .catch((err) => {{
       render({{ jobs: [], error: String(err), __source_url: window.location.href }});
@@ -276,34 +317,58 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
         if category_filters:
             allowed_departments = self._allowed_departments(category_filters)
             if allowed_departments:
-                categories = job.get("categories") if isinstance(job.get("categories"), dict) else {}
-                department = categories.get("department") if isinstance(categories, dict) else None
-                department_slug = self._slugify(department) if isinstance(department, str) else ""
+                department_slug = ""
+                # New API format: main_category is a dict with slug
+                main_category = job.get("main_category")
+                if isinstance(main_category, dict):
+                    slug = main_category.get("slug")
+                    if isinstance(slug, str):
+                        department_slug = slug.strip()
+                # Fallback: old Lever API format with categories.department
+                if not department_slug:
+                    categories = job.get("categories") if isinstance(job.get("categories"), dict) else {}
+                    department = categories.get("department") if isinstance(categories, dict) else None
+                    department_slug = self._slugify(department) if isinstance(department, str) else ""
                 if department_slug and department_slug not in allowed_departments:
                     return False
         return True
 
     def _extract_location_slugs(self, job: Dict[str, Any]) -> Set[str]:
         slugs: Set[str] = set()
+        # New API format: locations is an array of {location, slug} objects
+        locations = job.get("locations")
+        if isinstance(locations, list):
+            for loc in locations:
+                if isinstance(loc, dict):
+                    loc_slug = loc.get("slug")
+                    if isinstance(loc_slug, str) and loc_slug.strip():
+                        slugs.add(loc_slug.strip())
+                    loc_name = loc.get("location")
+                    if isinstance(loc_name, str) and loc_name.strip():
+                        slugs.add(self._slugify(loc_name))
+                        city = loc_name.split(",")[0].strip()
+                        city_slug = self._slugify(city)
+                        if city_slug:
+                            slugs.add(city_slug)
+        # Fallback: old Lever API format with categories.location
         categories = job.get("categories") if isinstance(job.get("categories"), dict) else {}
-        values: List[str] = []
         if isinstance(categories, dict):
             location = categories.get("location")
             if isinstance(location, str):
-                values.append(location)
+                slugs.add(self._slugify(location))
+                city = location.split(",")[0].strip()
+                city_slug = self._slugify(city)
+                if city_slug:
+                    slugs.add(city_slug)
             all_locations = categories.get("allLocations")
             if isinstance(all_locations, list):
                 for loc in all_locations:
                     if isinstance(loc, str):
-                        values.append(loc)
-        for value in values:
-            slug = self._slugify(value)
-            if slug:
-                slugs.add(slug)
-            city = value.split(",")[0].strip()
-            city_slug = self._slugify(city)
-            if city_slug:
-                slugs.add(city_slug)
+                        slugs.add(self._slugify(loc))
+                        city = loc.split(",")[0].strip()
+                        city_slug = self._slugify(city)
+                        if city_slug:
+                            slugs.add(city_slug)
         return slugs
 
     def _allowed_departments(self, category_filters: Set[str]) -> Set[str]:
@@ -339,11 +404,21 @@ class LifeAtSpotifyHandler(BaseSiteHandler):
         product_filters = {"product"}
         allowed: Set[str] = set()
         if category_filters.intersection(engineering_filters):
+            # Old Lever format
             allowed.add("engineering")
         if category_filters.intersection(data_filters):
+            # Old Lever format
             allowed.add("data-and-analytics")
+            # New API format
+            allowed.add("data-research-insights")
         if category_filters.intersection(design_filters):
+            # Old Lever format
             allowed.add("design-and-user-experience")
+            # New API format
+            allowed.add("design")
         if category_filters.intersection(product_filters):
             allowed.add("product")
+        # New API: also add engineering for engineering-related URL filters
+        if category_filters.intersection(engineering_filters):
+            allowed.add("engineering")
         return allowed

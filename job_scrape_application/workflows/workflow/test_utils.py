@@ -621,8 +621,10 @@ class WorkflowTest:
             pass
 
         # Patch workflow module bindings for queue steps.
+        # NOTE: We use importlib to import the MODULE, not the function exported by __init__.py
+        import importlib
         try:
-            from job_scrape_application.workflows.workflow import scrape_listing_batch as listing_module
+            listing_module = importlib.import_module("job_scrape_application.workflows.workflow.scrape_listing_batch")
 
             self.monkeypatch.setattr(
                 listing_module, "enqueue_scrape_urls_step", self._mock_enqueue_scrape_urls_step
@@ -642,7 +644,7 @@ class WorkflowTest:
             pass
 
         try:
-            from job_scrape_application.workflows.workflow import scrape_job_detail_batch as detail_module
+            detail_module = importlib.import_module("job_scrape_application.workflows.workflow.scrape_job_detail_batch")
 
             self.monkeypatch.setattr(
                 detail_module, "complete_scrape_urls_step", self._mock_complete_scrape_urls_step

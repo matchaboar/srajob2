@@ -1,0 +1,124 @@
+= DBOS012: Dead code detection
+
+== Summary
+
+Functions that are not used in any production code path are flagged as dead code.
+
+== Description
+
+This rule performs **cross-file analysis** to detect functions that are defined but
+never called from any production entry point. Dead code increases maintenance burden,
+can confuse developers, and may hide bugs or security issues.
+
+=== How it works
+
+1. **Collection phase**: Scans all Python files in the target directory (excluding
+   tests, archives, and testing utilities) to build a function registry and call graph.
+
+2. **Resolution phase**: Resolves function calls across files by tracking imports and
+   matching function names.
+
+3. **Reachability analysis**: Starting from entry points, performs BFS traversal of
+   the call graph to find all reachable functions.
+
+4. **Reporting**: Functions not reachable from any entry point are reported as dead code.
+
+=== Entry points
+
+A function is considered an entry point if any of the following are true:
+
+* Decorated with DBOS decorators: `@DBOS.workflow`, `@DBOS.scheduled`, `@DBOS.step`
+* Decorated with common framework decorators: `@property`, `@staticmethod`, `@classmethod`, `@abstractmethod`
+* Decorated with API framework decorators: `@route`, `@get`, `@post`, etc.
+* Is a test function: name starts with `test_` or `Test`
+* Is a pytest fixture: decorated with `@fixture` or name ends with `_fixture`
+* Is a dunder method: `__init__`, `__str__`, `__dir__`, etc.
+* Is a logging handler method: `emit`, `format`, `formatException`, etc.
+* Is an HTTP handler method: `do_GET`, `do_POST`, etc.
+* Is a common interface method: `extract`, `scrape`, `process`, `handle`, `run`, `execute`
+
+=== Skipped paths
+
+The following paths are automatically excluded from analysis:
+
+* Test directories (`/tests/`)
+* Archive directories (`_archive`)
+* Testing utilities (`/testing/`)
+* `__pycache__` directories
+
+== Examples
+
+.Bad: Function defined but never called
+[source,python]
+----
+def unused_helper(x: int) -> int:  # DBOS012 violation
+    return x * 2
+
+@DBOS.workflow()
+def my_workflow() -> None:
+    # unused_helper is never called from here or anywhere else
+    do_something_else()
+----
+
+.Good: Function is reachable from an entry point
+[source,python]
+----
+def used_helper(x: int) -> int:
+    return x * 2
+
+@DBOS.workflow()
+def my_workflow() -> None:
+    result = used_helper(5)  # helper is reachable
+    process(result)
+----
+
+.Good: Suppress with noqa comment
+[source,python]
+----
+def external_api_function(data: dict) -> dict:  # noqa: DBOS012
+    """Called by external systems, not from Python code."""
+    return transform(data)
+----
+
+== Suppression
+
+Add `# noqa: DBOS012` to the function definition line:
+
+[source,python]
+----
+def exported_function() -> None:  # noqa: DBOS012
+    pass
+----
+
+Common reasons to suppress:
+
+* Function is part of a public API called by external code
+* Function is called dynamically via `getattr` or string-based dispatch
+* Function is registered in a plugin system
+* Function is a callback passed to external libraries
+
+== Limitations
+
+* **Dynamic calls**: Functions called via `getattr`, string dispatch, or reflection
+  may be flagged incorrectly.
+* **External callers**: Functions only called from code outside the analyzed directory
+  will be flagged.
+* **Protocol implementations**: Abstract method implementations may be flagged if the
+  protocol/abstract base isn't recognized.
+* **Plugin systems**: Functions registered in plugin registries may appear unused.
+
+== Running the analysis
+
+The cross-file analysis runs automatically when linting a directory:
+
+[source,bash]
+----
+uv run scripts/lint_dbos_step.py job_scrape_application/
+----
+
+NOTE: Single-file analysis (`check_file`) returns empty results for this rule.
+Cross-file analysis is required for accurate dead code detection.
+
+== See Also
+
+* DBOS008 - Workflows may only call DBOS-decorated functions

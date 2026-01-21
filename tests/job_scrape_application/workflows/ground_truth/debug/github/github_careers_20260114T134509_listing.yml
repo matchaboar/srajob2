@@ -1,13 +1,11 @@
 site_id: github_careers
 listing_url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
 expected:
-  url_count: 45
+  url_count: 50
   no_listing_urls: true
   handler: GithubCareersHandler
-  scraped_urls: []
   normalized_urls:
   - https://www.github.careers/careers-home/jobs/4246?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4403?lang=en-us
   - https://www.github.careers/careers-home/jobs/4554?lang=en-us
   - https://www.github.careers/careers-home/jobs/4626?lang=en-us
   - https://www.github.careers/careers-home/jobs/4632?lang=en-us
@@ -28,7 +26,6 @@ expected:
   - https://www.github.careers/careers-home/jobs/4793?lang=en-us
   - https://www.github.careers/careers-home/jobs/4796?lang=en-us
   - https://www.github.careers/careers-home/jobs/4802?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4814?lang=en-us
   - https://www.github.careers/careers-home/jobs/4815?lang=en-us
   - https://www.github.careers/careers-home/jobs/4819?lang=en-us
   - https://www.github.careers/careers-home/jobs/4829?lang=en-us
@@ -39,21 +36,27 @@ expected:
   - https://www.github.careers/careers-home/jobs/4853?lang=en-us
   - https://www.github.careers/careers-home/jobs/4861?lang=en-us
   - https://www.github.careers/careers-home/jobs/4863?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4864?lang=en-us
   - https://www.github.careers/careers-home/jobs/4865?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4866?lang=en-us
   - https://www.github.careers/careers-home/jobs/4867?lang=en-us
   - https://www.github.careers/careers-home/jobs/4869?lang=en-us
   - https://www.github.careers/careers-home/jobs/4870?lang=en-us
   - https://www.github.careers/careers-home/jobs/4871?lang=en-us
   - https://www.github.careers/careers-home/jobs/4874?lang=en-us
   - https://www.github.careers/careers-home/jobs/4875?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4876?lang=en-us
   - https://www.github.careers/careers-home/jobs/4880?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4890?lang=en-us
   - https://www.github.careers/careers-home/jobs/4900?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4901?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4902?lang=en-us
   - https://www.github.careers/careers-home/jobs/4904?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4934?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4940?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4949?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4961?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4962?lang=en-us
   apply_urls:
   - https://www.github.careers/careers-home/jobs/4246?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4403?lang=en-us
   - https://www.github.careers/careers-home/jobs/4554?lang=en-us
   - https://www.github.careers/careers-home/jobs/4626?lang=en-us
   - https://www.github.careers/careers-home/jobs/4632?lang=en-us
@@ -74,7 +77,6 @@ expected:
   - https://www.github.careers/careers-home/jobs/4793?lang=en-us
   - https://www.github.careers/careers-home/jobs/4796?lang=en-us
   - https://www.github.careers/careers-home/jobs/4802?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4814?lang=en-us
   - https://www.github.careers/careers-home/jobs/4815?lang=en-us
   - https://www.github.careers/careers-home/jobs/4819?lang=en-us
   - https://www.github.careers/careers-home/jobs/4829?lang=en-us
@@ -85,16 +87,22 @@ expected:
   - https://www.github.careers/careers-home/jobs/4853?lang=en-us
   - https://www.github.careers/careers-home/jobs/4861?lang=en-us
   - https://www.github.careers/careers-home/jobs/4863?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4864?lang=en-us
   - https://www.github.careers/careers-home/jobs/4865?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4866?lang=en-us
   - https://www.github.careers/careers-home/jobs/4867?lang=en-us
   - https://www.github.careers/careers-home/jobs/4869?lang=en-us
   - https://www.github.careers/careers-home/jobs/4870?lang=en-us
   - https://www.github.careers/careers-home/jobs/4871?lang=en-us
   - https://www.github.careers/careers-home/jobs/4874?lang=en-us
   - https://www.github.careers/careers-home/jobs/4875?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4876?lang=en-us
   - https://www.github.careers/careers-home/jobs/4880?lang=en-us
-  - https://www.github.careers/careers-home/jobs/4890?lang=en-us
   - https://www.github.careers/careers-home/jobs/4900?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4901?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4902?lang=en-us
   - https://www.github.careers/careers-home/jobs/4904?lang=en-us
-  blocked_urls: []
+  - https://www.github.careers/careers-home/jobs/4934?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4940?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4949?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4961?lang=en-us
+  - https://www.github.careers/careers-home/jobs/4962?lang=en-us

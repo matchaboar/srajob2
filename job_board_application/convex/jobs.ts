@@ -2225,6 +2225,7 @@ export const resetQueuedUrlRetries = mutation({
 
 export const getAppliedJobs = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     companies: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
@@ -2249,16 +2250,18 @@ export const getAppliedJobs = query({
       );
     }
 
-    const applications = await ctx.db
+    // Paginate applications instead of collecting all at once
+    const pageSize = Math.min(args.paginationOpts.numItems ?? 25, 25);
+    const paginatedApplications = await ctx.db
       .query("applications")
       .withIndex("by_user_status_applied_at", (q) =>
         q.eq("userId", userId).eq("status", "applied"),
       )
       .order("desc")
-      .collect();
+      .paginate({ ...args.paginationOpts, numItems: pageSize });
 
     const appliedJobs = await Promise.all(
-      applications.map(async (application) => {
+      paginatedApplications.page.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
 
@@ -2290,14 +2293,17 @@ export const getAppliedJobs = query({
       }),
     );
 
-    return appliedJobs
-      .filter((job) => job !== null)
-      .sort((a, b) => b.appliedAt - a.appliedAt);
+    return {
+      page: appliedJobs.filter((job) => job !== null),
+      isDone: paginatedApplications.isDone,
+      continueCursor: paginatedApplications.continueCursor,
+    };
   },
 });
 
 export const getRejectedJobs = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     companies: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
@@ -2322,16 +2328,18 @@ export const getRejectedJobs = query({
       );
     }
 
-    const applications = await ctx.db
+    // Paginate applications instead of collecting all at once
+    const pageSize = Math.min(args.paginationOpts.numItems ?? 25, 25);
+    const paginatedApplications = await ctx.db
       .query("applications")
       .withIndex("by_user_status_applied_at", (q) =>
         q.eq("userId", userId).eq("status", "rejected"),
       )
       .order("desc")
-      .collect();
+      .paginate({ ...args.paginationOpts, numItems: pageSize });
 
     const rejectedJobs = await Promise.all(
-      applications.map(async (application) => {
+      paginatedApplications.page.map(async (application) => {
         const job = await ctx.db.get(application.jobId);
         if (!job) return null;
 
@@ -2352,9 +2360,11 @@ export const getRejectedJobs = query({
       }),
     );
 
-    return rejectedJobs
-      .filter((job) => job !== null)
-      .sort((a, b) => (b?.rejectedAt ?? 0) - (a?.rejectedAt ?? 0));
+    return {
+      page: rejectedJobs.filter((job) => job !== null),
+      isDone: paginatedApplications.isDone,
+      continueCursor: paginatedApplications.continueCursor,
+    };
   },
 });
 

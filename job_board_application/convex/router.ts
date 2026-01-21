@@ -3814,9 +3814,9 @@ export const listScrapeErrors = query({
 });
 
 /**
- * Internal mutation to insert a scrape error record.
+ * Mutation to insert a scrape error record.
  */
-export const insertScrapeError = internalMutation({
+export const insertScrapeError = mutation({
   args: {
     sourceUrl: v.optional(v.string()),
     siteId: v.optional(v.string()),

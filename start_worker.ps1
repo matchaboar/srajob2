@@ -511,7 +511,7 @@ function Write-ProcessStatus {
     } else {
         foreach ($worker in $WorkerProcesses) {
             $proc = $worker.Process
-            $pid = if ($proc) { $proc.Id } else { "N/A" }
+            $workerPid = if ($proc) { $proc.Id } else { "N/A" }
             $role = if ($worker.Role) { $worker.Role } else { "unknown" }
             $queue = if ($worker.TaskQueue) { $worker.TaskQueue } else { "-" }
 
@@ -530,7 +530,7 @@ function Write-ProcessStatus {
                 $statusColor = "DarkGray"
             }
 
-            Write-Host ("{0,-8} {1,-15} {2,-20} " -f $pid, $role, $queue) -NoNewline
+            Write-Host ("{0,-8} {1,-15} {2,-20} " -f $workerPid, $role, $queue) -NoNewline
             Write-Host $status -ForegroundColor $statusColor
         }
     }
@@ -764,12 +764,12 @@ function Stop-ExistingWorkers {
             Write-Host "[$Prefix] Found $orphanedCount orphaned worker process(es)" -ForegroundColor Yellow
         }
 
-        foreach ($pid in $orphanedPids) {
+        foreach ($oPid in $orphanedPids) {
             try {
                 if (-not $Silent) {
-                    Write-Host "[$Prefix]   Stopping orphaned worker pid=$pid..." -ForegroundColor Yellow -NoNewline
+                    Write-Host ("[$Prefix]   Stopping orphaned worker pid=$oPid...") -ForegroundColor Yellow -NoNewline
                 }
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                Stop-Process -Id $oPid -Force -ErrorAction SilentlyContinue
                 $stoppedCount++
                 if (-not $Silent) {
                     Write-Host " stopped" -ForegroundColor Green
@@ -840,9 +840,9 @@ function Stop-ZombieSqliteProcesses {
             if ($line -match "\.sqlite.*\(deleted\)" -or $line -match "dbos.*\.sqlite") {
                 if ($line -match "^(\S+)\s+(\d+)") {
                     $procName = $matches[1]
-                    $pid = [int]$matches[2]
-                    if ($pid -notin $zombiePids -and $pid -ne $PID) {
-                        $zombiePids += $pid
+                    $foundPid = [int]$matches[2]
+                    if ($foundPid -notin $zombiePids -and $foundPid -ne $PID) {
+                        $zombiePids += $foundPid
                     }
                 }
             }
@@ -863,6 +863,118 @@ function Stop-ZombieSqliteProcesses {
     } catch {
         Write-Warning "Unable to check for zombie SQLite processes: $($_.Exception.Message)"
     }
+}
+
+function Get-ProcessesHoldingFile {
+    <#
+    .SYNOPSIS
+    Returns PIDs of processes holding a specific file open.
+    #>
+    param(
+        [string]$FilePath
+    )
+
+    $pids = @()
+    if (-not (Test-Path $FilePath)) {
+        return $pids
+    }
+
+    if ($IsWindows) {
+        # On Windows, use handle.exe if available, otherwise try Get-Process
+        try {
+            $procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.CommandLine -match "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)"
+            }
+            foreach ($p in $procs) {
+                if ($p.ProcessId -ne $PID) {
+                    $pids += [int]$p.ProcessId
+                }
+            }
+        } catch {}
+        return $pids
+    }
+
+    # Linux/macOS: use lsof
+    $lsofPath = "/usr/bin/lsof"
+    if (-not (Test-Path $lsofPath)) {
+        $lsofPath = "/bin/lsof"
+    }
+    if (-not (Test-Path $lsofPath)) {
+        return $pids
+    }
+
+    $priorNative = $PSNativeCommandUseErrorActionPreference
+    $priorError = $ErrorActionPreference
+    try {
+        $PSNativeCommandUseErrorActionPreference = $false
+        $ErrorActionPreference = "Continue"
+        $lsofOutput = & $lsofPath $FilePath 2>$null
+        foreach ($line in $lsofOutput) {
+            if ($line -match "^(\S+)\s+(\d+)") {
+                $foundPid = [int]$matches[2]
+                if ($foundPid -ne $PID -and $foundPid -notin $pids) {
+                    $pids += $foundPid
+                }
+            }
+        }
+    } finally {
+        $PSNativeCommandUseErrorActionPreference = $priorNative
+        $ErrorActionPreference = $priorError
+    }
+
+    return $pids
+}
+
+function Remove-LockedFile {
+    <#
+    .SYNOPSIS
+    Removes a file, killing any processes holding it if necessary.
+    Returns $true if file was removed or doesn't exist, $false otherwise.
+    #>
+    param(
+        [string]$FilePath,
+        [int]$MaxRetries = 3,
+        [int]$RetryDelayMs = 500,
+        [switch]$Silent = $false
+    )
+
+    if (-not (Test-Path $FilePath)) {
+        return $true
+    }
+
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        # Try to remove the file
+        try {
+            Remove-Item -Path $FilePath -Force -ErrorAction Stop
+            return $true
+        } catch {
+            if ($attempt -eq $MaxRetries) {
+                if (-not $Silent) {
+                    Write-Warning "Failed to remove $FilePath after $MaxRetries attempts: $($_.Exception.Message)"
+                }
+                return $false
+            }
+
+            # Find and kill processes holding the file
+            $holdingPids = Get-ProcessesHoldingFile -FilePath $FilePath
+            if ($holdingPids.Count -gt 0) {
+                if (-not $Silent) {
+                    Write-Host "[preflight] File $FilePath is locked by PID(s): $($holdingPids -join ', '). Killing..." -ForegroundColor Yellow
+                }
+                foreach ($hPid in $holdingPids) {
+                    try {
+                        Stop-Process -Id $hPid -Force -ErrorAction SilentlyContinue
+                    } catch {}
+                }
+                Start-Sleep -Milliseconds $RetryDelayMs
+            } else {
+                # No identifiable process, just wait and retry
+                Start-Sleep -Milliseconds $RetryDelayMs
+            }
+        }
+    }
+
+    return $false
 }
 
 function Get-LocalWorkerCount {
@@ -1171,26 +1283,58 @@ function Start-WorkerMain {
         $dbosRuntimePath = Join-Path $PSScriptRoot "job_scrape_application/dbos_runtime"
         Stop-ZombieSqliteProcesses -DbosRuntimePath $dbosRuntimePath
 
-        # Clear SQLite database files if requested (includes WAL and SHM to prevent corruption issues)
+        # Always clear the DBOS system database on startup to prevent "table dbos_migrations already exists" errors
+        # This is safe because dbos_system.sqlite is just DBOS internal migration tracking (recreatable)
+        # The actual workflow state is in dbos.sqlite which is preserved unless -ClearSqlite is used
+        $sqliteSystemPath = Join-Path $dbosRuntimePath "dbos_system.sqlite"
+        $systemDbFiles = @($sqliteSystemPath, "${sqliteSystemPath}-wal", "${sqliteSystemPath}-shm", "${sqliteSystemPath}-journal")
+        $clearedSystemFiles = @()
+        $failedSystemFiles = @()
+        foreach ($sysFile in $systemDbFiles) {
+            if (Test-Path $sysFile) {
+                $removed = Remove-LockedFile -FilePath $sysFile -MaxRetries 3 -RetryDelayMs 500
+                if ($removed) {
+                    $clearedSystemFiles += (Split-Path -Leaf $sysFile)
+                } else {
+                    $failedSystemFiles += (Split-Path -Leaf $sysFile)
+                }
+            }
+        }
+        if ($clearedSystemFiles.Count -gt 0) {
+            Write-Host "Auto-cleared DBOS system DB: $($clearedSystemFiles -join ', ')" -ForegroundColor DarkGray
+        }
+        if ($failedSystemFiles.Count -gt 0) {
+            Write-Warning "Failed to clear some DBOS system files (may cause migration errors): $($failedSystemFiles -join ', ')"
+        }
+
+        # Clear SQLite database files if requested (includes WAL, SHM, and journal to prevent corruption issues)
         # Includes both the app's dbos.sqlite and the DBOS SDK's dbos_system.sqlite
         if ($ClearSqlite) {
             $sqliteBasePath = Join-Path $dbosRuntimePath "dbos.sqlite"
             $sqliteSystemPath = Join-Path $dbosRuntimePath "dbos_system.sqlite"
             $sqliteFiles = @(
-                $sqliteBasePath, "${sqliteBasePath}-wal", "${sqliteBasePath}-shm",
-                $sqliteSystemPath, "${sqliteSystemPath}-wal", "${sqliteSystemPath}-shm"
+                $sqliteBasePath, "${sqliteBasePath}-wal", "${sqliteBasePath}-shm", "${sqliteBasePath}-journal",
+                $sqliteSystemPath, "${sqliteSystemPath}-wal", "${sqliteSystemPath}-shm", "${sqliteSystemPath}-journal"
             )
             $deletedFiles = @()
+            $failedFiles = @()
             foreach ($sqliteFile in $sqliteFiles) {
                 if (Test-Path $sqliteFile) {
-                    Remove-Item -Path $sqliteFile -Force
-                    $deletedFiles += (Split-Path -Leaf $sqliteFile)
+                    $removed = Remove-LockedFile -FilePath $sqliteFile -MaxRetries 3 -RetryDelayMs 500
+                    if ($removed) {
+                        $deletedFiles += (Split-Path -Leaf $sqliteFile)
+                    } else {
+                        $failedFiles += (Split-Path -Leaf $sqliteFile)
+                    }
                 }
             }
             if ($deletedFiles.Count -gt 0) {
                 Write-Host "Cleared SQLite files: $($deletedFiles -join ', ')" -ForegroundColor Yellow
             } else {
                 Write-Host "No SQLite files to clear." -ForegroundColor DarkGray
+            }
+            if ($failedFiles.Count -gt 0) {
+                Write-Warning "Failed to clear some SQLite files: $($failedFiles -join ', ')"
             }
         }
 

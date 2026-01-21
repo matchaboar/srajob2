@@ -573,7 +573,7 @@ site_schedules:
   url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
 - enabled: true
   name: Spotify
-  paginationLimit: 0
+  paginationLimit: 6
   schedule:
     days: *id001
     intervalMinutes: 120.0

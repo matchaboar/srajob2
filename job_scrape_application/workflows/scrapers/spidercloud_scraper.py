@@ -2101,7 +2101,7 @@ class SpiderCloudScraper(BaseScraper):
 
         def _find_jobs_payload(node: Any) -> Optional[Dict[str, Any]]:
             if isinstance(node, dict):
-                for key in ("raw", "raw_html", "html", "text", "body", "result"):
+                for key in ("raw", "raw_html", "html", "text", "body", "result", "commonmark"):
                     candidate = node.get(key)
                     if isinstance(candidate, str) and candidate.strip():
                         if "{" in candidate or "[" in candidate:

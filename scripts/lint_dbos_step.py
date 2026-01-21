@@ -26,13 +26,29 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib.util
 import sys
 from pathlib import Path
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
+
+if TYPE_CHECKING:
+    from typing import Any
 
 # Directory containing rule files
 LINT_DIR = Path(__file__).parent.parent / ".lint"
 PURE_FUNC_BLACKLIST_PATH = LINT_DIR / "dbos_pure_func_blacklist.py"
+
+
+def _load_dbos012() -> Any | None:
+    """Lazily load DBOS012 module for cross-file analysis."""
+    # Use direct file import to avoid package issues
+    spec = importlib.util.spec_from_file_location("DBOS012", LINT_DIR / "DBOS012.py")
+    if spec and spec.loader:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["DBOS012"] = module
+        spec.loader.exec_module(module)
+        return module
+    return None
 
 
 class FunctionInfo(NamedTuple):
@@ -1751,6 +1767,11 @@ def format_violation(v: Violation) -> str:
                 f"@DBOS.step function `{v.function_name}` has non-serializable parameter "
                 f"`{param_name}: {v.call_name}`"
             )
+    elif v.rule == "DBOS012":
+        return (
+            f"{v.file}:{v.line}: [{v.rule}] "
+            f"Function `{v.function_name}` is not used in any production code path"
+        )
     else:
         return (
             f"{v.file}:{v.line}: [{v.rule}] "
@@ -1820,6 +1841,28 @@ def run_lint(paths: list[str]) -> int:
                     pure_func_blacklist,
                 )
             )
+
+    # DBOS012: Cross-file dead code analysis (only for directories)
+    dbos012 = _load_dbos012()
+    if dbos012:
+        for path in all_paths:
+            if path.is_dir():
+                try:
+                    dead_code_violations = dbos012.check_directory(path)
+                    # Convert DBOS012 violations to our Violation type
+                    for v in dead_code_violations:
+                        all_violations.append(
+                            Violation(
+                                file=v.file,
+                                line=v.line,
+                                function_name=v.function_name,
+                                call_type="dead_code",
+                                call_name="",
+                                rule="DBOS012",
+                            )
+                        )
+                except Exception as e:
+                    print(f"Warning: DBOS012 analysis failed: {e}", file=sys.stderr)
 
     if all_violations:
         print(f"Found {len(all_violations)} DBOS lint violation(s):\n")

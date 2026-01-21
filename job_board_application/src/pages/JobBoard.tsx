@@ -33,11 +33,9 @@ type SavedFilterId = Id<"saved_filters">;
 type ListedJob = PaginatedQueryItem<typeof api.jobs.listJobs>;
 type QueuedScrapeUrl = PaginatedQueryItem<typeof api.jobs.listQueuedJobs>;
 type QueuedQueueRow = QueuedScrapeUrl;
-type AppliedJobsResult = FunctionReturnType<typeof api.jobs.getAppliedJobs>;
-type RejectedJobsResult = FunctionReturnType<typeof api.jobs.getRejectedJobs>;
 type CompanySummariesResult = FunctionReturnType<typeof api.jobs.listCompanySummaries>;
-type AppliedJob = AppliedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
-type RejectedJob = RejectedJobsResult extends Array<infer Item> ? NonNullable<Item> : never;
+type AppliedJob = PaginatedQueryItem<typeof api.jobs.getAppliedJobs>;
+type RejectedJob = PaginatedQueryItem<typeof api.jobs.getRejectedJobs>;
 type CompanySummary = CompanySummariesResult extends Array<infer Item> ? NonNullable<Item> : never;
 type DetailItem = { label: string; value: string | string[]; badge?: string; type?: "link" };
 type IgnoredJobRow = {
@@ -601,17 +599,31 @@ export function JobBoard() {
   }, [ignoredGroups, openIgnoredCompany]);
   const shouldFetchRecentJobs = isJobsTab; // Disabled for Live tab as we now use listJobs
   const recentJobs = useQuery(api.jobs.getRecentJobs, shouldFetchRecentJobs ? {} : "skip");
-  const appliedJobs = useQuery(
+  const appliedPageSize = 25;
+  const appliedAutoFillTarget = 100;
+  const appliedLoadMoreSize = 25;
+  const appliedAutoFillDelayMs = 100;
+  const {
+    results: appliedResults,
+    status: appliedStatus,
+    loadMore: loadMoreApplied,
+  } = usePaginatedQuery(
     api.jobs.getAppliedJobs,
     isAppliedTab
       ? { companies: filters.companies.length > 0 ? filters.companies : undefined }
-      : "skip"
+      : "skip",
+    { initialNumItems: appliedPageSize }
   );
-  const rejectedJobs = useQuery(
+  const {
+    results: rejectedResults,
+    status: rejectedStatus,
+    loadMore: loadMoreRejected,
+  } = usePaginatedQuery(
     api.jobs.getRejectedJobs,
     isRejectedTab
       ? { companies: filters.companies.length > 0 ? filters.companies : undefined }
-      : "skip"
+      : "skip",
+    { initialNumItems: appliedPageSize }
   );
   const applyToJob = useMutation(api.jobs.applyToJob);
   const rejectJob = useMutation(api.jobs.rejectJob);
@@ -625,10 +637,10 @@ export function JobBoard() {
 
   // Filter out locally applied/rejected jobs
   const filteredResults: ListedJob[] = displayedResults.filter((job) => !locallyAppliedJobs.has(job._id));
-  const appliedList: AppliedJob[] = (appliedJobs ?? []).filter(
+  const appliedList: AppliedJob[] = (appliedResults ?? []).filter(
     (job): job is AppliedJob => Boolean(job) && !locallyWithdrawnJobs.has((job)._id)
   );
-  const rejectedList: RejectedJob[] = (rejectedJobs ?? []).filter(Boolean);
+  const rejectedList: RejectedJob[] = (rejectedResults ?? []).filter(Boolean) as RejectedJob[];
   const queuedList: QueuedQueueRow[] = useMemo(
     () => (queuedResults ?? []).filter(Boolean) as QueuedQueueRow[],
     [queuedResults]
@@ -648,6 +660,37 @@ export function JobBoard() {
     }, queuedAutoFillDelayMs);
     return () => window.clearTimeout(timeoutId);
   }, [shouldAutoLoadQueued, loadMoreQueued, queuedLoadMoreSize, queuedAutoFillDelayMs]);
+
+  // Auto-load applied jobs when tab is active
+  const shouldAutoLoadApplied =
+    isAppliedTab &&
+    appliedStatus === "CanLoadMore" &&
+    appliedList.length > 0 &&
+    appliedList.length < appliedAutoFillTarget;
+
+  useEffect(() => {
+    if (!shouldAutoLoadApplied) return;
+    const timeoutId = window.setTimeout(() => {
+      loadMoreApplied(appliedLoadMoreSize);
+    }, appliedAutoFillDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [shouldAutoLoadApplied, loadMoreApplied, appliedLoadMoreSize, appliedAutoFillDelayMs]);
+
+  // Auto-load rejected jobs when tab is active
+  const shouldAutoLoadRejected =
+    isRejectedTab &&
+    rejectedStatus === "CanLoadMore" &&
+    rejectedList.length > 0 &&
+    rejectedList.length < appliedAutoFillTarget;
+
+  useEffect(() => {
+    if (!shouldAutoLoadRejected) return;
+    const timeoutId = window.setTimeout(() => {
+      loadMoreRejected(appliedLoadMoreSize);
+    }, appliedAutoFillDelayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [shouldAutoLoadRejected, loadMoreRejected, appliedLoadMoreSize, appliedAutoFillDelayMs]);
+
   const selectedJob =
     filteredResults.find((job) => job._id === selectedJobId) ??
     displayedResults.find((job) => job._id === selectedJobId) ??

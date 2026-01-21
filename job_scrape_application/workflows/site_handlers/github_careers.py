@@ -51,9 +51,30 @@ class GithubCareersHandler(BaseSiteHandler):
         base = f"{scheme}://{host}/api/jobs"
         return f"{base}?{urlencode(query, doseq=True)}" if query else base
 
+    def _is_listing_api_url(self, uri: str) -> bool:
+        """Check if URL is the GitHub Careers API endpoint (/api/jobs)."""
+        if not self.matches_url(uri):
+            return False
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return False
+        return parsed.path.rstrip("/") == "/api/jobs"
+
     def get_spidercloud_config(self, uri: str) -> Dict[str, Any]:
         if not self.matches_url(uri):
             return {}
+        # API URLs return raw JSON - use basic request (no browser rendering)
+        if self._is_listing_api_url(uri):
+            return {
+                "request": "basic",
+                "return_format": ["raw"],
+                "follow_redirects": True,
+                "redirect_policy": "Loose",
+                "external_domains": ["*"],
+                "preserve_host": True,
+            }
+        # Regular pages need browser rendering
         return {"return_format": ["raw_html"]}
 
     def _is_valid_job_detail_url(self, url: str) -> bool:

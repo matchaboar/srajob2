@@ -399,6 +399,13 @@ class ListingTestModule:
         from job_scrape_application.workflows.workflow.scrape_listing_batch import scrape_listing_batch
 
         try:
+            # Debug: Print fixture info before running workflow
+            import sys
+            sys.stderr.write(f"\n[DEBUG] verbose={verbose}\n")
+            sys.stderr.write(f"[DEBUG] Fixture URL: {self.listing_fixture.url}\n")
+            sys.stderr.write(f"[DEBUG] WorkflowTest fixtures: {list(self.workflow_test._fixtures.keys())}\n")
+            sys.stderr.flush()
+
             await self.workflow_test.run(
                 scrape_listing_batch,
                 batch={
@@ -412,6 +419,39 @@ class ListingTestModule:
                     ]
                 },
             )
+
+            # Debug: Print captured calls after workflow
+            sys.stderr.write(f"[DEBUG] Spider calls: {len(self.workflow_test.spider_calls)}\n")
+            for i, call in enumerate(self.workflow_test.spider_calls):
+                sys.stderr.write(f"[DEBUG]   Call {i}: url={call.get('url')}\n")
+            sys.stderr.write(f"[DEBUG] Captured call keys: {list(self.workflow_test.captured.calls.keys())}\n")
+            for key in self.workflow_test.captured.calls.keys():
+                calls_for_key = self.workflow_test.captured.calls.get(key, [])
+                sys.stderr.write(f"[DEBUG]   {key}: {len(calls_for_key)} calls\n")
+                for i, call in enumerate(calls_for_key[:3]):  # Limit to first 3
+                    call_preview = str(call)[:200]
+                    sys.stderr.write(f"[DEBUG]     Call {i}: {call_preview}\n")
+
+            # Check log_scrape_error calls to see if the workflow hit the zero URLs error
+            log_error_calls = self.workflow_test.captured.calls.get("log_scrape_error", [])
+            sys.stderr.write(f"[DEBUG] log_scrape_error calls: {len(log_error_calls)}\n")
+            for i, call in enumerate(log_error_calls):
+                sys.stderr.write(f"[DEBUG]   Error {i}: {call}\n")
+
+            scrape_calls = self.workflow_test.captured.calls.get("scrape_listing_urls", [])
+            sys.stderr.write(f"[DEBUG] scrape_listing_urls calls: {len(scrape_calls)}\n")
+            if scrape_calls:
+                for i, call in enumerate(scrape_calls):
+                    r = call.get('result', {})
+                    s = r.get('scrape', {}) if isinstance(r, dict) else {}
+                    items = s.get('items', {}) if isinstance(s, dict) else {}
+                    job_urls = items.get('job_urls', []) if isinstance(items, dict) else []
+                    sys.stderr.write(f"[DEBUG]   Call {i}: result keys={list(r.keys()) if isinstance(r, dict) else type(r)}\n")
+                    sys.stderr.write(f"[DEBUG]   Call {i}: scrape keys={list(s.keys()) if isinstance(s, dict) else type(s)}\n")
+                    sys.stderr.write(f"[DEBUG]   Call {i}: items keys={list(items.keys()) if isinstance(items, dict) else type(items)}\n")
+                    sys.stderr.write(f"[DEBUG]   Call {i}: job_urls count={len(job_urls)}\n")
+            sys.stderr.flush()
+
         except Exception as exc:
             result.error = str(exc)
             if verbose:
