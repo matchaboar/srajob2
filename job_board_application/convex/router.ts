@@ -3877,7 +3877,7 @@ export const storeScrapeError = action({
     }
 
     // Call internal mutation to insert the record
-    const insertResult = await ctx.runMutation(internal.router.insertScrapeError, {
+    const insertResult = await ctx.runMutation(api.router.insertScrapeError, {
       sourceUrl: args.sourceUrl,
       siteId: args.siteId,
       event: args.event,
