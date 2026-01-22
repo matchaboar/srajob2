@@ -22,7 +22,7 @@ export function EngineeringJobMarket({ onCompanyClick }: EngineeringJobMarketPro
     <div className="flex-1 overflow-y-auto px-6 py-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">Engineering Job Market</h2>
+          <h2 className="text-lg font-semibold text-white">Engineering Job Market - US</h2>
           <p className="text-xs text-slate-500">Companies with engineering roles, sorted by activity.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export function EngineeringJobMarket({ onCompanyClick }: EngineeringJobMarketPro
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500">
-                  {sortBy === "count" ? "30-day count" : "Last posted"}
+                  {sortBy === "count" ? "30-day count" : "Last posted US job"}
                 </span>
                 {sortBy === "count" ? (
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-200 font-mono">

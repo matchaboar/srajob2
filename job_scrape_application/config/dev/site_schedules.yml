@@ -1,6 +1,6 @@
 site_schedules:
 - enabled: true
-  name: airbnb
+  name: adyen
   paginationLimit: 0
   schedule:
     days: &id001
@@ -15,8 +15,68 @@ site_schedules:
     timezone: America/Denver
   scrapeProvider: spidercloud
   type: greenhouse
-  url: https://api.greenhouse.io/v1/boards/airbnb/jobs
+  url: https://api.greenhouse.io/v1/boards/adyen/jobs
 - enabled: true
+  name: lithic
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/lithic/jobs
+- enabled: true
+  name: highnote
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/highnote/jobs
+- enabled: true
+  name: tabapay
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/tabapay/jobs
+- enabled: true
+  name: moov
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: general
+  url: https://ats.rippling.com/moov/jobs
+- enabled: false
+  name: airbnb
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/airbnb/jobs
+- enabled: false
   name: airtable
   paginationLimit: 0
   schedule:
@@ -28,7 +88,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/airtable/jobs
-- enabled: true
+- enabled: false
   name: axon
   paginationLimit: 0
   schedule:
@@ -40,7 +100,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/axon/jobs
-- enabled: true
+- enabled: false
   name: coinbase
   paginationLimit: 0
   schedule:
@@ -52,7 +112,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/coinbase/jobs
-- enabled: true
+- enabled: false
   name: coreweave
   paginationLimit: 0
   schedule:
@@ -64,7 +124,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/coreweave/jobs
-- enabled: true
+- enabled: false
   name: coupang
   paginationLimit: 0
   schedule:
@@ -76,7 +136,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/coupang/jobs
-- enabled: true
+- enabled: false
   name: datadog
   paginationLimit: 0
   schedule:
@@ -88,7 +148,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/datadog/jobs
-- enabled: true
+- enabled: false
   name: figma
   paginationLimit: 0
   schedule:
@@ -100,7 +160,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/figma/jobs
-- enabled: true
+- enabled: false
   name: flex
   paginationLimit: 0
   schedule:
@@ -112,7 +172,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/flex/jobs
-- enabled: true
+- enabled: false
   name: lyft
   paginationLimit: 0
   schedule:
@@ -124,7 +184,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/lyft/jobs
-- enabled: true
+- enabled: false
   name: Mithril
   paginationLimit: 0
   schedule:
@@ -136,7 +196,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/mithril/jobs
-- enabled: true
+- enabled: false
   name: mongodb
   paginationLimit: 0
   schedule:
@@ -148,7 +208,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/mongodb/jobs
-- enabled: true
+- enabled: false
   name: nexhealth
   paginationLimit: 0
   schedule:
@@ -160,7 +220,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/nexhealth/jobs
-- enabled: true
+- enabled: false
   name: okta
   paginationLimit: 0
   schedule:
@@ -172,7 +232,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/okta/jobs
-- enabled: true
+- enabled: false
   name: Oscar
   paginationLimit: 0
   schedule:
@@ -184,7 +244,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/oscar/jobs
-- enabled: true
+- enabled: false
   name: pinterest
   paginationLimit: 0
   schedule:
@@ -196,7 +256,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/pinterest/jobs
-- enabled: true
+- enabled: false
   name: purestorage
   paginationLimit: 0
   schedule:
@@ -208,7 +268,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/purestorage/jobs
-- enabled: true
+- enabled: false
   name: robinhood
   paginationLimit: 0
   schedule:
@@ -220,7 +280,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/robinhood/jobs
-- enabled: true
+- enabled: false
   name: rubrik
   paginationLimit: 0
   schedule:
@@ -232,7 +292,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/rubrik/jobs
-- enabled: true
+- enabled: false
   name: samsara
   paginationLimit: 0
   schedule:
@@ -244,7 +304,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/samsara/jobs
-- enabled: true
+- enabled: false
   name: stripe
   paginationLimit: 0
   schedule:
@@ -256,7 +316,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/stripe/jobs
-- enabled: true
+- enabled: false
   name: stubhub
   paginationLimit: 0
   schedule:
@@ -268,7 +328,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/stubhubinc/jobs
-- enabled: true
+- enabled: false
   name: theTradeDesk
   paginationLimit: 0
   schedule:
@@ -280,7 +340,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/thetradedesk/jobs
-- enabled: true
+- enabled: false
   name: together.ai
   paginationLimit: 0
   schedule:
@@ -292,7 +352,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/togetherai/jobs
-- enabled: true
+- enabled: false
   name: verkada
   paginationLimit: 0
   schedule:
@@ -304,7 +364,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/verkada/jobs
-- enabled: true
+- enabled: false
   name: twilio
   paginationLimit: 0
   schedule:
@@ -316,7 +376,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/twilio/jobs
-- enabled: true
+- enabled: false
   name: xAI
   paginationLimit: 0
   schedule:
@@ -328,7 +388,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/xai/jobs
-- enabled: true
+- enabled: false
   name: zscaler
   paginationLimit: 0
   schedule:
@@ -340,7 +400,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/zscaler/jobs
-- enabled: true
+- enabled: false
   name: Bloomberg
   paginationLimit: 3
   schedule:
@@ -352,7 +412,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: avature
   url: https://bloomberg.avature.net/careers/SearchJobs/engineer?1845=%5B162619%2C162522%2C162483%2C162484%2C162552%2C162508%2C162520%2C162535%5D&1845_format=3996&1686=%5B57029%5D&1686_format=2312&listFilterMode=1&jobRecordsPerPage=12&jobOffset=0
-- enabled: true
+- enabled: false
   name: broadcom
   paginationLimit: 3
   schedule:
@@ -364,7 +424,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: workday
   url: https://broadcom.wd1.myworkdayjobs.com/External_Career?q=engineer&locations=877d747df71910021366662e2df00000&locations=877d747df719100213665b4fa1470000&locations=0dd627624e2e013c1b0b00dadcd9d20c&locations=036f545a07811067fea0fff0959fbf8a&locations=52f1f3a9fe8001922f2330ab9a0cc8a8&locations=bc19fd96cebf1069285cfef83d445107&locations=4d92fd6213b61072a7417474224cdf6f&locations=0dd627624e2e01ef94cee9d9dcd9be0c&locations=4c1d526324ca1001993e6efe01540000&locations=3d9f1a0214ac0196b0342b08d2463f01&locations=4b92da390b9b10b7bbda11b85613cb77&locations=29320def7b02106689d3b1774d23aec8&locations=036f545a07811067fe145154fa3cbe5a&locations=12a17a8024ab0188b084e8699205dedc&locations=036f545a07811067fe06ebd34c95be15&locations=036f545a07811067fdde3f0aaa04bddc&locations=036f545a07811067f02d8e8d652ca59a&locations=092b5fae35ea103936b2cf96c8937ee4&locations=3d9f1a0214ac01d3224c7b03d2462700&locations=036f545a07811067fdaef047ea16bd84&locations=036f545a07811067fd922a750736bd46&locations=036f545a07811067fd81d424f6f7bd34&locations=44b3a7caf8e6480795125e010f577053&locations=036f545a07811067f088b65977bba653&locations=036f545a07811067fe3102fad18abe98&locations=036f545a07811067fe54543fbf78bf0b&locations=877d747df719100213668b996bb60000&locations=877d747df7191002136629d4bc1f0000&locations=3fe9c5fb131001012dd089fc94a00000&locations=036f545a07811067fb9e5a23b23bba74&locations=34a3eda408dd1000f53fee68ed950000&locations=0dd627624e2e0140aadb9fd9dcd9780c&locations=036f545a07811067fb8008d4ab6db9fa&locations=036f545a07811067ed3afb5b6f6ca09f&locations=877d747df71910021365fa3b7dd40000&locations=036f545a07811067fb6fcb79192fb9db&locations=288fd69044a1013faf91cae80d12033d&locations=df820e04c9924c84b5214f4d68b50fa9&locations=092b5fae35ea1039363a0cdcb5837e8b&locations=092b5fae35ea103937177f80adeb7f1f&locations=b8b934041f1710a36c7d5f74cb2b8324&locations=4b92da390b9b10b7bb847e8f1b75cac8&locations=3d9f1a0214ac01439ca04708d2465801&locations=036f545a07811067ec96c1512ad3a036&locations=036f545a07811067fb4d9a7c1d47b9b8&locations=2a204116f85f0193baeeb7e2796b85c8&locations=f1900192220f010e8b06cc0dfeb6f74e&locations=2a204116f85f013c9e832787796b52c8&locations=877d747df719100213635c7f40d30000&locations=877d747df71910021363291521ae0000&locations=877d747df719100213626ffcfae00000&locations=877d747df719100213623cd467ed0000&locations=877d747df71910021361d95ffda70000&locations=092b5fae35ea103935df5e4c2e637d4f
-- enabled: true
+- enabled: false
   name: Adobe
   paginationLimit: 3
   schedule:
@@ -376,7 +436,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: adobe
   url: https://careers.adobe.com/us/en/search-results?keywords=engineer
-- enabled: true
+- enabled: false
   name: Cisco
   paginationLimit: 3
   schedule:
@@ -388,7 +448,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: cisco
   url: https://careers.cisco.com/global/en/search-results?keywords=%22software%20engineer%22&s=1
-- enabled: true
+- enabled: false
   name: Confluent
   paginationLimit: 0
   schedule:
@@ -400,7 +460,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: general
   url: https://careers.confluent.io/jobs/united_states-engineering?engineering=engineering
-- enabled: true
+- enabled: false
   name: Docusign
   paginationLimit: 3
   schedule:
@@ -412,7 +472,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: docusign
   url: https://careers.docusign.com/api/jobs?categories=Engineering%7CIT%20Infrastructure%20%26%20Operations&page=1&limit=100&locations=San%20Francisco,California,United%20States%7CSeattle,Washington,United%20States&sortBy=relevance&descending=false&internal=false
-- enabled: true
+- enabled: false
   name: snapchat
   paginationLimit: 3
   pattern: https://careers.snap.com/job**
@@ -425,7 +485,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: general
   url: https://careers.snap.com/jobs
-- enabled: true
+- enabled: false
   name: Dataminr
   paginationLimit: 3
   schedule:
@@ -437,7 +497,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: workday
   url: https://dataminr.wd12.myworkdayjobs.com/en-US/Dataminr?q=engineer
-- enabled: true
+- enabled: false
   name: Netflix
   paginationLimit: 3
   pattern: https://explore.jobs.netflix.net/careers/job/**
@@ -450,7 +510,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: netflix
   url: https://explore.jobs.netflix.net/careers?query=engineer&pid=790313345439&Region=ucan&domain=netflix.com&sort_by=date
-- enabled: true
+- enabled: false
   name: Serval
   paginationLimit: 3
   schedule:
@@ -462,7 +522,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/Serval
-- enabled: true
+- enabled: false
   name: Ashbyhq
   paginationLimit: 3
   schedule:
@@ -474,7 +534,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/factory
-- enabled: true
+- enabled: false
   name: Lambda
   paginationLimit: 0
   pattern: https://jobs.ashbyhq.com/lambda/*
@@ -487,7 +547,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/lambda
-- enabled: true
+- enabled: false
   name: notion
   paginationLimit: 0
   schedule:
@@ -499,7 +559,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/notion
-- enabled: true
+- enabled: false
   name: ramp
   paginationLimit: 0
   schedule:
@@ -511,7 +571,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/ramp
-- enabled: true
+- enabled: false
   name: voltage park
   paginationLimit: 0
   schedule:
@@ -523,7 +583,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: kula
   url: https://careers.kula.ai/voltagepark
-- enabled: true
+- enabled: false
   name: Palo Alto Networks
   paginationLimit: 3
   schedule:
@@ -535,7 +595,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: general
   url: https://jobs.paloaltonetworks.com/en/search-jobs?k=software%20engineer&l=United+States
-- enabled: true
+- enabled: false
   name: OpenAI
   paginationLimit: 3
   schedule:
@@ -547,7 +607,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: openai
   url: https://openai.com/careers/search?q=engineer&l=e8062547-b090-4206-8f1e-7329e0014e98%2C07ed9191-5bc6-421b-9883-f1ac2e276ad7%2C16c48b76-8036-4fe3-a18f-e9d357395713%2C6252b4ed-714d-469a-a970-7a13101bac9d%2Cbbd9f7fe-aae5-476a-9108-f25aea8f6cd2
-- enabled: true
+- enabled: false
   name: Microsoft
   paginationLimit: 3
   schedule:
@@ -559,7 +619,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: microsoft
   url: https://apply.careers.microsoft.com/careers?query=software+engineer&start=0&location=United+States%2C+Washington%2C+Redmond&pid=1970393556656795&sort_by=timestamp&filter_distance=160&filter_include_remote=1
-- enabled: true
+- enabled: false
   name: Github
   paginationLimit: 3
   schedule:
@@ -571,7 +631,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: general
   url: https://www.github.careers/careers-home/jobs?keywords=engineer&sortBy=relevance&limit=100
-- enabled: true
+- enabled: false
   name: Spotify
   paginationLimit: 6
   schedule:
@@ -583,7 +643,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: spotify
   url: https://www.lifeatspotify.com/jobs?l=new-york&l=boston&l=toronto&l=united-states-of-america-home-mix&c=backend&c=client-c&c=data&c=developer-tools-infrastructure&c=engineering-leadership&c=machine-learning&c=mobile&c=network-engineering-it&c=security&c=tech-research&c=web&c=data-insights-leadership&c=data-science&c=machine-learning-data-research-insights&c=tech-research-data-research-insights&c=user-research&c=product&c=design-ops&c=editorial-design&c=internal-tools-design&c=product-design&c=ux-writing
-- enabled: true
+- enabled: false
   name: HubSpot
   paginationLimit: 4
   schedule:
@@ -595,7 +655,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: hubspot
   url: https://www.hubspot.com/careers/jobs?hubs_signup-cta=careers-nav-cta&page=1#office=toronto,san-francisco,remote,cambridge;
-- enabled: true
+- enabled: false
   name: Uber
   paginationLimit: 3
   schedule:
@@ -607,7 +667,7 @@ site_schedules:
   scrapeProvider: spidercloud
   type: uber
   url: https://www.uber.com/us/en/careers/list?query=engineer&location=USA-California-San%20Francisco&location=USA-California-Los%20Angeles&location=USA-California-Sunnyvale&location=USA-California-Culver%20City&location=USA-New%20York-New%20York&location=USA-Washington-Seattle&location=USA-Illinois-Chicago&location=USA-Texas-Dallas&location=USA-Florida-Miami&location=USA-Arizona-Phoenix&location=USA-Georgia-Atlanta&location=USA-District%20of%20Columbia-Washington
-- enabled: true
+- enabled: false
   name: Meta Careers
   paginationLimit: 3
   schedule:

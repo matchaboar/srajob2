@@ -262,6 +262,7 @@ export function JobBoard() {
     filtered: "Filtered out by scraping rules.",
   };
   const [companiesView, setCompaniesView] = useState<"all" | "engineering">("all");
+  const [allCompaniesSearch, setAllCompaniesSearch] = useState("");
   const companyFilterFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("company");
@@ -557,7 +558,7 @@ export function JobBoard() {
   ) as CompanySuggestion[] | undefined;
   const companySummaries = useQuery(
     api.jobs.listCompanySummaries,
-    isCompaniesTab ? { limit: 300 } : "skip"
+    isCompaniesTab ? { limit: 1000 } : "skip"
   ) as CompanySummary[] | undefined;
   const savedFilters = useQuery(api.filters.getSavedFilters, isJobsTab ? {} : "skip");
   const selectedSavedFilter = useMemo(
@@ -2086,7 +2087,7 @@ export function JobBoard() {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  Engineering Job Market
+                  Engineering Job Market - US
                 </button>
               </div>
             </div>
@@ -2104,6 +2105,17 @@ export function JobBoard() {
                   </span>
                 </div>
 
+                {/* Search filter */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Filter by company name..."
+                    value={allCompaniesSearch}
+                    onChange={(e) => setAllCompaniesSearch(e.target.value)}
+                    className="w-full max-w-md px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
                 {!companySummaries && (
                   <div className="text-sm text-slate-500">Loading companies...</div>
                 )}
@@ -2112,48 +2124,70 @@ export function JobBoard() {
                   <div className="text-sm text-slate-500">No companies available yet.</div>
                 )}
 
-                {companySummaries && companySummaries.length > 0 && (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {companySummaries.map((company) => (
-                      <button
-                        key={company.name}
-                        type="button"
-                        onClick={() => handleCompanyCardClick(company.name)}
-                        className="group text-left rounded-xl border border-slate-800 bg-slate-900/60 p-4 hover:border-blue-500/60 hover:bg-slate-900/80 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <CompanyIcon
-                            company={company.name}
-                            size={34}
-                            url={company.sampleUrl ?? undefined}
-                          />
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-100 truncate">{company.name}</div>
-                            <div className="text-xs text-slate-400">
-                              {company.count.toLocaleString()} jobs
+                {companySummaries && companySummaries.length > 0 && (() => {
+                  const searchLower = allCompaniesSearch.toLowerCase().trim();
+                  const filteredAndSorted = companySummaries
+                    .filter((company) => !searchLower || company.name.toLowerCase().includes(searchLower))
+                    .sort((a, b) => {
+                      // Companies without lastPostedAt go last
+                      const aHasDate = a.lastPostedAt > 0;
+                      const bHasDate = b.lastPostedAt > 0;
+                      if (aHasDate && !bHasDate) return -1;
+                      if (!aHasDate && bHasDate) return 1;
+                      // Otherwise sort alphabetically
+                      return a.name.localeCompare(b.name);
+                    });
+                  return (
+                    <div className="flex flex-col gap-2">
+                      {filteredAndSorted.map((company) => (
+                        <button
+                          key={company.name}
+                          type="button"
+                          onClick={() => handleCompanyCardClick(company.name)}
+                          className="group text-left rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 hover:border-blue-500/60 hover:bg-slate-900/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <CompanyIcon
+                              company={company.name}
+                              size={32}
+                              url={company.sampleUrl ?? undefined}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-slate-100 truncate">{company.name}</div>
+                            </div>
+                            <div className="flex items-center gap-6 text-xs">
+                              <div className="flex flex-col items-end">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-500">Jobs</span>
+                                <span className="text-slate-300">{company.count.toLocaleString()}</span>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
+                                <span className="font-mono text-blue-200">{formatCompanySalary(company)}</span>
+                              </div>
+                              <div className="flex flex-col items-end min-w-[100px]">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
+                                {company.lastPostedAt > 0 ? (
+                                  <LiveTimer
+                                    startTime={company.lastPostedAt}
+                                    showAgo
+                                    showSeconds={false}
+                                    className="text-xs font-mono text-slate-200"
+                                    suffixClassName="text-slate-400"
+                                  />
+                                ) : (
+                                  <span className="text-slate-500">—</span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-3">
-                          <span className="text-[10px] uppercase tracking-wider text-slate-500">Salary avg</span>
-                          <span className="text-xs font-mono text-blue-200">{formatCompanySalary(company)}</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <span className="text-[10px] uppercase tracking-wider text-slate-500">Newest job</span>
-                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border border-slate-800 bg-slate-950/60 text-slate-200">
-                            <LiveTimer
-                              startTime={company.lastPostedAt || company.lastScrapedAt}
-                              showAgo
-                              showSeconds={false}
-                              className="text-[10px] font-mono text-slate-200"
-                              suffixClassName="text-slate-400"
-                            />
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        </button>
+                      ))}
+                      {filteredAndSorted.length === 0 && (
+                        <div className="text-sm text-slate-500">No companies match your search.</div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

@@ -319,6 +319,133 @@ kill_zombie_sqlite_processes() {
     fi
 }
 
+# Get PIDs of processes holding a specific file open
+get_pids_holding_file() {
+    local file_path="$1"
+    local pids=()
+
+    if [[ ! -f "$file_path" ]]; then
+        echo ""
+        return
+    fi
+
+    if ! command -v lsof &>/dev/null; then
+        echo ""
+        return
+    fi
+
+    while IFS= read -r line; do
+        local pid
+        pid=$(echo "$line" | awk '{print $2}')
+        if [[ -n "$pid" && "$pid" != "$$" && "$pid" =~ ^[0-9]+$ ]]; then
+            pids+=("$pid")
+        fi
+    done < <(lsof "$file_path" 2>/dev/null | tail -n +2 || true)
+
+    echo "${pids[*]}"
+}
+
+# Remove a file, killing any processes holding it if necessary
+# Returns 0 on success, 1 on failure
+remove_locked_file() {
+    local file_path="$1"
+    local max_retries="${2:-3}"
+    local retry_delay="${3:-0.5}"
+    local silent="${4:-false}"
+
+    if [[ ! -f "$file_path" ]]; then
+        return 0
+    fi
+
+    for ((attempt=1; attempt<=max_retries; attempt++)); do
+        # Try to remove the file
+        if rm -f "$file_path" 2>/dev/null && [[ ! -f "$file_path" ]]; then
+            return 0
+        fi
+
+        if [[ $attempt -eq $max_retries ]]; then
+            if [[ "$silent" != "true" ]]; then
+                echo "[preflight] WARNING: Failed to remove $file_path after $max_retries attempts" >&2
+            fi
+            return 1
+        fi
+
+        # Find and kill processes holding the file
+        local holding_pids
+        holding_pids=$(get_pids_holding_file "$file_path")
+        if [[ -n "$holding_pids" ]]; then
+            if [[ "$silent" != "true" ]]; then
+                echo "[preflight] File $file_path is locked by PID(s): $holding_pids. Killing..."
+            fi
+            for pid in $holding_pids; do
+                kill -9 "$pid" 2>/dev/null || true
+            done
+            sleep "$retry_delay"
+        else
+            # No identifiable process, just wait and retry
+            sleep "$retry_delay"
+        fi
+    done
+
+    return 1
+}
+
+# Clear DBOS system database files (always done on startup)
+# This prevents "table dbos_migrations already exists" errors
+clear_dbos_system_db() {
+    local dbos_runtime_dir="$1"
+    local system_db="$dbos_runtime_dir/dbos_system.sqlite"
+    local cleared_files=()
+    local failed_files=()
+
+    for f in "$system_db" "${system_db}-wal" "${system_db}-shm" "${system_db}-journal"; do
+        if [[ -f "$f" ]]; then
+            if remove_locked_file "$f" 3 0.5 false; then
+                cleared_files+=("$(basename "$f")")
+            else
+                failed_files+=("$(basename "$f")")
+            fi
+        fi
+    done
+
+    if [[ ${#cleared_files[@]} -gt 0 ]]; then
+        echo "Auto-cleared DBOS system DB: ${cleared_files[*]}"
+    fi
+    if [[ ${#failed_files[@]} -gt 0 ]]; then
+        echo "WARNING: Failed to clear some DBOS system files (may cause migration errors): ${failed_files[*]}" >&2
+    fi
+}
+
+# Kill any existing worker processes before starting
+kill_existing_workers() {
+    local killed_count=0
+
+    # Find and kill any running DBOS runner or Temporal worker processes
+    while IFS= read -r line; do
+        local pid
+        pid=$(echo "$line" | awk '{print $1}')
+        if [[ -n "$pid" && "$pid" != "$$" && "$pid" =~ ^[0-9]+$ ]]; then
+            echo "[preflight] Stopping existing worker process $pid"
+            kill -TERM "$pid" 2>/dev/null || true
+            ((killed_count++)) || true
+        fi
+    done < <(ps -eo pid,args 2>/dev/null | grep -E "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)" | grep -v grep || true)
+
+    if [[ $killed_count -gt 0 ]]; then
+        sleep 1
+        # Force kill any remaining
+        while IFS= read -r line; do
+            local pid
+            pid=$(echo "$line" | awk '{print $1}')
+            if [[ -n "$pid" && "$pid" != "$$" && "$pid" =~ ^[0-9]+$ ]]; then
+                echo "[preflight] Force killing worker process $pid"
+                kill -9 "$pid" 2>/dev/null || true
+            fi
+        done < <(ps -eo pid,args 2>/dev/null | grep -E "job_scrape_application\.(workflows\.worker|dbos_runtime\.runner)" | grep -v grep || true)
+        sleep 0.5
+    fi
+}
+
 # Print initial queue status
 if [[ "$RESET_DB" == "true" ]]; then
     print_queue_status "before reset"
@@ -326,19 +453,30 @@ else
     print_queue_status "before start"
 fi
 
+# Kill any existing worker processes first (before touching files)
+kill_existing_workers
+
 # Kill any zombie processes holding deleted SQLite files
 dbos_runtime_dir="$repo_root/job_scrape_application/dbos_runtime"
 kill_zombie_sqlite_processes "$dbos_runtime_dir"
 
+# Always clear DBOS system database on startup to prevent "table dbos_migrations already exists" errors
+# This is safe because dbos_system.sqlite is just DBOS internal migration tracking (recreatable)
+clear_dbos_system_db "$dbos_runtime_dir"
+
 # Reset database if requested (includes WAL, SHM, and journal files to prevent corruption issues)
 if [[ "$RESET_DB" == "true" ]]; then
     removed_files=()
+    failed_files=()
     # Remove both the queue database and DBOS system database
     for f in "$db_file" "${db_file}-wal" "${db_file}-shm" "${db_file}-journal" \
              "$dbos_system_file" "${dbos_system_file}-wal" "${dbos_system_file}-shm" "${dbos_system_file}-journal"; do
         if [[ -f "$f" ]]; then
-            rm -f "$f"
-            removed_files+=("$(basename "$f")")
+            if remove_locked_file "$f" 3 0.5 false; then
+                removed_files+=("$(basename "$f")")
+            else
+                failed_files+=("$(basename "$f")")
+            fi
         fi
     done
     if [[ -f "$db_file" ]]; then
@@ -349,6 +487,9 @@ if [[ "$RESET_DB" == "true" ]]; then
         echo "Removed SQLite files: ${removed_files[*]}"
     else
         echo "No SQLite files to remove"
+    fi
+    if [[ ${#failed_files[@]} -gt 0 ]]; then
+        echo "WARNING: Failed to remove some files: ${failed_files[*]}" >&2
     fi
     echo ""
 fi

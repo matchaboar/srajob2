@@ -233,7 +233,7 @@ describe("JobBoard query skipping", () => {
     window.location.hash = "#companies";
     render(<JobBoard />);
 
-    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toEqual({ limit: 300 });
+    expect(findQueryCall(api.jobs.listCompanySummaries)?.[1]).toEqual({ limit: 1000 });
     expect(findQueryCall(api.jobs.getAppliedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.jobs.getRejectedJobs)?.[1]).toBe("skip");
     expect(findQueryCall(api.router.listIgnoredJobs)?.[1]).toBe("skip");
