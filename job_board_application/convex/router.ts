@@ -75,9 +75,11 @@ const BRANDFETCH_LOGO_OVERRIDES: Record<string, string> = {
     "https://cdn.brandfetch.io/idgEzjThpb/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1764613007905",
 };
 const BRANDFETCH_DOMAIN_OVERRIDES: Record<string, string> = {
+  moov: "moov.io",
   oscar: "hioscar.com",
-  serval: "serval.com",
+  sentinelone: "sentinelone.com",
   sentinellabs: "sentinelone.com",
+  serval: "serval.com",
 };
 const LOGO_SLUG_CHAR_MAP: Record<string, string> = {
   "+": "plus",
