@@ -77,6 +77,7 @@ const BRANDFETCH_LOGO_OVERRIDES: Record<string, string> = {
 const BRANDFETCH_DOMAIN_OVERRIDES: Record<string, string> = {
   oscar: "hioscar.com",
   serval: "serval.com",
+  sentinellabs: "sentinelone.com",
 };
 const LOGO_SLUG_CHAR_MAP: Record<string, string> = {
   "+": "plus",

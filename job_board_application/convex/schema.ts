@@ -179,6 +179,7 @@ const applicationTables = {
       v.union(
         v.literal("general"),
         v.literal("greenhouse"),
+        v.literal("lever"),
         v.literal("kula"),
         v.literal("avature"),
         v.literal("workday"),

@@ -619,3 +619,171 @@ site_schedules:
   scrapeProvider: spidercloud
   type: meta
   url: https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ
+- enabled: true
+  name: adyen
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/adyen/jobs
+- enabled: true
+  name: zoox
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: lever
+  url: https://jobs.lever.co/zoox
+- enabled: true
+  name: lithic
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/lithic/jobs
+- enabled: true
+  name: highnote
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/highnote/jobs
+- enabled: true
+  name: tabapay
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/tabapay/jobs
+- enabled: true
+  name: asana
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/asana/jobs
+- enabled: true
+  name: roku
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/roku/jobs
+- enabled: true
+  name: cloudflare
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/Cloudflare/jobs
+- enabled: true
+  name: applovin
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/AppLovin/jobs
+- enabled: true
+  name: sentinelone
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/sentinellabs/jobs
+- enabled: true
+  name: instacart
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/Instacart/jobs
+- enabled: true
+  name: moov
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: general
+  url: https://ats.rippling.com/moov/jobs
+- enabled: true
+  name: webai
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/webai
+- enabled: true
+  name: camber
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/camber

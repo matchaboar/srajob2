@@ -1,6 +1,7 @@
 export const SITE_TYPES = [
   "general",
   "greenhouse",
+  "lever",
   "ashby",
   "kula",
   "avature",
@@ -23,6 +24,7 @@ export type SiteType = (typeof SITE_TYPES)[number];
 
 export const SPIDER_CLOUD_DEFAULT_SITE_TYPES = new Set<SiteType>([
   "greenhouse",
+  "lever",
   "ashby",
   "kula",
   "avature",

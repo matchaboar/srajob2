@@ -1375,7 +1375,17 @@ function Start-WorkerMain {
         if ($detailWorkers -lt 1) { $detailWorkers = $defaultDetailWorkers }
         Write-Host ("Workers: listing ({0}), detail ({1})" -f $listingWorkers, $detailWorkers) -ForegroundColor DarkGray
         $script:WorkerProcesses = @()
+        # Start the primary worker (schedule-1) first and wait for DBOS initialization
+        # This ensures migrations complete before other workers attempt to start DBOS
+        # Prevents "table dbos_migrations already exists" race condition
+        Write-Host "Starting primary worker (schedule-1) to initialize DBOS..." -ForegroundColor DarkGray
         $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -Queue "schedule" -ExecutorId "schedule-1" -WithApi -WithSchedule
+
+        # Wait for DBOS initialization to complete before starting additional workers
+        Write-Host "Waiting for DBOS initialization to complete..." -ForegroundColor DarkGray
+        Start-Sleep -Seconds 3
+
+        Write-Host "Starting remaining workers..." -ForegroundColor DarkGray
         for ($i = 1; $i -le $listingWorkers; $i++) {
             $script:WorkerProcesses += Start-DbosWorkerProcess -ErrorLogPath $errorLogPath -Queue "listing" -ExecutorId ("listing-{0}" -f $i)
         }

@@ -1,0 +1,126 @@
+{
+  "request": {
+    "url": "https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4",
+    "params": {
+      "return_format": [
+        "commonmark"
+      ],
+      "metadata": true,
+      "request": "chrome",
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": [
+        "*"
+      ],
+      "preserve_host": true,
+      "limit": 1
+    },
+    "stream": false,
+    "contentType": "application/json"
+  },
+  "response": [
+    {
+      "content": {
+        "commonmark": "Zoox - Team Lead, Vehicle Technicians (3rd Shift)\n## Team Lead, Vehicle Technicians (3rd Shift)\nLas Vegas, NV\nFleet Operations – Fleet Operations /\nFull-time /\nOn-site\n[Apply for this job](https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4/apply)\nAs the Team Lead for Base Operations, you will move beyond day-to-day fleet maintenance to own and evolve the operational backbone of Zoox’s Base Operations function. This role is responsible for driving operational excellence, standardization, and scale-readiness across workshop operations while ensuring the holistic readiness, safety, and strategic deployment of Zoox’s Robotaxi vehicle fleet.\nYou will serve as a people leader, operational owner, and change driver, accountable for implementing and improving Standard Operating Procedures (SOPs), enforcing EH&amp;S and 5S standards, and building a culture of accountability, safety, and continuous improvement. In partnership with cross-functional stakeholders, you will translate company-level objectives and future growth plans into actionable, scalable execution models for your team.\n**Shift: **3rd Shift // 11:30pm - 8am // Sunday - Thursday\n### In this role, you will:\n* Manage the full team lifecycle, including workforce planning, recruiting, onboarding, and performance management, to build high-performing teams rooted in safety and quality.\n* Coach and develop technicians and leads by establishing clear expectations, providing consistent feedback, and creating succession plans to support organizational scaling.\n* Own the development and enforcement of SOPs across all workflows (inspections, maintenance, upgrades), ensuring documentation is audited and aligned with real-world execution.\n* Drive operational excellence by utilizing data, root cause analysis, and standard work methodologies to improve throughput, vehicle uptime, and process repeatability.\n* Ensure operational readiness by verifying that tools, equipment, parts, and facilities are standardized, maintained, and fully available to meet operational demand.\n* Champion EHS &amp; 5S standards, maintaining a clean, organized, and compliant work environment while embedding safety into daily behaviors and decision-making.\n* Proactively identify and mitigate risks, leading corrective and preventive actions to address safety concerns, near misses, and process gaps.\n* Define and track critical KPIs related to fleet readiness, quality, and downtime, using data insights to drive accountability and prevent systemic failures.\n* Partner with Engineering, Test, and Facilities teams to align operational execution with company roadmaps, testing milestones, and evolving requirements.\n* Lead strategic scaling initiatives, translating high-level goals into practical plans for increased fleet size, new platforms, and expanded facility operations.\n* Serve as the primary technical escalation point, overseeing complex maintenance and configuration changes to ensure strict adherence to quality standards.\n* Provide data-backed communication to leadership and stakeholders regarding operational risks, constraints, and trade-offs to support agile decision-making.\n### Qualifications\n* 6+ years of hands-on automotive technician experience.\n* 3+ years of people leadership experience. Experience leading teams in technical, automotive, or high-volume service environments.\n* Proven experience implementing and improving SOPs, standard work, and operational processes in complex technical environments, with demonstrated success leading high-output teams.\n* Strong understanding of EH&amp;S compliance, safety programs, and 5S methodologies.\n* Extensive knowledge of automotive systems, diagnostic methods, parts, and tools.\n* High proficiency in CAN/LIN architecture, wiring diagrams, and soldering.\n* Strong written and verbal communication skills with the ability to influence across technical and non-technical stakeholders.\n* Demonstrated ability to manage multiple priorities, drive initiatives to completion, and operate effectively in fast-paced, ambiguous environments.\n* Willingness and ability to travel locally and nationally (50%+), with a clean driving record.\n### Bonus Qualifications\n* Bachelors degree\n* Experience with autonomous vehicles, or a similar safety-critical industry\n* Experience working in R&amp;D, testing, or pre-production environments, including engineering labs or prototype operations.\n* Familiarity with Lean, Six Sigma, or continuous improvement methodologies.\n* Experience supporting scaling operations, new site launches, or fleet expansion initiatives.\n* Strong understanding of EV architectures and high-voltage systems.\n* Experience utilizing specialized test equipment (NVH, vehicle dynamics, thermal, durability).\n* Technical trade school certificate or Associate Degree in automotive repair.\n$81,000 - $111,000 a year\n**Base Salary Range**\nThere are three major components to compensation for this position: salary, Amazon Restricted Stock Units (RSUs), and Zoox Stock Appreciation Rights. A sign-on bonus may be offered as part of the compensation package. The listed range applies only to the base salary. Compensation will vary based on geographic location and level. Leveling, as well as positioning within a level, is determined by a range of factors, including, but not limited to, a candidate's relevant years of experience, domain knowledge, and interview performance. The salary range listed in this posting is representative of the range of levels Zoox is considering for this position.\nZoox also offers a comprehensive package of benefits, including paid time off (e.g. sick leave, vacation, bereavement), unpaid time off, Zoox Stock Appreciation Rights, Amazon RSUs, health insurance, long-term care insurance, long-term and short-term disability insurance, and life insurance.\nWe may use artificial intelligence (AI) tools to support parts of the hiring process, such as reviewing applications, analyzing resumes, or assessing responses. These tools assist our recruitment team but do not replace human judgment. Final hiring decisions are ultimately made by humans. If you would like more information about how your data is processed, please contact us.\n[Apply for this job](https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4/apply)\n[Zoox Home Page](http://zoox.com)\n[Jobs powered by ![Lever logo](https://jobs.lever.co/img/lever-logo-full.svg)](https://www.lever.co/job-seeker-support/)"
+      },
+      "costs": {
+        "ai_cost": 0.0,
+        "ai_cost_formatted": "0",
+        "bytes_transferred_cost": 9.3615e-7,
+        "bytes_transferred_cost_formatted": "0.0000009361499999999999830552",
+        "compute_cost": 0.000013953685185185186,
+        "compute_cost_formatted": "0.0000139536851851851856033692",
+        "file_cost": 0.0005436735,
+        "file_cost_formatted": "0.0005436734999999999651265625",
+        "total_cost": 0.0005685633351851852,
+        "total_cost_formatted": "0.0005685633351851851512680985",
+        "transform_cost": 0.00001,
+        "transform_cost_formatted": "0.0000100000000000000005551115"
+      },
+      "duration_elasped_ms": 4349,
+      "error": null,
+      "metadata": {
+        "commonmark": {
+          "automation_data": null,
+          "description": "",
+          "domain": "jobs.lever.co",
+          "extracted_data": null,
+          "file_size": 6456,
+          "final_url": null,
+          "keywords": [
+            "Amazon Restricted Stock Units",
+            "Base Operations function",
+            "Base Salary Range",
+            "Drive operational excellence",
+            "Ensure operational readiness",
+            "Experience leading teams",
+            "Experience supporting scaling operations",
+            "Experience utilizing specialized test equipment",
+            "Final hiring decisions",
+            "Lead strategic scaling initiatives",
+            "NV Fleet Operations",
+            "Proven experience implementing",
+            "Provide data-backed communication",
+            "Robotaxi vehicle fleet",
+            "Technical trade school certificate",
+            "Zoox Home Page",
+            "Zoox Stock Appreciation Rights",
+            "address safety concerns",
+            "align operational execution",
+            "build high-performing teams rooted",
+            "clean driving record",
+            "complex technical environments",
+            "compliant work environment",
+            "continuous improvement methodologies",
+            "creating succession plans",
+            "day-to-day fleet maintenance",
+            "demonstrated success leading high-output teams",
+            "driving operational excellence",
+            "ensure strict adherence",
+            "establishing clear expectations",
+            "expanded facility operations",
+            "fleet expansion initiatives",
+            "full team lifecycle",
+            "future growth plans",
+            "hands-on automotive technician experience",
+            "high-volume service environments",
+            "improving Standard Operating Procedures",
+            "including engineering labs",
+            "including paid time",
+            "including workforce planning",
+            "increased fleet size",
+            "listed range applies",
+            "long-term care insurance",
+            "manage multiple priorities",
+            "meet operational demand",
+            "overseeing complex maintenance",
+            "people leadership experience",
+            "prevent systemic failures",
+            "primary technical escalation point",
+            "providing consistent feedback",
+            "replace human judgment",
+            "scalable execution models",
+            "short-term disability insurance",
+            "similar safety-critical industry",
+            "standard work methodologies",
+            "support agile decision-making",
+            "support organizational scaling",
+            "track critical KPIs related",
+            "translate company-level objectives",
+            "translating high-level goals",
+            "verbal communication skills"
+          ],
+          "og_image": "https://lever-client-logos.s3.us-west-2.amazonaws.com/5f6f9bef-3957-46f7-b87d-c490e24027b1-1614218390018.png",
+          "original_url": "https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4",
+          "pathname": "/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4",
+          "resource_type": ".md",
+          "title": "Zoox - Team Lead, Vehicle Technicians (3rd Shift)",
+          "url": null,
+          "user_id": "7638f6ee-e799-4620-955e-bd9347f5f2aa"
+        }
+      },
+      "status": 200,
+      "url": "https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4"
+    }
+  ]
+}

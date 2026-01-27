@@ -3,11 +3,43 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 import threading
 import time
 import uuid
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Generator
 
 from dbos import DBOS, DBOSConfig
+
+# Cross-platform file locking
+if sys.platform == "win32":
+    import msvcrt
+
+    @contextmanager
+    def _file_lock(lock_path: Path) -> Generator[None, None, None]:
+        """Windows file lock using msvcrt."""
+        lock_path.touch(exist_ok=True)
+        with open(lock_path, "w") as lock_file:
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+else:
+    import fcntl
+
+    @contextmanager
+    def _file_lock(lock_path: Path) -> Generator[None, None, None]:
+        """Unix file lock using fcntl."""
+        lock_path.touch(exist_ok=True)
+        with open(lock_path, "w") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 from .api import serve as serve_api
 from .queue import queue_status
@@ -67,23 +99,35 @@ def _resolve_listening_queues(queue_name: str) -> list:
 
 
 def _initialize_dbos(*, executor_id: str | None, listen_queues: list) -> None:
-    """Initialize DBOS for workflow support."""
+    """Initialize DBOS for workflow support.
+
+    Uses a file lock to ensure only one process runs DBOS migrations at a time,
+    preventing "table dbos_migrations already exists" race condition when
+    multiple workers start simultaneously.
+    """
     global _DBOS_INITIALIZED
     if _DBOS_INITIALIZED:
         return
 
+    db_dir = _resolve_db_path().parent
+    dbos_db_path = db_dir / "dbos_system.sqlite"
+    lock_path = db_dir / ".dbos_init.lock"
+
     try:
-        dbos_db_path = _resolve_db_path().parent / "dbos_system.sqlite"
-        config = DBOSConfig(
-            name="job-scrape-worker",
-            system_database_url=f"sqlite:///{dbos_db_path}",
-            executor_id=executor_id,
-        )
-        DBOS(config=config)
-        DBOS.listen_queues(listen_queues)
-        DBOS.launch()
-        _DBOS_INITIALIZED = True
-        logger.info("DBOS initialized successfully")
+        # Acquire exclusive lock to serialize DBOS initialization across processes
+        logger.info("Acquiring DBOS initialization lock...")
+        with _file_lock(lock_path):
+            logger.info("Lock acquired, initializing DBOS...")
+            config = DBOSConfig(
+                name="job-scrape-worker",
+                system_database_url=f"sqlite:///{dbos_db_path}",
+                executor_id=executor_id,
+            )
+            DBOS(config=config)
+            DBOS.listen_queues(listen_queues)
+            DBOS.launch()
+            _DBOS_INITIALIZED = True
+            logger.info("DBOS initialized successfully")
     except Exception as exc:
         logger.warning("Failed to initialize DBOS: %s.", exc)
         _DBOS_INITIALIZED = False

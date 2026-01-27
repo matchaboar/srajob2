@@ -360,6 +360,17 @@ def derive_company_from_url(url: str) -> str:
                     return _apply_company_mapping(cleaned_slug.title())
         return ""
 
+    # Lever URLs: jobs.lever.co/{company}/{job-id}
+    if hostname.endswith("lever.co"):
+        # Standard pattern: /{company}/{job-id}
+        if path_parts:
+            slug = path_parts[0]
+            if slug.lower() not in _INVALID_COMPANY_TOKENS:
+                cleaned_slug = _NON_ALNUM_RE.sub(" ", slug).strip()
+                if cleaned_slug:
+                    return _apply_company_mapping(cleaned_slug.title())
+        return ""
+
     # AshbyHQ URLs: jobs.ashbyhq.com/{company}/... or api.ashbyhq.com/posting-api/job-board/{company}
     if hostname.endswith("ashbyhq.com"):
         # API pattern: /posting-api/job-board/{company}

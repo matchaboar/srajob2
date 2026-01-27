@@ -13,6 +13,7 @@ from .github_careers import GithubCareersHandler
 from .greenhouse import GreenhouseHandler
 from .hubspot_careers import HubspotCareersHandler
 from .kula_careers import KulaCareersHandler
+from .lever import LeverHandler
 from .lifeatspotify import LifeAtSpotifyHandler
 from .meta_careers import MetaCareersHandler
 from .microsoft_careers import MicrosoftCareersHandler
@@ -35,6 +36,7 @@ _HANDLER_CLASSES = (
     GreenhouseHandler,
     HubspotCareersHandler,
     KulaCareersHandler,
+    LeverHandler,
     LifeAtSpotifyHandler,
     MetaCareersHandler,
     MicrosoftCareersHandler,
@@ -83,6 +85,7 @@ __all__ = [
     "GreenhouseHandler",
     "HubspotCareersHandler",
     "KulaCareersHandler",
+    "LeverHandler",
     "LifeAtSpotifyHandler",
     "MetaCareersHandler",
     "MicrosoftCareersHandler",
