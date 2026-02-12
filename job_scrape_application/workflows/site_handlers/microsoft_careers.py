@@ -95,6 +95,15 @@ class MicrosoftCareersHandler(BaseSiteHandler):
         query = urlencode(params, doseq=True)
         return urlunparse(parsed._replace(path=API_DETAIL_PATH, query=query, scheme="https"))
 
+    def get_company_uri(self, uri: str) -> Optional[str]:
+        """Convert API detail URL to marketing URL for Microsoft careers site."""
+        if not self.matches_url(uri):
+            return None
+        job_id = self._extract_job_id(uri)
+        if not job_id:
+            return None
+        return urljoin(MICROSOFT_BASE_URL, f"{JOB_DETAIL_PATH}{job_id}")
+
     def get_links_from_json(self, payload: Any) -> List[str]:
         urls: List[str] = []
         seen: set[str] = set()

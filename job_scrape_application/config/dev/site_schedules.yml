@@ -679,6 +679,30 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/camber
+- enabled: true
+  name: chime
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/chime/jobs
+- enabled: true
+  name: sofi
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/sofi/jobs
 - enabled: false
   name: voltage park
   paginationLimit: 0
