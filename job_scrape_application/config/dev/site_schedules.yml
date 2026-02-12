@@ -680,6 +680,18 @@ site_schedules:
   type: ashby
   url: https://jobs.ashbyhq.com/camber
 - enabled: true
+  name: virio
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/virio
+- enabled: true
   name: chime
   paginationLimit: 0
   schedule:
