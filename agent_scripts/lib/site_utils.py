@@ -54,6 +54,7 @@ def extract_site_info_from_url(url: str) -> SiteInfo:
     # Check for known platforms first
     # Greenhouse
     if "greenhouse.io" in domain:
+        # Handle both /boards/ and job-boards.greenhouse.io formats
         match = re.search(r"/boards/([a-z0-9_-]+)", parsed.path, re.I)
         if match:
             company = match.group(1)
@@ -65,6 +66,19 @@ def extract_site_info_from_url(url: str) -> SiteInfo:
                 domain=domain,
                 suggested_listing_url=f"https://api.greenhouse.io/v1/boards/{company}/jobs",
             )
+        # Handle job-boards.greenhouse.io/company format
+        if "job-boards.greenhouse.io" in domain:
+            path_parts = [p for p in parsed.path.split("/") if p]
+            if path_parts:
+                company = path_parts[0]
+                return SiteInfo(
+                    company=company,
+                    normalized_company=company.lower().replace("-", "_"),
+                    handler="greenhouse",
+                    is_known_platform=True,
+                    domain=domain,
+                    suggested_listing_url=f"https://job-boards.greenhouse.io/{company}",
+                )
 
     # Ashby HQ
     if "ashbyhq.com" in domain:
