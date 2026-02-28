@@ -1,0 +1,25 @@
+{
+  "request": {
+    "url": "https://job-boards.greenhouse.io/chime",
+    "params": {
+      "request": "chrome",
+      "return_format": ["commonmark", "raw_html"],
+      "follow_redirects": true,
+      "redirect_policy": "Loose",
+      "external_domains": ["*"],
+      "preserve_host": true,
+      "metadata": true,
+      "limit": 1
+    },
+    "stream": false
+  },
+  "response": [
+    {
+      "content": {
+        "commonmark": "Jobs | Chime Careers\n[Skip to main content](#content)\nDisplaying **1** to **20** of **49** matching jobs\n* Legal & Finance\n* San Francisco Office\n###\n[Lead Data Analyst](https://job-boards.greenhouse.io/en/jobs/8403069002/lead-data-analyst/)\nSave\nSaved\n* Legal & Finance\n* San Francisco Office\n###\n[Staff Data Analyst](https://job-boards.greenhouse.io/en/jobs/8403065002/staff-data-analyst/)\nSave\nSaved\n* Engineering\n* Remote - US\n###\n[Senior Software Engineer, Infrastructure](https://job-boards.greenhouse.io/en/jobs/8384277002/senior-software-engineer-infrastructure/)\nSave\nSaved\n* Security & IT\n* New York, NY (Enterprise)\n###\n[Senior IAM Engineer](https://job-boards.greenhouse.io/en/jobs/8389281002/senior-iam-engineer/)\nSave\nSaved"
+      },
+      "status": 200,
+      "url": "https://careers.chime.com/en/jobs/"
+    }
+  ]
+}

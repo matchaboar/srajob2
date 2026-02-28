@@ -3,6 +3,7 @@
 # The extraction pipeline extracts poorly from this HTML - title becomes "Transcript" (from page header/footer).
 site_id: bloomberg
 detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497
+apply_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Software-Engineer-Editorial-Apps-Platforms/16497
 expected:
   # Fixture analysis shows poor extraction from this complex HTML:
   # - Title extraction fails, returns "Transcript" instead of actual title

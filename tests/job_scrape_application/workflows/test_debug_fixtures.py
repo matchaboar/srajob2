@@ -137,16 +137,21 @@ async def test_debug_job_extraction(
     # Write extraction result for inspection
     _write_extraction_result(result)
 
-    # Validate against assertions
-    if not result.extracted_jobs:
-        pytest.fail(f"No jobs extracted for {identifier}")
-
     # Load assertions from the debug assertion file
     try:
         import yaml
         assertions = yaml.safe_load(assertion_path.read_text(encoding="utf-8"))
     except Exception as exc:
         pytest.fail(f"Failed to load assertions from {assertion_path}: {exc}")
+
+    # Check if test should be skipped
+    expected = assertions.get("expected", {})
+    if expected.get("skip"):
+        pytest.skip(f"Skipping {identifier}: {expected.get('skip_reason', 'marked as skip')}")
+
+    # Validate against assertions
+    if not result.extracted_jobs:
+        pytest.fail(f"No jobs extracted for {identifier}")
 
     job = result.extracted_jobs[0]
 

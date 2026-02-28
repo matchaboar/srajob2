@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: confluent
 detail_url: https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1
+apply_url: https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1
 expected:
   title: Staff Software Engineer - Flink SQL
   company: Confluent

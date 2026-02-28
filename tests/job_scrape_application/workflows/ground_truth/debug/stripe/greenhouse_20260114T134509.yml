@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/stripe/greenhouse_20260114T134509_detail.json
 site_id: greenhouse
 detail_url: https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7374078
+apply_url: https://boards.greenhouse.io/stripe/jobs/7374078
 expected:
   title: "Account Executive, AI Sales"
   company: "Stripe"

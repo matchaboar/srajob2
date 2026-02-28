@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: hubspot_careers
 detail_url: https://www.hubspot.com/careers/jobs/7391386
+apply_url: https://www.hubspot.com/careers/jobs/7391386
 expected:
   title: "Senior Software Engineer II, Backend"
   company: "HubSpot"

@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/netflix_790313551266_20260113T053309_detail.json
 site_id: netflix
 detail_url: https://explore.jobs.netflix.net/careers/job/790313551266
+apply_url: https://explore.jobs.netflix.net/careers/job/790313551266
 expected:
   title: Software Engineer L5, Ads Campaign Management
   company: Netflix

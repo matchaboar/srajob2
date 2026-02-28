@@ -10,6 +10,7 @@
 #
 site_id: workday
 detail_url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/R-D-Engineer-Hardware_R023773
+apply_url: https://broadcom.wd1.myworkdayjobs.com/External_Career/job/USA-CA-Irvine-Alton-Parkway-Bldg-1/R-D-Engineer-Hardware_R023773
 expected:
   title: "R&D Engineer Hardware"
   company: "Broadcom"

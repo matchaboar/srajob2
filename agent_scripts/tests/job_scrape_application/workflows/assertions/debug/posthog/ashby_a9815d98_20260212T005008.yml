@@ -1,0 +1,13 @@
+# IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/PostHog/43dbf072-0fc1-48c9-8c1e-7416db7d4a14
+expected:
+  title: ""
+  company: ""
+  location_contains: "TODO"  # Fill in expected location
+  is_remote: false
+  level: mid
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

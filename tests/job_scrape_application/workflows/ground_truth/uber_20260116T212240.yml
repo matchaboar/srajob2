@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: uber
 detail_url: https://www.uber.com/careers/list/149889
+apply_url: https://www.uber.com/careers/list/149889
 expected:
   title_contains: "Business Development Lead, US Regional Grocery"
   company: "Uber"

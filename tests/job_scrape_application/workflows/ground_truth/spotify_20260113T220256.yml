@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: spotify
 detail_url: https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing
+apply_url: https://www.lifeatspotify.com/jobs/data-scientist-growth-analytics-performance-marketing
 expected:
   title_contains: Data Scientist
   company: Spotify

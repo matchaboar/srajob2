@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/coupang/greenhouse_20260114T134509_detail.json
 site_id: greenhouse
 detail_url: https://boards-api.greenhouse.io/v1/boards/coupang/jobs/7355561
+apply_url: https://boards.greenhouse.io/coupang/jobs/7355561
 expected:
   title: "[쿠팡 페이]사내변호사"
   company: "Coupang"

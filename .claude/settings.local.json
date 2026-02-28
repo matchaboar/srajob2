@@ -79,7 +79,8 @@
       "Bash(then)",
       "Bash(else)",
       "Bash(sort:*)",
-      "Bash(pnpm run lint:*)"
+      "Bash(pnpm run lint:*)",
+      "WebFetch(domain:jobs.ashbyhq.com)"
     ]
   },
   "outputStyle": "default"

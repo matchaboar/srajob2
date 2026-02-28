@@ -1,0 +1,15 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/growtherapy_20260219T001542_detail.json
+# Generated: 2026-02-19T00:15:44.765597+00:00
+# IMPORTANT: Update expected values based on actual job data in the fixture.
+# This file is auto-generated - existing files are NEVER overwritten.
+site_id: growtherapy
+detail_url: https://boards-api.greenhouse.io/v1/boards/growtherapy/jobs/4653764005
+apply_url: https://boards.greenhouse.io/growtherapy/jobs/4653764005
+expected:
+  title_contains: "Business Data Analyst"
+  company: "Grow Therapy"
+  location_contains: "Remote"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1

@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: voltage_park
 detail_url: https://careers.kula.ai/voltagepark/19780
+apply_url: https://careers.kula.ai/voltagepark/19780
 expected:
   title_contains: "Data Center Site Operations Manager"
   company: "Voltage Park"

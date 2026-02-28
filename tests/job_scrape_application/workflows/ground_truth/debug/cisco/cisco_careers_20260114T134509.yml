@@ -4,6 +4,7 @@
 # This test documents current (limited) extraction behavior for this site type.
 site_id: cisco_careers
 detail_url: https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence
+apply_url: https://careers.cisco.com/global/en/job/2000598/Systems-Architect-Defence
 expected:
   # Extraction is limited due to complex HTML structure
   # Title extraction fails and returns generic "Job" from HTML

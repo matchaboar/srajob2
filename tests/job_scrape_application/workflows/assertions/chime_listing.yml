@@ -1,0 +1,31 @@
+# Chime Greenhouse Job Board - Expected Job URLs
+# Source: https://job-boards.greenhouse.io/chime (redirects to https://careers.chime.com/en/jobs/)
+site_id: greenhouse
+listing_url: https://api.greenhouse.io/v1/boards/chime/jobs
+expected:
+  url_count_min: 20  # At least 20 jobs visible on first page
+  url_pattern: "https://job-boards\\.greenhouse\\.io/en/jobs/\\d+/[a-z0-9-]+/"
+  no_listing_urls: true
+  handler: "GreenhouseHandler"
+  expected_urls:
+    # These are the job URLs that must be extracted from the Chime job board
+    - "https://job-boards.greenhouse.io/en/jobs/8403069002/lead-data-analyst/"
+    - "https://job-boards.greenhouse.io/en/jobs/8403065002/staff-data-analyst/"
+    - "https://job-boards.greenhouse.io/en/jobs/8384277002/senior-software-engineer-infrastructure/"
+    - "https://job-boards.greenhouse.io/en/jobs/8389281002/senior-iam-engineer/"
+    - "https://job-boards.greenhouse.io/en/jobs/8397325002/lead-employee-relations-partner/"
+    - "https://job-boards.greenhouse.io/en/jobs/8396647002/people-services-coordinator/"
+    - "https://job-boards.greenhouse.io/en/jobs/8393494002/group-product-manager-platform/"
+    - "https://job-boards.greenhouse.io/en/jobs/8382330002/senior-jira-saas-administrator/"
+    - "https://job-boards.greenhouse.io/en/jobs/8369099002/engineering-manager-trust-safety/"
+    - "https://job-boards.greenhouse.io/en/jobs/8367214002/senior-director-procurement-and-third-party-risk/"
+    - "https://job-boards.greenhouse.io/en/jobs/8361727002/workplace-experience-lead/"
+    - "https://job-boards.greenhouse.io/en/jobs/8326233002/senior-people-partner/"
+    - "https://job-boards.greenhouse.io/en/jobs/8322470002/staff-software-engineer-spending/"
+    - "https://job-boards.greenhouse.io/en/jobs/8322458002/engineering-manager-spending/"
+    - "https://job-boards.greenhouse.io/en/jobs/8318636002/state-local-tax-manager/"
+    - "https://job-boards.greenhouse.io/en/jobs/8304631002/senior-software-engineer-foundation-financial-platform/"
+    - "https://job-boards.greenhouse.io/en/jobs/8382122002/director-people-analytics/"
+    - "https://job-boards.greenhouse.io/en/jobs/8219791002/product-manager-mypay/"
+    - "https://job-boards.greenhouse.io/en/jobs/8185502002/people-development-partner/"
+    - "https://job-boards.greenhouse.io/en/jobs/8183064002/software-engineer-financial-platform/"

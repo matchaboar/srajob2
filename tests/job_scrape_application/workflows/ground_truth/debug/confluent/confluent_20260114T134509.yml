@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/confluent/confluent_20260114T134509_detail.json
 site_id: confluent
 detail_url: https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1
+apply_url: https://careers.confluent.io/jobs/job/79c5035c-4266-40f0-86e1-84d067ed77b1
 expected:
   title: "Staff Software Engineer - Flink SQL"
   company: "Confluent"

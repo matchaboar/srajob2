@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: snapchat
 detail_url: https://careers.snap.com/job?id=R0043496
+apply_url: https://careers.snap.com/job?id=R0043496
 expected:
   title_contains: "Technical Program Manager"
   company: "Snap"

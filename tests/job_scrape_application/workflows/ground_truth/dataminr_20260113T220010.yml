@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: dataminr
 detail_url: https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945
+apply_url: https://dataminr.wd12.myworkdayjobs.com/Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945
 expected:
   title: Customer Success Associate
   company: Dataminr

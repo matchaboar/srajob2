@@ -1,6 +1,7 @@
 # Ground truth based on fixture: fixtures/debug/zoox/zoox_00ae30ba_detail.json
 site_id: general
 detail_url: https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4
+apply_url: https://jobs.lever.co/zoox/00ae30ba-a04c-495d-99fc-c2ac918f14e4
 expected:
   title_contains: "Team Lead"
   company: "Zoox"

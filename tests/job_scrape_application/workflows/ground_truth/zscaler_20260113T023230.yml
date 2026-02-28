@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: zscaler
 detail_url: https://boards-api.greenhouse.io/v1/boards/zscaler/jobs/4969685007
+apply_url: https://boards.greenhouse.io/zscaler/jobs/4969685007
 expected:
   title: Backend Engineer, Data Pipelines (Avalor)
   company: Zscaler

@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: notion
 detail_url: https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297
+apply_url: https://jobs.ashbyhq.com/notion/0fe96f47-a9ea-4623-ac73-9053c3541297
 expected:
   title_contains: "Account Executive, Mid-Market"
   company: "Notion"

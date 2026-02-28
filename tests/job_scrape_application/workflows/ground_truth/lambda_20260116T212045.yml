@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: lambda
 detail_url: https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938
+apply_url: https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938
 expected:
   title_contains: "Senior Software Engineer - AI Cloud"
   company: "Lambda"

@@ -1,0 +1,9 @@
+# IMPORTANT_NOTE: Debug fixture for Personalis job board
+# Note: This fixture contains the listing page, not a detail page
+# Once full extraction is tested, update with actual job detail assertions
+site_id: job_boards
+detail_url: https://job-boards.greenhouse.io/personalisinc
+apply_url: https://job-boards.greenhouse.io/personalisinc
+expected:
+  skip: true
+  skip_reason: "Fixture is a listing page, not a detail page - no jobs can be extracted"

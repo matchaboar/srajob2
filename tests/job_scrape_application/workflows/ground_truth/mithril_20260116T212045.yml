@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: mithril
 detail_url: https://boards-api.greenhouse.io/v1/boards/mithril/jobs/4604609007
+apply_url: https://boards.greenhouse.io/mithril/jobs/4604609007
 expected:
   title_contains: "Senior Product Engineer, Marketplace"
   company: "Mithril"

@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: docusign
 detail_url: https://careers.docusign.com/jobs/27215?lang=en-us
+apply_url: https://careers.docusign.com/jobs/27215?lang=en-us
 expected:
   title: Software Engineer
   company: Docusign

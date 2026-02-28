@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/microsoft/microsoft_careers_20260114T134509_detail.json
 site_id: microsoft_careers
 detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556651308&domain=microsoft.com&hl=en
+apply_url: https://apply.careers.microsoft.com/careers/job/1970393556651308
 expected:
   title_contains: "Senior Software Engineer"
   company: "Microsoft"

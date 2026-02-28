@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: samsara
 detail_url: https://boards-api.greenhouse.io/v1/boards/samsara/jobs/7361946
+apply_url: https://boards.greenhouse.io/samsara/jobs/7361946
 expected:
   title_contains: "Account Based Marketing Manager"
   company: "Samsara"

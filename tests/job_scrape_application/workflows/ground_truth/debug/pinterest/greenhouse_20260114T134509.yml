@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/pinterest/greenhouse_20260114T134509_detail.json
 site_id: greenhouse
 detail_url: https://boards-api.greenhouse.io/v1/boards/pinterest/jobs/7444414
+apply_url: https://boards.greenhouse.io/pinterest/jobs/7444414
 expected:
   title: "Business Development Lead, Data Partnerships"
   company: "Pinterest"

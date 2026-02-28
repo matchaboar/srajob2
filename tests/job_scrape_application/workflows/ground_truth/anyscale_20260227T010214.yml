@@ -1,0 +1,15 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/anyscale_20260227T010214_detail.json
+# Generated: 2026-02-27T01:02:24.695834+00:00
+# Ground truth manually written from fixture metadata and page content.
+site_id: anyscale
+detail_url: https://jobs.ashbyhq.com/anyscale/667aa170-ac1e-48a3-b1d1-38c094665f4c
+apply_url: https://jobs.ashbyhq.com/anyscale/667aa170-ac1e-48a3-b1d1-38c094665f4c
+expected:
+  title: "Software Engineer - Model Serving Infrastructure"
+  company: "Anyscale"
+  location_contains: "San Francisco"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

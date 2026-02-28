@@ -111,6 +111,26 @@ class WorkdayHandler(BaseSiteHandler):
             return False
         return "/wday/cxs/" in (parsed.path or "").lower()
 
+    def get_company_uri(self, uri: str) -> Optional[str]:
+        if not self.matches_url(uri) or not self.is_api_detail_url(uri):
+            return None
+        try:
+            parsed = urlparse(uri)
+        except Exception:
+            return None
+        segments = [s for s in (parsed.path or "").split("/") if s]
+        # API URL: /wday/cxs/{tenant}/{site_id}/job/...
+        if "cxs" not in segments:
+            return None
+        idx = segments.index("cxs")
+        # Need at least tenant, site_id, and job/... after cxs
+        if idx + 3 >= len(segments):
+            return None
+        site_id = segments[idx + 2]
+        rest = "/".join(segments[idx + 3 :])
+        marketing_path = f"/{site_id}/{rest}"
+        return urlunparse(parsed._replace(path=marketing_path, query="", fragment=""))
+
     def get_api_uri(self, uri: str) -> Optional[str]:
         if not self.matches_url(uri):
             return None

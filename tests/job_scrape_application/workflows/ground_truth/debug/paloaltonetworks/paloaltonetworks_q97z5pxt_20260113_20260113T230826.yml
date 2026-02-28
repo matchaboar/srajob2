@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: paloaltonetworks
 detail_url: https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128
+apply_url: https://jobs.paloaltonetworks.com/en/job/paris/service-delivery-leader/47263/79752840128
 expected:
   title: "Service Delivery Leader"
   company: "Palo Alto Networks"

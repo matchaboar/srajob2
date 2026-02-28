@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/robinhood/greenhouse_20260114T134509_detail.json
 site_id: greenhouse
 detail_url: https://boards-api.greenhouse.io/v1/boards/robinhood/jobs/6669758
+apply_url: https://boards.greenhouse.io/robinhood/jobs/6669758
 expected:
   title: "Android Engineer"
   company: "Robinhood"

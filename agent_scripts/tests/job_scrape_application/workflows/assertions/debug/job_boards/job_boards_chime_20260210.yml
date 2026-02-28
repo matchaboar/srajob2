@@ -1,0 +1,13 @@
+# IMPORTANT_NOTE: Fill in expected values after running extraction test
+site_id: job_boards
+detail_url: https://job-boards.greenhouse.io/chime
+expected:
+  title: "TODO"  # Fill in expected title
+  company: "Job-Boards"
+  location_contains: "TODO"  # Fill in expected location
+  is_remote: false  # Set to true if remote job
+  level: mid  # junior/mid/senior/staff
+  description_min_words: 300
+  description_not_contains: '{"'  # Ensure no JSON blocks in description
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

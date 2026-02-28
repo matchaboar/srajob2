@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/lambda/ashby_20260114T134509_detail.json
 site_id: ashby
 detail_url: https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938
+apply_url: https://jobs.ashbyhq.com/lambda/2d656d6c-733f-4072-8bee-847f142c0938
 expected:
   title: "Senior Software Engineer - AI Cloud"
   company: "Lambda"

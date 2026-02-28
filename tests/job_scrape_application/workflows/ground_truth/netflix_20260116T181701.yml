@@ -3,6 +3,7 @@
 # Raw location in fixture: "California - Remote,United States of America"
 site_id: netflix
 detail_url: https://explore.jobs.netflix.net/careers/job/790312429476
+apply_url: https://explore.jobs.netflix.net/careers/job/790312429476
 expected:
   title_contains: Systems Development Engineer
   company: Netflix

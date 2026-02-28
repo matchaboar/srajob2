@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/bloomberg/avature_20260114T134509_detail.json
 site_id: avature
 detail_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Data-Management-Professional-Data-Engineer-BNEF-Data/16762
+apply_url: https://bloomberg.avature.net/careers/JobDetail/Senior-Data-Management-Professional-Data-Engineer-BNEF-Data/16762
 expected:
   title: "Senior Data Management Professional - Data Engineer - BNEF Data"
   company: "Bloomberg"

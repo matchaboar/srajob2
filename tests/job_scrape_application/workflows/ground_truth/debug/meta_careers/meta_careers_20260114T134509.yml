@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/meta_careers/meta_careers_20260114T134509_detail.json
 site_id: meta_careers
 detail_url: https://www.metacareers.com/profile/job_details/727671609895617
+apply_url: https://www.metacareers.com/profile/job_details/727671609895617
 expected:
   title: "Software Engineer, Product"
   company: "Meta"

@@ -692,6 +692,18 @@ site_schedules:
   type: ashby
   url: https://jobs.ashbyhq.com/virio
 - enabled: true
+  name: roblox
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/roblox/jobs
+- enabled: true
   name: chime
   paginationLimit: 0
   schedule:
@@ -823,3 +835,123 @@ site_schedules:
   scrapeProvider: spidercloud
   type: meta
   url: https://www.metacareers.com/jobsearch/?teams[0]=Software%20Engineering&teams[1]=Research&teams[2]=Enterprise%20Engineering&teams[3]=Design%20%26%20User%20Experience&teams[4]=Data%20Center&teams[5]=Data%20%26%20Analytics&teams[6]=Artificial%20Intelligence&teams[7]=AR%2FVR&offices[0]=Seattle%2C%20WA&offices[1]=San%20Francisco%2C%20CA&offices[2]=Mesa%2C%20AZ&offices[3]=Chandler%2C%20AZ
+- enabled: true
+  name: inscribeai
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/InscribeAI
+- enabled: true
+  name: tennr
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/tennr
+- enabled: true
+  name: cogent-security
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/cogent-security
+- enabled: true
+  name: workwhilejobs
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/workwhilejobs
+- enabled: true
+  name: knot
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/knot
+- enabled: true
+  name: growtherapy
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/growtherapy/jobs
+- enabled: true
+  name: anyscale
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/anyscale
+- enabled: true
+  name: materialize
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/materialize/jobs
+- enabled: true
+  name: sourcegraph
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/sourcegraph91/jobs
+- enabled: true
+  name: onedoor
+  paginationLimit: 3
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: workday
+  url: https://onedoor.wd108.myworkdayjobs.com/OneDoorCareers

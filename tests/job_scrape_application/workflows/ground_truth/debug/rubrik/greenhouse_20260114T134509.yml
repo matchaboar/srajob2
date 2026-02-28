@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/rubrik/greenhouse_20260114T134509_detail.json
 site_id: greenhouse
 detail_url: https://boards-api.greenhouse.io/v1/boards/rubrik/jobs/6109450
+apply_url: https://boards.greenhouse.io/rubrik/jobs/6109450
 expected:
   title: "Backend Engineer"
   company: "Rubrik Job Board"

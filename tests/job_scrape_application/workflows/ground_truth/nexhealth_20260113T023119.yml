@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: nexhealth
 detail_url: https://boards-api.greenhouse.io/v1/boards/nexhealth/jobs/5709065004
+apply_url: https://boards.greenhouse.io/nexhealth/jobs/5709065004
 expected:
   title: Director of Software Engineering
   company: NexHealth

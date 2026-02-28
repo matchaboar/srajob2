@@ -23,7 +23,7 @@
   "convex_capture": {
     "ingested_jobs_count": 1,
     "stored_scrapes_count": 1,
-    "description_uploads_count": 1,
+    "description_uploads_count": 2,
     "ingested_jobs_sample": [
       {
         "title": "Account Executive, Airbnb for Business",
@@ -36,10 +36,16 @@
         "level": "mid",
         "remote": true,
         "cost_milli_cents": 3,
+        "sourceUrl": "https://api.greenhouse.io/v1/boards/airbnb/jobs",
         "_full_description_word_count": 892
       }
     ],
     "description_uploads_sample": [
+      {
+        "url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7434393",
+        "word_count": 892,
+        "description_preview": "Account Executive, Airbnb for Business Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts..."
+      },
       {
         "url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs/7434393",
         "word_count": 892,
@@ -462,7 +468,7 @@
         {
           "name": "now_fallback_posted_at",
           "priority": "FALLBACK",
-          "value": "2026-01-17T14:34:05.645863",
+          "value": "2026-02-26T18:22:30.593932",
           "is_valid": true,
           "reason": "Using current time as fallback (date unknown)"
         }

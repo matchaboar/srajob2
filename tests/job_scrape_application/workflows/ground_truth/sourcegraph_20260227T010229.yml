@@ -1,0 +1,14 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/sourcegraph_20260227T010229_detail.json
+# Generated: 2026-02-27T01:02:30.515949+00:00
+# Ground truth manually written from fixture metadata and page content.
+site_id: sourcegraph
+detail_url: https://boards-api.greenhouse.io/v1/boards/sourcegraph91/jobs/5782931004
+apply_url: https://boards.greenhouse.io/sourcegraph91/jobs/5782931004
+expected:
+  title_contains: "Senior Product Marketing Manager"
+  company: "Sourcegraph"
+  location_contains: "Remote"
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1

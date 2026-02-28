@@ -2,6 +2,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
+import { internal } from "./_generated/api";
 import { ashbySlugFromUrl, greenhouseSlugFromUrl } from "./siteUtils";
 import {
   splitLocation,
@@ -1627,24 +1628,42 @@ export const searchCompanies = query({
 export const refreshCompanySummaries = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const jobs = await ctx.db.query("jobs").collect();
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const summaries = new Map<
-      string,
-      {
-        name: string;
-        count: number;
-        currencyCode: string | null;
-        sampleUrl: string | null;
-        lastPostedAt: number;
-        lastScrapedAt: number;
-        engineerCount30d: number;
-        engineerLastPostedAt: number;
-        levels: Record<"junior" | "mid" | "senior", CompanyLevelStats>;
-      }
-    >();
+    await ctx.scheduler.runAfter(0, internal.jobs.refreshCompanySummariesLoop, {
+      cursor: null,
+      summariesJson: "{}",
+    });
+  },
+});
 
-    for (const job of jobs as Doc<"jobs">[]) {
+type SummaryEntry = {
+  name: string;
+  count: number;
+  currencyCode: string | null;
+  sampleUrl: string | null;
+  lastPostedAt: number;
+  lastScrapedAt: number;
+  engineerCount30d: number;
+  engineerLastPostedAt: number;
+  levels: Record<"junior" | "mid" | "senior", CompanyLevelStats>;
+};
+
+export const refreshCompanySummariesLoop = internalMutation({
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    summariesJson: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    const page = await ctx.db
+      .query("jobs")
+      .paginate({ cursor: args.cursor ?? null, numItems: 200 });
+
+    const summaries: Record<string, SummaryEntry> = JSON.parse(
+      args.summariesJson,
+    );
+
+    for (const job of page.page as Doc<"jobs">[]) {
       const rawCompany =
         typeof job.company === "string" ? job.company.trim() : "";
       const companyName = rawCompany.replace(/\s+/g, " ").trim();
@@ -1656,7 +1675,7 @@ export const refreshCompanySummaries = internalMutation({
           : deriveCompanyKey(companyName);
       if (!key) continue;
 
-      let entry = summaries.get(key);
+      let entry = summaries[key];
       if (!entry) {
         entry = {
           name: companyName,
@@ -1673,7 +1692,7 @@ export const refreshCompanySummaries = internalMutation({
             senior: emptyCompanyLevelStats(),
           },
         };
-        summaries.set(key, entry);
+        summaries[key] = entry;
       } else if (companyName && companyName.length < entry.name.length) {
         entry.name = companyName;
       }
@@ -1736,6 +1755,33 @@ export const refreshCompanySummaries = internalMutation({
       }
     }
 
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.jobs.refreshCompanySummariesLoop,
+        {
+          cursor: page.continueCursor,
+          summariesJson: JSON.stringify(summaries),
+        },
+      );
+    } else {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.jobs.refreshCompanySummariesWrite,
+        { summariesJson: JSON.stringify(summaries) },
+      );
+    }
+  },
+});
+
+export const refreshCompanySummariesWrite = internalMutation({
+  args: {
+    summariesJson: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const summaries: Record<string, SummaryEntry> = JSON.parse(
+      args.summariesJson,
+    );
     const now = Date.now();
     const existing = (await ctx.db
       .query("company_summaries")
@@ -1746,7 +1792,7 @@ export const refreshCompanySummaries = internalMutation({
     let updated = 0;
     let deleted = 0;
 
-    for (const [key, entry] of summaries) {
+    for (const [key, entry] of Object.entries(summaries)) {
       seen.add(key);
       const avgJunior = averageFromStats(entry.levels.junior);
       const avgMid = averageFromStats(entry.levels.mid);
@@ -1783,7 +1829,9 @@ export const refreshCompanySummaries = internalMutation({
       }
     }
 
-    return { inserted, updated, deleted, total: summaries.size };
+    console.log(
+      `[refreshCompanySummaries] done: inserted=${inserted} updated=${updated} deleted=${deleted} total=${Object.keys(summaries).length}`,
+    );
   },
 });
 

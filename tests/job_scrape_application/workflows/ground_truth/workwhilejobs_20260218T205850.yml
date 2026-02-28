@@ -1,0 +1,15 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/workwhilejobs_20260218T205850_detail.json
+# Generated: 2026-02-18T20:58:57.969957+00:00
+# Ground truth manually written from fixture metadata and page content.
+site_id: workwhilejobs
+detail_url: https://jobs.ashbyhq.com/workwhilejobs/ecb9a701-c64b-403a-94fc-15a0bf599787
+apply_url: https://jobs.ashbyhq.com/workwhilejobs/ecb9a701-c64b-403a-94fc-15a0bf599787
+expected:
+  title: "Sales Development Representative"
+  company: "WorkWhile"
+  location_contains: "Remote"
+  is_remote: true
+  level: junior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

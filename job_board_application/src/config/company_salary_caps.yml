@@ -119,6 +119,11 @@ company_salary_caps:
     mid: 248000
     senior: 303000
     staff: 303000
+  OneDoor:
+    junior: 150000
+    mid: 300000
+    senior: 450000
+    staff: 450000
   Netflix:
     junior: 0
     mid: 589000

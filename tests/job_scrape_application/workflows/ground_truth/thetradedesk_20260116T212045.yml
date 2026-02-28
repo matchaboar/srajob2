@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: thetradedesk
 detail_url: https://boards-api.greenhouse.io/v1/boards/thetradedesk/jobs/4828165007
+apply_url: https://boards.greenhouse.io/thetradedesk/jobs/4828165007
 expected:
   title_contains: "2026 China Data Science Internship - Deep Learning Focus"
   company: "The Trade Desk"

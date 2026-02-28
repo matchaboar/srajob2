@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/kula_k17emevf0pnx9fx30bb6zgdj657z536b_20260113T054508_detail.json
 site_id: kula
 detail_url: https://careers.kula.ai/voltagepark/20818
+apply_url: https://careers.kula.ai/voltagepark/20818
 expected:
   # The fixture shows "Redmond, Washington, United States" (line 8)
   # Job requires 7+ years experience and 2+ years managing teams (senior level)

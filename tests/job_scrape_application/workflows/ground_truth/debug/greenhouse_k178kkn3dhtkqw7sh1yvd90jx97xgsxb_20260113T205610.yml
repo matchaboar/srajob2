@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/greenhouse_k178kkn3dhtkqw7sh1yvd90jx97xgsxb_20260113T205610_detail.json
 site_id: greenhouse
 detail_url: https://boards.greenhouse.io/airbnb/jobs/7362663
+apply_url: https://boards.greenhouse.io/airbnb/jobs/7362663
 expected:
   title: "Staff Software Engineer, Search Infrastructure"
   company: "Airbnb"

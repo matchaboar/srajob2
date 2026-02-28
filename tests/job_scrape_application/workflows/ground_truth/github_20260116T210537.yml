@@ -1,17 +1,14 @@
 # fixture_path: tests/job_scrape_application/workflows/fixtures/dbos_schedule/github_20260116T210537_detail.json
 # Generated: 2026-01-16T21:05:46.456120+00:00
-# IMPORTANT: Update expected values based on actual job data in the fixture.
-# This file is auto-generated - existing files are NEVER overwritten.
 site_id: github
 detail_url: https://www.github.careers/careers-home/jobs/4867?lang=en-us
+apply_url: https://www.github.careers/careers-home/jobs/4867?lang=en-us
 expected:
-  title_contains: ""  # TODO: Add expected title substring
+  title_contains: "Senior Software Engineer"
   company: "GitHub"
-  location_contains: ""  # TODO: Add expected location substring
-  is_remote: true  # TODO: Set expected remote status
-  level: senior  # Options: junior, mid, senior, staff
-  description_min_words: 50
-  # Full description assertions - proves workflow posts to file storage
-  full_description_word_count_min: 0  # Full description for file storage
-  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  location_contains: "United States"
+  is_remote: true
+  level: senior
+  description_min_words: 200
+  full_description_word_count_min: 500
   cost_milli_cents_min: 1

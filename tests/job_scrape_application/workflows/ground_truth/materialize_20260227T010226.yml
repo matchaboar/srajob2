@@ -1,0 +1,14 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/materialize_20260227T010226_detail.json
+# Generated: 2026-02-27T01:02:28.040872+00:00
+# Ground truth manually written from fixture metadata and page content.
+site_id: materialize
+detail_url: https://boards-api.greenhouse.io/v1/boards/materialize/jobs/5691429004
+apply_url: https://boards.greenhouse.io/materialize/jobs/5691429004
+expected:
+  title: "Field Engineer"
+  company: "Materialize"
+  location_contains: "New York"
+  is_remote: false
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1

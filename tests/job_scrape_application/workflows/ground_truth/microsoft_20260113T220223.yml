@@ -2,6 +2,7 @@
 # IMPORTANT_NOTE: ASSERTION SHOULD CONTAIN THE CORRECT EXPECTATION, NOT NECESSARILY WHAT IS EXTRACTED.
 site_id: microsoft
 detail_url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556629309&domain=microsoft.com&hl=en
+apply_url: https://apply.careers.microsoft.com/careers/job/1970393556629309
 expected:
   title_contains: Software Engineer
   company: Microsoft

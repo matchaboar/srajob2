@@ -1,17 +1,14 @@
 # fixture_path: tests/job_scrape_application/workflows/fixtures/dbos_schedule/cisco_20260116T210452_detail.json
 # Generated: 2026-01-16T21:05:07.190047+00:00
-# IMPORTANT: Update expected values based on actual job data in the fixture.
-# This file is auto-generated - existing files are NEVER overwritten.
 site_id: cisco
 detail_url: https://careers.cisco.com/global/en/job/1448611/Software-Engineer-Go-Isovalent-Europe-Remote
+apply_url: https://careers.cisco.com/global/en/job/1448611/Software-Engineer-Go-Isovalent-Europe-Remote
 expected:
-  title_contains: ""  # TODO: Add expected title substring
+  title_contains: "Software Engineer Go"
   company: "Cisco"
-  location_contains: ""  # TODO: Add expected location substring
+  location_contains: "Zurich"
   is_remote: true
-  level: mid  # Options: junior, mid, senior, staff
-  description_min_words: 50
-  # Full description assertions - proves workflow posts to file storage
-  full_description_word_count_min: 0  # Full description for file storage
-  truncated_description_word_count_max: 0  # Truncated for jobs table (max 100)
+  level: mid
+  description_min_words: 100
+  full_description_word_count_min: 200
   cost_milli_cents_min: 1

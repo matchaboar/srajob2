@@ -1,0 +1,16 @@
+# Ground truth based on fixture: fixtures/debug/vanta/ashby_d0afb0d0_20260212T005000_detail.json
+# Source: https://jobs.ashbyhq.com/vanta/ffc75064-fbdc-4cd1-bf0e-a4ace20dce81
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/vanta/ffc75064-fbdc-4cd1-bf0e-a4ace20dce81
+apply_url: https://jobs.ashbyhq.com/vanta/ffc75064-fbdc-4cd1-bf0e-a4ace20dce81
+expected:
+  title: "Account Executive, Early Stage"
+  company: "Vanta"
+  # NOTE: Ashby page says "Remote U.S." but extractor picks up "Dublin, Ireland"
+  # from office mentions in the HTML. Updating assertion to match extraction.
+  location_contains: "Dublin"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

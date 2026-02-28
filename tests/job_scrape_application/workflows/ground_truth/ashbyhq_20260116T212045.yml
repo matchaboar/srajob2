@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: ashbyhq
 detail_url: https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607
+apply_url: https://jobs.ashbyhq.com/factory/2243dab2-62dc-4c64-b4bc-8f7314475607
 expected:
   title_contains: "AI Engineer"
   company: "Factory"

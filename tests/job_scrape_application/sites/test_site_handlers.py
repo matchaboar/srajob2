@@ -16,6 +16,7 @@ from job_scrape_application.workflows.site_handlers import (  # noqa: E402
     MetaCareersHandler,
     NetflixHandler,
     UberCareersHandler,
+    WorkdayHandler,
     get_site_handler,
 )
 from tests.job_scrape_application.sites.helpers import load_spidercloud_fixture  # noqa: E402
@@ -729,3 +730,43 @@ def test_base_handler_filters_navigation_urls():
     # All valid job URLs should remain
     for url in valid_urls:
         assert url in filtered, f"Valid job URL should remain: {url}"
+
+
+def test_workday_handler_get_company_uri_broadcom():
+    handler = WorkdayHandler()
+    api_url = (
+        "https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/"
+        "External_Career/job/USA-CA-Irvine/IC-Design-Engineer_R023525"
+    )
+    expected = (
+        "https://broadcom.wd1.myworkdayjobs.com/"
+        "External_Career/job/USA-CA-Irvine/IC-Design-Engineer_R023525"
+    )
+    assert handler.get_company_uri(api_url) == expected
+
+
+def test_workday_handler_get_company_uri_dataminr():
+    handler = WorkdayHandler()
+    api_url = (
+        "https://dataminr.wd12.myworkdayjobs.com/wday/cxs/dataminr/"
+        "Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945"
+    )
+    expected = (
+        "https://dataminr.wd12.myworkdayjobs.com/"
+        "Dataminr/job/Melbourne-AU/Customer-Success-Associate_JR1945"
+    )
+    assert handler.get_company_uri(api_url) == expected
+
+
+def test_workday_handler_get_company_uri_non_api_url_returns_none():
+    handler = WorkdayHandler()
+    marketing_url = (
+        "https://broadcom.wd1.myworkdayjobs.com/"
+        "External_Career/job/USA-CA-Irvine/IC-Design-Engineer_R023525"
+    )
+    assert handler.get_company_uri(marketing_url) is None
+
+
+def test_workday_handler_get_company_uri_non_workday_url_returns_none():
+    handler = WorkdayHandler()
+    assert handler.get_company_uri("https://boards.greenhouse.io/acme/jobs/123") is None

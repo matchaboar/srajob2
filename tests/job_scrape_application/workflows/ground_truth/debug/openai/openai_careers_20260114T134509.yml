@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/openai/openai_careers_20260114T134509_detail.json
 site_id: openai_careers
 detail_url: https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco
+apply_url: https://openai.com/careers/ai-support-engineer-san-francisco-san-francisco
 expected:
   title: "AI Support Engineer"
   company: "Openai"

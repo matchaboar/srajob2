@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/github/github_careers_20260114T134509_detail.json
 site_id: github_careers
 detail_url: https://www.github.careers/careers-home/jobs/4764?lang=en-us
+apply_url: https://www.github.careers/careers-home/jobs/4764?lang=en-us
 expected:
   title: "Software Engineer III"
   company: "GitHub"

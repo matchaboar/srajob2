@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: figma
 detail_url: https://boards-api.greenhouse.io/v1/boards/figma/jobs/5721796004
+apply_url: https://boards.greenhouse.io/figma/jobs/5721796004
 expected:
   title_contains: "Community Experiences Manager"
   company: "Figma"

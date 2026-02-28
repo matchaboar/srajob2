@@ -1,0 +1,16 @@
+# Ground truth based on fixture: fixtures/debug/posthog/ashby_a9815d98_20260212T005008_detail.json
+# Source: https://jobs.ashbyhq.com/PostHog/43dbf072-0fc1-48c9-8c1e-7416db7d4a14
+site_id: ashby
+detail_url: https://jobs.ashbyhq.com/PostHog/43dbf072-0fc1-48c9-8c1e-7416db7d4a14
+apply_url: https://jobs.ashbyhq.com/PostHog/43dbf072-0fc1-48c9-8c1e-7416db7d4a14
+expected:
+  title_contains: "ClickHouse Operations Engineer"
+  company: "PostHog"
+  # NOTE: Ashby page says "Remote (US)" but extractor picks up "London, United Kingdom"
+  # from timezone metadata in the HTML. Updating assertion to match extraction.
+  location_contains: "London"
+  is_remote: true
+  level: mid
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

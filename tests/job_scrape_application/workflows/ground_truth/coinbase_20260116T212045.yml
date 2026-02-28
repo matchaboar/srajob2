@@ -4,6 +4,7 @@
 # This file is auto-generated - existing files are NEVER overwritten.
 site_id: coinbase
 detail_url: https://boards-api.greenhouse.io/v1/boards/coinbase/jobs/7528144
+apply_url: https://boards.greenhouse.io/coinbase/jobs/7528144
 expected:
   title_contains: "Accounting Manager, Canada CIRO"
   company: "Coinbase Careers Page"

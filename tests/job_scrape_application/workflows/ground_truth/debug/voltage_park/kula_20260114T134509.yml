@@ -1,6 +1,7 @@
 # These are asserted to be the ground truth based on actual contents of the fixture: fixtures/debug/voltage_park/kula_20260114T134509_detail.json
 site_id: kula
 detail_url: https://careers.kula.ai/voltagepark/19780
+apply_url: https://careers.kula.ai/voltagepark/19780
 expected:
   title: "Data Center Site Operations Manager - Voltage Park"
   # Note: Company extraction returns "Kula" (platform name) not "Voltage Park" (actual company)
