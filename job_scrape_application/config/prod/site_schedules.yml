@@ -955,3 +955,15 @@ site_schedules:
   scrapeProvider: spidercloud
   type: ashby
   url: https://jobs.ashbyhq.com/knot
+- enabled: true
+  name: ditto
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://jobs.ashbyhq.com/ditto

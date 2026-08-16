@@ -944,6 +944,18 @@ site_schedules:
   type: greenhouse
   url: https://api.greenhouse.io/v1/boards/sourcegraph91/jobs
 - enabled: true
+  name: cedar
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 09:30
+    startTime: 09:30
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: greenhouse
+  url: https://api.greenhouse.io/v1/boards/careportalinc/jobs
+- enabled: true
   name: onedoor
   paginationLimit: 3
   schedule:
@@ -955,3 +967,15 @@ site_schedules:
   scrapeProvider: spidercloud
   type: workday
   url: https://onedoor.wd108.myworkdayjobs.com/OneDoorCareers
+- enabled: true
+  name: greptile
+  paginationLimit: 0
+  schedule:
+    days: *id001
+    intervalMinutes: 120.0
+    name: Weekdays every 2 hours @ 08:00
+    startTime: 08:00
+    timezone: America/Denver
+  scrapeProvider: spidercloud
+  type: ashby
+  url: https://api.ashbyhq.com/posting-api/job-board/greptile

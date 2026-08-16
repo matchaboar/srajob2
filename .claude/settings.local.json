@@ -80,7 +80,10 @@
       "Bash(else)",
       "Bash(sort:*)",
       "Bash(pnpm run lint:*)",
-      "WebFetch(domain:jobs.ashbyhq.com)"
+      "WebFetch(domain:jobs.ashbyhq.com)",
+      "WebFetch(domain:boards-api.greenhouse.io)",
+      "WebFetch(domain:boards.greenhouse.io)",
+      "WebFetch(domain:api.greenhouse.io)"
     ]
   },
   "outputStyle": "default"

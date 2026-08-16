@@ -1,0 +1,15 @@
+# fixture_path: tests/job_scrape_application/workflows/fixtures/single_request/ditto_20260302T223428_detail.json
+# Generated: 2026-03-02T22:34:36.589279+00:00
+# Ground truth manually written from fixture metadata and page content.
+site_id: ditto
+detail_url: https://jobs.ashbyhq.com/ditto/65f522c2-efee-48aa-a094-cdf80576a272
+apply_url: https://jobs.ashbyhq.com/ditto/65f522c2-efee-48aa-a094-cdf80576a272
+expected:
+  title: "Senior Software Engineer, Bluetooth"
+  company: "Ditto"
+  location_contains: "San Francisco"
+  is_remote: true
+  level: senior
+  description_min_words: 50
+  cost_milli_cents_min: 1
+  posted_at_not_null: true

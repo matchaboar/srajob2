@@ -333,7 +333,7 @@ function Run-PreflightChecks {
     }
 
     $steps = @(
-        @{ Name = "update site schedules"; Timeout = 45; Block = $updateSiteSchedulesBlock },
+        @{ Name = "update site schedules"; Timeout = 120; Block = $updateSiteSchedulesBlock },
         @{ Name = "ruff"; Timeout = 15; Block = { uvx ruff check job_scrape_application } }
         # @{ Name = "pytest"; Timeout = 120; Block = { uv run pytest } }
     )
